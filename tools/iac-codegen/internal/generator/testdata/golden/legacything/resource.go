@@ -34,14 +34,27 @@ var (
 // *clientset.ClientSet.
 type Resource struct {
 	client *legacy_things_service.LegacyThingsServiceAPIService
+	hooks  Hooks
+}
+
+// Hooks are handwritten steps around generated CRUD. Pass them to NewResource
+// so a resource that is used without the overlay package does not silently skip them.
+type Hooks struct {
+	// BeforeWrite mutates the expanded request body before the API call.
+	BeforeWrite func(context.Context, tfsdk.Config, any) diag.Diagnostics
+	// AfterRead mutates state after flatten. prior is the plan after Create or
+	// Update, or the state before Read.
+	AfterRead func(context.Context, *tfsdk.State, any) diag.Diagnostics
 }
 
 // NewResource returns the resource. Use it in provider.Resources.
-func NewResource() resource.Resource { return &Resource{} }
+func NewResource(hooks Hooks) resource.Resource {
+	return &Resource{hooks: hooks}
+}
 
 // NewResourceWithClient returns the resource with an injected API client.
-func NewResourceWithClient(client *legacy_things_service.LegacyThingsServiceAPIService) resource.Resource {
-	return &Resource{client: client}
+func NewResourceWithClient(client *legacy_things_service.LegacyThingsServiceAPIService, hooks Hooks) resource.Resource {
+	return &Resource{client: client, hooks: hooks}
 }
 
 func (r *Resource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -89,8 +102,8 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if BeforeWrite != nil {
-		resp.Diagnostics.Append(BeforeWrite(ctx, req.Config, body)...)
+	if r.hooks.BeforeWrite != nil {
+		resp.Diagnostics.Append(r.hooks.BeforeWrite(ctx, req.Config, body)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -100,7 +113,7 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 		resp.Diagnostics.AddError("Unable to create "+TypeName, err.Error())
 		return
 	}
-	diags = setState(ctx, v, req.Plan, &resp.State)
+	diags = r.setState(ctx, v, req.Plan, &resp.State)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() && v != nil && v.Id != nil {
 		// The resource exists, but the state is not complete. Keep the id, so
@@ -127,7 +140,7 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 		resp.Diagnostics.AddError("Unable to read "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 		return
 	}
-	resp.Diagnostics.Append(setState(ctx, v, req.State, &resp.State)...)
+	resp.Diagnostics.Append(r.setState(ctx, v, req.State, &resp.State)...)
 }
 
 // Update sends every Update field: a PUT replaces the resource. When no
@@ -144,8 +157,8 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if body != nil && BeforeWrite != nil {
-		resp.Diagnostics.Append(BeforeWrite(ctx, req.Config, body)...)
+	if body != nil && r.hooks.BeforeWrite != nil {
+		resp.Diagnostics.Append(r.hooks.BeforeWrite(ctx, req.Config, body)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -167,7 +180,7 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		resp.Diagnostics.AddError("Unable to update "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 		return
 	}
-	resp.Diagnostics.Append(setState(ctx, v, req.Plan, &resp.State)...)
+	resp.Diagnostics.Append(r.setState(ctx, v, req.Plan, &resp.State)...)
 }
 
 // Delete treats a resource that the API does not find as deleted.
@@ -228,7 +241,7 @@ func (r *Resource) delete(ctx context.Context, id string) error {
 // state before Read. A state upgrade has no prior of this schema version, so it passes nil and
 // the state takes the value of the API. flatten returns an error when the response has no
 // resource.
-func setState(ctx context.Context, v *legacy_things_service.LegacyThing, prior tfData, state *tfsdk.State) diag.Diagnostics {
+func (r *Resource) setState(ctx context.Context, v *legacy_things_service.LegacyThing, prior tfData, state *tfsdk.State) diag.Diagnostics {
 	m, diags := flatten(ctx, v, priorModel(ctx, prior))
 	if diags.HasError() {
 		return diags
@@ -240,8 +253,8 @@ func setState(ctx context.Context, v *legacy_things_service.LegacyThing, prior t
 	if prior != nil {
 		diags.Append(keepPriorEmpty(ctx, prior, state)...)
 	}
-	if AfterRead != nil && !diags.HasError() {
-		diags.Append(AfterRead(ctx, state, prior)...)
+	if r.hooks.AfterRead != nil && !diags.HasError() {
+		diags.Append(r.hooks.AfterRead(ctx, state, prior)...)
 	}
 	return diags
 }
@@ -293,7 +306,7 @@ func (r *Resource) upgradeByRefresh(ctx context.Context, req resource.UpgradeSta
 		resp.Diagnostics.AddError("Unable to read "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 		return
 	}
-	resp.Diagnostics.Append(setState(ctx, v, nil, &resp.State)...)
+	resp.Diagnostics.Append(r.setState(ctx, v, nil, &resp.State)...)
 }
 
 // stateID returns the id in the state.

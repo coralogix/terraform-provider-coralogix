@@ -29,8 +29,10 @@ func deleteThing(t *testing.T, id string, err error) (*frameworkresource.DeleteR
 	r.Schema(ctx, frameworkresource.SchemaRequest{}, &schemaResp)
 	root := schemaResp.Schema.Type().TerraformType(ctx)
 	raw := tftypes.NewValue(root, map[string]tftypes.Value{
-		"id":   tftypes.NewValue(tftypes.String, id),
-		"name": tftypes.NewValue(tftypes.String, "name"),
+		"id":                tftypes.NewValue(tftypes.String, id),
+		"name":              tftypes.NewValue(tftypes.String, "name"),
+		"token_wo":          tftypes.NewValue(tftypes.Map{ElementType: tftypes.String}, nil),
+		"token_wo_versions": tftypes.NewValue(tftypes.Map{ElementType: tftypes.Number}, nil),
 	})
 	resp := &frameworkresource.DeleteResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: raw}}
 	r.Delete(ctx, frameworkresource.DeleteRequest{State: tfsdk.State{Schema: schemaResp.Schema, Raw: raw}}, resp)

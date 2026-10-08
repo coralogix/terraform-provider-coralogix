@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"example.com/iac-test-sdk/go/openapi/gen/archived_things_service"
@@ -60,15 +59,6 @@ func expandUpdate(ctx context.Context, m *ArchivedThingModel) (*archived_things_
 	out := expandReplaceArchivedThingRequest(ctx, path.Empty(), m, &diags)
 	return out, diags
 }
-
-// BeforeWrite mutates the expanded request body before the API call. The
-// handwritten overlay uses it for write-only attributes. Nil means no extra step.
-var BeforeWrite func(context.Context, tfsdk.Config, any) diag.Diagnostics
-
-// AfterRead mutates state after flatten. The handwritten overlay uses it to
-// restore write-only versions and strip secret field values. prior is the plan
-// after Create or Update, or the state before Read. Nil means no extra step.
-var AfterRead func(context.Context, *tfsdk.State, any) diag.Diagnostics
 
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
@@ -254,6 +244,8 @@ func flattenArchivedThing(ctx context.Context, p path.Path, v *archived_things_s
 	out := &ArchivedThingModel{}
 	out.Id = types.StringPointerValue(v.Id)
 	out.Name = types.StringPointerValue(v.Name)
+	out.TokenWo = types.MapNull(types.StringType)
+	out.TokenWoVersions = types.MapNull(types.Int64Type)
 	return out
 }
 

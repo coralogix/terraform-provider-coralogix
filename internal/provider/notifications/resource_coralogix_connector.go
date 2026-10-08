@@ -7,7 +7,7 @@
 //     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an AS IS BASIS,
+// distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
@@ -33,7 +33,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 var (
@@ -45,34 +44,15 @@ var (
 )
 
 func NewConnectorResource() resource.Resource {
-	return &ConnectorResource{Resource: connector.NewResource().(*connector.Resource)}
+	return &ConnectorResource{Resource: connector.NewResource(connector.Hooks{
+		BeforeWrite: mergeWriteOnlyIntoRequest,
+		AfterRead:   restoreWriteOnlyAfterRead,
+	}).(*connector.Resource)}
 }
 
 // ConnectorResource is the generated connector plus write-only secret overlay.
 type ConnectorResource struct {
 	*connector.Resource
-}
-
-// ConnectorResourceModel is the generated connector plus write-only secret fields
-// that the generator cannot emit.
-type ConnectorResourceModel struct {
-	ID              types.String `tfsdk:"id"`
-	Name            types.String `tfsdk:"name"`
-	Description     types.String `tfsdk:"description"`
-	Type            types.String `tfsdk:"type"`
-	ConnectorConfig types.Object `tfsdk:"connector_config"` // ConnectorConfigModel
-	ConfigOverrides types.List   `tfsdk:"config_overrides"`
-}
-
-type ConnectorConfigModel struct {
-	ConnectorConfigFields types.Set `tfsdk:"fields"`
-	FieldValuesWO         types.Map `tfsdk:"field_values_wo"`
-	FieldValuesWOVersions types.Map `tfsdk:"field_values_wo_versions"`
-}
-
-type ConnectorConfigFieldModel struct {
-	FieldName types.String `tfsdk:"field_name"`
-	Value     types.String `tfsdk:"value"`
 }
 
 func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -90,24 +70,6 @@ func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 		return
 	}
 	cfg.Validators = []validator.Object{connectorWriteOnlyFieldsValidator{}}
-	cfg.Attributes["field_values_wo"] = schema.MapAttribute{
-		ElementType: types.StringType,
-		Optional:    true,
-		WriteOnly:   true,
-		MarkdownDescription: "Secret values for connector fields, keyed by field name, which Terraform sends to the API and never writes to state. " +
-			"A field named here must not also appear in `fields`. Each entry needs a matching entry in `field_values_wo_versions`. Requires Terraform 1.11 or later.\n\n" +
-			"Importing is the one exception. An import has neither configuration nor prior state, so nothing identifies which field is a secret, and the API returns every field's value: " +
-			"the secret is written to state by the import itself. The following apply removes it again. Treat a secret that has been through an import as exposed, and rotate it. " +
-			"Reading the same connector through `data.coralogix_connector` also returns the value, under `connector_config.fields`: a data source reads from the API and has no configuration telling it which value is managed write-only.",
-	}
-	if _, ok := cfg.Attributes["field_values_wo_versions"]; !ok {
-		cfg.Attributes["field_values_wo_versions"] = schema.MapAttribute{
-			ElementType: types.Int64Type,
-			Optional:    true,
-			MarkdownDescription: "Version of each `field_values_wo` entry, keyed by the same field name. Increment a value to send a rotated secret: " +
-				"Terraform holds no copy of a write-only value, so it cannot notice that one changed. These versions are kept in state and are not secret.",
-		}
-	}
 	s.Attributes["connector_config"] = cfg
 	resp.Schema = s
 }
@@ -137,13 +99,13 @@ var connectorCredentialFieldNames = map[string]struct{}{
 	"token":             {},
 }
 
-func connectorWarningSummary(config *ConnectorResourceModel, field string) string {
+func connectorWarningSummary(id, name types.String, field string) string {
 	subject := ""
 	switch {
-	case !config.ID.IsNull() && !config.ID.IsUnknown():
-		subject = config.ID.ValueString()
-	case !config.Name.IsNull() && !config.Name.IsUnknown():
-		subject = config.Name.ValueString()
+	case !id.IsNull() && !id.IsUnknown():
+		subject = id.ValueString()
+	case !name.IsNull() && !name.IsUnknown():
+		subject = name.ValueString()
 	}
 	if subject == "" {
 		return fmt.Sprintf("Connector field %q is stored in state", field)
@@ -151,47 +113,37 @@ func connectorWarningSummary(config *ConnectorResourceModel, field string) strin
 	return fmt.Sprintf("Connector field %q of %q is stored in state", field, subject)
 }
 
-func connectorCredentialWarnings(ctx context.Context, config *ConnectorResourceModel) diag.Diagnostics {
+func connectorCredentialWarnings(ctx context.Context, id, name types.String, fields types.Set) diag.Diagnostics {
 	var diags diag.Diagnostics
-	if config == nil || config.ConnectorConfig.IsNull() || config.ConnectorConfig.IsUnknown() {
+	if fields.IsNull() || fields.IsUnknown() {
 		return diags
 	}
 
-	var connectorConfig ConnectorConfigModel
-	if dg := config.ConnectorConfig.As(ctx, &connectorConfig, basetypes.ObjectAsOptions{}); dg.HasError() {
-		return diags
-	}
-	fieldSet := connectorConfig.ConnectorConfigFields
-	if fieldSet.IsNull() || fieldSet.IsUnknown() {
-		return diags
-	}
-
-	var fields []ConnectorConfigFieldModel
-	if dg := fieldSet.ElementsAs(ctx, &fields, false); dg.HasError() {
-		return diags
-	}
-
-	names := make([]string, 0, len(fields))
-	for _, field := range fields {
-		if field.FieldName.IsNull() || field.FieldName.IsUnknown() {
+	names := make([]string, 0)
+	for _, elem := range fields.Elements() {
+		obj, ok := elem.(types.Object)
+		if !ok || obj.IsNull() || obj.IsUnknown() {
 			continue
 		}
-		name := field.FieldName.ValueString()
-		if _, ok := connectorCredentialFieldNames[strings.ToLower(name)]; !ok {
+		attrs := obj.Attributes()
+		fieldName, _ := attrs["field_name"].(types.String)
+		value, _ := attrs["value"].(types.String)
+		if fieldName.IsNull() || fieldName.IsUnknown() || value.IsNull() {
 			continue
 		}
-		if field.Value.IsNull() {
+		n := fieldName.ValueString()
+		if _, ok := connectorCredentialFieldNames[strings.ToLower(n)]; !ok {
 			continue
 		}
-		names = append(names, name)
+		names = append(names, n)
 	}
 	sort.Strings(names)
 
-	for _, name := range names {
+	for _, field := range names {
 		diags.AddAttributeWarning(
 			path.Root("connector_config").AtName("fields"),
-			connectorWarningSummary(config, name),
-			fmt.Sprintf("%s is set through fields, which appears to carry a secret. Terraform writes it to state. ", name)+
+			connectorWarningSummary(id, name, field),
+			fmt.Sprintf("%s is set through fields, which appears to carry a secret. Terraform writes it to state. ", field)+
 				"Move it to connector_config.field_values_wo with an entry in connector_config.field_values_wo_versions to send the value without storing it. "+
 				"Write-only attributes need Terraform 1.11 or later. "+
 				"Terraform shows one warning per distinct message, so check any other connector with the same name as well.",
@@ -201,69 +153,39 @@ func connectorCredentialWarnings(ctx context.Context, config *ConnectorResourceM
 }
 
 func (r *ConnectorResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
-	var config *ConnectorResourceModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
-	if resp.Diagnostics.HasError() || config == nil {
+	var cfg types.Object
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("connector_config"), &cfg)...)
+	if resp.Diagnostics.HasError() || cfg.IsNull() || cfg.IsUnknown() {
 		return
 	}
-	resp.Diagnostics.Append(connectorCredentialWarnings(ctx, config)...)
-}
-
-func flattenConnector(ctx context.Context, api *connectors.Connector, writeOnlyFields map[string]struct{}) (*ConnectorResourceModel, diag.Diagnostics) {
-	gen, diags := connector.Flatten(ctx, api)
-	if diags.HasError() {
-		return nil, diags
+	fields, _ := cfg.Attributes()["fields"].(types.Set)
+	var id, name types.String
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("id"), &id)...)
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("name"), &name)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
-	return fromGeneratedModel(ctx, gen, writeOnlyFields)
-}
-
-func fromGeneratedModel(ctx context.Context, gen *connector.ConnectorModel, writeOnlyFields map[string]struct{}) (*ConnectorResourceModel, diag.Diagnostics) {
-	out := &ConnectorResourceModel{
-		ID:              gen.Id,
-		Name:            gen.Name,
-		Description:     gen.Description,
-		Type:            gen.Type,
-		ConfigOverrides: gen.ConfigOverrides,
-	}
-	if gen.ConnectorConfig == nil {
-		out.ConnectorConfig = types.ObjectNull(connectorConfigAttr())
-		return out, nil
-	}
-	fields, diags := omitWriteOnlyFields(ctx, gen.ConnectorConfig.Fields, writeOnlyFields)
-	if diags.HasError() {
-		return nil, diags
-	}
-	value, dg := types.ObjectValueFrom(ctx, connectorConfigAttr(), ConnectorConfigModel{
-		ConnectorConfigFields: fields,
-		FieldValuesWO:         types.MapNull(types.StringType),
-		FieldValuesWOVersions: types.MapNull(types.Int64Type),
-	})
-	diags.Append(dg...)
-	if diags.HasError() {
-		return nil, diags
-	}
-	out.ConnectorConfig = value
-	return out, diags
+	resp.Diagnostics.Append(connectorCredentialWarnings(ctx, id, name, fields)...)
 }
 
 func omitWriteOnlyFields(ctx context.Context, fields types.Set, writeOnlyFields map[string]struct{}) (types.Set, diag.Diagnostics) {
 	if fields.IsNull() || fields.IsUnknown() || len(writeOnlyFields) == 0 {
 		return fields, nil
 	}
-	var items []ConnectorConfigFieldModel
-	diags := fields.ElementsAs(ctx, &items, false)
-	if diags.HasError() {
-		return fields, diags
-	}
-	kept := make([]ConnectorConfigFieldModel, 0, len(items))
-	for _, item := range items {
-		if _, skip := writeOnlyFields[item.FieldName.ValueString()]; skip {
+	kept := make([]attr.Value, 0, len(fields.Elements()))
+	for _, elem := range fields.Elements() {
+		obj, ok := elem.(types.Object)
+		if !ok {
+			kept = append(kept, elem)
 			continue
 		}
-		kept = append(kept, item)
+		name, _ := obj.Attributes()["field_name"].(types.String)
+		if _, skip := writeOnlyFields[name.ValueString()]; skip {
+			continue
+		}
+		kept = append(kept, elem)
 	}
-	out, dg := types.SetValueFrom(ctx, types.ObjectType{AttrTypes: connectorConfigFieldAttrs()}, kept)
-	diags.Append(dg...)
+	out, diags := types.SetValue(fields.ElementType(ctx), kept)
 	return out, diags
 }
 
@@ -288,66 +210,6 @@ func mergeSecretFields(api *connectors.Connector, secretFields map[string]string
 	}
 }
 
-func secretFieldsFromConfig(ctx context.Context, config *ConnectorResourceModel) (map[string]string, diag.Diagnostics) {
-	if config == nil || config.ConnectorConfig.IsNull() || config.ConnectorConfig.IsUnknown() {
-		return nil, nil
-	}
-	var model ConnectorConfigModel
-	if dg := config.ConnectorConfig.As(ctx, &model, basetypes.ObjectAsOptions{}); dg.HasError() {
-		return nil, dg
-	}
-	if model.FieldValuesWO.IsNull() || model.FieldValuesWO.IsUnknown() {
-		return nil, nil
-	}
-	out := make(map[string]string)
-	if dg := model.FieldValuesWO.ElementsAs(ctx, &out, false); dg.HasError() {
-		return nil, dg
-	}
-	return out, nil
-}
-
-func writeOnlyFieldNames(ctx context.Context, model *ConnectorResourceModel) map[string]struct{} {
-	if model == nil || model.ConnectorConfig.IsNull() || model.ConnectorConfig.IsUnknown() {
-		return nil
-	}
-	var config ConnectorConfigModel
-	if dg := model.ConnectorConfig.As(ctx, &config, basetypes.ObjectAsOptions{}); dg.HasError() {
-		return nil
-	}
-	if config.FieldValuesWOVersions.IsNull() || config.FieldValuesWOVersions.IsUnknown() {
-		return nil
-	}
-	names := make(map[string]struct{}, len(config.FieldValuesWOVersions.Elements()))
-	for name := range config.FieldValuesWOVersions.Elements() {
-		names[name] = struct{}{}
-	}
-	return names
-}
-
-func carryWriteOnlyVersions(ctx context.Context, flattened, source *ConnectorResourceModel) diag.Diagnostics {
-	if flattened == nil || source == nil || flattened.ConnectorConfig.IsNull() {
-		return nil
-	}
-	var from ConnectorConfigModel
-	if source.ConnectorConfig.IsNull() || source.ConnectorConfig.IsUnknown() {
-		return nil
-	}
-	if dg := source.ConnectorConfig.As(ctx, &from, basetypes.ObjectAsOptions{}); dg.HasError() {
-		return dg
-	}
-	var into ConnectorConfigModel
-	if dg := flattened.ConnectorConfig.As(ctx, &into, basetypes.ObjectAsOptions{}); dg.HasError() {
-		return dg
-	}
-	into.FieldValuesWOVersions = from.FieldValuesWOVersions
-	value, dg := types.ObjectValueFrom(ctx, connectorConfigAttr(), into)
-	if dg.HasError() {
-		return dg
-	}
-	flattened.ConnectorConfig = value
-	return nil
-}
-
 type connectorWriteOnlyFieldsValidator struct{}
 
 func (v connectorWriteOnlyFieldsValidator) Description(_ context.Context) string {
@@ -358,25 +220,31 @@ func (v connectorWriteOnlyFieldsValidator) MarkdownDescription(ctx context.Conte
 	return v.Description(ctx)
 }
 
+func objectMap(v attr.Value) types.Map {
+	if m, ok := v.(types.Map); ok {
+		return m
+	}
+	return types.MapNull(types.StringType)
+}
+
 func (v connectorWriteOnlyFieldsValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
 	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 		return
 	}
-	var config ConnectorConfigModel
-	if dg := req.ConfigValue.As(ctx, &config, basetypes.ObjectAsOptions{}); dg.HasError() {
-		return
-	}
-	if config.FieldValuesWO.IsUnknown() || config.FieldValuesWOVersions.IsUnknown() {
+	attrs := req.ConfigValue.Attributes()
+	wo := objectMap(attrs["field_values_wo"])
+	versionsMap, _ := attrs["field_values_wo_versions"].(types.Map)
+	if wo.IsUnknown() || versionsMap.IsUnknown() {
 		return
 	}
 
 	secrets := map[string]attr.Value{}
-	if !config.FieldValuesWO.IsNull() {
-		secrets = config.FieldValuesWO.Elements()
+	if !wo.IsNull() {
+		secrets = wo.Elements()
 	}
 	versions := map[string]attr.Value{}
-	if !config.FieldValuesWOVersions.IsNull() {
-		versions = config.FieldValuesWOVersions.Elements()
+	if !versionsMap.IsNull() && !versionsMap.IsUnknown() {
+		versions = versionsMap.Elements()
 	}
 
 	orphans := make([]string, 0, len(versions))
@@ -442,21 +310,23 @@ func (v connectorWriteOnlyFieldsValidator) ValidateObject(ctx context.Context, r
 				strings.Join(nullVersions, ", ")))
 	}
 
-	if config.ConnectorConfigFields.IsNull() || config.ConnectorConfigFields.IsUnknown() {
-		return
-	}
-	var fields []ConnectorConfigFieldModel
-	if dg := config.ConnectorConfigFields.ElementsAs(ctx, &fields, false); dg.HasError() {
+	fields, _ := attrs["fields"].(types.Set)
+	if fields.IsNull() || fields.IsUnknown() {
 		return
 	}
 	both := make([]string, 0)
-	for _, field := range fields {
-		if field.FieldName.IsNull() || field.FieldName.IsUnknown() {
+	for _, elem := range fields.Elements() {
+		obj, ok := elem.(types.Object)
+		if !ok || obj.IsNull() || obj.IsUnknown() {
 			continue
 		}
-		name := field.FieldName.ValueString()
-		if _, ok := secrets[name]; ok {
-			both = append(both, name)
+		name, _ := obj.Attributes()["field_name"].(types.String)
+		if name.IsNull() || name.IsUnknown() {
+			continue
+		}
+		n := name.ValueString()
+		if _, ok := secrets[n]; ok {
+			both = append(both, n)
 		}
 	}
 	sort.Strings(both)

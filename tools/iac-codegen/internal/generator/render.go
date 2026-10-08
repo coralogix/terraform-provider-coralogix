@@ -54,6 +54,9 @@ func renderAll(r *model.Resource, refs []sdkRef, pkg string, file *overrides.Fil
 	if data.CRUD, err = buildCRUDWith(r, refs, file); err != nil {
 		return nil, err
 	}
+	if err := attachExtraAttributes(data, file); err != nil {
+		return nil, err
+	}
 	files := maps.Clone(generatedFiles)
 	if data.Conv.UsesEquality() {
 		if data.HasServerDefaults {

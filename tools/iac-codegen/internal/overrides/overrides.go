@@ -110,6 +110,21 @@ type Type struct {
 	Required *[]string `yaml:"required"`
 	// Fields overrides single fields of the object.
 	Fields map[string]Field `yaml:"fields"`
+	// ExtraAttributes are Terraform attributes that the API contract does not
+	// have. The generator adds them to the schema and the model of this type.
+	// Expand does not send them. Flatten writes a typed null. A handwritten
+	// overlay reads them from configuration.
+	ExtraAttributes map[string]ExtraAttribute `yaml:"extraAttributes"`
+}
+
+// ExtraAttribute is one Terraform-only attribute of a generated object.
+type ExtraAttribute struct {
+	// ElementType is the map value type: "string" or "int64".
+	ElementType string `yaml:"elementType"`
+	// WriteOnly: Terraform sends the value and does not store it.
+	WriteOnly bool `yaml:"writeOnly"`
+	// MarkdownDescription is the docs text of the attribute.
+	MarkdownDescription string `yaml:"markdownDescription"`
 }
 
 // Field overrides one field of an object. A field with a line keeps the released
@@ -219,12 +234,20 @@ func (f *File) check() error {
 		if t.Required != nil && len(*t.Required) != 0 {
 			return fmt.Errorf("types.%s.required: only the empty list [] is allowed", name)
 		}
-		if t.Required == nil && len(t.Fields) == 0 {
+		if t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 {
 			return fmt.Errorf("types.%s has no override", name)
 		}
 		for field, line := range t.Fields {
 			if err := line.check(); err != nil {
 				return fmt.Errorf("types.%s.fields.%s: %w", name, field, err)
+			}
+		}
+		for field, extra := range t.ExtraAttributes {
+			if err := extra.check(field); err != nil {
+				return fmt.Errorf("types.%s.extraAttributes.%s: %w", name, field, err)
+			}
+			if _, ok := t.Fields[field]; ok {
+				return fmt.Errorf("types.%s.extraAttributes.%s: the type already has a field override of that name", name, field)
 			}
 		}
 	}
@@ -299,6 +322,27 @@ func (l Field) statesPresence() bool {
 // a server default needs a field that Get requires, and then the line is unused.
 func (l Field) replacesServerDefault() bool {
 	return l.Default != nil || l.Computed != nil && !*l.Computed
+}
+
+func (e ExtraAttribute) check(name string) error {
+	if name == "" {
+		return errors.New("the attribute name is empty")
+	}
+	for _, r := range name {
+		if r != '_' && (r < 'a' || r > 'z') && (r < '0' || r > '9') {
+			return fmt.Errorf("the attribute name %q must be a Terraform name (lowercase letters, digits, underscores)", name)
+		}
+	}
+	if name[0] < 'a' || name[0] > 'z' {
+		return fmt.Errorf("the attribute name %q must start with a letter", name)
+	}
+	if e.ElementType != "string" && e.ElementType != "int64" {
+		return fmt.Errorf("elementType is %q, want string or int64", e.ElementType)
+	}
+	if e.MarkdownDescription == "" {
+		return errors.New("markdownDescription is required")
+	}
+	return nil
 }
 
 func (l Field) empty() bool {

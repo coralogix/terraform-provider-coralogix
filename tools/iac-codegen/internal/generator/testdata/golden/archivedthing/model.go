@@ -7,6 +7,8 @@ import (
 )
 
 type ArchivedThingModel struct {
-	Id   types.String `tfsdk:"id"`
-	Name types.String `tfsdk:"name"`
+	Id              types.String `tfsdk:"id"`
+	Name            types.String `tfsdk:"name"`
+	TokenWo         types.Map    `tfsdk:"token_wo"`
+	TokenWoVersions types.Map    `tfsdk:"token_wo_versions"`
 }

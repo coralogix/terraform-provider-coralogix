@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // Schema is the Terraform schema of the resource.
@@ -23,6 +24,17 @@ func Schema() schema.Schema {
 			"name": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "",
+			},
+			"token_wo": schema.MapAttribute{
+				Optional:            true,
+				WriteOnly:           true,
+				ElementType:         types.StringType,
+				MarkdownDescription: "Write-only token. Terraform sends it and does not store it.",
+			},
+			"token_wo_versions": schema.MapAttribute{
+				Optional:            true,
+				ElementType:         types.Int64Type,
+				MarkdownDescription: "Version of each token_wo entry. Increment to send a rotated value.",
 			},
 		},
 	}

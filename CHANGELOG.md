@@ -2,7 +2,7 @@
 
 #### resource/coralogix_connector
 - CHORE: Bump `coralogix-management-sdk` so Connector required fields and unordered field sets come from the OpenAPI contract.
-- CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Write-only `connector_config.field_values_wo` stays a handwritten overlay because the generator does not emit write-only attributes.
+- CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Write-only `connector_config.field_values_wo` is a generated extra attribute (`WriteOnly: true`); handwritten code only merges secrets into the request and restores versions after read.
 - CHORE: Add protocol baseline golden files against an in-memory connector API.
 - FIX: `description` is now `Optional` and `Computed`. To clear it, set `description = ""`. Removing `description` and `config_overrides` from the configuration together keeps both values. Set `description = ""` and `config_overrides = []` to clear them.
 - FIX: Deleting a connector that the API has already removed succeeds.
@@ -25,9 +25,10 @@
 - FIX: In existing mode, a top-level field with a server default in the contract uses that default when `behavior-overrides.yaml` has no `default` or `computed: false` line for it. Before, the field became plain `Optional`, and an apply without it failed with `was null, but now` the default.
 - CHORE: Bump the generator to `v0.1.0-beta.6`.
 - CHORE: Bump the generator to `v0.1.0-beta.7`.
-=======
 - CHORE: Bump the generator to `v0.1.0-beta.8`.
->>>>>>> 6275d19 ([CX-62352] run generated connector CRUD and address review cleanup)
+- CHORE: Bump the generator to `v0.1.0-beta.9`.
+- FEAT: `types.<Type>.extraAttributes` declares Terraform-only map attributes, including `writeOnly: true`. The archived-thing golden fixture covers the shape.
+- FEAT: Existing-resource `NewResource` takes `Hooks{BeforeWrite, AfterRead}` so overlays pass write-only logic at construction instead of package `init`.
 - FEAT: Existing-resource `lengthAtLeast` keeps a released non-empty string validator.
 - FEAT: Generate unordered sets of objects. The Thing golden fixture includes a set of objects.
 - FIX: Namespaced OpenAPI components such as `notification_center.ConnectorConfigField` render as valid Go model types.

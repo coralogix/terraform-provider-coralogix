@@ -149,6 +149,8 @@ var cxScenarios = map[string]func(h *grHarness){
 	"delete-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), httpsConnector("gone"))
 		h.connectors().forget(idOf(s))
+		// The recorded tenant Delete of a missing connector returned 200. Generated
+		// Delete also treats 404 as success; this scenario forces 404 as a defensive check.
 		h.connectors().deleteStatus = 404
 		h.Destroy("destroy: the API answers 404", s)
 	},

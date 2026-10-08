@@ -226,18 +226,6 @@ func expandUpdate(ctx context.Context, m *{{.Update.Model}}) (*{{$sdk}}.{{.Updat
 {{- end}}
 }
 
-{{- if .Existing}}
-
-// BeforeWrite mutates the expanded request body before the API call. The
-// handwritten overlay uses it for write-only attributes. Nil means no extra step.
-var BeforeWrite func(context.Context, tfsdk.Config, any) diag.Diagnostics
-
-// AfterRead mutates state after flatten. The handwritten overlay uses it to
-// restore write-only versions and strip secret field values. prior is the plan
-// after Create or Update, or the state before Read. Nil means no extra step.
-var AfterRead func(context.Context, *tfsdk.State, any) diag.Diagnostics
-{{- end}}
-
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
 func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}{{if .HasPrior}}, prior *{{.Resource.Model}}{{end}}) (*{{.Resource.Model}}, diag.Diagnostics) {
@@ -429,9 +417,8 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, {{
 {{- range .Fields}}
 {{- template "flattenField" .}}
 {{- end}}
-{{- if eq .Model "ConnectorConfigModel"}}
-	out.FieldValuesWO = types.MapNull(types.StringType)
-	out.FieldValuesWOVersions = types.MapNull(types.Int64Type)
+{{- range .ExtraFlatten}}
+	out.{{.Name}} = {{.Expr}}
 {{- end}}
 	return out
 }
