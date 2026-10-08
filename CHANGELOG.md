@@ -4,7 +4,7 @@
 - CHORE: Bump `coralogix-management-sdk` so Connector required fields and unordered field sets come from the OpenAPI contract.
 - CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Write-only `connector_config.field_values_wo` is a generated extra attribute (`WriteOnly: true`); handwritten code only merges secrets into the request and restores versions after read.
 - CHORE: Add protocol baseline golden files against an in-memory connector API.
-- FIX: `description` is now `Optional` and `Computed`. To clear it, set `description = ""`. Removing `description` and `config_overrides` from the configuration together keeps both values. Set `description = ""` and `config_overrides = []` to clear them.
+- FIX: Creating a connector without `description` no longer fails.
 - FIX: Deleting a connector that the API has already removed succeeds.
 
 #### resource/coralogix_alert

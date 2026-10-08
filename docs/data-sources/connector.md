@@ -32,9 +32,9 @@ data "coralogix_connector" "generic_https_example_data_by_name" {
 
 ### Read-Only
 
-- `config_overrides` (Attributes List) The config overrides. (see [below for nested schema](#nestedatt--config_overrides))
+- `config_overrides` (Attributes List) The config overrides. Removing this block keeps the value until another attribute changes. Set `config_overrides = []` to clear it. (see [below for nested schema](#nestedatt--config_overrides))
 - `connector_config` (Attributes) Configuration for a specific output schema of a connector (see [below for nested schema](#nestedatt--connector_config))
-- `description` (String) Human-readable description.
+- `description` (String) Human-readable description. The API stores an omitted description as an empty string, so Terraform treats this field as Optional and Computed with a default of `""`. Removing the attribute clears it.
 - `type` (String) Connector type. Valid values are: unspecified, slack, generic_https, pagerduty, pagerduty_incidents, email, service_now, microsoft_teams, eventbridge, incident_io. `incident_io` is a preview type.
 
 <a id="nestedatt--config_overrides"></a>

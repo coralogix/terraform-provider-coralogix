@@ -29,12 +29,14 @@ types:
         validators: [{lengthAtLeast: 1}]
       description:
         computed: true # the API returns "" for an omitted value
-        markdownDescription: "Human-readable description. The API stores an omitted description as an empty string, so Terraform treats this field as Optional and Computed. To clear it, set `description = \"\"`. Removing `description` and `config_overrides` from the configuration together keeps both values: the server does not clear them on that update. Set `description = \"\"` and `config_overrides = []` to clear both."
+        default: ""
+        markdownDescription: "Human-readable description. The API stores an omitted description as an empty string, so Terraform treats this field as Optional and Computed with a default of `\"\"`. Removing the attribute clears it."
       type:
         markdownDescription: "Connector type. Valid values are: unspecified, slack, generic_https, pagerduty, pagerduty_incidents, email, service_now, microsoft_teams, eventbridge, incident_io. `incident_io` is a preview type."
         validators: [{enum: true}]
       configOverrides:
         computed: true
+        markdownDescription: "The config overrides. Removing this block keeps the value until another attribute changes. Set `config_overrides = []` to clear it."
       resolvedConnectorConfig:
         skip: true
       diagnostics:

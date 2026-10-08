@@ -34,7 +34,7 @@
           }
         ]
       },
-      "description": "(unknown)",
+      "description": "",
       "id": "my-connector",
       "name": "mine",
       "type": "generic_https"
@@ -57,6 +57,7 @@
                 }
               ]
             },
+            "description": "",
             "id": "my-connector",
             "name": "mine",
             "type": "GENERIC_HTTPS"
