@@ -3,6 +3,7 @@ package generator
 import (
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -352,8 +353,37 @@ func defaultExpr(a *tfAttr, value any) (string, error) {
 		if a.Kind == "Bool" {
 			return fmt.Sprintf("booldefault.StaticBool(%t)", v), nil
 		}
+	case int:
+		switch a.Kind {
+		case "Int64":
+			return fmt.Sprintf("int64default.StaticInt64(%d)", v), nil
+		case "Int32":
+			if v < math.MinInt32 || v > math.MaxInt32 {
+				return "", fmt.Errorf("the default %d does not fit an Int32 attribute", v)
+			}
+			return fmt.Sprintf("int32default.StaticInt32(%d)", v), nil
+		case "Float64", "Float32":
+			return floatDefaultExpr(a.Kind, float64(v))
+		}
+	case float64:
+		if a.Kind == "Float64" || a.Kind == "Float32" {
+			return floatDefaultExpr(a.Kind, v)
+		}
 	}
 	return "", fmt.Errorf("a default of type %T does not fit a %s attribute", value, a.Kind)
+}
+
+// floatDefaultExpr is the Go expression of a static default of a Float64 or Float32 attribute.
+func floatDefaultExpr(kind string, v float64) (string, error) {
+	bits := 64
+	if kind == "Float32" {
+		bits = 32
+	}
+	if math.IsNaN(v) || math.IsInf(v, 0) || bits == 32 && math.Abs(v) > math.MaxFloat32 {
+		return "", fmt.Errorf("the default %v does not fit a %s attribute", v, kind)
+	}
+	// 'f' writes a Go literal, and the state text of the value, that the acceptance test compares.
+	return fmt.Sprintf("%sdefault.Static%s(%s)", strings.ToLower(kind), kind, strconv.FormatFloat(v, 'f', -1, bits)), nil
 }
 
 // validatorExpr is the Go expression of a released validator.

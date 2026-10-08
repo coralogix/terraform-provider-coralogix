@@ -135,7 +135,7 @@ type Field struct {
 	Computed *bool `yaml:"computed"`
 	// UseStateForUnknown keeps the value in the state when the config has none.
 	UseStateForUnknown bool `yaml:"useStateForUnknown"`
-	// Default is a static default in the schema (a string or a bool).
+	// Default is a static default in the schema: a string, a bool, or a number.
 	Default any `yaml:"default"`
 	// ReadEmptyAs: "null" reads an empty list or object from the API as null.
 	ReadEmptyAs string `yaml:"readEmptyAs"`
@@ -292,6 +292,13 @@ func (l Field) statesPresence() bool {
 	return l.Skip || l.ReadOnly || l.Required || l.Computed != nil || l.Default != nil || l.ReadEmptyAs != ""
 }
 
+// replacesServerDefault reports whether the line states a mode that a server default of the
+// contract cannot have: its own default, or no computed value. required: true needs no check:
+// a server default needs a field that Get requires, and then the line is unused.
+func (l Field) replacesServerDefault() bool {
+	return l.Default != nil || l.Computed != nil && !*l.Computed
+}
+
 func (l Field) empty() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown && l.Default == nil && l.ReadEmptyAs == "" &&
@@ -309,9 +316,9 @@ func (l Field) check() error {
 		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
 	}
 	switch l.Default.(type) {
-	case nil, string, bool:
+	case nil, string, bool, int, float64:
 	default:
-		return fmt.Errorf("default is %T, want a string or a bool", l.Default)
+		return fmt.Errorf("default is %T, want a string, a bool, or a number", l.Default)
 	}
 	if l.Required && l.Computed != nil && *l.Computed {
 		return errors.New("a required field cannot be computed")
@@ -375,6 +382,9 @@ func (f *File) Policy() model.Policy {
 			}
 			if t.Fields[field].statesPresence() {
 				p.Released = append(p.Released, name+"."+field)
+			}
+			if t.Fields[field].replacesServerDefault() {
+				p.Defaults = append(p.Defaults, name+"."+field)
 			}
 		}
 	}
