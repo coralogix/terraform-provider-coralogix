@@ -566,6 +566,89 @@
           }
         }
       ]
+    },
+    {
+      "name": "update-missing-id",
+      "steps": [
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: {\"reason\":\"Connector with id '{{MISSING}}' not found\"}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "secret-field",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "integrationKey",
+                    "value": "secret-token-value"
+                  }
+                ]
+              },
+              "createTime": "2026-01-01T00:00:11Z",
+              "description": "",
+              "id": "{{C6}}",
+              "name": "{{C6}}",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "integrationKey",
+                    "value": "secret-token-value"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "PAGERDUTY",
+              "updateTime": "2026-01-01T00:00:11Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "connector": {
+              "configOverrides": [],
+              "connectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "integrationKey",
+                    "value": "secret-token-value"
+                  }
+                ]
+              },
+              "createTime": "2026-01-01T00:00:11Z",
+              "description": "",
+              "id": "{{C6}}",
+              "name": "{{C6}}",
+              "resolvedConnectorConfig": {
+                "fields": [
+                  {
+                    "fieldName": "integrationKey",
+                    "value": "secret-token-value"
+                  }
+                ]
+              },
+              "teamId": 1,
+              "type": "PAGERDUTY",
+              "updateTime": "2026-01-01T00:00:11Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
     }
   ]
 }

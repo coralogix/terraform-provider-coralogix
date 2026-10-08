@@ -1,5 +1,5 @@
 {
-  "comment": "Requests that a recorder sends to the real backend, and the offline test sends to the fake. Tokens: {{RUN}} run id, {{C1}}..{{C5}} connector ids, {{GEN}} an id that the server made (set by 'capture').",
+  "comment": "Requests that a recorder sends to the real backend, and the offline test sends to the fake. Tokens: {{C1}}..{{C6}} connector ids, {{GEN}} an id that the server made (set by 'capture'). {{MISSING}} is an id that was never created.",
   "cases": [
     {
       "name": "minimal-lifecycle",
@@ -53,6 +53,20 @@
         {"method": "POST", "path": "", "body": {"connector": {"id": "{{C5}}", "name": "{{C5}}", "type": "EMAIL"}}},
         {"method": "POST", "path": "", "capture": "GEN", "body": {"connector": {"name": "generated", "type": "EMAIL"}}},
         {"method": "GET", "path": "/{{GEN}}"}
+      ]
+    },
+    {
+      "name": "update-missing-id",
+      "steps": [
+        {"method": "PUT", "path": "", "body": {"connector": {"id": "{{MISSING}}", "name": "missing", "type": "SLACK"}}}
+      ]
+    },
+    {
+      "name": "secret-field",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"connector": {"id": "{{C6}}", "name": "{{C6}}", "type": "PAGERDUTY", "connectorConfig": {"fields": [{"fieldName": "integrationKey", "value": "secret-token-value"}]}}}},
+        {"method": "GET", "path": "/{{C6}}"},
+        {"method": "DELETE", "path": "/{{C6}}"}
       ]
     }
   ]
