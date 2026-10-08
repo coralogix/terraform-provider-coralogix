@@ -28,8 +28,13 @@ type Policy struct {
 	// the resource, for example "router". "" means that the body is the resource.
 	RequestWrapper string
 	// UpdateIDInBody means that Update has no id in its path. The id is a field of
-	// the resource in the body, and Update uses the Create path.
+	// the resource in the body. Update uses the Create path, unless CustomMethods
+	// names a different path.
 	UpdateIDInBody bool
+	// CustomMethods means Get, Update, and Delete are not the Create path with an id.
+	// Get and Delete each carry the same {id} path parameter. Update has no path
+	// parameter. New resources leave this false.
+	CustomMethods bool
 	// ClientSetID means that the client can send the id on Create, and the Get
 	// response does not require it.
 	ClientSetID bool

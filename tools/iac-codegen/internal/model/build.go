@@ -244,14 +244,19 @@ func (r *Resource) readOperations(ops map[verb]foundOp) error {
 		return fmt.Errorf("create: %d path parameters, want none", len(params))
 	}
 	itemPath := ops[opGet].path
-	if want := ops[opCreate].path + "/{" + id + "}"; itemPath != want {
-		return fmt.Errorf("get: path %s, want %s", itemPath, want)
+	if !r.Policy.CustomMethods {
+		if want := ops[opCreate].path + "/{" + id + "}"; itemPath != want {
+			return fmt.Errorf("get: path %s, want %s", itemPath, want)
+		}
 	}
 	for _, v := range item {
 		if v == opDelete && r.Policy.DeleteOperation != "" {
 			if !deleteActionPath(itemPath, ops[v].path) {
 				return fmt.Errorf("%s: path %s, want %s/<action>", v, ops[v].path, itemPath)
 			}
+			continue
+		}
+		if r.Policy.CustomMethods && v == opDelete {
 			continue
 		}
 		if ops[v].path != itemPath {
@@ -278,7 +283,7 @@ func (r *Resource) itemOperations(ops map[verb]foundOp) ([]verb, error) {
 		if n := len(pathParams(upd)); n != 0 {
 			return nil, fmt.Errorf("%s: the id is in the request body, but the path has %d parameters", opUpdate, n)
 		}
-		if upd.path != ops[opCreate].path {
+		if !r.Policy.CustomMethods && upd.path != ops[opCreate].path {
 			return nil, fmt.Errorf("%s: path %s, want %s (as in create)", opUpdate, upd.path, ops[opCreate].path)
 		}
 		return []verb{opDelete}, nil
@@ -1302,6 +1307,16 @@ func enumZero(values []*yaml.Node, anyPrefix bool) (string, error) {
 	}
 	zero := values[0].Value
 	prefix, ok := strings.CutSuffix(zero, "_UNSPECIFIED")
+	if anyPrefix && (!ok || prefix == "") {
+		// The protobuf zero is the first value even when it is a business value,
+		// for example AttachmentConfigPolicy AUTO = 0.
+		for _, value := range values[1:] {
+			if value.Value == zero {
+				return "", fmt.Errorf("enum zero value %q is repeated", zero)
+			}
+		}
+		return zero, nil
+	}
 	if !ok || prefix == "" {
 		return "", fmt.Errorf("first enum value %q must be <PREFIX>_UNSPECIFIED", zero)
 	}

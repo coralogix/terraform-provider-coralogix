@@ -1,0 +1,127 @@
+# Where coralogix_preset differs from the API contract, because users already have it.
+#
+# A field with a line here keeps its released behavior. A field without a line follows the
+# API contract.
+resource: Preset
+mode: existing
+
+markdownDescription: "Coralogix Notification Center Preset. For more info please review - https://coralogix.com/docs/user-guides/notification-center/presets/introduction/. **NOTE:** This resource is in Beta stage."
+
+schema:
+  version: 0
+
+validators:
+  inferred: false
+
+api:
+  requestWrapper: preset
+  updateIDInBody: true
+  clientSetID: true
+  # Create, replace, get, and delete are four custom methods, not one collection path.
+  customMethods: true
+
+types:
+  Preset:
+    fields:
+      id:
+        markdownDescription: "The ID of the Preset. Can be set to a custom value, or left empty to auto-generate. Requires recreation in case of change."
+        useStateForUnknown: true
+      name:
+        markdownDescription: ""
+      description:
+        # An omitted description reads back as absent, so this stays optional.
+        # computed: false states that omission is the released behavior. The contract
+        # does not mark presence on this optional string.
+        computed: false
+        markdownDescription: ""
+      parentId:
+        required: true # system presets omit it; custom create rejects a missing parent
+        markdownDescription: ""
+      connectorType:
+        markdownDescription: "The type of connector for the preset. Valid values are: email, eventbridge, generic_https, incident_io, microsoft_teams, pagerduty, pagerduty_incidents, service_now, slack, unspecified. `incident_io` is a preview type."
+        validators: [{enum: true}]
+      entityType:
+        markdownDescription: "The type of entity for the preset. Valid values are: alerts, cases, test_notifications, unspecified"
+        validators: [{enum: true}]
+      configOverrides:
+        computed: true
+        markdownDescription: ""
+      attachmentConfig:
+        promote: policy
+        computed: true
+        default: AUTO
+        markdownDescription: "Controls whether notification payloads include attachments. Valid values are: AUTO, ENABLED, DISABLED. Defaults to AUTO. Removing the attribute resets it to AUTO."
+        validators: [{enum: true}]
+      createTime:
+        skip: true
+      updateTime:
+        skip: true
+      presetType:
+        skip: true
+
+  ConfigOverrides:
+    fields:
+      conditionType:
+        required: true
+        markdownDescription: "Condition type for the preset. Must be either match_entity_type or match_entity_type_and_sub_type."
+      messageConfig:
+        required: true
+        markdownDescription: ""
+      payloadType:
+        computed: true
+        useStateForUnknown: true
+        markdownDescription: ""
+
+  MessageConfig:
+    fields:
+      fields:
+        required: true
+        markdownDescription: ""
+
+  notification_center.MessageConfigField:
+    fields:
+      fieldName:
+        required: true
+        markdownDescription: ""
+      template:
+        required: true
+        markdownDescription: ""
+
+  notification_center.ConditionType:
+    fields:
+      matchEntityType:
+        markdownDescription: ""
+      matchEntityTypeAndSubType:
+        markdownDescription: ""
+
+  AttachmentConfig:
+    fields:
+      policy:
+        # Missing policy reads back as AUTO. The line states that, so the optional
+        # enum does not need a presence annotation.
+        default: AUTO
+
+  MatchEntityTypeAndSubTypeCondition:
+    fields:
+      entitySubType:
+        required: true
+        markdownDescription: ""
+
+enums:
+  # presetType is skipped. The line exists so SYSTEM and CUSTOM type-check; their
+  # prefix is not PRESET_TYPE.
+  PresetType:
+    zero: unspecified
+    values: [SYSTEM, CUSTOM]
+  notification_center.ConnectorType:
+    zero: unspecified
+    values: [SLACK, GENERIC_HTTPS, PAGERDUTY, PAGERDUTY_INCIDENTS, SERVICE_NOW, EMAIL, MICROSOFT_TEAMS, EVENTBRIDGE, INCIDENT_IO]
+    rejected: [IBM_EVENT_NOTIFICATIONS]
+  notification_center.EntityType:
+    zero: unspecified
+    values: [ALERTS, CASES, TEST_NOTIFICATIONS]
+    rejected: [OLLY_SCHEDULED_TASKS]
+  AttachmentConfigPolicy:
+    zero: AUTO
+    verbatim: true
+    values: [ENABLED, DISABLED]

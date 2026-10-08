@@ -175,6 +175,11 @@ type convField struct {
 	// returns as the same document in another format, and "" otherwise.
 	Equality    string
 	ObjectValue bool // a computed object stored as unknown-capable types.Object
+	// PromoteField is the Go field of a one-field SDK object that the Terraform
+	// attribute stores as that field's scalar. SDKType is the wrapper type.
+	PromoteField string
+	// Missing is the Terraform value of an absent promoted field, usually the schema default.
+	Missing string
 	// Value is true when the SDK field is a value, not a pointer. The SDK
 	// does that for a required field (F18). Expand sends the zero value for
 	// null; the schema requires the attribute, so it is not null.
@@ -595,7 +600,11 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 		m.Values = append(m.Values, enumMapValue{TF: over.Zero, API: t.EnumZero})
 	}
 	for _, v := range over.Values {
-		m.Values = append(m.Values, enumMapValue{TF: strings.ToLower(v), API: v})
+		tf := v
+		if !over.Verbatim {
+			tf = strings.ToLower(v)
+		}
+		m.Values = append(m.Values, enumMapValue{TF: tf, API: v})
 	}
 	b.enumMaps = append(b.enumMaps, m)
 	return m, nil
@@ -637,6 +646,13 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type) (*conv
 		line := b.file.Types[component].Fields[name]
 		cf.ReadEmptyAsNull, cf.KeepPriorOrder = line.ReadEmptyAs == "null", line.KeepPriorOrder
 		cf.Equality = line.Equality
+		if line.Promote != "" {
+			want, err := b.promoteConv(cf, owner+"."+name, t, line)
+			if err != nil {
+				return nil, err
+			}
+			return checkFieldType(cf, ref, want)
+		}
 	}
 	want, err := b.fieldConv(cf, t)
 	if err != nil {
@@ -645,6 +661,10 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type) (*conv
 	if err := checkReadEmptyAs(cf); err != nil {
 		return nil, err
 	}
+	return checkFieldType(cf, ref, want)
+}
+
+func checkFieldType(cf *convField, ref sdkRef, want string) (*convField, error) {
 	// The SDK type must be the one the conversion writes, or its value type.
 	switch {
 	case ref.Want == want:
@@ -654,6 +674,46 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type) (*conv
 		return nil, fmt.Errorf("SDK field %s has type %s, the %s conversion needs %s", ref.sdkName(), ref.Want, cf.Conv, want)
 	}
 	return cf, nil
+}
+
+// promoteConv converts a one-field object as the Terraform type of that field.
+// Expand wraps the value. Flatten unwraps it, and a missing inner value becomes
+// the schema default.
+func (b *convBuilder) promoteConv(cf *convField, path string, t *model.Type, line overrides.Field) (string, error) {
+	if t.Kind != model.Object || len(t.Fields) != 1 || t.Fields[0].Name != line.Promote {
+		return "", fmt.Errorf("promote %q needs an object with only that field", line.Promote)
+	}
+	inner := t.Fields[0].Type
+	if inner.Kind != model.Enum {
+		return "", fmt.Errorf("promote %q needs an enum field", line.Promote)
+	}
+	wrapper, err := b.ix.schemaRef(t.Schema)
+	if err != nil {
+		return "", err
+	}
+	innerRef, err := b.ix.fieldRef(path + "." + line.Promote)
+	if err != nil {
+		return "", err
+	}
+	enum, err := b.ix.schemaRef(inner.Schema)
+	if err != nil {
+		return "", err
+	}
+	m, err := b.enumMapFor(inner.Schema, b.qualify(enum.Name), inner)
+	if err != nil {
+		return "", err
+	}
+	if m == nil {
+		return "", fmt.Errorf("promote %q needs an enums line for %s", line.Promote, inner.Schema)
+	}
+	cf.Conv = "promote"
+	cf.SDKType = b.qualify(wrapper.Name)
+	cf.PromoteField = innerRef.Name
+	cf.EnumMap = m
+	if def, ok := line.Default.(string); ok {
+		cf.Missing = def
+	}
+	return "*" + wrapper.Name, nil
 }
 
 // fieldConv sets the conversion of cf for t. It returns the SDK Go type that

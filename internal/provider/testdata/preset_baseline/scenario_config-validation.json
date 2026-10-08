@@ -1,0 +1,79 @@
+[
+  {
+    "step": "missing name",
+    "config": {
+      "connector_type": "generic_https",
+      "entity_type": "alerts",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"name\")] | Must set a configuration value for the name attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "missing entity_type",
+    "config": {
+      "connector_type": "generic_https",
+      "name": "n",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"entity_type\")] | Must set a configuration value for the entity_type attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "connector_type ibm_event_notifications",
+    "config": {
+      "connector_type": "ibm_event_notifications",
+      "entity_type": "alerts",
+      "name": "v",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"connector_type\")] | Attribute connector_type value must be one of: [\"email\" \"eventbridge\" \"generic_https\" \"incident_io\" \"microsoft_teams\" \"pagerduty\" \"pagerduty_incidents\" \"service_now\" \"slack\" \"unspecified\"], got: \"ibm_event_notifications\""
+    ],
+    "state": null
+  },
+  {
+    "step": "connector_type GENERIC_HTTPS in upper case",
+    "config": {
+      "connector_type": "GENERIC_HTTPS",
+      "entity_type": "alerts",
+      "name": "v",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"connector_type\")] | Attribute connector_type value must be one of: [\"email\" \"eventbridge\" \"generic_https\" \"incident_io\" \"microsoft_teams\" \"pagerduty\" \"pagerduty_incidents\" \"service_now\" \"slack\" \"unspecified\"], got: \"GENERIC_HTTPS\""
+    ],
+    "state": null
+  },
+  {
+    "step": "entity_type olly_scheduled_tasks",
+    "config": {
+      "connector_type": "generic_https",
+      "entity_type": "olly_scheduled_tasks",
+      "name": "v",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"entity_type\")] | Attribute entity_type value must be one of: [\"alerts\" \"cases\" \"test_notifications\" \"unspecified\"], got: \"olly_scheduled_tasks\""
+    ],
+    "state": null
+  },
+  {
+    "step": "attachment_config enabled in lower case",
+    "config": {
+      "attachment_config": "enabled",
+      "connector_type": "generic_https",
+      "entity_type": "alerts",
+      "name": "v",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"attachment_config\")] | Attribute attachment_config value must be one of: [\"AUTO\" \"DISABLED\" \"ENABLED\"], got: \"enabled\""
+    ],
+    "state": null
+  }
+]

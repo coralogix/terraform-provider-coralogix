@@ -1046,6 +1046,10 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.SDK}} = {{$l}}expandEnumMapped({{$p}}, m.{{.Model}}, {{.EnumMap.Name}}ToAPI, diags){{$r}}
 {{- else if eq .Conv "enum"}}
 	out.{{.SDK}} = {{$l}}expandEnum[{{.SDKType}}](m.{{.Model}}){{$r}}
+{{- else if eq .Conv "promote"}}
+	if policy := expandEnumMapped({{$p}}, m.{{.Model}}, {{.EnumMap.Name}}ToAPI, diags); policy != nil {
+		out.{{.SDK}} = &{{.SDKType}}{ {{.PromoteField}}: policy }
+	}
 {{- else if eq .Conv "object"}}
 	out.{{.SDK}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if eq .Conv "empty"}}
@@ -1116,6 +1120,16 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.Model}} = flattenEnumMapped({{$p}}, {{$v}}, {{.EnumMap.Name}}FromAPI, diags)
 {{- else if eq .Conv "enum"}}
 	out.{{.Model}} = flattenEnum({{$v}}, {{printf "%q" .EnumZero}})
+{{- else if eq .Conv "promote"}}
+	if {{$v}} == nil || {{$v}}.{{.PromoteField}} == nil {
+		{{- if .Missing}}
+		out.{{.Model}} = types.StringValue({{printf "%q" .Missing}})
+		{{- else}}
+		out.{{.Model}} = types.StringNull()
+		{{- end}}
+	} else {
+		out.{{.Model}} = flattenEnumMapped({{$p}}, {{$v}}.{{.PromoteField}}, {{.EnumMap.Name}}FromAPI, diags)
+	}
 {{- else if eq .Conv "object"}}
 	{{- if .ObjectValue}}
 	out.{{.Model}} = types.ObjectNull({{.Object.AttrTypesFunc}}())

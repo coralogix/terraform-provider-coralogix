@@ -91,6 +91,11 @@ type API struct {
 	UpdateIDInBody bool `yaml:"updateIDInBody"`
 	// ClientSetID: the client can send the id on Create.
 	ClientSetID bool `yaml:"clientSetID"`
+	// CustomMethods: Get, Update, and Delete are not the Create path with an id.
+	// Get and Delete each have the same {id} path parameter on their own paths.
+	// Update has no path parameter, and the id stays in the body. New resources
+	// keep the stricter path rules.
+	CustomMethods bool `yaml:"customMethods"`
 	// Delete names the operation that removes the resource when the API has no DELETE.
 	Delete *Delete `yaml:"delete"`
 }
@@ -162,6 +167,10 @@ type Field struct {
 	// Equality: "yaml" or "json" compares a string field as a YAML or JSON document. The API
 	// returns the document normalized, so a change of format alone must not plan a change.
 	Equality string `yaml:"equality"`
+	// Promote names the only field of a one-field object. The Terraform attribute is that
+	// field. Expand wraps it as the object, and flatten unwraps it. A missing inner value
+	// becomes the schema default when default is set.
+	Promote string `yaml:"promote"`
 }
 
 // Equality values of a field line.
@@ -187,8 +196,11 @@ type Enum struct {
 	// A new resource uses null for it. A released resource kept a value in its state.
 	Zero string `yaml:"zero"`
 	// Values are the enum values that the resource accepts. The Terraform value is the
-	// lower case of the API value.
+	// lower case of the API value, unless Verbatim is set.
 	Values []string `yaml:"values"`
+	// Verbatim keeps the API spelling as the Terraform value. Attachment policies stay
+	// AUTO, ENABLED, and DISABLED.
+	Verbatim bool `yaml:"verbatim"`
 	// Rejected are the values of the contract that the resource does not accept. The generator
 	// reports a value of the contract that is in neither list, so a new API value needs a decision.
 	Rejected []string `yaml:"rejected"`
@@ -308,6 +320,7 @@ func (l Field) keys() []string {
 	add(l.KeepPriorOrder, "keepPriorOrder")
 	add(len(l.Validators) != 0, "validators")
 	add(l.Equality != "", "equality")
+	add(l.Promote != "", "promote")
 	return keys
 }
 
@@ -341,7 +354,7 @@ func (e ExtraAttribute) check(name string) error {
 func (l Field) empty() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown && l.Default == nil && l.ReadEmptyAs == "" &&
-		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == ""
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Promote == ""
 }
 
 func (l Field) check() error {
@@ -353,6 +366,13 @@ func (l Field) check() error {
 	}
 	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON {
 		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
+	}
+	if l.Promote != "" {
+		for _, r := range l.Promote {
+			if r != '_' && (r < 'A' || r > 'Z') && (r < 'a' || r > 'z') && (r < '0' || r > '9') {
+				return fmt.Errorf("promote is %q, want the name of the object's only field", l.Promote)
+			}
+		}
 	}
 	switch l.Default.(type) {
 	case nil, string, bool:
@@ -374,7 +394,7 @@ func (l Field) check() error {
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
 func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Default != nil || l.KeepPriorOrder ||
-		l.ReadEmptyAs != "" || len(l.Validators) != 0 || l.Equality != ""
+		l.ReadEmptyAs != "" || len(l.Validators) != 0 || l.Equality != "" || l.Promote != ""
 }
 
 func checkValidators(validators []Validator) error {
@@ -406,6 +426,7 @@ func (f *File) Policy() model.Policy {
 		RequestWrapper: f.API.RequestWrapper,
 		UpdateIDInBody: f.API.UpdateIDInBody,
 		ClientSetID:    f.API.ClientSetID,
+		CustomMethods:  f.API.CustomMethods,
 		// The file states validators.inferred: false; Parse checked it.
 		NoInferredValidators: true,
 	}

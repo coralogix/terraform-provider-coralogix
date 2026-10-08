@@ -1,0 +1,445 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "attachment_config": "ENABLED",
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {}
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "title",
+                "template": "{{alertDef.name}}"
+              },
+              {
+                "field_name": "body",
+                "template": "{{alert.status}}"
+              }
+            ]
+          },
+          "payload_type": "email_default"
+        },
+        {
+          "condition_type": {
+            "match_entity_type_and_sub_type": {
+              "entity_sub_type": "logsImmediateResolved"
+            }
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "description",
+                "template": "{{alertDef.description}}"
+              }
+            ]
+          },
+          "payload_type": "slack_basic"
+        }
+      ],
+      "connector_type": "generic_https",
+      "description": "primary preset",
+      "entity_type": "alerts",
+      "name": "main",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "plan": {
+      "attachment_config": "ENABLED",
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {},
+            "match_entity_type_and_sub_type": null
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "title",
+                "template": "{{alertDef.name}}"
+              },
+              {
+                "field_name": "body",
+                "template": "{{alert.status}}"
+              }
+            ]
+          },
+          "payload_type": "email_default"
+        },
+        {
+          "condition_type": {
+            "match_entity_type": null,
+            "match_entity_type_and_sub_type": {
+              "entity_sub_type": "logsImmediateResolved"
+            }
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "description",
+                "template": "{{alertDef.description}}"
+              }
+            ]
+          },
+          "payload_type": "slack_basic"
+        }
+      ],
+      "connector_type": "generic_https",
+      "description": "primary preset",
+      "entity_type": "alerts",
+      "id": "(unknown)",
+      "name": "main",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/presets:createCustom",
+        "body": {
+          "preset": {
+            "attachmentConfig": {
+              "policy": "ENABLED"
+            },
+            "configOverrides": [
+              {
+                "messageConfig": {
+                  "fields": [
+                    {
+                      "fieldName": "title",
+                      "template": "{{alertDef.name}}"
+                    },
+                    {
+                      "fieldName": "body",
+                      "template": "{{alert.status}}"
+                    }
+                  ]
+                },
+                "payloadType": "email_default"
+              },
+              {
+                "conditionType": {
+                  "matchEntityTypeAndSubType": {
+                    "entitySubType": "logsImmediateResolved"
+                  }
+                },
+                "messageConfig": {
+                  "fields": [
+                    {
+                      "fieldName": "description",
+                      "template": "{{alertDef.description}}"
+                    }
+                  ]
+                },
+                "payloadType": "slack_basic"
+              }
+            ],
+            "connectorType": "GENERIC_HTTPS",
+            "description": "primary preset",
+            "entityType": "ALERTS",
+            "name": "main",
+            "parentId": "preset_system_generic_https_alerts_empty"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "attachment_config": "ENABLED",
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {},
+            "match_entity_type_and_sub_type": null
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{{alert.status}}"
+              },
+              {
+                "field_name": "title",
+                "template": "{{alertDef.name}}"
+              }
+            ]
+          },
+          "payload_type": "email_default"
+        },
+        {
+          "condition_type": {
+            "match_entity_type": null,
+            "match_entity_type_and_sub_type": {
+              "entity_sub_type": "logsImmediateResolved"
+            }
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "description",
+                "template": "{{alertDef.description}}"
+              }
+            ]
+          },
+          "payload_type": "slack_basic"
+        }
+      ],
+      "connector_type": "generic_https",
+      "description": "primary preset",
+      "entity_type": "alerts",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: omit attachment_config and payload_type",
+    "config": {
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {}
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "title",
+                "template": "{{alertDef.name}}"
+              },
+              {
+                "field_name": "body",
+                "template": "{{alert.status}}"
+              }
+            ]
+          }
+        },
+        {
+          "condition_type": {
+            "match_entity_type_and_sub_type": {
+              "entity_sub_type": "logsImmediateResolved"
+            }
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "description",
+                "template": "{{alertDef.description}}"
+              }
+            ]
+          }
+        }
+      ],
+      "connector_type": "generic_https",
+      "description": "primary preset",
+      "entity_type": "alerts",
+      "name": "main",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "plan": {
+      "attachment_config": "AUTO",
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {},
+            "match_entity_type_and_sub_type": null
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "title",
+                "template": "{{alertDef.name}}"
+              },
+              {
+                "field_name": "body",
+                "template": "{{alert.status}}"
+              }
+            ]
+          },
+          "payload_type": "email_default"
+        },
+        {
+          "condition_type": {
+            "match_entity_type": null,
+            "match_entity_type_and_sub_type": {
+              "entity_sub_type": "logsImmediateResolved"
+            }
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "description",
+                "template": "{{alertDef.description}}"
+              }
+            ]
+          },
+          "payload_type": "slack_basic"
+        }
+      ],
+      "connector_type": "generic_https",
+      "description": "primary preset",
+      "entity_type": "alerts",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/presets:replaceCustom",
+        "body": {
+          "preset": {
+            "attachmentConfig": {
+              "policy": "AUTO"
+            },
+            "configOverrides": [
+              {
+                "messageConfig": {
+                  "fields": [
+                    {
+                      "fieldName": "title",
+                      "template": "{{alertDef.name}}"
+                    },
+                    {
+                      "fieldName": "body",
+                      "template": "{{alert.status}}"
+                    }
+                  ]
+                },
+                "payloadType": "email_default"
+              },
+              {
+                "conditionType": {
+                  "matchEntityTypeAndSubType": {
+                    "entitySubType": "logsImmediateResolved"
+                  }
+                },
+                "messageConfig": {
+                  "fields": [
+                    {
+                      "fieldName": "description",
+                      "template": "{{alertDef.description}}"
+                    }
+                  ]
+                },
+                "payloadType": "slack_basic"
+              }
+            ],
+            "connectorType": "GENERIC_HTTPS",
+            "description": "primary preset",
+            "entityType": "ALERTS",
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "main",
+            "parentId": "preset_system_generic_https_alerts_empty"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "attachment_config": "AUTO",
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {},
+            "match_entity_type_and_sub_type": null
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{{alert.status}}"
+              },
+              {
+                "field_name": "title",
+                "template": "{{alertDef.name}}"
+              }
+            ]
+          },
+          "payload_type": "email_default"
+        },
+        {
+          "condition_type": {
+            "match_entity_type": null,
+            "match_entity_type_and_sub_type": {
+              "entity_sub_type": "logsImmediateResolved"
+            }
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "description",
+                "template": "{{alertDef.description}}"
+              }
+            ]
+          },
+          "payload_type": "slack_basic"
+        }
+      ],
+      "connector_type": "generic_https",
+      "description": "primary preset",
+      "entity_type": "alerts",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/presets/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "attachment_config": "AUTO",
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {},
+            "match_entity_type_and_sub_type": null
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{{alert.status}}"
+              },
+              {
+                "field_name": "title",
+                "template": "{{alertDef.name}}"
+              }
+            ]
+          },
+          "payload_type": "email_default"
+        },
+        {
+          "condition_type": {
+            "match_entity_type": null,
+            "match_entity_type_and_sub_type": {
+              "entity_sub_type": "logsImmediateResolved"
+            }
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "description",
+                "template": "{{alertDef.description}}"
+              }
+            ]
+          },
+          "payload_type": "slack_basic"
+        }
+      ],
+      "connector_type": "generic_https",
+      "description": "primary preset",
+      "entity_type": "alerts",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    }
+  }
+]

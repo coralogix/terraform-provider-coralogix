@@ -1,0 +1,14 @@
+# What the generated acceptance test needs for coralogix_preset, besides the schema.
+# The handwritten examples also use these system parents:
+# preset_system_slack_alerts_basic, preset_system_pagerduty_alerts_basic, preset_system_email_alerts.
+resource: Preset
+
+values:
+  connector_type: '"generic_https"'
+  entity_type: '"alerts"'
+  parent_id: '"preset_system_generic_https_alerts_empty"'
+  config_overrides[].payload_type: '"generic_https_empty"'
+  config_overrides[].message_config.fields[].field_name: '"summary"'
+  config_overrides[].message_config.fields[].template: '"{{ alertDef.description }}"'
+
+upgradeFrom: "3.20.0"

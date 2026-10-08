@@ -1,0 +1,81 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "connector_type": "generic_https",
+      "entity_type": "alerts",
+      "name": "minimal",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "plan": {
+      "attachment_config": "AUTO",
+      "config_overrides": "(unknown)",
+      "connector_type": "generic_https",
+      "description": null,
+      "entity_type": "alerts",
+      "id": "(unknown)",
+      "name": "minimal",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/presets:createCustom",
+        "body": {
+          "preset": {
+            "attachmentConfig": {
+              "policy": "AUTO"
+            },
+            "connectorType": "GENERIC_HTTPS",
+            "entityType": "ALERTS",
+            "name": "minimal",
+            "parentId": "preset_system_generic_https_alerts_empty"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "attachment_config": "AUTO",
+      "config_overrides": [],
+      "connector_type": "generic_https",
+      "description": null,
+      "entity_type": "alerts",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "minimal",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/presets/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "attachment_config": "AUTO",
+      "config_overrides": [],
+      "connector_type": "generic_https",
+      "description": null,
+      "entity_type": "alerts",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "minimal",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    }
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/presets/custom/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

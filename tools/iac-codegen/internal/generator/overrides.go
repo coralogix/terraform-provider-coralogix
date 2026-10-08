@@ -184,7 +184,7 @@ func enumLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	}
 	var undecided []string
 	for i, value := range contract {
-		zero := i == 0 && hasZeroValue(contract)
+		zero := i == 0 && (hasZeroValue(contract) || line.EnumZero != "")
 		if !zero && !slices.Contains(line.EnumValues, value) && !slices.Contains(line.EnumRejected, value) {
 			undecided = append(undecided, value)
 		}

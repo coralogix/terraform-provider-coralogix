@@ -268,6 +268,7 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 func applyOverrides(out *tfResource, file *overrides.File) error {
 	out.SchemaVersion = file.Schema.Version
 	out.ResourceMarkdownDescription = file.MarkdownDescription
+	var promoted []string
 	var walk func(attrs []*tfAttr) error
 	walk = func(attrs []*tfAttr) error {
 		for _, a := range attrs {
@@ -276,8 +277,16 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 				a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return !slices.Contains(a.GroupValidators, v) })
 			}
 			if line, ok := file.Types[a.Component].Fields[a.Property]; ok {
+				nested := ""
+				if line.Promote != "" && len(a.Attributes) > 0 {
+					nested = a.Attributes[0].Component
+				}
 				if err := applyField(a, line, file); err != nil {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
+				}
+				if line.Promote != "" {
+					retargetPromoted(out.Models, a)
+					promoted = append(promoted, nested)
 				}
 				if err := checkAttrMode(a); err != nil {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
@@ -289,10 +298,65 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 		}
 		return nil
 	}
-	return walk(out.Attributes)
+	if err := walk(out.Attributes); err != nil {
+		return err
+	}
+	out.Models = dropPromotedModels(out.Models, promoted)
+	return nil
+}
+
+// promoteAttr makes a one-field object attribute the Terraform type of that field.
+func promoteAttr(a *tfAttr, inner string) error {
+	if a.Kind != "SingleNested" {
+		return fmt.Errorf("promote %q needs one object, not %s", inner, a.Kind)
+	}
+	want := tfName(inner)
+	var child *tfAttr
+	for _, c := range a.Attributes {
+		if c.Name == want {
+			child = c
+		}
+	}
+	if child == nil || len(a.Attributes) != 1 {
+		return fmt.Errorf("promote %q needs an object with only that field", inner)
+	}
+	if child.ValueKind != "String" {
+		return fmt.Errorf("promote %q needs a string or enum field, not %s", inner, child.ValueKind)
+	}
+	a.Kind, a.ValueKind, a.EnumSchema, a.Attributes = child.Kind, child.ValueKind, child.EnumSchema, nil
+	return nil
+}
+
+// retargetPromoted stores the promoted attribute as a scalar on its model.
+func retargetPromoted(models []*tfModel, a *tfAttr) {
+	name := modelTypeName(a.Component)
+	for _, m := range models {
+		if m.Name != name {
+			continue
+		}
+		for i, f := range m.Fields {
+			if f.TFName == a.Name {
+				m.Fields[i].Type = "types." + a.ValueKind
+			}
+		}
+	}
+}
+
+// dropPromotedModels removes the model of an object that promote replaced with a scalar.
+func dropPromotedModels(models []*tfModel, components []string) []*tfModel {
+	drop := map[string]bool{}
+	for _, component := range components {
+		drop[modelTypeName(component)] = true
+	}
+	return slices.DeleteFunc(models, func(m *tfModel) bool { return drop[m.Name] })
 }
 
 func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
+	if l.Promote != "" {
+		if err := promoteAttr(a, l.Promote); err != nil {
+			return err
+		}
+	}
 	if l.Required {
 		a.Required, a.Optional = true, false
 	}
@@ -394,7 +458,11 @@ func enumValidatorExpr(a *tfAttr, file *overrides.File) (string, error) {
 		values = append(values, enum.Zero)
 	}
 	for _, v := range enum.Values {
-		values = append(values, strings.ToLower(v))
+		if enum.Verbatim {
+			values = append(values, v)
+		} else {
+			values = append(values, strings.ToLower(v))
+		}
 	}
 	slices.Sort(values)
 	quoted := make([]string, 0, len(values))
