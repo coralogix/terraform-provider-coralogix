@@ -26,6 +26,7 @@
 - CHORE: Bump the generator to `v0.1.0-beta.6`.
 - CHORE: Bump the generator to `v0.1.0-beta.7`.
 - CHORE: Bump the generator to `v0.1.0-beta.8`.
+- CHORE: Bump the generator to `v0.1.0-beta.11`.
 - CHORE: Bump the generator to `v0.1.0-beta.10`.
 - FIX: The generated acceptance test leaves out `types.<Type>.extraAttributes`. A made-up map key such as `key` is not an API field.
 - CHORE: Bump the generator to `v0.1.0-beta.9`.
