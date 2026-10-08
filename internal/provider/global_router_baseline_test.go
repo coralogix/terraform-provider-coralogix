@@ -190,7 +190,7 @@ var grScenarios = map[string]func(h *grHarness){
 		cfg := router("o", j{"rules": l{j{"name": "r", "condition": "true", "entity_type": "alerts", "targets": l{
 			j{"connector_id": "c1"}, j{"connector_id": "c2"}, j{"connector_id": "c3"},
 		}}}})
-		h.api.reverseLists = true
+		h.routers().reverseLists = true
 		s := h.Apply("create: response has reversed targets", h.null(), cfg)
 		s = h.Refresh("refresh: response has reversed targets", s)
 		h.Apply("update: same config", s, with(cfg, j{"description": "x"}))
@@ -199,15 +199,15 @@ var grScenarios = map[string]func(h *grHarness){
 	// The same for the lists that are not protected today.
 	"order-fallback-lists": func(h *grHarness) {
 		fallback := j{"fallback": l{j{"connector_id": "c1"}, j{"connector_id": "c2"}}}
-		h.api.reverseLists = true
+		h.routers().reverseLists = true
 		h.Apply("create fallback: response has reversed order", h.null(), router("o1", fallback))
 		h.Apply("create fallback_targets: response has reversed order", h.null(), router("o2", j{"fallback_targets": l{
 			j{"entity_type": "alerts", "target": j{"connector_id": "c1"}},
 			j{"entity_type": "cases", "target": j{"connector_id": "c2"}},
 		}}))
-		h.api.reverseLists = false
+		h.routers().reverseLists = false
 		s := h.Apply("create in order", h.null(), router("o3", fallback))
-		h.api.reverseLists = true
+		h.routers().reverseLists = true
 		h.Refresh("refresh: response has reversed order", s)
 	},
 
@@ -220,7 +220,7 @@ var grScenarios = map[string]func(h *grHarness){
 	},
 
 	"import": func(h *grHarness) {
-		id := h.api.seed(j{
+		id := h.routers().seed(j{
 			"name": "seeded", "description": "made outside Terraform",
 			"routingLabels": j{"environment": "prod"},
 			"rules": l{j{"name": "r", "condition": "true", "entityType": "CASES", "targets": l{
@@ -245,26 +245,26 @@ var grScenarios = map[string]func(h *grHarness){
 
 	"read-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), router("gone"))
-		h.api.forget(idOf(s))
+		h.routers().forget(idOf(s))
 		h.Refresh("refresh: router was deleted outside Terraform", s)
 	},
 
 	"delete-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), router("gone"))
-		h.api.forget(idOf(s))
-		h.api.deleteStatus = 404
+		h.routers().forget(idOf(s))
+		h.routers().deleteStatus = 404
 		h.Destroy("destroy: the API answers 404", s)
 	},
 
 	"update-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), router("gone"))
-		h.api.forget(idOf(s))
+		h.routers().forget(idOf(s))
 		h.Apply("update: router was deleted outside Terraform", s, router("gone", j{"description": "changed"}))
 	},
 
 	// State written by schema version 0 is upgraded by reading the router.
 	"upgrade-from-v0": func(h *grHarness) {
-		id := h.api.seed(j{
+		id := h.routers().seed(j{
 			"name": "old", "description": "written by v0", "routingLabels": j{"environment": "old"},
 			"rules": l{j{"name": "r", "condition": "true", "entityType": "ALERTS", "targets": l{j{"connectorId": "c1"}}}},
 		})
