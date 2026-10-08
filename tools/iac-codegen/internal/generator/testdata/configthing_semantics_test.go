@@ -2,6 +2,8 @@ package configthing
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -23,30 +25,44 @@ const (
 	spacedJSON    = "{\n  \"b\": [1, 2],\n  \"a\": 1\n}"
 )
 
+// aliasBomb expands to 10^9 values through its aliases.
+var aliasBomb = func() string {
+	doc := "a0: &a0 [x, x, x, x, x, x, x, x, x, x]\n"
+	for i := 1; i < 10; i++ {
+		ref := fmt.Sprintf("*a%d", i-1)
+		doc += fmt.Sprintf("a%d: &a%d [%s]\n", i, i, strings.Repeat(ref+", ", 9)+ref)
+	}
+	return doc
+}()
+
 func TestYAMLEqual(t *testing.T) {
 	tests := map[string]struct {
 		a, b string
 		want bool
 	}{
-		"inline and multiline": {inlineYAML, multilineYAML, true},
-		"key order":            {"a: 1\nb: 2\n", "b: 2\na: 1\n", true},
-		"different value":      {inlineYAML, changedYAML, false},
-		"different type":       {"a: 1", "a: '1'", false},
-		"invalid":              {"a: [1", "a: [1]", false},
-		"invalid itself":       {"a: [1", "a: [1", true},
-		"empty":                {"", "", true},
-		"empty and document":   {"", "a: 1", false},
-		"empty and blank":      {"", "\n", true},
-		"beyond float64":       {"a: 9007199254740992", "a: 9007199254740993", false},
-		"beyond int64":         {"a: 18446744073709551616", "a: 18446744073709551617", false},
-		"same big integer":     {"a: 18446744073709551617", "{a: 18446744073709551617}", true},
-		"decimal beyond":       {"a: 0.10000000000000000001", "a: 0.10000000000000000002", false},
-		"same float forms":     {"a: 1.5", "a: 15e-1", true},
-		"integer and float":    {"a: 1", "a: 1.0", false},
-		"hex integer":          {"a: 0x10", "a: 16", true},
-		"alias":                {"x: &v [1]\ny: *v", "x: [1]\ny: [1]", true},
-		"repeated key":         {"a: 1\na: 2", "a: 2", false},
-		"number keys":          {"1: a\n2: b", "{2: b, 1: a}", true},
+		"inline and multiline":  {inlineYAML, multilineYAML, true},
+		"key order":             {"a: 1\nb: 2\n", "b: 2\na: 1\n", true},
+		"different value":       {inlineYAML, changedYAML, false},
+		"different type":        {"a: 1", "a: '1'", false},
+		"invalid":               {"a: [1", "a: [1]", false},
+		"invalid itself":        {"a: [1", "a: [1", true},
+		"empty":                 {"", "", true},
+		"empty and document":    {"", "a: 1", false},
+		"empty and blank":       {"", "\n", true},
+		"beyond float64":        {"a: 9007199254740992", "a: 9007199254740993", false},
+		"beyond int64":          {"a: 18446744073709551616", "a: 18446744073709551617", false},
+		"same big integer":      {"a: 18446744073709551617", "{a: 18446744073709551617}", true},
+		"decimal beyond":        {"a: 0.10000000000000000001", "a: 0.10000000000000000002", false},
+		"same float forms":      {"a: 1.5", "a: 15e-1", true},
+		"integer and float":     {"a: 1", "a: 1.0", false},
+		"hex integer":           {"a: 0x10", "a: 16", true},
+		"alias":                 {"x: &v [1]\ny: *v", "x: [1]\ny: [1]", true},
+		"repeated key":          {"a: 1\na: 2", "a: 2", false},
+		"number keys":           {"1: a\n2: b", "{2: b, 1: a}", true},
+		"holds itself":          {"a: &n [*n]", "a: &n\n  - *n\n", false},
+		"holds itself in a map": {"a: &n {b: *n}", "a: &n\n  b: *n\n", false},
+		"reused anchor":         {"x: &v {a: [1]}\ny: *v\nz: *v", "x: {a: [1]}\ny: {a: [1]}\nz: {a: [1]}", true},
+		"alias expansion":       {aliasBomb, aliasBomb + "\n", false},
 	}
 	for name, test := range tests {
 		if got := yamlEqual(test.a, test.b); got != test.want {
@@ -157,8 +173,8 @@ func (testProvider) Resources(context.Context) []func() frameworkresource.Resour
 func (testProvider) DataSources(context.Context) []func() datasource.DataSource { return nil }
 
 type thing struct {
-	settings, name tftypes.Value
-	remotes        []string
+	settings, name, template tftypes.Value // a zero template is null
+	remotes                  []string
 }
 
 func (th thing) value(objectType tftypes.Object, id, version tftypes.Value) tftypes.Value {
@@ -170,10 +186,15 @@ func (th thing) value(objectType tftypes.Object, id, version tftypes.Value) tfty
 			"raw_configuration": tftypes.NewValue(tftypes.String, raw),
 		}))
 	}
+	template := th.template
+	if template.Type() == nil {
+		template = tftypes.NewValue(tftypes.String, nil)
+	}
 	return tftypes.NewValue(objectType, map[string]tftypes.Value{
 		"id":       id,
 		"name":     th.name,
 		"settings": th.settings,
+		"template": template,
 		"version":  version,
 		"remotes":  tftypes.NewValue(tftypes.List{ElementType: remoteType}, items),
 	})
@@ -183,6 +204,16 @@ func (th thing) value(objectType tftypes.Object, id, version tftypes.Value) tfty
 // Like Terraform, the proposed new state takes the config, and the prior value of each computed
 // attribute that the config does not set.
 func plan(t *testing.T, prior, config thing) (planned, priorValue tftypes.Value, objectType tftypes.Object) {
+	t.Helper()
+	planned, priorValue, objectType, replace := planReplace(t, prior, config)
+	if len(replace) != 0 {
+		t.Fatalf("plan requires replace: %v", replace)
+	}
+	return planned, priorValue, objectType
+}
+
+// planReplace is plan, and also returns the attributes whose change replaces the resource.
+func planReplace(t *testing.T, prior, config thing) (planned, priorValue tftypes.Value, objectType tftypes.Object, replace []*tftypes.AttributePath) {
 	t.Helper()
 	ctx := context.Background()
 	server, err := providerserver.NewProtocol6WithError(testProvider{})()
@@ -218,14 +249,11 @@ func plan(t *testing.T, prior, config thing) (planned, priorValue tftypes.Value,
 			t.Fatalf("plan: %s: %s", d.Summary, d.Detail)
 		}
 	}
-	if len(resp.RequiresReplace) != 0 {
-		t.Fatalf("plan requires replace: %v", resp.RequiresReplace)
-	}
 	planned, err = resp.PlannedState.Unmarshal(objectType)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return planned, priorValue, objectType
+	return planned, priorValue, objectType, resp.RequiresReplace
 }
 
 func str(v string) tftypes.Value { return tftypes.NewValue(tftypes.String, v) }
@@ -290,6 +318,22 @@ func TestChangedBigNumberPlansUpdate(t *testing.T) {
 	planned, _, _ := plan(t, prior, config)
 	if !at(t, planned, "settings").Equal(str(`{"id":9007199254740993}`)) || !at(t, planned, "remotes", 0, "raw_configuration").Equal(str("id: 9007199254740993")) {
 		t.Fatalf("planned = %v, want the configured numbers", planned)
+	}
+}
+
+// Only Create sets template. The same document in another format plans no change, so it does not
+// replace the resource. Another document does.
+func TestImmutableDocumentReplacesOnlyOnChange(t *testing.T) {
+	prior := thing{settings: str(compactJSON), name: str("name"), template: str(compactJSON), remotes: []string{inlineYAML}}
+	same := thing{settings: str(compactJSON), name: str("name"), template: str(spacedJSON), remotes: []string{inlineYAML}}
+	planned, priorValue, _, replace := planReplace(t, prior, same)
+	if len(replace) != 0 || !planned.Equal(priorValue) {
+		t.Fatalf("replace = %v, planned:\n%v\nwant no replace and the prior state", replace, planned)
+	}
+	changed := thing{settings: str(compactJSON), name: str("name"), template: str(`{"a":2}`), remotes: []string{inlineYAML}}
+	_, _, _, replace = planReplace(t, prior, changed)
+	if len(replace) != 1 || !replace[0].Equal(tftypes.NewAttributePath().WithAttributeName("template")) {
+		t.Fatalf("replace = %v, want template", replace)
 	}
 }
 

@@ -97,6 +97,20 @@ func TestEqualityRejectsContainersWithoutAPrior(t *testing.T) {
 	}
 }
 
+// A set has no order to pair prior items by. The generator does not convert a set of objects yet,
+// so the check is tested on its own: it must keep rejecting equality there once sets are supported.
+func TestPriorContainersRejectSetsOfObjects(t *testing.T) {
+	item := &convObject{Model: "ItemModel", NeedsPrior: true}
+	for collection, want := range map[string]bool{"List": false, "Set": true} {
+		d := &convData{Objects: []*convObject{{Model: "RootModel", Fields: []*convField{
+			{TFName: "items", Conv: convObjects, Collection: collection, Object: item},
+		}}}}
+		if err := checkPriorContainers(d); errors.Is(err, errPriorContainer) != want {
+			t.Errorf("%s: err = %v, want rejected = %t", collection, err, want)
+		}
+	}
+}
+
 // check --overrides and generate share one eligibility path, so both report the same issues.
 func TestCheckAndGenerateAgreeOnEquality(t *testing.T) {
 	dir := t.TempDir()

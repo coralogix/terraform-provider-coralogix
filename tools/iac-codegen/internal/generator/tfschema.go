@@ -308,7 +308,8 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 		if a.ValueKind != "String" {
 			return fmt.Errorf("equality needs a string attribute, not %s", a.ValueKind)
 		}
-		a.Modifiers = append(a.Modifiers, "equivalentDocument{equal: "+l.Equality+"Equal}")
+		// First, so that RequiresReplace and the other modifiers see the state value of an equal document.
+		a.Modifiers = append([]string{"equivalentDocument{equal: " + l.Equality + "Equal}"}, a.Modifiers...)
 	}
 	if l.Default != nil {
 		expr, err := defaultExpr(a, l.Default)

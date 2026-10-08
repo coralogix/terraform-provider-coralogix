@@ -31,6 +31,14 @@ func Schema() schema.Schema {
 				},
 				MarkdownDescription: "A JSON object.",
 			},
+			"template": schema.StringAttribute{
+				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					equivalentDocument{equal: jsonEqual},
+					stringplanmodifier.RequiresReplace(),
+				},
+				MarkdownDescription: "A JSON object that only Create sets.",
+			},
 			"version": schema.StringAttribute{
 				Computed:            true,
 				MarkdownDescription: "",
