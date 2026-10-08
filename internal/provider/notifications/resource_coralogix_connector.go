@@ -29,8 +29,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -57,13 +55,6 @@ type ConnectorResource struct {
 
 func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	s := connector.Schema()
-	if idAttr, ok := s.Attributes["id"].(schema.StringAttribute); ok {
-		idAttr.PlanModifiers = []planmodifier.String{
-			stringplanmodifier.UseStateForUnknown(),
-			stringplanmodifier.RequiresReplace(),
-		}
-		s.Attributes["id"] = idAttr
-	}
 	cfg, ok := s.Attributes["connector_config"].(schema.SingleNestedAttribute)
 	if !ok {
 		resp.Diagnostics.AddError("Unexpected connector schema", "connector_config is not a single nested attribute.")
