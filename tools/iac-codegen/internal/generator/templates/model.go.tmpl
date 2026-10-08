@@ -10,5 +10,9 @@ type {{.Name}} struct {
 {{- range .Fields}}
 	{{.Name}} {{.Type}} `tfsdk:"{{.TFName}}"`
 {{- end}}
+{{- if eq .Name "ConnectorConfigModel"}}
+	FieldValuesWO         types.Map `tfsdk:"field_values_wo"`
+	FieldValuesWOVersions types.Map `tfsdk:"field_values_wo_versions"`
+{{- end}}
 }
 {{end}}

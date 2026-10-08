@@ -95,29 +95,6 @@
         "status": 404
       }
     ],
-    "applyDiagnostics": [
-      "error: Error deleting coralogix_connector | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: {\\\"reason\\\":\\\"Connector with id '00000000-0000-4000-8000-000000000001' not found\\\"}\"}\noperation - Delete"
-    ],
-    "state": {
-      "config_overrides": [],
-      "connector_config": {
-        "field_values_wo": null,
-        "field_values_wo_versions": null,
-        "fields": [
-          {
-            "field_name": "method",
-            "value": "post"
-          },
-          {
-            "field_name": "url",
-            "value": "https://example.com/hook"
-          }
-        ]
-      },
-      "description": "",
-      "id": "00000000-0000-4000-8000-000000000001",
-      "name": "gone",
-      "type": "generic_https"
-    }
+    "state": null
   }
 ]

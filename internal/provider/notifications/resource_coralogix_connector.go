@@ -17,15 +17,11 @@ package notifications
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"sort"
 	"strings"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/connector"
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -40,14 +36,21 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
-var _ resource.ResourceWithImportState = &ConnectorResource{}
+var (
+	_ resource.Resource                     = &ConnectorResource{}
+	_ resource.ResourceWithImportState      = &ConnectorResource{}
+	_ resource.ResourceWithValidateConfig   = &ConnectorResource{}
+	_ resource.ResourceWithConfigure        = &ConnectorResource{}
+	_ resource.ResourceWithConfigValidators = &ConnectorResource{}
+)
 
 func NewConnectorResource() resource.Resource {
-	return &ConnectorResource{}
+	return &ConnectorResource{Resource: connector.NewResource().(*connector.Resource)}
 }
 
+// ConnectorResource is the generated connector plus write-only secret overlay.
 type ConnectorResource struct {
-	client *connectors.ConnectorsServiceAPIService
+	*connector.Resource
 }
 
 // ConnectorResourceModel is the generated connector plus write-only secret fields
@@ -70,27 +73,6 @@ type ConnectorConfigModel struct {
 type ConnectorConfigFieldModel struct {
 	FieldName types.String `tfsdk:"field_name"`
 	Value     types.String `tfsdk:"value"`
-}
-
-func (r *ConnectorResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_connector"
-}
-
-func (r *ConnectorResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	r.client = clientSet.Connectors()
 }
 
 func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -118,11 +100,13 @@ func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"the secret is written to state by the import itself. The following apply removes it again. Treat a secret that has been through an import as exposed, and rotate it. " +
 			"Reading the same connector through `data.coralogix_connector` also returns the value, under `connector_config.fields`: a data source reads from the API and has no configuration telling it which value is managed write-only.",
 	}
-	cfg.Attributes["field_values_wo_versions"] = schema.MapAttribute{
-		ElementType: types.Int64Type,
-		Optional:    true,
-		MarkdownDescription: "Version of each `field_values_wo` entry, keyed by the same field name. Increment a value to send a rotated secret: " +
-			"Terraform holds no copy of a write-only value, so it cannot notice that one changed. These versions are kept in state and are not secret.",
+	if _, ok := cfg.Attributes["field_values_wo_versions"]; !ok {
+		cfg.Attributes["field_values_wo_versions"] = schema.MapAttribute{
+			ElementType: types.Int64Type,
+			Optional:    true,
+			MarkdownDescription: "Version of each `field_values_wo` entry, keyed by the same field name. Increment a value to send a rotated secret: " +
+				"Terraform holds no copy of a write-only value, so it cannot notice that one changed. These versions are kept in state and are not secret.",
+		}
 	}
 	s.Attributes["connector_config"] = cfg
 	resp.Schema = s
@@ -223,211 +207,6 @@ func (r *ConnectorResource) ValidateConfig(ctx context.Context, req resource.Val
 		return
 	}
 	resp.Diagnostics.Append(connectorCredentialWarnings(ctx, config)...)
-}
-
-func (r *ConnectorResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan *ConnectorResourceModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	var config *ConnectorResourceModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	secretFields, diags := secretFieldsFromConfig(ctx, config)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	if plan == nil {
-		resp.Diagnostics.AddError("Error creating coralogix_connector", "internal: empty plan")
-		return
-	}
-	body, diags := expandConnectorRequest(ctx, plan, secretFields, true)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-	createBody, ok := body.(*connectors.CreateConnectorRequest)
-	if !ok {
-		resp.Diagnostics.AddError("Error creating coralogix_connector", "internal: unexpected create body")
-		return
-	}
-	result, httpResponse, err := r.client.ConnectorsServiceCreateConnector(ctx).CreateConnectorRequest(*createBody).Execute()
-	if err != nil {
-		resp.Diagnostics.AddError("Error creating coralogix_connector",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", *createBody))
-		return
-	}
-
-	source := plan
-	plan, diags = flattenConnector(ctx, result.Connector, writeOnlyFieldNames(ctx, source))
-	if !diags.HasError() {
-		diags.Append(carryWriteOnlyVersions(ctx, plan, source)...)
-	}
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
-}
-
-func (r *ConnectorResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state *ConnectorResourceModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() || state == nil {
-		return
-	}
-
-	id := state.ID.ValueString()
-	result, httpResponse, err := r.client.ConnectorsServiceGetConnector(ctx, id).Execute()
-	if err != nil {
-		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("coralogix_connector %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
-			)
-			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError("Error reading coralogix_connector",
-				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
-		}
-		return
-	}
-
-	priorState := state
-	state, diags := flattenConnector(ctx, result.Connector, writeOnlyFieldNames(ctx, state))
-	if !diags.HasError() {
-		diags.Append(carryWriteOnlyVersions(ctx, state, priorState)...)
-	}
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-}
-
-func (r ConnectorResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan *ConnectorResourceModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() || plan == nil {
-		return
-	}
-	id := plan.ID.ValueString()
-	var config *ConnectorResourceModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	secretFields, diags := secretFieldsFromConfig(ctx, config)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	if plan == nil {
-		resp.Diagnostics.AddError("Error replacing coralogix_connector", "internal: empty plan")
-		return
-	}
-	body, diags := expandConnectorRequest(ctx, plan, secretFields, false)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-	replaceBody, ok := body.(*connectors.ReplaceConnectorRequest)
-	if !ok {
-		resp.Diagnostics.AddError("Error replacing coralogix_connector", "internal: unexpected replace body")
-		return
-	}
-
-	result, httpResponse, err := r.client.ConnectorsServiceReplaceConnector(ctx).ReplaceConnectorRequest(*replaceBody).Execute()
-	if err != nil {
-		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("coralogix_connector %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
-			)
-			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError("Error replacing coralogix_connector", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", *replaceBody))
-		}
-		return
-	}
-
-	source := plan
-	plan, diags = flattenConnector(ctx, result.Connector, writeOnlyFieldNames(ctx, source))
-	if !diags.HasError() {
-		diags.Append(carryWriteOnlyVersions(ctx, plan, source)...)
-	}
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
-}
-
-func (r ConnectorResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state ConnectorResourceModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	id := state.ID.ValueString()
-	_, httpResponse, err := r.client.ConnectorsServiceDeleteConnector(ctx, id).Execute()
-	if err != nil {
-		resp.Diagnostics.AddError("Error deleting coralogix_connector",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", id))
-	}
-}
-
-func expandConnectorRequest(ctx context.Context, plan *ConnectorResourceModel, secretFields map[string]string, create bool) (any, diag.Diagnostics) {
-	gen, diags := toGeneratedModel(ctx, plan)
-	if diags.HasError() {
-		return nil, diags
-	}
-	if create {
-		body, d := connector.ExpandCreate(ctx, gen)
-		diags.Append(d...)
-		if diags.HasError() {
-			return nil, diags
-		}
-		if body != nil {
-			mergeSecretFields(&body.Connector, secretFields)
-		}
-		return body, diags
-	}
-	body, d := connector.ExpandUpdate(ctx, gen)
-	diags.Append(d...)
-	if diags.HasError() {
-		return nil, diags
-	}
-	if body != nil {
-		mergeSecretFields(&body.Connector, secretFields)
-	}
-	return body, diags
-}
-
-func toGeneratedModel(ctx context.Context, plan *ConnectorResourceModel) (*connector.ConnectorModel, diag.Diagnostics) {
-	out := &connector.ConnectorModel{
-		Id:              plan.ID,
-		Name:            plan.Name,
-		Description:     plan.Description,
-		Type:            plan.Type,
-		ConfigOverrides: plan.ConfigOverrides,
-	}
-	if plan.ConnectorConfig.IsNull() || plan.ConnectorConfig.IsUnknown() {
-		return out, nil
-	}
-	var cfg ConnectorConfigModel
-	diags := plan.ConnectorConfig.As(ctx, &cfg, basetypes.ObjectAsOptions{})
-	if diags.HasError() {
-		return nil, diags
-	}
-	out.ConnectorConfig = &connector.ConnectorConfigModel{Fields: cfg.ConnectorConfigFields}
-	return out, diags
 }
 
 func flattenConnector(ctx context.Context, api *connectors.Connector, writeOnlyFields map[string]struct{}) (*ConnectorResourceModel, diag.Diagnostics) {

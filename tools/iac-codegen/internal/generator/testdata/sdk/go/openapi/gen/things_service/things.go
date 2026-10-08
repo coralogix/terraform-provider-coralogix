@@ -81,6 +81,10 @@ type ThingSource struct {
 	Origin *string
 }
 
+type ThingDetail struct {
+	Name string
+}
+
 type Thing struct {
 	Id           *string
 	Name         *string
@@ -92,6 +96,7 @@ type Thing struct {
 	Spec         *ThingSpec
 	Destinations []string
 	Tags         []string
+	Details      []ThingDetail
 	Labels       map[string]string
 	CreateTime   *time.Time
 	UpdateTime   *time.Time
@@ -106,6 +111,7 @@ type CreateThingRequest struct {
 	Spec         *ThingSpecCreate
 	Destinations []string
 	Tags         []string
+	Details      []ThingDetail
 	Labels       map[string]string
 }
 
@@ -117,6 +123,7 @@ type UpdateThingRequest struct {
 	Spec         *ThingSpecUpdate
 	Destinations []string
 	Tags         []string
+	Details      []ThingDetail
 	Labels       map[string]string
 }
 

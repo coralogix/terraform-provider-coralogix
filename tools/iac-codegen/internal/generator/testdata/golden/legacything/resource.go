@@ -39,6 +39,11 @@ type Resource struct {
 // NewResource returns the resource. Use it in provider.Resources.
 func NewResource() resource.Resource { return &Resource{} }
 
+// NewResourceWithClient returns the resource with an injected API client.
+func NewResourceWithClient(client *legacy_things_service.LegacyThingsServiceAPIService) resource.Resource {
+	return &Resource{client: client}
+}
+
 func (r *Resource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_" + TypeName
 }
@@ -83,6 +88,12 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+	if BeforeWrite != nil {
+		resp.Diagnostics.Append(BeforeWrite(ctx, req.Config, body)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 	v, err := r.create(ctx, body)
 	if err != nil {
@@ -132,6 +143,12 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+	if body != nil && BeforeWrite != nil {
+		resp.Diagnostics.Append(BeforeWrite(ctx, req.Config, body)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 	var v *legacy_things_service.LegacyThing
 	var err error
@@ -217,10 +234,15 @@ func setState(ctx context.Context, v *legacy_things_service.LegacyThing, prior t
 		return diags
 	}
 	diags.Append(state.Set(ctx, m)...)
-	if diags.HasError() || prior == nil {
+	if diags.HasError() {
 		return diags
 	}
-	diags.Append(keepPriorEmpty(ctx, prior, state)...)
+	if prior != nil {
+		diags.Append(keepPriorEmpty(ctx, prior, state)...)
+	}
+	if AfterRead != nil && !diags.HasError() {
+		diags.Append(AfterRead(ctx, state, prior)...)
+	}
 	return diags
 }
 

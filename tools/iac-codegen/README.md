@@ -16,8 +16,6 @@ go run ./cmd/tfgen generate \
 
 The command walks to the provider root. It reads the Management SDK version from the provider `go.mod`. It then reads `openapi.yaml` from that exact module version in the local Go module cache. SDK inspection runs with `GOPROXY=off` and `GOSUMDB=off`. The command stops if required local module data is missing. It does not fetch OpenAPI from a live service.
 
-`--openapi` overlays a local candidate OpenAPI document on that pin. Use it when contract annotations landed before the SDK OpenAPI sync. SDK symbol checks still load the pinned module.
-
 Check a candidate OpenAPI document before its SDK is released:
 
 ```sh
@@ -44,7 +42,7 @@ The equivalent flags exist for Get, Update or Replace, and Delete. The generator
 The command uses this data flow:
 
 ```text
-generate: provider go.mod -> pinned SDK openapi.yaml (or --openapi overlay) -> shared validation
+generate: provider go.mod -> pinned SDK openapi.yaml -> shared validation
   -> SDK symbol checks -> Terraform renderer -> staged output publication
 
 check: local candidate openapi.yaml -> shared validation -> eligibility report

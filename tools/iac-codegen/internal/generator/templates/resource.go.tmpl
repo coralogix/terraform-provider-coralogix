@@ -49,6 +49,11 @@ type Resource struct {
 // NewResource returns the resource. Use it in provider.Resources.
 func NewResource() resource.Resource { return &Resource{} }
 
+// NewResourceWithClient returns the resource with an injected API client.
+func NewResourceWithClient(client *{{$sdk}}.{{.Client}}) resource.Resource {
+	return &Resource{client: client}
+}
+
 func (r *Resource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_" + TypeName
 }
@@ -103,6 +108,14 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+{{- if .Existing}}
+	if BeforeWrite != nil {
+		resp.Diagnostics.Append(BeforeWrite(ctx, req.Config, body)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+{{- end}}
 	v, err := r.create(ctx, body)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create "+TypeName, err.Error())
@@ -169,6 +182,14 @@ body, mask, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+{{- if .Existing}}
+	if body != nil && BeforeWrite != nil {
+		resp.Diagnostics.Append(BeforeWrite(ctx, req.Config, body)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+{{- end}}
 	var v *{{$sdk}}.{{.Resource}}
 	var err error
 	if body == nil {
@@ -263,10 +284,19 @@ func setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prior tfData, stat
 	m.Id = types.StringValue(TypeName) // a singleton has a fixed id (D18)
 {{- end}}
 	diags.Append(state.Set(ctx, m)...)
-	if diags.HasError(){{if .Existing}} || prior == nil{{end}} {
+	if diags.HasError() {
 		return diags
 	}
+{{- if .Existing}}
+	if prior != nil {
+		diags.Append(keepPriorEmpty(ctx, prior, state)...)
+	}
+	if AfterRead != nil && !diags.HasError() {
+		diags.Append(AfterRead(ctx, state, prior)...)
+	}
+{{- else}}
 	diags.Append(keepPriorEmpty(ctx, prior, state)...)
+{{- end}}
 	return diags
 }
 

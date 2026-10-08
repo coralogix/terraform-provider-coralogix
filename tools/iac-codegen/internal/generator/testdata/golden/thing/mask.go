@@ -50,6 +50,7 @@ var maskFields = []*maskNode{
 	}},
 	{attr: "destinations", api: "destinations", serverDefault: false},
 	{attr: "tags", api: "tags", serverDefault: false},
+	{attr: "details", api: "details", serverDefault: false},
 	{attr: "labels", api: "labels", serverDefault: false},
 }
 

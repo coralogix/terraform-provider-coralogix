@@ -2,16 +2,16 @@
 
 #### resource/coralogix_connector
 - CHORE: Bump `coralogix-management-sdk` so Connector required fields and unordered field sets come from the OpenAPI contract.
-- CHORE: The resource is generated from the API contract. Released HCL is unchanged. Write-only `connector_config.field_values_wo` stays a handwritten overlay because the generator does not emit write-only attributes.
+- CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Write-only `connector_config.field_values_wo` stays a handwritten overlay because the generator does not emit write-only attributes.
 - CHORE: Add protocol baseline golden files against an in-memory connector API.
-- FIX: `description` is now `Optional` and `Computed`. To clear it, set `description = ""`.
+- FIX: `description` is now `Optional` and `Computed`. To clear it, set `description = ""`. Removing `description` and `config_overrides` from the configuration together keeps both values. Set `description = ""` and `config_overrides = []` to clear them.
+- FIX: Deleting a connector that the API has already removed succeeds.
 
 #### resource/coralogix_alert
 - DOCS: Describe `notification_group.group_by_keys` (combined vs. separate cases).
 
 #### tools/iac-codegen
 - FEAT: Support nested objects whose Create, Update, and response schemas differ. A nested field that only the response has is computed. A nested field that Create has and Update does not is immutable. A type mismatch now names the exact nested field. A nested one-of can require an arm in Create and allow no arm in Update and the response.
-<<<<<<< HEAD
 - FIX: An immutable nested value that holds computed fields no longer replaces the resource on every change. The replace check now compares only the values that Create sends.
 - FEAT: A missing `required` list means that no field is required. The OpenAPI fork cannot write an empty list, so an all-optional message, such as a PATCH body, was ineligible. A `required: []` line in `behavior-overrides.yaml` is now unused and reported.
 - FEAT: A string `pattern` that only the resource response has, for example on a server-set `id`, no longer blocks generation.
@@ -24,15 +24,14 @@
 - FEAT: A `default` line in `behavior-overrides.yaml` accepts a number for an `Int64`, `Int32`, `Float64`, or `Float32` attribute, for example `{computed: true, default: 0}`. Before, it accepted only a string or a bool.
 - FIX: In existing mode, a top-level field with a server default in the contract uses that default when `behavior-overrides.yaml` has no `default` or `computed: false` line for it. Before, the field became plain `Optional`, and an apply without it failed with `was null, but now` the default.
 - CHORE: Bump the generator to `v0.1.0-beta.6`.
-=======
 - CHORE: Bump the generator to `v0.1.0-beta.7`.
->>>>>>> e6c4853 ([CX-62352] pin SDK so Connector required fields come from OpenAPI)
+=======
+- CHORE: Bump the generator to `v0.1.0-beta.8`.
+>>>>>>> 6275d19 ([CX-62352] run generated connector CRUD and address review cleanup)
 - FEAT: Existing-resource `lengthAtLeast` keeps a released non-empty string validator.
-- FIX: Flatten of a set of objects matches prior items by identity when nested lists keep prior order. Identity comparison treats those nested lists as unordered.
-- FEAT: Generate unordered sets of objects.
+- FEAT: Generate unordered sets of objects. The Thing golden fixture includes a set of objects.
 - FIX: Namespaced OpenAPI components such as `notification_center.ConnectorConfigField` render as valid Go model types.
-- FIX: A nested object collection marked `collection: set` now flattens as a set in the generated attr.Type map, matching the schema.
-- FEAT: Existing-resource `collection: set` override keeps a released `SetNested` field when the pinned SDK still describes a list.
+- FIX: A nested object collection marked `x-coralogix-collection: set` now flattens as a set in the generated attr.Type map, matching the schema.
 
 # Release 3.20.0
 

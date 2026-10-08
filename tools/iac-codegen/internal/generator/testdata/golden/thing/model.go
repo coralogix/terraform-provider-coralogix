@@ -17,6 +17,7 @@ type ThingModel struct {
 	Spec         *ThingSpecModel   `tfsdk:"spec"`
 	Destinations types.List        `tfsdk:"destinations"`
 	Tags         types.Set         `tfsdk:"tags"`
+	Details      types.Set         `tfsdk:"details"`
 	Labels       types.Map         `tfsdk:"labels"`
 	CreateTime   types.String      `tfsdk:"create_time"`
 	UpdateTime   types.String      `tfsdk:"update_time"`
@@ -61,4 +62,8 @@ type ThingSpecModel struct {
 	Source   types.Object `tfsdk:"source"`
 	Items    types.List   `tfsdk:"items"`
 	Targets  types.List   `tfsdk:"targets"`
+}
+
+type ThingDetailModel struct {
+	Name types.String `tfsdk:"name"`
 }
