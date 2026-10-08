@@ -136,8 +136,10 @@ const (
 
 // OneOfGroup is a set of fields of an object of which at most one is set.
 type OneOfGroup struct {
-	Arms      []string // field names
-	AllowNone bool     // the value can have no arm set
+	Arms []string // field names
+	// AllowNone: the value can have no arm set. When Create sends the value,
+	// it is the Create rule, which the Terraform configuration follows.
+	AllowNone bool
 }
 
 // Type is the type of a field.
@@ -161,7 +163,7 @@ type Type struct {
 	EnumZero   string   // Enum: the exact protobuf zero value
 	Elem       *Type    // List, Set, Map
 	Fields     []*Field // Object: the properties; OneOf: the arms
-	AllowNone  bool     // OneOf: the value can have no arm set
+	AllowNone  bool     // OneOf: the value can have no arm set, as in OneOfGroup
 	// Groups are the oneOf groups of an Object that also has normal fields,
 	// or has more than one group. Each arm is one of Fields.
 	Groups []OneOfGroup

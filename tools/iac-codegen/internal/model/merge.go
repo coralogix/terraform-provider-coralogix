@@ -46,13 +46,16 @@ func mergeRequests(location string, get, create, update *Type) error {
 // type of the same value in the resource response. It records on get the
 // request components and the request attributes of the nested fields.
 func mergeRequest(location string, get, req *Type, op verb) error {
-	if detail := typeDifference(get, req); detail != "" {
+	if detail := typeDifference(get, req, op); detail != "" {
 		return &contractError{
 			code:        "FIELD_TYPE_INCONSISTENT",
 			location:    location,
 			message:     fmt.Sprintf("The %s request type differs from the resource response type: %s.", op, detail),
 			remediation: "Use the same type, limits, enum values, and oneOf arms in the Create, Update, and resource response schemas. Component names and descriptions can differ.",
 		}
+	}
+	if op == opCreate {
+		adoptCreateRule(get, req)
 	}
 	switch get.Kind {
 	case List, Set:
@@ -105,7 +108,7 @@ func mergeFields(location string, get, req *Type, op verb) error {
 
 // typeDifference returns how req differs from get, or "". It does not compare
 // component names, descriptions, or the nested fields of an object.
-func typeDifference(get, req *Type) string {
+func typeDifference(get, req *Type, op verb) string {
 	switch {
 	case get.Kind != req.Kind:
 		return fmt.Sprintf("kind %s, want %s", req.Kind, get.Kind)
@@ -118,7 +121,7 @@ func typeDifference(get, req *Type) string {
 	case !sameLimits(get, req):
 		return "different limits"
 	}
-	return oneOfDifference(get, req)
+	return oneOfDifference(get, req, op)
 }
 
 func sameLimits(a, b *Type) bool {
@@ -128,16 +131,54 @@ func sameLimits(a, b *Type) bool {
 }
 
 // oneOfDifference returns how the oneOf arms of req differ from get, or "".
-func oneOfDifference(get, req *Type) string {
+// The arms must be the same. Whether a oneOf can have no arm can differ in one
+// way: Create can require an arm where Update and the response allow none. A
+// PATCH that changes only another field, for example family.active, sends no
+// arm.
+func oneOfDifference(get, req *Type, op verb) string {
 	switch {
 	case get.Discriminator != req.Discriminator:
 		return fmt.Sprintf("discriminator %q, want %q", req.Discriminator, get.Discriminator)
-	case get.Kind == OneOf && (get.AllowNone != req.AllowNone || !sameSet(fieldNames(get), fieldNames(req))):
+	case get.Kind == OneOf && !sameSet(fieldNames(get), fieldNames(req)):
 		return fmt.Sprintf("oneOf arms %v, want %v", fieldNames(req), fieldNames(get))
-	case !sameGroups(get.Groups, req.Groups):
+	case get.Kind == OneOf && noArmRuleBroken(get.AllowNone, req.AllowNone, op):
+		return noArmDifference(op)
+	case !sameGroupArms(get.Groups, req.Groups):
 		return "different oneOf groups"
 	}
+	for _, g := range get.Groups {
+		if noArmRuleBroken(g.AllowNone, matchingGroup(req.Groups, g).AllowNone, op) {
+			return noArmDifference(op)
+		}
+	}
 	return ""
+}
+
+// noArmRuleBroken reports whether a oneOf requires an arm that Create can
+// leave out. In the Create merge, get is the response. In the Update merge,
+// get has the Create rule (adoptCreateRule).
+func noArmRuleBroken(getAllowsNone, reqAllowsNone bool, op verb) bool {
+	if op == opCreate {
+		return reqAllowsNone && !getAllowsNone
+	}
+	return getAllowsNone && !reqAllowsNone
+}
+
+func noArmDifference(op verb) string {
+	if op == opCreate {
+		return "Create allows a oneOf with no arm, but the resource response requires one"
+	}
+	return "Create allows a oneOf with no arm, but the Update request requires one"
+}
+
+// adoptCreateRule gives get the Create rule for a oneOf with no arm. The
+// Terraform configuration follows Create, so it requires an arm when Create
+// does, also when Update and the response allow none.
+func adoptCreateRule(get, create *Type) {
+	get.AllowNone = create.AllowNone
+	for i, g := range get.Groups {
+		get.Groups[i].AllowNone = matchingGroup(create.Groups, g).AllowNone
+	}
 }
 
 // classifyFields sets the Behavior of the nested fields of t. create and
@@ -257,17 +298,24 @@ func fieldNames(t *Type) []string {
 	return names
 }
 
-// sameGroups reports whether a and b have the same groups, in any order.
-func sameGroups(a, b []OneOfGroup) bool {
+// sameGroupArms reports whether a and b have groups with the same arms, in
+// any order.
+func sameGroupArms(a, b []OneOfGroup) bool {
 	if len(a) != len(b) {
 		return false
 	}
 	for _, g := range a {
-		if !slices.ContainsFunc(b, func(h OneOfGroup) bool { return g.AllowNone == h.AllowNone && sameSet(g.Arms, h.Arms) }) {
+		if !slices.ContainsFunc(b, func(h OneOfGroup) bool { return sameSet(g.Arms, h.Arms) }) {
 			return false
 		}
 	}
 	return true
+}
+
+// matchingGroup returns the group of groups with the arms of g.
+func matchingGroup(groups []OneOfGroup, g OneOfGroup) OneOfGroup {
+	i := slices.IndexFunc(groups, func(h OneOfGroup) bool { return sameSet(g.Arms, h.Arms) })
+	return groups[i]
 }
 
 func samePointer[T comparable](a, b *T) bool {

@@ -1218,3 +1218,85 @@ func TestNestedFieldContract(t *testing.T) {
 		})
 	}
 }
+
+// looseConfigSpec returns the fixture with the config oneOf of the given
+// request and response schemas replaced by ThingConfigLoose, a copy that
+// allows no arm. Create, Update, and the response are "create", "update", and
+// "get".
+func looseConfigSpec(t *testing.T, loose ...string) string {
+	t.Helper()
+	spec := string(validSpec(t))
+	refs := map[string][2]string{
+		"create": {"                config:\n                  $ref: '#/components/schemas/ThingConfig'\n                spec:\n", "                config:\n                  $ref: '#/components/schemas/ThingConfigLoose'\n                spec:\n"},
+		"update": {"                config:\n                  allOf:\n                    - $ref: '#/components/schemas/ThingConfig'\n", "                config:\n                  $ref: '#/components/schemas/ThingConfigLoose'\n"},
+		"get":    {"        config:\n          $ref: '#/components/schemas/ThingConfig'\n        status:\n", "        config:\n          $ref: '#/components/schemas/ThingConfigLoose'\n        status:\n"},
+	}
+	for _, op := range loose {
+		if !strings.Contains(spec, refs[op][0]) {
+			t.Fatalf("fixture text for %s not found", op)
+		}
+		spec = strings.Replace(spec, refs[op][0], refs[op][1], 1)
+	}
+	return strings.Replace(spec, "    DeleteThingResponse:\n", `    ThingConfigLoose:
+      type: object
+      required: []
+      properties:
+        http:
+          $ref: '#/components/schemas/HttpThingConfig'
+        queue:
+          $ref: '#/components/schemas/QueueThingConfig'
+      oneOf:
+        - required: [http]
+        - required: [queue]
+        - not:
+            anyOf:
+              - required: [http]
+              - required: [queue]
+    DeleteThingResponse:
+`, 1)
+}
+
+func TestOneOfNoArmRule(t *testing.T) {
+	tests := map[string]struct {
+		loose []string
+		issue string // "" when eligible
+	}{
+		"Update and response allow no arm":      {loose: []string{"update", "get"}},
+		"only Update allows no arm":             {loose: []string{"update"}},
+		"Create allows no arm, response not":    {loose: []string{"create"}, issue: "the resource response requires one"},
+		"Create and response allow, Update not": {loose: []string{"create", "get"}, issue: "the Update request requires one"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			doc, err := Load([]byte(looseConfigSpec(t, test.loose...)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var found []issue.Issue
+			for _, item := range Validate(doc, "Thing", OperationIDs{}) {
+				if item.Location == "components.schemas.Thing.config" {
+					found = append(found, item)
+				}
+			}
+			if test.issue == "" {
+				if len(found) != 0 {
+					t.Fatalf("issues = %v, want none", found)
+				}
+				r, err := Build(doc, "Thing")
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, f := range r.Fields {
+					// The configuration follows Create, which requires an arm.
+					if f.Name == "config" && f.Type.AllowNone {
+						t.Fatal("config allows no arm, want the Create rule")
+					}
+				}
+				return
+			}
+			if len(found) != 1 || found[0].Code != "FIELD_TYPE_INCONSISTENT" || !strings.Contains(found[0].Message, test.issue) {
+				t.Fatalf("issues = %v, want one FIELD_TYPE_INCONSISTENT with %q", found, test.issue)
+			}
+		})
+	}
+}
