@@ -1421,3 +1421,25 @@ func TestImmutableServerValuesUseRequestReplace(t *testing.T) {
 		t.Errorf("kinds %v, server paths %v", data.RequestReplaceKinds, data.ServerPaths)
 	}
 }
+
+// A behavior-overrides line can make a nested attribute optional and computed.
+// Inside an immutable value, an omitted one would be unknown after any change
+// and replace the resource, so the generator rejects it.
+func TestImmutableValueRejectsOptionalComputedOverride(t *testing.T) {
+	settings := &model.Type{Kind: model.Object, Schema: "Settings", CreateSchema: "Settings", Fields: []*model.Field{
+		{Name: "name", Type: &model.Type{Kind: model.String}, Behavior: model.Normal, Create: &model.Attrs{Required: true}},
+		{Name: "zone", Type: &model.Type{Kind: model.String}, Behavior: model.Normal, Create: &model.Attrs{}},
+	}}
+	resource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{
+		{Name: "settings", Type: settings, Behavior: model.Immutable, Create: &model.Attrs{}, Get: &model.Attrs{}, InGet: true},
+	}}
+	base := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\n"
+	if _, err := buildTFResourceWith(resource, "thing", mustParse(t, base)); err != nil {
+		t.Fatalf("immutable value without overrides: %v", err)
+	}
+	file := mustParse(t, base+"types:\n  Settings:\n    fields:\n      zone: {computed: true}\n")
+	_, err := buildTFResourceWith(resource, "thing", file)
+	if err == nil || !strings.Contains(err.Error(), "settings: the immutable value holds the optional and computed attribute settings.zone") {
+		t.Fatalf("err = %v, want the optional and computed attribute settings.zone", err)
+	}
+}

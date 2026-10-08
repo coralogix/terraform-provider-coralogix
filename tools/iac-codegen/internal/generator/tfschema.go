@@ -136,6 +136,9 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 		if err := applyOverrides(out, file); err != nil {
 			return nil, err
 		}
+		if err := checkImmutableValues(out.Attributes, ""); err != nil {
+			return nil, err
+		}
 	}
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
 	out.DefaultPkgs = defaultPackages(out.Attributes)
@@ -700,6 +703,51 @@ func (b *tfBuilder) requiresReplace(a *tfAttr, at string) {
 	if !containsString(b.replaceKinds, a.ValueKind) {
 		b.replaceKinds = append(b.replaceKinds, a.ValueKind)
 	}
+}
+
+// checkImmutableValues rejects an immutable value that holds an optional and
+// computed attribute. Only a behavior-overrides line makes a nested attribute
+// optional and computed. When the user leaves it out and the resource
+// changes, Terraform plans it as unknown. The replace check cannot tell that
+// from a change of the user, so the resource would be replaced.
+func checkImmutableValues(attrs []*tfAttr, parent string) error {
+	for _, a := range attrs {
+		at := a.Name
+		if parent != "" {
+			at = parent + "." + a.Name
+		}
+		if replaces(a) {
+			if child := optionalComputed(a.Attributes, at); child != "" {
+				return fmt.Errorf("%s: the immutable value holds the optional and computed attribute %s. A change of another attribute would plan it as unknown and replace the resource", at, child)
+			}
+		}
+		if err := checkImmutableValues(a.Attributes, at); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// replaces reports whether a change of a replaces the resource.
+func replaces(a *tfAttr) bool {
+	return slices.ContainsFunc(a.Modifiers, func(m string) bool {
+		return strings.HasSuffix(m, "planmodifier.RequiresReplace()") || strings.HasPrefix(m, "requestReplaceModifier{")
+	})
+}
+
+// optionalComputed returns the path of the first optional and computed
+// attribute in attrs or their descendants, or "".
+func optionalComputed(attrs []*tfAttr, parent string) string {
+	for _, a := range attrs {
+		at := parent + "." + a.Name
+		if a.Optional && a.Computed {
+			return at
+		}
+		if child := optionalComputed(a.Attributes, at); child != "" {
+			return child
+		}
+	}
+	return ""
 }
 
 // hasServerValue reports whether attrs or their descendants have a
