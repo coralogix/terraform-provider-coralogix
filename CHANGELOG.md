@@ -21,6 +21,8 @@
 - FEAT: `equality: yaml` or `equality: json` on a string field compares its value as a document, so a reformatted YAML or JSON value does not plan a change.
 - FIX: A resource in existing mode keeps the configured form of an empty list, set, or map. An omitted list or map that the API returns empty no longer fails the apply with `was null, but now` an empty value.
 - FEAT: `keepPriorOrder` works on a list whose request items use another component than its response items, such as a Create item without the server-set id and hash. The items pair on the fields that the request sends.
+- CHORE: Bump the generator to `v0.1.0-beta.10`.
+- FIX: The generated acceptance test leaves out `types.<Type>.extraAttributes`. A made-up map key such as `key` is not an API field.
 - CHORE: Bump the generator to `v0.1.0-beta.9`.
 - FEAT: `types.<Type>.extraAttributes` declares Terraform-only map attributes, including `writeOnly: true`. The archived-thing golden fixture covers the shape.
 - FEAT: Existing-resource `NewResource` takes `Hooks{BeforeWrite, AfterRead}` so overlays pass write-only logic at construction instead of package `init`.

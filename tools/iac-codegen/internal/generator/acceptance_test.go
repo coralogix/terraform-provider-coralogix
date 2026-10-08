@@ -90,6 +90,26 @@ func TestAcceptanceMakesPlainValuesByMode(t *testing.T) {
 	}
 }
 
+// extraAttributes are not API fields. A made-up map key such as key would fail the API.
+func TestAcceptanceOmitsExtraAttributes(t *testing.T) {
+	s := testSynth(t, "")
+	attrs := append(sampleAttrs(), &tfAttr{
+		Name: "token_wo", Kind: "Map", ValueKind: "Map", Optional: true, Extra: true, WriteOnly: true, ElementType: "types.StringType",
+	})
+	body, checks, err := s.attrs(attrs, "", "", accFull, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(body, "token_wo") {
+		t.Fatalf("config sets extraAttribute token_wo:\n%s", body)
+	}
+	for _, c := range checks {
+		if strings.Contains(c.Path, "token_wo") {
+			t.Fatalf("checks include extraAttribute %s", c.Path)
+		}
+	}
+}
+
 // A made-up number fits the range validators of the attribute.
 func TestAcceptanceNumbersFitTheirRange(t *testing.T) {
 	tests := map[string]struct {

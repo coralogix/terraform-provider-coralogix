@@ -51,6 +51,7 @@ func attachExtraAttributes(out *tfResource, file *overrides.File) error {
 				ValueKind:   "Map",
 				Optional:    true,
 				WriteOnly:   extra.WriteOnly,
+				Extra:       true,
 				ElementType: elem,
 				Description: extra.MarkdownDescription,
 			})
