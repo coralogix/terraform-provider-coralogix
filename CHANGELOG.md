@@ -10,6 +10,7 @@
 - FEAT: A string `pattern` that only the resource response has, for example on a server-set `id`, no longer blocks generation.
 - FIX: Reject an immutable value that holds an optional and computed field from `behavior-overrides.yaml`. An omitted one would replace the resource on every change.
 - FIX: The generated acceptance test treats an immutable value with server-set fields as immutable. Before, it could expect an update where the plan replaces the resource.
+- FEAT: A field with a server default no longer needs the default on its Update schema. The generated resource reads only the Create default. An Update default that differs from the Create default is still rejected.
 - FEAT: `equality: yaml` or `equality: json` on a string field compares its value as a document, so a reformatted YAML or JSON value does not plan a change.
 - FIX: A resource in existing mode keeps the configured form of an empty list, set, or map. An omitted list or map that the API returns empty no longer fails the apply with `was null, but now` an empty value.
 - FEAT: `keepPriorOrder` works on a list whose request items use another component than its response items, such as a Create item without the server-set id and hash. The items pair on the fields that the request sends.
