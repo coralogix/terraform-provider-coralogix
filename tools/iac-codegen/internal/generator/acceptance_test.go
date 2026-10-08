@@ -228,14 +228,16 @@ func TestAcceptanceNextActionFollowsTheConfigs(t *testing.T) {
 	note := &tfAttr{Name: "note", Kind: "String", Optional: true, Computed: true}
 	label := &tfAttr{Name: "label", Kind: "String", Optional: true}
 	zone := &tfAttr{Name: "zone", Kind: "String", Optional: true, Computed: true, Modifiers: []string{"stringplanmodifier.RequiresReplace()"}}
+	targets := &tfAttr{Name: "targets", Kind: "String", Optional: true, Modifiers: []string{`requestReplaceModifier{at: "targets"}`}}
 	tests := map[string]struct {
 		attrs    []*tfAttr
 		from, to accMode
 		want     string
 	}{
-		"a mutable value changes":     {[]*tfAttr{enum, name, region}, accFull, accUpdated, accPlanNoReplace},
-		"nothing changes":             {[]*tfAttr{enum, region}, accFull, accUpdated, accPlanNoop},
-		"an immutable value is added": {[]*tfAttr{enum, name, region}, accMinimal, accFull, accPlanReplace},
+		"a mutable value changes":                      {[]*tfAttr{enum, name, region}, accFull, accUpdated, accPlanNoReplace},
+		"nothing changes":                              {[]*tfAttr{enum, region}, accFull, accUpdated, accPlanNoop},
+		"an immutable value is added":                  {[]*tfAttr{enum, name, region}, accMinimal, accFull, accPlanReplace},
+		"a value with requestReplaceModifier is added": {[]*tfAttr{enum, name, targets}, accMinimal, accFull, accPlanReplace},
 		// A default or an API value in state can equal the next value: update or no change.
 		"a left-out value is set to its default": {[]*tfAttr{enum, paused}, accMinimal, accUpdated, accPlanNoReplace},
 		"a left-out computed value":              {[]*tfAttr{enum, note}, accMinimal, accFull, accPlanNoReplace},
@@ -635,21 +637,26 @@ func TestAcceptanceMinimalIncludesParentsOfNestedFields(t *testing.T) {
 	}
 }
 
-// nextAction compares only top-level attributes, so RequiresReplace below them stops generation.
+// nextAction compares only top-level attributes, so a replace modifier below them stops generation.
+// requestReplaceModifier replaces the resource as RequiresReplace does.
 func TestAcceptanceRejectsNestedRequiresReplace(t *testing.T) {
-	res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "thing", IDAttr: "id", Resource: "Thing"}, Attributes: []*tfAttr{
-		{Name: "name", Kind: "String", Required: true},
-		{Name: "rules", Kind: "ListNested", Optional: true, Attributes: []*tfAttr{
-			{Name: "region", Kind: "String", Required: true, Modifiers: []string{"stringplanmodifier.RequiresReplace()"}},
-		}},
-	}}
-	file, err := acceptance.Parse([]byte("resource: Thing\n"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = buildAcceptance(res, "example.com/provider", file, nil)
-	if err == nil || !strings.Contains(err.Error(), `"rules[].region" has RequiresReplace below the top level`) {
-		t.Fatalf("err = %v, want nested RequiresReplace rejected", err)
+	for _, modifier := range []string{"stringplanmodifier.RequiresReplace()", `requestReplaceModifier{at: "rules.region"}`} {
+		t.Run(modifier, func(t *testing.T) {
+			res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "thing", IDAttr: "id", Resource: "Thing"}, Attributes: []*tfAttr{
+				{Name: "name", Kind: "String", Required: true},
+				{Name: "rules", Kind: "ListNested", Optional: true, Attributes: []*tfAttr{
+					{Name: "region", Kind: "String", Required: true, Modifiers: []string{modifier}},
+				}},
+			}}
+			file, err := acceptance.Parse([]byte("resource: Thing\n"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = buildAcceptance(res, "example.com/provider", file, nil)
+			if err == nil || !strings.Contains(err.Error(), `"rules[].region" has RequiresReplace below the top level`) {
+				t.Fatalf("err = %v, want nested RequiresReplace rejected", err)
+			}
+		})
 	}
 }
 

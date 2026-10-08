@@ -9,6 +9,7 @@
 - FEAT: A missing `required` list means that no field is required. The OpenAPI fork cannot write an empty list, so an all-optional message, such as a PATCH body, was ineligible. A `required: []` line in `behavior-overrides.yaml` is now unused and reported.
 - FEAT: A string `pattern` that only the resource response has, for example on a server-set `id`, no longer blocks generation.
 - FIX: Reject an immutable value that holds an optional and computed field from `behavior-overrides.yaml`. An omitted one would replace the resource on every change.
+- FIX: The generated acceptance test treats an immutable value with server-set fields as immutable. Before, it could expect an update where the plan replaces the resource.
 
 # Release 3.20.0
 
