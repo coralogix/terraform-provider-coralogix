@@ -35,9 +35,11 @@ var cxSelectableTypes = []string{
 	"IBM_EVENT_NOTIFICATIONS", "CONNECTOR_TYPE_UNSPECIFIED",
 }
 
-// cxFake is a small in-memory backend for connectors. It follows the released
-// resource's HTTP shape: Create/Replace wrap {connector}, Get/Delete use /{id}.
-// Omitted description reads back as "". Config field order is not kept.
+// cxFake is a small in-memory backend for connectors. It is checked against
+// recorded answers of the real API (connector_fidelity_test.go). Create/Replace
+// wrap {connector}, Get/Delete use /{id}. An omitted description reads back as
+// "". A secret field such as integrationKey is returned in fields, unmasked.
+// Delete of a missing id returns 200.
 type cxFake struct {
 	mu           sync.Mutex
 	connectors   map[string]map[string]any
@@ -121,12 +123,12 @@ func (f *cxFake) handle(method, path string, body any) (int, any) {
 	case method == http.MethodGet && id != "":
 		stored, found := f.connectors[id]
 		if !found {
-			return grFail(http.StatusNotFound, "Connector with id '"+id+"' not found")
+			return grFail(http.StatusNotFound, "Connector with id "+id+" not found")
 		}
 		return http.StatusOK, map[string]any{"connector": f.present(stored)}
 	case method == http.MethodDelete && id != "":
 		if f.deleteStatus != 0 {
-			return grFail(f.deleteStatus, "Connector with id '"+id+"' not found")
+			return grFail(f.deleteStatus, "Connector with id "+id+" not found")
 		}
 		delete(f.connectors, id)
 		return http.StatusOK, map[string]any{}
@@ -143,7 +145,7 @@ func (f *cxFake) write(body any, replace bool) (int, any) {
 	in, _ := body.(map[string]any)
 	connector, _ := in["connector"].(map[string]any)
 	if connector == nil {
-		return grFail(http.StatusBadRequest, "connector is required")
+		return grFail(http.StatusBadRequest, "Connector input is required")
 	}
 	if status, resp := f.check(connector, replace); status != 0 {
 		return status, resp
@@ -152,8 +154,10 @@ func (f *cxFake) write(body any, replace bool) (int, any) {
 	id, _ := stored["id"].(string)
 	if replace {
 		if _, found := f.connectors[id]; !found {
-			return grFail(http.StatusNotFound, "Connector with id '"+id+"' not found")
+			return grFail(http.StatusNotFound, "Connector with id "+id+" not found")
 		}
+	} else if _, found := f.connectors[id]; found {
+		return grFail(http.StatusBadRequest, "Connector with the provided id exists")
 	}
 	f.clock++
 	stored["updateTime"] = fmt.Sprintf("2026-01-01T00:00:%02dZ", f.clock)
@@ -167,16 +171,25 @@ func (f *cxFake) write(body any, replace bool) (int, any) {
 }
 
 func (f *cxFake) check(connector map[string]any, replace bool) (int, any) {
-	name, _ := connector["name"].(string)
-	if name == "" {
-		return grFail(http.StatusBadRequest, "name is required")
-	}
 	typ, _ := connector["type"].(string)
 	if typ == "" {
-		return grFail(http.StatusBadRequest, "type is required")
+		return grFail(http.StatusBadRequest, "unknown enumeration value 0")
 	}
 	if !slices.Contains(cxSelectableTypes, typ) {
-		return grProtoFail(fmt.Sprintf("invalid value for enum field type: %q", typ))
+		return http.StatusBadRequest, map[string]any{
+			"code": http.StatusBadRequest,
+			"message": fmt.Sprintf(
+				`Bad Request: proto: (line 1:112): invalid value for enum field type: %q`,
+				typ,
+			),
+		}
+	}
+	name, _ := connector["name"].(string)
+	if name == "" {
+		return grFail(http.StatusBadRequest, "name must not be empty")
+	}
+	if _, ok := connector["connectorConfig"]; !ok {
+		return grFail(http.StatusBadRequest, "connector_config is required")
 	}
 	if replace {
 		id, _ := connector["id"].(string)

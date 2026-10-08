@@ -16,13 +16,13 @@
     {
       "name": "description-and-config-overrides",
       "steps": [
-        {"method": "POST", "path": "", "body": {"connector": {"id": "{{C2}}", "name": "{{C2}}", "type": "SLACK"}}},
+        {"method": "POST", "path": "", "body": {"connector": {"id": "{{C2}}", "name": "{{C2}}", "type": "GENERIC_HTTPS", "connectorConfig": {"fields": [{"fieldName": "url", "value": "https://example.com"}]}}}},
         {"method": "GET", "path": "/{{C2}}"},
-        {"method": "PUT", "path": "", "body": {"connector": {"id": "{{C2}}", "name": "{{C2}}", "type": "SLACK", "description": "d", "configOverrides": [{"entityType": "ALERTS", "fields": [{"fieldName": "channel", "template": "#ops"}]}]}}},
+        {"method": "PUT", "path": "", "body": {"connector": {"id": "{{C2}}", "name": "{{C2}}", "type": "GENERIC_HTTPS", "description": "d", "connectorConfig": {"fields": [{"fieldName": "url", "value": "https://example.com"}]}, "configOverrides": [{"entityType": "ALERTS", "fields": [{"fieldName": "url", "template": "https://example.com/alerts"}]}]}}},
         {"method": "GET", "path": "/{{C2}}"},
-        {"method": "PUT", "path": "", "body": {"connector": {"id": "{{C2}}", "name": "{{C2}}", "type": "SLACK"}}},
+        {"method": "PUT", "path": "", "body": {"connector": {"id": "{{C2}}", "name": "{{C2}}", "type": "GENERIC_HTTPS", "connectorConfig": {"fields": [{"fieldName": "url", "value": "https://example.com"}]}}}},
         {"method": "GET", "path": "/{{C2}}"},
-        {"method": "PUT", "path": "", "body": {"connector": {"id": "{{C2}}", "name": "{{C2}}", "type": "SLACK", "description": "", "configOverrides": []}}},
+        {"method": "PUT", "path": "", "body": {"connector": {"id": "{{C2}}", "name": "{{C2}}", "type": "GENERIC_HTTPS", "description": "", "connectorConfig": {"fields": [{"fieldName": "url", "value": "https://example.com"}]}, "configOverrides": []}}},
         {"method": "GET", "path": "/{{C2}}"}
       ]
     },
@@ -49,16 +49,16 @@
     {
       "name": "duplicate-id-and-generated-id",
       "steps": [
-        {"method": "POST", "path": "", "body": {"connector": {"id": "{{C5}}", "name": "{{C5}}", "type": "EMAIL"}}},
-        {"method": "POST", "path": "", "body": {"connector": {"id": "{{C5}}", "name": "{{C5}}", "type": "EMAIL"}}},
-        {"method": "POST", "path": "", "capture": "GEN", "body": {"connector": {"name": "generated", "type": "EMAIL"}}},
+        {"method": "POST", "path": "", "body": {"connector": {"id": "{{C5}}", "name": "{{C5}}", "type": "EMAIL", "connectorConfig": {"fields": [{"fieldName": "emailAddresses", "value": "[\"tf-fidelity@example.com\"]"}]}}}},
+        {"method": "POST", "path": "", "body": {"connector": {"id": "{{C5}}", "name": "{{C5}}", "type": "EMAIL", "connectorConfig": {"fields": [{"fieldName": "emailAddresses", "value": "[\"tf-fidelity@example.com\"]"}]}}}},
+        {"method": "POST", "path": "", "capture": "GEN", "body": {"connector": {"name": "generated", "type": "EMAIL", "connectorConfig": {"fields": [{"fieldName": "emailAddresses", "value": "[\"tf-fidelity@example.com\"]"}]}}}},
         {"method": "GET", "path": "/{{GEN}}"}
       ]
     },
     {
       "name": "update-missing-id",
       "steps": [
-        {"method": "PUT", "path": "", "body": {"connector": {"id": "{{MISSING}}", "name": "missing", "type": "SLACK"}}}
+        {"method": "PUT", "path": "", "body": {"connector": {"id": "{{MISSING}}", "name": "missing", "type": "GENERIC_HTTPS", "connectorConfig": {"fields": [{"fieldName": "url", "value": "https://example.com"}]}}}}
       ]
     },
     {

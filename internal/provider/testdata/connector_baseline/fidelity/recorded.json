@@ -16,7 +16,7 @@
                   }
                 ]
               },
-              "createTime": "2026-01-01T00:00:01Z",
+              "createTime": "2026-10-08T13:04:57.122087Z",
               "description": "",
               "id": "{{C1}}",
               "name": "{{C1}}",
@@ -30,7 +30,7 @@
               },
               "teamId": 1,
               "type": "GENERIC_HTTPS",
-              "updateTime": "2026-01-01T00:00:01Z"
+              "updateTime": "2026-10-08T13:04:57.122087Z"
             }
           }
         },
@@ -47,7 +47,7 @@
                   }
                 ]
               },
-              "createTime": "2026-01-01T00:00:01Z",
+              "createTime": "2026-10-08T13:04:57.122087Z",
               "description": "",
               "id": "{{C1}}",
               "name": "{{C1}}",
@@ -61,7 +61,7 @@
               },
               "teamId": 1,
               "type": "GENERIC_HTTPS",
-              "updateTime": "2026-01-01T00:00:01Z"
+              "updateTime": "2026-10-08T13:04:57.122087Z"
             }
           }
         },
@@ -78,7 +78,7 @@
                   }
                 ]
               },
-              "createTime": "2026-01-01T00:00:01Z",
+              "createTime": "2026-10-08T13:04:57.122087Z",
               "description": "",
               "id": "{{C1}}",
               "name": "renamed",
@@ -92,7 +92,7 @@
               },
               "teamId": 1,
               "type": "GENERIC_HTTPS",
-              "updateTime": "2026-01-01T00:00:02Z"
+              "updateTime": "2026-10-08T13:04:57.272585Z"
             }
           }
         },
@@ -109,7 +109,7 @@
                   }
                 ]
               },
-              "createTime": "2026-01-01T00:00:01Z",
+              "createTime": "2026-10-08T13:04:57.122087Z",
               "description": "",
               "id": "{{C1}}",
               "name": "renamed",
@@ -123,7 +123,7 @@
               },
               "teamId": 1,
               "type": "GENERIC_HTTPS",
-              "updateTime": "2026-01-01T00:00:02Z"
+              "updateTime": "2026-10-08T13:04:57.272585Z"
             }
           }
         },
@@ -135,7 +135,7 @@
           "status": 404,
           "response": {
             "code": 404,
-            "message": "Not Found: {\"reason\":\"Connector with id '{{C1}}' not found\"}"
+            "message": "Not Found: {\"reason\":\"Connector with id {{C1}} not found\"}"
           }
         },
         {
@@ -153,18 +153,28 @@
             "connector": {
               "configOverrides": [],
               "connectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
               },
-              "createTime": "2026-01-01T00:00:03Z",
+              "createTime": "2026-10-08T13:04:57.699905Z",
               "description": "",
               "id": "{{C2}}",
               "name": "{{C2}}",
               "resolvedConnectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
               },
               "teamId": 1,
-              "type": "SLACK",
-              "updateTime": "2026-01-01T00:00:03Z"
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:57.699905Z"
             }
           }
         },
@@ -174,18 +184,28 @@
             "connector": {
               "configOverrides": [],
               "connectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
               },
-              "createTime": "2026-01-01T00:00:03Z",
+              "createTime": "2026-10-08T13:04:57.699905Z",
               "description": "",
               "id": "{{C2}}",
               "name": "{{C2}}",
               "resolvedConnectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
               },
               "teamId": 1,
-              "type": "SLACK",
-              "updateTime": "2026-01-01T00:00:03Z"
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:57.699905Z"
             }
           }
         },
@@ -198,25 +218,35 @@
                   "entityType": "ALERTS",
                   "fields": [
                     {
-                      "fieldName": "channel",
-                      "template": "#ops"
+                      "fieldName": "url",
+                      "template": "https://example.com/alerts"
                     }
                   ]
                 }
               ],
               "connectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
               },
-              "createTime": "2026-01-01T00:00:03Z",
+              "createTime": "2026-10-08T13:04:57.699905Z",
               "description": "d",
               "id": "{{C2}}",
               "name": "{{C2}}",
               "resolvedConnectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
               },
               "teamId": 1,
-              "type": "SLACK",
-              "updateTime": "2026-01-01T00:00:04Z"
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:57.836163Z"
             }
           }
         },
@@ -229,25 +259,35 @@
                   "entityType": "ALERTS",
                   "fields": [
                     {
-                      "fieldName": "channel",
-                      "template": "#ops"
+                      "fieldName": "url",
+                      "template": "https://example.com/alerts"
                     }
                   ]
                 }
               ],
               "connectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
               },
-              "createTime": "2026-01-01T00:00:03Z",
+              "createTime": "2026-10-08T13:04:57.699905Z",
               "description": "d",
               "id": "{{C2}}",
               "name": "{{C2}}",
               "resolvedConnectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
               },
               "teamId": 1,
-              "type": "SLACK",
-              "updateTime": "2026-01-01T00:00:04Z"
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:57.836163Z"
             }
           }
         },
@@ -257,18 +297,28 @@
             "connector": {
               "configOverrides": [],
               "connectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
               },
-              "createTime": "2026-01-01T00:00:03Z",
+              "createTime": "2026-10-08T13:04:57.699905Z",
               "description": "",
               "id": "{{C2}}",
               "name": "{{C2}}",
               "resolvedConnectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
               },
               "teamId": 1,
-              "type": "SLACK",
-              "updateTime": "2026-01-01T00:00:05Z"
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:58.006306Z"
             }
           }
         },
@@ -278,18 +328,28 @@
             "connector": {
               "configOverrides": [],
               "connectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
               },
-              "createTime": "2026-01-01T00:00:03Z",
+              "createTime": "2026-10-08T13:04:57.699905Z",
               "description": "",
               "id": "{{C2}}",
               "name": "{{C2}}",
               "resolvedConnectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
               },
               "teamId": 1,
-              "type": "SLACK",
-              "updateTime": "2026-01-01T00:00:05Z"
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:58.006306Z"
             }
           }
         },
@@ -299,18 +359,28 @@
             "connector": {
               "configOverrides": [],
               "connectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
               },
-              "createTime": "2026-01-01T00:00:03Z",
+              "createTime": "2026-10-08T13:04:57.699905Z",
               "description": "",
               "id": "{{C2}}",
               "name": "{{C2}}",
               "resolvedConnectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
               },
               "teamId": 1,
-              "type": "SLACK",
-              "updateTime": "2026-01-01T00:00:06Z"
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:58.141951Z"
             }
           }
         },
@@ -320,18 +390,28 @@
             "connector": {
               "configOverrides": [],
               "connectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
               },
-              "createTime": "2026-01-01T00:00:03Z",
+              "createTime": "2026-10-08T13:04:57.699905Z",
               "description": "",
               "id": "{{C2}}",
               "name": "{{C2}}",
               "resolvedConnectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "value": "https://example.com"
+                  }
+                ]
               },
               "teamId": 1,
-              "type": "SLACK",
-              "updateTime": "2026-01-01T00:00:06Z"
+              "type": "GENERIC_HTTPS",
+              "updateTime": "2026-10-08T13:04:58.141951Z"
             }
           }
         }
@@ -357,7 +437,7 @@
                   }
                 ]
               },
-              "createTime": "2026-01-01T00:00:07Z",
+              "createTime": "2026-10-08T13:04:58.284468Z",
               "description": "",
               "id": "{{C3}}",
               "name": "{{C3}}",
@@ -375,7 +455,7 @@
               },
               "teamId": 1,
               "type": "GENERIC_HTTPS",
-              "updateTime": "2026-01-01T00:00:07Z"
+              "updateTime": "2026-10-08T13:04:58.284468Z"
             }
           }
         },
@@ -396,7 +476,7 @@
                   }
                 ]
               },
-              "createTime": "2026-01-01T00:00:07Z",
+              "createTime": "2026-10-08T13:04:58.284468Z",
               "description": "",
               "id": "{{C3}}",
               "name": "{{C3}}",
@@ -414,7 +494,7 @@
               },
               "teamId": 1,
               "type": "GENERIC_HTTPS",
-              "updateTime": "2026-01-01T00:00:07Z"
+              "updateTime": "2026-10-08T13:04:58.284468Z"
             }
           }
         }
@@ -427,49 +507,49 @@
           "status": 400,
           "response": {
             "code": 400,
-            "message": "Bad Request: {\"reason\":\"connector is required\"}"
+            "message": "Bad Request: {\"reason\":\"Connector input is required\"}"
           }
         },
         {
           "status": 400,
           "response": {
             "code": 400,
-            "message": "Bad Request: {\"reason\":\"name is required\"}"
+            "message": "Bad Request: {\"reason\":\"unknown enumeration value 0\"}"
           }
         },
         {
           "status": 400,
           "response": {
             "code": 400,
-            "message": "Bad Request: {\"reason\":\"name is required\"}"
+            "message": "Bad Request: {\"reason\":\"name must not be empty\"}"
           }
         },
         {
           "status": 400,
           "response": {
             "code": 400,
-            "message": "Bad Request: {\"reason\":\"type is required\"}"
+            "message": "Bad Request: {\"reason\":\"unknown enumeration value 0\"}"
           }
         },
         {
           "status": 400,
           "response": {
             "code": 400,
-            "message": "Bad Request: proto: (line 1:12): invalid value for enum field type: \"NOT_AN_ENUM\""
+            "message": "Bad Request: proto: (line 1:112): invalid value for enum field type: \"NOT_AN_ENUM\""
           }
         },
         {
           "status": 400,
           "response": {
             "code": 400,
-            "message": "Bad Request: {\"reason\":\"id is required\"}"
+            "message": "Bad Request: {\"reason\":\"connector_config is required\"}"
           }
         },
         {
           "status": 404,
           "response": {
             "code": 404,
-            "message": "Not Found: {\"reason\":\"Connector with id 'missing' not found\"}"
+            "message": "Not Found: {\"reason\":\"Connector with id missing not found\"}"
           }
         },
         {
@@ -487,19 +567,36 @@
             "connector": {
               "configOverrides": [],
               "connectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "emailAddresses",
+                    "value": "[\"tf-fidelity@example.com\"]"
+                  }
+                ]
               },
-              "createTime": "2026-01-01T00:00:08Z",
+              "createTime": "2026-10-08T13:04:58.916572Z",
               "description": "",
               "id": "{{C5}}",
               "name": "{{C5}}",
               "resolvedConnectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "emailAddresses",
+                    "value": "[\"tf-fidelity@example.com\"]"
+                  }
+                ]
               },
               "teamId": 1,
               "type": "EMAIL",
-              "updateTime": "2026-01-01T00:00:08Z"
+              "updateTime": "2026-10-08T13:04:58.916572Z"
             }
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"Connector with the provided id exists\"}"
           }
         },
         {
@@ -508,39 +605,28 @@
             "connector": {
               "configOverrides": [],
               "connectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "emailAddresses",
+                    "value": "[\"tf-fidelity@example.com\"]"
+                  }
+                ]
               },
-              "createTime": "2026-01-01T00:00:08Z",
-              "description": "",
-              "id": "{{C5}}",
-              "name": "{{C5}}",
-              "resolvedConnectorConfig": {
-                "fields": []
-              },
-              "teamId": 1,
-              "type": "EMAIL",
-              "updateTime": "2026-01-01T00:00:09Z"
-            }
-          }
-        },
-        {
-          "status": 200,
-          "response": {
-            "connector": {
-              "configOverrides": [],
-              "connectorConfig": {
-                "fields": []
-              },
-              "createTime": "2026-01-01T00:00:10Z",
+              "createTime": "2026-10-08T13:04:59.131821Z",
               "description": "",
               "id": "{{GEN}}",
               "name": "generated",
               "resolvedConnectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "emailAddresses",
+                    "value": "[\"tf-fidelity@example.com\"]"
+                  }
+                ]
               },
               "teamId": 1,
               "type": "EMAIL",
-              "updateTime": "2026-01-01T00:00:10Z"
+              "updateTime": "2026-10-08T13:04:59.131821Z"
             }
           }
         },
@@ -550,18 +636,28 @@
             "connector": {
               "configOverrides": [],
               "connectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "emailAddresses",
+                    "value": "[\"tf-fidelity@example.com\"]"
+                  }
+                ]
               },
-              "createTime": "2026-01-01T00:00:10Z",
+              "createTime": "2026-10-08T13:04:59.131821Z",
               "description": "",
               "id": "{{GEN}}",
               "name": "generated",
               "resolvedConnectorConfig": {
-                "fields": []
+                "fields": [
+                  {
+                    "fieldName": "emailAddresses",
+                    "value": "[\"tf-fidelity@example.com\"]"
+                  }
+                ]
               },
               "teamId": 1,
               "type": "EMAIL",
-              "updateTime": "2026-01-01T00:00:10Z"
+              "updateTime": "2026-10-08T13:04:59.131821Z"
             }
           }
         }
@@ -574,7 +670,7 @@
           "status": 404,
           "response": {
             "code": 404,
-            "message": "Not Found: {\"reason\":\"Connector with id '{{MISSING}}' not found\"}"
+            "message": "Not Found: {\"reason\":\"Connector with id {{MISSING}} not found\"}"
           }
         }
       ]
@@ -595,7 +691,7 @@
                   }
                 ]
               },
-              "createTime": "2026-01-01T00:00:11Z",
+              "createTime": "2026-10-08T13:04:59.336225Z",
               "description": "",
               "id": "{{C6}}",
               "name": "{{C6}}",
@@ -609,7 +705,7 @@
               },
               "teamId": 1,
               "type": "PAGERDUTY",
-              "updateTime": "2026-01-01T00:00:11Z"
+              "updateTime": "2026-10-08T13:04:59.336225Z"
             }
           }
         },
@@ -626,7 +722,7 @@
                   }
                 ]
               },
-              "createTime": "2026-01-01T00:00:11Z",
+              "createTime": "2026-10-08T13:04:59.336225Z",
               "description": "",
               "id": "{{C6}}",
               "name": "{{C6}}",
@@ -640,7 +736,7 @@
               },
               "teamId": 1,
               "type": "PAGERDUTY",
-              "updateTime": "2026-01-01T00:00:11Z"
+              "updateTime": "2026-10-08T13:04:59.336225Z"
             }
           }
         },
