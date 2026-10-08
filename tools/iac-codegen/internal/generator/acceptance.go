@@ -398,6 +398,8 @@ func (s *accSynth) include(a *tfAttr, key string, mode accMode, top bool) bool {
 	switch {
 	case slices.Contains(s.file.Skip, key):
 		return false
+	case a.Extra:
+		return false // extraAttributes are not API fields; a made-up map key is not valid
 	case s.released != nil && !s.released[key]:
 		return false // the released provider does not have it
 	case !a.Required && !a.Optional:

@@ -26,6 +26,8 @@
 - CHORE: Bump the generator to `v0.1.0-beta.6`.
 - CHORE: Bump the generator to `v0.1.0-beta.7`.
 - CHORE: Bump the generator to `v0.1.0-beta.8`.
+- CHORE: Bump the generator to `v0.1.0-beta.10`.
+- FIX: The generated acceptance test leaves out `types.<Type>.extraAttributes`. A made-up map key such as `key` is not an API field.
 - CHORE: Bump the generator to `v0.1.0-beta.9`.
 - FEAT: `types.<Type>.extraAttributes` declares Terraform-only map attributes, including `writeOnly: true`. The archived-thing golden fixture covers the shape.
 - FEAT: Existing-resource `NewResource` takes `Hooks{BeforeWrite, AfterRead}` so overlays pass write-only logic at construction instead of package `init`.

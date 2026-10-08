@@ -80,6 +80,9 @@ type tfAttr struct {
 	Default            string // Go expression of a static default, or ""
 	// WriteOnly: Terraform sends the value and does not store it. Only extraAttributes set this.
 	WriteOnly bool
+	// Extra: the attribute is from types.<Type>.extraAttributes, not the API. The generated
+	// acceptance test leaves it out: a made-up map key is not a valid API field.
+	Extra bool
 }
 
 // tfModel is one Go struct of the Terraform model.
