@@ -394,8 +394,8 @@ func expandConnectorRequest(ctx context.Context, plan *ConnectorResourceModel, s
 		if diags.HasError() {
 			return nil, diags
 		}
-		if body != nil && body.Connector != nil {
-			mergeSecretFields(body.Connector, secretFields)
+		if body != nil {
+			mergeSecretFields(&body.Connector, secretFields)
 		}
 		return body, diags
 	}
@@ -404,8 +404,8 @@ func expandConnectorRequest(ctx context.Context, plan *ConnectorResourceModel, s
 	if diags.HasError() {
 		return nil, diags
 	}
-	if body != nil && body.Connector != nil {
-		mergeSecretFields(body.Connector, secretFields)
+	if body != nil {
+		mergeSecretFields(&body.Connector, secretFields)
 	}
 	return body, diags
 }
@@ -503,7 +503,7 @@ func mergeSecretFields(api *connectors.Connector, secretFields map[string]string
 	for _, name := range names {
 		fieldName, value := name, secretFields[name]
 		api.ConnectorConfig.Fields = append(api.ConnectorConfig.Fields, connectors.NotificationCenterConnectorConfigField{
-			FieldName: &fieldName,
+			FieldName: fieldName,
 			Value:     &value,
 		})
 	}

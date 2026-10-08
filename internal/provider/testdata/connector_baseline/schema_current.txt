@@ -7,7 +7,7 @@ config_overrides[].entity_type  StringAttribute required
     description: "Entity type for the connector. Valid values are: unspecified, alerts, cases, test_notifications."
     validator: stringvalidator.oneOfValidator value must be one of: ["alerts" "cases" "test_notifications" "unspecified"]
 config_overrides[].fields  SetNestedAttribute required
-    markdown: "List of fields."
+    markdown: "List of fields. The server does not keep the order of the fields."
 config_overrides[].fields[]  NestedObject
 config_overrides[].fields[].field_name  StringAttribute required
     markdown: "The field name."
@@ -21,7 +21,7 @@ connector_config.field_values_wo  MapAttribute optional elem=basetypes.StringTyp
 connector_config.field_values_wo_versions  MapAttribute optional elem=basetypes.Int64Type
     markdown: "Version of each `field_values_wo` entry, keyed by the same field name. Increment a value to send a rotated secret: Terraform holds no copy of a write-only value, so it cannot notice that one changed. These versions are kept in state and are not secret."
 connector_config.fields  SetNestedAttribute required
-    markdown: "List of fields."
+    markdown: "List of fields. The server does not keep the order of the fields."
 connector_config.fields[]  NestedObject
 connector_config.fields[].field_name  StringAttribute required
     markdown: "The field name."
