@@ -1106,10 +1106,14 @@ func sameCheck(f *convField) (string, error) {
 	a, b := "a."+f.SDK, "b."+f.SDK
 	switch f.Conv {
 	case convString, convBool, convFloat64, convFloat32, convInt32, convInt64, convUint64, convEnum, convTime:
-		if f.Value {
-			return a + " == " + b, nil
+		if !f.Value {
+			a, b = "pointerValue("+a+")", "pointerValue("+b+")"
 		}
-		return "pointerValue(" + a + ") == pointerValue(" + b + ")", nil
+		if f.Equality != "" {
+			// The API can return the document in another format, so the items compare as documents.
+			return f.Equality + "Equal(" + a + ", " + b + ")", nil
+		}
+		return a + " == " + b, nil
 	case convStringMap, convScalarMap, convUint64Map:
 		return "maps.Equal(" + a + ", " + b + ")", nil
 	case convStrings, convScalars:

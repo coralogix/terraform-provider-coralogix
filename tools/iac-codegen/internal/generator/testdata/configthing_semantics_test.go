@@ -157,6 +157,31 @@ func TestFlattenKeepsPriorTextOfEqualDocuments(t *testing.T) {
 	}
 }
 
+// The API returns the remotes in another order, with each document in another format. The items
+// still match the prior items as documents, so the state keeps the prior order and text.
+func TestFlattenKeepsPriorOrderOfReformattedItems(t *testing.T) {
+	ctx := context.Background()
+	prior := &ConfigThingModel{Settings: types.StringValue(compactJSON), Remotes: remotesList(t, inlineYAML, "a: [1]")}
+	name, first, second := "collector", "a:\n  - 1\n", multilineYAML
+	api := &config_things_service.ConfigThing{Id: "thing-1", Settings: ptr(compactJSON), Remotes: []config_things_service.ConfigRemote{
+		{Name: &name, RawConfiguration: &first},
+		{Name: &name, RawConfiguration: &second},
+	}}
+	got, diags := flatten(ctx, api, prior)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	var remotes []ConfigRemoteModel
+	if diags := got.Remotes.ElementsAs(ctx, &remotes, false); diags.HasError() || len(remotes) != 2 {
+		t.Fatalf("remotes = %v, %v", got.Remotes, diags)
+	}
+	if remotes[0].RawConfiguration.ValueString() != inlineYAML || remotes[1].RawConfiguration.ValueString() != "a: [1]" {
+		t.Fatalf("raw_configuration = %q, %q, want the prior order and text", remotes[0].RawConfiguration.ValueString(), remotes[1].RawConfiguration.ValueString())
+	}
+}
+
+func ptr(v string) *string { return &v }
+
 // testProvider serves the generated resource, so that a test can plan it through the protocol as
 // Terraform does. Planning never calls the API.
 type testProvider struct{}

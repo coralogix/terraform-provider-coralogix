@@ -115,6 +115,13 @@ func flattenConfigRemote(ctx context.Context, p path.Path, v *config_things_serv
 	return out
 }
 
+// sameConfigRemote reports whether two SDK values are equal. It compares the fields that the resource
+// manages. A missing value and an empty one are equal.
+func sameConfigRemote(a, b *config_things_service.ConfigRemote) bool {
+	return pointerValue(a.Name) == pointerValue(b.Name) &&
+		yamlEqual(pointerValue(a.RawConfiguration), pointerValue(b.RawConfiguration))
+}
+
 func configRemoteAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"name":              types.StringType,
@@ -155,19 +162,23 @@ func flattenConfigThing(ctx context.Context, p path.Path, v *config_things_servi
 	}
 	out.Version = types.StringPointerValue(v.Version)
 	out.Remotes = types.ListNull(types.ObjectType{AttrTypes: configRemoteAttrTypes()})
-	if v.Remotes != nil {
-		items := make([]ConfigRemoteModel, 0, len(v.Remotes))
+	srcRemotes := v.Remotes
+	if prior != nil {
+		srcRemotes = keepOrder(ctx, srcRemotes, prior.Remotes, expandConfigRemote, sameConfigRemote)
+	}
+	if srcRemotes != nil {
+		items := make([]ConfigRemoteModel, 0, len(srcRemotes))
 		var priorRemotes []ConfigRemoteModel
 		if prior != nil {
 			priorRemotes = priorItems[ConfigRemoteModel](ctx, prior.Remotes)
 		}
-		for i := range v.Remotes {
+		for i := range srcRemotes {
 			// The prior item at the same index keeps the order of its own lists and the text of its documents.
 			var priorItem *ConfigRemoteModel
 			if i < len(priorRemotes) {
 				priorItem = &priorRemotes[i]
 			}
-			items = append(items, *flattenConfigRemote(ctx, p.AtName("remotes").AtListIndex(i), &v.Remotes[i], priorItem, diags))
+			items = append(items, *flattenConfigRemote(ctx, p.AtName("remotes").AtListIndex(i), &srcRemotes[i], priorItem, diags))
 		}
 		out.Remotes = flattenList(ctx, types.ObjectType{AttrTypes: configRemoteAttrTypes()}, items, diags)
 	}
@@ -326,6 +337,75 @@ func priorItems[T any](ctx context.Context, v elements) []T {
 		return nil
 	}
 	return items
+}
+
+// keepOrder returns the items in the order of the prior list, when the API returned the same items in
+// another order. It expands the prior list to SDK values and compares them with same. The prior only
+// keeps an order, so a prior that cannot be read is not an error.
+func keepOrder[M, S any](ctx context.Context, items []S, prior types.List, expand func(context.Context, path.Path, *M, *diag.Diagnostics) *S, same func(a, b *S) bool) []S {
+	var scratch diag.Diagnostics
+	models := priorItems[M](ctx, prior)
+	var priorSDK []S // nil for a prior list that is null: an empty API list then reads as null, as before
+	if models != nil {
+		priorSDK = make([]S, 0, len(models))
+	}
+	for i := range models {
+		priorSDK = append(priorSDK, *expand(ctx, path.Empty(), &models[i], &scratch))
+	}
+	if scratch.HasError() {
+		return items
+	}
+	return orderLike(items, priorSDK, same)
+}
+
+// orderLike returns prior when it holds the same items as items, in another order. Otherwise
+// the items really changed, and the API order stays, so the plan shows the change.
+func orderLike[T any](items, prior []T, same func(a, b *T) bool) []T {
+	if items == nil || len(items) != len(prior) {
+		return items // a missing list stays missing
+	}
+	used := make([]bool, len(prior))
+	for i := range items {
+		found := false
+		for j := range prior {
+			if !used[j] && same(&items[i], &prior[j]) {
+				used[j], found = true, true
+				break
+			}
+		}
+		if !found {
+			return items
+		}
+	}
+	return prior
+}
+
+// pointerValue returns the value of p, or the zero value for nil. A missing value equals an empty one.
+func pointerValue[T any](p *T) T {
+	var zero T
+	if p == nil {
+		return zero
+	}
+	return *p
+}
+
+func sameObject[T any](a, b *T, same func(a, b *T) bool) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return same(a, b)
+}
+
+func sameList[T any](a, b []T, same func(a, b *T) bool) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if !same(&a[i], &b[i]) {
+			return false
+		}
+	}
+	return true
 }
 
 func flattenTime(v *time.Time) types.String {
