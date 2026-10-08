@@ -817,6 +817,37 @@ func TestSingleAllOfResponseIsDirect(t *testing.T) {
 	}
 }
 
+func TestDeleteResponseCanBeInlineEmptyObject(t *testing.T) {
+	ref := "                $ref: '#/components/schemas/DeleteThingResponse'\n"
+	for name, c := range map[string]struct {
+		schema   string
+		eligible bool
+	}{
+		"empty object, as for google.protobuf.Empty": {"                type: object\n", true},
+		"object with fields":                         {"                type: object\n                properties:\n                  ok:\n                    type: boolean\n", false},
+	} {
+		spec := strings.Replace(string(validSpec(t)), ref, c.schema, 1)
+		doc, err := Load([]byte(spec))
+		if err != nil {
+			t.Fatal(err)
+		}
+		codes := reportCodes(Validate(doc, "Thing", OperationIDs{}))
+		if c.eligible != (len(codes) == 0) {
+			t.Fatalf("%s: codes %v, want eligible=%v", name, codes, c.eligible)
+		}
+		if !c.eligible {
+			continue
+		}
+		resource, err := Build(doc, "Thing")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := resource.Delete.Response; !got.Empty || got.Schema != "" {
+			t.Errorf("%s: Delete response = %+v, want an empty response with no component", name, got)
+		}
+	}
+}
+
 func TestPutUpdateContract(t *testing.T) {
 	data := validSpec(t)
 	put := strings.Replace(string(data), "    patch:\n", "    put:\n", 1)

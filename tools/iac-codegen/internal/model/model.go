@@ -62,7 +62,7 @@ type Operation struct {
 
 // Response is the 200 response body.
 type Response struct {
-	Schema string // component name
+	Schema string // component name, "" for an inline empty object
 	// Field is the property that wraps the resource, for example "aiEvaluation".
 	// It is empty when the response does not return the resource, or is the
 	// resource itself (Direct).
