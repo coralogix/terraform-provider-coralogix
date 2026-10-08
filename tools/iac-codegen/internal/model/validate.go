@@ -64,7 +64,6 @@ func ValidateWithPolicy(doc *v3.Document, name string, ids OperationIDs, p Polic
 	}
 	if len(ops) == len(verbs) {
 		report = append(report, requestSchemaSeparationIssues(p, name, ops)...)
-		report = append(report, requiredDeclarationIssues(p, name, ops)...)
 		report = append(report, validateFieldContracts(p, name, ops)...)
 		report = append(report, responseWrapperIssues(p, name, ops)...)
 	}
@@ -142,57 +141,6 @@ func reusedRequestSchemaIssue(location, role, reused string) issue.Issue {
 	}
 }
 
-func requiredDeclarationIssues(p Policy, name string, ops map[verb]foundOp) issue.Report {
-	seen := map[*base.Schema]bool{}
-	roots := []struct {
-		location string
-		proxy    *base.SchemaProxy
-	}{
-		{"paths.create." + ops[opCreate].op.OperationId + ".requestBody", p.requestBody(ops[opCreate].op)},
-		{"paths.update." + ops[opUpdate].op.OperationId + ".requestBody", p.requestBody(ops[opUpdate].op)},
-		{"components.schemas." + name, responseResourceProxy(ops[opGet].op, name)},
-	}
-	var report issue.Report
-	for _, root := range roots {
-		report = append(report, requiredDeclarationIssuesAt(p, root.location, root.proxy, seen)...)
-	}
-	return report
-}
-
-func requiredDeclarationIssuesAt(p Policy, location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
-	if proxy == nil {
-		return nil
-	}
-	schema, err := schemaOf(proxy)
-	if err != nil || seen[schema] {
-		return nil
-	}
-	seen[schema] = true
-	location = referencedSchemaLocation(proxy, location)
-	var report issue.Report
-	if fixedObject(schema) && (schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()) && !p.emptyRequired(referencedComponent(proxy)) {
-		report = append(report, issue.Issue{
-			Code:        "REQUIRED_DECLARATION_MISSING",
-			Location:    location,
-			Message:     "The object does not declare which fields are required.",
-			Remediation: "Add an explicit required list. Use required: [] when every field is optional.",
-		})
-	}
-	for index, inner := range schema.AllOf {
-		report = append(report, requiredDeclarationIssuesAt(p, fmt.Sprintf("%s.allOf[%d]", location, index), inner, seen)...)
-	}
-	for _, field := range propertyNames(schema) {
-		report = append(report, requiredDeclarationIssuesAt(p, location+"."+field, propertyOf(schema, field), seen)...)
-	}
-	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, requiredDeclarationIssuesAt(p, location+"[]", schema.Items.A, seen)...)
-	}
-	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, requiredDeclarationIssuesAt(p, location+"{}", schema.AdditionalProperties.A, seen)...)
-	}
-	return report
-}
-
 // referencedComponent returns the component name of a $ref schema, or "".
 func referencedComponent(proxy *base.SchemaProxy) string {
 	if proxy == nil {
@@ -203,20 +151,6 @@ func referencedComponent(proxy *base.SchemaProxy) string {
 		return ""
 	}
 	return name
-}
-
-func referencedSchemaLocation(proxy *base.SchemaProxy, fallback string) string {
-	if name, err := componentName(proxy.GetReference()); err == nil {
-		return "components.schemas." + name
-	}
-	return fallback
-}
-
-func fixedObject(schema *base.Schema) bool {
-	if !slices.Equal(schema.Type, []string{"object"}) {
-		return false
-	}
-	return schema.AdditionalProperties == nil || !schema.AdditionalProperties.IsA() && !schema.AdditionalProperties.B
 }
 
 func validateOperations(doc *v3.Document, name string, ids OperationIDs, p Policy) (map[verb]foundOp, issue.Report) {
@@ -625,9 +559,9 @@ func validateFieldContract(p Policy, name, field string, create, update, get *ba
 	report = append(report, nestedPresenceIssues(p, location+".update", up, map[*base.Schema]bool{})...)
 	report = append(report, nestedReadOnlyIssues(p, location+".create", cp, map[*base.Schema]bool{})...)
 	report = append(report, nestedReadOnlyIssues(p, location+".update", up, map[*base.Schema]bool{})...)
-	report = append(report, unsupportedSchemaIssues(p, location+".create", cp, map[*base.Schema]bool{})...)
-	report = append(report, unsupportedSchemaIssues(p, location+".update", up, map[*base.Schema]bool{})...)
-	report = append(report, unsupportedSchemaIssues(p, location+".get", gp, map[*base.Schema]bool{})...)
+	report = append(report, unsupportedSchemaIssues(p, location+".create", cp, true, map[*base.Schema]bool{})...)
+	report = append(report, unsupportedSchemaIssues(p, location+".update", up, true, map[*base.Schema]bool{})...)
+	report = append(report, unsupportedSchemaIssues(p, location+".get", gp, false, map[*base.Schema]bool{})...)
 	return report
 }
 
@@ -805,7 +739,11 @@ func nestedDefaultIssues(p Policy, location string, proxy *base.SchemaProxy, roo
 	return report
 }
 
-func unsupportedSchemaIssues(p Policy, location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
+// unsupportedSchemaIssues reports the keywords below proxy that the generator
+// cannot honor. request is false for the resource response. A pattern there is
+// no issue: a pattern would become a validator of the configuration, and the
+// configuration sets only the values that a request sends.
+func unsupportedSchemaIssues(p Policy, location string, proxy *base.SchemaProxy, request bool, seen map[*base.Schema]bool) issue.Report {
 	if proxy == nil {
 		return nil
 	}
@@ -818,17 +756,17 @@ func unsupportedSchemaIssues(p Policy, location string, proxy *base.SchemaProxy,
 	if schema.WriteOnly != nil && *schema.WriteOnly {
 		report = append(report, issue.Issue{Code: "FIELD_WRITE_ONLY_UNSUPPORTED", Location: location, Message: "The field is writeOnly, but this generator cannot preserve or rotate a value that the API does not return.", Remediation: "Use a handwritten resource until generic write-only state and version handling is supported."})
 	}
-	if schema.Pattern != "" && schema.Pattern != permissivePattern && !p.Existing {
+	if request && schema.Pattern != "" && schema.Pattern != permissivePattern && !p.Existing {
 		report = append(report, issue.Issue{Code: "STRING_PATTERN_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field declares the unsupported pattern %q.", schema.Pattern), Remediation: "Remove the pattern or wait for generated regular-expression validation support."})
 	}
 	for _, name := range propertyNames(schema) {
-		report = append(report, unsupportedSchemaIssues(p, location+"."+name, propertyOf(schema, name), seen)...)
+		report = append(report, unsupportedSchemaIssues(p, location+"."+name, propertyOf(schema, name), request, seen)...)
 	}
 	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, unsupportedSchemaIssues(p, location+"[]", schema.Items.A, seen)...)
+		report = append(report, unsupportedSchemaIssues(p, location+"[]", schema.Items.A, request, seen)...)
 	}
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, unsupportedSchemaIssues(p, location+"{}", schema.AdditionalProperties.A, seen)...)
+		report = append(report, unsupportedSchemaIssues(p, location+"{}", schema.AdditionalProperties.A, request, seen)...)
 	}
 	return report
 }

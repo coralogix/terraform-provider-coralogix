@@ -43,7 +43,6 @@ types:
       kind: {computed: true, default: alpha}
       targets: {computed: true}
   LegacyLabels:
-    required: []
     fields:
       env: {computed: true}
   LegacyTarget:
@@ -448,5 +447,23 @@ func TestEnumZeroValueNeedsAZeroKey(t *testing.T) {
 	_, err = validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, head+"    zero: unspecified\n"+values))
 	if slices.Contains(eligibilityCodes(t, err), "ENUM_ZERO_UNDECIDED") {
 		t.Fatalf("err = %v, want no ENUM_ZERO_UNDECIDED", err)
+	}
+}
+
+// A missing required list means that no field is required, so a required: []
+// line changes nothing and is stale.
+func TestEmptyRequiredLineIsUnused(t *testing.T) {
+	text := strings.Replace(legacyOverrides, "  LegacyLabels:\n    fields:", "  LegacyLabels:\n    required: []\n    fields:", 1)
+	doc, err := model.Load(legacySpec(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	component, report := model.ResolveResource(doc, "LegacyThing")
+	if len(report) != 0 {
+		t.Fatal(report)
+	}
+	report = overrideIssues(doc, component, mustParse(t, text))
+	if len(report) != 1 || report[0].Code != "OVERRIDE_UNUSED" || report[0].Location != "behavior-overrides.yaml:types.LegacyLabels.required" {
+		t.Fatalf("report = %v, want OVERRIDE_UNUSED for types.LegacyLabels.required", report)
 	}
 }

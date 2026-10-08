@@ -305,12 +305,6 @@ func TestContractGapsUseSharedFailClosedValidation(t *testing.T) {
 			spec: replaceOperationBodySchema(t, base, "ThingsService_CreateThing", "              $ref: '#/components/schemas/Thing'\n"),
 			code: "REQUEST_SCHEMA_REUSED",
 		},
-		"missing required declaration": {
-			spec: strings.Replace(base,
-				"              title: UpdateThingRequest\n              type: object\n              required: []\n              properties:\n",
-				"              title: UpdateThingRequest\n              type: object\n              properties:\n", 1),
-			code: "REQUIRED_DECLARATION_MISSING",
-		},
 		"missing required scalar presence": {
 			spec: strings.Replace(base,
 				"        endpoint:\n          type: string\n          minLength: 1\n",
@@ -1393,4 +1387,53 @@ func TestSingletonIDIsStatic(t *testing.T) {
 		t.Fatal(err)
 	}
 	compileGenerated(t, out, input)
+}
+
+// An immutable value that holds a value that the server sets compares only the
+// request values. The stock RequiresReplace would compare the unknown server
+// value and replace the resource on every change.
+func TestImmutableServerValuesUseRequestReplace(t *testing.T) {
+	settings := &model.Type{Kind: model.Object, Schema: "Settings", CreateSchema: "SettingsCreate", Fields: []*model.Field{
+		{Name: "name", Type: &model.Type{Kind: model.String}, Behavior: model.Normal, Create: &model.Attrs{Required: true}},
+		{Name: "id", Type: &model.Type{Kind: model.String}, Behavior: model.Computed},
+	}}
+	resource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{
+		{Name: "settings", Type: settings, Behavior: model.Immutable, Create: &model.Attrs{}, Get: &model.Attrs{}, InGet: true},
+		{Name: "region", Type: &model.Type{Kind: model.String}, Behavior: model.Immutable, Create: &model.Attrs{Presence: true}, Get: &model.Attrs{}, InGet: true},
+	}}
+	data, err := buildTFResource(resource, "thing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := data.Attributes[0].Modifiers; !slices.Equal(got, []string{`requestReplaceModifier{at: "settings"}`}) {
+		t.Errorf("settings modifiers = %v, want requestReplaceModifier", got)
+	}
+	if got := data.Attributes[1].Modifiers; !slices.Equal(got, []string{"stringplanmodifier.RequiresReplace()"}) {
+		t.Errorf("region modifiers = %v, want the stock RequiresReplace", got)
+	}
+	if !slices.Equal(data.RequestReplaceKinds, []string{"Object"}) || !slices.Equal(data.ServerPaths, []string{"settings.id"}) {
+		t.Errorf("kinds %v, server paths %v", data.RequestReplaceKinds, data.ServerPaths)
+	}
+}
+
+// A behavior-overrides line can make a nested attribute optional and computed.
+// Inside an immutable value, an omitted one would be unknown after any change
+// and replace the resource, so the generator rejects it.
+func TestImmutableValueRejectsOptionalComputedOverride(t *testing.T) {
+	settings := &model.Type{Kind: model.Object, Schema: "Settings", CreateSchema: "Settings", Fields: []*model.Field{
+		{Name: "name", Type: &model.Type{Kind: model.String}, Behavior: model.Normal, Create: &model.Attrs{Required: true}},
+		{Name: "zone", Type: &model.Type{Kind: model.String}, Behavior: model.Normal, Create: &model.Attrs{}},
+	}}
+	resource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{
+		{Name: "settings", Type: settings, Behavior: model.Immutable, Create: &model.Attrs{}, Get: &model.Attrs{}, InGet: true},
+	}}
+	base := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\n"
+	if _, err := buildTFResourceWith(resource, "thing", mustParse(t, base)); err != nil {
+		t.Fatalf("immutable value without overrides: %v", err)
+	}
+	file := mustParse(t, base+"types:\n  Settings:\n    fields:\n      zone: {computed: true}\n")
+	_, err := buildTFResourceWith(resource, "thing", file)
+	if err == nil || !strings.Contains(err.Error(), "settings: the immutable value holds the optional and computed attribute settings.zone") {
+		t.Fatalf("err = %v, want the optional and computed attribute settings.zone", err)
+	}
 }

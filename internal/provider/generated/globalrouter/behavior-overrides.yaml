@@ -107,8 +107,6 @@ types:
       id: {skip: true}
 
   RoutingLabels:
-    # The contract does not declare a required list for the labels. All are optional.
-    required: []
     fields:
       environment: {description: "", computed: true}
       service: {description: "", computed: true}

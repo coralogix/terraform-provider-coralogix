@@ -353,9 +353,6 @@ func (f *File) Policy() model.Policy {
 	p.EnumAnyPrefix = append(p.EnumAnyPrefix, sortedKeys(f.Enums)...)
 	for _, name := range sortedKeys(f.Types) {
 		t := f.Types[name]
-		if t.Required != nil {
-			p.EmptyRequired = append(p.EmptyRequired, name)
-		}
 		for _, field := range sortedKeys(t.Fields) {
 			if t.Fields[field].Skip {
 				p.Skip = append(p.Skip, name+"."+field)

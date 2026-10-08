@@ -38,12 +38,14 @@ type ThingSpec struct {
 	Revision string
 	Source   *ThingSource
 	Items    []ThingItem
+	Targets  []ThingTarget
 }
 
 type ThingSpecCreate struct {
-	Mode   *string
-	Region *string
-	Items  []ThingItemCreate
+	Mode    *string
+	Region  *string
+	Items   []ThingItemCreate
+	Targets []ThingTargetInput
 }
 
 type ThingSpecUpdate struct {
@@ -63,6 +65,15 @@ type ThingItemCreate struct {
 }
 
 type ThingItemUpdate struct {
+	Name string
+}
+
+type ThingTarget struct {
+	Id   string
+	Name string
+}
+
+type ThingTargetInput struct {
 	Name string
 }
 

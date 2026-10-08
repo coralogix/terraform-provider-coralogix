@@ -5,6 +5,10 @@
 
 #### tools/iac-codegen
 - FEAT: Support nested objects whose Create, Update, and response schemas differ. A nested field that only the response has is computed. A nested field that Create has and Update does not is immutable. A type mismatch now names the exact nested field. A nested one-of can require an arm in Create and allow no arm in Update and the response.
+- FIX: An immutable nested value that holds computed fields no longer replaces the resource on every change. The replace check now compares only the values that Create sends.
+- FEAT: A missing `required` list means that no field is required. The OpenAPI fork cannot write an empty list, so an all-optional message, such as a PATCH body, was ineligible. A `required: []` line in `behavior-overrides.yaml` is now unused and reported.
+- FEAT: A string `pattern` that only the resource response has, for example on a server-set `id`, no longer blocks generation.
+- FIX: Reject an immutable value that holds an optional and computed field from `behavior-overrides.yaml`. An omitted one would replace the resource on every change.
 
 # Release 3.20.0
 

@@ -288,7 +288,7 @@ func TestCollectionsAndObjectsNeedNoPresence(t *testing.T) {
 	}
 }
 
-func TestRequiredDeclarationContract(t *testing.T) {
+func TestMissingRequiredListMeansNoneRequired(t *testing.T) {
 	tests := map[string]struct {
 		old string
 		new string
@@ -309,8 +309,10 @@ func TestRequiredDeclarationContract(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "REQUIRED_DECLARATION_MISSING") {
-				t.Fatalf("codes %v do not contain REQUIRED_DECLARATION_MISSING", codes)
+			// The OpenAPI fork cannot write an empty list, so a missing list
+			// means that no field is required.
+			if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
+				t.Fatalf("a missing required list is ineligible: %v", report)
 			}
 		})
 	}
@@ -497,8 +499,8 @@ func TestWriteOnlyAndPatternAreIneligible(t *testing.T) {
 			spec: strings.Replace(base, "        enabled:\n          type: boolean\n", "        enabled:\n          type: boolean\n          writeOnly: true\n", 1),
 			code: "FIELD_WRITE_ONLY_UNSUPPORTED",
 		},
-		"pattern": {
-			spec: strings.Replace(base, "        name:\n          type: string\n", "        name:\n          type: string\n          pattern: '^[a-z]+$'\n", 1),
+		"pattern in a request": {
+			spec: strings.Replace(base, "                name:\n                  type: string\n", "                name:\n                  type: string\n                  pattern: '^[a-z]+$'\n", 1),
 			code: "STRING_PATTERN_UNSUPPORTED",
 		},
 	}
@@ -512,6 +514,24 @@ func TestWriteOnlyAndPatternAreIneligible(t *testing.T) {
 				t.Fatalf("codes %v do not contain %s", codes, test.code)
 			}
 		})
+	}
+}
+
+// A pattern would become a validator of the configuration. The configuration
+// never sets a value that only the response has, so a pattern there is no issue.
+func TestResponseOnlyPatternIsEligible(t *testing.T) {
+	spec := strings.Replace(string(validSpec(t)),
+		"        id:\n          type: string\n          description: The server-assigned identifier.\n",
+		"        id:\n          type: string\n          pattern: '^[0-9a-f-]+$'\n          description: The server-assigned identifier.\n", 1)
+	if !strings.Contains(spec, "pattern: '^[0-9a-f-]+$'") {
+		t.Fatal("fixture text not found")
+	}
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
+		t.Fatalf("a pattern on the response-only id is ineligible: %v", report)
 	}
 }
 
@@ -1125,6 +1145,7 @@ func TestNestedFieldLifecycle(t *testing.T) {
 	}
 	item := fieldNamed(spec.Fields, "items").Type.Elem
 	source := fieldNamed(spec.Fields, "source").Type
+	target := fieldNamed(spec.Fields, "targets").Type.Elem
 	for _, test := range []struct {
 		object *Type
 		field  string
@@ -1135,6 +1156,9 @@ func TestNestedFieldLifecycle(t *testing.T) {
 		{spec, "revision", Computed},
 		{spec, "source", Computed},
 		{spec, "items", Normal},
+		{spec, "targets", Immutable},
+		{target, "id", Computed}, // inside an immutable value, Create does not send it
+		{target, "name", Normal},
 		{item, "id", Computed},
 		{item, "key", Immutable},
 		{item, "name", Normal},
@@ -1149,7 +1173,7 @@ func TestNestedFieldLifecycle(t *testing.T) {
 func TestNestedRequestTypes(t *testing.T) {
 	spec := specType(t)
 	create, update := spec.CreateType(), spec.UpdateType()
-	if create.Schema != "ThingSpecCreate" || create.Model != "ThingSpec" || !slices.Equal(fieldNames(create), []string{"mode", "region", "items"}) {
+	if create.Schema != "ThingSpecCreate" || create.Model != "ThingSpec" || !slices.Equal(fieldNames(create), []string{"mode", "region", "items", "targets"}) {
 		t.Errorf("Create type = %s for %s with %v", create.Schema, create.Model, fieldNames(create))
 	}
 	if update.Schema != "ThingSpecUpdate" || !slices.Equal(fieldNames(update), []string{"mode", "items"}) {

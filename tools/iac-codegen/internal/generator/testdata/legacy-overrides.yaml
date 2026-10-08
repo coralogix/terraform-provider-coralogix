@@ -51,7 +51,6 @@ types:
         keepPriorOrder: true
         validators: [{sizeAtLeast: 1}]
   LegacyLabels:
-    required: []
     fields:
       env: {description: "", computed: true}
   LegacyTarget:

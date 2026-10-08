@@ -234,6 +234,11 @@ components:
           items:
             $ref: '#/components/schemas/ThingItem'
           description: Ordered items.
+        targets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThingTarget'
+          description: The targets. A change replaces the thing.
     ThingSpecCreate:
       type: object
       required: []
@@ -248,6 +253,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ThingItemCreate'
+        targets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThingTargetInput'
     ThingSpecUpdate:
       type: object
       required: []
@@ -283,6 +292,23 @@ components:
           type: string
           minLength: 1
     ThingItemUpdate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+    ThingTarget:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          description: The server-assigned target identifier.
+        name:
+          type: string
+          minLength: 1
+    ThingTargetInput:
       type: object
       required: [name]
       properties:
