@@ -166,19 +166,29 @@ func (s *resolver) bodyFields(r *model.Resource, resource string) error {
 	}
 	for _, f := range r.Fields {
 		if f.Create != nil {
-			if err := s.field("create.body."+f.Name, s.bodies["create"], f.Name, f.Type, f.Create.Required); err != nil {
+			if err := s.requestField("create.body."+f.Name, s.bodies["create"], f.Name, f.Type.CreateType(), f.Create.Required); err != nil {
 				return err
 			}
 		}
 	}
 	for _, f := range r.Fields {
 		if f.Update != nil {
-			if err := s.field("update.body."+f.Name, s.bodies["update"], f.Name, f.Type, f.Update.Required); err != nil {
+			if err := s.requestField("update.body."+f.Name, s.bodies["update"], f.Name, f.Type.UpdateType(), f.Update.Required); err != nil {
 				return err
 			}
 		}
 	}
 	return nil
+}
+
+// requestField adds the Go field of a request body, and the request
+// components inside it. A component that the response also uses is already
+// walked.
+func (s *resolver) requestField(path, owner, name string, t *model.Type, allowValue bool) error {
+	if err := s.field(path, owner, name, t, allowValue); err != nil {
+		return err
+	}
+	return s.nested(path, t)
 }
 
 // operations adds the SDK names of the four operations.
