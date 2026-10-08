@@ -579,7 +579,7 @@ func TestModeLinesReplaceTheContractDefault(t *testing.T) {
 		if text == "" {
 			return mustParse(t, string(head))
 		}
-		return mustParse(t, string(head)+"types:\n  ArchivedThing:\n    fields:\n      priority: "+text+"\n")
+		return mustParse(t, string(head)+"    fields:\n      priority: "+text+"\n")
 	}
 	tests := map[string]struct {
 		line          string
