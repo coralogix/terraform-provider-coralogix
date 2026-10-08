@@ -38,7 +38,6 @@ func TestParseAndPolicy(t *testing.T) {
 		UpdateIDInBody: true,
 		ClientSetID:    true,
 		EnumAnyPrefix:  []string{"Kind"},
-		EmptyRequired:  []string{"Labels"},
 		Skip:           []string{"Target.id"},
 		Released:       []string{"Target.id"},
 

@@ -305,12 +305,6 @@ func TestContractGapsUseSharedFailClosedValidation(t *testing.T) {
 			spec: replaceOperationBodySchema(t, base, "ThingsService_CreateThing", "              $ref: '#/components/schemas/Thing'\n"),
 			code: "REQUEST_SCHEMA_REUSED",
 		},
-		"missing required declaration": {
-			spec: strings.Replace(base,
-				"              title: UpdateThingRequest\n              type: object\n              required: []\n              properties:\n",
-				"              title: UpdateThingRequest\n              type: object\n              properties:\n", 1),
-			code: "REQUIRED_DECLARATION_MISSING",
-		},
 		"missing required scalar presence": {
 			spec: strings.Replace(base,
 				"        endpoint:\n          type: string\n          minLength: 1\n",

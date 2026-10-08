@@ -64,7 +64,6 @@ func ValidateWithPolicy(doc *v3.Document, name string, ids OperationIDs, p Polic
 	}
 	if len(ops) == len(verbs) {
 		report = append(report, requestSchemaSeparationIssues(p, name, ops)...)
-		report = append(report, requiredDeclarationIssues(p, name, ops)...)
 		report = append(report, validateFieldContracts(p, name, ops)...)
 		report = append(report, responseWrapperIssues(p, name, ops)...)
 	}
@@ -142,57 +141,6 @@ func reusedRequestSchemaIssue(location, role, reused string) issue.Issue {
 	}
 }
 
-func requiredDeclarationIssues(p Policy, name string, ops map[verb]foundOp) issue.Report {
-	seen := map[*base.Schema]bool{}
-	roots := []struct {
-		location string
-		proxy    *base.SchemaProxy
-	}{
-		{"paths.create." + ops[opCreate].op.OperationId + ".requestBody", p.requestBody(ops[opCreate].op)},
-		{"paths.update." + ops[opUpdate].op.OperationId + ".requestBody", p.requestBody(ops[opUpdate].op)},
-		{"components.schemas." + name, responseResourceProxy(ops[opGet].op, name)},
-	}
-	var report issue.Report
-	for _, root := range roots {
-		report = append(report, requiredDeclarationIssuesAt(p, root.location, root.proxy, seen)...)
-	}
-	return report
-}
-
-func requiredDeclarationIssuesAt(p Policy, location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
-	if proxy == nil {
-		return nil
-	}
-	schema, err := schemaOf(proxy)
-	if err != nil || seen[schema] {
-		return nil
-	}
-	seen[schema] = true
-	location = referencedSchemaLocation(proxy, location)
-	var report issue.Report
-	if fixedObject(schema) && (schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()) && !p.emptyRequired(referencedComponent(proxy)) {
-		report = append(report, issue.Issue{
-			Code:        "REQUIRED_DECLARATION_MISSING",
-			Location:    location,
-			Message:     "The object does not declare which fields are required.",
-			Remediation: "Add an explicit required list. Use required: [] when every field is optional.",
-		})
-	}
-	for index, inner := range schema.AllOf {
-		report = append(report, requiredDeclarationIssuesAt(p, fmt.Sprintf("%s.allOf[%d]", location, index), inner, seen)...)
-	}
-	for _, field := range propertyNames(schema) {
-		report = append(report, requiredDeclarationIssuesAt(p, location+"."+field, propertyOf(schema, field), seen)...)
-	}
-	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, requiredDeclarationIssuesAt(p, location+"[]", schema.Items.A, seen)...)
-	}
-	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, requiredDeclarationIssuesAt(p, location+"{}", schema.AdditionalProperties.A, seen)...)
-	}
-	return report
-}
-
 // referencedComponent returns the component name of a $ref schema, or "".
 func referencedComponent(proxy *base.SchemaProxy) string {
 	if proxy == nil {
@@ -203,20 +151,6 @@ func referencedComponent(proxy *base.SchemaProxy) string {
 		return ""
 	}
 	return name
-}
-
-func referencedSchemaLocation(proxy *base.SchemaProxy, fallback string) string {
-	if name, err := componentName(proxy.GetReference()); err == nil {
-		return "components.schemas." + name
-	}
-	return fallback
-}
-
-func fixedObject(schema *base.Schema) bool {
-	if !slices.Equal(schema.Type, []string{"object"}) {
-		return false
-	}
-	return schema.AdditionalProperties == nil || !schema.AdditionalProperties.IsA() && !schema.AdditionalProperties.B
 }
 
 func validateOperations(doc *v3.Document, name string, ids OperationIDs, p Policy) (map[verb]foundOp, issue.Report) {

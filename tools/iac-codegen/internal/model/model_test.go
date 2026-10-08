@@ -288,7 +288,7 @@ func TestCollectionsAndObjectsNeedNoPresence(t *testing.T) {
 	}
 }
 
-func TestRequiredDeclarationContract(t *testing.T) {
+func TestMissingRequiredListMeansNoneRequired(t *testing.T) {
 	tests := map[string]struct {
 		old string
 		new string
@@ -309,8 +309,10 @@ func TestRequiredDeclarationContract(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "REQUIRED_DECLARATION_MISSING") {
-				t.Fatalf("codes %v do not contain REQUIRED_DECLARATION_MISSING", codes)
+			// The OpenAPI fork cannot write an empty list, so a missing list
+			// means that no field is required.
+			if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
+				t.Fatalf("a missing required list is ineligible: %v", report)
 			}
 		})
 	}

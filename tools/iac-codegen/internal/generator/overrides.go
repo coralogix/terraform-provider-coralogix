@@ -152,9 +152,8 @@ func lineProblem(doc *v3.Document, line overrides.Line) *lineIssue {
 	case overrides.KindEnum:
 		return enumLineProblem(schema, line)
 	case overrides.KindEmptyRequired:
-		if !hasNoRequiredList(schema) {
-			return wholeLine(fmt.Errorf("component %q declares a required list, so no override is needed", line.Component))
-		}
+		// A missing required list means that no field is required.
+		return wholeLine(fmt.Errorf("component %q: a missing required list already means that no field is required, so no override is needed", line.Component))
 	case overrides.KindField:
 		return fieldLineProblem(schema, line)
 	}
@@ -230,8 +229,4 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 func contractReadOnly(schema *base.Schema, field string) bool {
 	built, err := schema.Properties.GetOrZero(field).BuildSchema()
 	return err == nil && built.ReadOnly != nil && *built.ReadOnly
-}
-
-func hasNoRequiredList(schema *base.Schema) bool {
-	return schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()
 }
