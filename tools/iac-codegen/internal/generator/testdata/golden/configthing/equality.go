@@ -47,8 +47,9 @@ type yamlWalk struct {
 func newYAMLWalk() *yamlWalk { return &yamlWalk{visiting: map[*yaml.Node]bool{}, budget: 1 << 20} }
 
 // value decodes n like yaml.Unmarshal, with each number as an exactNumber that keeps its tag. It
-// is false for a document that it cannot compare: a merge key, a key that is a collection, a key
-// that the document repeats, or a document that holds itself.
+// expands merge keys. It is false for a document that it cannot compare: a merge key whose value
+// is not a map, a map with two merge keys, a key that is a collection, a key that the document
+// repeats, or a document that holds itself.
 func (w *yamlWalk) value(n *yaml.Node) (any, bool) {
 	if w.budget--; w.budget < 0 || w.visiting[n] {
 		return nil, false
@@ -117,9 +118,14 @@ func yamlNumber(n *yaml.Node, v any) (exactNumber, bool) {
 
 func (w *yamlWalk) mapping(n *yaml.Node) (any, bool) {
 	out := make(map[any]any, len(n.Content)/2)
+	var merge *yaml.Node
 	for i := 0; i+1 < len(n.Content); i += 2 {
-		if n.Content[i].ShortTag() == "!!merge" {
-			return nil, false
+		if k := n.Content[i]; k.Kind == yaml.ScalarNode && k.ShortTag() == "!!merge" {
+			if merge != nil {
+				return nil, false
+			}
+			merge = n.Content[i+1]
+			continue
 		}
 		key, ok := w.value(n.Content[i])
 		if !ok || key != nil && !reflect.TypeOf(key).Comparable() {
@@ -132,7 +138,39 @@ func (w *yamlWalk) mapping(n *yaml.Node) (any, bool) {
 			return nil, false
 		}
 	}
-	return out, true
+	if merge == nil {
+		return out, true
+	}
+	return out, w.merge(out, merge)
+}
+
+// merge adds the keys of a merge key value to out, as yaml.Unmarshal does: the value is a map, an
+// alias of a map, or a sequence of them. A key of the map itself wins, and an earlier map of the
+// sequence wins over a later one.
+func (w *yamlWalk) merge(out map[any]any, n *yaml.Node) bool {
+	sources := []*yaml.Node{n}
+	if n.Kind == yaml.SequenceNode {
+		sources = n.Content
+	}
+	for _, source := range sources {
+		target := source
+		if target.Kind == yaml.AliasNode {
+			target = target.Alias
+		}
+		if target == nil || target.Kind != yaml.MappingNode {
+			return false
+		}
+		v, ok := w.value(source)
+		if !ok {
+			return false
+		}
+		for key, value := range v.(map[any]any) {
+			if _, set := out[key]; !set {
+				out[key] = value
+			}
+		}
+	}
+	return true
 }
 
 // jsonEqual reports whether a and b are the same JSON value. A string that is not JSON only

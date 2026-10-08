@@ -35,34 +35,52 @@ var aliasBomb = func() string {
 	return doc
 }()
 
+// stagingMergeSent and stagingMergeReturned are a collector configuration with a merge key and the
+// normalized text that the API returned for it: keys sorted, the merge key expanded, the anchor gone.
+const (
+	stagingMergeSent     = "receivers:\n  otlp:\n    protocols:\n      grpc: {}\nx-common: &common\n  timeout: 10s\nexporters:\n  otlphttp:\n    <<: *common\n    endpoint: https://a.example.com\nservice:\n  pipelines:\n    traces:\n      receivers: [otlp]\n      exporters: [otlphttp]\n"
+	stagingMergeReturned = "exporters:\n  otlphttp:\n    endpoint: https://a.example.com\n    timeout: 10s\nreceivers:\n  otlp:\n    protocols:\n      grpc: {}\nservice:\n  pipelines:\n    traces:\n      exporters:\n      - otlphttp\n      receivers:\n      - otlp\nx-common:\n  timeout: 10s"
+)
+
 func TestYAMLEqual(t *testing.T) {
 	tests := map[string]struct {
 		a, b string
 		want bool
 	}{
-		"inline and multiline":  {inlineYAML, multilineYAML, true},
-		"key order":             {"a: 1\nb: 2\n", "b: 2\na: 1\n", true},
-		"different value":       {inlineYAML, changedYAML, false},
-		"different type":        {"a: 1", "a: '1'", false},
-		"invalid":               {"a: [1", "a: [1]", false},
-		"invalid itself":        {"a: [1", "a: [1", true},
-		"empty":                 {"", "", true},
-		"empty and document":    {"", "a: 1", false},
-		"empty and blank":       {"", "\n", true},
-		"beyond float64":        {"a: 9007199254740992", "a: 9007199254740993", false},
-		"beyond int64":          {"a: 18446744073709551616", "a: 18446744073709551617", false},
-		"same big integer":      {"a: 18446744073709551617", "{a: 18446744073709551617}", true},
-		"decimal beyond":        {"a: 0.10000000000000000001", "a: 0.10000000000000000002", false},
-		"same float forms":      {"a: 1.5", "a: 15e-1", true},
-		"integer and float":     {"a: 1", "a: 1.0", false},
-		"hex integer":           {"a: 0x10", "a: 16", true},
-		"alias":                 {"x: &v [1]\ny: *v", "x: [1]\ny: [1]", true},
-		"repeated key":          {"a: 1\na: 2", "a: 2", false},
-		"number keys":           {"1: a\n2: b", "{2: b, 1: a}", true},
-		"holds itself":          {"a: &n [*n]", "a: &n\n  - *n\n", false},
-		"holds itself in a map": {"a: &n {b: *n}", "a: &n\n  b: *n\n", false},
-		"reused anchor":         {"x: &v {a: [1]}\ny: *v\nz: *v", "x: {a: [1]}\ny: {a: [1]}\nz: {a: [1]}", true},
-		"alias expansion":       {aliasBomb, aliasBomb + "\n", false},
+		"inline and multiline":   {inlineYAML, multilineYAML, true},
+		"key order":              {"a: 1\nb: 2\n", "b: 2\na: 1\n", true},
+		"different value":        {inlineYAML, changedYAML, false},
+		"different type":         {"a: 1", "a: '1'", false},
+		"invalid":                {"a: [1", "a: [1]", false},
+		"invalid itself":         {"a: [1", "a: [1", true},
+		"empty":                  {"", "", true},
+		"empty and document":     {"", "a: 1", false},
+		"empty and blank":        {"", "\n", true},
+		"beyond float64":         {"a: 9007199254740992", "a: 9007199254740993", false},
+		"beyond int64":           {"a: 18446744073709551616", "a: 18446744073709551617", false},
+		"same big integer":       {"a: 18446744073709551617", "{a: 18446744073709551617}", true},
+		"decimal beyond":         {"a: 0.10000000000000000001", "a: 0.10000000000000000002", false},
+		"same float forms":       {"a: 1.5", "a: 15e-1", true},
+		"integer and float":      {"a: 1", "a: 1.0", false},
+		"hex integer":            {"a: 0x10", "a: 16", true},
+		"alias":                  {"x: &v [1]\ny: *v", "x: [1]\ny: [1]", true},
+		"repeated key":           {"a: 1\na: 2", "a: 2", false},
+		"number keys":            {"1: a\n2: b", "{2: b, 1: a}", true},
+		"holds itself":           {"a: &n [*n]", "a: &n\n  - *n\n", false},
+		"holds itself in a map":  {"a: &n {b: *n}", "a: &n\n  b: *n\n", false},
+		"reused anchor":          {"x: &v {a: [1]}\ny: *v\nz: *v", "x: {a: [1]}\ny: {a: [1]}\nz: {a: [1]}", true},
+		"alias expansion":        {aliasBomb, aliasBomb + "\n", false},
+		"merge key":              {"d: &d {t: 1, r: 3}\ne:\n  <<: *d\n  p: a", "d: {t: 1, r: 3}\ne: {p: a, r: 3, t: 1}", true},
+		"merge key own key wins": {"d: &d {t: 1}\ne:\n  t: 2\n  <<: *d", "d: {t: 1}\ne: {t: 2}", true},
+		"merge key list order":   {"x: &x {t: 1}\ny: &y {t: 2, r: 3}\ne:\n  <<: [*x, *y]", "x: {t: 1}\ny: {t: 2, r: 3}\ne: {t: 1, r: 3}", true},
+		"merge key inline map":   {"e:\n  <<: {t: 1}\n  p: a", "e: {t: 1, p: a}", true},
+		"merge key nested merge": {"a: &a {t: 1}\nb: &b {<<: *a, r: 2}\ne: {<<: *b}", "a: {t: 1}\nb: {t: 1, r: 2}\ne: {t: 1, r: 2}", true},
+		"merge key changed":      {"d: &d {t: 1}\ne: {<<: *d}", "d: {t: 1}\ne: {t: 2}", false},
+		"merge key not a map":    {"d: &d [1]\ne: {<<: *d}", "d: [1]\ne: {}", false},
+		"two merge keys":         {"d: &d {t: 1}\ne: {<<: *d, <<: *d}", "d: {t: 1}\ne: {t: 1}", false},
+		"merge key holds itself": {"e: &e {<<: *e}", "e: {}", false},
+		"quoted merge key":       {"e: {'<<': {t: 1}}", "e: {t: 1}", false},
+		"staging normalization":  {stagingMergeSent, stagingMergeReturned, true},
 	}
 	for name, test := range tests {
 		if got := yamlEqual(test.a, test.b); got != test.want {
