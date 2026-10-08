@@ -301,7 +301,7 @@ func TestFlattenPairsRemotesByRequestFields(t *testing.T) {
 func TestSetStateKeepsTheFormOfEmptyCollections(t *testing.T) {
 	ctx := context.Background()
 	var schemaResp frameworkresource.SchemaResponse
-	NewResource().Schema(ctx, frameworkresource.SchemaRequest{}, &schemaResp)
+	NewResource(Hooks{}).Schema(ctx, frameworkresource.SchemaRequest{}, &schemaResp)
 	objectType := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
 	remoteType := objectType.AttributeTypes["remotes"].(tftypes.List).ElementType.(tftypes.Object)
 	metadataType := objectType.AttributeTypes["metadata"]
@@ -343,7 +343,7 @@ func TestSetStateKeepsTheFormOfEmptyCollections(t *testing.T) {
 		if test.prior != nil {
 			priorData = &tfsdk.Plan{Schema: schemaResp.Schema, Raw: *test.prior}
 		}
-		if diags := setState(ctx, test.api, priorData, &state); diags.HasError() {
+		if diags := NewResource(Hooks{}).(*Resource).setState(ctx, test.api, priorData, &state); diags.HasError() {
 			t.Fatalf("%s: %v", name, diags)
 		}
 		if got := at(t, state.Raw, "labels"); !got.Equal(test.wantLabels) {
@@ -368,7 +368,7 @@ func (testProvider) Schema(context.Context, provider.SchemaRequest, *provider.Sc
 func (testProvider) Configure(context.Context, provider.ConfigureRequest, *provider.ConfigureResponse) {
 }
 func (testProvider) Resources(context.Context) []func() frameworkresource.Resource {
-	return []func() frameworkresource.Resource{NewResource}
+	return []func() frameworkresource.Resource{func() frameworkresource.Resource { return NewResource(Hooks{}) }}
 }
 func (testProvider) DataSources(context.Context) []func() datasource.DataSource { return nil }
 

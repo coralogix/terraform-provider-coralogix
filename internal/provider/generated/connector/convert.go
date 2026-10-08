@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
@@ -122,6 +123,155 @@ func flatten(ctx context.Context, v *connectors_service.Connector) (*ConnectorMo
 		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
 	}
 	return out, diags
+}
+
+// oneOfArms are the paths of the oneOf arms, with list and map steps left
+// out. An empty arm selects that arm, so it is not the same as a missing arm
+// (contract 2.8).
+var oneOfArms = map[string]bool{}
+
+// computedAttrs are the paths of the computed attributes, with list and map
+// steps left out.
+var computedAttrs = map[string]bool{
+	"config_overrides": true,
+	"description":      true,
+	"id":               true,
+}
+
+// keepPriorEmpty keeps the prior form of a value that is empty in both the
+// prior data and the new state. The API does not tell null from an empty
+// list, set, or map, or a missing object outside a oneOf from an empty one
+// (contract 2.2, 2.9). So the state keeps the form that the configuration
+// has, and Terraform sees no difference.
+func keepPriorEmpty(ctx context.Context, prior tfData, state *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+	attrs := state.Schema.GetAttributes()
+	names := make([]string, 0, len(attrs))
+	for name := range attrs {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		var p, v attr.Value
+		diags.Append(prior.GetAttribute(ctx, path.Root(name), &p)...)
+		diags.Append(state.GetAttribute(ctx, path.Root(name), &v)...)
+		if diags.HasError() {
+			return diags
+		}
+		if kept := priorEmpty(ctx, name, v, p, &diags); !kept.Equal(v) {
+			diags.Append(state.SetAttribute(ctx, path.Root(name), kept)...)
+		}
+	}
+	return diags
+}
+
+// priorEmpty returns p when v and p are both empty at path at. Otherwise it
+// returns v, with the same rule applied to the attributes of an object and to
+// the elements of a list or map.
+func priorEmpty(ctx context.Context, at string, v, p attr.Value, diags *diag.Diagnostics) attr.Value {
+	if keepAPIValue(at, v, p) {
+		return v
+	}
+	if emptyValue(at, v) && emptyValue(at, p) {
+		return p
+	}
+	if v.IsNull() || p.IsNull() {
+		return v
+	}
+	switch v := v.(type) {
+	case types.Object:
+		if prior, ok := p.(types.Object); ok {
+			return priorEmptyObject(ctx, at, v, prior, diags)
+		}
+	case types.List:
+		if prior, ok := p.(types.List); ok {
+			return priorEmptyList(ctx, at, v, prior, diags)
+		}
+	case types.Map:
+		if prior, ok := p.(types.Map); ok {
+			return priorEmptyMap(ctx, at, v, prior, diags)
+		}
+	}
+	return v
+}
+
+// keepAPIValue reports whether v needs no rule: a value is missing or
+// unknown, the values are equal, or the attribute is computed and the prior
+// has no value, for example after an import. Terraform does not compare a
+// computed attribute that the configuration leaves out, so the value of the
+// API is safe, and an empty value stays known.
+func keepAPIValue(at string, v, p attr.Value) bool {
+	if v == nil || p == nil || v.IsUnknown() || p.IsUnknown() || v.Equal(p) {
+		return true
+	}
+	return p.IsNull() && computedAttrs[at]
+}
+
+func priorEmptyObject(ctx context.Context, at string, v, prior types.Object, diags *diag.Diagnostics) attr.Value {
+	attrs, priorAttrs := v.Attributes(), prior.Attributes()
+	out := make(map[string]attr.Value, len(attrs))
+	for name, child := range attrs {
+		out[name] = priorEmpty(ctx, at+"."+name, child, priorAttrs[name], diags)
+	}
+	value, d := types.ObjectValue(v.AttributeTypes(ctx), out)
+	diags.Append(d...)
+	return value
+}
+
+// priorEmptyList pairs elements by index, so it needs lists of one length.
+func priorEmptyList(ctx context.Context, at string, v, prior types.List, diags *diag.Diagnostics) attr.Value {
+	elems, priorElems := v.Elements(), prior.Elements()
+	if len(elems) != len(priorElems) {
+		return v
+	}
+	out := make([]attr.Value, len(elems))
+	for i, child := range elems {
+		out[i] = priorEmpty(ctx, at, child, priorElems[i], diags)
+	}
+	value, d := types.ListValue(v.ElementType(ctx), out)
+	diags.Append(d...)
+	return value
+}
+
+func priorEmptyMap(ctx context.Context, at string, v, prior types.Map, diags *diag.Diagnostics) attr.Value {
+	elems, priorElems := v.Elements(), prior.Elements()
+	out := make(map[string]attr.Value, len(elems))
+	for key, child := range elems {
+		out[key] = priorEmpty(ctx, at, child, priorElems[key], diags)
+	}
+	value, d := types.MapValue(v.ElementType(ctx), out)
+	diags.Append(d...)
+	return value
+}
+
+// emptyValue reports whether v is null, an empty list, set, or map, or an
+// object outside a oneOf arm whose attributes are all empty.
+func emptyValue(at string, v attr.Value) bool {
+	if v.IsNull() {
+		return true
+	}
+	if v.IsUnknown() {
+		return false
+	}
+	switch v := v.(type) {
+	case types.List:
+		return len(v.Elements()) == 0
+	case types.Set:
+		return len(v.Elements()) == 0
+	case types.Map:
+		return len(v.Elements()) == 0
+	case types.Object:
+		if oneOfArms[at] {
+			return false
+		}
+		for name, child := range v.Attributes() {
+			if !emptyValue(at+"."+name, child) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
 }
 
 func expandConnectorCreate(ctx context.Context, p path.Path, m *ConnectorModel, diags *diag.Diagnostics) *connectors_service.Connector {

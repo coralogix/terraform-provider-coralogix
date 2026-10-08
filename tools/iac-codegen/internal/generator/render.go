@@ -72,7 +72,7 @@ func renderAll(r *model.Resource, refs []sdkRef, pkg string, file *overrides.Fil
 		files["replace.go"] = "replace.go.tmpl"
 	}
 	out := map[string][]byte{}
-	order := []string{"schema.go", "model.go", "convert.go", "mask.go", "resource.go", "replace.go"}
+	order := []string{"schema.go", "model.go", "convert.go", "equality.go", "mask.go", "resource.go", "replace.go"}
 	for _, file := range order {
 		tmpl, ok := files[file]
 		if !ok {
