@@ -39,7 +39,6 @@ types:
     fields:
       id:
         markdownDescription: "The ID of the GlobalRouter. Use `router_default` for the default; leave empty for auto generated or provide your own (unique) id."
-        useStateForUnknown: true
       name:
         markdownDescription: "Name of the GlobalRouter."
       description:

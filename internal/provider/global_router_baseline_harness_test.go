@@ -231,6 +231,11 @@ func (h *grHarness) Apply(name string, prior tftypes.Value, cfgJSON map[string]a
 		return prior
 	}
 	step.Plan = toJSON(planned)
+	if len(replace) > 0 {
+		// Terraform deletes and creates the resource. The harness stops at the plan.
+		h.record(step)
+		return prior
+	}
 	if !prior.IsNull() && planned.Equal(prior) {
 		step.NoChange = true
 		h.record(step)

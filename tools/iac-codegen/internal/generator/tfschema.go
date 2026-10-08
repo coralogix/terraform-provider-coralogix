@@ -249,21 +249,29 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 			out.ServerDefaultKinds = append(out.ServerDefaultKinds, a.ValueKind)
 		}
 	}
-	if r.Policy.ClientSetID && f.Name == r.IDParam {
+	clientSetID := r.Policy.ClientSetID && f.Name == r.IDParam
+	if clientSetID {
 		// The user can set the id. Without a value, the server makes one.
+		// The id names the resource, so a new id replaces it: Update cannot
+		// find a resource under the new id. UseStateForUnknown runs first, so
+		// an id that the user removes keeps its value and replaces nothing.
 		a.Required, a.Optional, a.Computed = false, true, true
+		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
 	}
-	switch f.Behavior {
-	case model.Computed:
+	switch {
+	case f.Behavior == model.Computed:
 		markComputed(a)
 		if f.Name == r.IDParam {
 			a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
 		}
-	case model.Immutable:
+	case f.Behavior == model.Immutable || clientSetID:
 		b.requiresReplace(a, a.Name)
 	}
 	return a, nil
 }
+
+// errStaleOverrideKey reports a key of a field line that the generator already applies.
+var errStaleOverrideKey = errors.New("the generator already applies this key, so it changes nothing")
 
 // applyOverrides applies the behavior-overrides file to the attributes. A field with a line
 // keeps the released behavior that the line states.
@@ -309,7 +317,12 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 		a.Computed = *l.Computed
 	}
 	if l.UseStateForUnknown {
-		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
+		modifier := strings.ToLower(a.ValueKind) + "planmodifier.UseStateForUnknown()"
+		if containsString(a.Modifiers, modifier) {
+			// A client-set or computed id already has it. A key that changes nothing is an error.
+			return fmt.Errorf("useStateForUnknown: %w", errStaleOverrideKey)
+		}
+		a.Modifiers = append(a.Modifiers, modifier)
 	}
 	if l.Equality != "" {
 		if a.ValueKind != "String" {
