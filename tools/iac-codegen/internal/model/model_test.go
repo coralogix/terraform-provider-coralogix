@@ -470,13 +470,30 @@ func TestServerDefaultContract(t *testing.T) {
 		t.Fatal(report)
 	}
 
-	inconsistent := strings.Replace(base, defaultBlock, noDefaultBlock, 1)
-	doc, err = Load([]byte(inconsistent))
+	// The first block is the Create field and the last block is the Update field.
+	updateBlock := strings.LastIndex(base, defaultBlock)
+	withUpdate := func(block string) string {
+		return base[:updateBlock] + block + base[updateBlock+len(defaultBlock):]
+	}
+	doc, err = Load([]byte(withUpdate(noDefaultBlock)))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "FIELD_DEFAULT_CONTRACT_INCONSISTENT") {
-		t.Fatalf("codes %v do not contain FIELD_DEFAULT_CONTRACT_INCONSISTENT", codes)
+	if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
+		t.Fatalf("Update without the Create default: %v", report)
+	}
+
+	for name, spec := range map[string]string{
+		"Update default only":      strings.Replace(base, defaultBlock, noDefaultBlock, 1),
+		"different Update default": withUpdate(strings.Replace(defaultBlock, "default: true", "default: false", 1)),
+	} {
+		doc, err = Load([]byte(spec))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "FIELD_DEFAULT_CONTRACT_INCONSISTENT") {
+			t.Fatalf("%s: codes %v do not contain FIELD_DEFAULT_CONTRACT_INCONSISTENT", name, codes)
+		}
 	}
 
 	invalid := strings.ReplaceAll(base, "default: true", "default: not-a-boolean")

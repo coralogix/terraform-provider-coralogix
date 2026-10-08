@@ -583,11 +583,12 @@ func fieldDefaultContractIssues(p Policy, name, location, field string, create, 
 		switch {
 		case !createOptional || !getRequired:
 			report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "A declared server default needs an optional Create field and a required Get field.", Remediation: "Make the field optional in Create, required in Get, and let the server return the declared default."})
-		case up != nil && (slices.Contains(update.Required, field) || updateDefault == nil || *updateDefault != *createDefault):
-			report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The mutable field does not declare the same optional default in Create and Update.", Remediation: "Declare the same typed OpenAPI default on the optional Create and Update fields."})
+		case up != nil && (slices.Contains(update.Required, field) || updateDefault != nil && *updateDefault != *createDefault):
+			// Update may omit the default: generation reads only the Create default.
+			report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The mutable field is required in Update, or Update declares a different default than Create.", Remediation: "Make the field optional in Update. Omit its default there, or declare the Create default."})
 		}
 	} else if updateDefault != nil {
-		report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The Update field declares a default that Create does not declare.", Remediation: "Declare the same typed OpenAPI default on the optional Create and Update fields."})
+		report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The Update field declares a default that Create does not declare.", Remediation: "Declare the default on the optional Create field, or remove it from Update."})
 	}
 	for _, candidate := range []struct {
 		name  string
