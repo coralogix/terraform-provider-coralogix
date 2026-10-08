@@ -11,6 +11,7 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/source"
 )
 
 func legacySpec(t *testing.T) []byte {
@@ -542,5 +543,67 @@ func TestExistingModeUsesTheDeclaredDefaultWithoutADefaultLine(t *testing.T) {
 		if got := serverDefault(r, field); got != test.want {
 			t.Errorf("%s: serverDefault = %t, want %t", name, got, test.want)
 		}
+	}
+}
+
+// A computed: false line states a mode that a server default cannot have, so it replaces the
+// server default of the contract, as a default line does. Without either, the contract default
+// applies. A required: true line on such a field is unused: the contract already requires it in Get.
+func TestModeLinesReplaceTheContractDefault(t *testing.T) {
+	spec := archivedSpec(t)
+	request := "                name: {type: string, minLength: 1}\n"
+	spec = strings.ReplaceAll(spec, request, request+"                priority: {type: integer, format: int64, default: 0, x-coralogix-presence: true}\n")
+	spec = strings.Replace(spec, "      required: [id, name]\n", "      required: [id, name, priority]\n", 1)
+	response := "        id: {type: string, readOnly: true}\n        name: {type: string, minLength: 1}\n"
+	spec = strings.Replace(spec, response, response+"        priority: {type: integer, format: int64}\n", 1)
+	if strings.Count(spec, "priority:") != 3 {
+		t.Fatal("the test contract did not change: update the replaced text")
+	}
+	head, err := os.ReadFile(filepath.Join("testdata", "archived-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	lineOf := func(text string) *overrides.File {
+		if text == "" {
+			return mustParse(t, string(head))
+		}
+		return mustParse(t, string(head)+"types:\n  ArchivedThing:\n    fields:\n      priority: "+text+"\n")
+	}
+	tests := map[string]struct {
+		line          string
+		computed      bool
+		serverDefault bool
+		staticDefault string
+	}{
+		"no line":        {"", true, true, ""},
+		"other line":     {"{description: The priority.}", true, true, ""},
+		"not computed":   {"{computed: false}", false, false, ""},
+		"static default": {"{computed: true, default: 0}", true, false, "int64default.StaticInt64(0)"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			validated, err := validateOpenAPIWith([]byte(spec), "ArchivedThing", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, lineOf(test.line))
+			if err != nil {
+				t.Fatal(reportOf(t, err))
+			}
+			out, err := buildTFResourceWith(validated.resource, "generated", validated.overrides)
+			if err != nil {
+				t.Fatal(err)
+			}
+			i := slices.IndexFunc(out.Attributes, func(a *tfAttr) bool { return a.Name == "priority" })
+			if i < 0 {
+				t.Fatal("no priority attribute")
+			}
+			a := out.Attributes[i]
+			hasServerDefault := slices.ContainsFunc(a.Modifiers, func(m string) bool { return strings.HasPrefix(m, "serverDefaultModifier") })
+			if a.Computed != test.computed || hasServerDefault != test.serverDefault || a.Default != test.staticDefault {
+				t.Fatalf("computed = %t, server default = %t, static default = %q; want %t, %t, %q",
+					a.Computed, hasServerDefault, a.Default, test.computed, test.serverDefault, test.staticDefault)
+			}
+		})
+	}
+	_, err = validateOpenAPIWith([]byte(spec), "ArchivedThing", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, lineOf("{required: true}"))
+	if !reportHas(requireReport(t, err), "OVERRIDE_UNUSED", "behavior-overrides.yaml:types.ArchivedThing.fields.priority") {
+		t.Fatalf("required line: err = %v, want OVERRIDE_UNUSED", err)
 	}
 }

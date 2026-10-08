@@ -292,6 +292,13 @@ func (l Field) statesPresence() bool {
 	return l.Skip || l.ReadOnly || l.Required || l.Computed != nil || l.Default != nil || l.ReadEmptyAs != ""
 }
 
+// replacesServerDefault reports whether the line states a mode that a server default of the
+// contract cannot have: its own default, or no computed value. required: true needs no check:
+// a server default needs a field that Get requires, and then the line is unused.
+func (l Field) replacesServerDefault() bool {
+	return l.Default != nil || l.Computed != nil && !*l.Computed
+}
+
 func (l Field) empty() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown && l.Default == nil && l.ReadEmptyAs == "" &&
@@ -376,7 +383,7 @@ func (f *File) Policy() model.Policy {
 			if t.Fields[field].statesPresence() {
 				p.Released = append(p.Released, name+"."+field)
 			}
-			if t.Fields[field].Default != nil {
+			if t.Fields[field].replacesServerDefault() {
 				p.Defaults = append(p.Defaults, name+"."+field)
 			}
 		}

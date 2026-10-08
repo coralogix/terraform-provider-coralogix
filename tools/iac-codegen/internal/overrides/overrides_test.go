@@ -122,6 +122,20 @@ func TestADefaultCanBeANumber(t *testing.T) {
 	}
 }
 
+// A line whose mode a server default cannot have replaces the server default of the contract.
+// Another line keeps it.
+func TestLinesThatReplaceTheServerDefault(t *testing.T) {
+	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n" +
+		"      a: {default: 0}\n      b: {required: true}\n      c: {computed: false}\n" +
+		"      d: {computed: true}\n      e: {computed: true, useStateForUnknown: true}\n      f: {description: Text.}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(f.Policy().Defaults, ","); got != "R.a,R.c" {
+		t.Fatalf("policy defaults = %s, want R.a,R.c", got)
+	}
+}
+
 // Only a line that says how an omitted value behaves answers the presence question of the
 // generator. A line that only changes a text, a validator, or the order does not.
 func TestPolicyReleasesOnlyLinesThatStatePresence(t *testing.T) {

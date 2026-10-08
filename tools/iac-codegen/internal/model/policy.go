@@ -50,9 +50,9 @@ type Policy struct {
 	// omission differs from an empty value. A field that is not listed follows the
 	// contract, and the contract must state it.
 	Released []string
-	// Defaults lists "Component.field" of top-level fields whose line states a static default.
-	// That default replaces the server default of the contract. A field that is not listed
-	// uses the server default of the contract, also when it has another line.
+	// Defaults lists "Component.field" of top-level fields whose line replaces the server default
+	// of the contract: a static default or computed: false. A field that is not
+	// listed uses the server default of the contract, also when it has another line.
 	Defaults []string
 	// NoInferredValidators means that no limit of the contract becomes a validator.
 	NoInferredValidators bool
@@ -107,7 +107,7 @@ func (p Policy) released(component, field string) bool {
 	return p.Existing && component != "" && slices.Contains(p.Released, component+"."+field)
 }
 
-// OverridesDefault reports whether the behavior-overrides file states the default of the field.
+// OverridesDefault reports whether the behavior-overrides file replaces the default of the field.
 // Then the generated resource does not use the server default of the contract.
 func (p Policy) OverridesDefault(component, field string) bool {
 	return p.Existing && component != "" && slices.Contains(p.Defaults, component+"."+field)

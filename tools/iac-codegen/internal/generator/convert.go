@@ -546,7 +546,7 @@ type convBuilder struct {
 }
 
 // serverDefault reports whether removing the field resets it to a declared server default.
-// A default line in the behavior-overrides file replaces the declared default.
+// A default or computed: false line in the behavior-overrides file replaces the declared default.
 func serverDefault(r *model.Resource, f *model.ResourceField) bool {
 	return !r.Policy.OverridesDefault(r.Name, f.Name) && hasServerDefault(f)
 }
