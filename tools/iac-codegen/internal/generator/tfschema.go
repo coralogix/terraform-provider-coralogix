@@ -55,6 +55,9 @@ type tfAttr struct {
 	Computed    bool
 	Description string
 	ElementType string // Set, List: the element type, for example "types.StringType"
+	// CustomType is the Terraform type of a scalar attribute that is not the plain type of its
+	// kind, for example rfc3339Type, or "".
+	CustomType string
 	// ElemValidators are the validators of one element of a collection of plain values, the
 	// arguments of its Value<Kind>sAre validator. The acceptance test makes an element that passes.
 	ElemValidators []string
@@ -229,7 +232,7 @@ func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
 // resourceAttribute builds the attribute of a top-level field: its type, its server default, a
 // client-set id, and the plan modifiers of its behavior.
 func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *model.ResourceField) (*tfAttr, error) {
-	a, err := b.attribute(attrPath{"root", tfName(f.Name)}, r.Name, f.Name, f.Description, f.Type, fieldAttrs(f))
+	a, err := b.attribute(attrPath{"root", tfName(f.Name)}, r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), f.Behavior == model.Computed)
 	if err != nil {
 		return nil, err
 	}
@@ -630,15 +633,17 @@ func (p attrPath) expr() string {
 	return s
 }
 
-func (b *tfBuilder) attribute(p attrPath, component, name, desc string, t *model.Type, attrs model.Attrs) (*tfAttr, error) {
+func (b *tfBuilder) attribute(p attrPath, component, name, desc string, t *model.Type, attrs model.Attrs, computed bool) (*tfAttr, error) {
 	a := &tfAttr{Name: tfName(name), Description: desc, Required: attrs.Required, Optional: !attrs.Required, Component: component, Property: name}
-	if err := b.setType(a, p, t); err != nil {
+	if err := b.setType(a, p, t, computed); err != nil {
 		return nil, err
 	}
 	return a, nil
 }
 
-func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type) error {
+// setType sets the kind, the type, and the validators of a. computed is true for a field that only
+// the response has.
+func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type, computed bool) error {
 	switch t.Kind {
 	case model.String, model.Enum, model.Bool, model.Number, model.Integer:
 		kind, vals, err := scalar(t)
@@ -648,6 +653,10 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type) error {
 		a.Kind, a.ValueKind, a.Validators = kind, kind, vals
 		if t.Kind == model.Enum {
 			a.EnumSchema = t.Schema
+		}
+		if sentTime(t, computed) {
+			a.CustomType = rfc3339Type
+			a.Validators = append(a.Validators, utcValidator)
 		}
 	case model.Set, model.List, model.Map:
 		return b.collection(a, p, t)
@@ -689,6 +698,10 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 			return err
 		}
 		a.Kind, a.ElementType, a.ElemValidators = kind, "types."+elem+"Type", vals
+		if isTime(t.Elem) {
+			a.ElementType, a.ElemValidators = rfc3339Type, append(vals, utcValidator)
+			vals = a.ElemValidators
+		}
 		if len(vals) > 0 {
 			a.Validators = append(a.Validators, fmt.Sprintf("%s.Value%ssAre(%s)", pkg, elem, strings.Join(vals, ", ")))
 		}
@@ -708,7 +721,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	var fields []tfModelField
 	for _, f := range t.Fields {
 		child := append(append(attrPath{}, p...), tfName(f.Name))
-		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f))
+		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f), f.Behavior == model.Computed)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
@@ -833,6 +846,9 @@ func (b *tfBuilder) modelField(name string, t *model.Type, computed bool) tfMode
 	switch t.Kind {
 	case model.String, model.Enum:
 		goType = "types.String"
+		if sentTime(t, computed) {
+			goType = "timetypes.RFC3339"
+		}
 	case model.Bool:
 		goType = "types.Bool"
 	case model.Number:
@@ -909,6 +925,21 @@ func scalar(t *model.Type) (string, []string, error) {
 	}
 	return "", nil, fmt.Errorf("kind %s is not a scalar", t.Kind)
 }
+
+// rfc3339Type is the Terraform type of a time that a request sends. It checks the RFC 3339 format,
+// and a value that differs only in fractional seconds plans no change.
+const rfc3339Type = "timetypes.RFC3339Type{}"
+
+// utcValidator requires a time in UTC. The API returns every time in UTC, so a configured offset
+// such as +02:00 would read back as another text, and the apply would fail.
+const utcValidator = "stringvalidator.RegexMatches(regexp.MustCompile(`(?i)z$`), \"must be a UTC time that ends in Z, for example 2030-01-01T00:00:00Z\")"
+
+// isTime reports whether t is a date-time string.
+func isTime(t *model.Type) bool { return t.Kind == model.String && t.Format == "date-time" }
+
+// sentTime reports whether t is a time that a request sends. A time that only the response has stays
+// a plain string, as the API returns it, with no validator.
+func sentTime(t *model.Type, computed bool) bool { return isTime(t) && !computed }
 
 // patternValidator returns a validator that the value matches pattern. The
 // pattern is a raw string literal when it can be, so it reads as in the API.

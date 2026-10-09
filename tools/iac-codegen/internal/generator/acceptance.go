@@ -815,6 +815,9 @@ func stringValue(a *tfAttr, updated bool) (string, error) {
 		return values[0], nil
 	}
 	low, high := lengthRange(a)
+	if a.CustomType == rfc3339Type {
+		return timeValue(a, updated, low, high)
+	}
 	v := madeUpString(a.Name, updated, low, high)
 	re := patternOf(a)
 	if re == nil || madeUpMatches(re, v) {
@@ -824,6 +827,28 @@ func stringValue(a *tfAttr, updated bool) (string, error) {
 		return sample, nil
 	}
 	return "", fmt.Errorf("no made-up value of %s matches the pattern %q and the length limits: set the value in %s", a.Name, re, acceptance.FileName)
+}
+
+// timeValue is a time in UTC, a day apart in the update config. A value built from a pattern could
+// be no valid time, so a pattern or a length that rejects it needs the value in the acceptance file.
+func timeValue(a *tfAttr, updated bool, low, high int) (string, error) {
+	v := "2030-01-01T00:00:00Z"
+	if updated {
+		v = "2030-01-02T00:00:00Z"
+	}
+	if re := patternOf(a); re != nil && !re.MatchString(v) || len(v) < low || len(v) > high {
+		return "", fmt.Errorf("the time %s of %s does not pass its validators: set the value in %s", v, a.Name, acceptance.FileName)
+	}
+	return v, nil
+}
+
+// timeType returns rfc3339Type when elemType is the time type, so an element of a list of times
+// gets a time value.
+func timeType(elemType string) string {
+	if elemType == rfc3339Type {
+		return rfc3339Type
+	}
+	return ""
 }
 
 // runLength is the length of @{run} in a test run: "acc-" and 8 characters.
@@ -910,7 +935,7 @@ func enumValues(a *tfAttr) []string {
 // elements are made up.
 func (s *accSynth) collectionValue(a *tfAttr, tfPath string, mode accMode) (string, []accCheck, error) {
 	elem, ok := map[string]string{
-		"types.StringType": "String", "types.BoolType": "Bool", "types.Int64Type": "Int64",
+		"types.StringType": "String", rfc3339Type: "String", "types.BoolType": "Bool", "types.Int64Type": "Int64",
 		"types.Int32Type": "Int32", "types.Float64Type": "Float64", "types.Float32Type": "Float32",
 	}[a.ElementType]
 	if !ok {
@@ -919,7 +944,7 @@ func (s *accSynth) collectionValue(a *tfAttr, tfPath string, mode accMode) (stri
 	if err := checkOneElement(a); err != nil {
 		return "", nil, err
 	}
-	item, state, err := scalarValue(&tfAttr{Name: a.Name, Kind: elem, Validators: a.ElemValidators}, mode)
+	item, state, err := scalarValue(&tfAttr{Name: a.Name, Kind: elem, Validators: a.ElemValidators, CustomType: timeType(a.ElementType)}, mode)
 	if err != nil {
 		return "", nil, err
 	}
