@@ -1,5 +1,13 @@
 # Unreleased
 
+#### resource/coralogix_preset
+- FIX: An omitted `description` reads back as absent. The API returns an empty string.
+- FIX: Create and update send `presetType` `CUSTOM`.
+- FIX: A missing `attachment_config` reads back as `AUTO`. A missing `config_overrides` reads back as an empty list.
+- FIX: A rejected connector or entity type, such as `IBM_EVENT_NOTIFICATIONS`, still reads back as the API spelling. The schema does not accept it.
+- CHORE: Bump `coralogix-management-sdk` so preset `name`, `entity_type`, and `connector_type` are required values from the OpenAPI contract.
+- CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Changing `id` still recreates the resource.
+
 #### resource/coralogix_connector
 - CHORE: Generated upgrade test covers a connector that already uses `field_values_wo`.
 - CHORE: Bump `coralogix-management-sdk` so Connector required fields and unordered field sets come from the OpenAPI contract.
@@ -15,6 +23,15 @@
 - FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
 
 #### tools/iac-codegen
+- FEAT: `readEmptyAs: null` on a string reads `""` as null.
+- FIX: `requestValue` on a nested read-only field is sent on create and update.
+- FEAT: `api.operations` stores the four operation ids, so `tfgen generate` needs no operation flags.
+- FEAT: `requestValue` sends a fixed API value on create and update. The field is not a Terraform attribute.
+- FEAT: `readNullAs: empty` reads a missing list or set of objects as an empty collection.
+- FEAT: `requireOne` emits `ExactlyOneOf` for the arms of a oneOf.
+- FEAT: `readRejected: true` reads a rejected enum value as the API spelling. Without it, that value fails the read.
+- FIX: Remove `promote`. `unwrap` shows a one-property wrapper as the plain attribute. A missing business-first enum, including a missing unwrapped value, reads as its first value.
+- CHORE: Bump the generator to `v0.1.0-beta.19`.
 - CHORE: Bump the generator to `v0.1.0-beta.18`.
 - FEAT: `unwrap` in `behavior-overrides.yaml` shows a value that the API holds in a one-property wrapper object as the plain value, for example `{"query": {"value": "error"}}` as `query = "error"`. A top-level list names the wrapper components, and an `unwrap: true` or `unwrap: false` field line decides one place. The value can be a scalar, an enum, a list, an object, or a oneOf, a wrapper inside a wrapper, or the items of a list.
 - FEAT: Existing mode accepts `api.updateMaskInBody: true` when PATCH `updateMask` is an optional JSON body property. The generated update builds the same body and the same changed-field mask as a query-parameter mask, then sets that mask on the body. The schema has no mask attribute. A mask that names only top-level fields still cannot change a nested oneOf.
@@ -50,6 +67,9 @@
 - FEAT: `types.<Type>.extraAttributes` declares Terraform-only map attributes, including `writeOnly: true`. The archived-thing golden fixture covers the shape.
 - FEAT: Existing-resource `NewResource` takes `Hooks{BeforeWrite, AfterRead}` so overlays pass write-only logic at construction instead of package `init`.
 - FEAT: Existing-resource `lengthAtLeast` keeps a released non-empty string validator.
+- FEAT: `tfgen generate` accepts `--openapi` so a candidate document can be rendered against the Go types of the pinned SDK.
+- FEAT: Existing-resource mode accepts a custom-method lifecycle: Get and Delete each carry the id, and Update keeps the id in the body.
+- FEAT: `verbatim` on an enum keeps the API spelling as the Terraform value.
 - FEAT: Generate unordered sets of objects. The Thing golden fixture includes a set of objects.
 - FIX: Namespaced OpenAPI components such as `notification_center.ConnectorConfigField` render as valid Go model types.
 - FIX: A nested object collection marked `x-coralogix-collection: set` now flattens as a set in the generated attr.Type map, matching the schema.

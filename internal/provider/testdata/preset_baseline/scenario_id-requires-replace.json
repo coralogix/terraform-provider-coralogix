@@ -1,0 +1,86 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "connector_type": "generic_https",
+      "entity_type": "alerts",
+      "id": "first",
+      "name": "r",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "plan": {
+      "attachment_config": "AUTO",
+      "config_overrides": "(unknown)",
+      "connector_type": "generic_https",
+      "description": null,
+      "entity_type": "alerts",
+      "id": "first",
+      "name": "r",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/presets:createCustom",
+        "body": {
+          "preset": {
+            "attachmentConfig": {
+              "policy": "AUTO"
+            },
+            "connectorType": "GENERIC_HTTPS",
+            "entityType": "ALERTS",
+            "id": "first",
+            "name": "r",
+            "parentId": "preset_system_generic_https_alerts_empty",
+            "presetType": "CUSTOM"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "attachment_config": "AUTO",
+      "config_overrides": [],
+      "connector_type": "generic_https",
+      "description": null,
+      "entity_type": "alerts",
+      "id": "first",
+      "name": "r",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: change id",
+    "config": {
+      "connector_type": "generic_https",
+      "entity_type": "alerts",
+      "id": "second",
+      "name": "r",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "plan": {
+      "attachment_config": "AUTO",
+      "config_overrides": "(unknown)",
+      "connector_type": "generic_https",
+      "description": null,
+      "entity_type": "alerts",
+      "id": "second",
+      "name": "r",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "requiresReplace": [
+      "AttributeName(\"id\")"
+    ],
+    "state": {
+      "attachment_config": "AUTO",
+      "config_overrides": [],
+      "connector_type": "generic_https",
+      "description": null,
+      "entity_type": "alerts",
+      "id": "first",
+      "name": "r",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    }
+  }
+]

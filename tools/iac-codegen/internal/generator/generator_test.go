@@ -138,6 +138,42 @@ func TestGoldenOutputWrappedValues(t *testing.T) {
 	}
 }
 
+// The golden output of a resource whose lifecycle is custom methods and whose overrides use a
+// fixed request value, including one on a nested read-only field, a string read from "" as null,
+// a business-first enum, a missing list read as empty, and ExactlyOneOf.
+func TestGoldenOutputCustomMethods(t *testing.T) {
+	out := generateCustomThing(t)
+	golden := filepath.Join("testdata", "golden", "customthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputCustomMethods -update:\n%s", diff)
+	}
+}
+
+// generateCustomThing generates the synthetic resource with custom-method operations.
+func generateCustomThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "customthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "customthing")
+	options := Options{Resource: "CustomThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "customthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
 // generateWrapThing generates the synthetic resource whose API holds values in wrapper objects.
 func generateWrapThing(t *testing.T) string {
 	t.Helper()

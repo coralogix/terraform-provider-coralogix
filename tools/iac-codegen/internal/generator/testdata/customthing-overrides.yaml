@@ -1,0 +1,45 @@
+resource: CustomThing
+mode: existing
+
+validators:
+  inferred: false
+
+api:
+  requestWrapper: thing
+  updateIDInBody: true
+  customMethods: true
+  operations:
+    create: CustomThingsService_CreateCustomThing
+    get: CustomThingsService_GetThing
+    update: CustomThingsService_ReplaceCustomThing
+    delete: CustomThingsService_DeleteCustomThing
+
+types:
+  CustomThing:
+    fields:
+      kind:
+        requestValue: CUSTOM
+      notes:
+        readNullAs: empty
+      attachment:
+        unwrap: true
+        computed: true
+        default: AUTO
+      condition:
+        requireOne: true
+  Note:
+    fields:
+      text:
+        readEmptyAs: "null"
+      role:
+        requestValue: CUSTOM
+
+enums:
+  ThingKind:
+    zero: unspecified
+    values: [SYSTEM, CUSTOM]
+    rejected: [LEGACY]
+    readRejected: true
+  AttachmentPolicy:
+    verbatim: true
+    values: [AUTO, ENABLED, DISABLED]

@@ -1,0 +1,67 @@
+[
+  {
+    "step": "import",
+    "state": null
+  },
+  {
+    "step": "import (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/presets/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "attachment_config": "DISABLED",
+      "config_overrides": [],
+      "connector_type": "generic_https",
+      "description": "made outside Terraform",
+      "entity_type": "alerts",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "seeded",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "drift": [
+      "AttributeName(\"attachment_config\")",
+      "AttributeName(\"config_overrides\")",
+      "AttributeName(\"connector_type\")",
+      "AttributeName(\"description\")",
+      "AttributeName(\"entity_type\")",
+      "AttributeName(\"name\")",
+      "AttributeName(\"parent_id\")"
+    ]
+  },
+  {
+    "step": "plan the matching config",
+    "config": {
+      "attachment_config": "DISABLED",
+      "connector_type": "generic_https",
+      "description": "made outside Terraform",
+      "entity_type": "alerts",
+      "name": "seeded",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "plan": {
+      "attachment_config": "DISABLED",
+      "config_overrides": [],
+      "connector_type": "generic_https",
+      "description": "made outside Terraform",
+      "entity_type": "alerts",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "seeded",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "noChange": true,
+    "state": {
+      "attachment_config": "DISABLED",
+      "config_overrides": [],
+      "connector_type": "generic_https",
+      "description": "made outside Terraform",
+      "entity_type": "alerts",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "seeded",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    }
+  }
+]

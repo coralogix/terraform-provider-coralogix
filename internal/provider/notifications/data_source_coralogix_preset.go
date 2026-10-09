@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/preset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
@@ -64,9 +65,8 @@ func (d *PresetDataSource) Configure(_ context.Context, req datasource.Configure
 }
 
 func (d *PresetDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r PresetResource
 	var resourceResp resource.SchemaResponse
-	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
+	NewPresetResource().Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 
@@ -87,7 +87,7 @@ func (d *PresetDataSource) Schema(ctx context.Context, _ datasource.SchemaReques
 }
 
 func (d *PresetDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *PresetResourceModel
+	var data *preset.PresetModel
 	diags := req.Config.Get(ctx, &data)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -120,7 +120,7 @@ func (d *PresetDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 			resp.Diagnostics.AddError(fmt.Sprintf("coralogix_preset with name %q not found", name), "")
 			return
 		}
-	} else if id := data.ID.ValueString(); id != "" {
+	} else if id := data.Id.ValueString(); id != "" {
 		presetID = id
 	} else {
 		resp.Diagnostics.AddError("ID or name must be set", "")
@@ -137,7 +137,7 @@ func (d *PresetDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 
 	}
 
-	data, diags = flattenPreset(ctx, result.Preset)
+	data, diags = preset.Flatten(ctx, result.Preset)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

@@ -183,6 +183,13 @@ func enumLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 			fix:     "Add zero with the Terraform value of the zero value. Without it, a response that has the value fails with Unsupported API value.",
 		}
 	}
+	if line.EnumZero != "" && !hasZeroValue(contract) {
+		return &lineIssue{
+			code:    "ENUM_ZERO_INVALID",
+			message: fmt.Sprintf("enum %q starts with %s, a business value, not a *_UNSPECIFIED sentinel", line.Component, contract[0]),
+			fix:     "Remove zero and put that value in values. A missing field reads back as that first value, not as an enum zero.",
+		}
+	}
 	var undecided []string
 	for i, value := range contract {
 		zero := i == 0 && hasZeroValue(contract)

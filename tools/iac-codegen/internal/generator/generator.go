@@ -29,6 +29,10 @@ type Options struct {
 	// AcceptancePath is the acceptance file. "" uses the file in OutputDir, when it exists. With a
 	// file, the generator also writes acceptance_test.go.
 	AcceptancePath string
+	// OpenAPIPath replaces the pinned SDK OpenAPI document. Go types still come from the
+	// SDK version in the provider go.mod. Use it to render a candidate contract before that
+	// document is published in the SDK.
+	OpenAPIPath string
 }
 
 // CheckOptions selects one resource in a local candidate OpenAPI document.
@@ -65,9 +69,22 @@ func Generate(start string, options Options) error {
 	if _, err := validateOptions(options); err != nil {
 		return err
 	}
+	// A missing candidate is reported before the pinned SDK is read. Generation
+	// against a candidate still needs that SDK, but the file check does not.
+	var candidate []byte
+	if options.OpenAPIPath != "" {
+		data, err := os.ReadFile(options.OpenAPIPath)
+		if err != nil {
+			return fmt.Errorf("read candidate OpenAPI %s: %w", options.OpenAPIPath, err)
+		}
+		candidate = data
+	}
 	input, err := source.Resolve(start)
 	if err != nil {
 		return err
+	}
+	if candidate != nil {
+		input.OpenAPI = candidate
 	}
 	return generateFromInput(options, input, input.ProviderRoot)
 }

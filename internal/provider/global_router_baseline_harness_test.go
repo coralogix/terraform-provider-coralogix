@@ -33,6 +33,7 @@ import (
 
 const grTypeName = "coralogix_global_router"
 const cxTypeName = "coralogix_connector"
+const presetTypeName = "coralogix_preset"
 
 type requestLog interface {
 	takeRequests() []grRequest
@@ -83,6 +84,10 @@ func newCXHarness(t *testing.T) *grHarness {
 	return newProtocolHarness(t, cxTypeName, newCXFake(t))
 }
 
+func newPresetHarness(t *testing.T) *grHarness {
+	return newProtocolHarness(t, presetTypeName, newPresetFake(t))
+}
+
 func (h *grHarness) routers() *grFake {
 	h.t.Helper()
 	f, ok := h.api.(*grFake)
@@ -97,6 +102,15 @@ func (h *grHarness) connectors() *cxFake {
 	f, ok := h.api.(*cxFake)
 	if !ok {
 		h.t.Fatal("expected *cxFake")
+	}
+	return f
+}
+
+func (h *grHarness) presets() *presetFake {
+	h.t.Helper()
+	f, ok := h.api.(*presetFake)
+	if !ok {
+		h.t.Fatal("expected *presetFake")
 	}
 	return f
 }

@@ -1,0 +1,164 @@
+# A released resource whose lifecycle is four custom methods, and whose contract uses the
+# generator keys those methods need: named operation ids, a fixed request value on a
+# read-only root field and on a read-only nested field, a string read back from "" as
+# null, a business-first enum inside a wrapper, a missing list read as empty, and a oneOf
+# that the released resource requires.
+openapi: 3.1.0
+info: {title: custom, version: 1.0.0}
+paths:
+  /custom/v1/things:createCustom:
+    post:
+      tags: [Custom Things Service]
+      operationId: CustomThingsService_CreateCustomThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Create Custom Thing Request
+              type: object
+              required: [thing]
+              properties:
+                thing: {$ref: '#/components/schemas/CustomThing'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreateCustomThingResponse'}
+  /custom/v1/things/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Custom Things Service]
+      operationId: CustomThingsService_GetThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetCustomThingResponse'}
+  /custom/v1/things:replaceCustom:
+    put:
+      tags: [Custom Things Service]
+      operationId: CustomThingsService_ReplaceCustomThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Replace Custom Thing Request
+              type: object
+              required: [thing]
+              properties:
+                thing: {$ref: '#/components/schemas/CustomThing'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReplaceCustomThingResponse'}
+  /custom/v1/things/custom/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    delete:
+      tags: [Custom Things Service]
+      operationId: CustomThingsService_DeleteCustomThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteCustomThingResponse'}
+components:
+  schemas:
+    DeleteCustomThingResponse:
+      type: object
+      required: []
+    CreateCustomThingRequest:
+      type: object
+      required: [thing]
+      properties:
+        thing: {$ref: '#/components/schemas/CustomThing'}
+    CreateCustomThingResponse:
+      type: object
+      required: [thing]
+      properties:
+        thing: {$ref: '#/components/schemas/CustomThing'}
+    GetCustomThingResponse:
+      type: object
+      required: [thing]
+      properties:
+        thing: {$ref: '#/components/schemas/CustomThing'}
+    ReplaceCustomThingRequest:
+      type: object
+      required: [thing]
+      properties:
+        thing: {$ref: '#/components/schemas/CustomThing'}
+    ReplaceCustomThingResponse:
+      type: object
+      required: [thing]
+      properties:
+        thing: {$ref: '#/components/schemas/CustomThing'}
+    CustomThing:
+      type: object
+      required: [id, name]
+      properties:
+        id: {type: string, readOnly: true}
+        name: {type: string, minLength: 1, x-coralogix-presence: true}
+        kind:
+          allOf: [{$ref: '#/components/schemas/ThingKind'}]
+          readOnly: true
+          description: The server stores CUSTOM. The released client still sends it.
+        origin:
+          allOf: [{$ref: '#/components/schemas/ThingKind'}]
+          x-coralogix-presence: true
+          description: A readable enum so a rejected value stays on the read map.
+        notes:
+          type: array
+          items: {$ref: '#/components/schemas/Note'}
+        attachment: {$ref: '#/components/schemas/Attachment'}
+        condition: {$ref: '#/components/schemas/Condition'}
+    ThingKind:
+      type: string
+      enum: [THING_KIND_UNSPECIFIED, SYSTEM, CUSTOM, LEGACY]
+    Note:
+      type: object
+      required: []
+      properties:
+        text: {type: string, x-coralogix-presence: true}
+        role:
+          allOf: [{$ref: '#/components/schemas/ThingKind'}]
+          readOnly: true
+          description: The server stores CUSTOM. The released client still sends it.
+    Attachment:
+      type: object
+      required: []
+      properties:
+        policy: {$ref: '#/components/schemas/AttachmentPolicy'}
+    AttachmentPolicy:
+      type: string
+      enum: [AUTO, ENABLED, DISABLED]
+    Condition:
+      type: object
+      required: []
+      properties:
+        matchAll: {$ref: '#/components/schemas/MatchAll'}
+        matchName: {$ref: '#/components/schemas/MatchName'}
+      oneOf:
+        - required: [matchAll]
+        - required: [matchName]
+        - not:
+            anyOf:
+              - required: [matchAll]
+              - required: [matchName]
+    MatchAll:
+      type: object
+      required: [marker]
+      properties:
+        marker: {type: string, minLength: 1, x-coralogix-presence: true}
+    MatchName:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string, minLength: 1, x-coralogix-presence: true}

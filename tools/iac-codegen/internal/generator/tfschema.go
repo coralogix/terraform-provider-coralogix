@@ -115,7 +115,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // buildTFResourceWith is buildTFResource for a resource with a behavior-overrides file
 // (nil for a new resource).
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
-	b := &tfBuilder{seen: map[string]bool{}}
+	b := &tfBuilder{seen: map[string]bool{}, file: file}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: r.Name + "Model"}
 	root := &tfModel{Name: out.Model}
 	b.models = append(b.models, root)
@@ -125,6 +125,9 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 		}
 	}
 	for _, f := range r.Fields {
+		if requestValue(file, r.Name, f.Name) {
+			continue
+		}
 		a, err := b.resourceAttribute(out, r, f)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
@@ -302,10 +305,24 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 		}
 		return nil
 	}
-	return walk(out.Attributes)
+	if err := walk(out.Attributes); err != nil {
+		return err
+	}
+	return nil
+}
+
+// requestValue reports whether the field is sent as a fixed API value and is not a Terraform attribute.
+func requestValue(file *overrides.File, component, field string) bool {
+	if file == nil {
+		return false
+	}
+	return file.Types[component].Fields[field].RequestValue != ""
 }
 
 func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
+	if l.RequireOne {
+		requireOneArm(a)
+	}
 	if l.Required {
 		a.Required, a.Optional = true, false
 	}
@@ -441,7 +458,11 @@ func enumValidatorExpr(a *tfAttr, file *overrides.File) (string, error) {
 		values = append(values, enum.Zero)
 	}
 	for _, v := range enum.Values {
-		values = append(values, strings.ToLower(v))
+		if enum.Verbatim {
+			values = append(values, v)
+		} else {
+			values = append(values, strings.ToLower(v))
+		}
 	}
 	slices.Sort(values)
 	quoted := make([]string, 0, len(values))
@@ -594,6 +615,21 @@ type tfBuilder struct {
 	seen         map[string]bool // model structs already added
 	validators   []string        // resource config validators
 	replaceKinds []string        // RequestReplaceKinds
+	file         *overrides.File
+}
+
+// requireOneArm turns a oneOf that allows no arm into ExactlyOneOf. The contract
+// allows none, and the released resource required one.
+func requireOneArm(a *tfAttr) {
+	for _, child := range a.Attributes {
+		child.OneOfRequired = true
+		for i, v := range child.Validators {
+			child.Validators[i] = strings.Replace(v, ".ConflictsWith(", ".ExactlyOneOf(", 1)
+		}
+		for i, v := range child.GroupValidators {
+			child.GroupValidators[i] = strings.Replace(v, ".ConflictsWith(", ".ExactlyOneOf(", 1)
+		}
+	}
 }
 
 // attrPath is a Terraform attribute path: "root", then the names. The step
@@ -720,6 +756,9 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	var attrs []*tfAttr
 	var fields []tfModelField
 	for _, f := range t.Fields {
+		if requestValue(b.file, t.Schema, f.Name) {
+			continue
+		}
 		child := append(append(attrPath{}, p...), tfName(f.Name))
 		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f), f.Behavior == model.Computed)
 		if err != nil {

@@ -1,0 +1,145 @@
+{
+  "cases": [
+    {
+      "name": "create omits presetType, description, and attachment",
+      "steps": [
+        {
+          "method": "POST",
+          "path": ":createCustom",
+          "capture": "id",
+          "body": {
+            "preset": {
+              "name": "bare",
+              "entityType": "ALERTS",
+              "connectorType": "GENERIC_HTTPS",
+              "parentId": "preset_system_generic_https_alerts_empty"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "message fields are a set and config override order is kept",
+      "steps": [
+        {
+          "method": "POST",
+          "path": ":createCustom",
+          "capture": "id",
+          "body": {
+            "preset": {
+              "name": "ordered",
+              "entityType": "ALERTS",
+              "connectorType": "GENERIC_HTTPS",
+              "parentId": "preset_system_generic_https_alerts_empty",
+              "configOverrides": [
+                {
+                  "conditionType": {"matchEntityTypeAndSubType": {"entitySubType": "second"}},
+                  "messageConfig": {"fields": [
+                    {"fieldName": "zeta", "template": "z"},
+                    {"fieldName": "alpha", "template": "a"},
+                    {"fieldName": "alpha", "template": "duplicate"}
+                  ]}
+                },
+                {
+                  "conditionType": {"matchEntityType": {}},
+                  "payloadType": "kept",
+                  "messageConfig": {"fields": [{"fieldName": "body", "template": "b"}]}
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "replace clears config overrides and does not inherit the parent",
+      "steps": [
+        {
+          "method": "POST",
+          "path": ":createCustom",
+          "capture": "id",
+          "body": {
+            "preset": {
+              "name": "cleared",
+              "entityType": "ALERTS",
+              "connectorType": "GENERIC_HTTPS",
+              "parentId": "preset_system_generic_https_alerts_empty",
+              "description": "keep",
+              "attachmentConfig": {"policy": "ENABLED"},
+              "configOverrides": [
+                {
+                  "conditionType": {"matchEntityType": {}},
+                  "messageConfig": {"fields": [{"fieldName": "body", "template": "b"}]}
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": ":replaceCustom",
+          "body": {
+            "preset": {
+              "id": "{{id}}",
+              "name": "cleared",
+              "entityType": "ALERTS",
+              "connectorType": "GENERIC_HTTPS",
+              "parentId": "preset_system_generic_https_alerts_empty",
+              "description": "",
+              "attachmentConfig": {"policy": "AUTO"}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "missing parent, system delete, and system replace",
+      "steps": [
+        {
+          "method": "POST",
+          "path": ":createCustom",
+          "body": {
+            "preset": {
+              "name": "orphan",
+              "entityType": "ALERTS",
+              "connectorType": "GENERIC_HTTPS"
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": ":createCustom",
+          "body": {
+            "preset": {
+              "name": "missing-parent",
+              "entityType": "ALERTS",
+              "connectorType": "GENERIC_HTTPS",
+              "parentId": "preset_system_does_not_exist"
+            }
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/custom/preset_system_generic_https_alerts_empty"
+        },
+        {
+          "method": "PUT",
+          "path": ":replaceCustom",
+          "body": {
+            "preset": {
+              "id": "preset_system_generic_https_alerts_empty",
+              "name": "Generic HTTPS empty",
+              "entityType": "ALERTS",
+              "connectorType": "GENERIC_HTTPS",
+              "parentId": "preset_system_generic_https_alerts_empty"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

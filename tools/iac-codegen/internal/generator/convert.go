@@ -110,6 +110,9 @@ type enumMap struct {
 	Name    string // Go name prefix of the two map variables
 	SDKType string // qualified SDK enum type
 	Values  []enumMapValue
+	// Read are rejected API values. Flatten returns the API spelling. Expand and the
+	// schema validator do not accept them.
+	Read []enumMapValue
 }
 
 type enumMapValue struct{ TF, API string }
@@ -204,8 +207,13 @@ type convField struct {
 	Enum     bool
 	EnumZero string   // exact protobuf zero sentinel for enum conversion
 	EnumMap  *enumMap // set when the overrides state the Terraform values of the enum
-	// ReadEmptyAsNull: flatten reads an empty list, or an object with no value, as null.
+	// ReadEmptyAsNull: flatten reads an empty string, an empty list, or an object
+	// with no value, as null.
 	ReadEmptyAsNull bool
+	// ReadNullAsEmpty: flatten reads a missing list or set as an empty collection.
+	ReadNullAsEmpty bool
+	// RequestValue is an API value expand always sends. The field is not in the Terraform model.
+	RequestValue string
 	// KeepPriorOrder: flatten returns the items in the order of the prior model, when the
 	// API returns the same items in another order.
 	KeepPriorOrder bool
@@ -219,6 +227,9 @@ type convField struct {
 	// returns as the same document in another format, and "" otherwise.
 	Equality    string
 	ObjectValue bool // a computed object stored as unknown-capable types.Object
+	// Missing is the Terraform value of a missing business-first enum, the first
+	// value of the contract. A nil pointer, including a missing wrapper, reads as it.
+	Missing string
 	// Value is true when the SDK field is a value, not a pointer. The SDK
 	// does that for a required field (F18). Expand sends the zero value for
 	// null; the schema requires the attribute, so it is not null.
@@ -427,10 +438,17 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 	}
 	b.objects = append(b.objects, obj)
 	for _, f := range b.resource.Fields {
-		if !root.has(f) {
+		fixed := b.fixedRequest(b.resource.Name, f.Name)
+		if !root.has(f) && !(root.expand && fixed) {
 			continue
 		}
-		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, rootType(root.path, f), f.Behavior == model.Computed)
+		typ := rootType(root.path, f)
+		if fixed && !root.has(f) {
+			// The contract marks the field read-only, so the request type omits it.
+			// The SDK struct still has it, and the released client sends the fixed value.
+			typ = f.Type
+		}
+		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, typ, f.Behavior == model.Computed)
 		if err != nil {
 			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
 		}
@@ -499,10 +517,10 @@ func checkReadEmptyAs(cf *convField) error {
 	if !cf.ReadEmptyAsNull {
 		return nil
 	}
-	if (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects {
+	if cf.Conv == convString || (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects {
 		return nil
 	}
-	return fmt.Errorf("readEmptyAs: \"null\" is supported for an object and for a list or set of objects, not for the %s field %s", cf.Conv, cf.TFName)
+	return fmt.Errorf("readEmptyAs: \"null\" is supported for a string, an object, and a list or set of objects, not for the %s field %s", cf.Conv, cf.TFName)
 }
 
 // markComputedObjectValue makes a directly nested computed field capable of
@@ -690,10 +708,22 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 	}
 	m := &enumMap{Name: lowerFirst(camelize(schema)), SDKType: sdkType}
 	if over.Zero != "" {
+		if t.EnumZero == "" {
+			return nil, fmt.Errorf("enum %s has no *_UNSPECIFIED zero value", schema)
+		}
 		m.Values = append(m.Values, enumMapValue{TF: over.Zero, API: t.EnumZero})
 	}
 	for _, v := range over.Values {
-		m.Values = append(m.Values, enumMapValue{TF: strings.ToLower(v), API: v})
+		tf := v
+		if !over.Verbatim {
+			tf = strings.ToLower(v)
+		}
+		m.Values = append(m.Values, enumMapValue{TF: tf, API: v})
+	}
+	if over.ReadRejected {
+		for _, v := range over.Rejected {
+			m.Read = append(m.Read, enumMapValue{TF: v, API: v})
+		}
 	}
 	b.enumMaps = append(b.enumMaps, m)
 	return m, nil
@@ -723,6 +753,11 @@ func checkExpandNames(objects []*convObject) error {
 	return nil
 }
 
+// fixedRequest reports whether the field is always sent as a fixed API value.
+func (b *convBuilder) fixedRequest(component, name string) bool {
+	return b.file != nil && b.file.Types[component].Fields[name].RequestValue != ""
+}
+
 // field returns the conversion of the property name of the SDK struct at
 // owner (an SDK name path).
 func (b *convBuilder) field(owner, component, name string, t *model.Type, computed bool) (*convField, error) {
@@ -734,7 +769,9 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type, comput
 	if b.file != nil {
 		line := b.file.Types[component].Fields[name]
 		cf.ReadEmptyAsNull, cf.KeepPriorOrder = line.ReadEmptyAs == "null", line.KeepPriorOrder
+		cf.ReadNullAsEmpty = line.ReadNullAs == "empty"
 		cf.Equality = line.Equality
+		cf.RequestValue = line.RequestValue
 	}
 	want, err := b.fieldConv(cf, t, computed)
 	if err != nil {
@@ -743,9 +780,52 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type, comput
 	if cf.Wrap != nil && (cf.KeepPriorOrder || cf.Equality != "") {
 		return nil, fmt.Errorf("%s: %w", cf.TFName, errUnwrapCombination)
 	}
+	if cf.RequestValue != "" {
+		if cf.EnumMap != nil {
+			b.releaseEnumMap(cf.EnumMap)
+			cf.EnumMap = nil
+		}
+		cf.Conv = "fixed"
+	}
+	if cf.Conv == convEnum && cf.EnumZero == "" && cf.EnumMap != nil {
+		cf.Missing = firstEnumTF(cf.EnumMap, t)
+	}
 	if err := checkReadEmptyAs(cf); err != nil {
 		return nil, err
 	}
+	if cf.ReadNullAsEmpty && cf.Conv != convObjects {
+		return nil, fmt.Errorf("%s: readNullAs: empty needs a list or set of objects", cf.TFName)
+	}
+	return checkFieldType(cf, ref, want)
+}
+
+// releaseEnumMap drops a map that no field uses. A fixed request value casts the
+// API spelling, so the Terraform map would be an unused variable.
+func (b *convBuilder) releaseEnumMap(m *enumMap) {
+	for _, obj := range b.objects {
+		for _, cf := range obj.Fields {
+			if cf.EnumMap == m {
+				return
+			}
+		}
+	}
+	b.enumMaps = slices.DeleteFunc(b.enumMaps, func(e *enumMap) bool { return e == m })
+}
+
+// firstEnumTF is the Terraform spelling of the first contract value of a business-first enum.
+func firstEnumTF(m *enumMap, t *model.Type) string {
+	if len(t.Values) == 0 {
+		return ""
+	}
+	for _, v := range m.Values {
+		if v.API == t.Values[0] {
+			return v.TF
+		}
+	}
+	return ""
+}
+
+func checkFieldType(cf *convField, ref sdkRef, want string) (*convField, error) {
 	// The SDK type must be the one the conversion writes, or its value type.
 	switch {
 	case ref.Want == want:
@@ -925,7 +1005,69 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		}
 		obj.Fields = append(obj.Fields, cf)
 	}
+	// A read-only requestValue is absent from the request fields. The root loop
+	// still sends it. A nested object has to do the same, or Create and Update
+	// drop the value the override promised.
+	if err := b.injectFixedRequest(obj, ref.Path, t); err != nil {
+		return nil, err
+	}
 	return obj, nil
+}
+
+// injectFixedRequest adds requestValue fields that the request type omitted
+// because the contract marks them read-only. The SDK struct still has them.
+func (b *convBuilder) injectFixedRequest(obj *convObject, owner string, t *model.Type) error {
+	if t.Model == "" {
+		return nil
+	}
+	present := map[string]bool{}
+	for _, f := range t.Fields {
+		present[f.Name] = true
+	}
+	for _, f := range schemaFields(b.resource, t.Model) {
+		if present[f.Name] || !b.fixedRequest(t.Model, f.Name) {
+			continue
+		}
+		cf, err := b.field(owner, t.Model, f.Name, f.Type, f.Behavior == model.Computed)
+		if err != nil {
+			return fmt.Errorf("%s: %w", f.Name, err)
+		}
+		obj.Fields = append(obj.Fields, cf)
+	}
+	return nil
+}
+
+// schemaFields returns the response fields of the nested component schema.
+func schemaFields(r *model.Resource, schema string) []*model.Field {
+	if r == nil || schema == "" {
+		return nil
+	}
+	seen := map[*model.Type]bool{}
+	for _, f := range r.Fields {
+		if fields, ok := typeSchemaFields(f.Type, schema, seen); ok {
+			return fields
+		}
+	}
+	return nil
+}
+
+func typeSchemaFields(t *model.Type, schema string, seen map[*model.Type]bool) ([]*model.Field, bool) {
+	if t == nil || seen[t] {
+		return nil, false
+	}
+	seen[t] = true
+	if t.Model == "" && t.Schema == schema && (t.Kind == model.Object || t.Kind == model.OneOf) {
+		return t.Fields, true
+	}
+	if fields, ok := typeSchemaFields(t.Elem, schema, seen); ok {
+		return fields, true
+	}
+	for _, f := range t.Fields {
+		if fields, ok := typeSchemaFields(f.Type, schema, seen); ok {
+			return fields, true
+		}
+	}
+	return nil, false
 }
 
 // mark sets the direction that uses obj and its nested objects: expand
@@ -960,6 +1102,9 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 	}
 	obj.AttrTypes = []convAttrType{}
 	for _, f := range obj.Fields {
+		if f.Conv == "fixed" {
+			continue
+		}
 		expr, err := b.attrType(obj, f)
 		if err != nil {
 			return err
