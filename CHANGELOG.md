@@ -1,6 +1,7 @@
 # Unreleased
 
 #### resource/coralogix_preset
+- CHORE: Bump `coralogix-management-sdk` so preset `name`, `entity_type`, and `connector_type` are required values from the OpenAPI contract.
 - CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Changing `id` still recreates the resource.
 
 #### resource/coralogix_connector

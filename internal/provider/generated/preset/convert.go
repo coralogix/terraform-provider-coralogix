@@ -308,11 +308,11 @@ func expandPresetCreate(ctx context.Context, p path.Path, m *PresetModel, diags 
 			out.ConfigOverrides = append(out.ConfigOverrides, *expandConfigOverrides(ctx, p.AtName("config_overrides").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.ConnectorType = expandEnumMapped(p.AtName("connector_type"), m.ConnectorType, notificationCenterConnectorTypeToAPI, diags)
+	out.ConnectorType = valueOf(expandEnumMapped(p.AtName("connector_type"), m.ConnectorType, notificationCenterConnectorTypeToAPI, diags))
 	out.Description = expandString(m.Description)
-	out.EntityType = expandEnumMapped(p.AtName("entity_type"), m.EntityType, notificationCenterEntityTypeToAPI, diags)
+	out.EntityType = valueOf(expandEnumMapped(p.AtName("entity_type"), m.EntityType, notificationCenterEntityTypeToAPI, diags))
 	out.Id = expandString(m.Id)
-	out.Name = expandString(m.Name)
+	out.Name = valueOf(expandString(m.Name))
 	out.ParentId = expandString(m.ParentId)
 	return out
 }
@@ -479,11 +479,11 @@ func expandPresetUpdate(ctx context.Context, p path.Path, m *PresetModel, diags 
 			out.ConfigOverrides = append(out.ConfigOverrides, *expandConfigOverrides(ctx, p.AtName("config_overrides").AtListIndex(i), &items[i], diags))
 		}
 	}
-	out.ConnectorType = expandEnumMapped(p.AtName("connector_type"), m.ConnectorType, notificationCenterConnectorTypeToAPI, diags)
+	out.ConnectorType = valueOf(expandEnumMapped(p.AtName("connector_type"), m.ConnectorType, notificationCenterConnectorTypeToAPI, diags))
 	out.Description = expandString(m.Description)
-	out.EntityType = expandEnumMapped(p.AtName("entity_type"), m.EntityType, notificationCenterEntityTypeToAPI, diags)
+	out.EntityType = valueOf(expandEnumMapped(p.AtName("entity_type"), m.EntityType, notificationCenterEntityTypeToAPI, diags))
 	out.Id = expandString(m.Id)
-	out.Name = expandString(m.Name)
+	out.Name = valueOf(expandString(m.Name))
 	out.ParentId = expandString(m.ParentId)
 	return out
 }
@@ -506,13 +506,21 @@ func flattenPreset(ctx context.Context, p path.Path, v *presets_service.Preset, 
 		}
 		out.ConfigOverrides = flattenList(ctx, types.ObjectType{AttrTypes: configOverridesAttrTypes()}, items, diags)
 	}
-	out.ConnectorType = flattenEnumMapped(p.AtName("connector_type"), v.ConnectorType, notificationCenterConnectorTypeFromAPI, diags)
+	out.ConnectorType = flattenEnumMapped(p.AtName("connector_type"), &v.ConnectorType, notificationCenterConnectorTypeFromAPI, diags)
 	out.Description = types.StringPointerValue(v.Description)
-	out.EntityType = flattenEnumMapped(p.AtName("entity_type"), v.EntityType, notificationCenterEntityTypeFromAPI, diags)
+	out.EntityType = flattenEnumMapped(p.AtName("entity_type"), &v.EntityType, notificationCenterEntityTypeFromAPI, diags)
 	out.Id = types.StringPointerValue(v.Id)
-	out.Name = types.StringPointerValue(v.Name)
+	out.Name = types.StringPointerValue(&v.Name)
 	out.ParentId = types.StringPointerValue(v.ParentId)
 	return out
+}
+
+func valueOf[T any](p *T) T {
+	var zero T
+	if p == nil {
+		return zero
+	}
+	return *p
 }
 
 // elements is a types.Set or a types.List.
