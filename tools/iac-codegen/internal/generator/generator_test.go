@@ -275,7 +275,7 @@ func moveUpdateMaskIntoBody(t *testing.T, text string) string {
 	return text[:start] + tail
 }
 
-func TestTopLevelBodyMaskNamesTheParentField(t *testing.T) {
+func TestTopLevelBodyMaskRejectsNestedOneOf(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	spec := moveUpdateMaskIntoBody(t, string(input.OpenAPI))
 	top := "pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'"
@@ -285,16 +285,21 @@ func TestTopLevelBodyMaskNamesTheParentField(t *testing.T) {
 		t.Fatal("cannot replace the body mask pattern")
 	}
 	input.OpenAPI = []byte(spec)
-	out := generateBodyMaskResource(t, input, sdkDir)
-	mask, err := os.ReadFile(filepath.Join(out, "mask.go"))
-	if err != nil {
+	dir := t.TempDir()
+	overrides := filepath.Join(dir, "behavior-overrides.yaml")
+	const file = `resource: Thing
+mode: existing
+validators:
+  inferred: false
+api:
+  updateMaskInBody: true
+`
+	if err := os.WriteFile(overrides, []byte(file), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Contains(mask, []byte("func oneOfPaths")) {
-		t.Fatal("a top-level mask named a oneOf arm")
-	}
-	if !bytes.Contains(mask, []byte("mask = append(mask, f.api)")) {
-		t.Fatal("a top-level mask did not name the parent field")
+	err := generateFromInput(Options{Resource: "Thing", OutputDir: filepath.Join(dir, "thing"), OverridesPath: overrides}, input, sdkDir)
+	if err == nil || !strings.Contains(err.Error(), "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
+		t.Fatalf("err = %v, want UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED", err)
 	}
 }
 

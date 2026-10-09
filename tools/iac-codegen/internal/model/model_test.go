@@ -413,7 +413,7 @@ func TestRequiresReplaceAndUnsupportedArms(t *testing.T) {
 	}
 }
 
-func TestTopLevelMaskReplacesNestedOneOf(t *testing.T) {
+func TestNestedOneOfNeedsDottedUpdateMask(t *testing.T) {
 	spec := strings.Replace(string(validSpec(t)),
 		"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'",
 		"pattern: '^[a-z][A-Za-z0-9]*(,[a-z][A-Za-z0-9]*)*$'", 1)
@@ -421,8 +421,8 @@ func TestTopLevelMaskReplacesNestedOneOf(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
-		t.Fatalf("codes %v, a top-level mask replaces the whole oneOf value", codes)
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
+		t.Fatalf("codes %v do not contain UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED", codes)
 	}
 }
 
@@ -894,10 +894,11 @@ func TestBodyUpdateMaskRejectsNestedOneOf(t *testing.T) {
 		t.Fatal("cannot locate the body mask pattern")
 	}
 	body := Policy{Existing: true, UpdateMaskInBody: true, NoInferredValidators: true}
-	for _, spec := range []string{top, dotted} {
-		if codes := maskCodes(t, spec, body); slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
-			t.Fatalf("codes %v, the mask names the parent field and the body replaces the oneOf", codes)
-		}
+	if codes := maskCodes(t, top, body); !slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
+		t.Fatalf("codes %v do not contain UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED", codes)
+	}
+	if codes := maskCodes(t, dotted, body); slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
+		t.Fatalf("codes %v, a dotted mask can name a oneOf arm", codes)
 	}
 }
 

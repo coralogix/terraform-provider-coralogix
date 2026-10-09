@@ -1201,14 +1201,62 @@ func validateBuiltResource(r *Resource) issue.Report {
 	if r.UpdateMaskPattern == "" {
 		return issue.Report{{Code: "UPDATE_MASK_CONTRACT_MISSING", Location: "paths.update." + r.Update.OperationID, Message: "The PATCH update mask has no pattern that defines accepted mask paths.", Remediation: "Add the authoritative update-mask path pattern to the source API contract."}}
 	}
-	if _, _, err := UpdateMaskRule(r.UpdateMaskPattern); err != nil {
+	_, leaf, err := UpdateMaskRule(r.UpdateMaskPattern)
+	if err != nil {
 		return issue.Report{{Code: "UPDATE_MASK_CONTRACT_INVALID", Location: "paths.update." + r.Update.OperationID, Message: err.Error() + ".", Remediation: "Use a mask pattern that accepts field names and comma-separated lists of them, rejects *, and defines whether dotted paths are supported."}}
 	}
-	// A pattern that names only top-level fields compares each Update field as
-	// a whole. The body still holds the full new value, so a nested oneOf is
-	// replaced, including a change of arm. A dotted arm path would not match
-	// that pattern.
-	return nil
+	if leaf {
+		return nil
+	}
+	return nestedOneOfMaskIssues(r)
+}
+
+func nestedOneOfMaskIssues(r *Resource) issue.Report {
+	var report issue.Report
+	for _, field := range r.Fields {
+		if field.Update == nil {
+			continue
+		}
+		paths := oneOfMaskPaths(field.Name, field.Type.UpdateType())
+		if len(paths) == 0 {
+			continue
+		}
+		report = append(report, issue.Issue{
+			Code:        "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED",
+			Location:    "components.schemas." + r.Name + "." + field.Name,
+			Message:     fmt.Sprintf("The update mask accepts only top-level paths, but changing this oneOf needs an arm path such as %q.", paths[0]),
+			Remediation: "Allow dotted update-mask paths so the generator can send the selected oneOf arm.",
+		})
+	}
+	return report
+}
+
+func oneOfMaskPaths(prefix string, t *Type) []string {
+	if t == nil {
+		return nil
+	}
+	if len(t.Wrappers) != 0 {
+		prefix += "." + t.WrapperPath()
+	}
+	var paths []string
+	if t.Kind == OneOf {
+		for _, field := range t.Fields {
+			paths = append(paths, prefix+"."+field.Name)
+		}
+		return paths
+	}
+	if t.Kind != Object {
+		return nil
+	}
+	for _, group := range t.Groups {
+		for _, arm := range group.Arms {
+			paths = append(paths, prefix+"."+arm)
+		}
+	}
+	for _, field := range t.Fields {
+		paths = append(paths, oneOfMaskPaths(prefix+"."+field.Name, field.Type)...)
+	}
+	return paths
 }
 
 func nameCollisions(location string, t *Type) issue.Report {
