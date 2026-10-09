@@ -441,7 +441,7 @@ func enumValidatorExpr(a *tfAttr, file *overrides.File) (string, error) {
 		values = append(values, enum.Zero)
 	}
 	for _, v := range enum.Values {
-		values = append(values, strings.ToLower(v))
+		values = append(values, enum.TerraformValue(v))
 	}
 	slices.Sort(values)
 	quoted := make([]string, 0, len(values))

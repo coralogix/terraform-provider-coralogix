@@ -15,9 +15,13 @@
 - FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.19`.
+- FEAT: A top-level update-mask pattern compares each Update field as a whole. The body holds the full new value, so a nested oneOf is replaced, including a change of arm.
+- FEAT: `requiresReplace: true` on a top-level field forces a new resource when that field changes, although Update accepts it.
+- FEAT: `unsupportedArms` keeps a oneOf arm out of the schema and reports it when a response selects it. `enums` `verbatim: true` keeps the API spelling as the Terraform value.
 - CHORE: Bump the generator to `v0.1.0-beta.18`.
 - FEAT: `unwrap` in `behavior-overrides.yaml` shows a value that the API holds in a one-property wrapper object as the plain value, for example `{"query": {"value": "error"}}` as `query = "error"`. A top-level list names the wrapper components, and an `unwrap: true` or `unwrap: false` field line decides one place. The value can be a scalar, an enum, a list, an object, or a oneOf, a wrapper inside a wrapper, or the items of a list.
-- FEAT: Existing mode accepts `api.updateMaskInBody: true` when PATCH `updateMask` is an optional JSON body property. The generated update builds the same body and the same changed-field mask as a query-parameter mask, then sets that mask on the body. The schema has no mask attribute. A mask that names only top-level fields still cannot change a nested oneOf.
+- FEAT: Existing mode accepts `api.updateMaskInBody: true` when PATCH `updateMask` is an optional JSON body property. The generated update builds the same body and the same changed-field mask as a query-parameter mask, then sets that mask on the body. The schema has no mask attribute.
 - FIX: `api.updateMaskInBody: true` on a full replace (PUT) is an error. Before, generation ignored the key and produced a replace that does not set a mask.
 - CHORE: Bump the generator to `v0.1.0-beta.17`.
 - FEAT: A `date-time` field that Create or Update sends, alone or in a list or set, is supported. It is a `timetypes.RFC3339` attribute that must be in UTC (`Z`). A time that only the response has stays a plain string.

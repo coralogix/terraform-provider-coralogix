@@ -179,6 +179,10 @@ type Type struct {
 	// Groups are the oneOf groups of an Object that also has normal fields,
 	// or has more than one group. Each arm is one of Fields.
 	Groups []OneOfGroup
+	// Unsupported are oneOf arms the resource does not configure. Flatten
+	// reports a response that selects one.
+	Unsupported                           []*Field
+	UnsupportedSummary, UnsupportedDetail string
 	// Discriminator is the string field that names the set arm (an OpenAPI
 	// discriminator with no mapping). It is also a normal field (F36).
 	Discriminator string

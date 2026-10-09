@@ -275,6 +275,29 @@ func moveUpdateMaskIntoBody(t *testing.T, text string) string {
 	return text[:start] + tail
 }
 
+func TestTopLevelBodyMaskNamesTheParentField(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	spec := moveUpdateMaskIntoBody(t, string(input.OpenAPI))
+	top := "pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'"
+	dotted := "pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'"
+	spec = strings.Replace(spec, dotted, top, 1)
+	if spec == moveUpdateMaskIntoBody(t, string(input.OpenAPI)) {
+		t.Fatal("cannot replace the body mask pattern")
+	}
+	input.OpenAPI = []byte(spec)
+	out := generateBodyMaskResource(t, input, sdkDir)
+	mask, err := os.ReadFile(filepath.Join(out, "mask.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(mask, []byte("func oneOfPaths")) {
+		t.Fatal("a top-level mask named a oneOf arm")
+	}
+	if !bytes.Contains(mask, []byte("mask = append(mask, f.api)")) {
+		t.Fatal("a top-level mask did not name the parent field")
+	}
+}
+
 func generateBodyMaskResource(t *testing.T, input source.Input, sdkDir string) string {
 	t.Helper()
 	dir := t.TempDir()
@@ -482,12 +505,6 @@ func TestContractGapsUseSharedFailClosedValidation(t *testing.T) {
 		"invalid enum zero": {
 			spec: strings.Replace(base, "THING_KIND_UNSPECIFIED", "THING_KIND_NOT_SET", 1),
 			code: "ENUM_ZERO_INVALID",
-		},
-		"top-level mask for nested oneOf": {
-			spec: strings.Replace(base,
-				"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'",
-				"pattern: '^[a-z][A-Za-z0-9]*(,[a-z][A-Za-z0-9]*)*$'", 1),
-			code: "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED",
 		},
 	}
 	for name, test := range tests {

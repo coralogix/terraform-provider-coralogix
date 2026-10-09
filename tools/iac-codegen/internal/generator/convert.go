@@ -152,6 +152,16 @@ type convObject struct {
 	SameChecks []string
 	// ExtraFlatten writes typed nulls for extraAttributes of the behavior-overrides file.
 	ExtraFlatten []extraFlatten
+	// Unsupported are oneOf arms the schema does not configure. Flatten reports
+	// a response that sets one, using UnsupportedSummary and UnsupportedDetail.
+	Unsupported        []unsupportedArm
+	UnsupportedSummary string
+	UnsupportedDetail  string
+}
+
+// unsupportedArm is an SDK field of a oneOf arm the resource does not configure.
+type unsupportedArm struct {
+	SDK string
 }
 
 type convAttrType struct {
@@ -693,7 +703,7 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 		m.Values = append(m.Values, enumMapValue{TF: over.Zero, API: t.EnumZero})
 	}
 	for _, v := range over.Values {
-		m.Values = append(m.Values, enumMapValue{TF: strings.ToLower(v), API: v})
+		m.Values = append(m.Values, enumMapValue{TF: over.TerraformValue(v), API: v})
 	}
 	b.enumMaps = append(b.enumMaps, m)
 	return m, nil
@@ -925,6 +935,15 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		}
 		obj.Fields = append(obj.Fields, cf)
 	}
+	for _, f := range t.Unsupported {
+		field, err := b.ix.fieldRef(ref.Path + "." + f.Name)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", f.Name, err)
+		}
+		obj.Unsupported = append(obj.Unsupported, unsupportedArm{SDK: field.Name})
+	}
+	obj.UnsupportedSummary = t.UnsupportedSummary
+	obj.UnsupportedDetail = t.UnsupportedDetail
 	return obj, nil
 }
 
