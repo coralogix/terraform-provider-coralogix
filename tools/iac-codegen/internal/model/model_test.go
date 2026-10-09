@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
-	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
 )
 
@@ -393,7 +392,7 @@ func TestNestedPresenceContract(t *testing.T) {
           type: boolean
 `)
 	proxy := doc.Components.Schemas.GetOrZero("Nested")
-	if codes := reportCodes(nestedPresenceIssues(Policy{}, "request.config", proxy, map[*base.Schema]bool{})); !slices.Contains(codes, "FIELD_PRESENCE_UNKNOWN") {
+	if codes := reportCodes(nestedPresenceIssues(Policy{}, "request.config", proxy, false, map[presenceVisit]bool{})); !slices.Contains(codes, "FIELD_PRESENCE_UNKNOWN") {
 		t.Fatalf("codes %v do not contain FIELD_PRESENCE_UNKNOWN", codes)
 	}
 
@@ -406,7 +405,7 @@ func TestNestedPresenceContract(t *testing.T) {
           x-coralogix-presence: true
 `)
 	proxy = doc.Components.Schemas.GetOrZero("Nested")
-	if report := nestedPresenceIssues(Policy{}, "request.config", proxy, map[*base.Schema]bool{}); len(report) != 0 {
+	if report := nestedPresenceIssues(Policy{}, "request.config", proxy, false, map[presenceVisit]bool{}); len(report) != 0 {
 		t.Fatal(report)
 	}
 
@@ -421,7 +420,7 @@ func TestNestedPresenceContract(t *testing.T) {
         - required: [b]
 `)
 	proxy = doc.Components.Schemas.GetOrZero("Choice")
-	if report := nestedPresenceIssues(Policy{}, "request.choice", proxy, map[*base.Schema]bool{}); len(report) != 0 {
+	if report := nestedPresenceIssues(Policy{}, "request.choice", proxy, false, map[presenceVisit]bool{}); len(report) != 0 {
 		t.Fatalf("oneOf arms use their union presence and need no annotation: %v", report)
 	}
 }

@@ -555,8 +555,8 @@ func validateFieldContract(p Policy, name, field string, create, update, get *ba
 		report = append(report, fieldPresenceIssue(location+".create", field, create, cp)...)
 		report = append(report, fieldPresenceIssue(location+".update", field, update, up)...)
 	}
-	report = append(report, nestedPresenceIssues(p, location+".create", cp, map[*base.Schema]bool{})...)
-	report = append(report, nestedPresenceIssues(p, location+".update", up, map[*base.Schema]bool{})...)
+	report = append(report, nestedPresenceIssues(p, location+".create", cp, p.unwraps(name, field, wrapperComponent(cp)), map[presenceVisit]bool{})...)
+	report = append(report, nestedPresenceIssues(p, location+".update", up, p.unwraps(name, field, wrapperComponent(up)), map[presenceVisit]bool{})...)
 	report = append(report, nestedReadOnlyIssues(p, location+".create", cp, map[*base.Schema]bool{})...)
 	report = append(report, nestedReadOnlyIssues(p, location+".update", up, map[*base.Schema]bool{})...)
 	report = append(report, unsupportedSchemaIssues(p, location+".create", cp, true, map[*base.Schema]bool{})...)
@@ -1038,35 +1038,66 @@ func stringZeroValueValid(schema *base.Schema) bool {
 	return err == nil && re.MatchString(value)
 }
 
-func nestedPresenceIssues(p Policy, location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
+// presenceVisit is one schema that nestedPresenceIssues checked, as a wrapper that collapses or
+// as an object. A component can be both, in two places.
+type presenceVisit struct {
+	schema  *base.Schema
+	wrapped bool
+}
+
+// nestedPresenceIssues reports the nested request fields that do not state presence. wrapped is
+// true when proxy, or the items of the list that proxy is, is a wrapper that collapses: the
+// wrapper states the presence of its property, because Terraform null sends no wrapper.
+func nestedPresenceIssues(p Policy, location string, proxy *base.SchemaProxy, wrapped bool, seen map[presenceVisit]bool) issue.Report {
 	if proxy == nil {
 		return nil
 	}
 	schema, err := schemaOf(proxy)
-	if err != nil || seen[schema] {
+	if err != nil || seen[presenceVisit{schema, wrapped}] {
 		return nil
 	}
-	seen[schema] = true
+	seen[presenceVisit{schema, wrapped}] = true
 	var report issue.Report
 	grouped := groupedFields(schema)
+	owner, _ := componentName(unwrapRef(proxy))
 	for _, name := range propertyNames(schema) {
 		child := propertyOf(schema, name)
 		childSchema, childErr := schemaOf(child)
 		if childErr == nil && childSchema.ReadOnly != nil && *childSchema.ReadOnly {
 			continue
 		}
-		if !grouped[name] && !p.released(referencedComponent(proxy), name) {
+		if !wrapped && !grouped[name] && !p.released(referencedComponent(proxy), name) {
 			report = append(report, fieldPresenceIssue(location+"."+name, name, schema, child)...)
 		}
-		report = append(report, nestedPresenceIssues(p, location+"."+name, child, seen)...)
+		report = append(report, nestedPresenceIssues(p, location+"."+name, child, p.unwraps(owner, name, wrapperComponent(child)), seen)...)
 	}
 	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, nestedPresenceIssues(p, location+"[]", schema.Items.A, seen)...)
+		report = append(report, nestedPresenceIssues(p, location+"[]", schema.Items.A, wrapped, seen)...)
 	}
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, nestedPresenceIssues(p, location+"{}", schema.AdditionalProperties.A, seen)...)
+		report = append(report, nestedPresenceIssues(p, location+"{}", schema.AdditionalProperties.A, false, seen)...)
 	}
 	return report
+}
+
+// wrapperComponent returns the component of a property that could be a wrapper: the property
+// itself, or the items of a list. It returns "" for any other schema.
+func wrapperComponent(proxy *base.SchemaProxy) string {
+	if proxy == nil {
+		return ""
+	}
+	if name, err := componentName(unwrapRef(proxy)); err == nil {
+		return name
+	}
+	s, err := schemaOf(proxy)
+	if err != nil || s.Items == nil || !s.Items.IsA() {
+		return ""
+	}
+	name, err := componentName(unwrapRef(s.Items.A))
+	if err != nil {
+		return ""
+	}
+	return name
 }
 
 func groupedFields(schema *base.Schema) map[string]bool {
@@ -1177,6 +1208,9 @@ func validateBuiltResource(r *Resource) issue.Report {
 func oneOfMaskPaths(prefix string, t *Type) []string {
 	if t == nil {
 		return nil
+	}
+	if len(t.Wrappers) != 0 {
+		prefix += "." + t.WrapperPath()
 	}
 	var paths []string
 	if t.Kind == OneOf {
