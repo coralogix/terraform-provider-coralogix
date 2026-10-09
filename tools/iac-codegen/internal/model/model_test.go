@@ -392,7 +392,7 @@ func TestNestedPresenceContract(t *testing.T) {
           type: boolean
 `)
 	proxy := doc.Components.Schemas.GetOrZero("Nested")
-	if codes := reportCodes(nestedPresenceIssues(Policy{}, "request.config", proxy, false, map[presenceVisit]bool{})); !slices.Contains(codes, "FIELD_PRESENCE_UNKNOWN") {
+	if codes := reportCodes(nestedPresenceIssues(Policy{}, "request.config", proxy, nil, false, map[presenceVisit]bool{})); !slices.Contains(codes, "FIELD_PRESENCE_UNKNOWN") {
 		t.Fatalf("codes %v do not contain FIELD_PRESENCE_UNKNOWN", codes)
 	}
 
@@ -405,7 +405,7 @@ func TestNestedPresenceContract(t *testing.T) {
           x-coralogix-presence: true
 `)
 	proxy = doc.Components.Schemas.GetOrZero("Nested")
-	if report := nestedPresenceIssues(Policy{}, "request.config", proxy, false, map[presenceVisit]bool{}); len(report) != 0 {
+	if report := nestedPresenceIssues(Policy{}, "request.config", proxy, nil, false, map[presenceVisit]bool{}); len(report) != 0 {
 		t.Fatal(report)
 	}
 
@@ -420,7 +420,7 @@ func TestNestedPresenceContract(t *testing.T) {
         - required: [b]
 `)
 	proxy = doc.Components.Schemas.GetOrZero("Choice")
-	if report := nestedPresenceIssues(Policy{}, "request.choice", proxy, false, map[presenceVisit]bool{}); len(report) != 0 {
+	if report := nestedPresenceIssues(Policy{}, "request.choice", proxy, nil, false, map[presenceVisit]bool{}); len(report) != 0 {
 		t.Fatalf("oneOf arms use their union presence and need no annotation: %v", report)
 	}
 }

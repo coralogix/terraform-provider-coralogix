@@ -136,6 +136,27 @@ func TestUnwrapStatesThePresenceOfTheWrappedProperty(t *testing.T) {
 	}
 }
 
+// The response components decide which wrappers collapse, also when a request names its
+// components differently.
+func TestUnwrapPresenceFollowsTheResponseComponents(t *testing.T) {
+	spec := wrapSpec(t,
+		"                priority: {$ref: '#/components/schemas/PriorityValue'}",
+		"                priority: {$ref: '#/components/schemas/RequestPriorityValue'}",
+		"                  items: {$ref: '#/components/schemas/UUID'}",
+		"                  items: {$ref: '#/components/schemas/RequestUUID'}",
+		"    Label:\n",
+		"    RequestPriorityValue:\n      type: object\n      required: []\n      properties:\n        value: {$ref: '#/components/schemas/WrapPriority'}\n"+
+			"    RequestUUID:\n      type: object\n      required: []\n      properties:\n        value: {type: string}\n    Label:\n")
+	if codes := wrapCodes(t, spec, wrapPolicy()); len(codes) != 0 {
+		t.Fatalf("codes %v, want none", codes)
+	}
+	kept := wrapPolicy()
+	kept.Unwrap = slices.DeleteFunc(slices.Clone(kept.Unwrap), func(c string) bool { return c == "PriorityValue" })
+	if codes := wrapCodes(t, spec, kept); !slices.Contains(codes, "FIELD_PRESENCE_UNKNOWN") {
+		t.Fatalf("codes %v, want FIELD_PRESENCE_UNKNOWN for the kept priority object", codes)
+	}
+}
+
 func TestUnwrapRejectsWhatIsNotAWrapper(t *testing.T) {
 	twoProperties := wrapSpec(t, "        filter: {$ref: '#/components/schemas/SimpleFilter'}\n",
 		"        filter: {$ref: '#/components/schemas/SimpleFilter'}\n        note: {type: string, x-coralogix-presence: true}\n")
