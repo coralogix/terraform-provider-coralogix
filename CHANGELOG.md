@@ -1,6 +1,7 @@
 # Unreleased
 
 #### resource/coralogix_preset
+- FIX: An omitted `description` reads back as absent. The API returns an empty string.
 - FIX: Create and update send `presetType` `CUSTOM`.
 - FIX: A missing `attachment_config` reads back as `AUTO`. A missing `config_overrides` reads back as an empty list.
 - FIX: A rejected connector or entity type, such as `IBM_EVENT_NOTIFICATIONS`, still reads back as the API spelling. The schema does not accept it.
@@ -22,6 +23,8 @@
 - FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
 
 #### tools/iac-codegen
+- FEAT: `readEmptyAs: null` on a string reads `""` as null.
+- FIX: `requestValue` on a nested read-only field is sent on create and update.
 - FEAT: `api.operations` stores the four operation ids, so `tfgen generate` needs no operation flags.
 - FEAT: `requestValue` sends a fixed API value on create and update. The field is not a Terraform attribute.
 - FEAT: `readNullAs: empty` reads a missing list or set of objects as an empty collection.

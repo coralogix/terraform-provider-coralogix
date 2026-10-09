@@ -530,6 +530,9 @@ func flattenPreset(ctx context.Context, p path.Path, v *presets_service.Preset, 
 	}
 	out.ConnectorType = flattenEnumMapped(p.AtName("connector_type"), &v.ConnectorType, notificationCenterConnectorTypeFromAPI, diags)
 	out.Description = types.StringPointerValue(v.Description)
+	if out.Description.ValueString() == "" {
+		out.Description = types.StringNull()
+	}
 	out.EntityType = flattenEnumMapped(p.AtName("entity_type"), &v.EntityType, notificationCenterEntityTypeFromAPI, diags)
 	out.Id = types.StringPointerValue(v.Id)
 	out.Name = types.StringPointerValue(&v.Name)

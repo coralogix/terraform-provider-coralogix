@@ -61,6 +61,10 @@ type Policy struct {
 	// Skip lists "Component.field" of fields that the resource does not manage.
 	// The generator does not send them and does not store them.
 	Skip []string
+	// FixedRequest lists "Component.field" that Create and Update always send as a
+	// fixed API value. A nested read-only field in this list is sent, so it is not
+	// a server-only field the renderer has to drop.
+	FixedRequest []string
 	// Released lists "Component.field" of fields that keep their released behavior.
 	// The behavior-overrides file states it, so the contract need not say whether
 	// omission differs from an empty value. A field that is not listed follows the
@@ -157,6 +161,10 @@ func (p Policy) methods(v verb) []string {
 
 func (p Policy) skips(component, field string) bool {
 	return component != "" && slices.Contains(p.Skip, component+"."+field)
+}
+
+func (p Policy) fixedRequest(component, field string) bool {
+	return component != "" && slices.Contains(p.FixedRequest, component+"."+field)
 }
 
 func (p Policy) released(component, field string) bool {

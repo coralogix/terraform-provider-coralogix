@@ -1,7 +1,8 @@
 # A released resource whose lifecycle is four custom methods, and whose contract uses the
-# generator keys those methods need: named operation ids, a fixed request value, a
-# business-first enum inside a wrapper, a missing list read as empty, and a oneOf that
-# the released resource requires.
+# generator keys those methods need: named operation ids, a fixed request value on a
+# read-only root field and on a read-only nested field, a string read back from "" as
+# null, a business-first enum inside a wrapper, a missing list read as empty, and a oneOf
+# that the released resource requires.
 openapi: 3.1.0
 info: {title: custom, version: 1.0.0}
 paths:
@@ -126,6 +127,10 @@ components:
       required: []
       properties:
         text: {type: string, x-coralogix-presence: true}
+        role:
+          allOf: [{$ref: '#/components/schemas/ThingKind'}]
+          readOnly: true
+          description: The server stores CUSTOM. The released client still sends it.
     Attachment:
       type: object
       required: []

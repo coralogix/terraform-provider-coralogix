@@ -33,10 +33,10 @@ types:
       name:
         markdownDescription: ""
       description:
-        # An omitted description reads back as absent, so this stays optional.
-        # computed: false states that omission is the released behavior. The contract
-        # does not mark presence on this optional string.
+        # The API returns "" when description is omitted. Read that as null so an
+        # omitted value stays absent. computed: false keeps the attribute optional.
         computed: false
+        readEmptyAs: "null"
         markdownDescription: ""
       parentId:
         required: true # system presets omit it; custom create rejects a missing parent

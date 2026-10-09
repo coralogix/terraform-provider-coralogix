@@ -1243,6 +1243,11 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		out.{{.Model}} = keepEquivalentText(prior.{{.Model}}, out.{{.Model}}, {{.Equality}}Equal)
 	}
 	{{- end}}
+	{{- if .ReadEmptyAsNull}}
+	if out.{{.Model}}.ValueString() == "" {
+		out.{{.Model}} = types.StringNull()
+	}
+	{{- end}}
 {{- else if eq .Conv "bool"}}
 	out.{{.Model}} = types.BoolPointerValue({{$v}})
 {{- else if eq .Conv "float64"}}

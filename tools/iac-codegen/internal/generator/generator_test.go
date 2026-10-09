@@ -139,7 +139,8 @@ func TestGoldenOutputWrappedValues(t *testing.T) {
 }
 
 // The golden output of a resource whose lifecycle is custom methods and whose overrides use a
-// fixed request value, a business-first enum, a missing list read as empty, and ExactlyOneOf.
+// fixed request value, including one on a nested read-only field, a string read from "" as null,
+// a business-first enum, a missing list read as empty, and ExactlyOneOf.
 func TestGoldenOutputCustomMethods(t *testing.T) {
 	out := generateCustomThing(t)
 	golden := filepath.Join("testdata", "golden", "customthing")

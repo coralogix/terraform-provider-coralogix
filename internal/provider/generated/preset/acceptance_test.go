@@ -156,6 +156,7 @@ const upgradeMinimalConfig = `resource "coralogix_preset" "test" {
     },
   ]
   connector_type = "generic_https"
+  description = "@{run}-description"
   entity_type = "alerts"
   name = "@{run}-name"
   parent_id = "preset_system_generic_https_alerts_empty"
@@ -199,6 +200,7 @@ func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.message_config.fields.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 	)
 }

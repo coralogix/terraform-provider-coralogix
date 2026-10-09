@@ -290,6 +290,10 @@ func expandNote(ctx context.Context, p path.Path, m *NoteModel, diags *diag.Diag
 	}
 	out := &custom_things_service.Note{}
 	out.Text = expandString(m.Text)
+	{
+		fixed := custom_things_service.ThingKind("CUSTOM")
+		out.Role = &fixed
+	}
 	return out
 }
 
@@ -299,6 +303,9 @@ func flattenNote(ctx context.Context, p path.Path, v *custom_things_service.Note
 	}
 	out := &NoteModel{}
 	out.Text = types.StringPointerValue(v.Text)
+	if out.Text.ValueString() == "" {
+		out.Text = types.StringNull()
+	}
 	return out
 }
 

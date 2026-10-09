@@ -207,7 +207,8 @@ type convField struct {
 	Enum     bool
 	EnumZero string   // exact protobuf zero sentinel for enum conversion
 	EnumMap  *enumMap // set when the overrides state the Terraform values of the enum
-	// ReadEmptyAsNull: flatten reads an empty list, or an object with no value, as null.
+	// ReadEmptyAsNull: flatten reads an empty string, an empty list, or an object
+	// with no value, as null.
 	ReadEmptyAsNull bool
 	// ReadNullAsEmpty: flatten reads a missing list or set as an empty collection.
 	ReadNullAsEmpty bool
@@ -516,10 +517,10 @@ func checkReadEmptyAs(cf *convField) error {
 	if !cf.ReadEmptyAsNull {
 		return nil
 	}
-	if (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects {
+	if cf.Conv == convString || (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects {
 		return nil
 	}
-	return fmt.Errorf("readEmptyAs: \"null\" is supported for an object and for a list or set of objects, not for the %s field %s", cf.Conv, cf.TFName)
+	return fmt.Errorf("readEmptyAs: \"null\" is supported for a string, an object, and a list or set of objects, not for the %s field %s", cf.Conv, cf.TFName)
 }
 
 // markComputedObjectValue makes a directly nested computed field capable of
@@ -1004,7 +1005,69 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		}
 		obj.Fields = append(obj.Fields, cf)
 	}
+	// A read-only requestValue is absent from the request fields. The root loop
+	// still sends it. A nested object has to do the same, or Create and Update
+	// drop the value the override promised.
+	if err := b.injectFixedRequest(obj, ref.Path, t); err != nil {
+		return nil, err
+	}
 	return obj, nil
+}
+
+// injectFixedRequest adds requestValue fields that the request type omitted
+// because the contract marks them read-only. The SDK struct still has them.
+func (b *convBuilder) injectFixedRequest(obj *convObject, owner string, t *model.Type) error {
+	if t.Model == "" {
+		return nil
+	}
+	present := map[string]bool{}
+	for _, f := range t.Fields {
+		present[f.Name] = true
+	}
+	for _, f := range schemaFields(b.resource, t.Model) {
+		if present[f.Name] || !b.fixedRequest(t.Model, f.Name) {
+			continue
+		}
+		cf, err := b.field(owner, t.Model, f.Name, f.Type, f.Behavior == model.Computed)
+		if err != nil {
+			return fmt.Errorf("%s: %w", f.Name, err)
+		}
+		obj.Fields = append(obj.Fields, cf)
+	}
+	return nil
+}
+
+// schemaFields returns the response fields of the nested component schema.
+func schemaFields(r *model.Resource, schema string) []*model.Field {
+	if r == nil || schema == "" {
+		return nil
+	}
+	seen := map[*model.Type]bool{}
+	for _, f := range r.Fields {
+		if fields, ok := typeSchemaFields(f.Type, schema, seen); ok {
+			return fields
+		}
+	}
+	return nil
+}
+
+func typeSchemaFields(t *model.Type, schema string, seen map[*model.Type]bool) ([]*model.Field, bool) {
+	if t == nil || seen[t] {
+		return nil, false
+	}
+	seen[t] = true
+	if t.Model == "" && t.Schema == schema && (t.Kind == model.Object || t.Kind == model.OneOf) {
+		return t.Fields, true
+	}
+	if fields, ok := typeSchemaFields(t.Elem, schema, seen); ok {
+		return fields, true
+	}
+	for _, f := range t.Fields {
+		if fields, ok := typeSchemaFields(f.Type, schema, seen); ok {
+			return fields, true
+		}
+	}
+	return nil, false
 }
 
 // mark sets the direction that uses obj and its nested objects: expand
@@ -1039,6 +1102,9 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 	}
 	obj.AttrTypes = []convAttrType{}
 	for _, f := range obj.Fields {
+		if f.Conv == "fixed" {
+			continue
+		}
 		expr, err := b.attrType(obj, f)
 		if err != nil {
 			return err

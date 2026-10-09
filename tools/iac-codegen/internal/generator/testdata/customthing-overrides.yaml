@@ -27,6 +27,12 @@ types:
         default: AUTO
       condition:
         requireOne: true
+  Note:
+    fields:
+      text:
+        readEmptyAs: "null"
+      role:
+        requestValue: CUSTOM
 
 enums:
   ThingKind:

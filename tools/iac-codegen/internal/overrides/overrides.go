@@ -527,6 +527,9 @@ func (f *File) Policy() model.Policy {
 			if t.Fields[field].Skip {
 				p.Skip = append(p.Skip, name+"."+field)
 			}
+			if t.Fields[field].RequestValue != "" {
+				p.FixedRequest = append(p.FixedRequest, name+"."+field)
+			}
 			if t.Fields[field].ReadOnly {
 				p.ReadOnly = append(p.ReadOnly, name+"."+field)
 			}

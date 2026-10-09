@@ -24,6 +24,7 @@ const (
 
 type Note struct {
 	Text *string
+	Role *ThingKind
 }
 
 type Attachment struct {
