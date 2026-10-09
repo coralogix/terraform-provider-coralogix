@@ -60,6 +60,27 @@ func TestUnwrapLinesThatDecideNothingAreUnused(t *testing.T) {
 	}
 }
 
+// A line on the property of a wrapper that collapses in every place changes nothing, because
+// Terraform has no attribute for it. Where the wrapper stays an object, the line applies.
+func TestUnwrapReportsLinesOnHiddenProperties(t *testing.T) {
+	tests := map[string]struct {
+		replacements []string
+		want         []string
+	}{
+		"collapses everywhere":         {[]string{"types:\n", "types:\n  PriorityValue:\n    fields:\n      value:\n        useStateForUnknown: true\n"}, []string{"OVERRIDE_UNUSED"}},
+		"stays an object in one place": {[]string{"types:\n", "types:\n  LuceneQuery:\n    fields:\n      value:\n        useStateForUnknown: true\n"}, nil},
+		// The unwrap key decides the wrapper inside the hidden property.
+		"unwrap key only": {[]string{"Selection, ListSelection]", "Selection]", "types:\n", "types:\n  Selection:\n    fields:\n      list:\n        unwrap: true\n"}, nil},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if codes := wrapThingCodes(t, test.replacements...); !slices.Equal(codes, test.want) {
+				t.Fatalf("codes %v, want %v", codes, test.want)
+			}
+		})
+	}
+}
+
 func TestUnwrapRejectsKeysThatReadTheWrappedField(t *testing.T) {
 	codes := wrapThingCodes(t, "      mainLabel:\n", "      widgetIds:\n        keepPriorOrder: true\n      mainLabel:\n")
 	if !slices.Contains(codes, "UNWRAP_COMBINATION_UNSUPPORTED") {

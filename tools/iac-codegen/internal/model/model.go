@@ -50,6 +50,9 @@ type Resource struct {
 	// UnwrapUsed are the unwrap lines of the policy that decided a place: "unwrap.<Component>"
 	// for a component of the list, and "<Component>.<field>" for a field line.
 	UnwrapUsed map[string]bool
+	// HiddenWrappers are the wrapper components that collapse in every place, so Terraform has
+	// no attribute for their property.
+	HiddenWrappers map[string]bool
 }
 
 // Operation is one HTTP operation of the resource.

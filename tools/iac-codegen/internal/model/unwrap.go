@@ -9,7 +9,7 @@ import (
 // inside it, and records the wrapper on the new type. It works from the inside out, so a
 // wrapper inside a wrapper collapses first, and the outer type records both.
 func (r *Resource) unwrap() error {
-	u := &unwrapper{policy: r.Policy, used: map[string]bool{}}
+	u := &unwrapper{policy: r.Policy, used: map[string]bool{}, collapsed: map[string]bool{}, kept: map[string]bool{}}
 	for _, f := range r.Fields {
 		t, err := u.value(fieldLocation(r.Name, f.Name), r.Name, f.Name, f.Type)
 		if err != nil {
@@ -23,12 +23,20 @@ func (r *Resource) unwrap() error {
 		f.Type = t
 	}
 	r.UnwrapUsed = u.used
+	r.HiddenWrappers = map[string]bool{}
+	for component := range u.collapsed {
+		if !u.kept[component] {
+			r.HiddenWrappers[component] = true
+		}
+	}
 	return nil
 }
 
 type unwrapper struct {
 	policy Policy
 	used   map[string]bool
+	// collapsed and kept are the components that collapse, and that stay, in some place.
+	collapsed, kept map[string]bool
 }
 
 // value returns the type of the value of field of the owner component, at location at, after
@@ -40,9 +48,10 @@ func (u *unwrapper) value(at, owner, field string, t *Type) (*Type, error) {
 	switch t.Kind {
 	case List, Set:
 		if !u.decide(owner, field, t.Elem.Schema) {
+			u.kept[t.Elem.Schema] = true
 			return t, nil
 		}
-		elem, err := collapse(at+"[]", owner, field, t.Elem)
+		elem, err := u.collapse(at+"[]", owner, field, t.Elem)
 		if err != nil {
 			return nil, err
 		}
@@ -54,12 +63,20 @@ func (u *unwrapper) value(at, owner, field string, t *Type) (*Type, error) {
 			return nil, unwrapError(at, "UNWRAP_COMPONENT_UNSUPPORTED", "A map of wrapped values is not supported.",
 				"Delete the unwrap line or the list entry that names the wrapper of the map values.")
 		}
+		u.kept[t.Elem.Schema] = true
 		return t, nil
 	}
 	if !u.decide(owner, field, t.Schema) {
+		u.kept[t.Schema] = true
 		return t, nil
 	}
-	return collapse(at, owner, field, t)
+	return u.collapse(at, owner, field, t)
+}
+
+// collapse collapses the wrapper w, and records that its component collapses.
+func (u *unwrapper) collapse(at, owner, field string, w *Type) (*Type, error) {
+	u.collapsed[w.Schema] = true
+	return collapse(at, owner, field, w)
 }
 
 // inside collapses the wrappers of the fields of t, and of the items of a list, set, or map.
