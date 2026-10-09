@@ -842,7 +842,7 @@ func TestBodyUpdateMaskIsOmitted(t *testing.T) {
 	}
 }
 
-func TestTopLevelUpdateMaskOverride(t *testing.T) {
+func TestBodyUpdateMaskRejectsNestedOneOf(t *testing.T) {
 	dotted := updateBodyMask(t, string(validSpec(t)), true)
 	top := strings.Replace(dotted,
 		"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'",
@@ -854,13 +854,8 @@ func TestTopLevelUpdateMaskOverride(t *testing.T) {
 	if codes := maskCodes(t, top, body); !slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
 		t.Fatalf("codes %v do not contain UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED", codes)
 	}
-	body.TopLevelUpdateMask = true
-	if codes := maskCodes(t, top, body); slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") || slices.Contains(codes, "OVERRIDE_UNUSED") {
-		t.Fatalf("codes %v, want the top-level override to allow the nested oneOf", codes)
-	}
-	body.TopLevelUpdateMask = true
-	if codes := maskCodes(t, dotted, body); !slices.Contains(codes, "OVERRIDE_UNUSED") {
-		t.Fatalf("codes %v do not contain OVERRIDE_UNUSED", codes)
+	if codes := maskCodes(t, dotted, body); slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
+		t.Fatalf("codes %v, a pattern that accepts an arm path must not reject the nested oneOf", codes)
 	}
 }
 

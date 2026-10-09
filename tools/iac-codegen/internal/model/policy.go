@@ -43,10 +43,6 @@ type Policy struct {
 	// body, not a query parameter. The generated update sets it to the same
 	// changed-field mask a query parameter would send.
 	UpdateMaskInBody bool
-	// TopLevelUpdateMask accepts a mask pattern that names only top-level
-	// fields when a oneOf needs an arm path. A change of arm might not go
-	// through. Set it only for an API whose pattern cannot name the arm.
-	TopLevelUpdateMask bool
 	// EnumAnyPrefix lists the enum components whose business values do not use
 	// the prefix of the zero value (ENTITY_TYPE_UNSPECIFIED, ALERTS).
 	EnumAnyPrefix []string

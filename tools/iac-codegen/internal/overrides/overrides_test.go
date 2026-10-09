@@ -64,15 +64,13 @@ validators:
   inferred: false
 api:
   updateMaskInBody: true
-  topLevelUpdateMask: true
 `
 	f, err := Parse([]byte(text))
 	if err != nil {
 		t.Fatal(err)
 	}
-	p := f.Policy()
-	if !p.UpdateMaskInBody || !p.TopLevelUpdateMask {
-		t.Fatalf("policy = %+v", p)
+	if !f.Policy().UpdateMaskInBody {
+		t.Fatal("policy did not copy updateMaskInBody")
 	}
 }
 

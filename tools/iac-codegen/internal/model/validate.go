@@ -1196,7 +1196,7 @@ func responseResourceProxy(op *v3.Operation, name string) *base.SchemaProxy {
 
 func validateBuiltResource(r *Resource) issue.Report {
 	if r.Replace {
-		return unusedTopLevelMask(r.Policy.TopLevelUpdateMask)
+		return nil
 	}
 	if r.UpdateMaskPattern == "" {
 		return issue.Report{{Code: "UPDATE_MASK_CONTRACT_MISSING", Location: "paths.update." + r.Update.OperationID, Message: "The PATCH update mask has no pattern that defines accepted mask paths.", Remediation: "Add the authoritative update-mask path pattern to the source API contract."}}
@@ -1205,30 +1205,10 @@ func validateBuiltResource(r *Resource) issue.Report {
 	if err != nil {
 		return issue.Report{{Code: "UPDATE_MASK_CONTRACT_INVALID", Location: "paths.update." + r.Update.OperationID, Message: err.Error() + ".", Remediation: "Use a mask pattern that accepts field names and comma-separated lists of them, rejects *, and defines whether dotted paths are supported."}}
 	}
-	nested := nestedOneOfMaskIssues(r)
-	if r.Policy.TopLevelUpdateMask {
-		if leaf || len(nested) == 0 {
-			return unusedTopLevelMask(true)
-		}
-		return nil
-	}
 	if leaf {
 		return nil
 	}
-	return nested
-}
-
-// unusedTopLevelMask reports api.topLevelUpdateMask when it changes nothing.
-func unusedTopLevelMask(set bool) issue.Report {
-	if !set {
-		return nil
-	}
-	return issue.Report{{
-		Code:        "OVERRIDE_UNUSED",
-		Location:    "api.topLevelUpdateMask",
-		Message:     "api.topLevelUpdateMask is set, but this mask already accepts an arm path, or this resource has no nested oneOf that needs one.",
-		Remediation: "Remove api.topLevelUpdateMask.",
-	}}
+	return nestedOneOfMaskIssues(r)
 }
 
 func nestedOneOfMaskIssues(r *Resource) issue.Report {
@@ -1245,7 +1225,7 @@ func nestedOneOfMaskIssues(r *Resource) issue.Report {
 			Code:        "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED",
 			Location:    "components.schemas." + r.Name + "." + field.Name,
 			Message:     fmt.Sprintf("The update mask accepts only top-level paths, but changing this oneOf needs an arm path such as %q.", paths[0]),
-			Remediation: "Allow dotted update-mask paths so the generator can send the selected oneOf arm, or set api.topLevelUpdateMask when this API cannot name the arm.",
+			Remediation: "Allow dotted update-mask paths so the generator can send the selected oneOf arm.",
 		})
 	}
 	return report

@@ -101,11 +101,6 @@ type API struct {
 	// The generated update sets it to the same changed-field mask a query
 	// parameter would send.
 	UpdateMaskInBody bool `yaml:"updateMaskInBody"`
-	// TopLevelUpdateMask accepts a mask pattern that names only top-level
-	// fields even when a oneOf needs an arm path such as config.sqlLoad. A
-	// change of arm might not go through. Set it only for an API whose pattern
-	// cannot name the arm.
-	TopLevelUpdateMask bool `yaml:"topLevelUpdateMask"`
 }
 
 // Delete is how a released resource is removed when the API has no DELETE, for example a
@@ -447,12 +442,11 @@ func checkValidators(validators []Validator) error {
 // Policy returns the rule set for the model.
 func (f *File) Policy() model.Policy {
 	p := model.Policy{
-		Existing:           true,
-		RequestWrapper:     f.API.RequestWrapper,
-		UpdateIDInBody:     f.API.UpdateIDInBody,
-		ClientSetID:        f.API.ClientSetID,
-		UpdateMaskInBody:   f.API.UpdateMaskInBody,
-		TopLevelUpdateMask: f.API.TopLevelUpdateMask,
+		Existing:         true,
+		RequestWrapper:   f.API.RequestWrapper,
+		UpdateIDInBody:   f.API.UpdateIDInBody,
+		ClientSetID:      f.API.ClientSetID,
+		UpdateMaskInBody: f.API.UpdateMaskInBody,
 		// The file states validators.inferred: false; Parse checked it.
 		NoInferredValidators: true,
 	}
