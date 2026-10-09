@@ -571,25 +571,18 @@ func fieldDefaultContractIssues(p Policy, name, location, field string, create, 
 	updateDefault := schemaDefault(up)
 	report = append(report, defaultValueIssues(location+".create", cp)...)
 	report = append(report, defaultValueIssues(location+".update", up)...)
-	if p.released(name, field) {
-		return report // a released field keeps its released default; the overrides state it
+	if p.OverridesDefault(name, field) {
+		return report // the default line of the overrides replaces the declared default
 	}
 	createOptional := cp != nil && !slices.Contains(create.Required, field)
 	getRequired := gp != nil && slices.Contains(get.Required, field)
-	if createOptional && getRequired && createDefault == nil {
+	// A released field states how an omitted value behaves, so it needs no declared default.
+	// A declared default is still checked: the generated resource uses it.
+	if createOptional && getRequired && createDefault == nil && !p.released(name, field) {
 		report = append(report, issue.Issue{Code: "FIELD_SERVER_DEFAULT_UNDECLARED", Location: location, Message: "The field is optional in Create but required in Get, so the server supplies a value without a declared default.", Remediation: "Declare the exact OpenAPI default, or separate the client-owned request field from the server-owned response field."})
 	}
-	if createDefault != nil {
-		switch {
-		case !createOptional || !getRequired:
-			report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "A declared server default needs an optional Create field and a required Get field.", Remediation: "Make the field optional in Create, required in Get, and let the server return the declared default."})
-		case up != nil && (slices.Contains(update.Required, field) || updateDefault != nil && *updateDefault != *createDefault):
-			// Update may omit the default: generation reads only the Create default.
-			report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The mutable field is required in Update, or Update declares a different default than Create.", Remediation: "Make the field optional in Update. Omit its default there, or declare the Create default."})
-		}
-	} else if updateDefault != nil {
-		report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The Update field declares a default that Create does not declare.", Remediation: "Declare the default on the optional Create field, or remove it from Update."})
-	}
+	updateRequired := up != nil && slices.Contains(update.Required, field)
+	report = append(report, declaredDefaultIssues(location, createDefault, updateDefault, createOptional && getRequired, updateRequired)...)
 	for _, candidate := range []struct {
 		name  string
 		proxy *base.SchemaProxy
@@ -597,6 +590,23 @@ func fieldDefaultContractIssues(p Policy, name, location, field string, create, 
 		report = append(report, nestedDefaultIssues(p, location+"."+candidate.name, candidate.proxy, true, map[*base.Schema]bool{})...)
 	}
 	return report
+}
+
+// declaredDefaultIssues checks that a declared server default fits the field: optional in Create
+// and Update, required in Get, and the same default in Create and Update.
+func declaredDefaultIssues(location string, createDefault, updateDefault *string, serverOwned, updateRequired bool) issue.Report {
+	switch {
+	case createDefault == nil && updateDefault != nil:
+		return issue.Report{{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The Update field declares a default that Create does not declare.", Remediation: "Declare the default on the optional Create field, or remove it from Update."}}
+	case createDefault == nil:
+		return nil
+	case !serverOwned:
+		return issue.Report{{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "A declared server default needs an optional Create field and a required Get field.", Remediation: "Make the field optional in Create, required in Get, and let the server return the declared default."}}
+	case updateRequired || updateDefault != nil && *updateDefault != *createDefault:
+		// Update may omit the default: generation reads only the Create default.
+		return issue.Report{{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The mutable field is required in Update, or Update declares a different default than Create.", Remediation: "Make the field optional in Update. Omit its default there, or declare the Create default."}}
+	}
+	return nil
 }
 
 func defaultValueIssues(location string, proxy *base.SchemaProxy) issue.Report {
@@ -703,6 +713,13 @@ func defaultNumberLimits(schema *base.Schema, value float64) error {
 // every value, so it is not a constraint.
 const permissivePattern = `^[\s\S]*$`
 
+// goPattern reports whether the generated validator can use pattern: Go
+// compiles it, or it is empty.
+func goPattern(pattern string) bool {
+	_, err := regexp.Compile(pattern)
+	return err == nil
+}
+
 func schemaDefault(proxy *base.SchemaProxy) *string {
 	if proxy == nil {
 		return nil
@@ -741,9 +758,9 @@ func nestedDefaultIssues(p Policy, location string, proxy *base.SchemaProxy, roo
 }
 
 // unsupportedSchemaIssues reports the keywords below proxy that the generator
-// cannot honor. request is false for the resource response. A pattern there is
-// no issue: a pattern would become a validator of the configuration, and the
-// configuration sets only the values that a request sends.
+// cannot honor. request is false for the resource response. A pattern becomes a
+// Go regular expression validator of the configuration. The configuration sets
+// only the values that a request sends, so a response pattern is no issue.
 func unsupportedSchemaIssues(p Policy, location string, proxy *base.SchemaProxy, request bool, seen map[*base.Schema]bool) issue.Report {
 	if proxy == nil {
 		return nil
@@ -757,8 +774,8 @@ func unsupportedSchemaIssues(p Policy, location string, proxy *base.SchemaProxy,
 	if schema.WriteOnly != nil && *schema.WriteOnly {
 		report = append(report, issue.Issue{Code: "FIELD_WRITE_ONLY_UNSUPPORTED", Location: location, Message: "The field is writeOnly, but this generator cannot preserve or rotate a value that the API does not return.", Remediation: "Use a handwritten resource until generic write-only state and version handling is supported."})
 	}
-	if request && schema.Pattern != "" && schema.Pattern != permissivePattern && !p.Existing {
-		report = append(report, issue.Issue{Code: "STRING_PATTERN_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field declares the unsupported pattern %q.", schema.Pattern), Remediation: "Remove the pattern or wait for generated regular-expression validation support."})
+	if request && !p.Existing {
+		report = append(report, patternIssues(location, schema)...)
 	}
 	for _, name := range propertyNames(schema) {
 		report = append(report, unsupportedSchemaIssues(p, location+"."+name, propertyOf(schema, name), request, seen)...)
@@ -770,6 +787,19 @@ func unsupportedSchemaIssues(p Policy, location string, proxy *base.SchemaProxy,
 		report = append(report, unsupportedSchemaIssues(p, location+"{}", schema.AdditionalProperties.A, request, seen)...)
 	}
 	return report
+}
+
+// patternIssues reports a request pattern that the generated validator cannot
+// enforce: Go (RE2) cannot compile it, or it is on an enum, whose attribute
+// gets only the OneOf validator.
+func patternIssues(location string, schema *base.Schema) issue.Report {
+	switch {
+	case !goPattern(schema.Pattern):
+		return issue.Report{{Code: "STRING_PATTERN_UNSUPPORTED", Location: location, Message: fmt.Sprintf("Go regular expressions (RE2) cannot compile the pattern %q.", schema.Pattern), Remediation: "Use a pattern without lookaround or backreferences."}}
+	case len(schema.Enum) != 0 && schema.Pattern != "" && schema.Pattern != permissivePattern:
+		return issue.Report{{Code: "STRING_PATTERN_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The enum declares the pattern %q. The enum values already limit the value.", schema.Pattern), Remediation: "Remove the pattern from the enum."}}
+	}
+	return nil
 }
 
 func rootGroupContractIssues(name string, create, update, get *base.Schema) issue.Report {

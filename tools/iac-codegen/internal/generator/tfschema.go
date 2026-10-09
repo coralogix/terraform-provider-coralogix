@@ -3,6 +3,7 @@ package generator
 import (
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -54,6 +55,9 @@ type tfAttr struct {
 	Computed    bool
 	Description string
 	ElementType string // Set, List: the element type, for example "types.StringType"
+	// CustomType is the Terraform type of a scalar attribute that is not the plain type of its
+	// kind, for example rfc3339Type, or "".
+	CustomType string
 	// ElemValidators are the validators of one element of a collection of plain values, the
 	// arguments of its Value<Kind>sAre validator. The acceptance test makes an element that passes.
 	ElemValidators []string
@@ -80,7 +84,8 @@ type tfAttr struct {
 	// WriteOnly: Terraform sends the value and does not store it. Only extraAttributes set this.
 	WriteOnly bool
 	// Extra: the attribute is from types.<Type>.extraAttributes, not the API. The generated
-	// acceptance test leaves it out: a made-up map key is not a valid API field.
+	// acceptance test leaves it out unless values or an upgrade case supplies the map: a made-up
+	// map key is not a valid API field.
 	Extra bool
 }
 
@@ -227,7 +232,7 @@ func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
 // resourceAttribute builds the attribute of a top-level field: its type, its server default, a
 // client-set id, and the plan modifiers of its behavior.
 func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *model.ResourceField) (*tfAttr, error) {
-	a, err := b.attribute(attrPath{"root", tfName(f.Name)}, r.Name, f.Name, f.Description, f.Type, fieldAttrs(f))
+	a, err := b.attribute(attrPath{"root", tfName(f.Name)}, r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), f.Behavior == model.Computed)
 	if err != nil {
 		return nil, err
 	}
@@ -247,21 +252,29 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 			out.ServerDefaultKinds = append(out.ServerDefaultKinds, a.ValueKind)
 		}
 	}
-	if r.Policy.ClientSetID && f.Name == r.IDParam {
+	clientSetID := r.Policy.ClientSetID && f.Name == r.IDParam
+	if clientSetID {
 		// The user can set the id. Without a value, the server makes one.
+		// The id names the resource, so a new id replaces it: Update cannot
+		// find a resource under the new id. UseStateForUnknown runs first, so
+		// an id that the user removes keeps its value and replaces nothing.
 		a.Required, a.Optional, a.Computed = false, true, true
+		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
 	}
-	switch f.Behavior {
-	case model.Computed:
+	switch {
+	case f.Behavior == model.Computed:
 		markComputed(a)
 		if f.Name == r.IDParam {
 			a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
 		}
-	case model.Immutable:
+	case f.Behavior == model.Immutable || clientSetID:
 		b.requiresReplace(a, a.Name)
 	}
 	return a, nil
 }
+
+// errStaleOverrideKey reports a key of a field line that the generator already applies.
+var errStaleOverrideKey = errors.New("the generator already applies this key, so it changes nothing")
 
 // applyOverrides applies the behavior-overrides file to the attributes. A field with a line
 // keeps the released behavior that the line states.
@@ -371,7 +384,12 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 		a.Computed = *l.Computed
 	}
 	if l.UseStateForUnknown {
-		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
+		modifier := strings.ToLower(a.ValueKind) + "planmodifier.UseStateForUnknown()"
+		if containsString(a.Modifiers, modifier) {
+			// A client-set or computed id already has it. A key that changes nothing is an error.
+			return fmt.Errorf("useStateForUnknown: %w", errStaleOverrideKey)
+		}
+		a.Modifiers = append(a.Modifiers, modifier)
 	}
 	if l.Equality != "" {
 		if a.ValueKind != "String" {
@@ -421,8 +439,37 @@ func defaultExpr(a *tfAttr, value any) (string, error) {
 		if a.Kind == "Bool" {
 			return fmt.Sprintf("booldefault.StaticBool(%t)", v), nil
 		}
+	case int:
+		switch a.Kind {
+		case "Int64":
+			return fmt.Sprintf("int64default.StaticInt64(%d)", v), nil
+		case "Int32":
+			if v < math.MinInt32 || v > math.MaxInt32 {
+				return "", fmt.Errorf("the default %d does not fit an Int32 attribute", v)
+			}
+			return fmt.Sprintf("int32default.StaticInt32(%d)", v), nil
+		case "Float64", "Float32":
+			return floatDefaultExpr(a.Kind, float64(v))
+		}
+	case float64:
+		if a.Kind == "Float64" || a.Kind == "Float32" {
+			return floatDefaultExpr(a.Kind, v)
+		}
 	}
 	return "", fmt.Errorf("a default of type %T does not fit a %s attribute", value, a.Kind)
+}
+
+// floatDefaultExpr is the Go expression of a static default of a Float64 or Float32 attribute.
+func floatDefaultExpr(kind string, v float64) (string, error) {
+	bits := 64
+	if kind == "Float32" {
+		bits = 32
+	}
+	if math.IsNaN(v) || math.IsInf(v, 0) || bits == 32 && math.Abs(v) > math.MaxFloat32 {
+		return "", fmt.Errorf("the default %v does not fit a %s attribute", v, kind)
+	}
+	// 'f' writes a Go literal, and the state text of the value, that the acceptance test compares.
+	return fmt.Sprintf("%sdefault.Static%s(%s)", strings.ToLower(kind), kind, strconv.FormatFloat(v, 'f', -1, bits)), nil
 }
 
 // validatorExpr is the Go expression of a released validator.
@@ -654,15 +701,17 @@ func (p attrPath) expr() string {
 	return s
 }
 
-func (b *tfBuilder) attribute(p attrPath, component, name, desc string, t *model.Type, attrs model.Attrs) (*tfAttr, error) {
+func (b *tfBuilder) attribute(p attrPath, component, name, desc string, t *model.Type, attrs model.Attrs, computed bool) (*tfAttr, error) {
 	a := &tfAttr{Name: tfName(name), Description: desc, Required: attrs.Required, Optional: !attrs.Required, Component: component, Property: name}
-	if err := b.setType(a, p, t); err != nil {
+	if err := b.setType(a, p, t, computed); err != nil {
 		return nil, err
 	}
 	return a, nil
 }
 
-func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type) error {
+// setType sets the kind, the type, and the validators of a. computed is true for a field that only
+// the response has.
+func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type, computed bool) error {
 	switch t.Kind {
 	case model.String, model.Enum, model.Bool, model.Number, model.Integer:
 		kind, vals, err := scalar(t)
@@ -672,6 +721,10 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type) error {
 		a.Kind, a.ValueKind, a.Validators = kind, kind, vals
 		if t.Kind == model.Enum {
 			a.EnumSchema = t.Schema
+		}
+		if sentTime(t, computed) {
+			a.CustomType = rfc3339Type
+			a.Validators = append(a.Validators, utcValidator)
 		}
 	case model.Set, model.List, model.Map:
 		return b.collection(a, p, t)
@@ -713,6 +766,10 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 			return err
 		}
 		a.Kind, a.ElementType, a.ElemValidators = kind, "types."+elem+"Type", vals
+		if isTime(t.Elem) {
+			a.ElementType, a.ElemValidators = rfc3339Type, append(vals, utcValidator)
+			vals = a.ElemValidators
+		}
 		if len(vals) > 0 {
 			a.Validators = append(a.Validators, fmt.Sprintf("%s.Value%ssAre(%s)", pkg, elem, strings.Join(vals, ", ")))
 		}
@@ -732,7 +789,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	var fields []tfModelField
 	for _, f := range t.Fields {
 		child := append(append(attrPath{}, p...), tfName(f.Name))
-		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f))
+		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f), f.Behavior == model.Computed)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
@@ -857,6 +914,9 @@ func (b *tfBuilder) modelField(name string, t *model.Type, computed bool) tfMode
 	switch t.Kind {
 	case model.String, model.Enum:
 		goType = "types.String"
+		if sentTime(t, computed) {
+			goType = "timetypes.RFC3339"
+		}
 	case model.Bool:
 		goType = "types.Bool"
 	case model.Number:
@@ -896,6 +956,9 @@ func scalar(t *model.Type) (string, []string, error) {
 		if v := lengthValidator(t.MinLength, t.MaxLength); v != "" {
 			vals = append(vals, v)
 		}
+		if t.Pattern != "" {
+			vals = append(vals, patternValidator(t.Pattern))
+		}
 		return "String", vals, nil
 	case model.Enum:
 		quoted := make([]string, len(t.Values))
@@ -929,6 +992,32 @@ func scalar(t *model.Type) (string, []string, error) {
 		return "", nil, fmt.Errorf("integer format %q is not supported", t.Format)
 	}
 	return "", nil, fmt.Errorf("kind %s is not a scalar", t.Kind)
+}
+
+// rfc3339Type is the Terraform type of a time that a request sends. It checks the RFC 3339 format,
+// and a value that differs only in fractional seconds plans no change.
+const rfc3339Type = "timetypes.RFC3339Type{}"
+
+// utcValidator requires a time in UTC. The API returns every time in UTC, so a configured offset
+// such as +02:00 would read back as another text, and the apply would fail.
+const utcValidator = "stringvalidator.RegexMatches(regexp.MustCompile(`(?i)z$`), \"must be a UTC time that ends in Z, for example 2030-01-01T00:00:00Z\")"
+
+// isTime reports whether t is a date-time string.
+func isTime(t *model.Type) bool { return t.Kind == model.String && t.Format == "date-time" }
+
+// sentTime reports whether t is a time that a request sends. A time that only the response has stays
+// a plain string, as the API returns it, with no validator.
+func sentTime(t *model.Type, computed bool) bool { return isTime(t) && !computed }
+
+// patternValidator returns a validator that the value matches pattern. The
+// pattern is a raw string literal when it can be, so it reads as in the API.
+// An empty message makes the validator show the pattern.
+func patternValidator(pattern string) string {
+	literal := strconv.Quote(pattern)
+	if !strings.Contains(pattern, "`") {
+		literal = "`" + pattern + "`"
+	}
+	return fmt.Sprintf("stringvalidator.RegexMatches(regexp.MustCompile(%s), \"\")", literal)
 }
 
 func lengthValidator(minLen, maxLen *int64) string {

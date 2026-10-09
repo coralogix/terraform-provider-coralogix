@@ -100,6 +100,8 @@ type Thing struct {
 	Labels       map[string]string
 	CreateTime   *time.Time
 	UpdateTime   *time.Time
+	ExpireTime   *time.Time
+	Windows      []time.Time
 }
 
 type CreateThingRequest struct {
@@ -113,6 +115,8 @@ type CreateThingRequest struct {
 	Tags         []string
 	Details      []ThingDetail
 	Labels       map[string]string
+	ExpireTime   *time.Time
+	Windows      []time.Time
 }
 
 type UpdateThingRequest struct {
@@ -125,6 +129,8 @@ type UpdateThingRequest struct {
 	Tags         []string
 	Details      []ThingDetail
 	Labels       map[string]string
+	ExpireTime   *time.Time
+	Windows      []time.Time
 }
 
 type ThingsServiceAPIService struct {

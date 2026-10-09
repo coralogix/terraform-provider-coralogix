@@ -215,6 +215,8 @@ func normalizeFidelity(v any) any {
 				out[k] = "<id>"
 			case k == "createTime" || k == "updateTime":
 				out[k] = "<time>"
+			case k == "teamId":
+				out[k] = "<teamId>"
 			default:
 				out[k] = normalizeFidelity(e)
 			}

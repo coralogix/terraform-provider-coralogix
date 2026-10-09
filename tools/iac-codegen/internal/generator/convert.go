@@ -123,7 +123,9 @@ const (
 	convBool    = "bool"    // types.Bool ↔ *bool
 	convFloat64 = "float64" // types.Float64 ↔ *float64
 	convUint64  = "uint64"  // types.Int64 ↔ *string (D7)
-	convTime    = "time"    // types.String ← *time.Time (flatten only)
+	convTime    = "time"    // types.String ← *time.Time: a time that only the response has
+	convRFC3339 = "rfc3339" // timetypes.RFC3339 ↔ *time.Time: a time that a request sends
+	convTimes   = "times"   // types.Set/List of timetypes.RFC3339 ↔ []time.Time
 	convEnum    = "enum"    // types.String ↔ *<enum type> (D12)
 	convObj     = "object"  // *<Model> ↔ *<SDK type>
 	convEmpty   = "empty"   // *<Model> ↔ map[string]interface{} (F16)
@@ -343,7 +345,7 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 		if !root.has(f) {
 			continue
 		}
-		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, rootType(root.path, f))
+		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, rootType(root.path, f), f.Behavior == model.Computed)
 		if err != nil {
 			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
 		}
@@ -553,9 +555,9 @@ type convBuilder struct {
 }
 
 // serverDefault reports whether removing the field resets it to a declared server default.
-// A released resource states its defaults in the behavior-overrides file instead.
+// A default or computed: false line in the behavior-overrides file replaces the declared default.
 func serverDefault(r *model.Resource, f *model.ResourceField) bool {
-	return !r.Policy.Existing && hasServerDefault(f)
+	return !r.Policy.OverridesDefault(r.Name, f.Name) && hasServerDefault(f)
 }
 
 // bodyWrapper returns the SDK request body type and the field that holds the resource.
@@ -636,7 +638,7 @@ func checkExpandNames(objects []*convObject) error {
 
 // field returns the conversion of the property name of the SDK struct at
 // owner (an SDK name path).
-func (b *convBuilder) field(owner, component, name string, t *model.Type) (*convField, error) {
+func (b *convBuilder) field(owner, component, name string, t *model.Type, computed bool) (*convField, error) {
 	ref, err := b.ix.fieldRef(owner + "." + name)
 	if err != nil {
 		return nil, err
@@ -654,7 +656,7 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type) (*conv
 			return checkFieldType(cf, ref, want)
 		}
 	}
-	want, err := b.fieldConv(cf, t)
+	want, err := b.fieldConv(cf, t, computed)
 	if err != nil {
 		return nil, err
 	}
@@ -717,11 +719,11 @@ func (b *convBuilder) promoteConv(cf *convField, path string, t *model.Type, lin
 }
 
 // fieldConv sets the conversion of cf for t. It returns the SDK Go type that
-// the conversion needs.
-func (b *convBuilder) fieldConv(cf *convField, t *model.Type) (string, error) {
+// the conversion needs. computed is true for a field that only the response has.
+func (b *convBuilder) fieldConv(cf *convField, t *model.Type, computed bool) (string, error) {
 	switch t.Kind {
 	case model.String, model.Bool, model.Number, model.Integer:
-		return scalarConv(cf, t)
+		return scalarConv(cf, t, computed)
 	case model.Enum:
 		enum, err := b.ix.schemaRef(t.Schema)
 		if err != nil {
@@ -754,10 +756,14 @@ func (b *convBuilder) fieldConv(cf *convField, t *model.Type) (string, error) {
 }
 
 // scalarConv sets the conversion of cf for a string, bool, number, or
-// integer t. It returns the SDK Go type that the conversion needs.
-func scalarConv(cf *convField, t *model.Type) (string, error) {
+// integer t. It returns the SDK Go type that the conversion needs. A time
+// keeps the type of tfschema: see sentTime.
+func scalarConv(cf *convField, t *model.Type, computed bool) (string, error) {
 	switch {
-	case t.Kind == model.String && t.Format == "date-time":
+	case sentTime(t, computed):
+		cf.Conv = convRFC3339
+		return "*time.Time", nil
+	case isTime(t):
 		cf.Conv = convTime
 		return "*time.Time", nil
 	case t.Kind == model.String:
@@ -794,6 +800,10 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 	}
 	switch t.Elem.Kind {
 	case model.String:
+		if isTime(t.Elem) {
+			cf.Conv, cf.SDKType = convTimes, "time.Time"
+			return "[]time.Time", nil
+		}
 		cf.Conv, cf.SDKType = convStrings, "string"
 		return "[]string", nil
 	case model.Enum:
@@ -856,7 +866,7 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	obj.AttrTypesFunc = lowerFirst(obj.Func) + "AttrTypes"
 	b.objects = append(b.objects, obj)
 	for _, f := range t.Fields {
-		cf, err := b.field(ref.Path, component, f.Name, f.Type)
+		cf, err := b.field(ref.Path, component, f.Name, f.Type, f.Behavior == model.Computed)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
@@ -874,7 +884,7 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 }
 
 // mark sets the direction that uses obj and its nested objects: expand
-// (a request) or flatten (a response). A request cannot hold a date-time.
+// (a request) or flatten (a response). A request holds a time as convRFC3339, never as convTime.
 func (b *convBuilder) mark(obj *convObject, expand bool) error {
 	if (expand && obj.Expand) || (!expand && obj.Flatten) {
 		return nil
@@ -887,7 +897,7 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 	for _, f := range obj.Fields {
 		switch {
 		case f.Conv == convTime && expand:
-			return fmt.Errorf("%s: date-time in a request is not supported", f.TFName)
+			return fmt.Errorf("%s: a time that only the response has is in a request", f.TFName)
 		case f.Conv == convObj || f.Conv == convObjects || f.Conv == convObjectMap:
 			if err := b.mark(f.Object, expand); err != nil {
 				return fmt.Errorf("%s: %w", f.TFName, err)
@@ -916,7 +926,7 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 
 // scalarAttrTypes are the Terraform attribute types of the scalar kinds.
 var scalarAttrTypes = map[string]string{
-	convString: "types.StringType", convTime: "types.StringType", convEnum: "types.StringType",
+	convString: "types.StringType", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
 	convBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
 	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type",
 	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}",
@@ -930,6 +940,8 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 	switch f.Conv {
 	case convStrings:
 		return "types." + f.Collection + "Type{ElemType: types.StringType}", nil
+	case convTimes:
+		return "types." + f.Collection + "Type{ElemType: " + rfc3339Type + "}", nil
 	case convScalars:
 		return "types." + f.Collection + "Type{ElemType: " + f.ElemType + "}", nil
 	case convScalarMap:
@@ -1269,6 +1281,17 @@ func propagatePrior(d *convData) {
 func sameCheck(f *convField) (string, error) {
 	a, b := "a."+f.SDK, "b."+f.SDK
 	switch f.Conv {
+	case convRFC3339:
+		if !f.Value {
+			a, b = "pointerValue("+a+")", "pointerValue("+b+")"
+		}
+		// Two texts of one instant are the same time.
+		return a + ".Equal(" + b + ")", nil
+	case convTimes:
+		if f.Collection == "Set" {
+			break
+		}
+		return "slices.EqualFunc(" + a + ", " + b + ", time.Time.Equal)", nil
 	case convString, convBool, convFloat64, convFloat32, convInt32, convInt64, convUint64, convEnum, convTime:
 		if !f.Value {
 			a, b = "pointerValue("+a+")", "pointerValue("+b+")"

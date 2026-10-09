@@ -25,7 +25,6 @@ types:
     fields:
       id:
         markdownDescription: "The ID of the Preset. Can be set to a custom value, or left empty to auto-generate. Requires recreation in case of change."
-        useStateForUnknown: true
       name:
         markdownDescription: ""
       description:

@@ -506,7 +506,41 @@ func TestServerDefaultContract(t *testing.T) {
 	}
 }
 
-func TestWriteOnlyAndPatternAreIneligible(t *testing.T) {
+// In existing mode, only a default line replaces the declared server default. Another line
+// keeps the generated resource on the declared default, so the contract of it is still checked.
+func TestExistingModeServerDefaultContract(t *testing.T) {
+	base := string(validSpec(t))
+	defaultBlock := "                enabled:\n                  type: boolean\n                  default: true\n                  x-coralogix-presence: true"
+	noDefaultBlock := "                enabled:\n                  type: boolean\n                  x-coralogix-presence: true"
+	updateBlock := strings.LastIndex(base, defaultBlock)
+	different := base[:updateBlock] + strings.Replace(defaultBlock, "default: true", "default: false", 1) + base[updateBlock+len(defaultBlock):]
+	released := Policy{Existing: true, Released: []string{"Thing.enabled"}}
+	withDefault := Policy{Existing: true, Released: []string{"Thing.enabled"}, Defaults: []string{"Thing.enabled"}}
+	tests := map[string]struct {
+		spec   string
+		policy Policy
+		want   string // "" means no default issue
+	}{
+		"other line, different Update default":   {different, released, "FIELD_DEFAULT_CONTRACT_INCONSISTENT"},
+		"default line, different Update default": {different, withDefault, ""},
+		"other line, no declared default":        {strings.ReplaceAll(base, defaultBlock, noDefaultBlock), released, ""},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			doc, err := Load([]byte(test.spec))
+			if err != nil {
+				t.Fatal(err)
+			}
+			codes := reportCodes(ValidateWithPolicy(doc, "Thing", OperationIDs{}, test.policy))
+			hasDefaultIssue := slices.ContainsFunc(codes, func(c string) bool { return strings.Contains(c, "DEFAULT") })
+			if test.want == "" && hasDefaultIssue || test.want != "" && !slices.Contains(codes, test.want) {
+				t.Fatalf("codes = %v, want %q", codes, test.want)
+			}
+		})
+	}
+}
+
+func TestWriteOnlyAndLookaroundPatternAreIneligible(t *testing.T) {
 	base := string(validSpec(t))
 	tests := map[string]struct {
 		spec string
@@ -516,8 +550,12 @@ func TestWriteOnlyAndPatternAreIneligible(t *testing.T) {
 			spec: strings.Replace(base, "        enabled:\n          type: boolean\n", "        enabled:\n          type: boolean\n          writeOnly: true\n", 1),
 			code: "FIELD_WRITE_ONLY_UNSUPPORTED",
 		},
-		"pattern in a request": {
-			spec: strings.Replace(base, "                name:\n                  type: string\n", "                name:\n                  type: string\n                  pattern: '^[a-z]+$'\n", 1),
+		"pattern on a request enum": {
+			spec: strings.Replace(base, "    ThingKind:\n      type: string\n", "    ThingKind:\n      type: string\n      pattern: '^[a-z]+$'\n", 1),
+			code: "STRING_PATTERN_UNSUPPORTED",
+		},
+		"request pattern that Go cannot compile": {
+			spec: strings.Replace(base, "                name:\n                  type: string\n", "                name:\n                  type: string\n                  pattern: '^(?!x)[a-z]+$'\n", 1),
 			code: "STRING_PATTERN_UNSUPPORTED",
 		},
 	}
@@ -534,8 +572,8 @@ func TestWriteOnlyAndPatternAreIneligible(t *testing.T) {
 	}
 }
 
-// A pattern would become a validator of the configuration. The configuration
-// never sets a value that only the response has, so a pattern there is no issue.
+// A pattern becomes a validator of the configuration. The configuration never
+// sets a value that only the response has, so a pattern there is no issue.
 func TestResponseOnlyPatternIsEligible(t *testing.T) {
 	spec := strings.Replace(string(validSpec(t)),
 		"        id:\n          type: string\n          description: The server-assigned identifier.\n",
@@ -549,6 +587,63 @@ func TestResponseOnlyPatternIsEligible(t *testing.T) {
 	}
 	if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
 		t.Fatalf("a pattern on the response-only id is ineligible: %v", report)
+	}
+}
+
+// withNamePattern sets pattern on name in the Create body, the Update body, and
+// Thing. Only Thing when requests is false.
+func withNamePattern(t *testing.T, pattern string, requests bool) string {
+	t.Helper()
+	spec := string(validSpec(t))
+	if requests {
+		spec = strings.Replace(spec, "                name:\n                  type: string\n", "                name:\n                  type: string\n                  pattern: '"+pattern+"'\n", 2)
+	}
+	return strings.Replace(spec, "        name:\n          type: string\n", "        name:\n          type: string\n          pattern: '"+pattern+"'\n", 1)
+}
+
+func namePattern(t *testing.T, spec string, policy Policy) string {
+	t.Helper()
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report := ValidateWithPolicy(doc, "Thing", OperationIDs{}, policy); len(report) != 0 {
+		t.Fatalf("ineligible: %v", report)
+	}
+	r, err := BuildWithPolicy(doc, "Thing", OperationIDs{}, policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range r.Fields {
+		if f.Name == "name" {
+			return f.Type.Pattern
+		}
+	}
+	t.Fatal("no name field")
+	return ""
+}
+
+func TestRequestPatternIsTheFieldPattern(t *testing.T) {
+	const pattern = "^[a-z][a-z0-9-]*$"
+	if got := namePattern(t, withNamePattern(t, pattern, true), Policy{}); got != pattern {
+		t.Errorf("pattern = %q, want %q", got, pattern)
+	}
+	if got := namePattern(t, withNamePattern(t, `^[\s\S]*$`, true), Policy{}); got != "" {
+		t.Errorf("free-text pattern = %q, want none", got)
+	}
+	// An existing resource keeps the released behavior: no pattern validator.
+	if got := namePattern(t, withNamePattern(t, pattern, true), Policy{Existing: true}); got != "" {
+		t.Errorf("existing-mode pattern = %q, want none", got)
+	}
+}
+
+func TestRequestPatternMustMatchTheResponse(t *testing.T) {
+	doc, err := Load([]byte(withNamePattern(t, "^[a-z]+$", false)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "FIELD_TYPE_INCONSISTENT") {
+		t.Fatalf("codes %v do not contain FIELD_TYPE_INCONSISTENT", codes)
 	}
 }
 
@@ -780,6 +875,37 @@ func TestSingleAllOfResponseIsDirect(t *testing.T) {
 	}
 	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "RESPONSE_WRAPPER_UNSUPPORTED") {
 		t.Fatalf("codes %v do not contain RESPONSE_WRAPPER_UNSUPPORTED", codes)
+	}
+}
+
+func TestDeleteResponseCanBeInlineEmptyObject(t *testing.T) {
+	ref := "                $ref: '#/components/schemas/DeleteThingResponse'\n"
+	for name, c := range map[string]struct {
+		schema   string
+		eligible bool
+	}{
+		"empty object, as for google.protobuf.Empty": {"                type: object\n", true},
+		"object with fields":                         {"                type: object\n                properties:\n                  ok:\n                    type: boolean\n", false},
+	} {
+		spec := strings.Replace(string(validSpec(t)), ref, c.schema, 1)
+		doc, err := Load([]byte(spec))
+		if err != nil {
+			t.Fatal(err)
+		}
+		codes := reportCodes(Validate(doc, "Thing", OperationIDs{}))
+		if c.eligible != (len(codes) == 0) {
+			t.Fatalf("%s: codes %v, want eligible=%v", name, codes, c.eligible)
+		}
+		if !c.eligible {
+			continue
+		}
+		resource, err := Build(doc, "Thing")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := resource.Delete.Response; !got.Empty || got.Schema != "" {
+			t.Errorf("%s: Delete response = %+v, want an empty response with no component", name, got)
+		}
 	}
 }
 

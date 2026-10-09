@@ -62,7 +62,7 @@ type Operation struct {
 
 // Response is the 200 response body.
 type Response struct {
-	Schema string // component name
+	Schema string // component name, "" for an inline empty object
 	// Field is the property that wraps the resource, for example "aiEvaluation".
 	// It is empty when the response does not return the resource, or is the
 	// resource itself (Direct).
@@ -172,6 +172,9 @@ type Type struct {
 	Discriminator string
 
 	MinLength, MaxLength *int64
-	Minimum, Maximum     *float64
-	MinItems, MaxItems   *int64 // List, Set: items. Map: entries (minProperties, maxProperties).
+	// Pattern is the regular expression that a String must match, "" for
+	// none. The free-text pattern is none. Existing resources have none.
+	Pattern            string
+	Minimum, Maximum   *float64
+	MinItems, MaxItems *int64 // List, Set: items. Map: entries (minProperties, maxProperties).
 }

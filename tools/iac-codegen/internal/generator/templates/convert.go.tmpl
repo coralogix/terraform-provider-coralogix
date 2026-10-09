@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -802,6 +803,66 @@ func flattenTime(v *time.Time) types.String {
 	}
 	return types.StringValue(v.Format(time.RFC3339Nano))
 }
+{{- if or (.Conv.Uses "rfc3339") (.Conv.Uses "times")}}
+
+// expandRFC3339 returns the time of v. The schema has checked its format.
+func expandRFC3339(p path.Path, v timetypes.RFC3339, diags *diag.Diagnostics) *time.Time {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	t, d := v.ValueRFC3339Time()
+	for _, item := range d {
+		diags.Append(diag.WithPath(p, item))
+	}
+	return &t
+}
+
+// flattenRFC3339 writes every digit of the fraction, so a precise time reads back the same.
+func flattenRFC3339(v *time.Time) timetypes.RFC3339 {
+	if v == nil {
+		return timetypes.NewRFC3339Null()
+	}
+	return timetypes.NewRFC3339ValueMust(v.Format(time.RFC3339Nano))
+}
+{{- end}}
+{{- if .Conv.Uses "times"}}
+
+func expandTimes(ctx context.Context, p path.Path, v elements, diags *diag.Diagnostics) []time.Time {
+	items := expandElements[timetypes.RFC3339](ctx, p, v, diags)
+	if items == nil {
+		return nil
+	}
+	out := make([]time.Time, 0, len(items))
+	for _, item := range items {
+		if t := expandRFC3339(p, item, diags); t != nil {
+			out = append(out, *t)
+		}
+	}
+	return out
+}
+
+func flattenTimes(v []time.Time) []timetypes.RFC3339 {
+	out := make([]timetypes.RFC3339, len(v))
+	for i := range v {
+		out[i] = flattenRFC3339(&v[i])
+	}
+	return out
+}
+
+func flattenTimesList(ctx context.Context, v []time.Time, diags *diag.Diagnostics) types.List {
+	if v == nil {
+		return types.ListNull(timetypes.RFC3339Type{})
+	}
+	return flattenList(ctx, timetypes.RFC3339Type{}, flattenTimes(v), diags)
+}
+
+func flattenTimesSet(ctx context.Context, v []time.Time, diags *diag.Diagnostics) types.Set {
+	if v == nil {
+		return types.SetNull(timetypes.RFC3339Type{})
+	}
+	return flattenSet(ctx, timetypes.RFC3339Type{}, flattenTimes(v), diags)
+}
+{{- end}}
 
 func flattenStringsSet[T ~string](ctx context.Context, v []T, diags *diag.Diagnostics) types.Set {
 	if v == nil {
@@ -1056,6 +1117,10 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	if m.{{.Model}} != nil {
 		out.{{.SDK}} = map[string]interface{}{}
 	}
+{{- else if eq .Conv "rfc3339"}}
+	out.{{.SDK}} = {{$l}}expandRFC3339({{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "times"}}
+	out.{{.SDK}} = expandTimes(ctx, {{$p}}, m.{{.Model}}, diags)
 {{- else if eq .Conv "strings"}}
 	{{- if eq .Collection "Set"}}
 	out.{{.SDK}} = expandStringsSet[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
@@ -1116,6 +1181,10 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.Model}} = flattenUint64({{$p}}, {{$v}}, diags)
 {{- else if eq .Conv "time"}}
 	out.{{.Model}} = flattenTime({{$v}})
+{{- else if eq .Conv "rfc3339"}}
+	out.{{.Model}} = flattenRFC3339({{$v}})
+{{- else if eq .Conv "times"}}
+	out.{{.Model}} = flattenTimes{{.Collection}}(ctx, v.{{.SDK}}, diags)
 {{- else if and (eq .Conv "enum") .EnumMap}}
 	out.{{.Model}} = flattenEnumMapped({{$p}}, {{$v}}, {{.EnumMap.Name}}FromAPI, diags)
 {{- else if eq .Conv "enum"}}

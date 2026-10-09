@@ -4,7 +4,9 @@ import (
 	"context"
 	"slices"
 	"testing"
+	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -12,6 +14,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
@@ -150,6 +154,51 @@ func TestOptionalGetPresenceRoundTrips(t *testing.T) {
 	updateDiags.Append(bodyDiags...)
 	if updateDiags.HasError() || body == nil || body.Description != nil || len(mask) != 1 || mask[0] != "description" {
 		t.Fatalf("cleared optional field = body %#v, mask %v, diagnostics %v", body, mask, updateDiags)
+	}
+}
+
+// A time that a request sends round-trips with every digit of its fraction, plans no change when
+// the API returns it with other fraction digits, and must be in UTC.
+func TestTimeRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+	configured := timetypes.NewRFC3339ValueMust("2030-01-01T00:00:00.5Z")
+	sent := expandRFC3339(path.Root("expire_time"), configured, &diags)
+	if read := flattenRFC3339(sent); !read.Equal(configured) {
+		t.Fatalf("round trip = %s, want %s", read, configured)
+	}
+	zeros := timetypes.NewRFC3339ValueMust("2030-01-01T00:00:00.000Z")
+	returned := flattenRFC3339(expandRFC3339(path.Root("expire_time"), zeros, &diags))
+	if equal, d := zeros.StringSemanticEquals(ctx, returned); !equal || d.HasError() {
+		t.Fatalf("%s and %s plan a change", zeros, returned)
+	}
+	if flattenRFC3339(nil).IsNull() != true || expandRFC3339(path.Root("expire_time"), timetypes.NewRFC3339Null(), &diags) != nil {
+		t.Fatal("null does not round-trip")
+	}
+
+	attribute := Schema().Attributes["expire_time"].(schema.StringAttribute)
+	for value, wantError := range map[string]bool{"2030-01-01T02:00:00+02:00": true, "2030-01-01T00:00:00Z": false} {
+		var failed bool
+		for _, v := range attribute.Validators {
+			resp := &validator.StringResponse{}
+			v.ValidateString(ctx, validator.StringRequest{Path: path.Root("expire_time"), ConfigValue: types.StringValue(value)}, resp)
+			failed = failed || resp.Diagnostics.HasError()
+		}
+		if failed != wantError {
+			t.Errorf("%s: validation error = %v, want %v", value, failed, wantError)
+		}
+	}
+
+	windows := []time.Time{time.Date(2030, 1, 2, 0, 0, 0, 0, time.UTC), time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)}
+	list := flattenTimesList(ctx, windows, &diags)
+	if back := expandTimes(ctx, path.Root("windows"), list, &diags); !slices.EqualFunc(back, windows, time.Time.Equal) {
+		t.Fatalf("windows = %v, want %v in order", back, windows)
+	}
+	if flattenTimesList(ctx, nil, &diags).IsNull() != true {
+		t.Fatal("a missing list is not null")
+	}
+	if diags.HasError() {
+		t.Fatal(diags)
 	}
 }
 
@@ -326,6 +375,8 @@ func requestValues() map[string]attr.Value {
 		"tags":         types.SetNull(types.StringType),
 		"details":      types.SetNull(types.ObjectType{AttrTypes: map[string]attr.Type{"name": types.StringType}}),
 		"labels":       types.MapNull(types.StringType),
+		"expire_time":  timetypes.NewRFC3339Null(),
+		"windows":      types.ListNull(timetypes.RFC3339Type{}),
 	}
 }
 

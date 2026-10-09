@@ -219,6 +219,14 @@ var grScenarios = map[string]func(h *grHarness){
 		h.Destroy("destroy", s)
 	},
 
+	// A new id is a new router, so the plan replaces it. A removed id keeps its value.
+	"client-set-id-change": func(h *grHarness) {
+		s := h.Apply("create with id", h.null(), router("mine", j{"id": "first"}))
+		h.Apply("change the id: replace", s, router("mine", j{"id": "second"}))
+		h.Apply("remove the id: no change", s, router("mine"))
+		h.Destroy("destroy", s)
+	},
+
 	"import": func(h *grHarness) {
 		id := h.routers().seed(j{
 			"name": "seeded", "description": "made outside Terraform",

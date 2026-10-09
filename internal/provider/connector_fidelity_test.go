@@ -15,11 +15,18 @@
 package provider
 
 import (
+	"bytes"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 )
 
 // TestConnectorFakeMatchesRecordedBackend checks the fake connector backend
@@ -61,9 +68,175 @@ func runConnectorFidelityStep(t *testing.T, fake *cxFake, s fidelityStep, vars m
 	return status, unsubstJSON(t, got, vars)
 }
 
-func TestRecordConnectorFidelityFromFake(t *testing.T) {
+// TestRecordConnectorFidelity sends fidelity/cases.json to a real tenant and
+// writes fidelity/recorded.json. Set RECORD_CONNECTOR_FIDELITY=1 with
+// CORALOGIX_API_KEY and CORALOGIX_ENV (or CX_REGION). Connector ids are replaced
+// with the case tokens before the file is written.
+func TestRecordConnectorFidelity(t *testing.T) {
 	if os.Getenv("RECORD_CONNECTOR_FIDELITY") != "1" {
-		t.Skip("set RECORD_CONNECTOR_FIDELITY=1 to write recorded.json from the fake")
+		t.Skip("set RECORD_CONNECTOR_FIDELITY=1 with CORALOGIX_API_KEY and CORALOGIX_ENV to record against a tenant")
+	}
+	apiKey := os.Getenv("CORALOGIX_API_KEY")
+	if apiKey == "" {
+		apiKey = os.Getenv("CX_API_KEY")
+	}
+	if apiKey == "" {
+		t.Fatal("CORALOGIX_API_KEY is required to record")
+	}
+	region := os.Getenv("CORALOGIX_ENV")
+	if region == "" {
+		region = os.Getenv("CX_REGION")
+	}
+	if region == "" {
+		t.Fatal("CORALOGIX_ENV or CX_REGION is required to record")
+	}
+	base, ok := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
+	if !ok {
+		t.Fatalf("unknown region %q", region)
+	}
+
+	rawCases, err := os.ReadFile(filepath.Join(cxGoldenDir, "fidelity", "cases.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cases fidelityCases
+	if err := json.Unmarshal(rawCases, &cases); err != nil {
+		t.Fatal(err)
+	}
+
+	vars := newConnectorFidelityVars()
+	t.Cleanup(func() { cleanupRecordedConnectors(base, apiKey, vars) })
+
+	out := fidelityRecorded{}
+	for _, c := range cases.Cases {
+		rec := struct {
+			Name  string `json:"name"`
+			Steps []struct {
+				Status   int `json:"status"`
+				Response any `json:"response"`
+			} `json:"steps"`
+		}{Name: c.Name}
+		for _, s := range c.Steps {
+			status, got := recordConnectorFidelityStep(t, base, apiKey, s, vars)
+			if status == http.StatusForbidden {
+				t.Fatalf("Notification Center returned 403 Permission Denied. Recording needs a management API key with connector permissions.")
+			}
+			rec.Steps = append(rec.Steps, struct {
+				Status   int `json:"status"`
+				Response any `json:"response"`
+			}{Status: status, Response: sanitizeRecordedConnector(got)})
+		}
+		out.Cases = append(out.Cases, rec)
+	}
+	raw, err := json.MarshalIndent(out, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(cxGoldenDir, "fidelity", "recorded.json"), append(raw, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func newConnectorFidelityVars() map[string]string {
+	vars := map[string]string{
+		"MISSING": "00000000-0000-4000-8000-999999999999",
+	}
+	for _, name := range []string{"C1", "C2", "C3", "C4", "C5", "C6"} {
+		vars[name] = newUUID()
+	}
+	return vars
+}
+
+func recordConnectorFidelityStep(t *testing.T, base, apiKey string, s fidelityStep, vars map[string]string) (int, any) {
+	t.Helper()
+	url := strings.TrimRight(base, "/") + cxBasePath + substString(s.Path, vars)
+	var body io.Reader
+	if s.Body != nil {
+		raw, err := json.Marshal(substJSON(t, s.Body, vars))
+		if err != nil {
+			t.Fatal(err)
+		}
+		body = bytes.NewReader(raw)
+	}
+	req, err := http.NewRequest(s.Method, url, body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var parsed any
+	if len(bytes.TrimSpace(raw)) > 0 {
+		if err := json.Unmarshal(raw, &parsed); err != nil {
+			parsed = map[string]any{"raw": string(raw)}
+		}
+	} else {
+		parsed = map[string]any{}
+	}
+	if s.Capture != "" && resp.StatusCode == http.StatusOK {
+		connector, _ := parsed.(map[string]any)["connector"].(map[string]any)
+		if id, _ := connector["id"].(string); id != "" {
+			vars[s.Capture] = id
+		}
+	}
+	return resp.StatusCode, unsubstJSON(t, parsed, vars)
+}
+
+func cleanupRecordedConnectors(base, apiKey string, vars map[string]string) {
+	client := http.DefaultClient
+	for _, name := range []string{"C1", "C2", "C3", "C4", "C5", "C6", "GEN"} {
+		id := vars[name]
+		if id == "" {
+			continue
+		}
+		req, err := http.NewRequest(http.MethodDelete, strings.TrimRight(base, "/")+cxBasePath+"/"+id, nil)
+		if err != nil {
+			continue
+		}
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+		resp, err := client.Do(req)
+		if err != nil {
+			continue
+		}
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+	}
+}
+
+func sanitizeRecordedConnector(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(x))
+		for k, e := range x {
+			if k == "teamId" {
+				out[k] = float64(1)
+				continue
+			}
+			out[k] = sanitizeRecordedConnector(e)
+		}
+		return out
+	case []any:
+		out := make([]any, len(x))
+		for i, e := range x {
+			out[i] = sanitizeRecordedConnector(e)
+		}
+		return out
+	}
+	return v
+}
+
+func TestRecordConnectorFidelityFromFake(t *testing.T) {
+	if os.Getenv("RECORD_CONNECTOR_FIDELITY") != "fake" {
+		t.Skip("set RECORD_CONNECTOR_FIDELITY=fake to write recorded.json from the fake")
 	}
 	rawCases, err := os.ReadFile(filepath.Join(cxGoldenDir, "fidelity", "cases.json"))
 	if err != nil {
@@ -100,4 +273,14 @@ func TestRecordConnectorFidelityFromFake(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(cxGoldenDir, "fidelity", "recorded.json"), append(raw, '\n'), 0o644); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func newUUID() string {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		panic(err)
+	}
+	b[6] = (b[6] & 0x0f) | 0x40
+	b[8] = (b[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 }

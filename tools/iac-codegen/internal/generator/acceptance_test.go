@@ -110,6 +110,102 @@ func TestAcceptanceOmitsExtraAttributes(t *testing.T) {
 	}
 }
 
+func extraWriteOnlyAttr() *tfAttr {
+	return &tfAttr{Name: "token_wo", Kind: "Map", ValueKind: "Map", Optional: true, Extra: true, WriteOnly: true, ElementType: "types.StringType"}
+}
+
+// A value in the acceptance file names a real map key, so the extraAttribute can be set.
+func TestAcceptanceSetsExtraAttributesWhenValuesNameThem(t *testing.T) {
+	s := testSynth(t, "values:\n  token_wo: '{ secret = \"x\" }'\n")
+	body, checks, err := s.attrs(append(sampleAttrs(), extraWriteOnlyAttr()), "", "", accFull, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(body, `token_wo = { secret = "x" }`) {
+		t.Fatalf("config lacks the extraAttribute value:\n%s", body)
+	}
+	found := false
+	for _, c := range checks {
+		if c.Path == "token_wo" && c.Absent {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("write-only extraAttribute must be absent from state: %v", checks)
+	}
+}
+
+func extraUpgradeResource() *tfResource {
+	return &tfResource{Package: "p", CRUD: &crudData{TypeName: "thing", IDAttr: "id", Resource: "Thing"}, Attributes: []*tfAttr{
+		{Name: "name", Kind: "String", Required: true},
+		extraWriteOnlyAttr(),
+		{Name: "token_wo_versions", Kind: "Map", Optional: true, Extra: true, ElementType: "types.Int64Type"},
+	}}
+}
+
+func extraUpgradeFile(t *testing.T) *acceptance.File {
+	t.Helper()
+	file, err := acceptance.Parse([]byte(`
+resource: Thing
+upgradeFrom: "1.0.0"
+upgradeCases:
+  - name: write-only
+    values:
+      token_wo: '{ secret = "x" }'
+      token_wo_versions: '{ secret = 1 }'
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return file
+}
+
+func extraReleased() map[string]acceptance.UpgradeAttribute {
+	return map[string]acceptance.UpgradeAttribute{
+		"name":              {Type: "String", Required: true},
+		"token_wo":          {Type: "Map(String)"},
+		"token_wo_versions": {Type: "Map(Int64)"},
+	}
+}
+
+// An upgrade case is the full upgrade config plus extraAttribute values the lifecycle tests omit.
+func TestAcceptanceUpgradeCaseIncludesWriteOnlyExtra(t *testing.T) {
+	data, err := buildAcceptance(extraUpgradeResource(), "example.com/provider", extraUpgradeFile(t),
+		&acceptance.UpgradeAttributes{From: "1.0.0", Attributes: extraReleased()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(data.UpgradeCases) != 1 || data.UpgradeCases[0].Name != "write-only" || data.UpgradeCases[0].Ident != "WriteOnly" {
+		t.Fatalf("upgrade cases = %+v", data.UpgradeCases)
+	}
+	if !strings.Contains(data.UpgradeCases[0].Config, `token_wo = { secret = "x" }`) {
+		t.Fatalf("upgrade case lacks write-only extraAttribute:\n%s", data.UpgradeCases[0].Config)
+	}
+	if strings.Contains(data.Full.Config, "token_wo") {
+		t.Fatalf("lifecycle config must still omit extraAttributes:\n%s", data.Full.Config)
+	}
+	found := false
+	for _, c := range data.UpgradeCases[0].Checks {
+		if c.Path == "token_wo" && c.Absent {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("upgrade case must check that the write-only map is absent: %v", data.UpgradeCases[0].Checks)
+	}
+}
+
+// The released provider rejects an extraAttribute that the upgrade snapshot does not list.
+func TestAcceptanceUpgradeCaseRequiresReleasedExtra(t *testing.T) {
+	released := extraReleased()
+	delete(released, "token_wo")
+	_, err := buildAcceptance(extraUpgradeResource(), "example.com/provider", extraUpgradeFile(t),
+		&acceptance.UpgradeAttributes{From: "1.0.0", Attributes: released})
+	if err == nil || !strings.Contains(err.Error(), "not in upgrade-attributes.yaml") {
+		t.Fatalf("err = %v, want the extraAttribute missing from the snapshot", err)
+	}
+}
+
 // A made-up number fits the range validators of the attribute.
 func TestAcceptanceNumbersFitTheirRange(t *testing.T) {
 	tests := map[string]struct {
@@ -132,8 +228,8 @@ func TestAcceptanceNumbersFitTheirRange(t *testing.T) {
 			if test.validator != "" {
 				a.Validators = []string{test.validator}
 			}
-			full, _ := scalarValue(a, accFull)
-			updated, _ := scalarValue(a, accUpdated)
+			full, _, _ := scalarValue(a, accFull)
+			updated, _, _ := scalarValue(a, accUpdated)
 			if full != test.full || updated != test.updated {
 				t.Fatalf("values = %s, %s; want %s, %s", full, updated, test.full, test.updated)
 			}
@@ -197,7 +293,7 @@ func TestAcceptanceStringsFitTheirLength(t *testing.T) {
 			if test.validator != "" {
 				a.Validators = []string{test.validator}
 			}
-			full, updated := stringValue(a, false), stringValue(a, true)
+			full, updated := mustStringValue(t, a, false), mustStringValue(t, a, true)
 			if full != test.full || updated != test.updated {
 				t.Fatalf("values = %q, %q; want %q, %q", full, updated, test.full, test.updated)
 			}
@@ -587,10 +683,10 @@ func TestAcceptanceChecksRemovedComputedAttributes(t *testing.T) {
 		t.Fatal(err)
 	}
 	defaults, kept := s.removed(attrs, full)
-	if got := fmt.Sprint(defaults); got != "[{disabled false} {tier basic}]" {
+	if got := fmt.Sprint(defaults); got != "[{disabled false false} {tier basic false}]" {
 		t.Errorf("defaults = %s, want disabled and tier", got)
 	}
-	if got := fmt.Sprint(kept); got != "[{limit 1}]" {
+	if got := fmt.Sprint(kept); got != "[{limit 1 false}]" {
 		t.Errorf("kept = %s, want limit with its full value", got)
 	}
 }

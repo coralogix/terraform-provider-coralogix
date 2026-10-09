@@ -16,8 +16,12 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
 )
 
-// accCheck is one attribute check of an acceptance step.
-type accCheck struct{ Path, Value string }
+// accCheck is one attribute check of an acceptance step. Absent: the attribute must not be in state
+// (a write-only value).
+type accCheck struct {
+	Path, Value string
+	Absent      bool
+}
 
 // Expr is the Go expression of the expected value. A value with a placeholder is rendered at run time.
 func (c accCheck) Expr() string {
@@ -59,6 +63,15 @@ type acceptanceData struct {
 	// UpgradeFullAction and UpgradeMinimalAction are the plan checks of the step after the upgrade,
 	// to the updated config and to the full config. Go expressions of type []plancheck.PlanCheck.
 	UpgradeFullAction, UpgradeMinimalAction string
+	// UpgradeCases are extra upgrade subtests from the acceptance file.
+	UpgradeCases []upgradeCaseData
+}
+
+// upgradeCaseData is one extra upgrade subtest.
+type upgradeCaseData struct {
+	Name, Ident string
+	Config      string
+	Checks      []accCheck
 }
 
 type accMode int
@@ -181,7 +194,74 @@ func (s *accSynth) upgradeSteps(out *acceptanceData, attrs []*tfAttr, resourceTy
 	}
 	out.UpgradeMinimal = &accStep{Config: resourceBlock(resourceType, body), Checks: checks}
 	out.UpgradeMinimalAction, err = s.nextAction(attrs, out.UpgradeMinimal, out.Full, accMinimal, accFull)
-	return err
+	if err != nil {
+		return err
+	}
+	return s.addUpgradeCases(out, attrs, resourceType)
+}
+
+// addUpgradeCases makes the extra upgrade subtests. Each is the full upgrade config plus the case
+// values. extraAttributes are included when the merged values name them, so a write-only map can
+// use a real field name.
+func (s *accSynth) addUpgradeCases(out *acceptanceData, attrs []*tfAttr, resourceType string) error {
+	base := out.Full
+	if out.UpgradeFull != nil {
+		base = out.UpgradeFull
+	}
+	orig := s.file.Values
+	defer func() { s.file.Values = orig }()
+	for _, c := range s.file.UpgradeCases {
+		for _, path := range c.ValuePaths() {
+			if !s.known[path] {
+				return fmt.Errorf("upgradeCases.%s.values: %q is not an attribute of the resource", c.Name, path)
+			}
+			if !s.settable[path] {
+				return fmt.Errorf("upgradeCases.%s.values: %q is set by the server: a config cannot set it", c.Name, path)
+			}
+			if slices.Contains(s.file.Skip, path) {
+				return fmt.Errorf("upgradeCases.%s.values: %q is also in skip: skip leaves it out of every config", c.Name, path)
+			}
+			if s.released != nil && !s.released[path] {
+				return fmt.Errorf("upgradeCases.%s.values: %q is not in %s: the released provider %s would reject it; add it if that release has the attribute",
+					c.Name, path, acceptance.UpgradeFileName, s.file.UpgradeFrom)
+			}
+		}
+		s.file.Values = mergeValues(orig, c.Values)
+		body, checks, err := s.attrs(attrs, "", "", accFull, true)
+		if err != nil {
+			return err
+		}
+		for _, path := range c.ValuePaths() {
+			if !s.used[path] {
+				return fmt.Errorf("upgradeCases.%s.values: %q is not set by the config: it names no attribute, or the attribute is skipped, computed, or in a oneOf arm that the test leaves out", c.Name, path)
+			}
+		}
+		config := resourceBlock(resourceType, body)
+		if config == base.Config {
+			return fmt.Errorf("upgradeCases.%s does not change the upgrade config: give values that the full upgrade config does not already set", c.Name)
+		}
+		out.UpgradeCases = append(out.UpgradeCases, upgradeCaseData{
+			Name: c.Name, Ident: upgradeCaseIdent(c.Name), Config: config, Checks: checks,
+		})
+	}
+	return nil
+}
+
+func mergeValues(base, extra map[string]string) map[string]string {
+	out := maps.Clone(base)
+	if out == nil {
+		out = map[string]string{}
+	}
+	maps.Copy(out, extra)
+	return out
+}
+
+func upgradeCaseIdent(name string) string {
+	parts := strings.Split(name, "-")
+	for i, p := range parts {
+		parts[i] = strings.ToUpper(p[:1]) + p[1:]
+	}
+	return strings.Join(parts, "")
 }
 
 // schemaAttrs adds every attribute path of the schema, nested ones and every oneOf arm included,
@@ -399,7 +479,13 @@ func (s *accSynth) include(a *tfAttr, key string, mode accMode, top bool) bool {
 	case slices.Contains(s.file.Skip, key):
 		return false
 	case a.Extra:
-		return false // extraAttributes are not API fields; a made-up map key is not valid
+		if _, ok := s.file.Values[key]; !ok {
+			return false // extraAttributes are not API fields; a made-up map key is not valid
+		}
+		if s.released != nil && !s.released[key] {
+			return false
+		}
+		return true
 	case s.released != nil && !s.released[key]:
 		return false // the released provider does not have it
 	case !a.Required && !a.Optional:
@@ -479,7 +565,7 @@ func (s *accSynth) removed(attrs []*tfAttr, full []accCheck) (defaults, kept []a
 			continue
 		}
 		if value, ok := defaultState(a); ok {
-			defaults = append(defaults, accCheck{a.Name, value})
+			defaults = append(defaults, accCheck{Path: a.Name, Value: value})
 			continue
 		}
 		if !slices.ContainsFunc(a.Modifiers, func(m string) bool { return strings.Contains(m, "UseStateForUnknown") }) {
@@ -552,12 +638,19 @@ func (s *accSynth) value(a *tfAttr, tfPath, key string, mode accMode) (string, [
 	}
 	if v, ok := s.file.Values[key]; ok {
 		s.used[key] = true
-		return strings.TrimSpace(v), nil, nil
+		var checks []accCheck
+		if a.WriteOnly {
+			checks = []accCheck{{Path: tfPath, Absent: true}}
+		}
+		return strings.TrimSpace(v), checks, nil
 	}
 	switch a.Kind {
 	case "String", "Bool", "Int64", "Int32", "Float64", "Float32":
-		v, check := scalarValue(a, mode)
-		return v, []accCheck{{tfPath, check}}, nil
+		v, check, err := scalarValue(a, mode)
+		if err != nil {
+			return "", nil, err
+		}
+		return v, []accCheck{{Path: tfPath, Value: check}}, nil
 	case "Map", "List", "Set":
 		return s.collectionValue(a, tfPath, mode)
 	case "SingleNested":
@@ -594,34 +687,37 @@ func (s *accSynth) nestedCollection(a *tfAttr, tfPath, key string, mode accMode)
 	if a.Kind == "SetNested" {
 		checks = nil
 	}
-	checks = append([]accCheck{{tfPath + ".#", "1"}}, checks...)
+	checks = append([]accCheck{{Path: tfPath + ".#", Value: "1"}}, checks...)
 	return "[\n" + indentLines(objectHCL(body)+",") + "\n]", checks, nil
 }
 
 // scalarValue makes a plain value of a scalar attribute and the string that the state holds.
-func scalarValue(a *tfAttr, mode accMode) (hcl, state string) {
+func scalarValue(a *tfAttr, mode accMode) (hcl, state string, err error) {
 	updated := mode == accUpdated
 	switch a.Kind {
 	case "Bool":
 		v := !updated
-		return strconv.FormatBool(v), strconv.FormatBool(v)
+		return strconv.FormatBool(v), strconv.FormatBool(v), nil
 	case "Int64", "Int32":
 		full, next := numberValues(a, 1)
 		if updated {
 			full = next
 		}
 		v := strconv.FormatInt(int64(full), 10)
-		return v, v
+		return v, v, nil
 	case "Float64", "Float32":
 		full, next := numberValues(a, 1.5)
 		if updated {
 			full = next
 		}
 		v := strconv.FormatFloat(full, 'g', -1, 64)
-		return v, v
+		return v, v, nil
 	}
-	v := stringValue(a, updated)
-	return strconv.Quote(v), v
+	v, err := stringValue(a, updated)
+	if err != nil {
+		return "", "", err
+	}
+	return strconv.Quote(v), v, nil
 }
 
 // sizeCall matches a size validator of a collection, such as listvalidator.SizeAtLeast(2).
@@ -710,13 +806,49 @@ func numberRange(a *tfAttr) (low, high float64) {
 
 // stringValue is the first accepted value of an enum, or a plain unique string. An enum keeps its
 // value in the update config: the valid values of other fields can depend on it (a rule condition
-// depends on the entity type), and the test cannot know how.
-func stringValue(a *tfAttr, updated bool) string {
+// depends on the entity type), and the test cannot know how. When the plain string does not match
+// the pattern of the attribute, the value is built from the pattern, and is not unique per run. When
+// the built value does not fit the length limits either, the test needs the value in the acceptance
+// file.
+func stringValue(a *tfAttr, updated bool) (string, error) {
 	if values := enumValues(a); len(values) != 0 {
-		return values[0]
+		return values[0], nil
 	}
 	low, high := lengthRange(a)
-	return madeUpString(a.Name, updated, low, high)
+	if a.CustomType == rfc3339Type {
+		return timeValue(a, updated, low, high)
+	}
+	v := madeUpString(a.Name, updated, low, high)
+	re := patternOf(a)
+	if re == nil || madeUpMatches(re, v) {
+		return v, nil
+	}
+	if sample, ok := patternValue(re, updated, low, high); ok {
+		return sample, nil
+	}
+	return "", fmt.Errorf("no made-up value of %s matches the pattern %q and the length limits: set the value in %s", a.Name, re, acceptance.FileName)
+}
+
+// timeValue is a time in UTC, a day apart in the update config. A value built from a pattern could
+// be no valid time, so a pattern or a length that rejects it needs the value in the acceptance file.
+func timeValue(a *tfAttr, updated bool, low, high int) (string, error) {
+	v := "2030-01-01T00:00:00Z"
+	if updated {
+		v = "2030-01-02T00:00:00Z"
+	}
+	if re := patternOf(a); re != nil && !re.MatchString(v) || len(v) < low || len(v) > high {
+		return "", fmt.Errorf("the time %s of %s does not pass its validators: set the value in %s", v, a.Name, acceptance.FileName)
+	}
+	return v, nil
+}
+
+// timeType returns rfc3339Type when elemType is the time type, so an element of a list of times
+// gets a time value.
+func timeType(elemType string) string {
+	if elemType == rfc3339Type {
+		return rfc3339Type
+	}
+	return ""
 }
 
 // runLength is the length of @{run} in a test run: "acc-" and 8 characters.
@@ -803,7 +935,7 @@ func enumValues(a *tfAttr) []string {
 // elements are made up.
 func (s *accSynth) collectionValue(a *tfAttr, tfPath string, mode accMode) (string, []accCheck, error) {
 	elem, ok := map[string]string{
-		"types.StringType": "String", "types.BoolType": "Bool", "types.Int64Type": "Int64",
+		"types.StringType": "String", rfc3339Type: "String", "types.BoolType": "Bool", "types.Int64Type": "Int64",
 		"types.Int32Type": "Int32", "types.Float64Type": "Float64", "types.Float32Type": "Float32",
 	}[a.ElementType]
 	if !ok {
@@ -812,14 +944,17 @@ func (s *accSynth) collectionValue(a *tfAttr, tfPath string, mode accMode) (stri
 	if err := checkOneElement(a); err != nil {
 		return "", nil, err
 	}
-	item, state := scalarValue(&tfAttr{Name: a.Name, Kind: elem, Validators: a.ElemValidators}, mode)
+	item, state, err := scalarValue(&tfAttr{Name: a.Name, Kind: elem, Validators: a.ElemValidators, CustomType: timeType(a.ElementType)}, mode)
+	if err != nil {
+		return "", nil, err
+	}
 	switch a.Kind {
 	case "Map":
-		return "{ key = " + item + " }", []accCheck{{tfPath + ".key", state}}, nil
+		return "{ key = " + item + " }", []accCheck{{Path: tfPath + ".key", Value: state}}, nil
 	case "List":
-		return "[" + item + "]", []accCheck{{tfPath + ".#", "1"}, {tfPath + ".0", state}}, nil
+		return "[" + item + "]", []accCheck{{Path: tfPath + ".#", Value: "1"}, {Path: tfPath + ".0", Value: state}}, nil
 	}
-	return "[" + item + "]", []accCheck{{tfPath + ".#", "1"}}, nil
+	return "[" + item + "]", []accCheck{{Path: tfPath + ".#", Value: "1"}}, nil
 }
 
 // UsesNoReplace reports whether a step after an upgrade checks only that the plan does not replace.

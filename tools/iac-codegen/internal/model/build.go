@@ -405,19 +405,45 @@ func emptyResponse(out Response, proxy *base.SchemaProxy) (Response, error) {
 	return out, nil
 }
 
+// emptyInlineObject reports whether proxy is an inline object with no fields
+// and no composition, as the OpenAPI fork writes google.protobuf.Empty.
+func emptyInlineObject(proxy *base.SchemaProxy) bool {
+	s, err := schemaOf(proxy)
+	if err != nil || proxy.IsReference() {
+		return false
+	}
+	return (len(s.Type) == 0 || slices.Equal(s.Type, []string{"object"})) &&
+		(s.Properties == nil || s.Properties.Len() == 0) &&
+		s.AdditionalProperties == nil && len(s.AllOf) == 0 && len(s.OneOf) == 0 && len(s.AnyOf) == 0
+}
+
+// okSchema returns the JSON schema of the 200 response.
+func okSchema(op *v3.Operation) (*base.SchemaProxy, error) {
+	if op == nil || op.Responses == nil || op.Responses.Codes == nil {
+		return nil, errors.New("no responses")
+	}
+	resp := op.Responses.Codes.GetOrZero("200")
+	if resp == nil || resp.Content == nil || resp.Content.GetOrZero(jsonMedia) == nil || resp.Content.GetOrZero(jsonMedia).Schema == nil {
+		return nil, fmt.Errorf("no 200 %s response schema", jsonMedia)
+	}
+	return resp.Content.GetOrZero(jsonMedia).Schema, nil
+}
+
 // response reads the 200 response. When wrapped is true, the response must
 // have exactly one property, and that property must be the resource.
 // response reads the 200 response. With wrapped, it must return the resource:
 // the resource itself (Direct), or one field that wraps it.
 func (r *Resource) response(op *v3.Operation, wrapped bool) (Response, error) {
-	if op == nil || op.Responses == nil || op.Responses.Codes == nil {
-		return Response{}, errors.New("no responses")
+	schema, err := okSchema(op)
+	if err != nil {
+		return Response{}, err
 	}
-	resp := op.Responses.Codes.GetOrZero("200")
-	if resp == nil || resp.Content == nil || resp.Content.GetOrZero(jsonMedia) == nil || resp.Content.GetOrZero(jsonMedia).Schema == nil {
-		return Response{}, fmt.Errorf("no 200 %s response schema", jsonMedia)
+	proxy := responseRef(schema)
+	if proxy == nil && !wrapped && emptyInlineObject(schema) {
+		// google.protobuf.Empty is an inline object with no fields. The SDK
+		// returns map[string]interface{}, the same as for an empty component.
+		return Response{Empty: true}, nil
 	}
-	proxy := responseRef(resp.Content.GetOrZero(jsonMedia).Schema)
 	if proxy == nil {
 		return Response{}, errors.New("200 response schema is inline, want a $ref")
 	}
@@ -1293,6 +1319,9 @@ func stringType(t *Type, s *base.Schema, w walk) error {
 		t.WireString = true
 	default:
 		t.Kind = String
+		if s.Pattern != permissivePattern && (w.policy == nil || !w.policy.Existing) {
+			t.Pattern = s.Pattern
+		}
 	}
 	return nil
 }

@@ -5,6 +5,7 @@
 - CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Changing `id` still recreates the resource.
 
 #### resource/coralogix_connector
+- CHORE: Generated upgrade test covers a connector that already uses `field_values_wo`.
 - CHORE: Bump `coralogix-management-sdk` so Connector required fields and unordered field sets come from the OpenAPI contract.
 - CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Write-only `connector_config.field_values_wo` is a generated extra attribute (`WriteOnly: true`); handwritten code only merges secrets into the request and restores versions after read.
 - CHORE: Add protocol baseline golden files against an in-memory connector API.
@@ -14,7 +15,17 @@
 #### resource/coralogix_alert
 - DOCS: Describe `notification_group.group_by_keys` (combined vs. separate cases).
 
+#### resource/coralogix_global_router
+- FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
+
 #### tools/iac-codegen
+- FEAT: A `date-time` field that Create or Update sends, alone or in a list or set, is supported. It is a `timetypes.RFC3339` attribute that must be in UTC (`Z`). A time that only the response has stays a plain string.
+- CHORE: Bump the generator to `v0.1.0-beta.16`.
+- FEAT: A string `pattern` in Create, Update, and the response becomes a `stringvalidator.RegexMatches` validator, also on list items and map values. Only a pattern that Go cannot compile, such as a lookahead, or a pattern on an enum blocks generation. The acceptance test builds a matching value when its made-up string does not match, and generation stops when no value fits.
+- FEAT: A Delete can return `google.protobuf.Empty`, which the OpenAPI fork writes as an inline object with no fields.
+- CHORE: Bump the generator to `v0.1.0-beta.15`.
+- FEAT: `upgradeCases` in `acceptance.yaml` adds extra upgrade subtests. An extraAttribute is included when `values` or a case supplies its HCL, so a write-only map can use a real field name instead of a made-up `key`.
+- CHORE: Bump the generator to `v0.1.0-beta.13`.
 - FEAT: Support nested objects whose Create, Update, and response schemas differ. A nested field that only the response has is computed. A nested field that Create has and Update does not is immutable. A type mismatch now names the exact nested field. A nested one-of can require an arm in Create and allow no arm in Update and the response.
 - FIX: An immutable nested value that holds computed fields no longer replaces the resource on every change. The replace check now compares only the values that Create sends.
 - FEAT: A missing `required` list means that no field is required. The OpenAPI fork cannot write an empty list, so an all-optional message, such as a PATCH body, was ineligible. A `required: []` line in `behavior-overrides.yaml` is now unused and reported.
@@ -25,6 +36,12 @@
 - FEAT: `equality: yaml` or `equality: json` on a string field compares its value as a document, so a reformatted YAML or JSON value does not plan a change.
 - FIX: A resource in existing mode keeps the configured form of an empty list, set, or map. An omitted list or map that the API returns empty no longer fails the apply with `was null, but now` an empty value.
 - FEAT: `keepPriorOrder` works on a list whose request items use another component than its response items, such as a Create item without the server-set id and hash. The items pair on the fields that the request sends.
+- CHORE: Bump the generator to `v0.1.0-beta.12`.
+- FEAT: A `default` line in `behavior-overrides.yaml` accepts a number for an `Int64`, `Int32`, `Float64`, or `Float32` attribute, for example `{computed: true, default: 0}`. Before, it accepted only a string or a bool.
+- FIX: In existing mode, a top-level field with a server default in the contract uses that default when `behavior-overrides.yaml` has no `default` or `computed: false` line for it. Before, the field became plain `Optional`, and an apply without it failed with `was null, but now` the default.
+- CHORE: Bump the generator to `v0.1.0-beta.6`.
+- CHORE: Bump the generator to `v0.1.0-beta.7`.
+- CHORE: Bump the generator to `v0.1.0-beta.8`.
 - CHORE: Bump the generator to `v0.1.0-beta.11`.
 - CHORE: Bump the generator to `v0.1.0-beta.10`.
 - FIX: The generated acceptance test leaves out `types.<Type>.extraAttributes`. A made-up map key such as `key` is not an API field.
@@ -39,6 +56,9 @@
 - FEAT: Generate unordered sets of objects. The Thing golden fixture includes a set of objects.
 - FIX: Namespaced OpenAPI components such as `notification_center.ConnectorConfigField` render as valid Go model types.
 - FIX: A nested object collection marked `x-coralogix-collection: set` now flattens as a set in the generated attr.Type map, matching the schema.
+- FIX: A client-set `id` (`clientSetID: true`) has `RequiresReplace`. Before, a change of `id` planned an in-place update that the API answered with 404.
+- FEAT: A `useStateForUnknown` key that the generator already applies, for example on a client-set `id`, is reported as `OVERRIDE_UNUSED`.
+- CHORE: Bump the generator to `v0.1.0-beta.14`.
 
 # Release 3.20.0
 

@@ -29,6 +29,10 @@ const FileName = "acceptance.yaml"
 //	values:                            # HCL for a field, instead of a made-up value
 //	  rules[].targets[].connector_id: coralogix_connector.slack.id
 //	upgradeFrom: "3.19.0"              # a released provider for the upgrade test
+//	upgradeCases:                      # extra upgrade subtests (needs upgradeFrom)
+//	  - name: write-only
+//	    values:
+//	      token_wo: '{ secret = "x" }'
 //
 // In prerequisites and values, @{run} is a unique id of the test run, and @{env.NAME} is the value
 // of an environment variable from env.
@@ -54,6 +58,18 @@ type File struct {
 	// UpgradeFrom is a released provider version. The upgrade test creates the resource with it
 	// and plans with this build. Empty: no upgrade test.
 	UpgradeFrom string `yaml:"upgradeFrom"`
+	// UpgradeCases are extra upgrade subtests. Each is the full upgrade config plus values,
+	// created with UpgradeFrom and planned with this build. Use one for extraAttributes that
+	// need a real map key: the dummy key of a made-up map is not an API field.
+	UpgradeCases []UpgradeCase `yaml:"upgradeCases"`
+}
+
+// UpgradeCase is one extra upgrade subtest in the acceptance file.
+type UpgradeCase struct {
+	// Name is the subtest suffix: upgrade-<name>.
+	Name string `yaml:"name"`
+	// Values maps field paths to HCL, merged over File.Values for this case only.
+	Values map[string]string `yaml:"values"`
 }
 
 var (
@@ -61,6 +77,7 @@ var (
 	fieldPath   = regexp.MustCompile(`^[a-z][a-z0-9_]*(\[\])?(\.[a-z][a-z0-9_]*(\[\])?)*$`)
 	version     = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
 	placeholder = regexp.MustCompile(`@\{[^}]*\}`)
+	caseName    = regexp.MustCompile(`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`)
 )
 
 // Parse reads the file. An unknown key or a wrong value is an error.
@@ -84,7 +101,7 @@ func (f *File) check() error {
 	if f.Resource == "" {
 		return errors.New("resource is required")
 	}
-	steps := []func() error{f.checkEnv, f.checkValues, f.checkPaths, f.checkVersionAndText}
+	steps := []func() error{f.checkEnv, f.checkValues, f.checkPaths, f.checkVersionAndText, f.checkUpgradeCases}
 	for _, step := range steps {
 		if err := step(); err != nil {
 			return err
@@ -140,9 +157,49 @@ func (f *File) checkVersionAndText() error {
 	if f.UpgradeFrom == "" && len(f.UpgradeMinimal) != 0 {
 		return errors.New("upgradeMinimal needs upgradeFrom: without it there is no upgrade test")
 	}
-	for _, text := range append([]string{f.Prerequisites}, f.valueTexts()...) {
+	texts := append([]string{f.Prerequisites}, f.valueTexts()...)
+	for _, c := range f.UpgradeCases {
+		for _, path := range c.ValuePaths() {
+			texts = append(texts, c.Values[path])
+		}
+	}
+	for _, text := range texts {
 		if strings.Contains(text, "`") {
 			return errors.New("a backtick is not allowed in HCL: the generated test writes it in a Go raw string")
+		}
+	}
+	return nil
+}
+
+func (f *File) checkUpgradeCases() error {
+	if len(f.UpgradeCases) == 0 {
+		return nil
+	}
+	if f.UpgradeFrom == "" {
+		return errors.New("upgradeCases needs upgradeFrom: without it there is no upgrade test")
+	}
+	seen := map[string]bool{}
+	for i, c := range f.UpgradeCases {
+		if !caseName.MatchString(c.Name) {
+			return fmt.Errorf("upgradeCases[%d].name is %q, want a name such as write-only", i, c.Name)
+		}
+		if seen[c.Name] {
+			return fmt.Errorf("upgradeCases: %q is listed twice", c.Name)
+		}
+		seen[c.Name] = true
+		if len(c.Values) == 0 {
+			return fmt.Errorf("upgradeCases.%s.values is empty", c.Name)
+		}
+		for _, path := range c.ValuePaths() {
+			if !fieldPath.MatchString(path) {
+				return fmt.Errorf("upgradeCases.%s.values: %q is not a field path such as connector_config.field_values_wo", c.Name, path)
+			}
+			if strings.TrimSpace(c.Values[path]) == "" {
+				return fmt.Errorf("upgradeCases.%s.values.%s is empty", c.Name, path)
+			}
+			if err := f.checkPlaceholders("upgradeCases."+c.Name+".values."+path, c.Values[path]); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -183,3 +240,13 @@ func (f *File) valueTexts() []string {
 
 // ValuePaths returns the paths in values, sorted. The generator checks each against the schema.
 func (f *File) ValuePaths() []string { return f.valuePaths() }
+
+// ValuePaths returns the paths in the case values, sorted.
+func (c UpgradeCase) ValuePaths() []string {
+	paths := make([]string, 0, len(c.Values))
+	for path := range c.Values {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+	return paths
+}

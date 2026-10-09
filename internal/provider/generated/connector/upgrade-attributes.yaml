@@ -9,6 +9,8 @@ attributes:
     config_overrides[].fields[].field_name: {type: String, required: true}
     config_overrides[].fields[].template: {type: String, required: true}
     connector_config: {type: SingleNested}
+    connector_config.field_values_wo: {type: Map(String)}
+    connector_config.field_values_wo_versions: {type: Map(Int64)}
     connector_config.fields: {type: SetNested, required: true}
     connector_config.fields[].field_name: {type: String, required: true}
     connector_config.fields[].value: {type: String, required: true}

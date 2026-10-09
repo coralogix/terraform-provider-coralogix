@@ -20,3 +20,12 @@ upgradeMinimal:
   - description
 
 upgradeFrom: "3.20.0"
+
+# extraAttributes need a real map key: a made-up `key` is not a connector field, so the lifecycle
+# tests leave them out. This case creates with 3.20.0 using field_values_wo, then plans the same
+# config with this build.
+upgradeCases:
+  - name: write-only
+    values:
+      connector_config.field_values_wo: '{ additionalHeaders = "{\"Authorization\":\"OAuth generated-secret\"}" }'
+      connector_config.field_values_wo_versions: '{ additionalHeaders = 1 }'
