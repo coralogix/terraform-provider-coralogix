@@ -123,6 +123,13 @@ type Type struct {
 	// Expand does not send them. Flatten writes a typed null. A handwritten
 	// overlay reads them from configuration.
 	ExtraAttributes map[string]ExtraAttribute `yaml:"extraAttributes"`
+	// UnsupportedArms are oneOf arms the released resource does not configure.
+	// Flatten reports a response that selects one, with UnsupportedSummary and
+	// UnsupportedDetail. Skipping an arm is an error; this key keeps the
+	// remaining arms as the group.
+	UnsupportedArms    []string `yaml:"unsupportedArms"`
+	UnsupportedSummary string   `yaml:"unsupportedSummary"`
+	UnsupportedDetail  string   `yaml:"unsupportedDetail"`
 }
 
 // ExtraAttribute is one Terraform-only attribute of a generated object.
@@ -173,6 +180,9 @@ type Field struct {
 	// Unwrap: true shows the value inside the wrapper of the field, or of its items, in this
 	// place. false keeps the object of a component that the unwrap list names.
 	Unwrap *bool `yaml:"unwrap"`
+	// RequiresReplace: a change replaces the resource, although Update accepts
+	// the field. Only a top-level field of the resource can set it.
+	RequiresReplace bool `yaml:"requiresReplace"`
 }
 
 // Equality values of a field line.
@@ -203,6 +213,16 @@ type Enum struct {
 	// Rejected are the values of the contract that the resource does not accept. The generator
 	// reports a value of the contract that is in neither list, so a new API value needs a decision.
 	Rejected []string `yaml:"rejected"`
+	// Verbatim: the Terraform value is the API value. Otherwise it is the lower case of the API value.
+	Verbatim bool `yaml:"verbatim"`
+}
+
+// TerraformValue is the Terraform value of one API enum value.
+func (e Enum) TerraformValue(api string) string {
+	if e.Verbatim {
+		return api
+	}
+	return strings.ToLower(api)
 }
 
 // Parse reads the file. An unknown key or a wrong value is an error.
@@ -253,8 +273,8 @@ func (f *File) checkTypes() error {
 		if t.Required != nil && len(*t.Required) != 0 {
 			return fmt.Errorf("types.%s.required: only the empty list [] is allowed", name)
 		}
-		if t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 {
-			return fmt.Errorf("types.%s has no override", name)
+		if err := t.check(name); err != nil {
+			return err
 		}
 		for field, line := range t.Fields {
 			if err := line.check(); err != nil {
@@ -341,6 +361,7 @@ func (l Field) keys() []string {
 	add(len(l.Validators) != 0, "validators")
 	add(l.Equality != "", "equality")
 	add(l.Unwrap != nil, "unwrap")
+	add(l.RequiresReplace, "requiresReplace")
 	return keys
 }
 
@@ -378,10 +399,34 @@ func (e ExtraAttribute) check(name string) error {
 	return nil
 }
 
+func (t Type) check(name string) error {
+	hasUnsupported := len(t.UnsupportedArms) != 0 || t.UnsupportedSummary != "" || t.UnsupportedDetail != ""
+	if t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 && !hasUnsupported {
+		return fmt.Errorf("types.%s has no override", name)
+	}
+	if !hasUnsupported {
+		return nil
+	}
+	if len(t.UnsupportedArms) == 0 || t.UnsupportedSummary == "" || t.UnsupportedDetail == "" {
+		return fmt.Errorf("types.%s: unsupportedArms, unsupportedSummary, and unsupportedDetail are set together", name)
+	}
+	seen := map[string]bool{}
+	for _, arm := range t.UnsupportedArms {
+		if arm == "" || seen[arm] {
+			return fmt.Errorf("types.%s.unsupportedArms: %q is empty or repeated", name, arm)
+		}
+		seen[arm] = true
+		if t.Fields[arm].Skip {
+			return fmt.Errorf("types.%s.unsupportedArms: %q is also skipped", name, arm)
+		}
+	}
+	return nil
+}
+
 func (l Field) empty() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown && l.Default == nil && l.ReadEmptyAs == "" &&
-		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && !l.RequiresReplace
 }
 
 func (l Field) check() error {
@@ -414,7 +459,7 @@ func (l Field) check() error {
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
 func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Default != nil || l.KeepPriorOrder ||
-		l.ReadEmptyAs != "" || len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil
+		l.ReadEmptyAs != "" || len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || l.RequiresReplace
 }
 
 func checkValidators(validators []Validator) error {
@@ -476,6 +521,24 @@ func (f *File) Policy() model.Policy {
 			if t.Fields[field].replacesServerDefault() {
 				p.Defaults = append(p.Defaults, name+"."+field)
 			}
+			if t.Fields[field].RequiresReplace {
+				p.RequiresReplace = append(p.RequiresReplace, name+"."+field)
+			}
+		}
+		for _, arm := range t.UnsupportedArms {
+			p.Unsupported = append(p.Unsupported, name+"."+arm)
+		}
+		if t.UnsupportedSummary != "" {
+			if p.UnsupportedSummary == nil {
+				p.UnsupportedSummary = map[string]string{}
+			}
+			p.UnsupportedSummary[name] = t.UnsupportedSummary
+		}
+		if t.UnsupportedDetail != "" {
+			if p.UnsupportedDetail == nil {
+				p.UnsupportedDetail = map[string]string{}
+			}
+			p.UnsupportedDetail[name] = t.UnsupportedDetail
 		}
 	}
 	return p

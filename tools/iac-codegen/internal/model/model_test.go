@@ -370,6 +370,49 @@ func TestUpdateMaskPatternMustAcceptSeveralPaths(t *testing.T) {
 	}
 }
 
+func TestRequiresReplaceAndUnsupportedArms(t *testing.T) {
+	doc, err := Load(validSpec(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resource, err := BuildWithPolicy(doc, "Thing", OperationIDs{}, Policy{
+		Existing: true, NoInferredValidators: true,
+		RequiresReplace:    []string{"Thing.name"},
+		Unsupported:        []string{"ThingConfig.queue"},
+		UnsupportedSummary: map[string]string{"ThingConfig": "Unsupported config"},
+		UnsupportedDetail:  map[string]string{"ThingConfig": "queue is not supported"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var name *ResourceField
+	for _, f := range resource.Fields {
+		if f.Name == "name" {
+			name = f
+		}
+	}
+	if name == nil || name.Behavior != Immutable {
+		t.Fatalf("name = %v, want an immutable field", name)
+	}
+	var config *Type
+	for _, f := range resource.Fields {
+		if f.Name == "config" {
+			config = f.Type
+		}
+	}
+	if config == nil {
+		t.Fatal("no config field")
+	}
+	for _, f := range config.Fields {
+		if f.Name == "queue" {
+			t.Fatal("queue stayed in the schema")
+		}
+	}
+	if len(config.Unsupported) != 1 || config.Unsupported[0].Name != "queue" {
+		t.Fatalf("unsupported = %v", config.Unsupported)
+	}
+}
+
 func TestNestedOneOfNeedsDottedUpdateMask(t *testing.T) {
 	spec := strings.Replace(string(validSpec(t)),
 		"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'",
@@ -855,7 +898,7 @@ func TestBodyUpdateMaskRejectsNestedOneOf(t *testing.T) {
 		t.Fatalf("codes %v do not contain UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED", codes)
 	}
 	if codes := maskCodes(t, dotted, body); slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
-		t.Fatalf("codes %v, a pattern that accepts an arm path must not reject the nested oneOf", codes)
+		t.Fatalf("codes %v, a dotted mask can name a oneOf arm", codes)
 	}
 }
 

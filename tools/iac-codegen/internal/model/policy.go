@@ -44,6 +44,20 @@ type Policy struct {
 	// changed-field mask a query parameter would send. A full replace (PUT)
 	// has no mask, so the key is an error there.
 	UpdateMaskInBody bool
+	// appliedUnsupported records Component.arm keys that splitUnsupported
+	// dropped. Create and Update types are discarded after merge, so a walk of
+	// the response cannot see a key that names only a request component.
+	appliedUnsupported map[string]bool
+	// RequiresReplace lists "Component.field" of top-level fields that replace
+	// the resource when they change, although Update accepts them.
+	RequiresReplace []string
+	// Unsupported lists "Component.field" of oneOf arms the resource does not
+	// configure. Flatten reports a response that selects one.
+	Unsupported []string
+	// UnsupportedSummary and UnsupportedDetail are the diagnostic for those
+	// arms, keyed by the component name.
+	UnsupportedSummary map[string]string
+	UnsupportedDetail  map[string]string
 	// EnumAnyPrefix lists the enum components whose business values do not use
 	// the prefix of the zero value (ENTITY_TYPE_UNSPECIFIED, ALERTS).
 	EnumAnyPrefix []string
@@ -127,6 +141,10 @@ func (p Policy) methods(v verb) []string {
 
 func (p Policy) skips(component, field string) bool {
 	return component != "" && slices.Contains(p.Skip, component+"."+field)
+}
+
+func (p Policy) requiresReplace(component, field string) bool {
+	return component != "" && slices.Contains(p.RequiresReplace, component+"."+field)
 }
 
 func (p Policy) released(component, field string) bool {

@@ -84,6 +84,12 @@ func BuildWithPolicy(doc *v3.Document, name string, ids OperationIDs, policy Pol
 	if err := r.unwrap(); err != nil {
 		return nil, err
 	}
+	if err := r.applyRequiresReplace(); err != nil {
+		return nil, err
+	}
+	if err := r.checkUnsupportedApplied(); err != nil {
+		return nil, err
+	}
 	return r, nil
 }
 
@@ -1121,9 +1127,120 @@ func objectType(t *Type, s *base.Schema, path string, w walk) error {
 	}
 	if len(groups) == 1 && sameSet(groups[0].Arms, propertyNames(s)) {
 		t.Kind, t.AllowNone = OneOf, groups[0].AllowNone
-		return nil
+		return splitUnsupported(t, w.policy)
 	}
 	t.Kind, t.Groups = Object, groups
+	return nil
+}
+
+// splitUnsupported removes the oneOf arms that the policy does not configure.
+// They stay on Unsupported so flatten can report a response that selects one.
+func splitUnsupported(t *Type, p *Policy) error {
+	listed := unsupportedArms(t, p)
+	if len(listed) == 0 {
+		return nil
+	}
+	if t.Schema == "" {
+		return fmt.Errorf("unsupported arms need a component schema")
+	}
+	keep, drop, err := partitionUnsupported(t, listed)
+	if err != nil {
+		return err
+	}
+	t.Fields = keep
+	t.Unsupported = drop
+	t.UnsupportedSummary = p.UnsupportedSummary[t.Schema]
+	t.UnsupportedDetail = p.UnsupportedDetail[t.Schema]
+	if t.UnsupportedSummary == "" || t.UnsupportedDetail == "" {
+		return fmt.Errorf("%s: unsupported arms need unsupportedSummary and unsupportedDetail", t.Schema)
+	}
+	noteUnsupported(p, t.Schema, drop)
+	return nil
+}
+
+// noteUnsupported records the arms splitUnsupported removed. The request type
+// that held them is discarded by merge, so the response walk cannot see them.
+func noteUnsupported(p *Policy, schema string, fields []*Field) {
+	if p.appliedUnsupported == nil {
+		p.appliedUnsupported = map[string]bool{}
+	}
+	for _, f := range fields {
+		p.appliedUnsupported[schema+"."+f.Name] = true
+	}
+}
+
+func unsupportedArms(t *Type, p *Policy) []string {
+	if p == nil || t == nil || t.Schema == "" {
+		return nil
+	}
+	var listed []string
+	prefix := t.Schema + "."
+	for _, key := range p.Unsupported {
+		arm, ok := strings.CutPrefix(key, prefix)
+		if ok && arm != "" && !strings.Contains(arm, ".") {
+			listed = append(listed, arm)
+		}
+	}
+	return listed
+}
+
+func partitionUnsupported(t *Type, listed []string) (keep, drop []*Field, err error) {
+	names := map[string]bool{}
+	for _, f := range t.Fields {
+		names[f.Name] = true
+	}
+	for _, arm := range listed {
+		if !names[arm] {
+			return nil, nil, fmt.Errorf("%s: unsupported arm %q is not a field", t.Schema, arm)
+		}
+	}
+	for _, f := range t.Fields {
+		if slices.Contains(listed, f.Name) {
+			drop = append(drop, f)
+			continue
+		}
+		keep = append(keep, f)
+	}
+	if len(keep) == 0 {
+		return nil, nil, fmt.Errorf("%s: unsupported arms remove every oneOf arm", t.Schema)
+	}
+	return keep, drop, nil
+}
+
+// applyRequiresReplace marks top-level fields that replace the resource even
+// though Update accepts them. Terraform replaces the resource when the field
+// changes, so Update is not used for that change. The field stays out of the
+// Update body; the server leaves the stored value in place.
+func (r *Resource) applyRequiresReplace() error {
+	if len(r.Policy.RequiresReplace) == 0 {
+		return nil
+	}
+	applied := map[string]bool{}
+	for _, f := range r.Fields {
+		if !r.Policy.requiresReplace(r.Name, f.Name) {
+			continue
+		}
+		if f.Behavior != Normal {
+			return fmt.Errorf("%s.%s: requiresReplace needs a field that Create, Update, and Get all have", r.Name, f.Name)
+		}
+		f.Behavior = Immutable
+		applied[r.Name+"."+f.Name] = true
+	}
+	for _, key := range r.Policy.RequiresReplace {
+		if !applied[key] {
+			return fmt.Errorf("requiresReplace %s: only a top-level field of %s can force a new resource", key, r.Name)
+		}
+	}
+	return nil
+}
+
+// checkUnsupportedApplied reports an unsupported arm that names no oneOf arm.
+func (r *Resource) checkUnsupportedApplied() error {
+	for _, key := range r.Policy.Unsupported {
+		if !r.Policy.appliedUnsupported[key] {
+			return fmt.Errorf("unsupported %s: no oneOf arm has that name", key)
+		}
+	}
 	return nil
 }
 

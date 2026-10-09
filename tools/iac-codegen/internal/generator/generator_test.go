@@ -275,6 +275,34 @@ func moveUpdateMaskIntoBody(t *testing.T, text string) string {
 	return text[:start] + tail
 }
 
+func TestTopLevelBodyMaskRejectsNestedOneOf(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	spec := moveUpdateMaskIntoBody(t, string(input.OpenAPI))
+	top := "pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'"
+	dotted := "pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'"
+	spec = strings.Replace(spec, dotted, top, 1)
+	if spec == moveUpdateMaskIntoBody(t, string(input.OpenAPI)) {
+		t.Fatal("cannot replace the body mask pattern")
+	}
+	input.OpenAPI = []byte(spec)
+	dir := t.TempDir()
+	overrides := filepath.Join(dir, "behavior-overrides.yaml")
+	const file = `resource: Thing
+mode: existing
+validators:
+  inferred: false
+api:
+  updateMaskInBody: true
+`
+	if err := os.WriteFile(overrides, []byte(file), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err := generateFromInput(Options{Resource: "Thing", OutputDir: filepath.Join(dir, "thing"), OverridesPath: overrides}, input, sdkDir)
+	if err == nil || !strings.Contains(err.Error(), "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
+		t.Fatalf("err = %v, want UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED", err)
+	}
+}
+
 func generateBodyMaskResource(t *testing.T, input source.Input, sdkDir string) string {
 	t.Helper()
 	dir := t.TempDir()
@@ -482,12 +510,6 @@ func TestContractGapsUseSharedFailClosedValidation(t *testing.T) {
 		"invalid enum zero": {
 			spec: strings.Replace(base, "THING_KIND_UNSPECIFIED", "THING_KIND_NOT_SET", 1),
 			code: "ENUM_ZERO_INVALID",
-		},
-		"top-level mask for nested oneOf": {
-			spec: strings.Replace(base,
-				"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'",
-				"pattern: '^[a-z][A-Za-z0-9]*(,[a-z][A-Za-z0-9]*)*$'", 1),
-			code: "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED",
 		},
 	}
 	for name, test := range tests {
