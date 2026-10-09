@@ -131,6 +131,7 @@ type UpdateThingRequest struct {
 	Labels       map[string]string
 	ExpireTime   *time.Time
 	Windows      []time.Time
+	UpdateMask   *string
 }
 
 type ThingsServiceAPIService struct {

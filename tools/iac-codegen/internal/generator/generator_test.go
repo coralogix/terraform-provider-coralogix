@@ -209,8 +209,9 @@ func TestGeneratedUpdateMaskUsesQueryParameter(t *testing.T) {
 }
 
 // A released PATCH that puts updateMask in the JSON body updates the fields
-// present in the body. The generated update omits the mask and the fields that
-// did not change, and it does not configure an unsupported oneOf arm.
+// present in the body. The generated update omits unchanged fields. A field
+// cleared to null also sends the mask. An unsupported oneOf arm stays out of
+// the schema.
 func TestBodyUpdateMaskOmitsUnchangedFields(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	input.OpenAPI = []byte(moveUpdateMaskIntoBody(t, string(input.OpenAPI)))
@@ -277,17 +278,35 @@ func assertOmittedUpdateMask(t *testing.T, out string) {
 		t.Fatalf("resource.go sends updateMask:\n%s", resource)
 	}
 	mask := mustRead(t, filepath.Join(out, "mask.go"))
-	for _, want := range []string{"keepChanged(body, mask)", `if !keep["name"]`, "target.Name = nil", `if !keep["destinations"]`} {
+	for _, want := range []string{
+		"keepChanged(body, mask)",
+		`if !keep["name"]`,
+		"target.Name = nil",
+		`if !keep["destinations"]`,
+		`if !keep["enabled"]`,
+		"else if target.Name == nil",
+		"body.UpdateMask = &text",
+	} {
 		if !bytes.Contains(mask, []byte(want)) {
 			t.Errorf("mask.go lacks %q", want)
 		}
 	}
-	if bytes.Contains(mask, []byte(`api: "enabled"`)) || bytes.Contains(mask, []byte("UpdateMask")) {
-		t.Errorf("mask.go still updates enabled or sends a mask:\n%s", mask)
-	}
 	schema := mustRead(t, filepath.Join(out, "schema.go"))
 	if !bytes.Contains(schema, []byte("boolplanmodifier.RequiresReplace()")) {
 		t.Errorf("schema.go does not force a new resource when enabled changes")
+	}
+	convert := mustRead(t, filepath.Join(out, "convert.go"))
+	start := bytes.Index(convert, []byte("func expandUpdateThingRequest"))
+	if start < 0 {
+		t.Fatal("convert.go has no expandUpdateThingRequest")
+	}
+	rest := convert[start:]
+	end := bytes.Index(rest[1:], []byte("\nfunc "))
+	if end < 0 {
+		end = len(rest) - 1
+	}
+	if !bytes.Contains(rest[:end+1], []byte("out.Enabled = expandBool(m.Enabled)")) {
+		t.Errorf("expand leaves enabled unset, so a value field would be the Go zero:\n%s", rest[:end+1])
 	}
 }
 
@@ -298,8 +317,17 @@ func assertUnsupportedArm(t *testing.T, out string) {
 		t.Errorf("schema.go configures the unsupported queue arm")
 	}
 	convert := mustRead(t, filepath.Join(out, "convert.go"))
-	if !bytes.Contains(convert, []byte("v.Queue != nil")) || !bytes.Contains(convert, []byte("Unsupported thing config")) {
+	i := bytes.Index(convert, []byte("v.Queue != nil"))
+	if i < 0 || !bytes.Contains(convert, []byte("Unsupported thing config")) {
 		t.Errorf("convert.go does not report the unsupported queue arm:\n%s", convert)
+		return
+	}
+	window := convert[i:]
+	if end := bytes.Index(window, []byte("out := &")); end > 0 {
+		window = window[:end]
+	}
+	if bytes.Contains(window, []byte("return nil")) || !bytes.Contains(window, []byte("return &")) {
+		t.Errorf("unsupported arm flatten returns nil and a collection would panic:\n%s", window)
 	}
 }
 

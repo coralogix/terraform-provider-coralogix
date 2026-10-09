@@ -157,6 +157,12 @@ func resolveSDKNames(r *model.Resource, tag, module, providerModule string) ([]s
 // one field that holds it. The resource fields are then the fields of the resource type, which the
 // "fields" names cover.
 func (s *resolver) bodyFields(r *model.Resource, resource string) error {
+	if r.OmitUpdateMask {
+		// A clear cannot be an omitted JSON field. The body property carries the
+		// mask only then. It is *string, or a string when the SDK uses a value.
+		s.add(sdkRef{Path: "update.body." + r.UpdateMask, Kind: kindField, Owner: s.bodies["update"], Name: goFieldName(r.UpdateMask),
+			Want: "*string", WantValue: "string", Rule: ruleProperty})
+	}
 	if wrapper := r.Policy.RequestWrapper; wrapper != "" {
 		for _, name := range []string{"create", "update"} {
 			s.add(sdkRef{Path: name + ".body." + wrapper, Kind: kindField, Owner: s.bodies[name], Name: goFieldName(wrapper),

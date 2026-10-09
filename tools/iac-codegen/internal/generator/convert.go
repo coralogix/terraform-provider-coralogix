@@ -56,8 +56,13 @@ type convData struct {
 	// left out of the request, and the server supplies it, as the released resource did.
 	Existing bool
 	// OmitUpdateMask: the Update body carries only the fields that changed.
-	// The API has no update-mask query parameter.
+	// The API has no update-mask query parameter. A field cleared to null
+	// sets UpdateMaskField on the body so the server clears it.
 	OmitUpdateMask bool
+	// UpdateMaskField is the SDK field of the JSON-body update mask.
+	// UpdateMaskPointer is true when that field is *string.
+	UpdateMaskField   string
+	UpdateMaskPointer bool
 }
 
 // bodyWrap is the request body that holds the resource in one field.
@@ -230,6 +235,20 @@ func (d *convData) HasValue() bool {
 	return false
 }
 
+// setBodyMask records the SDK field that carries a JSON-body update mask.
+func (d *convData) setBodyMask(ix *refIndex, r *model.Resource) error {
+	if !r.OmitUpdateMask {
+		return nil
+	}
+	ref, err := ix.fieldRef("update.body." + r.UpdateMask)
+	if err != nil {
+		return err
+	}
+	d.UpdateMaskField = ref.Name
+	d.UpdateMaskPointer = strings.HasPrefix(ref.Want, "*")
+	return nil
+}
+
 // buildConv maps the model and its SDK names to the conversion data. Rules:
 //   - A null Terraform value → nil. nil → a null Terraform value. So
 //     false, 0, "", [] and {} are sent and read as values.
@@ -246,6 +265,9 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 	}
 	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, file: file, resource: r}
 	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, Existing: r.Policy.Existing, OmitUpdateMask: r.OmitUpdateMask}
+	if err := out.setBodyMask(ix, r); err != nil {
+		return nil, err
+	}
 	if r.Policy.ClientSetID && !r.Singleton {
 		// The contract may not require the id in the response (a proto3 optional field), so
 		// flatten checks it. Without the id, Read, Update, and Delete would have no identity.

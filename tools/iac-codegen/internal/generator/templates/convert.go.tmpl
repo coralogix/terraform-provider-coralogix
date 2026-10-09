@@ -417,10 +417,11 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, {{
 	{{- if .Unsupported}}
 	{{- $summary := .UnsupportedSummary}}
 	{{- $detail := .UnsupportedDetail}}
+	{{- $model := .Model}}
 	{{- range .Unsupported}}
 	if v.{{.SDK}} != nil {
 		diags.AddError({{printf "%q" $summary}}, {{printf "%q" $detail}})
-		return nil
+		return &{{$model}}{}
 	}
 	{{- end}}
 	{{- end}}

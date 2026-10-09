@@ -94,7 +94,8 @@ type API struct {
 	// Delete names the operation that removes the resource when the API has no DELETE.
 	Delete *Delete `yaml:"delete"`
 	// UpdateMaskInBody: PATCH updateMask is an optional JSON body property.
-	// The generated update sends changed fields and does not send the mask.
+	// The generated update sends changed fields. A field cleared to null also
+	// sends the mask, because an omitted null does not clear the server value.
 	UpdateMaskInBody bool `yaml:"updateMaskInBody"`
 }
 

@@ -40,9 +40,14 @@ type Policy struct {
 	// the Get path.
 	DeleteOperation string
 	// UpdateMaskInBody: PATCH updateMask is an optional property of the JSON
-	// body, not a query parameter. The generated update does not send it.
-	// An omitted mask updates only the fields present in the body.
+	// body, not a query parameter. An omitted mask updates only the fields
+	// present in the body. A field cleared to null is absent from JSON, so
+	// the update then sends the mask and the server clears it.
 	UpdateMaskInBody bool
+	// appliedUnsupported records Component.arm keys that splitUnsupported
+	// dropped. Create and Update types are discarded after merge, so a walk of
+	// the response cannot see a key that names only a request component.
+	appliedUnsupported map[string]bool
 	// RequiresReplace lists "Component.field" of top-level fields that replace
 	// the resource when they change, although Update accepts them.
 	RequiresReplace []string

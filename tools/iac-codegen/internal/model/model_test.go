@@ -828,7 +828,7 @@ func TestBodyUpdateMaskIsOmitted(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !resource.OmitUpdateMask || resource.UpdateMask != "" {
+	if !resource.OmitUpdateMask || resource.UpdateMask != "updateMask" {
 		t.Fatalf("omit %t, mask %q", resource.OmitUpdateMask, resource.UpdateMask)
 	}
 
@@ -842,6 +842,45 @@ func TestBodyUpdateMaskIsOmitted(t *testing.T) {
 		t.Fatalf("err = %v, want the mask to be rejected as both a body property and a parameter", err)
 	}
 }
+
+// A Create or Update component is discarded after merge. An unsupported arm
+// named on that component must still count as applied.
+func TestUnsupportedArmsApplyToRequestSchemas(t *testing.T) {
+	spec := string(validSpec(t))
+	old := "                config:\n                  allOf:\n                    - $ref: '#/components/schemas/ThingConfig'\n"
+	next := "                config:\n                  $ref: '#/components/schemas/ThingConfigUpdate'\n"
+	if !strings.Contains(spec, old) {
+		t.Fatal("cannot locate the update config")
+	}
+	spec = strings.Replace(spec, old, next, 1)
+	spec = strings.Replace(spec, "    ThingConfig:\n", thingConfigUpdateSchema+"    ThingConfig:\n", 1)
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy := Policy{
+		Existing:           true,
+		Unsupported:        []string{"ThingConfig.queue", "ThingConfigUpdate.queue"},
+		UnsupportedSummary: map[string]string{"ThingConfig": "s", "ThingConfigUpdate": "s"},
+		UnsupportedDetail:  map[string]string{"ThingConfig": "d", "ThingConfigUpdate": "d"},
+	}
+	if _, err := BuildWithPolicy(doc, "Thing", OperationIDs{}, policy); err != nil {
+		t.Fatal(err)
+	}
+}
+
+const thingConfigUpdateSchema = `    ThingConfigUpdate:
+      type: object
+      required: []
+      properties:
+        http:
+          $ref: '#/components/schemas/HttpThingConfig'
+        queue:
+          $ref: '#/components/schemas/QueueThingConfig'
+      oneOf:
+        - required: [http]
+        - required: [queue]
+`
 
 // updateBodyMask adds an optional updateMask string to the Update body. dropQuery
 // removes the updateMask query parameter.

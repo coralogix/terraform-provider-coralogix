@@ -246,9 +246,10 @@ func setArm(g []string, v map[string]attr.Value) string {
 
 {{- if .OmitUpdateMask}}
 // updateRequest returns the Update body with only the fields that changed.
-// The API updates every field present in the body and has no update mask, so
-// an unchanged field is left unset. updateRequest returns nil when no Update
-// field changed. Then the caller sends no request.
+// An omitted mask updates every field present in the body, so an unchanged
+// field is left unset. A field cleared to null is absent from JSON, so the
+// body then includes updateMask and the server clears it. updateRequest
+// returns nil when no Update field changed. Then the caller sends no request.
 func updateRequest(ctx context.Context, config, plan, state tfData) (*{{.SDKName}}.{{.UpdateBody}}, diag.Diagnostics) {
 	mask, diags := updateMask(ctx, config, plan, state)
 	if diags.HasError() || len(mask) == 0 {
@@ -269,7 +270,9 @@ func updateRequest(ctx context.Context, config, plan, state tfData) (*{{.SDKName
 }
 
 // keepChanged clears each nillable Update field whose top-level name is not
-// in mask. A Go value cannot be cleared, so it stays in the body.
+// in mask. A changed field that is null cannot be omitted: the body then sets
+// updateMask so the server clears it. A Go value cannot be cleared, so it
+// stays in the body.
 func keepChanged(body *{{.SDKName}}.{{.UpdateBody}}, mask []string) {
 	if body == nil || len(mask) == 0 {
 		return
@@ -292,13 +295,24 @@ func keepChanged(body *{{.SDKName}}.{{.UpdateBody}}, mask []string) {
 	{{- else}}
 	target := body
 	{{- end}}
+	cleared := false
 	{{- range .MaskFields}}
 	{{- if .Nillable}}
 	if !keep[{{printf "%q" .API}}] {
 		target.{{.SDK}} = nil
+	} else if target.{{.SDK}} == nil {
+		cleared = true
 	}
 	{{- end}}
 	{{- end}}
+	if cleared {
+		text := strings.Join(mask, ",")
+		{{- if .UpdateMaskPointer}}
+		body.{{.UpdateMaskField}} = &text
+		{{- else}}
+		body.{{.UpdateMaskField}} = text
+		{{- end}}
+	}
 	{{- end}}
 }
 {{- else}}

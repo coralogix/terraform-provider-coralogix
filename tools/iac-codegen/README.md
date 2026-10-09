@@ -121,11 +121,11 @@ Keys of a field line: `skip`, `readOnly`, `required`, `description`, `markdownDe
 
 `validators.inferred: false` removes the limits of the contract. A `oneOf` group validator states the structure of the request, so it stays. `clientSetID` needs the id property in the Create body, and `updateIDInBody` needs it in the Update body. Otherwise the generator reports an issue.
 
-`api.updateMaskInBody: true` is for a PATCH whose `updateMask` is an optional string on the JSON body, not a query parameter. The generated schema has no mask attribute. Update sends only the top-level fields that changed and does not send the mask: an omitted mask updates the fields present in the body. A mask that is also a query parameter is an error. A Go value field cannot be omitted, so it stays in the body.
+`api.updateMaskInBody: true` is for a PATCH whose `updateMask` is an optional string on the JSON body, not a query parameter. The generated schema has no mask attribute. Update sends only the top-level fields that changed and leaves the mask out: an omitted mask updates the fields present in the body. A field cleared to null is absent from JSON, so that update sets `updateMask` on the body and the server clears it. A mask that is also a query parameter is an error. A Go value field cannot be omitted, so it stays in the body.
 
-`requiresReplace: true` on a top-level field that Create, Update, and Get all have forces a new resource when the field changes. Update does not send it.
+`requiresReplace: true` on a top-level field that Create, Update, and Get all have forces a new resource when the field changes. Update still sends the current value, so a non-pointer SDK field is not left at the Go zero when another field changes.
 
-`types.<Type>.unsupportedArms` names oneOf arms the resource does not configure, with `unsupportedSummary` and `unsupportedDetail`. The arms stay out of the schema. Flatten returns that error when a response selects one. `skip` cannot name a oneOf arm. The three keys are set together.
+`types.<Type>.unsupportedArms` names oneOf arms the resource does not configure, with `unsupportedSummary` and `unsupportedDetail`. The arms stay out of the schema. Flatten reports that error when a response selects one, including inside a list or map, and returns an empty model so the caller can read the diagnostic. Name the arm on each Create, Update, and response component when those components differ. `skip` cannot name a oneOf arm. The three keys are set together.
 
 `enums.<Enum>.verbatim: true` keeps the API spelling as the Terraform value. Otherwise the Terraform value is the lower case of the API value.
 

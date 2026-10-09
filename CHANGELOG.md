@@ -15,9 +15,9 @@
 - FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
 
 #### tools/iac-codegen
-- FEAT: Existing mode accepts `api.updateMaskInBody: true` when PATCH `updateMask` is an optional JSON body property. The generated update sends only the changed top-level fields and does not send the mask.
-- FEAT: `requiresReplace: true` forces a new resource for a top-level field that Create, Update, and Get all have. Update does not send that field.
-- FEAT: `unsupportedArms`, with `unsupportedSummary` and `unsupportedDetail`, keeps those oneOf arms out of the schema. Flatten returns that error when a response selects one.
+- FEAT: Existing mode accepts `api.updateMaskInBody: true` when PATCH `updateMask` is an optional JSON body property. The generated update sends only the changed top-level fields and leaves the mask out of the schema. A field cleared to null is sent with `updateMask` in the JSON body so the server clears it.
+- FEAT: `requiresReplace: true` forces a new resource for a top-level field that Create, Update, and Get all have. Update still sends the current value, so a non-pointer field is not zeroed when another field changes.
+- FEAT: `unsupportedArms`, with `unsupportedSummary` and `unsupportedDetail`, keeps those oneOf arms out of the schema. Flatten reports that error when a response selects one, including inside a list or map. The same arm may be named on the Create and Update components.
 - FEAT: `enums.<Enum>.verbatim: true` keeps the API spelling as the Terraform value.
 - CHORE: Bump the generator to `v0.1.0-beta.17`.
 - FEAT: A `date-time` field that Create or Update sends, alone or in a list or set, is supported. It is a `timetypes.RFC3339` attribute that must be in UTC (`Z`). A time that only the response has stays a plain string.
