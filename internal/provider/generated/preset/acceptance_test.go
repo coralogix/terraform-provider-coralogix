@@ -65,17 +65,18 @@ const fullConfig = `resource "coralogix_preset" "test" {
   config_overrides = [
     {
       condition_type = {
-        match_entity_type = {}
+        match_entity_type_and_sub_type = {
+          entity_sub_type = "logsImmediateResolved"
+        }
       }
       message_config = {
         fields = [
           {
-            field_name = "summary"
-            template = "{{ alertDef.description }}"
+            field_name = "body"
+            template = "{}"
           },
         ]
       }
-      payload_type = "generic_https_empty"
     },
   ]
   connector_type = "generic_https"
@@ -90,17 +91,18 @@ const updatedConfig = `resource "coralogix_preset" "test" {
   config_overrides = [
     {
       condition_type = {
-        match_entity_type = {}
+        match_entity_type_and_sub_type = {
+          entity_sub_type = "logsImmediateResolved"
+        }
       }
       message_config = {
         fields = [
           {
-            field_name = "summary"
-            template = "{{ alertDef.description }}"
+            field_name = "body"
+            template = "{}"
           },
         ]
       }
-      payload_type = "generic_https_empty"
     },
   ]
   connector_type = "generic_https"
@@ -111,6 +113,23 @@ const updatedConfig = `resource "coralogix_preset" "test" {
 }`
 
 const minimalConfig = `resource "coralogix_preset" "test" {
+  config_overrides = [
+    {
+      condition_type = {
+        match_entity_type_and_sub_type = {
+          entity_sub_type = "logsImmediateResolved"
+        }
+      }
+      message_config = {
+        fields = [
+          {
+            field_name = "body"
+            template = "{}"
+          },
+        ]
+      }
+    },
+  ]
   connector_type = "generic_https"
   entity_type = "alerts"
   name = "@{run}-name"
@@ -119,6 +138,23 @@ const minimalConfig = `resource "coralogix_preset" "test" {
 
 // upgradeMinimalConfig is the minimal config plus the fields that the released provider needs.
 const upgradeMinimalConfig = `resource "coralogix_preset" "test" {
+  config_overrides = [
+    {
+      condition_type = {
+        match_entity_type_and_sub_type = {
+          entity_sub_type = "logsImmediateResolved"
+        }
+      }
+      message_config = {
+        fields = [
+          {
+            field_name = "body"
+            template = "{}"
+          },
+        ]
+      }
+    },
+  ]
   connector_type = "generic_https"
   entity_type = "alerts"
   name = "@{run}-name"
@@ -151,6 +187,8 @@ func updatedChecks(run string) resource.TestCheckFunc {
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.message_config.fields.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 		resource.TestCheckResourceAttr(resourceAddress, "attachment_config", "AUTO"),
 		resource.TestCheckNoResourceAttr(resourceAddress, "description"),
@@ -159,6 +197,8 @@ func minimalChecks(run string) resource.TestCheckFunc {
 
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "config_overrides.0.message_config.fields.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 	)
 }
