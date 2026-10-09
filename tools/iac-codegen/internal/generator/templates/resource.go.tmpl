@@ -201,9 +201,9 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		return
 	}
 {{- if .Replace}}
-body, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
+	body, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
 {{- else}}
-body, mask, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
+	body, mask, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
 {{- end}}
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -222,7 +222,14 @@ body, mask, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
 	if body == nil {
 		v, err = r.get(ctx, id)
 	} else {
-		v, err = r.update(ctx{{if not .UpdateIDInBody}}, id{{end}}, body{{if not .Replace}}, mask{{end}})
+{{- if .MaskInBody}}
+		{{- if $.Conv.UpdateMaskPointer}}
+		body.{{$.Conv.UpdateMaskField}} = &mask
+		{{- else}}
+		body.{{$.Conv.UpdateMaskField}} = mask
+		{{- end}}
+{{- end}}
+		v, err = r.update(ctx{{if not .UpdateIDInBody}}, id{{end}}, body{{if and (not .Replace) (not .MaskInBody)}}, mask{{end}})
 	}
 	if {{$cx}}.{{.APICode}}(err) == http.StatusNotFound {
 		resp.Diagnostics.AddWarning("Resource disappeared during update",
@@ -274,8 +281,8 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 	return {{if .Get.Response}}out.{{.Get.Response}}{{else}}out{{end}}, nil
 }
 
-func (r *Resource) update(ctx context.Context{{if not .UpdateIDInBody}}, id {{.IDGoType}}{{end}}, body *{{$sdk}}.{{$.Conv.UpdateBody}}{{if not .Replace}}, mask string{{end}}) (*{{$sdk}}.{{.Resource}}, error) {
-	out, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}(*body){{if not .Replace}}.{{.UpdateMask}}(mask){{end}}.Execute()
+func (r *Resource) update(ctx context.Context{{if not .UpdateIDInBody}}, id {{.IDGoType}}{{end}}, body *{{$sdk}}.{{$.Conv.UpdateBody}}{{if and (not .Replace) (not .MaskInBody)}}, mask string{{end}}) (*{{$sdk}}.{{.Resource}}, error) {
+	out, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}(*body){{if and (not .Replace) (not .MaskInBody)}}.{{.UpdateMask}}(mask){{end}}.Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 	}

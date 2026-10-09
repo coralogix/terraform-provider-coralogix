@@ -679,6 +679,12 @@ func (r *Resource) checkUpdateContract(updateBody *base.Schema, update foundOp) 
 func (r *Resource) checkUpdateMask(updateBody *base.Schema, update foundOp) error {
 	bodyMask := maskProperty(updateBody)
 	params := maskParameters(update)
+	if r.Policy.UpdateMaskInBody {
+		if r.Replace {
+			return errors.New("api.updateMaskInBody does not apply to a full replace (PUT)")
+		}
+		return r.readBodyUpdateMask(updateBody, bodyMask, params)
+	}
 	if r.Replace {
 		return checkNoUpdateMask(bodyMask, params)
 	}
@@ -701,6 +707,33 @@ func checkNoUpdateMask(bodyMask string, params []*v3.Parameter) error {
 	if len(params) != 0 {
 		return fmt.Errorf("update parameters: a full replace (PUT) has no %s parameter", params[0].Name)
 	}
+	return nil
+}
+
+// readBodyUpdateMask accepts an optional updateMask string on the JSON body.
+// The generated update sets it to the same changed-field mask a query
+// parameter would send.
+func (r *Resource) readBodyUpdateMask(body *base.Schema, name string, params []*v3.Parameter) error {
+	if !r.Policy.Existing {
+		return errors.New("api.updateMaskInBody is only for a released resource")
+	}
+	if len(params) != 0 {
+		return fmt.Errorf("update parameters: %s is both a body property and a parameter", params[0].Name)
+	}
+	if name == "" {
+		return fmt.Errorf("update body: api.updateMaskInBody needs an optional %s or %s string property", updateMaskField, updateMaskProtoField)
+	}
+	proxy := propertyOf(body, name)
+	s, err := schemaOf(proxy)
+	if err != nil || !slices.Equal(s.Type, []string{"string"}) {
+		return fmt.Errorf("update body: %s must have a string schema", name)
+	}
+	if slices.Contains(body.Required, name) {
+		return fmt.Errorf("update body: %s must be optional", name)
+	}
+	r.MaskInBody = true
+	r.UpdateMask = name
+	r.UpdateMaskPattern = s.Pattern
 	return nil
 }
 
@@ -757,6 +790,9 @@ func maskParameters(op foundOp) []*v3.Parameter {
 func (r *Resource) requestProperty(body *base.Schema, name string) (*base.SchemaProxy, error) {
 	if r.Policy.readOnly(r.Name, name) {
 		return nil, nil // the server sets the field, so it is not in a request
+	}
+	if r.Policy.UpdateMaskInBody && isUpdateMaskName(name) {
+		return nil, nil // the mask stays out of the Terraform schema and is not sent
 	}
 	return requestProperty(body, name)
 }

@@ -97,6 +97,10 @@ type API struct {
 	ClientSetID bool `yaml:"clientSetID"`
 	// Delete names the operation that removes the resource when the API has no DELETE.
 	Delete *Delete `yaml:"delete"`
+	// UpdateMaskInBody: PATCH updateMask is an optional JSON body property.
+	// The generated update sets it to the same changed-field mask a query
+	// parameter would send.
+	UpdateMaskInBody bool `yaml:"updateMaskInBody"`
 }
 
 // Delete is how a released resource is removed when the API has no DELETE, for example a
@@ -438,10 +442,11 @@ func checkValidators(validators []Validator) error {
 // Policy returns the rule set for the model.
 func (f *File) Policy() model.Policy {
 	p := model.Policy{
-		Existing:       true,
-		RequestWrapper: f.API.RequestWrapper,
-		UpdateIDInBody: f.API.UpdateIDInBody,
-		ClientSetID:    f.API.ClientSetID,
+		Existing:         true,
+		RequestWrapper:   f.API.RequestWrapper,
+		UpdateIDInBody:   f.API.UpdateIDInBody,
+		ClientSetID:      f.API.ClientSetID,
+		UpdateMaskInBody: f.API.UpdateMaskInBody,
 		// The file states validators.inferred: false; Parse checked it.
 		NoInferredValidators: true,
 	}

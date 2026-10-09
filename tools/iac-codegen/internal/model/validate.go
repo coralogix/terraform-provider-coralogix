@@ -322,6 +322,9 @@ func validateFieldContracts(p Policy, name string, ops map[verb]foundOp) issue.R
 		if field == bodyOnlyID {
 			continue // Build reports the unsupported Update identity contract.
 		}
+		if p.UpdateMaskInBody && isUpdateMaskName(field) {
+			continue // The mask stays in the JSON body and is not a Terraform field.
+		}
 		report = append(report, validateFieldContract(p, name, field, create, update, get)...)
 	}
 	report = append(report, resourceIDIssues(p, name, ops, get)...)
@@ -1192,21 +1195,24 @@ func responseResourceProxy(op *v3.Operation, name string) *base.SchemaProxy {
 }
 
 func validateBuiltResource(r *Resource) issue.Report {
-	var report issue.Report
 	if r.Replace {
 		return nil
 	}
 	if r.UpdateMaskPattern == "" {
-		report = append(report, issue.Issue{Code: "UPDATE_MASK_CONTRACT_MISSING", Location: "paths.update." + r.Update.OperationID, Message: "The PATCH update mask has no pattern that defines accepted mask paths.", Remediation: "Add the authoritative update-mask path pattern to the source API contract."})
-		return report
+		return issue.Report{{Code: "UPDATE_MASK_CONTRACT_MISSING", Location: "paths.update." + r.Update.OperationID, Message: "The PATCH update mask has no pattern that defines accepted mask paths.", Remediation: "Add the authoritative update-mask path pattern to the source API contract."}}
 	}
 	_, leaf, err := UpdateMaskRule(r.UpdateMaskPattern)
 	if err != nil {
-		return append(report, issue.Issue{Code: "UPDATE_MASK_CONTRACT_INVALID", Location: "paths.update." + r.Update.OperationID, Message: err.Error() + ".", Remediation: "Use a mask pattern that accepts field names and comma-separated lists of them, rejects *, and defines whether dotted paths are supported."})
+		return issue.Report{{Code: "UPDATE_MASK_CONTRACT_INVALID", Location: "paths.update." + r.Update.OperationID, Message: err.Error() + ".", Remediation: "Use a mask pattern that accepts field names and comma-separated lists of them, rejects *, and defines whether dotted paths are supported."}}
 	}
 	if leaf {
-		return report
+		return nil
 	}
+	return nestedOneOfMaskIssues(r)
+}
+
+func nestedOneOfMaskIssues(r *Resource) issue.Report {
+	var report issue.Report
 	for _, field := range r.Fields {
 		if field.Update == nil {
 			continue

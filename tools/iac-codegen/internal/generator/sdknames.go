@@ -157,6 +157,12 @@ func resolveSDKNames(r *model.Resource, tag, module, providerModule string) ([]s
 // one field that holds it. The resource fields are then the fields of the resource type, which the
 // "fields" names cover.
 func (s *resolver) bodyFields(r *model.Resource, resource string) error {
+	if r.MaskInBody {
+		// The body property carries the same mask a query parameter would. It is
+		// *string, or a string when the SDK uses a value.
+		s.add(sdkRef{Path: "update.body." + r.UpdateMask, Kind: kindField, Owner: s.bodies["update"], Name: goFieldName(r.UpdateMask),
+			Want: "*string", WantValue: "string", Rule: ruleProperty})
+	}
 	if wrapper := r.Policy.RequestWrapper; wrapper != "" {
 		for _, name := range []string{"create", "update"} {
 			s.add(sdkRef{Path: name + ".body." + wrapper, Kind: kindField, Owner: s.bodies[name], Name: goFieldName(wrapper),
@@ -246,7 +252,7 @@ func (s *resolver) operation(r *model.Resource, name string, op model.Operation,
 	s.add(sdkRef{Path: path, Kind: kindMethod, Owner: client, Name: method,
 		Want: "func(" + params + ") " + builder, Rule: ruleOperationID})
 	s.add(sdkRef{Path: path, Kind: kindType, Name: builder, Rule: ruleOperationID})
-	if name == "update" && !r.Replace {
+	if name == "update" && !r.Replace && !r.MaskInBody {
 		s.add(sdkRef{Path: path + ".mask", Kind: kindMethod, Owner: builder, Name: goFieldName(r.UpdateMask),
 			Want: "func(" + lowerFirst(goFieldName(r.UpdateMask)) + " string) " + builder, Rule: ruleParameter})
 	}

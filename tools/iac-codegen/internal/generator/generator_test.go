@@ -244,6 +244,83 @@ func TestGeneratedUpdateMaskUsesQueryParameter(t *testing.T) {
 	}
 }
 
+// A released PATCH that puts updateMask in the JSON body uses the same update
+// as a query-parameter mask, then sets that mask on the body.
+func TestBodyUpdateMaskSetsTheSameMask(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	input.OpenAPI = []byte(moveUpdateMaskIntoBody(t, string(input.OpenAPI)))
+	out := generateBodyMaskResource(t, input, sdkDir)
+	assertBodyUpdateMask(t, out)
+	compileGenerated(t, out, input)
+}
+
+func moveUpdateMaskIntoBody(t *testing.T, text string) string {
+	t.Helper()
+	start := strings.Index(text, "operationId: ThingsService_UpdateThing")
+	if start < 0 {
+		t.Fatal("cannot locate the update operation")
+	}
+	tail := text[start:]
+	params := strings.Index(tail, "      parameters:\n")
+	body := strings.Index(tail, "      requestBody:\n")
+	if params < 0 || body < 0 || params > body {
+		t.Fatal("cannot locate the update mask parameter")
+	}
+	tail = tail[:params] + tail[body:]
+	labels := "                labels:\n                  type: object\n                  additionalProperties: {type: string}\n"
+	if !strings.Contains(tail, labels) {
+		t.Fatal("cannot locate the update body")
+	}
+	tail = strings.Replace(tail, labels, labels+"                updateMask:\n                  type: string\n                  pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'\n", 1)
+	return text[:start] + tail
+}
+
+func generateBodyMaskResource(t *testing.T, input source.Input, sdkDir string) string {
+	t.Helper()
+	dir := t.TempDir()
+	overrides := filepath.Join(dir, "behavior-overrides.yaml")
+	const file = `resource: Thing
+mode: existing
+validators:
+  inferred: false
+api:
+  updateMaskInBody: true
+`
+	if err := os.WriteFile(overrides, []byte(file), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "thing")
+	if err := generateFromInput(Options{Resource: "Thing", OutputDir: out, OverridesPath: overrides}, input, sdkDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+func assertBodyUpdateMask(t *testing.T, out string) {
+	t.Helper()
+	resource := mustRead(t, filepath.Join(out, "resource.go"))
+	if bytes.Contains(resource, []byte("UpdateMask(")) || !bytes.Contains(resource, []byte("body.UpdateMask = &mask")) {
+		t.Fatalf("resource.go does not set the mask on the body:\n%s", resource)
+	}
+	mask := mustRead(t, filepath.Join(out, "mask.go"))
+	if bytes.Contains(mask, []byte("keepChanged")) || bytes.Contains(mask, []byte("body.UpdateMask")) {
+		t.Fatalf("mask.go does not reuse the query-parameter update:\n%s", mask)
+	}
+	schema := mustRead(t, filepath.Join(out, "schema.go"))
+	if bytes.Contains(schema, []byte("update_mask")) || bytes.Contains(schema, []byte("updateMask")) {
+		t.Fatalf("schema.go exposes the mask:\n%s", schema)
+	}
+}
+
+func mustRead(t *testing.T, path string) []byte {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
 // The OpenAPI fork names the mask query parameter with its proto name. The
 // SDK method is the same, so the resource must match the golden output.
 func TestProtoMaskNameMatchesGolden(t *testing.T) {
