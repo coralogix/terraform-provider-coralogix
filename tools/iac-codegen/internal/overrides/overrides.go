@@ -171,9 +171,9 @@ type Field struct {
 	// Equality: "yaml" or "json" compares a string field as a YAML or JSON document. The API
 	// returns the document normalized, so a change of format alone must not plan a change.
 	Equality string `yaml:"equality"`
-	// Promote names the only field of a one-field object. The Terraform attribute is that
-	// field. Expand wraps it as the object, and flatten unwraps it. A missing inner value
-	// becomes the schema default when default is set.
+	// Promote names the only enum field of a one-field object. The Terraform attribute is
+	// that enum. Expand wraps it as the object, and flatten unwraps it. A missing inner
+	// value becomes the schema default when default is set.
 	Promote string `yaml:"promote"`
 	// Unwrap: true shows the value inside the wrapper of the field, or of its items, in this
 	// place. false keeps the object of a component that the unwrap list names.

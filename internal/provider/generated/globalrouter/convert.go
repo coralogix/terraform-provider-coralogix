@@ -30,11 +30,13 @@ var notificationCenterEntityTypeToAPI = map[string]global_routers_service.Notifi
 }
 
 // notificationCenterEntityTypeFromAPI maps the API values of the enum to its Terraform values.
+// A rejected value reads back as the API spelling. The write map does not have it.
 var notificationCenterEntityTypeFromAPI = map[global_routers_service.NotificationCenterEntityType]string{
 	global_routers_service.NotificationCenterEntityType("ENTITY_TYPE_UNSPECIFIED"): "unspecified",
 	global_routers_service.NotificationCenterEntityType("ALERTS"):                  "alerts",
 	global_routers_service.NotificationCenterEntityType("CASES"):                   "cases",
 	global_routers_service.NotificationCenterEntityType("TEST_NOTIFICATIONS"):      "test_notifications",
+	global_routers_service.NotificationCenterEntityType("OLLY_SCHEDULED_TASKS"):    "OLLY_SCHEDULED_TASKS",
 }
 
 // validateRequestValue accepts every planned value. An unknown value of a computed attribute is

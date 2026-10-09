@@ -333,8 +333,8 @@ func promoteAttr(a *tfAttr, inner string) error {
 	if child == nil || len(a.Attributes) != 1 {
 		return fmt.Errorf("promote %q needs an object with only that field", inner)
 	}
-	if child.ValueKind != "String" {
-		return fmt.Errorf("promote %q needs a string or enum field, not %s", inner, child.ValueKind)
+	if child.EnumSchema == "" {
+		return fmt.Errorf("promote %q needs an enum field, not %s", inner, child.ValueKind)
 	}
 	a.Kind, a.ValueKind, a.EnumSchema, a.Attributes = child.Kind, child.ValueKind, child.EnumSchema, nil
 	return nil

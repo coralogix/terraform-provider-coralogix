@@ -69,16 +69,22 @@ func Generate(start string, options Options) error {
 	if _, err := validateOptions(options); err != nil {
 		return err
 	}
-	input, err := source.Resolve(start)
-	if err != nil {
-		return err
-	}
+	// A missing candidate is reported before the pinned SDK is read. Generation
+	// against a candidate still needs that SDK, but the file check does not.
+	var candidate []byte
 	if options.OpenAPIPath != "" {
 		data, err := os.ReadFile(options.OpenAPIPath)
 		if err != nil {
 			return fmt.Errorf("read candidate OpenAPI %s: %w", options.OpenAPIPath, err)
 		}
-		input.OpenAPI = data
+		candidate = data
+	}
+	input, err := source.Resolve(start)
+	if err != nil {
+		return err
+	}
+	if candidate != nil {
+		input.OpenAPI = candidate
 	}
 	return generateFromInput(options, input, input.ProviderRoot)
 }

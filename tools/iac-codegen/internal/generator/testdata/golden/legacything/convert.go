@@ -28,10 +28,12 @@ var legacyKindToAPI = map[string]legacy_things_service.LegacyKind{
 }
 
 // legacyKindFromAPI maps the API values of the enum to its Terraform values.
+// A rejected value reads back as the API spelling. The write map does not have it.
 var legacyKindFromAPI = map[legacy_things_service.LegacyKind]string{
 	legacy_things_service.LegacyKind("KIND_UNSPECIFIED"): "unspecified",
 	legacy_things_service.LegacyKind("ALPHA"):            "alpha",
 	legacy_things_service.LegacyKind("BETA"):             "beta",
+	legacy_things_service.LegacyKind("GAMMA"):            "GAMMA",
 }
 
 // validateRequestValue accepts every planned value. An unknown value of a computed attribute is

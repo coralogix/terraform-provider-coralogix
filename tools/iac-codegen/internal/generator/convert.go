@@ -106,6 +106,9 @@ type enumMap struct {
 	Name    string // Go name prefix of the two map variables
 	SDKType string // qualified SDK enum type
 	Values  []enumMapValue
+	// Read are rejected API values. Flatten returns the API spelling. Expand and the
+	// schema validator do not accept them.
+	Read []enumMapValue
 }
 
 type enumMapValue struct{ TF, API string }
@@ -685,6 +688,9 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 			tf = strings.ToLower(v)
 		}
 		m.Values = append(m.Values, enumMapValue{TF: tf, API: v})
+	}
+	for _, v := range over.Rejected {
+		m.Read = append(m.Read, enumMapValue{TF: v, API: v})
 	}
 	b.enumMaps = append(b.enumMaps, m)
 	return m, nil

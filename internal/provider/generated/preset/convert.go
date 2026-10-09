@@ -27,6 +27,7 @@ var attachmentConfigPolicyToAPI = map[string]presets_service.AttachmentConfigPol
 }
 
 // attachmentConfigPolicyFromAPI maps the API values of the enum to its Terraform values.
+// A rejected value reads back as the API spelling. The write map does not have it.
 var attachmentConfigPolicyFromAPI = map[presets_service.AttachmentConfigPolicy]string{
 	presets_service.AttachmentConfigPolicy("AUTO"):     "AUTO",
 	presets_service.AttachmentConfigPolicy("ENABLED"):  "ENABLED",
@@ -48,6 +49,7 @@ var notificationCenterConnectorTypeToAPI = map[string]presets_service.Notificati
 }
 
 // notificationCenterConnectorTypeFromAPI maps the API values of the enum to its Terraform values.
+// A rejected value reads back as the API spelling. The write map does not have it.
 var notificationCenterConnectorTypeFromAPI = map[presets_service.NotificationCenterConnectorType]string{
 	presets_service.NotificationCenterConnectorType("CONNECTOR_TYPE_UNSPECIFIED"): "unspecified",
 	presets_service.NotificationCenterConnectorType("SLACK"):                      "slack",
@@ -59,6 +61,7 @@ var notificationCenterConnectorTypeFromAPI = map[presets_service.NotificationCen
 	presets_service.NotificationCenterConnectorType("MICROSOFT_TEAMS"):            "microsoft_teams",
 	presets_service.NotificationCenterConnectorType("EVENTBRIDGE"):                "eventbridge",
 	presets_service.NotificationCenterConnectorType("INCIDENT_IO"):                "incident_io",
+	presets_service.NotificationCenterConnectorType("IBM_EVENT_NOTIFICATIONS"):    "IBM_EVENT_NOTIFICATIONS",
 }
 
 // notificationCenterEntityTypeToAPI maps the Terraform values of the enum to its API values.
@@ -70,11 +73,13 @@ var notificationCenterEntityTypeToAPI = map[string]presets_service.NotificationC
 }
 
 // notificationCenterEntityTypeFromAPI maps the API values of the enum to its Terraform values.
+// A rejected value reads back as the API spelling. The write map does not have it.
 var notificationCenterEntityTypeFromAPI = map[presets_service.NotificationCenterEntityType]string{
 	presets_service.NotificationCenterEntityType("ENTITY_TYPE_UNSPECIFIED"): "unspecified",
 	presets_service.NotificationCenterEntityType("ALERTS"):                  "alerts",
 	presets_service.NotificationCenterEntityType("CASES"):                   "cases",
 	presets_service.NotificationCenterEntityType("TEST_NOTIFICATIONS"):      "test_notifications",
+	presets_service.NotificationCenterEntityType("OLLY_SCHEDULED_TASKS"):    "OLLY_SCHEDULED_TASKS",
 }
 
 // validateRequestValue accepts every planned value. An unknown value of a computed attribute is

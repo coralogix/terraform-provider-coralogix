@@ -28,11 +28,13 @@ var notificationCenterEntityTypeToAPI = map[string]connectors_service.Notificati
 }
 
 // notificationCenterEntityTypeFromAPI maps the API values of the enum to its Terraform values.
+// A rejected value reads back as the API spelling. The write map does not have it.
 var notificationCenterEntityTypeFromAPI = map[connectors_service.NotificationCenterEntityType]string{
 	connectors_service.NotificationCenterEntityType("ENTITY_TYPE_UNSPECIFIED"): "unspecified",
 	connectors_service.NotificationCenterEntityType("ALERTS"):                  "alerts",
 	connectors_service.NotificationCenterEntityType("CASES"):                   "cases",
 	connectors_service.NotificationCenterEntityType("TEST_NOTIFICATIONS"):      "test_notifications",
+	connectors_service.NotificationCenterEntityType("OLLY_SCHEDULED_TASKS"):    "OLLY_SCHEDULED_TASKS",
 }
 
 // notificationCenterConnectorTypeToAPI maps the Terraform values of the enum to its API values.
@@ -50,6 +52,7 @@ var notificationCenterConnectorTypeToAPI = map[string]connectors_service.Notific
 }
 
 // notificationCenterConnectorTypeFromAPI maps the API values of the enum to its Terraform values.
+// A rejected value reads back as the API spelling. The write map does not have it.
 var notificationCenterConnectorTypeFromAPI = map[connectors_service.NotificationCenterConnectorType]string{
 	connectors_service.NotificationCenterConnectorType("CONNECTOR_TYPE_UNSPECIFIED"): "unspecified",
 	connectors_service.NotificationCenterConnectorType("SLACK"):                      "slack",
@@ -61,6 +64,7 @@ var notificationCenterConnectorTypeFromAPI = map[connectors_service.Notification
 	connectors_service.NotificationCenterConnectorType("MICROSOFT_TEAMS"):            "microsoft_teams",
 	connectors_service.NotificationCenterConnectorType("EVENTBRIDGE"):                "eventbridge",
 	connectors_service.NotificationCenterConnectorType("INCIDENT_IO"):                "incident_io",
+	connectors_service.NotificationCenterConnectorType("IBM_EVENT_NOTIFICATIONS"):    "IBM_EVENT_NOTIFICATIONS",
 }
 
 // validateRequestValue accepts every planned value. An unknown value of a computed attribute is
