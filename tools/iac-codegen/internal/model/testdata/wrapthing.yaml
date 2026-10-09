@@ -1,0 +1,168 @@
+# A resource that users already have, whose API holds several values in wrapper objects: an
+# object with one property, such as {"query": {"value": "error"}}. The released Terraform
+# resource shows only the value. Most wrapper properties do not state presence: a wrapper that
+# collapses states it. Label collapses in one place and stays an object in another, and
+# LuceneQuery stays an object in rawQuery, so their properties state presence.
+openapi: 3.1.0
+info: {title: wrap, version: 1.0.0}
+paths:
+  /wrap/v1/things:
+    post:
+      tags: [Wrap Things Service]
+      operationId: WrapThingsService_CreateWrapThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Create Wrap Thing Request
+              type: object
+              required: [query]
+              properties:
+                name: {type: string, x-coralogix-presence: true}
+                query: {$ref: '#/components/schemas/LuceneQuery'}
+                rawQuery: {$ref: '#/components/schemas/LuceneQuery'}
+                priority: {$ref: '#/components/schemas/PriorityValue'}
+                threshold: {$ref: '#/components/schemas/Threshold'}
+                widgetIds:
+                  type: array
+                  items: {$ref: '#/components/schemas/UUID'}
+                filter: {$ref: '#/components/schemas/FilterHolder'}
+                selection: {$ref: '#/components/schemas/Selection'}
+                mainLabel: {$ref: '#/components/schemas/Label'}
+                extraLabel: {$ref: '#/components/schemas/Label'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/WrapThing'}
+  /wrap/v1/things/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Wrap Things Service]
+      operationId: WrapThingsService_GetWrapThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/WrapThing'}
+    put:
+      tags: [Wrap Things Service]
+      operationId: WrapThingsService_ReplaceWrapThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Replace Wrap Thing Request
+              type: object
+              required: [query]
+              properties:
+                name: {type: string, x-coralogix-presence: true}
+                query: {$ref: '#/components/schemas/LuceneQuery'}
+                rawQuery: {$ref: '#/components/schemas/LuceneQuery'}
+                priority: {$ref: '#/components/schemas/PriorityValue'}
+                threshold: {$ref: '#/components/schemas/Threshold'}
+                widgetIds:
+                  type: array
+                  items: {$ref: '#/components/schemas/UUID'}
+                filter: {$ref: '#/components/schemas/FilterHolder'}
+                selection: {$ref: '#/components/schemas/Selection'}
+                mainLabel: {$ref: '#/components/schemas/Label'}
+                extraLabel: {$ref: '#/components/schemas/Label'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/WrapThing'}
+    delete:
+      tags: [Wrap Things Service]
+      operationId: WrapThingsService_DeleteWrapThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteWrapThingResponse'}
+components:
+  schemas:
+    DeleteWrapThingResponse:
+      type: object
+      required: []
+    WrapThing:
+      type: object
+      required: [id, query]
+      properties:
+        id: {type: string, readOnly: true}
+        name: {type: string, x-coralogix-presence: true}
+        query:
+          description: The query, held in a wrapper.
+          allOf: [{$ref: '#/components/schemas/LuceneQuery'}]
+        rawQuery:
+          description: The query, kept as an object.
+          allOf: [{$ref: '#/components/schemas/LuceneQuery'}]
+        priority: {$ref: '#/components/schemas/PriorityValue'}
+        threshold: {$ref: '#/components/schemas/Threshold'}
+        widgetIds:
+          description: The widgets, each held in a wrapper.
+          type: array
+          items: {$ref: '#/components/schemas/UUID'}
+        filter: {$ref: '#/components/schemas/FilterHolder'}
+        selection: {$ref: '#/components/schemas/Selection'}
+        mainLabel: {$ref: '#/components/schemas/Label'}
+        extraLabel: {$ref: '#/components/schemas/Label'}
+    LuceneQuery:
+      type: object
+      required: []
+      properties:
+        value: {type: string, x-coralogix-presence: true}
+    PriorityValue:
+      type: object
+      required: []
+      properties:
+        value: {$ref: '#/components/schemas/WrapPriority'}
+    WrapPriority:
+      type: string
+      enum: [WRAP_PRIORITY_UNSPECIFIED, WRAP_PRIORITY_P1, WRAP_PRIORITY_P2]
+    Threshold:
+      type: object
+      required: [value]
+      properties:
+        value: {type: number, format: double}
+    UUID:
+      type: object
+      required: []
+      properties:
+        value: {type: string}
+    FilterHolder:
+      type: object
+      required: []
+      properties:
+        filter: {$ref: '#/components/schemas/SimpleFilter'}
+    SimpleFilter:
+      type: object
+      required: []
+      properties:
+        text: {type: string, x-coralogix-presence: true}
+        limit: {type: integer, format: int32, x-coralogix-presence: true}
+    Selection:
+      type: object
+      required: []
+      properties:
+        list: {$ref: '#/components/schemas/ListSelection'}
+    ListSelection:
+      type: object
+      required: []
+      properties:
+        values:
+          type: array
+          items: {type: string}
+    Label:
+      type: object
+      required: []
+      properties:
+        value: {type: string, x-coralogix-presence: true}

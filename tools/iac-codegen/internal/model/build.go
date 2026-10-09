@@ -81,6 +81,9 @@ func BuildWithPolicy(doc *v3.Document, name string, ids OperationIDs, policy Pol
 		r.IDType = r.Fields[index].Type
 	}
 	r.pruneSkipped()
+	if err := r.unwrap(); err != nil {
+		return nil, err
+	}
 	return r, nil
 }
 
@@ -1307,8 +1310,14 @@ func stringType(t *Type, s *base.Schema, w walk) error {
 		if err != nil {
 			return err
 		}
-		t.EnumZero = zero
-		for _, n := range s.Enum[1:] {
+		start := 1
+		if zero == "" {
+			// No *_UNSPECIFIED sentinel. The first value is a business value.
+			start = 0
+		} else {
+			t.EnumZero = zero
+		}
+		for _, n := range s.Enum[start:] {
 			t.Values = append(t.Values, n.Value)
 		}
 		if len(t.Values) == 0 {
@@ -1329,25 +1338,30 @@ func stringType(t *Type, s *base.Schema, w walk) error {
 // enumZero returns the exact protobuf zero value. The zero value is first,
 // ends in _UNSPECIFIED, and supplies the prefix of every business value.
 // A later business value may also end in _UNSPECIFIED. With anyPrefix (existing
-// resources), a business value need not use the prefix.
+// resources), a business value need not use the prefix. A first value that is
+// not *_UNSPECIFIED is a business value: the returned sentinel is empty, and
+// the caller keeps every value. An empty sentinel is not the protobuf zero.
 func enumZero(values []*yaml.Node, anyPrefix bool) (string, error) {
-	if len(values) < 2 {
-		return "", errors.New("enum needs one zero value and at least one business value")
+	if len(values) < 1 {
+		return "", errors.New("enum has no values")
 	}
 	zero := values[0].Value
 	prefix, ok := strings.CutSuffix(zero, "_UNSPECIFIED")
-	if anyPrefix && (!ok || prefix == "") {
-		// The protobuf zero is the first value even when it is a business value,
-		// for example AttachmentConfigPolicy AUTO = 0.
-		for _, value := range values[1:] {
-			if value.Value == zero {
-				return "", fmt.Errorf("enum zero value %q is repeated", zero)
-			}
-		}
-		return zero, nil
-	}
 	if !ok || prefix == "" {
-		return "", fmt.Errorf("first enum value %q must be <PREFIX>_UNSPECIFIED", zero)
+		if !anyPrefix {
+			return "", fmt.Errorf("first enum value %q must be <PREFIX>_UNSPECIFIED", zero)
+		}
+		seen := map[string]bool{}
+		for _, value := range values {
+			if seen[value.Value] {
+				return "", fmt.Errorf("enum value %q is repeated", value.Value)
+			}
+			seen[value.Value] = true
+		}
+		return "", nil
+	}
+	if len(values) < 2 {
+		return "", errors.New("enum needs one zero value and at least one business value")
 	}
 	for _, value := range values[1:] {
 		if value.Value == zero {

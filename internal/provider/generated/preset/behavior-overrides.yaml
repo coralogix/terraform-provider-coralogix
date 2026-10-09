@@ -97,7 +97,7 @@ types:
     fields:
       policy:
         # Missing policy reads back as AUTO. The line states that, so the optional
-        # enum does not need a presence annotation.
+        # enum does not need a presence annotation. AUTO is a business value.
         default: AUTO
 
   MatchEntityTypeAndSubTypeCondition:
@@ -121,6 +121,7 @@ enums:
     values: [ALERTS, CASES, TEST_NOTIFICATIONS]
     rejected: [OLLY_SCHEDULED_TASKS]
   AttachmentConfigPolicy:
-    zero: AUTO
+    # AUTO is a business value (proto zero), not an *_UNSPECIFIED sentinel.
+    # A missing attachment_config reads back as the schema default on that field.
     verbatim: true
-    values: [ENABLED, DISABLED]
+    values: [AUTO, ENABLED, DISABLED]

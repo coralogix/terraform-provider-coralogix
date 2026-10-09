@@ -260,6 +260,7 @@ func (t *Type) requestType(op verb) *Type {
 	}
 	out := *t
 	out.Elem = t.Elem.requestType(op)
+	out.Wrappers = requestWrappers(t.Wrappers, op)
 	if t.Kind != Object && t.Kind != OneOf {
 		return &out
 	}
@@ -279,6 +280,27 @@ func (t *Type) requestType(op verb) *Type {
 		out.Fields = append(out.Fields, &Field{Name: f.Name, Description: f.Description, Attrs: *attrs, Type: f.Type.requestType(op), Behavior: f.Behavior})
 	}
 	return &out
+}
+
+// requestWrappers returns the wrappers of a value in the op request: their request components,
+// and the request attributes of the property that holds the value.
+func requestWrappers(wrappers []Wrapper, op verb) []Wrapper {
+	if len(wrappers) == 0 {
+		return nil
+	}
+	out := make([]Wrapper, 0, len(wrappers))
+	for _, w := range wrappers {
+		schema, attrs := w.CreateSchema, w.Create
+		if op == opUpdate {
+			schema, attrs = w.UpdateSchema, w.Update
+		}
+		w.Schema = schema
+		if attrs != nil {
+			w.Attrs = *attrs
+		}
+		out = append(out, w)
+	}
+	return out
 }
 
 func fieldNamed(fields []*Field, name string) *Field {

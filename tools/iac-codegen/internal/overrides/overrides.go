@@ -44,6 +44,10 @@ type File struct {
 	Types map[string]Type `yaml:"types"`
 	// Enums has one entry per OpenAPI enum component.
 	Enums map[string]Enum `yaml:"enums"`
+	// Unwrap lists the components with one property that the released resource shows as the
+	// value of that property, for example LuceneQuery in {"luceneQuery": {"value": "error"}}. It
+	// applies in every place that has no unwrap key on its field line.
+	Unwrap []string `yaml:"unwrap"`
 }
 
 // Schema is the Terraform schema version of a released resource.
@@ -171,6 +175,9 @@ type Field struct {
 	// field. Expand wraps it as the object, and flatten unwraps it. A missing inner value
 	// becomes the schema default when default is set.
 	Promote string `yaml:"promote"`
+	// Unwrap: true shows the value inside the wrapper of the field, or of its items, in this
+	// place. false keeps the object of a component that the unwrap list names.
+	Unwrap *bool `yaml:"unwrap"`
 }
 
 // Equality values of a field line.
@@ -239,9 +246,17 @@ func (f *File) check() error {
 	if err := f.checkEnums(); err != nil {
 		return err
 	}
+	if err := f.checkUnwrap(); err != nil {
+		return err
+	}
 	if err := f.API.check(); err != nil {
 		return err
 	}
+	return f.checkTypes()
+}
+
+// checkTypes checks the type lines: the required list, the field lines, and the extra attributes.
+func (f *File) checkTypes() error {
 	for name, t := range f.Types {
 		if t.Required != nil && len(*t.Required) != 0 {
 			return fmt.Errorf("types.%s.required: only the empty list [] is allowed", name)
@@ -299,6 +314,19 @@ func (f *File) checkEnums() error {
 	return nil
 }
 
+// checkUnwrap checks that the unwrap list names each component once.
+func (f *File) checkUnwrap() error {
+	for i, name := range f.Unwrap {
+		if name == "" {
+			return fmt.Errorf("unwrap[%d] is empty", i)
+		}
+		if slices.Contains(f.Unwrap[:i], name) {
+			return fmt.Errorf("unwrap names %s twice", name)
+		}
+	}
+	return nil
+}
+
 // keys returns the names of the keys that the line sets, in the order of the file format.
 func (l Field) keys() []string {
 	var keys []string
@@ -321,6 +349,7 @@ func (l Field) keys() []string {
 	add(len(l.Validators) != 0, "validators")
 	add(l.Equality != "", "equality")
 	add(l.Promote != "", "promote")
+	add(l.Unwrap != nil, "unwrap")
 	return keys
 }
 
@@ -361,7 +390,7 @@ func (e ExtraAttribute) check(name string) error {
 func (l Field) empty() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown && l.Default == nil && l.ReadEmptyAs == "" &&
-		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Promote == ""
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Promote == "" && l.Unwrap == nil
 }
 
 func (l Field) check() error {
@@ -401,7 +430,7 @@ func (l Field) check() error {
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
 func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Default != nil || l.KeepPriorOrder ||
-		l.ReadEmptyAs != "" || len(l.Validators) != 0 || l.Equality != "" || l.Promote != ""
+		l.ReadEmptyAs != "" || len(l.Validators) != 0 || l.Equality != "" || l.Promote != "" || l.Unwrap != nil
 }
 
 func checkValidators(validators []Validator) error {
@@ -441,9 +470,16 @@ func (f *File) Policy() model.Policy {
 		p.DeleteOperation = f.API.Delete.Operation
 	}
 	p.EnumAnyPrefix = append(p.EnumAnyPrefix, sortedKeys(f.Enums)...)
+	p.Unwrap = slices.Clone(f.Unwrap)
 	for _, name := range sortedKeys(f.Types) {
 		t := f.Types[name]
 		for _, field := range sortedKeys(t.Fields) {
+			if on := t.Fields[field].Unwrap; on != nil {
+				if p.UnwrapFields == nil {
+					p.UnwrapFields = map[string]bool{}
+				}
+				p.UnwrapFields[name+"."+field] = *on
+			}
 			if t.Fields[field].Skip {
 				p.Skip = append(p.Skip, name+"."+field)
 			}

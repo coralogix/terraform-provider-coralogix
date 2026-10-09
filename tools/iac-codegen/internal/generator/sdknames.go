@@ -313,6 +313,9 @@ func (s *resolver) field(path, owner, name string, t *model.Type, allowValue boo
 // nested adds the types, fields, and enum constants inside t. It walks each
 // component schema once, so a path shows the first place that uses it.
 func (s *resolver) nested(path string, t *model.Type) error {
+	if len(t.Wrappers) != 0 {
+		return s.wrappers(path, t)
+	}
 	switch t.Kind {
 	case model.List, model.Set, model.Map:
 		return s.nested(path, t.Elem)
@@ -326,7 +329,7 @@ func (s *resolver) nested(path string, t *model.Type) error {
 		for _, v := range t.Values {
 			s.add(sdkRef{Path: path + "." + v, Kind: kindConst, Name: strings.ToUpper(name) + "_" + v, Rule: ruleEnumValue})
 		}
-		if s.policy.EnumOverride(t.Schema) {
+		if s.policy.EnumOverride(t.Schema) && t.EnumZero != "" {
 			// The overrides map the zero value to a Terraform value, so the SDK must have it.
 			s.add(sdkRef{Path: path + "." + t.EnumZero, Kind: kindConst, Name: strings.ToUpper(name) + "_" + t.EnumZero, Rule: ruleEnumValue})
 		}
@@ -351,9 +354,31 @@ func (s *resolver) nested(path string, t *model.Type) error {
 	return nil
 }
 
+// wrappers adds the type of each wrapper of t and the field that holds the value, then the names
+// inside the value. A wrapper that another place walked as an object has the same field type.
+func (s *resolver) wrappers(path string, t *model.Type) error {
+	for i, w := range t.Wrappers {
+		if !s.seen[w.Schema] {
+			s.seen[w.Schema] = true
+			name := goTypeName(w.Schema)
+			s.add(sdkRef{Path: path, Kind: kindType, Name: name, Rule: ruleComponent, Schema: w.Schema})
+			rest := *t
+			rest.Wrappers = t.Wrappers[i+1:]
+			if err := s.field(path+"."+w.Field, name, w.Field, &rest, w.Attrs.Required); err != nil {
+				return err
+			}
+		}
+		path += "." + w.Field
+	}
+	return s.nested(path, t.Unwrapped())
+}
+
 // fieldType is the Go type of an optional SDK struct field. A required field
 // can also be the value type (see field).
 func fieldType(t *model.Type) (string, rule, error) {
+	if len(t.Wrappers) != 0 {
+		return "*" + goTypeName(t.Wrappers[0].Schema), ruleProperty, nil
+	}
 	if (t.Kind == model.Object || t.Kind == model.OneOf) && len(t.Fields) == 0 {
 		return "map[string]interface{}", ruleEmptyObject, nil
 	}

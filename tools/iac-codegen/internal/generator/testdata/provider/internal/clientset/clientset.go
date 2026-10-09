@@ -6,6 +6,7 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/legacy_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/settings_service"
 	"example.com/iac-test-sdk/go/openapi/gen/things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/wrap_things_service"
 )
 
 type ClientSet struct {
@@ -14,6 +15,7 @@ type ClientSet struct {
 	Legacy         *legacy_things_service.LegacyThingsServiceAPIService
 	Archived       *archived_things_service.ArchivedThingsServiceAPIService
 	Config         *config_things_service.ConfigThingsServiceAPIService
+	Wrap           *wrap_things_service.WrapThingsServiceAPIService
 }
 
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
@@ -30,4 +32,8 @@ func (c *ClientSet) ArchivedThings() *archived_things_service.ArchivedThingsServ
 
 func (c *ClientSet) ConfigThings() *config_things_service.ConfigThingsServiceAPIService {
 	return c.Config
+}
+
+func (c *ClientSet) WrapThings() *wrap_things_service.WrapThingsServiceAPIService {
+	return c.Wrap
 }
