@@ -254,7 +254,7 @@ func expandCreateWrapThingRequest(ctx context.Context, p path.Path, m *WrapThing
 	{
 		var inner []string
 		inner = expandStrings[string](ctx, p.AtName("widget_ids"), m.WidgetIds, diags)
-		out.WidgetIds = wrapUUIDItems(inner)
+		out.WidgetIds = wrapUUID_items(inner)
 	}
 	{
 		var inner *wrap_things_service.SimpleFilter
@@ -264,7 +264,7 @@ func expandCreateWrapThingRequest(ctx context.Context, p path.Path, m *WrapThing
 	{
 		var inner []string
 		inner = expandStrings[string](ctx, p.AtName("selection"), m.Selection, diags)
-		out.Selection = wrapSelectionListSelection(inner)
+		out.Selection = wrapSelection_ListSelection(inner)
 	}
 	{
 		var inner *string
@@ -356,7 +356,7 @@ func expandReplaceWrapThingRequest(ctx context.Context, p path.Path, m *WrapThin
 	{
 		var inner []string
 		inner = expandStrings[string](ctx, p.AtName("widget_ids"), m.WidgetIds, diags)
-		out.WidgetIds = wrapUUIDItems(inner)
+		out.WidgetIds = wrapUUID_items(inner)
 	}
 	{
 		var inner *wrap_things_service.SimpleFilter
@@ -366,7 +366,7 @@ func expandReplaceWrapThingRequest(ctx context.Context, p path.Path, m *WrapThin
 	{
 		var inner []string
 		inner = expandStrings[string](ctx, p.AtName("selection"), m.Selection, diags)
-		out.Selection = wrapSelectionListSelection(inner)
+		out.Selection = wrapSelection_ListSelection(inner)
 	}
 	{
 		var inner *string
@@ -398,7 +398,7 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 		out.Threshold = types.Float64PointerValue(inner)
 	}
 	{
-		inner := unwrapUUIDItems(v.WidgetIds)
+		inner := unwrapUUID_items(v.WidgetIds)
 		out.WidgetIds = flattenStringsList(ctx, inner, diags)
 	}
 	{
@@ -406,7 +406,7 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 		out.Filter = flattenSimpleFilter(ctx, p.AtName("filter"), inner, diags)
 	}
 	{
-		inner := unwrapSelectionListSelection(v.Selection)
+		inner := unwrapSelection_ListSelection(v.Selection)
 		out.Selection = flattenStringsList(ctx, inner, diags)
 	}
 	{
@@ -491,8 +491,8 @@ func unwrapUUID(w *wrap_things_service.UUID) *string {
 	return w.Value
 }
 
-// wrapUUIDItems puts each item in its API wrapper objects.
-func wrapUUIDItems(v []string) []wrap_things_service.UUID {
+// wrapUUID_items puts each item in its API wrapper objects.
+func wrapUUID_items(v []string) []wrap_things_service.UUID {
 	if v == nil {
 		return nil
 	}
@@ -503,9 +503,9 @@ func wrapUUIDItems(v []string) []wrap_things_service.UUID {
 	return out
 }
 
-// unwrapUUIDItems takes the value out of the API wrapper objects of each item. An item without a
+// unwrapUUID_items takes the value out of the API wrapper objects of each item. An item without a
 // value is the zero value, so the list keeps its length.
-func unwrapUUIDItems(w []wrap_things_service.UUID) []string {
+func unwrapUUID_items(w []wrap_things_service.UUID) []string {
 	if w == nil {
 		return nil
 	}
@@ -536,16 +536,16 @@ func unwrapFilterHolder(w *wrap_things_service.FilterHolder) *wrap_things_servic
 	return w.Filter
 }
 
-// wrapSelectionListSelection puts the value in its API wrapper objects. A nil value sends no wrapper.
-func wrapSelectionListSelection(v []string) *wrap_things_service.Selection {
+// wrapSelection_ListSelection puts the value in its API wrapper objects. A nil value sends no wrapper.
+func wrapSelection_ListSelection(v []string) *wrap_things_service.Selection {
 	if v == nil {
 		return nil
 	}
 	return &wrap_things_service.Selection{List: &wrap_things_service.ListSelection{Values: v}}
 }
 
-// unwrapSelectionListSelection takes the value out of its API wrapper objects. A missing wrapper is nil.
-func unwrapSelectionListSelection(w *wrap_things_service.Selection) []string {
+// unwrapSelection_ListSelection takes the value out of its API wrapper objects. A missing wrapper is nil.
+func unwrapSelection_ListSelection(w *wrap_things_service.Selection) []string {
 	if w == nil || w.List == nil {
 		return nil
 	}

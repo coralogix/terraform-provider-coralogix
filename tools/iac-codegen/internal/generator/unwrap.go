@@ -47,7 +47,7 @@ func (b *convBuilder) wrappedItemsConv(cf *convField, t *model.Type) (string, er
 		return "", err
 	}
 	helper, err := b.addWrapHelper(&wrapHelper{
-		Func: item.Func + "Items", Outer: "[]" + b.qualify(outer), Inner: b.qualifyType(inner),
+		Func: item.Func + "_items", Outer: "[]" + b.qualify(outer), Inner: b.qualifyType(inner),
 		Item: item.Func, ItemValue: b.qualifyType(value),
 	})
 	if err != nil {
@@ -103,11 +103,18 @@ func (b *convBuilder) wrapHelperFor(wrappers []model.Wrapper, inner string) (str
 		names = append(names, camelize(w.Schema))
 	}
 	helper, err := b.addWrapHelper(&wrapHelper{
-		Func: strings.Join(names, ""), Outer: "*" + b.qualify(outer), Inner: b.qualifyType(inner),
+		Func: wrapHelperName(names), Outer: "*" + b.qualify(outer), Inner: b.qualifyType(inner),
 		Build: wrapBuild(steps), Read: wrapRead(steps, strings.HasPrefix(inner, "*")),
 		NilCheck: wrapNilCheck(steps),
 	})
 	return outer, helper, err
+}
+
+// wrapHelperName names the helpers of a chain of wrappers, outer first. A Go type name of a
+// component has no "_", so A_B (A holds B) differs from AB, and the "_items" suffix of a list
+// helper differs from every chain.
+func wrapHelperName(components []string) string {
+	return strings.Join(components, "_")
 }
 
 // addWrapHelper keeps one helper per name. Two places with the same wrappers share it, and the
@@ -117,8 +124,8 @@ func (b *convBuilder) addWrapHelper(h *wrapHelper) (*wrapHelper, error) {
 		if existing.Func != h.Func {
 			continue
 		}
-		if existing.Inner != h.Inner {
-			return nil, fmt.Errorf("the wrappers %s hold %s in one place and %s in another", h.Func, existing.Inner, h.Inner)
+		if existing.Outer != h.Outer || existing.Inner != h.Inner {
+			return nil, fmt.Errorf("the wrap helper %s is %s to %s in one place and %s to %s in another", h.Func, existing.Inner, existing.Outer, h.Inner, h.Outer)
 		}
 		return existing, nil
 	}

@@ -136,6 +136,23 @@ func TestWrapHelpersOfValueFields(t *testing.T) {
 	}
 }
 
+// Wrapper chains whose component names join to the same text get helpers with different names.
+func TestWrapHelperNamesKeepTheWrapperBoundaries(t *testing.T) {
+	if chain, single := wrapHelperName([]string{"A", "B"}), wrapHelperName([]string{"AB"}); chain == single {
+		t.Errorf("A holds B and AB both name the helper %s", chain)
+	}
+	if items, single := wrapHelperName([]string{"UUID"})+"_items", wrapHelperName([]string{"UUIDItems"}); items == single {
+		t.Errorf("a list of UUID and UUIDItems both name the helper %s", items)
+	}
+	b := &convBuilder{}
+	if _, err := b.addWrapHelper(&wrapHelper{Func: "AB", Outer: "*sdk.A", Inner: "*string"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := b.addWrapHelper(&wrapHelper{Func: "AB", Outer: "*sdk.AB", Inner: "*string"}); err == nil {
+		t.Error("a helper with another outer type reused the helper of the same name")
+	}
+}
+
 func TestQualifyType(t *testing.T) {
 	b := &convBuilder{ix: &refIndex{pkg: sdkRef{Name: "sdk"}}}
 	for in, want := range map[string]string{
