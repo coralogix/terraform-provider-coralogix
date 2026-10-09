@@ -62,6 +62,24 @@ type Policy struct {
 	// ReadOnly lists "Component.field" of top-level fields that the server sets, although
 	// the contract does not mark them readOnly yet. They are in Get only.
 	ReadOnly []string
+	// Unwrap lists the components with one property that Terraform shows as the value of that
+	// property, in every place that has no field line.
+	Unwrap []string
+	// UnwrapFields maps "Component.field" to the choice of a field line: true shows the value
+	// inside the wrapper of the field, or of its items, and false keeps the object.
+	UnwrapFields map[string]bool
+}
+
+// unwraps reports whether Terraform shows the value inside component, the wrapper that holds
+// the value of field of the owner component, or its items.
+func (p Policy) unwraps(owner, field, component string) bool {
+	if !p.Existing {
+		return false
+	}
+	if on, ok := p.UnwrapFields[owner+"."+field]; ok {
+		return on
+	}
+	return component != "" && slices.Contains(p.Unwrap, component)
 }
 
 // requestBody returns the schema that holds the resource in a Create or Update

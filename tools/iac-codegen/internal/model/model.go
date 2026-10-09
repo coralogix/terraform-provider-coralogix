@@ -2,6 +2,8 @@
 // Terraform and no SDK types. Build reads it from an OpenAPI document.
 package model
 
+import "strings"
+
 // OperationIDs selects lifecycle operations when suffix discovery is ambiguous.
 // Empty fields use deterministic suffix discovery.
 type OperationIDs struct {
@@ -45,6 +47,12 @@ type Resource struct {
 	// Fields are the top-level resource fields: the Get fields in spec order,
 	// then Create-only and Update-only fields (Build rejects those).
 	Fields []*ResourceField
+	// UnwrapUsed are the unwrap lines of the policy that decided a place: "unwrap.<Component>"
+	// for a component of the list, and "<Component>.<field>" for a field line.
+	UnwrapUsed map[string]bool
+	// HiddenWrappers are the wrapper components that collapse in every place, so Terraform has
+	// no attribute for their property.
+	HiddenWrappers map[string]bool
 }
 
 // Operation is one HTTP operation of the resource.
@@ -177,4 +185,42 @@ type Type struct {
 	Pattern            string
 	Minimum, Maximum   *float64
 	MinItems, MaxItems *int64 // List, Set: items. Map: entries (minProperties, maxProperties).
+	// Wrappers are the one-property objects that hold the value in the API, outer first. The
+	// rest of the type is the value inside them, which Terraform shows. They are set only by
+	// the unwrap lines of a behavior-overrides file.
+	Wrappers []Wrapper
+}
+
+// Wrapper is one object with one property that holds a value in the API, for example
+// LuceneQuery in {"luceneQuery": {"value": "error"}}. Terraform shows only the value.
+type Wrapper struct {
+	// Schema is the component in the resource response. CreateSchema and UpdateSchema are the
+	// components in the requests, "" when that request does not send the value.
+	Schema, CreateSchema, UpdateSchema string
+	// Field is the one property that holds the value.
+	Field string
+	// Attrs are the attributes of Field in the resource response. Create and Update are its
+	// attributes in the requests, nil when that request does not send the value.
+	Attrs          Attrs
+	Create, Update *Attrs
+}
+
+// WrapperPath returns the API path from the outer wrapper to the value, for example
+// "filter.value", or "" when the value has no wrapper.
+func (t *Type) WrapperPath() string {
+	names := make([]string, 0, len(t.Wrappers))
+	for _, w := range t.Wrappers {
+		names = append(names, w.Field)
+	}
+	return strings.Join(names, ".")
+}
+
+// Unwrapped returns the type of the value inside the wrappers. It is t when t has none.
+func (t *Type) Unwrapped() *Type {
+	if len(t.Wrappers) == 0 {
+		return t
+	}
+	out := *t
+	out.Wrappers = nil
+	return &out
 }

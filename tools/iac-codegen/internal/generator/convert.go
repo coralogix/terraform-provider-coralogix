@@ -52,9 +52,47 @@ type convData struct {
 	CreateWrap, UpdateWrap *bodyWrap
 	// EnumMaps map the Terraform values of an enum to its API values, and back.
 	EnumMaps []*enumMap
+	// WrapHelpers are the functions that put a value in its API wrapper objects and take it out.
+	WrapHelpers []*wrapHelper
 	// Existing: the resource has users. An unknown planned value of a computed attribute is
 	// left out of the request, and the server supplies it, as the released resource did.
 	Existing bool
+}
+
+// wrapHelper is one pair of generated functions, wrap<Func> and unwrap<Func>. They convert a value
+// to the API wrapper objects that hold it, and back: one value, or each item of a list.
+type wrapHelper struct {
+	Func  string
+	Outer string // qualified Go type of the wrapped value
+	Inner string // qualified Go type of the value
+	// One value: Build wraps the non-nil value v. Unwrap returns nil when NilCheck holds, else Read.
+	Build, NilCheck, Read string
+	// Items: Item is the Func of the helper of one item, and ItemValue the Go type of one value.
+	Item, ItemValue string
+}
+
+// fieldWrap is the conversion of a field whose value the API holds in wrapper objects. Expand
+// converts the Terraform value to Inner as for a field without wrappers, then calls the wrap
+// helpers. Flatten calls the unwrap helpers, then converts the value.
+type fieldWrap struct {
+	Inner string   // qualified Go type of the value that the field conversion writes and reads
+	Funcs []string // the helpers, outer first
+}
+
+// ExpandOf returns the Go expression that wraps the value expr.
+func (w *fieldWrap) ExpandOf(expr string) string {
+	for i := len(w.Funcs) - 1; i >= 0; i-- {
+		expr = "wrap" + w.Funcs[i] + "(" + expr + ")"
+	}
+	return expr
+}
+
+// UnwrapOf returns the Go expression that takes the value out of the wrapped value expr.
+func (w *fieldWrap) UnwrapOf(expr string) string {
+	for _, f := range w.Funcs {
+		expr = "unwrap" + f + "(" + expr + ")"
+	}
+	return expr
 }
 
 // bodyWrap is the request body that holds the resource in one field.
@@ -181,6 +219,36 @@ type convField struct {
 	// does that for a required field (F18). Expand sends the zero value for
 	// null; the schema requires the attribute, so it is not null.
 	Value bool
+	// Wrap is set when the API holds the value in wrapper objects that Terraform does not show.
+	Wrap *fieldWrap
+}
+
+// Dst is the Go expression that expand writes the value to: the SDK field, or the value inside
+// the wrappers.
+func (f *convField) Dst() string {
+	if f.Wrap != nil {
+		return "inner"
+	}
+	return "out." + f.SDK
+}
+
+// Src is the Go expression that flatten reads the value from.
+func (f *convField) Src() string {
+	if f.Wrap != nil {
+		return "inner"
+	}
+	return "v." + f.SDK
+}
+
+// DirectValue reports whether Dst and Src are an SDK value field, not a pointer.
+func (f *convField) DirectValue() bool { return f.Value && f.Wrap == nil }
+
+// WrappedSrc is the Go expression of the wrapped SDK field that the unwrap helpers take.
+func (f *convField) WrappedSrc() string {
+	if f.Value {
+		return "&v." + f.SDK
+	}
+	return "v." + f.SDK
 }
 
 // Uses reports whether a field uses the conversion kind conv. The template
@@ -260,6 +328,7 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 	out.Objects = b.objects
 	out.OneOfArms = oneOfArmPaths(r)
 	out.EnumMaps = b.enumMaps
+	out.WrapHelpers = b.wraps
 	if err := markPrior(out); err != nil {
 		return nil, err
 	}
@@ -515,7 +584,12 @@ func maskTree(name string, t *model.Type) *maskField {
 		return n
 	}
 	for _, f := range t.Fields {
-		n.Children = append(n.Children, maskTree(f.Name, f.Type))
+		child := maskTree(f.Name, f.Type)
+		if len(t.Wrappers) != 0 {
+			// Terraform does not show the wrappers, but the mask path names them.
+			child.API = t.WrapperPath() + "." + child.API
+		}
+		n.Children = append(n.Children, child)
 	}
 	n.Groups = groupNames(t.Groups)
 	return n
@@ -547,6 +621,7 @@ type convBuilder struct {
 	file     *overrides.File
 	resource *model.Resource
 	enumMaps []*enumMap
+	wraps    []*wrapHelper
 }
 
 // serverDefault reports whether removing the field resets it to a declared server default.
@@ -644,6 +719,9 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type, comput
 	if err != nil {
 		return nil, err
 	}
+	if cf.Wrap != nil && (cf.KeepPriorOrder || cf.Equality != "") {
+		return nil, fmt.Errorf("%s: %w", cf.TFName, errUnwrapCombination)
+	}
 	if err := checkReadEmptyAs(cf); err != nil {
 		return nil, err
 	}
@@ -661,6 +739,12 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type, comput
 // fieldConv sets the conversion of cf for t. It returns the SDK Go type that
 // the conversion needs. computed is true for a field that only the response has.
 func (b *convBuilder) fieldConv(cf *convField, t *model.Type, computed bool) (string, error) {
+	if len(t.Wrappers) != 0 {
+		return b.wrappedConv(cf, t, computed)
+	}
+	if (t.Kind == model.List || t.Kind == model.Set) && len(t.Elem.Wrappers) != 0 {
+		return b.wrappedItemsConv(cf, t)
+	}
 	switch t.Kind {
 	case model.String, model.Bool, model.Number, model.Integer:
 		return scalarConv(cf, t, computed)
@@ -1219,10 +1303,10 @@ func propagatePrior(d *convData) {
 // sameCheck is the Go condition that two SDK values, a and b, have an equal field f. A missing
 // value and an empty one are equal, as in the released resources.
 func sameCheck(f *convField) (string, error) {
-	a, b := "a."+f.SDK, "b."+f.SDK
+	a, b, value := sameOperands(f)
 	switch f.Conv {
 	case convRFC3339:
-		if !f.Value {
+		if !value {
 			a, b = "pointerValue("+a+")", "pointerValue("+b+")"
 		}
 		// Two texts of one instant are the same time.
@@ -1233,7 +1317,7 @@ func sameCheck(f *convField) (string, error) {
 		}
 		return "slices.EqualFunc(" + a + ", " + b + ", time.Time.Equal)", nil
 	case convString, convBool, convFloat64, convFloat32, convInt32, convInt64, convUint64, convEnum, convTime:
-		if !f.Value {
+		if !value {
 			a, b = "pointerValue("+a+")", "pointerValue("+b+")"
 		}
 		if f.Equality != "" {
@@ -1249,7 +1333,7 @@ func sameCheck(f *convField) (string, error) {
 		}
 		return "slices.Equal(" + a + ", " + b + ")", nil
 	case convObj:
-		if f.Value {
+		if value {
 			return "same" + f.Object.Func + "(&" + a + ", &" + b + ")", nil
 		}
 		return "sameObject(" + a + ", " + b + ", same" + f.Object.Func + ")", nil
@@ -1260,6 +1344,20 @@ func sameCheck(f *convField) (string, error) {
 		return "sameList(" + a + ", " + b + ", same" + f.Object.Func + ")", nil
 	}
 	return "", fmt.Errorf("a field of kind %s cannot be compared for keepPriorOrder yet", f.Conv)
+}
+
+// sameOperands returns the Go expressions of field f in the SDK values a and b, and whether they are
+// values, not pointers. A wrapped field compares the values inside its wrappers, because two wrapper
+// structs hold pointers.
+func sameOperands(f *convField) (a, b string, value bool) {
+	a, b = "a."+f.SDK, "b."+f.SDK
+	if f.Wrap == nil {
+		return a, b, f.Value
+	}
+	if f.Value {
+		a, b = "&"+a, "&"+b
+	}
+	return f.Wrap.UnwrapOf(a), f.Wrap.UnwrapOf(b), false
 }
 
 // UsesPrior reports whether a field keeps the prior order.

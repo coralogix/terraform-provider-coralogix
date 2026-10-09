@@ -119,6 +119,42 @@ func generateConfigThing(t *testing.T) string {
 	return out
 }
 
+// The golden output of a resource whose API holds values in wrapper objects. Terraform shows only
+// the values: a string, an enum, a required number, a list of wrapped items, an object, and a
+// list inside two wrappers. One component collapses in one place and stays an object in another.
+func TestGoldenOutputWrappedValues(t *testing.T) {
+	out := generateWrapThing(t)
+	golden := filepath.Join("testdata", "golden", "wrapthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputWrappedValues -update:\n%s", diff)
+	}
+}
+
+// generateWrapThing generates the synthetic resource whose API holds values in wrapper objects.
+func generateWrapThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "wrapthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "wrapthing")
+	options := Options{Resource: "WrapThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "wrapthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
 func TestGoldenOutput(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	first := filepath.Join(t.TempDir(), "thing")
@@ -1099,6 +1135,21 @@ func TestDocumentEqualityRuntimeSemantics(t *testing.T) {
 	input, _ := syntheticInput(t)
 	out := generateConfigThing(t)
 	semantics, err := os.ReadFile(filepath.Join("testdata", "configthing_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// The generated resource whose API holds values in wrapper objects puts each value in its wrappers
+// on expand and takes it out on flatten, and keeps null apart from a zero value.
+func TestWrappedValuesRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateWrapThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "wrapthing_semantics_test.go"))
 	if err != nil {
 		t.Fatal(err)
 	}

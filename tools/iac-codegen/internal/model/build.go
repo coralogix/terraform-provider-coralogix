@@ -81,6 +81,9 @@ func BuildWithPolicy(doc *v3.Document, name string, ids OperationIDs, policy Pol
 		r.IDType = r.Fields[index].Type
 	}
 	r.pruneSkipped()
+	if err := r.unwrap(); err != nil {
+		return nil, err
+	}
 	return r, nil
 }
 

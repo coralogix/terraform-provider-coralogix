@@ -2,6 +2,7 @@ package overrides
 
 import (
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -76,6 +77,8 @@ func TestParseIsStrict(t *testing.T) {
 		"required list":   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    required: [a]\n", "only the empty list"},
 		"type with no op": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T: {}\n", "has no override"},
 		"bad extra type":  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      token_wo:\n        elementType: bool\n        markdownDescription: x\n", "elementType"},
+		"unwrap twice":    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nunwrap: [A, A]\n", "names A twice"},
+		"skip and unwrap": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, unwrap: true}\n", "skipped field"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -217,5 +220,27 @@ func TestEquality(t *testing.T) {
 				t.Fatalf("err = %v, want it to contain %q", err, test.want)
 			}
 		})
+	}
+}
+
+func TestUnwrapPolicy(t *testing.T) {
+	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\nunwrap: [Query, UUID]\ntypes:\n  R:\n    fields:\n      label: {unwrap: true}\n      raw: {unwrap: false}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := f.Policy()
+	if !reflect.DeepEqual(p.Unwrap, []string{"Query", "UUID"}) {
+		t.Errorf("unwrap = %v", p.Unwrap)
+	}
+	if want := map[string]bool{"R.label": true, "R.raw": false}; !reflect.DeepEqual(p.UnwrapFields, want) {
+		t.Errorf("unwrap fields = %v, want %v", p.UnwrapFields, want)
+	}
+	if len(p.Released) != 0 {
+		t.Errorf("released = %v: an unwrap line says nothing about presence", p.Released)
+	}
+	for _, line := range f.Lines() {
+		if !slices.Contains(line.Keys, "unwrap") {
+			t.Errorf("line %s keys = %v, want unwrap", line, line.Keys)
+		}
 	}
 }
