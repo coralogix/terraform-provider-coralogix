@@ -81,6 +81,12 @@ func BuildWithPolicy(doc *v3.Document, name string, ids OperationIDs, policy Pol
 		r.IDType = r.Fields[index].Type
 	}
 	r.pruneSkipped()
+	if err := r.applyRequiresReplace(); err != nil {
+		return nil, err
+	}
+	if err := r.checkUnsupportedApplied(); err != nil {
+		return nil, err
+	}
 	return r, nil
 }
 
@@ -679,6 +685,9 @@ func (r *Resource) checkUpdateMask(updateBody *base.Schema, update foundOp) erro
 	if r.Replace {
 		return checkNoUpdateMask(bodyMask, params)
 	}
+	if r.Policy.UpdateMaskInBody {
+		return r.readBodyUpdateMask(updateBody, bodyMask, params)
+	}
 	if bodyMask != "" {
 		return fmt.Errorf("update body: %s must be a query parameter, not a body property", bodyMask)
 	}
@@ -698,6 +707,31 @@ func checkNoUpdateMask(bodyMask string, params []*v3.Parameter) error {
 	if len(params) != 0 {
 		return fmt.Errorf("update parameters: a full replace (PUT) has no %s parameter", params[0].Name)
 	}
+	return nil
+}
+
+// readBodyUpdateMask accepts an optional updateMask string on the JSON body.
+// The generated client does not send it: an omitted mask updates the fields
+// that the body contains.
+func (r *Resource) readBodyUpdateMask(body *base.Schema, name string, params []*v3.Parameter) error {
+	if !r.Policy.Existing {
+		return errors.New("api.updateMaskInBody is only for a released resource")
+	}
+	if len(params) != 0 {
+		return fmt.Errorf("update parameters: %s is both a body property and a parameter", params[0].Name)
+	}
+	if name == "" {
+		return fmt.Errorf("update body: api.updateMaskInBody needs an optional %s or %s string property", updateMaskField, updateMaskProtoField)
+	}
+	proxy := propertyOf(body, name)
+	s, err := schemaOf(proxy)
+	if err != nil || !slices.Equal(s.Type, []string{"string"}) {
+		return fmt.Errorf("update body: %s must have a string schema", name)
+	}
+	if slices.Contains(body.Required, name) {
+		return fmt.Errorf("update body: %s must be optional, so an update can omit the mask", name)
+	}
+	r.OmitUpdateMask = true
 	return nil
 }
 
@@ -754,6 +788,9 @@ func maskParameters(op foundOp) []*v3.Parameter {
 func (r *Resource) requestProperty(body *base.Schema, name string) (*base.SchemaProxy, error) {
 	if r.Policy.readOnly(r.Name, name) {
 		return nil, nil // the server sets the field, so it is not in a request
+	}
+	if r.Policy.UpdateMaskInBody && isUpdateMaskName(name) {
+		return nil, nil // the mask stays out of the Terraform schema and is not sent
 	}
 	return requestProperty(body, name)
 }
@@ -1082,9 +1119,127 @@ func objectType(t *Type, s *base.Schema, path string, w walk) error {
 	}
 	if len(groups) == 1 && sameSet(groups[0].Arms, propertyNames(s)) {
 		t.Kind, t.AllowNone = OneOf, groups[0].AllowNone
-		return nil
+		return splitUnsupported(t, w.policy)
 	}
 	t.Kind, t.Groups = Object, groups
+	return nil
+}
+
+// splitUnsupported removes the oneOf arms that the policy does not configure.
+// They stay on Unsupported so flatten can report a response that selects one.
+func splitUnsupported(t *Type, p *Policy) error {
+	listed := unsupportedArms(t, p)
+	if len(listed) == 0 {
+		return nil
+	}
+	if t.Schema == "" {
+		return fmt.Errorf("unsupported arms need a component schema")
+	}
+	keep, drop, err := partitionUnsupported(t, listed)
+	if err != nil {
+		return err
+	}
+	t.Fields = keep
+	t.Unsupported = drop
+	t.UnsupportedSummary = p.UnsupportedSummary[t.Schema]
+	t.UnsupportedDetail = p.UnsupportedDetail[t.Schema]
+	if t.UnsupportedSummary == "" || t.UnsupportedDetail == "" {
+		return fmt.Errorf("%s: unsupported arms need unsupportedSummary and unsupportedDetail", t.Schema)
+	}
+	return nil
+}
+
+func unsupportedArms(t *Type, p *Policy) []string {
+	if p == nil || t == nil || t.Schema == "" {
+		return nil
+	}
+	var listed []string
+	prefix := t.Schema + "."
+	for _, key := range p.Unsupported {
+		arm, ok := strings.CutPrefix(key, prefix)
+		if ok && arm != "" && !strings.Contains(arm, ".") {
+			listed = append(listed, arm)
+		}
+	}
+	return listed
+}
+
+func partitionUnsupported(t *Type, listed []string) (keep, drop []*Field, err error) {
+	names := map[string]bool{}
+	for _, f := range t.Fields {
+		names[f.Name] = true
+	}
+	for _, arm := range listed {
+		if !names[arm] {
+			return nil, nil, fmt.Errorf("%s: unsupported arm %q is not a field", t.Schema, arm)
+		}
+	}
+	for _, f := range t.Fields {
+		if slices.Contains(listed, f.Name) {
+			drop = append(drop, f)
+			continue
+		}
+		keep = append(keep, f)
+	}
+	if len(keep) == 0 {
+		return nil, nil, fmt.Errorf("%s: unsupported arms remove every oneOf arm", t.Schema)
+	}
+	return keep, drop, nil
+}
+
+// applyRequiresReplace marks top-level fields that replace the resource even
+// though Update accepts them. The update does not send them.
+func (r *Resource) applyRequiresReplace() error {
+	if len(r.Policy.RequiresReplace) == 0 {
+		return nil
+	}
+	applied := map[string]bool{}
+	for _, f := range r.Fields {
+		if !r.Policy.requiresReplace(r.Name, f.Name) {
+			continue
+		}
+		if f.Behavior != Normal {
+			return fmt.Errorf("%s.%s: requiresReplace needs a field that Create, Update, and Get all have", r.Name, f.Name)
+		}
+		f.Behavior = Immutable
+		f.Update = nil
+		applied[r.Name+"."+f.Name] = true
+	}
+	for _, key := range r.Policy.RequiresReplace {
+		if !applied[key] {
+			return fmt.Errorf("requiresReplace %s: only a top-level field of %s can force a new resource", key, r.Name)
+		}
+	}
+	return nil
+}
+
+// checkUnsupportedApplied reports an unsupported arm that names no oneOf arm.
+func (r *Resource) checkUnsupportedApplied() error {
+	applied := map[string]bool{}
+	seen := map[*Type]bool{}
+	var walk func(*Type)
+	walk = func(t *Type) {
+		if t == nil || seen[t] {
+			return
+		}
+		seen[t] = true
+		for _, f := range t.Unsupported {
+			applied[t.Schema+"."+f.Name] = true
+			walk(f.Type)
+		}
+		for _, f := range t.Fields {
+			walk(f.Type)
+		}
+		walk(t.Elem)
+	}
+	for _, f := range r.Fields {
+		walk(f.Type)
+	}
+	for _, key := range r.Policy.Unsupported {
+		if !applied[key] {
+			return fmt.Errorf("unsupported %s: no oneOf arm has that name", key)
+		}
+	}
 	return nil
 }
 

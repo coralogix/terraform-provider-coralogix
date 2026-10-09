@@ -322,6 +322,9 @@ func validateFieldContracts(p Policy, name string, ops map[verb]foundOp) issue.R
 		if field == bodyOnlyID {
 			continue // Build reports the unsupported Update identity contract.
 		}
+		if p.UpdateMaskInBody && isUpdateMaskName(field) {
+			continue // The mask stays in the JSON body and is not a Terraform field.
+		}
 		report = append(report, validateFieldContract(p, name, field, create, update, get)...)
 	}
 	report = append(report, resourceIDIssues(p, name, ops, get)...)
@@ -1142,7 +1145,7 @@ func responseResourceProxy(op *v3.Operation, name string) *base.SchemaProxy {
 
 func validateBuiltResource(r *Resource) issue.Report {
 	var report issue.Report
-	if r.Replace {
+	if r.Replace || r.OmitUpdateMask {
 		return nil
 	}
 	if r.UpdateMaskPattern == "" {

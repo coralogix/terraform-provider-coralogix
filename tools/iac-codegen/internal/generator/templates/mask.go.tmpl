@@ -244,6 +244,64 @@ func setArm(g []string, v map[string]attr.Value) string {
 }
 {{- end}}
 
+{{- if .OmitUpdateMask}}
+// updateRequest returns the Update body with only the fields that changed.
+// The API updates every field present in the body and has no update mask, so
+// an unchanged field is left unset. updateRequest returns nil when no Update
+// field changed. Then the caller sends no request.
+func updateRequest(ctx context.Context, config, plan, state tfData) (*{{.SDKName}}.{{.UpdateBody}}, diag.Diagnostics) {
+	mask, diags := updateMask(ctx, config, plan, state)
+	if diags.HasError() || len(mask) == 0 {
+		return nil, diags
+	}
+	var m {{.Update.Model}}
+	diags.Append(plan.Get(ctx, &m)...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	body, d := expandUpdate(ctx, &m)
+	diags.Append(d...)
+	if diags.HasError() {
+		return nil, diags
+	}
+	keepChanged(body, mask)
+	return body, diags
+}
+
+// keepChanged clears each nillable Update field whose top-level name is not
+// in mask. A Go value cannot be cleared, so it stays in the body.
+func keepChanged(body *{{.SDKName}}.{{.UpdateBody}}, mask []string) {
+	if body == nil || len(mask) == 0 {
+		return
+	}
+	{{- if .HasNillableUpdate}}
+	keep := map[string]bool{}
+	for _, path := range mask {
+		top, _, _ := strings.Cut(path, ".")
+		keep[top] = true
+	}
+	{{- if .UpdateWrap}}
+	{{- if .UpdateWrap.Value}}
+	target := &body.{{.UpdateWrap.Field}}
+	{{- else}}
+	target := body.{{.UpdateWrap.Field}}
+	if target == nil {
+		return
+	}
+	{{- end}}
+	{{- else}}
+	target := body
+	{{- end}}
+	{{- range .MaskFields}}
+	{{- if .Nillable}}
+	if !keep[{{printf "%q" .API}}] {
+		target.{{.SDK}} = nil
+	}
+	{{- end}}
+	{{- end}}
+	{{- end}}
+}
+{{- else}}
 // updateRequest returns the Update body and updateMask query parameter. The
 // body has every Update field. The server does not change a field that is not
 // in the mask. updateRequest returns nil when no Update field changed. Then
@@ -265,6 +323,7 @@ func updateRequest(ctx context.Context, config, plan, state tfData) (*{{.SDKName
 	}
 	return body, strings.Join(mask, ","), diags
 }
+{{- end}}
 {{- end}}
 
 {{- define "maskNode" -}}

@@ -33,11 +33,15 @@ type Resource struct {
 	// not have. It has no update mask. False: PATCH with an update mask.
 	Replace bool
 	// UpdateMask is the optional Update query parameter that holds the update
-	// mask, or "" for a full replace. It is not a resource field.
+	// mask, or "" for a full replace or a presence update. It is not a resource field.
 	UpdateMask string
 	// UpdateMaskPattern is the "pattern" of the update mask string, "" when
 	// the spec has none. It shows which mask paths the API accepts.
 	UpdateMaskPattern string
+	// OmitUpdateMask: PATCH updateMask is an optional JSON body property.
+	// Update sends the changed fields and does not send the mask. The service
+	// then updates only the fields present in the body.
+	OmitUpdateMask bool
 	// Policy is the rule set that Build used. It is the zero value for a new resource.
 	Policy Policy
 	// Groups are the oneOf groups among the top-level fields.
@@ -170,6 +174,12 @@ type Type struct {
 	// Discriminator is the string field that names the set arm (an OpenAPI
 	// discriminator with no mapping). It is also a normal field (F36).
 	Discriminator string
+	// Unsupported are oneOf arms the resource does not configure. Flatten
+	// reports a response that selects one, so import does not adopt a new arm.
+	Unsupported []*Field
+	// UnsupportedSummary and UnsupportedDetail are that diagnostic.
+	UnsupportedSummary string
+	UnsupportedDetail  string
 
 	MinLength, MaxLength *int64
 	// Pattern is the regular expression that a String must match, "" for

@@ -55,6 +55,9 @@ type convData struct {
 	// Existing: the resource has users. An unknown planned value of a computed attribute is
 	// left out of the request, and the server supplies it, as the released resource did.
 	Existing bool
+	// OmitUpdateMask: the Update body carries only the fields that changed.
+	// The API has no update-mask query parameter.
+	OmitUpdateMask bool
 }
 
 // bodyWrap is the request body that holds the resource in one field.
@@ -86,6 +89,11 @@ type maskField struct {
 	Children      []*maskField
 	// Groups are the oneOf groups among Children, as Terraform names.
 	Groups [][]string
+	// SDK is the Go field of this Update field on the request body, or on the
+	// wrapped resource. Nillable is false when that field is a Go value: a
+	// presence-merge update cannot omit it.
+	SDK      string
+	Nillable bool
 }
 
 // convObject is one pair of Terraform model struct and SDK struct.
@@ -110,6 +118,16 @@ type convObject struct {
 	SameChecks []string
 	// ExtraFlatten writes typed nulls for extraAttributes of the behavior-overrides file.
 	ExtraFlatten []extraFlatten
+	// Unsupported are oneOf arms the schema does not configure. Flatten reports
+	// a response that sets one, using UnsupportedSummary and UnsupportedDetail.
+	Unsupported        []unsupportedArm
+	UnsupportedSummary string
+	UnsupportedDetail  string
+}
+
+// unsupportedArm is an SDK field of a oneOf arm the resource does not configure.
+type unsupportedArm struct {
+	SDK string
 }
 
 type convAttrType struct {
@@ -227,7 +245,7 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 		return nil, err
 	}
 	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, file: file, resource: r}
-	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, Existing: r.Policy.Existing}
+	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, Existing: r.Policy.Existing, OmitUpdateMask: r.OmitUpdateMask}
 	if r.Policy.ClientSetID && !r.Singleton {
 		// The contract may not require the id in the response (a proto3 optional field), so
 		// flatten checks it. Without the id, Read, Update, and Delete would have no identity.
@@ -461,6 +479,11 @@ func buildMask(r *model.Resource, out *convData) error {
 		if leaf {
 			mf = maskTree(f.Name, f.Type.UpdateType())
 		}
+		sdk, nillable, ok := updateFieldPresence(out, f.Name)
+		if r.OmitUpdateMask && !ok {
+			return fmt.Errorf("update.body.%s: no SDK field to omit from a presence-merge update", f.Name)
+		}
+		mf.SDK, mf.Nillable = sdk, nillable
 		mf.ServerDefault = serverDefault(r, f)
 		if err := checkMaskPaths(mf, "", valid); err != nil {
 			return err
@@ -474,6 +497,22 @@ func buildMask(r *model.Resource, out *convData) error {
 	return nil
 }
 
+// updateFieldPresence returns the Go name of an Update field and whether a
+// presence-merge update can leave it unset. A Go value cannot be nil. ok is
+// false when the Update body has no such field.
+func updateFieldPresence(out *convData, api string) (sdk string, nillable, ok bool) {
+	sdk = goFieldName(api)
+	if out.Update == nil {
+		return sdk, true, false
+	}
+	for _, f := range out.Update.Fields {
+		if f.SDK == sdk {
+			return sdk, !f.Value, true
+		}
+	}
+	return sdk, false, false
+}
+
 // groupNames returns the arms of each group as Terraform names.
 func groupNames(groups []model.OneOfGroup) [][]string {
 	var out [][]string
@@ -485,6 +524,16 @@ func groupNames(groups []model.OneOfGroup) [][]string {
 		out = append(out, arms)
 	}
 	return out
+}
+
+// HasNillableUpdate reports whether a presence-merge update can omit a field.
+func (d *convData) HasNillableUpdate() bool {
+	for _, f := range d.MaskFields {
+		if f.Nillable {
+			return true
+		}
+	}
+	return false
 }
 
 // HasGroups reports whether the update mask has oneOf groups to handle.
@@ -597,7 +646,7 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 		m.Values = append(m.Values, enumMapValue{TF: over.Zero, API: t.EnumZero})
 	}
 	for _, v := range over.Values {
-		m.Values = append(m.Values, enumMapValue{TF: strings.ToLower(v), API: v})
+		m.Values = append(m.Values, enumMapValue{TF: over.TerraformValue(v), API: v})
 	}
 	b.enumMaps = append(b.enumMaps, m)
 	return m, nil
@@ -820,6 +869,15 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		}
 		obj.Fields = append(obj.Fields, cf)
 	}
+	for _, f := range t.Unsupported {
+		field, err := b.ix.fieldRef(ref.Path + "." + f.Name)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", f.Name, err)
+		}
+		obj.Unsupported = append(obj.Unsupported, unsupportedArm{SDK: field.Name})
+	}
+	obj.UnsupportedSummary = t.UnsupportedSummary
+	obj.UnsupportedDetail = t.UnsupportedDetail
 	return obj, nil
 }
 

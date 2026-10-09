@@ -818,6 +818,56 @@ func TestPatchUpdateContract(t *testing.T) {
 	}
 }
 
+func TestBodyUpdateMaskIsOmitted(t *testing.T) {
+	withMask := updateBodyMask(t, string(validSpec(t)), true)
+	doc, err := Load([]byte(withMask))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resource, err := BuildWithPolicy(doc, "Thing", OperationIDs{}, Policy{Existing: true, UpdateMaskInBody: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !resource.OmitUpdateMask || resource.UpdateMask != "" {
+		t.Fatalf("omit %t, mask %q", resource.OmitUpdateMask, resource.UpdateMask)
+	}
+
+	both := updateBodyMask(t, string(validSpec(t)), false)
+	doc, err = Load([]byte(both))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = BuildWithPolicy(doc, "Thing", OperationIDs{}, Policy{Existing: true, UpdateMaskInBody: true})
+	if err == nil || !strings.Contains(err.Error(), "both") {
+		t.Fatalf("err = %v, want the mask to be rejected as both a body property and a parameter", err)
+	}
+}
+
+// updateBodyMask adds an optional updateMask string to the Update body. dropQuery
+// removes the updateMask query parameter.
+func updateBodyMask(t *testing.T, spec string, dropQuery bool) string {
+	t.Helper()
+	start := strings.Index(spec, "operationId: ThingsService_UpdateThing")
+	if start < 0 {
+		t.Fatal("cannot locate the update operation")
+	}
+	tail := spec[start:]
+	if dropQuery {
+		params := strings.Index(tail, "      parameters:\n")
+		body := strings.Index(tail, "      requestBody:\n")
+		if params < 0 || body < 0 || params > body {
+			t.Fatal("cannot locate the update mask parameter")
+		}
+		tail = tail[:params] + tail[body:]
+	}
+	labels := "                labels:\n                  type: object\n                  additionalProperties: {type: string}\n"
+	if !strings.Contains(tail, labels) {
+		t.Fatal("cannot locate the update body")
+	}
+	tail = strings.Replace(tail, labels, labels+"                updateMask:\n                  type: string\n", 1)
+	return spec[:start] + tail
+}
+
 func TestUpdateMaskProtoName(t *testing.T) {
 	data := string(validSpec(t))
 	protoName := strings.Replace(data, "        - name: updateMask\n", "        - name: update_mask\n", 1)

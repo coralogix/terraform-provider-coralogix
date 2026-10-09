@@ -208,6 +208,110 @@ func TestGeneratedUpdateMaskUsesQueryParameter(t *testing.T) {
 	}
 }
 
+// A released PATCH that puts updateMask in the JSON body updates the fields
+// present in the body. The generated update omits the mask and the fields that
+// did not change, and it does not configure an unsupported oneOf arm.
+func TestBodyUpdateMaskOmitsUnchangedFields(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	input.OpenAPI = []byte(moveUpdateMaskIntoBody(t, string(input.OpenAPI)))
+	out := generateBodyMaskResource(t, input, sdkDir)
+	assertOmittedUpdateMask(t, out)
+	assertUnsupportedArm(t, out)
+	compileGenerated(t, out, input)
+}
+
+func moveUpdateMaskIntoBody(t *testing.T, text string) string {
+	t.Helper()
+	start := strings.Index(text, "operationId: ThingsService_UpdateThing")
+	if start < 0 {
+		t.Fatal("cannot locate the update operation")
+	}
+	tail := text[start:]
+	params := strings.Index(tail, "      parameters:\n")
+	body := strings.Index(tail, "      requestBody:\n")
+	if params < 0 || body < 0 || params > body {
+		t.Fatal("cannot locate the update mask parameter")
+	}
+	tail = tail[:params] + tail[body:]
+	labels := "                labels:\n                  type: object\n                  additionalProperties: {type: string}\n"
+	if !strings.Contains(tail, labels) {
+		t.Fatal("cannot locate the update body")
+	}
+	tail = strings.Replace(tail, labels, labels+"                updateMask:\n                  type: string\n", 1)
+	return text[:start] + tail
+}
+
+func generateBodyMaskResource(t *testing.T, input source.Input, sdkDir string) string {
+	t.Helper()
+	dir := t.TempDir()
+	overrides := filepath.Join(dir, "behavior-overrides.yaml")
+	const file = `resource: Thing
+mode: existing
+validators:
+  inferred: false
+api:
+  updateMaskInBody: true
+types:
+  Thing:
+    fields:
+      enabled: {requiresReplace: true}
+  ThingConfig:
+    unsupportedArms: [queue]
+    unsupportedSummary: Unsupported thing config
+    unsupportedDetail: The queue config is not managed by this resource.
+`
+	if err := os.WriteFile(overrides, []byte(file), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "thing")
+	if err := generateFromInput(Options{Resource: "Thing", OutputDir: out, OverridesPath: overrides}, input, sdkDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+func assertOmittedUpdateMask(t *testing.T, out string) {
+	t.Helper()
+	resource := mustRead(t, filepath.Join(out, "resource.go"))
+	if bytes.Contains(resource, []byte("UpdateMask(")) {
+		t.Fatalf("resource.go sends updateMask:\n%s", resource)
+	}
+	mask := mustRead(t, filepath.Join(out, "mask.go"))
+	for _, want := range []string{"keepChanged(body, mask)", `if !keep["name"]`, "target.Name = nil", `if !keep["destinations"]`} {
+		if !bytes.Contains(mask, []byte(want)) {
+			t.Errorf("mask.go lacks %q", want)
+		}
+	}
+	if bytes.Contains(mask, []byte(`api: "enabled"`)) || bytes.Contains(mask, []byte("UpdateMask")) {
+		t.Errorf("mask.go still updates enabled or sends a mask:\n%s", mask)
+	}
+	schema := mustRead(t, filepath.Join(out, "schema.go"))
+	if !bytes.Contains(schema, []byte("boolplanmodifier.RequiresReplace()")) {
+		t.Errorf("schema.go does not force a new resource when enabled changes")
+	}
+}
+
+func assertUnsupportedArm(t *testing.T, out string) {
+	t.Helper()
+	schema := mustRead(t, filepath.Join(out, "schema.go"))
+	if bytes.Contains(schema, []byte(`"queue"`)) {
+		t.Errorf("schema.go configures the unsupported queue arm")
+	}
+	convert := mustRead(t, filepath.Join(out, "convert.go"))
+	if !bytes.Contains(convert, []byte("v.Queue != nil")) || !bytes.Contains(convert, []byte("Unsupported thing config")) {
+		t.Errorf("convert.go does not report the unsupported queue arm:\n%s", convert)
+	}
+}
+
+func mustRead(t *testing.T, path string) []byte {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
 // The OpenAPI fork names the mask query parameter with its proto name. The
 // SDK method is the same, so the resource must match the golden output.
 func TestProtoMaskNameMatchesGolden(t *testing.T) {

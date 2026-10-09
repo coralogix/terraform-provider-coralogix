@@ -246,7 +246,7 @@ func (s *resolver) operation(r *model.Resource, name string, op model.Operation,
 	s.add(sdkRef{Path: path, Kind: kindMethod, Owner: client, Name: method,
 		Want: "func(" + params + ") " + builder, Rule: ruleOperationID})
 	s.add(sdkRef{Path: path, Kind: kindType, Name: builder, Rule: ruleOperationID})
-	if name == "update" && !r.Replace {
+	if name == "update" && !r.Replace && !r.OmitUpdateMask {
 		s.add(sdkRef{Path: path + ".mask", Kind: kindMethod, Owner: builder, Name: goFieldName(r.UpdateMask),
 			Want: "func(" + lowerFirst(goFieldName(r.UpdateMask)) + " string) " + builder, Rule: ruleParameter})
 	}
@@ -344,6 +344,13 @@ func (s *resolver) nested(path string, t *model.Type) error {
 				return err
 			}
 			if err := s.nested(child, f.Type); err != nil {
+				return err
+			}
+		}
+		// Dropped oneOf arms stay on the SDK struct. Flatten compares them with nil,
+		// so the field must exist even though the schema does not configure it.
+		for _, f := range t.Unsupported {
+			if err := s.field(path+"."+f.Name, name, f.Name, f.Type, f.Attrs.Required); err != nil {
 				return err
 			}
 		}

@@ -429,8 +429,8 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 }
 
 // enumValidatorExpr is the validator that accepts the Terraform values of the enum of the attribute.
-// The values are the zero value and the lower case of each accepted value, in sorted order. They
-// come from the enums line, so the validator and the conversion maps cannot disagree.
+// The values are the zero value and the Terraform value of each accepted value, in sorted order.
+// They come from the enums line, so the validator and the conversion maps cannot disagree.
 func enumValidatorExpr(a *tfAttr, file *overrides.File) (string, error) {
 	enum, ok := file.Enums[a.EnumSchema]
 	if a.EnumSchema == "" || a.ValueKind != "String" || !ok {
@@ -441,7 +441,7 @@ func enumValidatorExpr(a *tfAttr, file *overrides.File) (string, error) {
 		values = append(values, enum.Zero)
 	}
 	for _, v := range enum.Values {
-		values = append(values, strings.ToLower(v))
+		values = append(values, enum.TerraformValue(v))
 	}
 	slices.Sort(values)
 	quoted := make([]string, 0, len(values))

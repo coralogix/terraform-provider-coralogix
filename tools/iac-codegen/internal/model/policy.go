@@ -39,6 +39,20 @@ type Policy struct {
 	// body, and a response that the generated code ignores. "" means a DELETE on
 	// the Get path.
 	DeleteOperation string
+	// UpdateMaskInBody: PATCH updateMask is an optional property of the JSON
+	// body, not a query parameter. The generated update does not send it.
+	// An omitted mask updates only the fields present in the body.
+	UpdateMaskInBody bool
+	// RequiresReplace lists "Component.field" of top-level fields that replace
+	// the resource when they change, although Update accepts them.
+	RequiresReplace []string
+	// Unsupported lists "Component.field" of oneOf arms the resource does not
+	// configure. Flatten reports a response that selects one.
+	Unsupported []string
+	// UnsupportedSummary and UnsupportedDetail are the diagnostic for those
+	// arms, keyed by the component name.
+	UnsupportedSummary map[string]string
+	UnsupportedDetail  map[string]string
 	// EnumAnyPrefix lists the enum components whose business values do not use
 	// the prefix of the zero value (ENTITY_TYPE_UNSPECIFIED, ALERTS).
 	EnumAnyPrefix []string
@@ -104,6 +118,14 @@ func (p Policy) methods(v verb) []string {
 
 func (p Policy) skips(component, field string) bool {
 	return component != "" && slices.Contains(p.Skip, component+"."+field)
+}
+
+func (p Policy) requiresReplace(component, field string) bool {
+	return component != "" && slices.Contains(p.RequiresReplace, component+"."+field)
+}
+
+func (p Policy) unsupported(component, field string) bool {
+	return component != "" && slices.Contains(p.Unsupported, component+"."+field)
 }
 
 func (p Policy) released(component, field string) bool {

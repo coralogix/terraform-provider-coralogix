@@ -42,6 +42,8 @@ func TestParseAndPolicy(t *testing.T) {
 		Released:       []string{"Target.id"},
 
 		NoInferredValidators: true,
+		UnsupportedSummary:   map[string]string{},
+		UnsupportedDetail:    map[string]string{},
 	}
 	if got := f.Policy(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("policy = %+v, want %+v", got, want)
@@ -52,6 +54,41 @@ func TestParseAndPolicy(t *testing.T) {
 	}
 	if got, want := strings.Join(lines, ","), "enums.Kind,types.Labels.required,types.Target.fields.id"; got != want {
 		t.Fatalf("lines = %s, want %s", got, want)
+	}
+}
+
+func TestPolicyCopiesBodyMaskAndUnsupportedArms(t *testing.T) {
+	text := `
+resource: Thing
+mode: existing
+validators:
+  inferred: false
+api:
+  updateMaskInBody: true
+types:
+  Thing:
+    fields:
+      enabled: {requiresReplace: true}
+  ThingConfig:
+    unsupportedArms: [queue]
+    unsupportedSummary: Unsupported thing config
+    unsupportedDetail: The queue config is not managed by this resource.
+enums:
+  Kind: {values: [PHONE_NUMBER], verbatim: true}
+`
+	f, err := Parse([]byte(text))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := f.Policy()
+	if !p.UpdateMaskInBody || p.RequiresReplace[0] != "Thing.enabled" || p.Unsupported[0] != "ThingConfig.queue" {
+		t.Fatalf("policy = %+v", p)
+	}
+	if p.UnsupportedSummary["ThingConfig"] == "" || p.UnsupportedDetail["ThingConfig"] == "" {
+		t.Fatalf("diagnostic = %q / %q", p.UnsupportedSummary["ThingConfig"], p.UnsupportedDetail["ThingConfig"])
+	}
+	if got := f.Enums["Kind"].TerraformValue("PHONE_NUMBER"); got != "PHONE_NUMBER" {
+		t.Fatalf("verbatim value = %q", got)
 	}
 }
 
