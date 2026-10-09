@@ -157,6 +157,19 @@ func TestUnwrapPresenceFollowsTheResponseComponents(t *testing.T) {
 	}
 }
 
+// A wrapper that collapsed is no longer a type of the resource, but its request components still
+// need Go names that no other component has.
+func TestUnwrapChecksTheGoNamesOfTheWrappers(t *testing.T) {
+	spec := wrapSpec(t,
+		"                priority: {$ref: '#/components/schemas/PriorityValue'}",
+		"                priority: {$ref: '#/components/schemas/Priority_Value'}",
+		"    Label:\n",
+		"    Priority_Value:\n      type: object\n      required: []\n      properties:\n        value: {$ref: '#/components/schemas/WrapPriority'}\n    Label:\n")
+	if codes := wrapCodes(t, spec, wrapPolicy()); !slices.Contains(codes, "GO_COMPONENT_NAME_COLLISION") {
+		t.Fatalf("codes %v do not contain GO_COMPONENT_NAME_COLLISION", codes)
+	}
+}
+
 func TestUnwrapRejectsWhatIsNotAWrapper(t *testing.T) {
 	twoProperties := wrapSpec(t, "        filter: {$ref: '#/components/schemas/SimpleFilter'}\n",
 		"        filter: {$ref: '#/components/schemas/SimpleFilter'}\n        note: {type: string, x-coralogix-presence: true}\n")

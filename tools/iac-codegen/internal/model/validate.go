@@ -1295,8 +1295,13 @@ func componentNameCollisions(root *Type) issue.Report {
 			return
 		}
 		visitedTypes[t] = true
-		// A request component of an object names its expand function.
-		for _, schema := range []string{t.Schema, t.CreateSchema, t.UpdateSchema} {
+		// A request component of an object names its expand function. A wrapper that collapsed
+		// is no longer a type of the graph, but the generated code still names its components.
+		schemas := []string{t.Schema, t.CreateSchema, t.UpdateSchema}
+		for _, w := range t.Wrappers {
+			schemas = append(schemas, w.Schema, w.CreateSchema, w.UpdateSchema)
+		}
+		for _, schema := range schemas {
 			if schema == "" || visitedSchemas[schema] {
 				continue
 			}
