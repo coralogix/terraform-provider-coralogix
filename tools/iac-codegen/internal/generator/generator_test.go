@@ -119,6 +119,42 @@ func generateConfigThing(t *testing.T) string {
 	return out
 }
 
+// The golden output of a resource whose API holds values in wrapper objects. Terraform shows only
+// the values: a string, an enum, a required number, a list of wrapped items, an object, and a
+// list inside two wrappers. One component collapses in one place and stays an object in another.
+func TestGoldenOutputWrappedValues(t *testing.T) {
+	out := generateWrapThing(t)
+	golden := filepath.Join("testdata", "golden", "wrapthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputWrappedValues -update:\n%s", diff)
+	}
+}
+
+// generateWrapThing generates the synthetic resource whose API holds values in wrapper objects.
+func generateWrapThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "wrapthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "wrapthing")
+	options := Options{Resource: "WrapThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "wrapthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
 func TestGoldenOutput(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	first := filepath.Join(t.TempDir(), "thing")
@@ -208,16 +244,13 @@ func TestGeneratedUpdateMaskUsesQueryParameter(t *testing.T) {
 	}
 }
 
-// A released PATCH that puts updateMask in the JSON body updates the fields
-// present in the body. The generated update omits unchanged fields. A field
-// cleared to null also sends the mask. An unsupported oneOf arm stays out of
-// the schema.
-func TestBodyUpdateMaskOmitsUnchangedFields(t *testing.T) {
+// A released PATCH that puts updateMask in the JSON body uses the same update
+// as a query-parameter mask, then sets that mask on the body.
+func TestBodyUpdateMaskSetsTheSameMask(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	input.OpenAPI = []byte(moveUpdateMaskIntoBody(t, string(input.OpenAPI)))
 	out := generateBodyMaskResource(t, input, sdkDir)
-	assertOmittedUpdateMask(t, out)
-	assertUnsupportedArm(t, out)
+	assertBodyUpdateMask(t, out)
 	compileGenerated(t, out, input)
 }
 
@@ -238,7 +271,7 @@ func moveUpdateMaskIntoBody(t *testing.T, text string) string {
 	if !strings.Contains(tail, labels) {
 		t.Fatal("cannot locate the update body")
 	}
-	tail = strings.Replace(tail, labels, labels+"                updateMask:\n                  type: string\n", 1)
+	tail = strings.Replace(tail, labels, labels+"                updateMask:\n                  type: string\n                  pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'\n", 1)
 	return text[:start] + tail
 }
 
@@ -252,14 +285,6 @@ validators:
   inferred: false
 api:
   updateMaskInBody: true
-types:
-  Thing:
-    fields:
-      enabled: {requiresReplace: true}
-  ThingConfig:
-    unsupportedArms: [queue]
-    unsupportedSummary: Unsupported thing config
-    unsupportedDetail: The queue config is not managed by this resource.
 `
 	if err := os.WriteFile(overrides, []byte(file), 0o644); err != nil {
 		t.Fatal(err)
@@ -271,63 +296,19 @@ types:
 	return out
 }
 
-func assertOmittedUpdateMask(t *testing.T, out string) {
+func assertBodyUpdateMask(t *testing.T, out string) {
 	t.Helper()
 	resource := mustRead(t, filepath.Join(out, "resource.go"))
-	if bytes.Contains(resource, []byte("UpdateMask(")) {
-		t.Fatalf("resource.go sends updateMask:\n%s", resource)
+	if bytes.Contains(resource, []byte("UpdateMask(")) || !bytes.Contains(resource, []byte("body.UpdateMask = &mask")) {
+		t.Fatalf("resource.go does not set the mask on the body:\n%s", resource)
 	}
 	mask := mustRead(t, filepath.Join(out, "mask.go"))
-	for _, want := range []string{
-		"keepChanged(body, mask)",
-		`if !keep["name"]`,
-		"target.Name = nil",
-		`if !keep["destinations"]`,
-		`if !keep["enabled"]`,
-		"else if target.Name == nil",
-		"body.UpdateMask = &text",
-	} {
-		if !bytes.Contains(mask, []byte(want)) {
-			t.Errorf("mask.go lacks %q", want)
-		}
+	if bytes.Contains(mask, []byte("keepChanged")) || bytes.Contains(mask, []byte("body.UpdateMask")) {
+		t.Fatalf("mask.go does not reuse the query-parameter update:\n%s", mask)
 	}
 	schema := mustRead(t, filepath.Join(out, "schema.go"))
-	if !bytes.Contains(schema, []byte("boolplanmodifier.RequiresReplace()")) {
-		t.Errorf("schema.go does not force a new resource when enabled changes")
-	}
-	convert := mustRead(t, filepath.Join(out, "convert.go"))
-	start := bytes.Index(convert, []byte("func expandUpdateThingRequest"))
-	if start < 0 {
-		t.Fatal("convert.go has no expandUpdateThingRequest")
-	}
-	rest := convert[start:]
-	end := bytes.Index(rest[1:], []byte("\nfunc "))
-	if end < 0 {
-		end = len(rest) - 1
-	}
-	if !bytes.Contains(rest[:end+1], []byte("out.Enabled = expandBool(m.Enabled)")) {
-		t.Errorf("expand leaves enabled unset, so a value field would be the Go zero:\n%s", rest[:end+1])
-	}
-}
-
-func assertUnsupportedArm(t *testing.T, out string) {
-	t.Helper()
-	schema := mustRead(t, filepath.Join(out, "schema.go"))
-	if bytes.Contains(schema, []byte(`"queue"`)) {
-		t.Errorf("schema.go configures the unsupported queue arm")
-	}
-	convert := mustRead(t, filepath.Join(out, "convert.go"))
-	i := bytes.Index(convert, []byte("v.Queue != nil"))
-	if i < 0 || !bytes.Contains(convert, []byte("Unsupported thing config")) {
-		t.Errorf("convert.go does not report the unsupported queue arm:\n%s", convert)
-		return
-	}
-	window := convert[i:]
-	if end := bytes.Index(window, []byte("out := &")); end > 0 {
-		window = window[:end]
-	}
-	if bytes.Contains(window, []byte("return nil")) || !bytes.Contains(window, []byte("return &")) {
-		t.Errorf("unsupported arm flatten returns nil and a collection would panic:\n%s", window)
+	if bytes.Contains(schema, []byte("update_mask")) || bytes.Contains(schema, []byte("updateMask")) {
+		t.Fatalf("schema.go exposes the mask:\n%s", schema)
 	}
 }
 
@@ -1231,6 +1212,21 @@ func TestDocumentEqualityRuntimeSemantics(t *testing.T) {
 	input, _ := syntheticInput(t)
 	out := generateConfigThing(t)
 	semantics, err := os.ReadFile(filepath.Join("testdata", "configthing_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// The generated resource whose API holds values in wrapper objects puts each value in its wrappers
+// on expand and takes it out on flatten, and keeps null apart from a zero value.
+func TestWrappedValuesRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateWrapThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "wrapthing_semantics_test.go"))
 	if err != nil {
 		t.Fatal(err)
 	}

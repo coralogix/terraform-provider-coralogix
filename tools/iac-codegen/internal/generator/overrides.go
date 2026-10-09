@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
@@ -255,6 +256,64 @@ func equalityProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 		}
 	}
 	return nil
+}
+
+// unwrapUsageIssues reports each unwrap line that decided no place of the resource: a component of
+// the list that no field holds, an unwrap: true line that the model rejected first, or an
+// unwrap: false line on a field whose component the list does not name. It also reports a field
+// line on the property of a wrapper that collapses in every place: Terraform has no attribute
+// for that property, so the line would change nothing.
+func unwrapUsageIssues(r *model.Resource, file *overrides.File) issue.Report {
+	if file == nil {
+		return nil
+	}
+	var report issue.Report
+	for _, name := range file.Unwrap {
+		if !r.UnwrapUsed["unwrap."+name] {
+			report = append(report, issue.Issue{
+				Code:        "OVERRIDE_UNUSED",
+				Location:    overrides.FileName + ":unwrap." + name,
+				Message:     fmt.Sprintf("No field of the resource holds %s in a place without an unwrap key.", name),
+				Remediation: "Delete the entry from the unwrap list, or fix the component name.",
+			})
+		}
+	}
+	for _, line := range file.Lines() {
+		if line.Kind != overrides.KindField {
+			continue
+		}
+		if hidden := hiddenKeys(r, line); len(hidden) != 0 {
+			report = append(report, issue.Issue{
+				Code:        "OVERRIDE_UNUSED",
+				Location:    overrides.FileName + ":" + line.String(),
+				Message:     fmt.Sprintf("%s collapses in every place, so Terraform has no %s attribute, and %s change nothing.", line.Component, line.Field, strings.Join(hidden, ", ")),
+				Remediation: "Move the keys to the field that holds the wrapper, or delete them.",
+			})
+		}
+		if !slices.Contains(line.Keys, "unwrap") || r.UnwrapUsed[line.Component+"."+line.Field] {
+			continue
+		}
+		message := fmt.Sprintf("unwrap: false keeps the object of %s.%s, but the unwrap list does not name its component.", line.Component, line.Field)
+		if *file.Types[line.Component].Fields[line.Field].Unwrap {
+			message = fmt.Sprintf("unwrap: true names %s.%s, but the resource does not manage that field.", line.Component, line.Field)
+		}
+		report = append(report, issue.Issue{
+			Code:        "OVERRIDE_UNUSED",
+			Location:    overrides.FileName + ":" + line.String() + ".unwrap",
+			Message:     message,
+			Remediation: "Delete the unwrap key.",
+		})
+	}
+	return report.Normalize()
+}
+
+// hiddenKeys returns the keys of a field line on the property of a wrapper that collapses in
+// every place. An unwrap key still decides the wrapper inside that property.
+func hiddenKeys(r *model.Resource, line overrides.Line) []string {
+	if !r.HiddenWrappers[line.Component] {
+		return nil
+	}
+	return slices.DeleteFunc(slices.Clone(line.Keys), func(key string) bool { return key == "unwrap" })
 }
 
 func contractReadOnly(schema *base.Schema, field string) bool {

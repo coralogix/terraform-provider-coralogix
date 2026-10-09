@@ -81,10 +81,7 @@ func BuildWithPolicy(doc *v3.Document, name string, ids OperationIDs, policy Pol
 		r.IDType = r.Fields[index].Type
 	}
 	r.pruneSkipped()
-	if err := r.applyRequiresReplace(); err != nil {
-		return nil, err
-	}
-	if err := r.checkUnsupportedApplied(); err != nil {
+	if err := r.unwrap(); err != nil {
 		return nil, err
 	}
 	return r, nil
@@ -711,7 +708,8 @@ func checkNoUpdateMask(bodyMask string, params []*v3.Parameter) error {
 }
 
 // readBodyUpdateMask accepts an optional updateMask string on the JSON body.
-// An omitted mask updates the fields that the body contains. A clear sends it.
+// The generated update sets it to the same changed-field mask a query
+// parameter would send.
 func (r *Resource) readBodyUpdateMask(body *base.Schema, name string, params []*v3.Parameter) error {
 	if !r.Policy.Existing {
 		return errors.New("api.updateMaskInBody is only for a released resource")
@@ -728,10 +726,11 @@ func (r *Resource) readBodyUpdateMask(body *base.Schema, name string, params []*
 		return fmt.Errorf("update body: %s must have a string schema", name)
 	}
 	if slices.Contains(body.Required, name) {
-		return fmt.Errorf("update body: %s must be optional, so an update can omit the mask", name)
+		return fmt.Errorf("update body: %s must be optional", name)
 	}
-	r.OmitUpdateMask = true
+	r.MaskInBody = true
 	r.UpdateMask = name
+	r.UpdateMaskPattern = s.Pattern
 	return nil
 }
 
@@ -1119,122 +1118,9 @@ func objectType(t *Type, s *base.Schema, path string, w walk) error {
 	}
 	if len(groups) == 1 && sameSet(groups[0].Arms, propertyNames(s)) {
 		t.Kind, t.AllowNone = OneOf, groups[0].AllowNone
-		return splitUnsupported(t, w.policy)
+		return nil
 	}
 	t.Kind, t.Groups = Object, groups
-	return nil
-}
-
-// splitUnsupported removes the oneOf arms that the policy does not configure.
-// They stay on Unsupported so flatten can report a response that selects one.
-func splitUnsupported(t *Type, p *Policy) error {
-	listed := unsupportedArms(t, p)
-	if len(listed) == 0 {
-		return nil
-	}
-	if t.Schema == "" {
-		return fmt.Errorf("unsupported arms need a component schema")
-	}
-	keep, drop, err := partitionUnsupported(t, listed)
-	if err != nil {
-		return err
-	}
-	t.Fields = keep
-	t.Unsupported = drop
-	t.UnsupportedSummary = p.UnsupportedSummary[t.Schema]
-	t.UnsupportedDetail = p.UnsupportedDetail[t.Schema]
-	if t.UnsupportedSummary == "" || t.UnsupportedDetail == "" {
-		return fmt.Errorf("%s: unsupported arms need unsupportedSummary and unsupportedDetail", t.Schema)
-	}
-	noteUnsupported(p, t.Schema, drop)
-	return nil
-}
-
-// noteUnsupported records the arms splitUnsupported removed. The request type
-// that held them is discarded by merge, so the response walk cannot see them.
-func noteUnsupported(p *Policy, schema string, fields []*Field) {
-	if p.appliedUnsupported == nil {
-		p.appliedUnsupported = map[string]bool{}
-	}
-	for _, f := range fields {
-		p.appliedUnsupported[schema+"."+f.Name] = true
-	}
-}
-
-func unsupportedArms(t *Type, p *Policy) []string {
-	if p == nil || t == nil || t.Schema == "" {
-		return nil
-	}
-	var listed []string
-	prefix := t.Schema + "."
-	for _, key := range p.Unsupported {
-		arm, ok := strings.CutPrefix(key, prefix)
-		if ok && arm != "" && !strings.Contains(arm, ".") {
-			listed = append(listed, arm)
-		}
-	}
-	return listed
-}
-
-func partitionUnsupported(t *Type, listed []string) (keep, drop []*Field, err error) {
-	names := map[string]bool{}
-	for _, f := range t.Fields {
-		names[f.Name] = true
-	}
-	for _, arm := range listed {
-		if !names[arm] {
-			return nil, nil, fmt.Errorf("%s: unsupported arm %q is not a field", t.Schema, arm)
-		}
-	}
-	for _, f := range t.Fields {
-		if slices.Contains(listed, f.Name) {
-			drop = append(drop, f)
-			continue
-		}
-		keep = append(keep, f)
-	}
-	if len(keep) == 0 {
-		return nil, nil, fmt.Errorf("%s: unsupported arms remove every oneOf arm", t.Schema)
-	}
-	return keep, drop, nil
-}
-
-// applyRequiresReplace marks top-level fields that replace the resource even
-// though Update accepts them. Update still sends the current value: Terraform
-// replaces the resource when the field changes, and clearing Update would
-// leave a non-pointer SDK field at the Go zero on every other update.
-func (r *Resource) applyRequiresReplace() error {
-	if len(r.Policy.RequiresReplace) == 0 {
-		return nil
-	}
-	applied := map[string]bool{}
-	for _, f := range r.Fields {
-		if !r.Policy.requiresReplace(r.Name, f.Name) {
-			continue
-		}
-		if f.Behavior != Normal {
-			return fmt.Errorf("%s.%s: requiresReplace needs a field that Create, Update, and Get all have", r.Name, f.Name)
-		}
-		f.Behavior = Immutable
-		applied[r.Name+"."+f.Name] = true
-	}
-	for _, key := range r.Policy.RequiresReplace {
-		if !applied[key] {
-			return fmt.Errorf("requiresReplace %s: only a top-level field of %s can force a new resource", key, r.Name)
-		}
-	}
-	return nil
-}
-
-// checkUnsupportedApplied reports an unsupported arm that names no oneOf arm.
-// Keys are recorded when the arm is removed, including on a Create or Update
-// component that merge then discards.
-func (r *Resource) checkUnsupportedApplied() error {
-	for _, key := range r.Policy.Unsupported {
-		if !r.Policy.appliedUnsupported[key] {
-			return fmt.Errorf("unsupported %s: no oneOf arm has that name", key)
-		}
-	}
 	return nil
 }
 

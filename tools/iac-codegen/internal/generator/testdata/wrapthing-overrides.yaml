@@ -1,0 +1,16 @@
+# The behavior-overrides file of the synthetic resource whose API holds values in wrapper objects.
+resource: WrapThing
+mode: existing
+
+validators:
+  inferred: false
+
+unwrap: [LuceneQuery, PriorityValue, Threshold, UUID, FilterHolder, Selection, ListSelection]
+
+types:
+  WrapThing:
+    fields:
+      rawQuery:
+        unwrap: false
+      mainLabel:
+        unwrap: true

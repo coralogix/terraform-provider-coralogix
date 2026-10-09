@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
-	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
 )
 
@@ -393,7 +392,7 @@ func TestNestedPresenceContract(t *testing.T) {
           type: boolean
 `)
 	proxy := doc.Components.Schemas.GetOrZero("Nested")
-	if codes := reportCodes(nestedPresenceIssues(Policy{}, "request.config", proxy, map[*base.Schema]bool{})); !slices.Contains(codes, "FIELD_PRESENCE_UNKNOWN") {
+	if codes := reportCodes(nestedPresenceIssues(Policy{}, "request.config", proxy, nil, false, map[presenceVisit]bool{})); !slices.Contains(codes, "FIELD_PRESENCE_UNKNOWN") {
 		t.Fatalf("codes %v do not contain FIELD_PRESENCE_UNKNOWN", codes)
 	}
 
@@ -406,7 +405,7 @@ func TestNestedPresenceContract(t *testing.T) {
           x-coralogix-presence: true
 `)
 	proxy = doc.Components.Schemas.GetOrZero("Nested")
-	if report := nestedPresenceIssues(Policy{}, "request.config", proxy, map[*base.Schema]bool{}); len(report) != 0 {
+	if report := nestedPresenceIssues(Policy{}, "request.config", proxy, nil, false, map[presenceVisit]bool{}); len(report) != 0 {
 		t.Fatal(report)
 	}
 
@@ -421,7 +420,7 @@ func TestNestedPresenceContract(t *testing.T) {
         - required: [b]
 `)
 	proxy = doc.Components.Schemas.GetOrZero("Choice")
-	if report := nestedPresenceIssues(Policy{}, "request.choice", proxy, map[*base.Schema]bool{}); len(report) != 0 {
+	if report := nestedPresenceIssues(Policy{}, "request.choice", proxy, nil, false, map[presenceVisit]bool{}); len(report) != 0 {
 		t.Fatalf("oneOf arms use their union presence and need no annotation: %v", report)
 	}
 }
@@ -828,8 +827,8 @@ func TestBodyUpdateMaskIsOmitted(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !resource.OmitUpdateMask || resource.UpdateMask != "updateMask" {
-		t.Fatalf("omit %t, mask %q", resource.OmitUpdateMask, resource.UpdateMask)
+	if !resource.MaskInBody || resource.UpdateMask != "updateMask" || resource.UpdateMaskPattern == "" {
+		t.Fatalf("body %t, mask %q, pattern %q", resource.MaskInBody, resource.UpdateMask, resource.UpdateMaskPattern)
 	}
 
 	both := updateBodyMask(t, string(validSpec(t)), false)
@@ -843,44 +842,36 @@ func TestBodyUpdateMaskIsOmitted(t *testing.T) {
 	}
 }
 
-// A Create or Update component is discarded after merge. An unsupported arm
-// named on that component must still count as applied.
-func TestUnsupportedArmsApplyToRequestSchemas(t *testing.T) {
-	spec := string(validSpec(t))
-	old := "                config:\n                  allOf:\n                    - $ref: '#/components/schemas/ThingConfig'\n"
-	next := "                config:\n                  $ref: '#/components/schemas/ThingConfigUpdate'\n"
-	if !strings.Contains(spec, old) {
-		t.Fatal("cannot locate the update config")
+func TestTopLevelUpdateMaskOverride(t *testing.T) {
+	dotted := updateBodyMask(t, string(validSpec(t)), true)
+	top := strings.Replace(dotted,
+		"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'",
+		"pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'", 1)
+	if top == dotted {
+		t.Fatal("cannot locate the body mask pattern")
 	}
-	spec = strings.Replace(spec, old, next, 1)
-	spec = strings.Replace(spec, "    ThingConfig:\n", thingConfigUpdateSchema+"    ThingConfig:\n", 1)
+	body := Policy{Existing: true, UpdateMaskInBody: true, NoInferredValidators: true}
+	if codes := maskCodes(t, top, body); !slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
+		t.Fatalf("codes %v do not contain UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED", codes)
+	}
+	body.TopLevelUpdateMask = true
+	if codes := maskCodes(t, top, body); slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") || slices.Contains(codes, "OVERRIDE_UNUSED") {
+		t.Fatalf("codes %v, want the top-level override to allow the nested oneOf", codes)
+	}
+	body.TopLevelUpdateMask = true
+	if codes := maskCodes(t, dotted, body); !slices.Contains(codes, "OVERRIDE_UNUSED") {
+		t.Fatalf("codes %v do not contain OVERRIDE_UNUSED", codes)
+	}
+}
+
+func maskCodes(t *testing.T, spec string, p Policy) []string {
+	t.Helper()
 	doc, err := Load([]byte(spec))
 	if err != nil {
 		t.Fatal(err)
 	}
-	policy := Policy{
-		Existing:           true,
-		Unsupported:        []string{"ThingConfig.queue", "ThingConfigUpdate.queue"},
-		UnsupportedSummary: map[string]string{"ThingConfig": "s", "ThingConfigUpdate": "s"},
-		UnsupportedDetail:  map[string]string{"ThingConfig": "d", "ThingConfigUpdate": "d"},
-	}
-	if _, err := BuildWithPolicy(doc, "Thing", OperationIDs{}, policy); err != nil {
-		t.Fatal(err)
-	}
+	return reportCodes(ValidateWithPolicy(doc, "Thing", OperationIDs{}, p))
 }
-
-const thingConfigUpdateSchema = `    ThingConfigUpdate:
-      type: object
-      required: []
-      properties:
-        http:
-          $ref: '#/components/schemas/HttpThingConfig'
-        queue:
-          $ref: '#/components/schemas/QueueThingConfig'
-      oneOf:
-        - required: [http]
-        - required: [queue]
-`
 
 // updateBodyMask adds an optional updateMask string to the Update body. dropQuery
 // removes the updateMask query parameter.
@@ -903,7 +894,7 @@ func updateBodyMask(t *testing.T, spec string, dropQuery bool) string {
 	if !strings.Contains(tail, labels) {
 		t.Fatal("cannot locate the update body")
 	}
-	tail = strings.Replace(tail, labels, labels+"                updateMask:\n                  type: string\n", 1)
+	tail = strings.Replace(tail, labels, labels+"                updateMask:\n                  type: string\n                  pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'\n", 1)
 	return spec[:start] + tail
 }
 

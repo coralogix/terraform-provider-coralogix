@@ -30,12 +30,11 @@ type crudData struct {
 	Existing bool
 	// Upgrades are the state upgraders: one per older schema version.
 	Upgrades []upgradeData
-	// OmitUpdateMask: updateMask is an optional JSON body property. Update sends
-	// it only when a field is cleared to null. An omitted mask updates the
-	// fields present in the body.
-	OmitUpdateMask bool
+	// MaskInBody: updateMask is an optional JSON body property. Update sets it
+	// to the same changed-field mask a query parameter would send.
+	MaskInBody bool
 	// UpdateMask is the SDK request-builder method for the PATCH updateMask
-	// query parameter. It is empty for a full replace and for OmitUpdateMask.
+	// query parameter. It is empty for a full replace and for MaskInBody.
 	UpdateMask string
 	SDKName    string // package name of the resource SDK package
 	Client     string // SDK client type
@@ -95,14 +94,14 @@ func buildCRUDWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*cru
 		return nil, err
 	}
 	out := &crudData{
-		TypeName:       tfName(r.Name),
-		Model:          modelTypeName(r.Name),
-		IDAttr:         "id",
-		IDGoType:       "string",
-		IDTFType:       "String",
-		Singleton:      r.Singleton,
-		Replace:        r.Replace,
-		OmitUpdateMask: r.OmitUpdateMask,
+		TypeName:   tfName(r.Name),
+		Model:      modelTypeName(r.Name),
+		IDAttr:     "id",
+		IDGoType:   "string",
+		IDTFType:   "String",
+		Singleton:  r.Singleton,
+		Replace:    r.Replace,
+		MaskInBody: r.MaskInBody,
 
 		UpdateIDInBody: r.Policy.UpdateIDInBody,
 		Existing:       r.Policy.Existing,
@@ -174,7 +173,7 @@ func resourceIDData(r *model.Resource, ix *refIndex, out *crudData) error {
 }
 
 func updateExtras(ix *refIndex, r *model.Resource, out *crudData) error {
-	if r.Replace || r.OmitUpdateMask {
+	if r.Replace || r.MaskInBody {
 		return nil
 	}
 	builder, err := ix.typeRef("update")

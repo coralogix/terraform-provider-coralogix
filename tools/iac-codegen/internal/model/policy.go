@@ -40,24 +40,13 @@ type Policy struct {
 	// the Get path.
 	DeleteOperation string
 	// UpdateMaskInBody: PATCH updateMask is an optional property of the JSON
-	// body, not a query parameter. An omitted mask updates only the fields
-	// present in the body. A field cleared to null is absent from JSON, so
-	// the update then sends the mask and the server clears it.
+	// body, not a query parameter. The generated update sets it to the same
+	// changed-field mask a query parameter would send.
 	UpdateMaskInBody bool
-	// appliedUnsupported records Component.arm keys that splitUnsupported
-	// dropped. Create and Update types are discarded after merge, so a walk of
-	// the response cannot see a key that names only a request component.
-	appliedUnsupported map[string]bool
-	// RequiresReplace lists "Component.field" of top-level fields that replace
-	// the resource when they change, although Update accepts them.
-	RequiresReplace []string
-	// Unsupported lists "Component.field" of oneOf arms the resource does not
-	// configure. Flatten reports a response that selects one.
-	Unsupported []string
-	// UnsupportedSummary and UnsupportedDetail are the diagnostic for those
-	// arms, keyed by the component name.
-	UnsupportedSummary map[string]string
-	UnsupportedDetail  map[string]string
+	// TopLevelUpdateMask accepts a mask pattern that names only top-level
+	// fields when a oneOf needs an arm path. A change of arm might not go
+	// through. Set it only for an API whose pattern cannot name the arm.
+	TopLevelUpdateMask bool
 	// EnumAnyPrefix lists the enum components whose business values do not use
 	// the prefix of the zero value (ENTITY_TYPE_UNSPECIFIED, ALERTS).
 	EnumAnyPrefix []string
@@ -81,6 +70,24 @@ type Policy struct {
 	// ReadOnly lists "Component.field" of top-level fields that the server sets, although
 	// the contract does not mark them readOnly yet. They are in Get only.
 	ReadOnly []string
+	// Unwrap lists the components with one property that Terraform shows as the value of that
+	// property, in every place that has no field line.
+	Unwrap []string
+	// UnwrapFields maps "Component.field" to the choice of a field line: true shows the value
+	// inside the wrapper of the field, or of its items, and false keeps the object.
+	UnwrapFields map[string]bool
+}
+
+// unwraps reports whether Terraform shows the value inside component, the wrapper that holds
+// the value of field of the owner component, or its items.
+func (p Policy) unwraps(owner, field, component string) bool {
+	if !p.Existing {
+		return false
+	}
+	if on, ok := p.UnwrapFields[owner+"."+field]; ok {
+		return on
+	}
+	return component != "" && slices.Contains(p.Unwrap, component)
 }
 
 // requestBody returns the schema that holds the resource in a Create or Update
@@ -123,14 +130,6 @@ func (p Policy) methods(v verb) []string {
 
 func (p Policy) skips(component, field string) bool {
 	return component != "" && slices.Contains(p.Skip, component+"."+field)
-}
-
-func (p Policy) requiresReplace(component, field string) bool {
-	return component != "" && slices.Contains(p.RequiresReplace, component+"."+field)
-}
-
-func (p Policy) unsupported(component, field string) bool {
-	return component != "" && slices.Contains(p.Unsupported, component+"."+field)
 }
 
 func (p Policy) released(component, field string) bool {

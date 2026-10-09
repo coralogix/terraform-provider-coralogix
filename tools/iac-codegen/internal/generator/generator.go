@@ -229,6 +229,9 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	if err != nil {
 		return nil, fmt.Errorf("build validated resource: %w", err)
 	}
+	if report = unwrapUsageIssues(resource, file); len(report) != 0 {
+		return nil, &EligibilityError{Report: report}
+	}
 	tag, err := resourceTag(doc, resource)
 	if err != nil {
 		return nil, eligibilityIssue("OPERATION_TAG_INCOMPATIBLE", "paths", err, "Give every lifecycle operation exactly one matching SDK package tag.")
@@ -311,6 +314,14 @@ func shapeIssue(location string, err error) issue.Issue {
 			Location:    location,
 			Message:     err.Error(),
 			Remediation: "Delete the equality or keepPriorOrder key from the fields of the object that the map or the computed object holds.",
+		}
+	}
+	if errors.Is(err, errUnwrapCombination) {
+		return issue.Issue{
+			Code:        "UNWRAP_COMBINATION_UNSUPPORTED",
+			Location:    location,
+			Message:     err.Error(),
+			Remediation: "Delete the keepPriorOrder or equality key, or the unwrap line of the field.",
 		}
 	}
 	if errors.Is(err, errStaleOverrideKey) {
