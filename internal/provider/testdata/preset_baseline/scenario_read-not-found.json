@@ -29,7 +29,8 @@
             "connectorType": "GENERIC_HTTPS",
             "entityType": "ALERTS",
             "name": "gone",
-            "parentId": "preset_system_generic_https_alerts_empty"
+            "parentId": "preset_system_generic_https_alerts_empty",
+            "presetType": "CUSTOM"
           }
         },
         "status": 200

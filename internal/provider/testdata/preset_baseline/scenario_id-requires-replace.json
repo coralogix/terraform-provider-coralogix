@@ -31,7 +31,8 @@
             "entityType": "ALERTS",
             "id": "first",
             "name": "r",
-            "parentId": "preset_system_generic_https_alerts_empty"
+            "parentId": "preset_system_generic_https_alerts_empty",
+            "presetType": "CUSTOM"
           }
         },
         "status": 200

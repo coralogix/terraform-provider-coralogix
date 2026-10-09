@@ -38,12 +38,20 @@ type Policy struct {
 	// ClientSetID means that the client can send the id on Create, and the Get
 	// response does not require it.
 	ClientSetID bool
+	// Operations names the lifecycle operationIds from behavior-overrides. Flags
+	// still override an empty slot. A flag and the file cannot name different ids.
+	Operations OperationIDs
 	// DeleteOperation is the operationId of the operation that removes the resource
 	// when the API has no DELETE. It is a POST on the Get path plus one segment, for
 	// example /things/{id}/archive, with the id path parameter of Get, no request
 	// body, and a response that the generated code ignores. "" means a DELETE on
 	// the Get path.
 	DeleteOperation string
+	// UpdateMaskInBody: PATCH updateMask is an optional property of the JSON
+	// body, not a query parameter. The generated update sets it to the same
+	// changed-field mask a query parameter would send. A full replace (PUT)
+	// has no mask, so the key is an error there.
+	UpdateMaskInBody bool
 	// EnumAnyPrefix lists the enum components whose business values do not use
 	// the prefix of the zero value (ENTITY_TYPE_UNSPECIFIED, ALERTS).
 	EnumAnyPrefix []string
@@ -104,17 +112,39 @@ func (p Policy) requestBody(op *v3.Operation) *base.SchemaProxy {
 	return proxy // a later check reports the missing wrapper property
 }
 
-// operationIDs returns the explicit operation IDs with the Delete operation of the policy. The
-// policy and an explicit ID cannot both name the Delete operation.
+// operationIDs returns the lifecycle operation IDs. A flag fills a slot the file
+// leaves empty. The file and a flag cannot name different ids for one step.
+// api.delete.operation still names a POST delete when the file has no operations.delete.
 func (p Policy) operationIDs(ids OperationIDs) (OperationIDs, error) {
-	if p.DeleteOperation == "" {
-		return ids, nil
+	var err error
+	ids.Create, err = oneOperationID(opCreate, p.Operations.Create, ids.Create)
+	if err != nil {
+		return ids, err
 	}
-	if ids.Delete != "" {
-		return ids, fmt.Errorf("%s: the overrides name %s, and the flag names %s", opDelete, p.DeleteOperation, ids.Delete)
+	ids.Get, err = oneOperationID(opGet, p.Operations.Get, ids.Get)
+	if err != nil {
+		return ids, err
 	}
-	ids.Delete = p.DeleteOperation
-	return ids, nil
+	ids.Update, err = oneOperationID(opUpdate, p.Operations.Update, ids.Update)
+	if err != nil {
+		return ids, err
+	}
+	fromFile := p.Operations.Delete
+	if fromFile == "" {
+		fromFile = p.DeleteOperation
+	}
+	ids.Delete, err = oneOperationID(opDelete, fromFile, ids.Delete)
+	return ids, err
+}
+
+func oneOperationID(v verb, fromFile, flag string) (string, error) {
+	if flag != "" && fromFile != "" && flag != fromFile {
+		return "", fmt.Errorf("%s: the overrides name %s, and the flag names %s", v, fromFile, flag)
+	}
+	if flag != "" {
+		return flag, nil
+	}
+	return fromFile, nil
 }
 
 // methods returns the HTTP methods that the operation of the lifecycle step may use.

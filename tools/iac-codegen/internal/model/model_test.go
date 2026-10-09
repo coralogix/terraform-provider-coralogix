@@ -817,6 +817,82 @@ func TestPatchUpdateContract(t *testing.T) {
 	}
 }
 
+func TestBodyUpdateMaskIsOmitted(t *testing.T) {
+	withMask := updateBodyMask(t, string(validSpec(t)), true)
+	doc, err := Load([]byte(withMask))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resource, err := BuildWithPolicy(doc, "Thing", OperationIDs{}, Policy{Existing: true, UpdateMaskInBody: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !resource.MaskInBody || resource.UpdateMask != "updateMask" || resource.UpdateMaskPattern == "" {
+		t.Fatalf("body %t, mask %q, pattern %q", resource.MaskInBody, resource.UpdateMask, resource.UpdateMaskPattern)
+	}
+
+	both := updateBodyMask(t, string(validSpec(t)), false)
+	doc, err = Load([]byte(both))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = BuildWithPolicy(doc, "Thing", OperationIDs{}, Policy{Existing: true, UpdateMaskInBody: true})
+	if err == nil || !strings.Contains(err.Error(), "both") {
+		t.Fatalf("err = %v, want the mask to be rejected as both a body property and a parameter", err)
+	}
+}
+
+func TestBodyUpdateMaskRejectsNestedOneOf(t *testing.T) {
+	dotted := updateBodyMask(t, string(validSpec(t)), true)
+	top := strings.Replace(dotted,
+		"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'",
+		"pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'", 1)
+	if top == dotted {
+		t.Fatal("cannot locate the body mask pattern")
+	}
+	body := Policy{Existing: true, UpdateMaskInBody: true, NoInferredValidators: true}
+	if codes := maskCodes(t, top, body); !slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
+		t.Fatalf("codes %v do not contain UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED", codes)
+	}
+	if codes := maskCodes(t, dotted, body); slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
+		t.Fatalf("codes %v, a pattern that accepts an arm path must not reject the nested oneOf", codes)
+	}
+}
+
+func maskCodes(t *testing.T, spec string, p Policy) []string {
+	t.Helper()
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return reportCodes(ValidateWithPolicy(doc, "Thing", OperationIDs{}, p))
+}
+
+// updateBodyMask adds an optional updateMask string to the Update body. dropQuery
+// removes the updateMask query parameter.
+func updateBodyMask(t *testing.T, spec string, dropQuery bool) string {
+	t.Helper()
+	start := strings.Index(spec, "operationId: ThingsService_UpdateThing")
+	if start < 0 {
+		t.Fatal("cannot locate the update operation")
+	}
+	tail := spec[start:]
+	if dropQuery {
+		params := strings.Index(tail, "      parameters:\n")
+		body := strings.Index(tail, "      requestBody:\n")
+		if params < 0 || body < 0 || params > body {
+			t.Fatal("cannot locate the update mask parameter")
+		}
+		tail = tail[:params] + tail[body:]
+	}
+	labels := "                labels:\n                  type: object\n                  additionalProperties: {type: string}\n"
+	if !strings.Contains(tail, labels) {
+		t.Fatal("cannot locate the update body")
+	}
+	tail = strings.Replace(tail, labels, labels+"                updateMask:\n                  type: string\n                  pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'\n", 1)
+	return spec[:start] + tail
+}
+
 func TestUpdateMaskProtoName(t *testing.T) {
 	data := string(validSpec(t))
 	protoName := strings.Replace(data, "        - name: updateMask\n", "        - name: update_mask\n", 1)
@@ -926,6 +1002,11 @@ func TestPutUpdateContract(t *testing.T) {
 	}
 	if !resource.Replace || resource.UpdateMask != "" {
 		t.Fatalf("PUT resource = replace %t, mask %q", resource.Replace, resource.UpdateMask)
+	}
+
+	_, err = BuildWithPolicy(doc, "Thing", OperationIDs{}, Policy{Existing: true, UpdateMaskInBody: true})
+	if err == nil || !strings.Contains(err.Error(), "full replace") {
+		t.Fatalf("err = %v, want api.updateMaskInBody rejected on a PUT", err)
 	}
 }
 

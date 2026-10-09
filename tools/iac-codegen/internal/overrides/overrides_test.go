@@ -56,6 +56,24 @@ func TestParseAndPolicy(t *testing.T) {
 	}
 }
 
+func TestPolicyCopiesBodyMask(t *testing.T) {
+	text := `
+resource: Thing
+mode: existing
+validators:
+  inferred: false
+api:
+  updateMaskInBody: true
+`
+	f, err := Parse([]byte(text))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !f.Policy().UpdateMaskInBody {
+		t.Fatal("policy did not copy updateMaskInBody")
+	}
+}
+
 func TestParseIsStrict(t *testing.T) {
 	tests := map[string]struct {
 		text string

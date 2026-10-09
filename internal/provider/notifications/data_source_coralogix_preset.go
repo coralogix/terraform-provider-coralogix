@@ -65,9 +65,8 @@ func (d *PresetDataSource) Configure(_ context.Context, req datasource.Configure
 }
 
 func (d *PresetDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r PresetResource
 	var resourceResp resource.SchemaResponse
-	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
+	NewPresetResource().Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 
@@ -143,7 +142,6 @@ func (d *PresetDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	normalizeConfigOverrides(ctx, data)
 
 	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)

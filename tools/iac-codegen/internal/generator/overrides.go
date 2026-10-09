@@ -187,7 +187,7 @@ func enumLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 		return &lineIssue{
 			code:    "ENUM_ZERO_INVALID",
 			message: fmt.Sprintf("enum %q starts with %s, a business value, not a *_UNSPECIFIED sentinel", line.Component, contract[0]),
-			fix:     "Remove zero and put that value in values. A missing field reads back as its schema default, not as an enum zero.",
+			fix:     "Remove zero and put that value in values. A missing field reads back as that first value, not as an enum zero.",
 		}
 	}
 	var undecided []string

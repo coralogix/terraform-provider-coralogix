@@ -31,7 +31,8 @@
             "entityType": "ALERTS",
             "id": "my-preset",
             "name": "mine",
-            "parentId": "preset_system_generic_https_alerts_empty"
+            "parentId": "preset_system_generic_https_alerts_empty",
+            "presetType": "CUSTOM"
           }
         },
         "status": 200
@@ -83,7 +84,8 @@
             "entityType": "ALERTS",
             "id": "my-preset",
             "name": "mine",
-            "parentId": "preset_system_generic_https_alerts_empty"
+            "parentId": "preset_system_generic_https_alerts_empty",
+            "presetType": "CUSTOM"
           }
         },
         "status": 200

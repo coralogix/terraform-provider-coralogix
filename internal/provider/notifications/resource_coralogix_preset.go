@@ -15,68 +15,11 @@
 package notifications
 
 import (
-	"context"
-
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/preset"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
-)
-
-var (
-	_ resource.Resource                = &PresetResource{}
-	_ resource.ResourceWithImportState = &PresetResource{}
-	_ resource.ResourceWithConfigure   = &PresetResource{}
 )
 
 func NewPresetResource() resource.Resource {
-	return &PresetResource{Resource: preset.NewResource(preset.Hooks{
-		AfterRead: emptyConfigOverrides,
-	}).(*preset.Resource)}
-}
-
-// emptyConfigOverrides stores a missing override list as an empty list. The
-// released resource did that, and an import compares against it.
-func emptyConfigOverrides(ctx context.Context, state *tfsdk.State, _ any) diag.Diagnostics {
-	var model preset.PresetModel
-	diags := state.Get(ctx, &model)
-	if diags.HasError() {
-		return diags
-	}
-	if !model.ConfigOverrides.IsNull() {
-		return nil
-	}
-	model.ConfigOverrides = types.ListValueMust(model.ConfigOverrides.ElementType(ctx), []attr.Value{})
-	return state.Set(ctx, &model)
-}
-
-func normalizeConfigOverrides(ctx context.Context, model *preset.PresetModel) {
-	if model == nil || !model.ConfigOverrides.IsNull() {
-		return
-	}
-	model.ConfigOverrides = types.ListValueMust(model.ConfigOverrides.ElementType(ctx), []attr.Value{})
-}
-
-// PresetResource is the generated preset. Changing id recreates the resource;
-// the generator does not add that modifier.
-type PresetResource struct {
-	*preset.Resource
-}
-
-func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	s := preset.Schema()
-	if idAttr, ok := s.Attributes["id"].(schema.StringAttribute); ok {
-		idAttr.PlanModifiers = []planmodifier.String{
-			stringplanmodifier.UseStateForUnknown(),
-			stringplanmodifier.RequiresReplace(),
-		}
-		s.Attributes["id"] = idAttr
-	}
-	resp.Schema = s
+	return preset.NewResource(preset.Hooks{})
 }

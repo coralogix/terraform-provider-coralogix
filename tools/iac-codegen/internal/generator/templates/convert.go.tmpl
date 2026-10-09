@@ -36,7 +36,9 @@ var {{.Name}}ToAPI = map[string]{{$type}}{
 }
 
 // {{.Name}}FromAPI maps the API values of the enum to its Terraform values.
+{{- if .Read}}
 // A rejected value reads back as the API spelling. The write map does not have it.
+{{- end}}
 var {{.Name}}FromAPI = map[{{$type}}]string{
 {{- range .Values}}
 	{{$type}}({{printf "%q" .API}}): {{printf "%q" .TF}},
@@ -1171,9 +1173,10 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{.Dst}} = {{$l}}expandEnumMapped({{$p}}, m.{{.Model}}, {{.EnumMap.Name}}ToAPI, diags){{$r}}
 {{- else if eq .Conv "enum"}}
 	{{.Dst}} = {{$l}}expandEnum[{{.SDKType}}](m.{{.Model}}){{$r}}
-{{- else if eq .Conv "promote"}}
-	if policy := expandEnumMapped({{$p}}, m.{{.Model}}, {{.EnumMap.Name}}ToAPI, diags); policy != nil {
-		{{.Dst}} = &{{.SDKType}}{ {{.PromoteField}}: policy }
+{{- else if eq .Conv "fixed"}}
+	{
+		fixed := {{.SDKType}}({{printf "%q" .RequestValue}})
+		{{.Dst}} = {{if .Value}}fixed{{else}}&fixed{{end}}
 	}
 {{- else if eq .Conv "object"}}
 	{{.Dst}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags){{$r}}
@@ -1218,6 +1221,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- end}}
 
 {{- define "flattenField"}}
+{{- if ne .Conv "fixed"}}
 {{- if .Wrap}}
 	{
 		inner := {{.Wrap.UnwrapOf .WrappedSrc}}
@@ -1225,6 +1229,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 {{- else}}
 {{- template "flattenValue" .}}
+{{- end}}
 {{- end}}
 {{- end}}
 
@@ -1261,19 +1266,17 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- else if eq .Conv "times"}}
 	out.{{.Model}} = flattenTimes{{.Collection}}(ctx, {{.Src}}, diags)
 {{- else if and (eq .Conv "enum") .EnumMap}}
+	{{- if .Missing}}
+	if {{$v}} == nil {
+		out.{{.Model}} = types.StringValue({{printf "%q" .Missing}})
+	} else {
+		out.{{.Model}} = flattenEnumMapped({{$p}}, {{$v}}, {{.EnumMap.Name}}FromAPI, diags)
+	}
+	{{- else}}
 	out.{{.Model}} = flattenEnumMapped({{$p}}, {{$v}}, {{.EnumMap.Name}}FromAPI, diags)
+	{{- end}}
 {{- else if eq .Conv "enum"}}
 	out.{{.Model}} = flattenEnum({{$v}}, {{printf "%q" .EnumZero}})
-{{- else if eq .Conv "promote"}}
-	if {{$v}} == nil || {{$v}}.{{.PromoteField}} == nil {
-		{{- if .Missing}}
-		out.{{.Model}} = types.StringValue({{printf "%q" .Missing}})
-		{{- else}}
-		out.{{.Model}} = types.StringNull()
-		{{- end}}
-	} else {
-		out.{{.Model}} = flattenEnumMapped({{$p}}, {{$v}}.{{.PromoteField}}, {{.EnumMap.Name}}FromAPI, diags)
-	}
 {{- else if eq .Conv "object"}}
 	{{- if .ObjectValue}}
 	out.{{.Model}} = types.ObjectNull({{.Object.AttrTypesFunc}}())
@@ -1338,6 +1341,11 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- else if eq .Conv "objects"}}
 	{{- $src := .Src}}{{if .KeepPriorOrder}}{{$src = printf "src%s" .Model}}{{end}}
 	out.{{.Model}} = types.{{.Collection}}Null(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()})
+	{{- if .ReadNullAsEmpty}}
+	if {{if .KeepPriorOrder}}{{.Src}}{{else}}{{$src}}{{end}} == nil {
+		out.{{.Model}} = types.{{.Collection}}ValueMust(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, []attr.Value{})
+	}
+	{{- end}}
 	{{- if .KeepPriorOrder}}
 	{{$src}} := {{.Src}}
 	if prior != nil {

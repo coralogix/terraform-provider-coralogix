@@ -57,6 +57,10 @@ type convData struct {
 	// Existing: the resource has users. An unknown planned value of a computed attribute is
 	// left out of the request, and the server supplies it, as the released resource did.
 	Existing bool
+	// UpdateMaskField is the SDK field of the JSON-body update mask.
+	// UpdateMaskPointer is true when that field is *string.
+	UpdateMaskField   string
+	UpdateMaskPointer bool
 }
 
 // wrapHelper is one pair of generated functions, wrap<Func> and unwrap<Func>. They convert a value
@@ -205,6 +209,10 @@ type convField struct {
 	EnumMap  *enumMap // set when the overrides state the Terraform values of the enum
 	// ReadEmptyAsNull: flatten reads an empty list, or an object with no value, as null.
 	ReadEmptyAsNull bool
+	// ReadNullAsEmpty: flatten reads a missing list or set as an empty collection.
+	ReadNullAsEmpty bool
+	// RequestValue is an API value expand always sends. The field is not in the Terraform model.
+	RequestValue string
 	// KeepPriorOrder: flatten returns the items in the order of the prior model, when the
 	// API returns the same items in another order.
 	KeepPriorOrder bool
@@ -218,10 +226,8 @@ type convField struct {
 	// returns as the same document in another format, and "" otherwise.
 	Equality    string
 	ObjectValue bool // a computed object stored as unknown-capable types.Object
-	// PromoteField is the Go field of a one-field SDK object that the Terraform
-	// attribute stores as that field's scalar. SDKType is the wrapper type.
-	PromoteField string
-	// Missing is the Terraform value of an absent promoted field, usually the schema default.
+	// Missing is the Terraform value of a missing business-first enum, the first
+	// value of the contract. A nil pointer, including a missing wrapper, reads as it.
 	Missing string
 	// Value is true when the SDK field is a value, not a pointer. The SDK
 	// does that for a required field (F18). Expand sends the zero value for
@@ -288,6 +294,20 @@ func (d *convData) HasValue() bool {
 	return false
 }
 
+// setBodyMask records the SDK field that carries a JSON-body update mask.
+func (d *convData) setBodyMask(ix *refIndex, r *model.Resource) error {
+	if !r.MaskInBody {
+		return nil
+	}
+	ref, err := ix.fieldRef("update.body." + r.UpdateMask)
+	if err != nil {
+		return err
+	}
+	d.UpdateMaskField = ref.Name
+	d.UpdateMaskPointer = strings.HasPrefix(ref.Want, "*")
+	return nil
+}
+
 // buildConv maps the model and its SDK names to the conversion data. Rules:
 //   - A null Terraform value → nil. nil → a null Terraform value. So
 //     false, 0, "", [] and {} are sent and read as values.
@@ -304,6 +324,9 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 	}
 	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, file: file, resource: r}
 	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, Existing: r.Policy.Existing}
+	if err := out.setBodyMask(ix, r); err != nil {
+		return nil, err
+	}
 	if r.Policy.ClientSetID && !r.Singleton {
 		// The contract may not require the id in the response (a proto3 optional field), so
 		// flatten checks it. Without the id, Read, Update, and Delete would have no identity.
@@ -414,10 +437,17 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 	}
 	b.objects = append(b.objects, obj)
 	for _, f := range b.resource.Fields {
-		if !root.has(f) {
+		fixed := b.fixedRequest(b.resource.Name, f.Name)
+		if !root.has(f) && !(root.expand && fixed) {
 			continue
 		}
-		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, rootType(root.path, f), f.Behavior == model.Computed)
+		typ := rootType(root.path, f)
+		if fixed && !root.has(f) {
+			// The contract marks the field read-only, so the request type omits it.
+			// The SDK struct still has it, and the released client sends the fixed value.
+			typ = f.Type
+		}
+		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, typ, f.Behavior == model.Computed)
 		if err != nil {
 			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
 		}
@@ -689,8 +719,10 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 		}
 		m.Values = append(m.Values, enumMapValue{TF: tf, API: v})
 	}
-	for _, v := range over.Rejected {
-		m.Read = append(m.Read, enumMapValue{TF: v, API: v})
+	if over.ReadRejected {
+		for _, v := range over.Rejected {
+			m.Read = append(m.Read, enumMapValue{TF: v, API: v})
+		}
 	}
 	b.enumMaps = append(b.enumMaps, m)
 	return m, nil
@@ -720,6 +752,11 @@ func checkExpandNames(objects []*convObject) error {
 	return nil
 }
 
+// fixedRequest reports whether the field is always sent as a fixed API value.
+func (b *convBuilder) fixedRequest(component, name string) bool {
+	return b.file != nil && b.file.Types[component].Fields[name].RequestValue != ""
+}
+
 // field returns the conversion of the property name of the SDK struct at
 // owner (an SDK name path).
 func (b *convBuilder) field(owner, component, name string, t *model.Type, computed bool) (*convField, error) {
@@ -731,14 +768,9 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type, comput
 	if b.file != nil {
 		line := b.file.Types[component].Fields[name]
 		cf.ReadEmptyAsNull, cf.KeepPriorOrder = line.ReadEmptyAs == "null", line.KeepPriorOrder
+		cf.ReadNullAsEmpty = line.ReadNullAs == "empty"
 		cf.Equality = line.Equality
-		if line.Promote != "" {
-			want, err := b.promoteConv(cf, owner+"."+name, t, line)
-			if err != nil {
-				return nil, err
-			}
-			return checkFieldType(cf, ref, want)
-		}
+		cf.RequestValue = line.RequestValue
 	}
 	want, err := b.fieldConv(cf, t, computed)
 	if err != nil {
@@ -747,10 +779,49 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type, comput
 	if cf.Wrap != nil && (cf.KeepPriorOrder || cf.Equality != "") {
 		return nil, fmt.Errorf("%s: %w", cf.TFName, errUnwrapCombination)
 	}
+	if cf.RequestValue != "" {
+		if cf.EnumMap != nil {
+			b.releaseEnumMap(cf.EnumMap)
+			cf.EnumMap = nil
+		}
+		cf.Conv = "fixed"
+	}
+	if cf.Conv == convEnum && cf.EnumZero == "" && cf.EnumMap != nil {
+		cf.Missing = firstEnumTF(cf.EnumMap, t)
+	}
 	if err := checkReadEmptyAs(cf); err != nil {
 		return nil, err
 	}
+	if cf.ReadNullAsEmpty && cf.Conv != convObjects {
+		return nil, fmt.Errorf("%s: readNullAs: empty needs a list or set of objects", cf.TFName)
+	}
 	return checkFieldType(cf, ref, want)
+}
+
+// releaseEnumMap drops a map that no field uses. A fixed request value casts the
+// API spelling, so the Terraform map would be an unused variable.
+func (b *convBuilder) releaseEnumMap(m *enumMap) {
+	for _, obj := range b.objects {
+		for _, cf := range obj.Fields {
+			if cf.EnumMap == m {
+				return
+			}
+		}
+	}
+	b.enumMaps = slices.DeleteFunc(b.enumMaps, func(e *enumMap) bool { return e == m })
+}
+
+// firstEnumTF is the Terraform spelling of the first contract value of a business-first enum.
+func firstEnumTF(m *enumMap, t *model.Type) string {
+	if len(t.Values) == 0 {
+		return ""
+	}
+	for _, v := range m.Values {
+		if v.API == t.Values[0] {
+			return v.TF
+		}
+	}
+	return ""
 }
 
 func checkFieldType(cf *convField, ref sdkRef, want string) (*convField, error) {
@@ -763,46 +834,6 @@ func checkFieldType(cf *convField, ref sdkRef, want string) (*convField, error) 
 		return nil, fmt.Errorf("SDK field %s has type %s, the %s conversion needs %s", ref.sdkName(), ref.Want, cf.Conv, want)
 	}
 	return cf, nil
-}
-
-// promoteConv converts a one-field object as the Terraform type of that field.
-// Expand wraps the value. Flatten unwraps it, and a missing inner value becomes
-// the schema default.
-func (b *convBuilder) promoteConv(cf *convField, path string, t *model.Type, line overrides.Field) (string, error) {
-	if t.Kind != model.Object || len(t.Fields) != 1 || t.Fields[0].Name != line.Promote {
-		return "", fmt.Errorf("promote %q needs an object with only that field", line.Promote)
-	}
-	inner := t.Fields[0].Type
-	if inner.Kind != model.Enum {
-		return "", fmt.Errorf("promote %q needs an enum field", line.Promote)
-	}
-	wrapper, err := b.ix.schemaRef(t.Schema)
-	if err != nil {
-		return "", err
-	}
-	innerRef, err := b.ix.fieldRef(path + "." + line.Promote)
-	if err != nil {
-		return "", err
-	}
-	enum, err := b.ix.schemaRef(inner.Schema)
-	if err != nil {
-		return "", err
-	}
-	m, err := b.enumMapFor(inner.Schema, b.qualify(enum.Name), inner)
-	if err != nil {
-		return "", err
-	}
-	if m == nil {
-		return "", fmt.Errorf("promote %q needs an enums line for %s", line.Promote, inner.Schema)
-	}
-	cf.Conv = "promote"
-	cf.SDKType = b.qualify(wrapper.Name)
-	cf.PromoteField = innerRef.Name
-	cf.EnumMap = m
-	if def, ok := line.Default.(string); ok {
-		cf.Missing = def
-	}
-	return "*" + wrapper.Name, nil
 }
 
 // fieldConv sets the conversion of cf for t. It returns the SDK Go type that

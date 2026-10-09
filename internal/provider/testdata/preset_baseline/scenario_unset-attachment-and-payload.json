@@ -138,7 +138,8 @@
             "description": "primary preset",
             "entityType": "ALERTS",
             "name": "main",
-            "parentId": "preset_system_generic_https_alerts_empty"
+            "parentId": "preset_system_generic_https_alerts_empty",
+            "presetType": "CUSTOM"
           }
         },
         "status": 200
@@ -330,7 +331,8 @@
             "entityType": "ALERTS",
             "id": "00000000-0000-4000-8000-000000000001",
             "name": "main",
-            "parentId": "preset_system_generic_https_alerts_empty"
+            "parentId": "preset_system_generic_https_alerts_empty",
+            "presetType": "CUSTOM"
           }
         },
         "status": 200

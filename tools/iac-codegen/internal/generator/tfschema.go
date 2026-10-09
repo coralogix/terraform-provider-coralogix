@@ -115,7 +115,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // buildTFResourceWith is buildTFResource for a resource with a behavior-overrides file
 // (nil for a new resource).
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
-	b := &tfBuilder{seen: map[string]bool{}}
+	b := &tfBuilder{seen: map[string]bool{}, file: file}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: r.Name + "Model"}
 	root := &tfModel{Name: out.Model}
 	b.models = append(b.models, root)
@@ -125,6 +125,9 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 		}
 	}
 	for _, f := range r.Fields {
+		if requestValue(file, r.Name, f.Name) {
+			continue
+		}
 		a, err := b.resourceAttribute(out, r, f)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
@@ -281,7 +284,6 @@ var errStaleOverrideKey = errors.New("the generator already applies this key, so
 func applyOverrides(out *tfResource, file *overrides.File) error {
 	out.SchemaVersion = file.Schema.Version
 	out.ResourceMarkdownDescription = file.MarkdownDescription
-	var promoted []string
 	var walk func(attrs []*tfAttr) error
 	walk = func(attrs []*tfAttr) error {
 		for _, a := range attrs {
@@ -290,16 +292,8 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 				a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return !slices.Contains(a.GroupValidators, v) })
 			}
 			if line, ok := file.Types[a.Component].Fields[a.Property]; ok {
-				nested := ""
-				if line.Promote != "" && len(a.Attributes) > 0 {
-					nested = a.Attributes[0].Component
-				}
 				if err := applyField(a, line, file); err != nil {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
-				}
-				if line.Promote != "" {
-					retargetPromoted(out.Models, a)
-					promoted = append(promoted, nested)
 				}
 				if err := checkAttrMode(a); err != nil {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
@@ -314,61 +308,20 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 	if err := walk(out.Attributes); err != nil {
 		return err
 	}
-	out.Models = dropPromotedModels(out.Models, promoted)
 	return nil
 }
 
-// promoteAttr makes a one-field object attribute the Terraform type of that field.
-func promoteAttr(a *tfAttr, inner string) error {
-	if a.Kind != "SingleNested" {
-		return fmt.Errorf("promote %q needs one object, not %s", inner, a.Kind)
+// requestValue reports whether the field is sent as a fixed API value and is not a Terraform attribute.
+func requestValue(file *overrides.File, component, field string) bool {
+	if file == nil {
+		return false
 	}
-	want := tfName(inner)
-	var child *tfAttr
-	for _, c := range a.Attributes {
-		if c.Name == want {
-			child = c
-		}
-	}
-	if child == nil || len(a.Attributes) != 1 {
-		return fmt.Errorf("promote %q needs an object with only that field", inner)
-	}
-	if child.EnumSchema == "" {
-		return fmt.Errorf("promote %q needs an enum field, not %s", inner, child.ValueKind)
-	}
-	a.Kind, a.ValueKind, a.EnumSchema, a.Attributes = child.Kind, child.ValueKind, child.EnumSchema, nil
-	return nil
-}
-
-// retargetPromoted stores the promoted attribute as a scalar on its model.
-func retargetPromoted(models []*tfModel, a *tfAttr) {
-	name := modelTypeName(a.Component)
-	for _, m := range models {
-		if m.Name != name {
-			continue
-		}
-		for i, f := range m.Fields {
-			if f.TFName == a.Name {
-				m.Fields[i].Type = "types." + a.ValueKind
-			}
-		}
-	}
-}
-
-// dropPromotedModels removes the model of an object that promote replaced with a scalar.
-func dropPromotedModels(models []*tfModel, components []string) []*tfModel {
-	drop := map[string]bool{}
-	for _, component := range components {
-		drop[modelTypeName(component)] = true
-	}
-	return slices.DeleteFunc(models, func(m *tfModel) bool { return drop[m.Name] })
+	return file.Types[component].Fields[field].RequestValue != ""
 }
 
 func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
-	if l.Promote != "" {
-		if err := promoteAttr(a, l.Promote); err != nil {
-			return err
-		}
+	if l.RequireOne {
+		requireOneArm(a)
 	}
 	if l.Required {
 		a.Required, a.Optional = true, false
@@ -493,8 +446,8 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 }
 
 // enumValidatorExpr is the validator that accepts the Terraform values of the enum of the attribute.
-// The values are the zero value and the lower case of each accepted value, in sorted order. They
-// come from the enums line, so the validator and the conversion maps cannot disagree.
+// The values are the zero value and the Terraform value of each accepted value, in sorted order.
+// They come from the enums line, so the validator and the conversion maps cannot disagree.
 func enumValidatorExpr(a *tfAttr, file *overrides.File) (string, error) {
 	enum, ok := file.Enums[a.EnumSchema]
 	if a.EnumSchema == "" || a.ValueKind != "String" || !ok {
@@ -662,6 +615,21 @@ type tfBuilder struct {
 	seen         map[string]bool // model structs already added
 	validators   []string        // resource config validators
 	replaceKinds []string        // RequestReplaceKinds
+	file         *overrides.File
+}
+
+// requireOneArm turns a oneOf that allows no arm into ExactlyOneOf. The contract
+// allows none, and the released resource required one.
+func requireOneArm(a *tfAttr) {
+	for _, child := range a.Attributes {
+		child.OneOfRequired = true
+		for i, v := range child.Validators {
+			child.Validators[i] = strings.Replace(v, ".ConflictsWith(", ".ExactlyOneOf(", 1)
+		}
+		for i, v := range child.GroupValidators {
+			child.GroupValidators[i] = strings.Replace(v, ".ConflictsWith(", ".ExactlyOneOf(", 1)
+		}
+	}
 }
 
 // attrPath is a Terraform attribute path: "root", then the names. The step
@@ -788,6 +756,9 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	var attrs []*tfAttr
 	var fields []tfModelField
 	for _, f := range t.Fields {
+		if requestValue(b.file, t.Schema, f.Name) {
+			continue
+		}
 		child := append(append(attrPath{}, p...), tfName(f.Name))
 		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f), f.Behavior == model.Computed)
 		if err != nil {

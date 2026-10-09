@@ -1,6 +1,8 @@
 # Unreleased
 
 #### resource/coralogix_preset
+- FIX: Create and update send `presetType` `CUSTOM`.
+- FIX: A missing `attachment_config` reads back as `AUTO`. A missing `config_overrides` reads back as an empty list.
 - FIX: A rejected connector or entity type, such as `IBM_EVENT_NOTIFICATIONS`, still reads back as the API spelling. The schema does not accept it.
 - CHORE: Bump `coralogix-management-sdk` so preset `name`, `entity_type`, and `connector_type` are required values from the OpenAPI contract.
 - CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Changing `id` still recreates the resource.
@@ -20,11 +22,17 @@
 - FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
 
 #### tools/iac-codegen
-- FIX: `promote` accepts only an enum field.
-- FIX: A `rejected` enum value reads back as the API spelling. The write map and the schema validator do not accept it.
-- FIX: An enum whose first value is a business value, such as `AUTO`, is not the protobuf zero. Those values stay business values. A missing promoted field still reads back as its schema default.
+- FEAT: `api.operations` stores the four operation ids, so `tfgen generate` needs no operation flags.
+- FEAT: `requestValue` sends a fixed API value on create and update. The field is not a Terraform attribute.
+- FEAT: `readNullAs: empty` reads a missing list or set of objects as an empty collection.
+- FEAT: `requireOne` emits `ExactlyOneOf` for the arms of a oneOf.
+- FEAT: `readRejected: true` reads a rejected enum value as the API spelling. Without it, that value fails the read.
+- FIX: Remove `promote`. `unwrap` shows a one-property wrapper as the plain attribute. A missing business-first enum, including a missing unwrapped value, reads as its first value.
+- CHORE: Bump the generator to `v0.1.0-beta.19`.
 - CHORE: Bump the generator to `v0.1.0-beta.18`.
 - FEAT: `unwrap` in `behavior-overrides.yaml` shows a value that the API holds in a one-property wrapper object as the plain value, for example `{"query": {"value": "error"}}` as `query = "error"`. A top-level list names the wrapper components, and an `unwrap: true` or `unwrap: false` field line decides one place. The value can be a scalar, an enum, a list, an object, or a oneOf, a wrapper inside a wrapper, or the items of a list.
+- FEAT: Existing mode accepts `api.updateMaskInBody: true` when PATCH `updateMask` is an optional JSON body property. The generated update builds the same body and the same changed-field mask as a query-parameter mask, then sets that mask on the body. The schema has no mask attribute. A mask that names only top-level fields still cannot change a nested oneOf.
+- FIX: `api.updateMaskInBody: true` on a full replace (PUT) is an error. Before, generation ignored the key and produced a replace that does not set a mask.
 - CHORE: Bump the generator to `v0.1.0-beta.17`.
 - FEAT: A `date-time` field that Create or Update sends, alone or in a list or set, is supported. It is a `timetypes.RFC3339` attribute that must be in UTC (`Z`). A time that only the response has stays a plain string.
 - CHORE: Bump the generator to `v0.1.0-beta.16`.
@@ -58,7 +66,6 @@
 - FEAT: Existing-resource `lengthAtLeast` keeps a released non-empty string validator.
 - FEAT: `tfgen generate` accepts `--openapi` so a candidate document can be rendered against the Go types of the pinned SDK.
 - FEAT: Existing-resource mode accepts a custom-method lifecycle: Get and Delete each carry the id, and Update keeps the id in the body.
-- FEAT: `promote` unwraps a one-field object, such as `attachmentConfig.policy`, into the Terraform attribute of that field. A missing value reads back as the schema default.
 - FEAT: `verbatim` on an enum keeps the API spelling as the Terraform value.
 - FEAT: Generate unordered sets of objects. The Thing golden fixture includes a set of objects.
 - FIX: Namespaced OpenAPI components such as `notification_center.ConnectorConfigField` render as valid Go model types.
