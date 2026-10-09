@@ -679,11 +679,14 @@ func (r *Resource) checkUpdateContract(updateBody *base.Schema, update foundOp) 
 func (r *Resource) checkUpdateMask(updateBody *base.Schema, update foundOp) error {
 	bodyMask := maskProperty(updateBody)
 	params := maskParameters(update)
+	if r.Policy.UpdateMaskInBody {
+		if r.Replace {
+			return errors.New("api.updateMaskInBody does not apply to a full replace (PUT)")
+		}
+		return r.readBodyUpdateMask(updateBody, bodyMask, params)
+	}
 	if r.Replace {
 		return checkNoUpdateMask(bodyMask, params)
-	}
-	if r.Policy.UpdateMaskInBody {
-		return r.readBodyUpdateMask(updateBody, bodyMask, params)
 	}
 	if bodyMask != "" {
 		return fmt.Errorf("update body: %s must be a query parameter, not a body property", bodyMask)

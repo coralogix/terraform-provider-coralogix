@@ -41,7 +41,8 @@ type Policy struct {
 	DeleteOperation string
 	// UpdateMaskInBody: PATCH updateMask is an optional property of the JSON
 	// body, not a query parameter. The generated update sets it to the same
-	// changed-field mask a query parameter would send.
+	// changed-field mask a query parameter would send. A full replace (PUT)
+	// has no mask, so the key is an error there.
 	UpdateMaskInBody bool
 	// EnumAnyPrefix lists the enum components whose business values do not use
 	// the prefix of the zero value (ENTITY_TYPE_UNSPECIFIED, ALERTS).

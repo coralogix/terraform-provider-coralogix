@@ -1003,6 +1003,11 @@ func TestPutUpdateContract(t *testing.T) {
 	if !resource.Replace || resource.UpdateMask != "" {
 		t.Fatalf("PUT resource = replace %t, mask %q", resource.Replace, resource.UpdateMask)
 	}
+
+	_, err = BuildWithPolicy(doc, "Thing", OperationIDs{}, Policy{Existing: true, UpdateMaskInBody: true})
+	if err == nil || !strings.Contains(err.Error(), "full replace") {
+		t.Fatalf("err = %v, want api.updateMaskInBody rejected on a PUT", err)
+	}
 }
 
 func TestUpdateIDInBodyIsIneligible(t *testing.T) {
