@@ -15,6 +15,11 @@
 - FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
 
 #### tools/iac-codegen
+- FEAT: Existing mode accepts `api.updateMaskInBody: true` when PATCH `updateMask` is an optional JSON body property. The generated update sends only the changed top-level fields and does not send the mask.
+- FEAT: `requiresReplace: true` forces a new resource for a top-level field that Create, Update, and Get all have. Update does not send that field.
+- FEAT: `unsupportedArms`, with `unsupportedSummary` and `unsupportedDetail`, keeps those oneOf arms out of the schema. Flatten returns that error when a response selects one.
+- FEAT: `enums.<Enum>.verbatim: true` keeps the API spelling as the Terraform value.
+- CHORE: Bump the generator to `v0.1.0-beta.17`.
 - FEAT: A `date-time` field that Create or Update sends, alone or in a list or set, is supported. It is a `timetypes.RFC3339` attribute that must be in UTC (`Z`). A time that only the response has stays a plain string.
 - CHORE: Bump the generator to `v0.1.0-beta.16`.
 - FEAT: A string `pattern` in Create, Update, and the response becomes a `stringvalidator.RegexMatches` validator, also on list items and map values. Only a pattern that Go cannot compile, such as a lookahead, or a pattern on an enum blocks generation. The acceptance test builds a matching value when its made-up string does not match, and generation stops when no value fits.
