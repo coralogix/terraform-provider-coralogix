@@ -68,13 +68,14 @@ func TestAccFleetCGX_PresetChartChange(t *testing.T) {
 	)
 }
 
-// An explicit integration_version that the new chart does not support is rejected.
+// A chart change with an explicit integration_version for the new chart.
 func TestAccFleetCGX_PresetChartChangeExplicitIntegrationVersion(t *testing.T) {
 	name := acctest.RandomWithPrefix("tf-acc-fleet-cgx-chartiv")
 	fleetCGTest(t,
 		resource.TestStep{Config: fleetCGPresetChart(name, "0.0.353", "0.9.0", "")},
-		resource.TestStep{Config: fleetCGPresetChart(name, "0.0.300", "0.9.0", ""),
-			ExpectError: regexp.MustCompile(`(?s)integration_version\s+0\.9\.0\s+is\s+incompatible\s+with\s+chart_version\s+0\.0\.300`)},
+		resource.TestStep{Config: fleetCGPresetChart(name, "0.0.300", "0.8.0", ""),
+			Check: resource.TestCheckResourceAttr(fleetCGName, "family.preset.integration_version", "0.8.0")},
+		resource.TestStep{Config: fleetCGPresetChart(name, "0.0.300", "0.8.0", ""), PlanOnly: true},
 	)
 }
 
