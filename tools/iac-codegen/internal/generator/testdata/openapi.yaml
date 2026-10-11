@@ -263,6 +263,11 @@ components:
       properties:
         health:
           type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThingItem'
+          description: The items that the server applied.
     ThingSpec:
       type: object
       required: [revision]
@@ -330,6 +335,14 @@ components:
         name:
           type: string
           minLength: 1
+        createTime:
+          type: string
+          format: date-time
+          description: The server-generated creation time of the item.
+        startTime:
+          type: string
+          format: date-time
+          description: When the item starts, in UTC.
     ThingItemCreate:
       type: object
       required: [name]
@@ -340,6 +353,10 @@ components:
         name:
           type: string
           minLength: 1
+        startTime:
+          type: string
+          format: date-time
+          x-coralogix-presence: true
     ThingItemUpdate:
       type: object
       required: [name]
@@ -347,6 +364,10 @@ components:
         name:
           type: string
           minLength: 1
+        startTime:
+          type: string
+          format: date-time
+          x-coralogix-presence: true
     ThingTarget:
       type: object
       required: [id, name]

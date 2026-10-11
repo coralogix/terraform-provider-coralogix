@@ -115,7 +115,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // buildTFResourceWith is buildTFResource for a resource with a behavior-overrides file
 // (nil for a new resource).
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
-	b := &tfBuilder{seen: map[string]bool{}}
+	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r)}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: r.Name + "Model"}
 	root := &tfModel{Name: out.Model}
 	b.models = append(b.models, root)
@@ -130,7 +130,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		out.Attributes = append(out.Attributes, a)
-		root.Fields = append(root.Fields, b.modelField(f.Name, f.Type, f.Behavior == model.Computed))
+		root.Fields = append(root.Fields, b.modelField(f.Name, f.Type, f.Behavior, responseOnly(f.Behavior)))
 	}
 	for _, g := range r.Groups {
 		var arms []string
@@ -232,7 +232,7 @@ func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
 // resourceAttribute builds the attribute of a top-level field: its type, its server default, a
 // client-set id, and the plan modifiers of its behavior.
 func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *model.ResourceField) (*tfAttr, error) {
-	a, err := b.attribute(attrPath{"root", tfName(f.Name)}, r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), f.Behavior == model.Computed)
+	a, err := b.attribute(attrPath{"root", tfName(f.Name)}, r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), responseOnly(f.Behavior))
 	if err != nil {
 		return nil, err
 	}
@@ -592,6 +592,7 @@ func fieldAttrs(f *model.ResourceField) model.Attrs {
 type tfBuilder struct {
 	models       []*tfModel
 	seen         map[string]bool // model structs already added
+	sent         sentSet         // component fields that a request sends in some place
 	validators   []string        // resource config validators
 	replaceKinds []string        // RequestReplaceKinds
 }
@@ -721,7 +722,8 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	var fields []tfModelField
 	for _, f := range t.Fields {
 		child := append(append(attrPath{}, p...), tfName(f.Name))
-		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f), f.Behavior == model.Computed)
+		only := b.sent.responseOnly(t.Schema, f)
+		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f), only)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
@@ -732,7 +734,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 			b.requiresReplace(a, child.dotted())
 		}
 		attrs = append(attrs, a)
-		fields = append(fields, b.modelField(f.Name, f.Type, f.Behavior == model.Computed))
+		fields = append(fields, b.modelField(f.Name, f.Type, f.Behavior, only))
 	}
 	groups := t.Groups
 	if t.Kind == model.OneOf {
@@ -753,10 +755,21 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	// object is a types.Object, so it must be computed in every place.
 	for _, m := range b.models {
 		if m.Name == name && !slices.Equal(m.Fields, fields) {
-			return nil, fmt.Errorf("component %s has a computed object field in one place and a managed one in another", t.Schema)
+			return nil, fmt.Errorf("component %s needs another model struct in each place: %s", t.Schema, modelFieldDifference(m.Fields, fields))
 		}
 	}
 	return attrs, nil
+}
+
+// modelFieldDifference names the first model field that differs between two
+// places of a component, with its Go type in each place.
+func modelFieldDifference(first, other []tfModelField) string {
+	for i := range min(len(first), len(other)) {
+		if first[i] != other[i] {
+			return fmt.Sprintf("field %s is %s in one place and %s in another", first[i].TFName, first[i].Type, other[i].Type)
+		}
+	}
+	return fmt.Sprintf("the places have %d and %d fields", len(first), len(other))
 }
 
 // requiresReplace makes a change of the immutable attribute a at path at
@@ -841,12 +854,14 @@ func nestedAttrs(f *model.Field) model.Attrs {
 	return f.Attrs
 }
 
-func (b *tfBuilder) modelField(name string, t *model.Type, computed bool) tfModelField {
+// modelField returns the model field of a field with behavior. responseOnly is true when no
+// request sends the field.
+func (b *tfBuilder) modelField(name string, t *model.Type, behavior model.Behavior, responseOnly bool) tfModelField {
 	var goType string
 	switch t.Kind {
 	case model.String, model.Enum:
 		goType = "types.String"
-		if sentTime(t, computed) {
+		if sentTime(t, responseOnly) {
 			goType = "timetypes.RFC3339"
 		}
 	case model.Bool:
@@ -868,7 +883,7 @@ func (b *tfBuilder) modelField(name string, t *model.Type, computed bool) tfMode
 	case model.Map:
 		goType = "types.Map"
 	case model.Object, model.OneOf:
-		if computed {
+		if behavior == model.Computed {
 			goType = "types.Object"
 		} else {
 			goType = "*" + modelTypeName(t.Schema)
@@ -940,6 +955,45 @@ func isTime(t *model.Type) bool { return t.Kind == model.String && t.Format == "
 // sentTime reports whether t is a time that a request sends. A time that only the response has stays
 // a plain string, as the API returns it, with no validator.
 func sentTime(t *model.Type, computed bool) bool { return isTime(t) && !computed }
+
+// responseOnly reports whether only the response has the value of a field with behavior.
+func responseOnly(behavior model.Behavior) bool {
+	return behavior != model.Normal && behavior != model.Immutable
+}
+
+// sentSet holds the fields of components that a request sends in at least one place, as
+// "Component.field".
+type sentSet map[string]bool
+
+// sentFields returns the component fields that a request sends in some place of r.
+func sentFields(r *model.Resource) sentSet {
+	sent := sentSet{}
+	for _, f := range r.Fields {
+		sent.add(f.Type)
+	}
+	return sent
+}
+
+func (s sentSet) add(t *model.Type) {
+	if t == nil {
+		return
+	}
+	s.add(t.Elem)
+	for _, f := range t.Fields {
+		if !responseOnly(f.Behavior) {
+			s[t.Schema+"."+f.Name] = true
+		}
+		s.add(f.Type)
+	}
+}
+
+// responseOnly reports whether no request sends field f of component in any place. One model
+// struct serves every place of a component, so a time field needs one type in all of them. A
+// field inside a computed value has no behavior of its own (""), so another place decides:
+// a time that Create sends in one place is timetypes.RFC3339 also where only the response has it.
+func (s sentSet) responseOnly(component string, f *model.Field) bool {
+	return responseOnly(f.Behavior) && !s[component+"."+f.Name]
+}
 
 // patternValidator returns a validator that the value matches pattern. The
 // pattern is a raw string literal when it can be, so it reads as in the API.
