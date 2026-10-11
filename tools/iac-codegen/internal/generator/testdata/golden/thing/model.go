@@ -40,10 +40,11 @@ type ThingConfigModel struct {
 }
 
 type ThingItemModel struct {
-	Id         types.String `tfsdk:"id"`
-	Key        types.String `tfsdk:"key"`
-	Name       types.String `tfsdk:"name"`
-	CreateTime types.String `tfsdk:"create_time"`
+	Id         types.String      `tfsdk:"id"`
+	Key        types.String      `tfsdk:"key"`
+	Name       types.String      `tfsdk:"name"`
+	CreateTime types.String      `tfsdk:"create_time"`
+	StartTime  timetypes.RFC3339 `tfsdk:"start_time"`
 }
 
 type ThingStatusModel struct {

@@ -1403,7 +1403,7 @@ func TestNestedRequestTypes(t *testing.T) {
 		t.Errorf("Update type = %s with %v", update.Schema, fieldNames(update))
 	}
 	updateItem := fieldNamed(update.Fields, "items").Type.Elem
-	if updateItem.Schema != "ThingItemUpdate" || updateItem.Model != "ThingItem" || !slices.Equal(fieldNames(updateItem), []string{"name"}) {
+	if updateItem.Schema != "ThingItemUpdate" || updateItem.Model != "ThingItem" || !slices.Equal(fieldNames(updateItem), []string{"name", "startTime"}) {
 		t.Errorf("Update item type = %s for %s with %v", updateItem.Schema, updateItem.Model, fieldNames(updateItem))
 	}
 }

@@ -126,6 +126,11 @@ func Schema() schema.Schema {
 									Computed:            true,
 									MarkdownDescription: "The server-generated creation time of the item.",
 								},
+								"start_time": schema.StringAttribute{
+									Computed:            true,
+									CustomType:          timetypes.RFC3339Type{},
+									MarkdownDescription: "When the item starts, in UTC.",
+								},
 							},
 						},
 						MarkdownDescription: "The items that the server applied.",
@@ -186,6 +191,14 @@ func Schema() schema.Schema {
 								"create_time": schema.StringAttribute{
 									Computed:            true,
 									MarkdownDescription: "The server-generated creation time of the item.",
+								},
+								"start_time": schema.StringAttribute{
+									Optional:   true,
+									CustomType: timetypes.RFC3339Type{},
+									Validators: []validator.String{
+										stringvalidator.RegexMatches(regexp.MustCompile(`(?i)z$`), "must be a UTC time that ends in Z, for example 2030-01-01T00:00:00Z"),
+									},
+									MarkdownDescription: "When the item starts, in UTC.",
 								},
 							},
 						},

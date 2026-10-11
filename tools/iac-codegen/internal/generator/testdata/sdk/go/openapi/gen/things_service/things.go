@@ -59,15 +59,18 @@ type ThingItem struct {
 	Key        *string
 	Name       string
 	CreateTime *time.Time
+	StartTime  *time.Time
 }
 
 type ThingItemCreate struct {
-	Key  *string
-	Name string
+	Key       *string
+	Name      string
+	StartTime *time.Time
 }
 
 type ThingItemUpdate struct {
-	Name string
+	Name      string
+	StartTime *time.Time
 }
 
 type ThingTarget struct {

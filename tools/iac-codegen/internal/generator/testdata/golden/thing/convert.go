@@ -225,6 +225,7 @@ var computedAttrs = map[string]bool{
 	"status.items.key":         true,
 	"status.items.name":        true,
 	"status.items.create_time": true,
+	"status.items.start_time":  true,
 	"spec.revision":            true,
 	"spec.source":              true,
 	"spec.source.origin":       true,
@@ -481,6 +482,7 @@ func expandThingItemCreate(ctx context.Context, p path.Path, m *ThingItemModel, 
 	out := &things_service.ThingItemCreate{}
 	out.Key = expandString(m.Key)
 	out.Name = valueOf(expandString(m.Name))
+	out.StartTime = expandRFC3339(p.AtName("start_time"), m.StartTime, diags)
 	return out
 }
 
@@ -562,6 +564,7 @@ func expandThingItemUpdate(ctx context.Context, p path.Path, m *ThingItemModel, 
 	}
 	out := &things_service.ThingItemUpdate{}
 	out.Name = valueOf(expandString(m.Name))
+	out.StartTime = expandRFC3339(p.AtName("start_time"), m.StartTime, diags)
 	return out
 }
 
@@ -634,6 +637,7 @@ func flattenThingItem(ctx context.Context, p path.Path, v *things_service.ThingI
 	out.Key = types.StringPointerValue(v.Key)
 	out.Name = types.StringPointerValue(&v.Name)
 	out.CreateTime = flattenTime(v.CreateTime)
+	out.StartTime = flattenRFC3339(v.StartTime)
 	return out
 }
 
@@ -643,6 +647,7 @@ func thingItemAttrTypes() map[string]attr.Type {
 		"key":         types.StringType,
 		"name":        types.StringType,
 		"create_time": types.StringType,
+		"start_time":  timetypes.RFC3339Type{},
 	}
 }
 
