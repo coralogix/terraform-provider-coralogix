@@ -1,8 +1,9 @@
 # Generator overrides for coralogix_configuration_group.
 resource: ConfigurationGroup
 mode: existing
+markdownDescription: 'Coralogix Fleet Management configuration group: the OpenTelemetry Collector configurations that matching agents receive. Its family is either `raw` (collector configurations you write) or `preset` (generated from a configuration template). Destroy archives the group. **Note:** This resource is in Beta stage.'
 schema:
-  version: 1
+  version: 0
 validators:
   inferred: false
 api:

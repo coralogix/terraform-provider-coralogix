@@ -18,7 +18,6 @@ import (
 // Schema is the Terraform schema of the resource.
 func Schema() schema.Schema {
 	return schema.Schema{
-		Version: 1,
 		Attributes: map[string]schema.Attribute{
 			"archived": schema.BoolAttribute{
 				Computed:            true,
@@ -257,6 +256,7 @@ func Schema() schema.Schema {
 				MarkdownDescription: "Tags attached to the configuration group.",
 			},
 		},
+		MarkdownDescription: "Coralogix Fleet Management configuration group: the OpenTelemetry Collector configurations that matching agents receive. Its family is either `raw` (collector configurations you write) or `preset` (generated from a configuration template). Destroy archives the group. **Note:** This resource is in Beta stage.",
 	}
 }
 
