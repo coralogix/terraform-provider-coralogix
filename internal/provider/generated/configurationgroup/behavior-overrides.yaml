@@ -22,8 +22,6 @@ types:
         computed: true
   ConfigurationGroup:
     fields:
-      name:
-        required: true
       priorityOrder:
         default: 0
         computed: true

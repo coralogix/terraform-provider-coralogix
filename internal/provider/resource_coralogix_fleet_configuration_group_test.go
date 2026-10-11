@@ -235,6 +235,7 @@ func TestAccFleetCGRawMinimal(t *testing.T) {
 			Config: fleetCGRaw(name, "", "", "", one),
 			Check: resource.ComposeAggregateTestCheckFunc(
 				resource.TestCheckResourceAttrSet(fleetCGName, "family.id"),
+				resource.TestCheckResourceAttr(fleetCGName, "archived", "false"),
 				resource.TestCheckNoResourceAttr(fleetCGName, "tags"),
 				resource.TestCheckNoResourceAttr(fleetCGName, "family.raw.metadata"),
 				resource.TestCheckNoResourceAttr(fleetCGName, "family.raw.remote_configurations.0.agent_selector"),
@@ -380,7 +381,8 @@ func TestAccFleetCGPriorityOrder(t *testing.T) {
 func TestAccFleetCGPresetExplicit(t *testing.T) {
 	name := acctest.RandomWithPrefix("tf-acc-fleet-cg-presetx")
 	fleetCGTest(t,
-		resource.TestStep{Config: fleetCGPresetGroup(name, "0.9.0", "")},
+		resource.TestStep{Config: fleetCGPresetGroup(name, "0.9.0", ""),
+			Check: resource.TestCheckResourceAttrSet(fleetCGName, "family.preset.collector_version")},
 		resource.TestStep{Config: fleetCGPresetGroup(name, "0.9.0", ""), PlanOnly: true},
 		resource.TestStep{ResourceName: fleetCGName, ImportState: true, ImportStateVerify: true, ImportStateVerifyIgnore: fleetCGImportIgnore},
 		resource.TestStep{Config: fleetCGPresetGroup(name+"-renamed", "0.9.0", "")},

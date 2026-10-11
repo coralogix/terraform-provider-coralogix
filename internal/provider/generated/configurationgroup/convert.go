@@ -57,10 +57,10 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 // that a request sends, with list and map steps left out. The server sets
 // them.
 var serverAttrs = map[string]bool{
-	"family.based_on_configuration_family_id":     true,
-	"family.collector_version":                    true,
+	"family.based_on_configuration_family_id": true,
 	"family.id":                                   true,
 	"family.last_activated_at":                    true,
+	"family.preset.collector_version":             true,
 	"family.preset.remote_configurations":         true,
 	"family.raw.remote_configurations.created_at": true,
 	"family.raw.remote_configurations.hash":       true,
@@ -161,11 +161,12 @@ var oneOfArms = map[string]bool{
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
+	"archived":      true,
 	"family.active": true,
-	"family.based_on_configuration_family_id":                       true,
-	"family.collector_version":                                      true,
+	"family.based_on_configuration_family_id": true,
 	"family.id":                                                     true,
 	"family.last_activated_at":                                      true,
+	"family.preset.collector_version":                               true,
 	"family.preset.integration_version":                             true,
 	"family.preset.remote_configurations":                           true,
 	"family.preset.remote_configurations.agent_selector":            true,
@@ -333,7 +334,7 @@ func expandConfigurationGroupServiceCreateConfigurationGroupRequest(ctx context.
 	out := &fleet_manager_configuration_groups.ConfigurationGroupServiceCreateConfigurationGroupRequest{}
 	out.Description = expandString(m.Description)
 	out.Family = valueOf(expandConfigurationFamilyCreate(ctx, p.AtName("family"), m.Family, diags))
-	out.Name = expandString(m.Name)
+	out.Name = valueOf(expandString(m.Name))
 	out.PriorityOrder = expandInt32(m.PriorityOrder)
 	out.Tags = expandStrings[string](ctx, p.AtName("tags"), m.Tags, diags)
 	return out
@@ -492,6 +493,7 @@ func flattenConfigurationGroup(ctx context.Context, p path.Path, v *fleet_manage
 		return nil
 	}
 	out := &ConfigurationGroupModel{}
+	out.Archived = types.BoolPointerValue(&v.Archived)
 	out.Description = types.StringPointerValue(v.Description)
 	var priorFamily *ConfigurationFamilyModel
 	if prior != nil {
@@ -510,9 +512,8 @@ func flattenConfigurationFamily(ctx context.Context, p path.Path, v *fleet_manag
 		return nil
 	}
 	out := &ConfigurationFamilyModel{}
-	out.Active = types.BoolPointerValue(v.Active)
+	out.Active = types.BoolPointerValue(&v.Active)
 	out.BasedOnConfigurationFamilyId = types.StringPointerValue(v.BasedOnConfigurationFamilyId)
-	out.CollectorVersion = types.StringPointerValue(v.CollectorVersion)
 	out.Description = types.StringPointerValue(v.Description)
 	out.Id = types.StringPointerValue(&v.Id)
 	out.LastActivatedAt = flattenTime(v.LastActivatedAt)
@@ -545,6 +546,7 @@ func flattenPresetConfigurationFamily(ctx context.Context, p path.Path, v *fleet
 	out := &PresetConfigurationFamilyModel{}
 	out.ChartName = flattenEnum(v.ChartName, "CHART_NAME_UNSPECIFIED")
 	out.ChartVersion = types.StringPointerValue(&v.ChartVersion)
+	out.CollectorVersion = types.StringPointerValue(&v.CollectorVersion)
 	out.IntegrationVersion = types.StringPointerValue(&v.IntegrationVersion)
 	out.Metadata = flattenStringMap(ctx, v.Metadata, diags)
 	out.ObservabilityFeatures = types.StringPointerValue(&v.ObservabilityFeatures)

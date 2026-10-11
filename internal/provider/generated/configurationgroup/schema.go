@@ -20,6 +20,10 @@ func Schema() schema.Schema {
 	return schema.Schema{
 		Version: 1,
 		Attributes: map[string]schema.Attribute{
+			"archived": schema.BoolAttribute{
+				Computed:            true,
+				MarkdownDescription: "Whether this configuration group is archived.",
+			},
 			"description": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "Human-readable description.",
@@ -36,10 +40,6 @@ func Schema() schema.Schema {
 					"based_on_configuration_family_id": schema.StringAttribute{
 						Computed:            true,
 						MarkdownDescription: "Configuration family UUID v7 this family is based on.",
-					},
-					"collector_version": schema.StringAttribute{
-						Computed:            true,
-						MarkdownDescription: "Collector semantic version this configuration family targets, without a leading v prefix.",
 					},
 					"description": schema.StringAttribute{
 						Optional:            true,
@@ -66,6 +66,10 @@ func Schema() schema.Schema {
 							"chart_version": schema.StringAttribute{
 								Required:            true,
 								MarkdownDescription: "Configuration template version. It determines the OTel Collector version, the generated collector configuration, and which integrationVersion values are supported. Unsupported versions are rejected.",
+							},
+							"collector_version": schema.StringAttribute{
+								Computed:            true,
+								MarkdownDescription: "OTel Collector semantic version Coralogix derived from chartVersion, without a leading v prefix.",
 							},
 							"integration_version": schema.StringAttribute{
 								Optional:            true,
@@ -239,7 +243,7 @@ func Schema() schema.Schema {
 			},
 			"name": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "Display name.",
+				MarkdownDescription: "Display name, unique among the team's configuration groups.",
 			},
 			"priority_order": schema.Int32Attribute{
 				Optional:            true,

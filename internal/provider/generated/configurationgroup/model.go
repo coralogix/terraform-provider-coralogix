@@ -7,6 +7,7 @@ import (
 )
 
 type ConfigurationGroupModel struct {
+	Archived      types.Bool                `tfsdk:"archived"`
 	Description   types.String              `tfsdk:"description"`
 	Family        *ConfigurationFamilyModel `tfsdk:"family"`
 	Id            types.String              `tfsdk:"id"`
@@ -32,6 +33,7 @@ type RemoteConfigurationModel struct {
 type PresetConfigurationFamilyModel struct {
 	ChartName             types.String `tfsdk:"chart_name"`
 	ChartVersion          types.String `tfsdk:"chart_version"`
+	CollectorVersion      types.String `tfsdk:"collector_version"`
 	IntegrationVersion    types.String `tfsdk:"integration_version"`
 	Metadata              types.Map    `tfsdk:"metadata"`
 	ObservabilityFeatures types.String `tfsdk:"observability_features"`
@@ -57,7 +59,6 @@ type ConfigurationFamilySourceModel struct {
 type ConfigurationFamilyModel struct {
 	Active                       types.Bool                      `tfsdk:"active"`
 	BasedOnConfigurationFamilyId types.String                    `tfsdk:"based_on_configuration_family_id"`
-	CollectorVersion             types.String                    `tfsdk:"collector_version"`
 	Description                  types.String                    `tfsdk:"description"`
 	Id                           types.String                    `tfsdk:"id"`
 	LastActivatedAt              types.String                    `tfsdk:"last_activated_at"`
