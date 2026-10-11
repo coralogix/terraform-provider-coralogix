@@ -13,7 +13,7 @@ provider "coralogix" {
 }
 
 # A family defined by its own collector configurations.
-resource "coralogix_fleet_configuration_group" "raw" {
+resource "coralogix_configuration_group" "raw" {
   name           = "production-collectors"
   description    = "Collector configuration group for production."
   tags           = ["production"]
@@ -49,7 +49,7 @@ resource "coralogix_fleet_configuration_group" "raw" {
 }
 
 # A family generated from a configuration template.
-resource "coralogix_fleet_configuration_group" "preset" {
+resource "coralogix_configuration_group" "preset" {
   name = "kubernetes-collectors"
 
   family = {

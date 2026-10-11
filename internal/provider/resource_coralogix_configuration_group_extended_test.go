@@ -332,8 +332,8 @@ func TestAccFleetCGX_Values(t *testing.T) {
 // Real collector configurations read from files.
 func TestAccFleetCGX_FromFiles(t *testing.T) {
 	name := acctest.RandomWithPrefix("tf-acc-fleet-cgx-files")
-	agent, _ := filepath.Abs("testdata/fleet_configuration_group/otel-agent.yaml")
-	cluster, _ := filepath.Abs("testdata/fleet_configuration_group/otel-cluster-collector.yaml")
+	agent, _ := filepath.Abs("testdata/configuration_group/otel-agent.yaml")
+	cluster, _ := filepath.Abs("testdata/configuration_group/otel-cluster-collector.yaml")
 	cfg := fmt.Sprintf(`resource %q "test" {
   name = %q
 

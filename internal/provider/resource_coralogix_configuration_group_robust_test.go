@@ -305,7 +305,7 @@ func TestAccFleetCGR_IgnoreChanges(t *testing.T) {
 // The same YAML from a heredoc and from file() plans no change.
 func TestAccFleetCGR_HeredocVersusFile(t *testing.T) {
 	name := acctest.RandomWithPrefix("tf-acc-fleet-cgr-file")
-	path, _ := filepath.Abs("testdata/fleet_configuration_group/otel-agent.yaml")
+	path, _ := filepath.Abs("testdata/configuration_group/otel-agent.yaml")
 	asFile := fmt.Sprintf(`resource %q "test" {
   name = %q
   family = {

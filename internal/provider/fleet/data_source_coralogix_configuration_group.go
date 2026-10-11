@@ -42,7 +42,7 @@ type FleetConfigurationGroupDataSource struct {
 }
 
 func (d *FleetConfigurationGroupDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_" + TypeName
+	resp.TypeName = req.ProviderTypeName + "_" + configurationgroup.TypeName
 }
 
 func (d *FleetConfigurationGroupDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
@@ -82,7 +82,7 @@ func (d *FleetConfigurationGroupDataSource) Read(ctx context.Context, req dataso
 
 	result, httpResponse, err := d.client.ConfigurationGroupServiceGetConfigurationGroup(ctx, data.Id.ValueString()).Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading coralogix_"+TypeName,
+		resp.Diagnostics.AddError("Error reading coralogix_"+configurationgroup.TypeName,
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return

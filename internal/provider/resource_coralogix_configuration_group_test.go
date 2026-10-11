@@ -20,13 +20,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/provider/fleet"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/configurationgroup"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 var (
-	fleetCGType = "coralogix_" + fleet.TypeName
+	fleetCGType = "coralogix_" + configurationgroup.TypeName
 	fleetCGName = fleetCGType + ".test"
 )
 

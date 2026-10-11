@@ -1,4 +1,4 @@
-# Generator overrides for coralogix_fleet_configuration_group.
+# Generator overrides for coralogix_configuration_group.
 resource: ConfigurationGroup
 mode: existing
 schema:
