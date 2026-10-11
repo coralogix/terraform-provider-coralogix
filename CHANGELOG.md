@@ -1,5 +1,13 @@
 # Unreleased
 
+#### resource/coralogix_fleet_configuration_group
+- BREAKING (Beta): The resource is generated from the API contract. A family is either `raw` (its own `remote_configurations`) or `preset` (generated from a configuration template); `remote_configuration` is renamed `remote_configurations`, `agent_selector` holds an `attributes` map, `priority_order` is an Int32, and `chart_name` takes the API values (for example `CHART_NAME_OTEL_INTEGRATION`).
+- FEAT: Preset families: `chart_name`, `chart_version`, `metadata`, and `observability_features`; `integration_version` is resolved by the API when omitted.
+- FEAT: `raw_configuration` and `observability_features` compare as YAML and JSON documents, so a change of format plans no change.
+
+#### data-source/coralogix_fleet_configuration_group
+- BREAKING (Beta): Uses the schema of the generated resource.
+
 #### resource/coralogix_connector
 - CHORE: Generated upgrade test covers a connector that already uses `field_values_wo`.
 - CHORE: Bump `coralogix-management-sdk` so Connector required fields and unordered field sets come from the OpenAPI contract.

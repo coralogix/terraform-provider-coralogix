@@ -1,0 +1,38 @@
+# Generator overrides for coralogix_fleet_configuration_group.
+resource: ConfigurationGroup
+mode: existing
+schema:
+  version: 1
+validators:
+  inferred: false
+api:
+  # The API archives a configuration group instead of deleting it.
+  delete:
+    operation: ConfigurationGroupService_ArchiveConfigurationGroup
+types:
+  RemoteConfiguration:
+    fields:
+      rawConfiguration:
+        equality: yaml
+  PresetConfigurationFamily:
+    fields:
+      observabilityFeatures:
+        equality: json
+      integrationVersion:
+        computed: true
+  ConfigurationGroup:
+    fields:
+      name:
+        required: true
+      priorityOrder:
+        default: 0
+        computed: true
+  ConfigurationFamily:
+    fields:
+      active:
+        default: false
+        computed: true
+  RawConfigurationFamily:
+    fields:
+      remoteConfigurations:
+        keepPriorOrder: true

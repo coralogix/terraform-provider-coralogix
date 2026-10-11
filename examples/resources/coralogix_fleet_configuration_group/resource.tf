@@ -12,34 +12,59 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_fleet_configuration_group" "example" {
+# A family defined by its own collector configurations.
+resource "coralogix_fleet_configuration_group" "raw" {
   name           = "production-collectors"
   description    = "Collector configuration group for production."
   tags           = ["production"]
   priority_order = 100
 
   family = {
-    active            = true
-    collector_version = "0.114.0"
-    description       = "Default production family"
-    metadata = {
-      team = "observability"
-    }
-    remote_configuration = [
-      {
-        name              = "otel-agent"
-        raw_configuration = file("./otel-agent.yaml")
-        agent_selector = {
-          "cx.agent.type" = "agent"
-        }
-      },
-      {
-        name              = "otel-cluster-collector"
-        raw_configuration = file("./otel-cluster-collector.yaml")
-        agent_selector = {
-          "cx.agent.type" = "cluster-collector"
-        }
+    active      = true
+    description = "Default production family"
+    raw = {
+      collector_version = "0.114.0"
+      metadata = {
+        team = "observability"
       }
-    ]
+      remote_configurations = [
+        {
+          name              = "otel-agent"
+          raw_configuration = file("./otel-agent.yaml")
+          agent_selector = {
+            # service.version must match collector_version when it is set.
+            attributes = { "cx.agent.type" = "agent", "service.version" = "0.114.0" }
+          }
+        },
+        {
+          name              = "otel-cluster-collector"
+          raw_configuration = file("./otel-cluster-collector.yaml")
+          agent_selector = {
+            attributes = { "cx.agent.type" = "cluster-collector", "service.version" = "0.114.0" }
+          }
+        },
+      ]
+    }
+  }
+}
+
+# A family generated from a configuration template.
+resource "coralogix_fleet_configuration_group" "preset" {
+  name = "kubernetes-collectors"
+
+  family = {
+    active = true
+    preset = {
+      chart_name    = "CHART_NAME_OTEL_INTEGRATION"
+      chart_version = "0.0.353"
+      metadata = {
+        ClusterName         = "production"
+        KubernetesRunningOn = "eks"
+      }
+      observability_features = jsonencode({
+        kubernetes_events = true
+        logs              = { enabled = true }
+      })
+    }
   }
 }
