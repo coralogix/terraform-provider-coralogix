@@ -430,7 +430,7 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 		if !root.has(f) {
 			continue
 		}
-		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, rootType(root.path, f), f.Behavior == model.Computed)
+		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, rootType(root.path, f), responseOnly(f.Behavior))
 		if err != nil {
 			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
 		}
@@ -911,7 +911,7 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	obj.AttrTypesFunc = lowerFirst(obj.Func) + "AttrTypes"
 	b.objects = append(b.objects, obj)
 	for _, f := range t.Fields {
-		cf, err := b.field(ref.Path, component, f.Name, f.Type, f.Behavior == model.Computed)
+		cf, err := b.field(ref.Path, component, f.Name, f.Type, responseOnly(f.Behavior))
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}

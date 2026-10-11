@@ -130,7 +130,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		out.Attributes = append(out.Attributes, a)
-		root.Fields = append(root.Fields, b.modelField(f.Name, f.Type, f.Behavior == model.Computed))
+		root.Fields = append(root.Fields, b.modelField(f.Name, f.Type, f.Behavior))
 	}
 	for _, g := range r.Groups {
 		var arms []string
@@ -232,7 +232,7 @@ func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
 // resourceAttribute builds the attribute of a top-level field: its type, its server default, a
 // client-set id, and the plan modifiers of its behavior.
 func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *model.ResourceField) (*tfAttr, error) {
-	a, err := b.attribute(attrPath{"root", tfName(f.Name)}, r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), f.Behavior == model.Computed)
+	a, err := b.attribute(attrPath{"root", tfName(f.Name)}, r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), responseOnly(f.Behavior))
 	if err != nil {
 		return nil, err
 	}
@@ -721,7 +721,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	var fields []tfModelField
 	for _, f := range t.Fields {
 		child := append(append(attrPath{}, p...), tfName(f.Name))
-		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f), f.Behavior == model.Computed)
+		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f), responseOnly(f.Behavior))
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
@@ -732,7 +732,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 			b.requiresReplace(a, child.dotted())
 		}
 		attrs = append(attrs, a)
-		fields = append(fields, b.modelField(f.Name, f.Type, f.Behavior == model.Computed))
+		fields = append(fields, b.modelField(f.Name, f.Type, f.Behavior))
 	}
 	groups := t.Groups
 	if t.Kind == model.OneOf {
@@ -753,10 +753,21 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	// object is a types.Object, so it must be computed in every place.
 	for _, m := range b.models {
 		if m.Name == name && !slices.Equal(m.Fields, fields) {
-			return nil, fmt.Errorf("component %s has a computed object field in one place and a managed one in another", t.Schema)
+			return nil, fmt.Errorf("component %s needs another model struct in each place: %s", t.Schema, modelFieldDifference(m.Fields, fields))
 		}
 	}
 	return attrs, nil
+}
+
+// modelFieldDifference names the first model field that differs between two
+// places of a component, with its Go type in each place.
+func modelFieldDifference(first, other []tfModelField) string {
+	for i := range min(len(first), len(other)) {
+		if first[i] != other[i] {
+			return fmt.Sprintf("field %s is %s in one place and %s in another", first[i].TFName, first[i].Type, other[i].Type)
+		}
+	}
+	return fmt.Sprintf("the places have %d and %d fields", len(first), len(other))
 }
 
 // requiresReplace makes a change of the immutable attribute a at path at
@@ -841,12 +852,12 @@ func nestedAttrs(f *model.Field) model.Attrs {
 	return f.Attrs
 }
 
-func (b *tfBuilder) modelField(name string, t *model.Type, computed bool) tfModelField {
+func (b *tfBuilder) modelField(name string, t *model.Type, behavior model.Behavior) tfModelField {
 	var goType string
 	switch t.Kind {
 	case model.String, model.Enum:
 		goType = "types.String"
-		if sentTime(t, computed) {
+		if sentTime(t, responseOnly(behavior)) {
 			goType = "timetypes.RFC3339"
 		}
 	case model.Bool:
@@ -868,7 +879,7 @@ func (b *tfBuilder) modelField(name string, t *model.Type, computed bool) tfMode
 	case model.Map:
 		goType = "types.Map"
 	case model.Object, model.OneOf:
-		if computed {
+		if behavior == model.Computed {
 			goType = "types.Object"
 		} else {
 			goType = "*" + modelTypeName(t.Schema)
@@ -940,6 +951,12 @@ func isTime(t *model.Type) bool { return t.Kind == model.String && t.Format == "
 // sentTime reports whether t is a time that a request sends. A time that only the response has stays
 // a plain string, as the API returns it, with no validator.
 func sentTime(t *model.Type, computed bool) bool { return isTime(t) && !computed }
+
+// responseOnly reports whether only the response has the value of a field with behavior. A field
+// inside a computed value has no behavior of its own (""), and no request sends it either.
+func responseOnly(behavior model.Behavior) bool {
+	return behavior != model.Normal && behavior != model.Immutable
+}
 
 // patternValidator returns a validator that the value matches pattern. The
 // pattern is a raw string literal when it can be, so it reads as in the API.

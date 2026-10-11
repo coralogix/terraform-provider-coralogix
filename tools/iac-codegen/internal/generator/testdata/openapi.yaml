@@ -263,6 +263,11 @@ components:
       properties:
         health:
           type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThingItem'
+          description: The items that the server applied.
     ThingSpec:
       type: object
       required: [revision]
@@ -330,6 +335,10 @@ components:
         name:
           type: string
           minLength: 1
+        createTime:
+          type: string
+          format: date-time
+          description: The server-generated creation time of the item.
     ThingItemCreate:
       type: object
       required: [name]

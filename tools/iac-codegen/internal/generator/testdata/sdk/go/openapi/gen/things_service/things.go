@@ -30,6 +30,7 @@ type QueueThingConfig struct {
 
 type ThingStatus struct {
 	Health string
+	Items  []ThingItem
 }
 
 type ThingSpec struct {
@@ -54,9 +55,10 @@ type ThingSpecUpdate struct {
 }
 
 type ThingItem struct {
-	Id   string
-	Key  *string
-	Name string
+	Id         string
+	Key        *string
+	Name       string
+	CreateTime *time.Time
 }
 
 type ThingItemCreate struct {
