@@ -493,6 +493,10 @@ func TestAccFleetCGR_PresetLinux(t *testing.T) {
 		resource.TestStep{Config: fleetCGPresetAny(name, c, "0.0.20", "0.3.0", fleetCGStandaloneMeta, "{}"),
 			Check: resource.TestCheckResourceAttr(fleetCGName, "family.preset.integration_version", "0.3.0")},
 		resource.TestStep{Config: fleetCGPresetAny(name, c, "0.0.20", "0.3.0", fleetCGStandaloneMeta, "{}"), PlanOnly: true},
+		// Chart change with the pinned integration_version unchanged: it must stay pinned.
+		resource.TestStep{Config: fleetCGPresetAny(name, c, "0.0.10", "0.3.0", fleetCGStandaloneMeta, "{}"),
+			Check: resource.TestCheckResourceAttr(fleetCGName, "family.preset.integration_version", "0.3.0")},
+		resource.TestStep{Config: fleetCGPresetAny(name, c, "0.0.10", "0.3.0", fleetCGStandaloneMeta, "{}"), PlanOnly: true},
 	)
 }
 
