@@ -445,11 +445,11 @@ func expandPresetConfigurationFamilyUpdate(ctx context.Context, p path.Path, m *
 		return nil
 	}
 	out := &fleet_manager_configuration_groups.PresetConfigurationFamilyUpdate{}
-	out.ChartName = valueOf(expandEnum[fleet_manager_configuration_groups.ChartName](m.ChartName))
-	out.ChartVersion = valueOf(expandString(m.ChartVersion))
+	out.ChartName = expandEnum[fleet_manager_configuration_groups.ChartName](m.ChartName)
+	out.ChartVersion = expandString(m.ChartVersion)
 	out.IntegrationVersion = expandString(m.IntegrationVersion)
 	out.Metadata = expandStringMap[string](ctx, p.AtName("metadata"), m.Metadata, diags)
-	out.ObservabilityFeatures = valueOf(expandString(m.ObservabilityFeatures))
+	out.ObservabilityFeatures = expandString(m.ObservabilityFeatures)
 	return out
 }
 
@@ -544,7 +544,7 @@ func flattenPresetConfigurationFamily(ctx context.Context, p path.Path, v *fleet
 		return nil
 	}
 	out := &PresetConfigurationFamilyModel{}
-	out.ChartName = flattenEnum(v.ChartName, "CHART_NAME_UNSPECIFIED")
+	out.ChartName = flattenEnum(&v.ChartName, "CHART_NAME_UNSPECIFIED")
 	out.ChartVersion = types.StringPointerValue(&v.ChartVersion)
 	out.CollectorVersion = types.StringPointerValue(&v.CollectorVersion)
 	out.IntegrationVersion = types.StringPointerValue(&v.IntegrationVersion)

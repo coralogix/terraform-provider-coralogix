@@ -356,7 +356,10 @@ func TestAccFleetCGR_PresetDrift(t *testing.T) {
 				p := got.Family.Preset
 				meta := p.GetMetadata()
 				meta["ClusterName"] = "changed-outside"
-				up := cfggroups.NewPresetConfigurationFamilyUpdate(*p.ChartName, p.ChartVersion, p.ObservabilityFeatures)
+				up := cfggroups.NewPresetConfigurationFamilyUpdate()
+				up.SetChartName(p.ChartName)
+				up.SetChartVersion(p.ChartVersion)
+				up.SetObservabilityFeatures(p.ObservabilityFeatures)
 				up.SetMetadata(meta)
 				family := cfggroups.ConfigurationFamilyUpdate{}
 				family.SetPreset(*up)
