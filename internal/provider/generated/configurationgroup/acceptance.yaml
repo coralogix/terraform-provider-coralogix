@@ -5,7 +5,7 @@ resource: configuration_group
 values:
   # An archive needs an inactive family, so every config keeps it inactive.
   family.active: "false"
-  family.preset.chart_name: '"CHART_NAME_OTEL_INTEGRATION"'
+  family.preset.chart_name: '"chart_name_otel_integration"'
   family.preset.chart_version: '"0.0.353"'
   family.preset.integration_version: '"0.9.0"'
   family.preset.metadata: '{ ClusterName = "@{run}", KubernetesRunningOn = "openshift", PrivateLinkEnabled = "false" }'

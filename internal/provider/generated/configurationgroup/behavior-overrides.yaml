@@ -21,6 +21,10 @@ types:
         equality: json
       integrationVersion:
         computed: true
+      chartName:
+        validators:
+          - enum: true
+        markdownDescription: 'Configuration template type: `chart_name_otel_integration` for Kubernetes, `chart_name_otel_ecs_ec2` for ECS on EC2, or `chart_name_otel_linux_standalone`, `chart_name_otel_windows_standalone`, or `chart_name_otel_macos_standalone` for hosts.'
   ConfigurationGroup:
     fields:
       priorityOrder:
@@ -35,3 +39,8 @@ types:
     fields:
       remoteConfigurations:
         keepPriorOrder: true
+enums:
+  ChartName:
+    zero: CHART_NAME_UNSPECIFIED
+    values: [CHART_NAME_OTEL_INTEGRATION, CHART_NAME_OTEL_ECS_EC2, CHART_NAME_OTEL_LINUX_STANDALONE, CHART_NAME_OTEL_WINDOWS_STANDALONE, CHART_NAME_OTEL_MACOS_STANDALONE]
+    rejected: [CHART_NAME_OPENTELEMETRY_COLLECTOR]

@@ -4,6 +4,7 @@ package configurationgroup
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -59,8 +60,11 @@ func Schema() schema.Schema {
 						},
 						Attributes: map[string]schema.Attribute{
 							"chart_name": schema.StringAttribute{
-								Required:            true,
-								MarkdownDescription: "Configuration template type: CHART_NAME_OTEL_INTEGRATION for Kubernetes, CHART_NAME_OTEL_ECS_EC2 for ECS on EC2, or CHART_NAME_OTEL_LINUX_STANDALONE, CHART_NAME_OTEL_WINDOWS_STANDALONE, or CHART_NAME_OTEL_MACOS_STANDALONE for hosts.",
+								Required: true,
+								Validators: []validator.String{
+									stringvalidator.OneOf("CHART_NAME_UNSPECIFIED", "chart_name_otel_ecs_ec2", "chart_name_otel_integration", "chart_name_otel_linux_standalone", "chart_name_otel_macos_standalone", "chart_name_otel_windows_standalone"),
+								},
+								MarkdownDescription: "Configuration template type: `chart_name_otel_integration` for Kubernetes, `chart_name_otel_ecs_ec2` for ECS on EC2, or `chart_name_otel_linux_standalone`, `chart_name_otel_windows_standalone`, or `chart_name_otel_macos_standalone` for hosts.",
 							},
 							"chart_version": schema.StringAttribute{
 								Required:            true,

@@ -21,6 +21,26 @@ import (
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/fleet_manager_configuration_groups"
 )
 
+// chartNameToAPI maps the Terraform values of the enum to its API values.
+var chartNameToAPI = map[string]fleet_manager_configuration_groups.ChartName{
+	"CHART_NAME_UNSPECIFIED":             fleet_manager_configuration_groups.ChartName("CHART_NAME_UNSPECIFIED"),
+	"chart_name_otel_integration":        fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_INTEGRATION"),
+	"chart_name_otel_ecs_ec2":            fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_ECS_EC2"),
+	"chart_name_otel_linux_standalone":   fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_LINUX_STANDALONE"),
+	"chart_name_otel_windows_standalone": fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_WINDOWS_STANDALONE"),
+	"chart_name_otel_macos_standalone":   fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_MACOS_STANDALONE"),
+}
+
+// chartNameFromAPI maps the API values of the enum to its Terraform values.
+var chartNameFromAPI = map[fleet_manager_configuration_groups.ChartName]string{
+	fleet_manager_configuration_groups.ChartName("CHART_NAME_UNSPECIFIED"):             "CHART_NAME_UNSPECIFIED",
+	fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_INTEGRATION"):        "chart_name_otel_integration",
+	fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_ECS_EC2"):            "chart_name_otel_ecs_ec2",
+	fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_LINUX_STANDALONE"):   "chart_name_otel_linux_standalone",
+	fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_WINDOWS_STANDALONE"): "chart_name_otel_windows_standalone",
+	fleet_manager_configuration_groups.ChartName("CHART_NAME_OTEL_MACOS_STANDALONE"):   "chart_name_otel_macos_standalone",
+}
+
 // validateRequestValue accepts every planned value. An unknown value of a computed attribute is
 // left out of the request, and the server supplies it, as the released resource did.
 func validateRequestValue(_ path.Path, _, _ attr.Value, _ bool, _ *diag.Diagnostics) {}
@@ -357,7 +377,7 @@ func expandPresetConfigurationFamilyCreate(ctx context.Context, p path.Path, m *
 		return nil
 	}
 	out := &fleet_manager_configuration_groups.PresetConfigurationFamilyCreate{}
-	out.ChartName = valueOf(expandEnum[fleet_manager_configuration_groups.ChartName](m.ChartName))
+	out.ChartName = valueOf(expandEnumMapped(p.AtName("chart_name"), m.ChartName, chartNameToAPI, diags))
 	out.ChartVersion = valueOf(expandString(m.ChartVersion))
 	out.IntegrationVersion = expandString(m.IntegrationVersion)
 	out.Metadata = expandStringMap[string](ctx, p.AtName("metadata"), m.Metadata, diags)
@@ -445,7 +465,7 @@ func expandPresetConfigurationFamilyUpdate(ctx context.Context, p path.Path, m *
 		return nil
 	}
 	out := &fleet_manager_configuration_groups.PresetConfigurationFamilyUpdate{}
-	out.ChartName = expandEnum[fleet_manager_configuration_groups.ChartName](m.ChartName)
+	out.ChartName = expandEnumMapped(p.AtName("chart_name"), m.ChartName, chartNameToAPI, diags)
 	out.ChartVersion = expandString(m.ChartVersion)
 	out.IntegrationVersion = expandString(m.IntegrationVersion)
 	out.Metadata = expandStringMap[string](ctx, p.AtName("metadata"), m.Metadata, diags)
@@ -544,7 +564,7 @@ func flattenPresetConfigurationFamily(ctx context.Context, p path.Path, v *fleet
 		return nil
 	}
 	out := &PresetConfigurationFamilyModel{}
-	out.ChartName = flattenEnum(&v.ChartName, "CHART_NAME_UNSPECIFIED")
+	out.ChartName = flattenEnumMapped(p.AtName("chart_name"), &v.ChartName, chartNameFromAPI, diags)
 	out.ChartVersion = types.StringPointerValue(&v.ChartVersion)
 	out.CollectorVersion = types.StringPointerValue(&v.CollectorVersion)
 	out.IntegrationVersion = types.StringPointerValue(&v.IntegrationVersion)
@@ -830,6 +850,32 @@ func flattenUint64(p path.Path, v *string, diags *diag.Diagnostics) types.Int64 
 		return types.Int64Null()
 	}
 	return types.Int64Value(int64(n))
+}
+
+// expandEnumMapped returns the API value of a Terraform value. A value that the map lacks is an error.
+func expandEnumMapped[T ~string](p path.Path, v types.String, toAPI map[string]T, diags *diag.Diagnostics) *T {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	e, ok := toAPI[v.ValueString()]
+	if !ok {
+		diags.AddAttributeError(p, "Unsupported value", fmt.Sprintf("The value %q is not supported.", v.ValueString()))
+		return nil
+	}
+	return &e
+}
+
+// flattenEnumMapped returns the Terraform value of an API value. A value that the map lacks is an error.
+func flattenEnumMapped[T ~string](p path.Path, v *T, fromAPI map[T]string, diags *diag.Diagnostics) types.String {
+	if v == nil {
+		return types.StringNull()
+	}
+	s, ok := fromAPI[*v]
+	if !ok {
+		diags.AddAttributeError(p, "Unsupported API value", fmt.Sprintf("The API returned %q, which this resource does not support.", string(*v)))
+		return types.StringNull()
+	}
+	return types.StringValue(s)
 }
 
 func flattenEnum[T ~string](v *T, zero string) types.String {

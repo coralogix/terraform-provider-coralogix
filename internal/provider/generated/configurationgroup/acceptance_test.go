@@ -64,7 +64,7 @@ const fullConfig = `resource "coralogix_configuration_group" "test" {
     active = false
     description = "@{run}-description"
     preset = {
-      chart_name = "CHART_NAME_OTEL_INTEGRATION"
+      chart_name = "chart_name_otel_integration"
       chart_version = "0.0.353"
       integration_version = "0.9.0"
       metadata = { ClusterName = "@{run}", KubernetesRunningOn = "openshift", PrivateLinkEnabled = "false" }
@@ -105,7 +105,7 @@ const updatedConfig = `resource "coralogix_configuration_group" "test" {
     active = false
     description = "@{run}-description-updated"
     preset = {
-      chart_name = "CHART_NAME_OTEL_INTEGRATION"
+      chart_name = "chart_name_otel_integration"
       chart_version = "0.0.353"
       integration_version = "0.9.0"
       metadata = { ClusterName = "@{run}", KubernetesRunningOn = "openshift", PrivateLinkEnabled = "false" }
@@ -143,7 +143,7 @@ const updatedConfig = `resource "coralogix_configuration_group" "test" {
 const minimalConfig = `resource "coralogix_configuration_group" "test" {
   family = {
     preset = {
-      chart_name = "CHART_NAME_OTEL_INTEGRATION"
+      chart_name = "chart_name_otel_integration"
       chart_version = "0.0.353"
       metadata = { ClusterName = "@{run}", KubernetesRunningOn = "openshift", PrivateLinkEnabled = "false" }
       observability_features = jsonencode({

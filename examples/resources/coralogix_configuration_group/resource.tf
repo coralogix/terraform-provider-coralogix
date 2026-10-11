@@ -55,7 +55,7 @@ resource "coralogix_configuration_group" "preset" {
   family = {
     active = true
     preset = {
-      chart_name    = "CHART_NAME_OTEL_INTEGRATION"
+      chart_name    = "chart_name_otel_integration"
       chart_version = "0.0.353"
       metadata = {
         ClusterName         = "production"

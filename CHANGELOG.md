@@ -2,7 +2,7 @@
 
 #### resource/coralogix_configuration_group
 - BREAKING (Beta): `coralogix_fleet_configuration_group` is renamed `coralogix_configuration_group`. Remove the old resource from state and import the group under the new name.
-- BREAKING (Beta): The resource is generated from the API contract. A family is either `raw` (its own `remote_configurations`) or `preset` (generated from a configuration template); `remote_configuration` is renamed `remote_configurations`, `agent_selector` holds an `attributes` map, `priority_order` is an Int32, and `chart_name` takes the API values (for example `CHART_NAME_OTEL_INTEGRATION`).
+- BREAKING (Beta): The resource is generated from the API contract. A family is either `raw` (its own `remote_configurations`) or `preset` (generated from a configuration template); `remote_configuration` is renamed `remote_configurations`, `agent_selector` holds an `attributes` map, `priority_order` is an Int32, and `chart_name` values are `chart_name_otel_integration`, `chart_name_otel_ecs_ec2`, and `chart_name_otel_{linux,windows,macos}_standalone`.
 - FEAT: Preset families: `chart_name`, `chart_version`, `metadata`, and `observability_features`; `integration_version` is resolved by the API when omitted.
 - BREAKING (Beta): `name` is required. The family-level `collector_version` is removed: set `family.raw.collector_version`, and read `family.preset.collector_version`, which the API derives from `chart_version`. When `raw.collector_version` is set, every `agent_selector` must include a matching `service.version`.
 - FEAT: Read-only `archived` attribute.
