@@ -1187,9 +1187,14 @@ func responseResourceProxy(op *v3.Operation, name string) *base.SchemaProxy {
 	}
 	for _, field := range propertyNames(s) {
 		proxy := propertyOf(s, field)
-		if unwrapRef(proxy) == componentPrefix+name {
-			return proxy
+		if unwrapRef(proxy) != componentPrefix+name {
+			continue
 		}
+		if !proxy.IsReference() {
+			// The fork writes allOf: [$ref] for a field that has a description.
+			return proxy.Schema().AllOf[0]
+		}
+		return proxy
 	}
 	return nil
 }

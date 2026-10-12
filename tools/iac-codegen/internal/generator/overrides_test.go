@@ -632,3 +632,42 @@ func TestModeLinesReplaceTheContractDefault(t *testing.T) {
 		t.Fatalf("required line: err = %v, want OVERRIDE_UNUSED", err)
 	}
 }
+
+// The OpenAPI fork writes allOf: [$ref] for a response field that has a
+// description. Check must find the resource inside it, as Build does.
+func TestExistingModeReadsDescribedResponseWrapper(t *testing.T) {
+	plain := "    GetLegacyThingResponse:\n      type: object\n      required: [thing]\n      properties:\n        thing: {$ref: '#/components/schemas/LegacyThing'}\n"
+	described := "    GetLegacyThingResponse:\n      type: object\n      required: [thing]\n      properties:\n        thing:\n          allOf: [{$ref: '#/components/schemas/LegacyThing'}]\n          description: The thing.\n"
+	spec := string(legacySpec(t))
+	if !strings.Contains(spec, plain) {
+		t.Fatal("cannot locate the Get response wrapper")
+	}
+	spec = strings.Replace(spec, plain, described, 1)
+	file, err := readOverrides(filepath.Join("testdata", "legacy-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := validateOpenAPIWith([]byte(spec), "LegacyThing", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, file); err != nil {
+		t.Fatal(reportOf(t, err))
+	}
+}
+
+// Flatten reports a response that selects an unsupported arm, so the renderer
+// needs the SDK field of that arm.
+func TestUnsupportedArmsRender(t *testing.T) {
+	input, _ := syntheticInput(t)
+	file := mustParse(t, `
+resource: Thing
+mode: existing
+validators:
+  inferred: false
+types:
+  ThingConfig:
+    unsupportedArms: [queue]
+    unsupportedSummary: Unsupported config
+    unsupportedDetail: The queue config is not supported.
+`)
+	if _, err := validateOpenAPIWith(input.OpenAPI, "Thing", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, file); err != nil {
+		t.Fatal(reportOf(t, err))
+	}
+}

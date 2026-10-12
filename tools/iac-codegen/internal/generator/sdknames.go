@@ -356,6 +356,13 @@ func (s *resolver) nested(path string, t *model.Type) error {
 				return err
 			}
 		}
+		// Flatten reads an unsupported arm only to report it, so it needs the
+		// field and not the types inside it.
+		for _, f := range t.Unsupported {
+			if err := s.field(path+"."+f.Name, name, f.Name, f.Type, f.Attrs.Required); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }

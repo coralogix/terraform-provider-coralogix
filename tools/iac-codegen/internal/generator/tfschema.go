@@ -789,8 +789,9 @@ func checkImmutableValues(attrs []*tfAttr, parent string) error {
 		if replaces(a) {
 			// The attribute itself, not only a descendant. Optional+Computed
 			// plans an omitted value as unknown, and the stock RequiresReplace
-			// treats that unknown as a change.
-			if a.Optional && a.Computed {
+			// treats that unknown as a change. UseStateForUnknown runs first and
+			// plans the prior value instead, as for a client-set id.
+			if a.Optional && a.Computed && !keepsState(a) {
 				return fmt.Errorf("%s: an optional and computed attribute cannot require replacement. Omitting it plans the value as unknown and replaces the resource when something else changes", at)
 			}
 			if child := optionalComputed(a.Attributes, at); child != "" {
@@ -805,6 +806,13 @@ func checkImmutableValues(attrs []*tfAttr, parent string) error {
 }
 
 // replaces reports whether a change of a replaces the resource.
+// keepsState reports whether an omitted value is planned as the prior state.
+func keepsState(a *tfAttr) bool {
+	return slices.ContainsFunc(a.Modifiers, func(m string) bool {
+		return strings.HasSuffix(m, "planmodifier.UseStateForUnknown()")
+	})
+}
+
 func replaces(a *tfAttr) bool {
 	return slices.ContainsFunc(a.Modifiers, func(m string) bool {
 		return strings.HasSuffix(m, "planmodifier.RequiresReplace()") || strings.HasPrefix(m, "requestReplaceModifier{")
