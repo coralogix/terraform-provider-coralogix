@@ -260,7 +260,7 @@ func TestAccFleetCGX_EmptyRemotes(t *testing.T) {
 
 func TestAccFleetCGX_InvalidChart(t *testing.T) {
 	name := acctest.RandomWithPrefix("tf-acc-fleet-cgx-badchart")
-	cfg := strings.Replace(fleetCGPreset(name, ""), "CHART_NAME_OTEL_INTEGRATION", "CHART_NAME_NOPE", 1)
+	cfg := strings.Replace(fleetCGPreset(name, ""), "chart_name_otel_integration", "CHART_NAME_NOPE", 1)
 	fleetCGTest(t, resource.TestStep{Config: cfg, ExpectError: regexp.MustCompile(`(?i)(chart|invalid|400)`)})
 }
 

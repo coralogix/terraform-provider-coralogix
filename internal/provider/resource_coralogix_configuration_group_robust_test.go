@@ -471,16 +471,16 @@ const (
 func TestAccFleetCGR_PresetECS(t *testing.T) {
 	name := acctest.RandomWithPrefix("tf-acc-fleet-cgr-ecs")
 	fleetCGTest(t,
-		resource.TestStep{Config: fleetCGPresetAny(name, "CHART_NAME_OTEL_ECS_EC2", "0.0.30", "", fleetCGECSMeta, fleetCGECSMinimal),
+		resource.TestStep{Config: fleetCGPresetAny(name, "chart_name_otel_ecs_ec2", "0.0.30", "", fleetCGECSMeta, fleetCGECSMinimal),
 			Check: resource.ComposeAggregateTestCheckFunc(
 				resource.TestCheckResourceAttr(fleetCGName, "family.preset.integration_version", "0.7.0"),
 				resource.TestCheckResourceAttrSet(fleetCGName, "family.preset.collector_version"),
 				resource.TestCheckResourceAttrSet(fleetCGName, "family.preset.remote_configurations.0.raw_configuration"),
 			)},
-		resource.TestStep{Config: fleetCGPresetAny(name, "CHART_NAME_OTEL_ECS_EC2", "0.0.30", "", fleetCGECSMeta, fleetCGECSMinimal), PlanOnly: true},
-		resource.TestStep{Config: fleetCGPresetAny(name, "CHART_NAME_OTEL_ECS_EC2", "0.0.40", "", fleetCGECSMeta, fleetCGECSTypical),
+		resource.TestStep{Config: fleetCGPresetAny(name, "chart_name_otel_ecs_ec2", "0.0.30", "", fleetCGECSMeta, fleetCGECSMinimal), PlanOnly: true},
+		resource.TestStep{Config: fleetCGPresetAny(name, "chart_name_otel_ecs_ec2", "0.0.40", "", fleetCGECSMeta, fleetCGECSTypical),
 			Check: resource.TestCheckResourceAttr(fleetCGName, "family.preset.integration_version", "0.9.0")},
-		resource.TestStep{Config: fleetCGPresetAny(name, "CHART_NAME_OTEL_ECS_EC2", "0.0.40", "", fleetCGECSMeta, fleetCGECSTypical), PlanOnly: true},
+		resource.TestStep{Config: fleetCGPresetAny(name, "chart_name_otel_ecs_ec2", "0.0.40", "", fleetCGECSMeta, fleetCGECSTypical), PlanOnly: true},
 		resource.TestStep{ResourceName: fleetCGName, ImportState: true, ImportStateVerify: true, ImportStateVerifyIgnore: fleetCGImportIgnore},
 	)
 }
@@ -488,7 +488,7 @@ func TestAccFleetCGR_PresetECS(t *testing.T) {
 // Host charts: default and explicit integration versions, chart upgrade.
 func TestAccFleetCGR_PresetLinux(t *testing.T) {
 	name := acctest.RandomWithPrefix("tf-acc-fleet-cgr-linux")
-	c := "CHART_NAME_OTEL_LINUX_STANDALONE"
+	c := "chart_name_otel_linux_standalone"
 	fleetCGTest(t,
 		resource.TestStep{Config: fleetCGPresetAny(name, c, "0.0.10", "", fleetCGStandaloneMeta, "{}"),
 			Check: resource.TestCheckResourceAttr(fleetCGName, "family.preset.integration_version", "0.1.0")},
@@ -505,7 +505,7 @@ func TestAccFleetCGR_PresetLinux(t *testing.T) {
 
 func TestAccFleetCGR_PresetWindows(t *testing.T) {
 	name := acctest.RandomWithPrefix("tf-acc-fleet-cgr-win")
-	c := "CHART_NAME_OTEL_WINDOWS_STANDALONE"
+	c := "chart_name_otel_windows_standalone"
 	fleetCGTest(t,
 		resource.TestStep{Config: fleetCGPresetAny(name, c, "0.0.10", "", fleetCGStandaloneMeta, "{}"),
 			Check: resource.TestCheckResourceAttr(fleetCGName, "family.preset.integration_version", "0.3.0")},
@@ -517,7 +517,7 @@ func TestAccFleetCGR_PresetWindows(t *testing.T) {
 
 func TestAccFleetCGR_PresetMacOS(t *testing.T) {
 	name := acctest.RandomWithPrefix("tf-acc-fleet-cgr-mac")
-	c := "CHART_NAME_OTEL_MACOS_STANDALONE"
+	c := "chart_name_otel_macos_standalone"
 	fleetCGTest(t,
 		resource.TestStep{Config: fleetCGPresetAny(name, c, "0.0.25", "", fleetCGStandaloneMeta, "{}"),
 			Check: resource.TestCheckResourceAttr(fleetCGName, "family.preset.integration_version", "0.4.0")},
@@ -531,7 +531,7 @@ func TestAccFleetCGR_PresetMacOS(t *testing.T) {
 func TestAccFleetCGR_PresetMissingMetadata(t *testing.T) {
 	name := acctest.RandomWithPrefix("tf-acc-fleet-cgr-nometa")
 	fleetCGTest(t, resource.TestStep{
-		Config:      fleetCGPresetAny(name, "CHART_NAME_OTEL_LINUX_STANDALONE", "0.0.10", "", `{ ApplicationName = "x" }`, "{}"),
+		Config:      fleetCGPresetAny(name, "chart_name_otel_linux_standalone", "0.0.10", "", `{ ApplicationName = "x" }`, "{}"),
 		ExpectError: regexp.MustCompile(`(?s)missing\s+required\s+metadata`),
 	})
 }

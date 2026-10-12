@@ -169,7 +169,7 @@ func fleetCGPresetGroup(name, integrationVersion, groupFields string) string {
 
   family = {
     preset = {
-      chart_name    = "CHART_NAME_OTEL_INTEGRATION"
+      chart_name    = "chart_name_otel_integration"
       chart_version = "0.0.353"%s
       metadata = {
         ClusterName         = "tf-acc"
