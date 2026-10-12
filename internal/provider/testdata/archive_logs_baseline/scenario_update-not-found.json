@@ -9,7 +9,7 @@
       "archiving_format_id": "(unknown)",
       "bucket": "archive-bucket",
       "enable_tags": "(unknown)",
-      "id": "(unknown)",
+      "id": "archive-logs-settings",
       "region": "(unknown)"
     },
     "requests": [
@@ -64,8 +64,7 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_archive_logs {<nil> false {archive-bucket <nil> 0xPTR <nil> map[] false} map[] false} is in state, but no longer exists in Coralogix backend | {<nil> false {archive-bucket <nil> 0xPTR <nil> map[] false} map[] false} will be recreated when you apply",
-      "error: Missing Resource State After Update | The Terraform Provider unexpectedly returned no resource state after having no errors in the resource update. This is always an issue in the Terraform Provider and should be reported to the provider developers."
+      "error: Resource no longer exists | The API did not find archive_logs with id archive-logs-settings. Run terraform apply without -refresh=false: the refresh removes it from state, and the plan creates it again."
     ],
     "state": {
       "active": true,

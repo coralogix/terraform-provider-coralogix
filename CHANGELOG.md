@@ -1,5 +1,15 @@
 # Unreleased
 
+#### resource/coralogix_archive_logs
+- CHORE: The resource is generated from the API contract. Create and Update set the archive target with the same call, as before.
+- CHORE: `id` is always `archive-logs-settings`. Before, an import with another ID kept that ID.
+- CHORE: `terraform destroy` warns that the API keeps the archive target. Before, it only wrote a log line.
+- CHORE: A refresh that finds no archive target warns when it removes the resource from the state. Before, it removed it silently.
+- FIX: A refresh that gets a 404 for a missing API route (`Not Found: Not Found` from the gateway) fails and keeps the resource in state. Before, it removed the resource from state with a warning, so the next apply set the target again.
+- FIX: An update that gets a 404 fails with `Resource no longer exists`, and the next refresh removes the resource from state. Before, it removed the resource from state during the update, and Terraform failed with `Missing Resource State After Update`.
+- CHORE: API errors read `Unable to create archive_logs` or `Unable to update archive_logs` instead of `Error replacing coralogix_archive_logs`.
+- DOCS: `active` and `archiving_format_id` have descriptions.
+
 #### resource/coralogix_dashboard
 - FIX: An empty `access_policy` returned by the API is read as null, the same as an omitted one. Before, the empty string went into state and import could not match it.
 

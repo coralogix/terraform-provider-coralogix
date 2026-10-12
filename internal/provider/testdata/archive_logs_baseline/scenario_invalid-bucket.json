@@ -9,7 +9,7 @@
       "archiving_format_id": "(unknown)",
       "bucket": "Invalid_Bucket",
       "enable_tags": "(unknown)",
-      "id": "(unknown)",
+      "id": "archive-logs-settings",
       "region": "(unknown)"
     },
     "requests": [
@@ -26,7 +26,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_archive_logs | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: \\\"targetSpec\\\" does not match any of the allowed types\"}\noperation - Create"
+      "error: Unable to create archive_logs | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: \\\"targetSpec\\\" does not match any of the allowed types\"}"
     ],
     "state": null
   }

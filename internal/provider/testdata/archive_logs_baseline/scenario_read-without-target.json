@@ -9,7 +9,7 @@
       "archiving_format_id": "(unknown)",
       "bucket": "archive-bucket",
       "enable_tags": "(unknown)",
-      "id": "(unknown)",
+      "id": "archive-logs-settings",
       "region": "(unknown)"
     },
     "requests": [
@@ -43,6 +43,9 @@
         "path": "/mgmt/openapi/5/logs/data-setup/v2",
         "status": 200
       }
+    ],
+    "applyDiagnostics": [
+      "warning: Resource disappeared during read | archive_logs with id archive-logs-settings was not found. Terraform removed it from state."
     ],
     "state": null
   }

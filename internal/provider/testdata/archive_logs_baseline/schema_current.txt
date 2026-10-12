@@ -2,14 +2,17 @@
     markdown: "Coralogix archive-logs. Configures the S3 bucket Coralogix archives logs and traces into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/."
 active  BoolAttribute optional computed
     default: booldefault.staticBoolDefault value defaults to true
+    markdown: "Whether archiving to this target is active."
 archiving_format_id  StringAttribute computed
+    markdown: "The archiving format ID."
     plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 bucket  StringAttribute required
     markdown: "The bucket name to store the archived logs in."
 enable_tags  BoolAttribute computed
     plan modifier: boolplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 id  StringAttribute computed
-    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+    default: stringdefault.staticStringDefault value defaults to archive-logs-settings
+    markdown: "The fixed id of this singleton: there is one per company."
 region  StringAttribute optional computed
     markdown: "The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions"
     plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
