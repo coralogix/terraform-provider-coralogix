@@ -16,6 +16,7 @@ package provider
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -57,6 +58,13 @@ func (h *grHarness) schedulers() *asFake {
 		h.t.Fatal("expected *asFake")
 	}
 	return f
+}
+
+// validate records a validation step with its diagnostics sorted. Two validators that reject the
+// same pair of attributes report in no fixed order.
+func (h *grHarness) validateSorted(name string, cfg map[string]any) {
+	h.Validate(name, cfg)
+	slices.Sort(h.steps[len(h.steps)-1].ValidateDiags)
 }
 
 func asTimeFrame(extra j) j {
@@ -181,28 +189,28 @@ var asScenarios = map[string]func(h *grHarness){
 	},
 
 	"config-validation": func(h *grHarness) {
-		h.Validate("missing filter", j{"name": "v", "schedule": asAlways})
-		h.Validate("missing schedule", j{"name": "v", "filter": j{"what_expression": "x"}})
-		h.Validate("both selectors", asRule("v", asAlways, j{"filter": j{
+		h.validateSorted("missing filter", j{"name": "v", "schedule": asAlways})
+		h.validateSorted("missing schedule", j{"name": "v", "filter": j{"what_expression": "x"}})
+		h.validateSorted("both selectors", asRule("v", asAlways, j{"filter": j{
 			"what_expression": "x", "alerts_unique_ids": l{"a"}, "meta_labels": l{j{"key": "k"}},
 		}}))
-		h.Validate("both one_time and recurring", asRule("v", j{
+		h.validateSorted("both one_time and recurring", asRule("v", j{
 			"operation": "mute", "recurring": j{"always_active": true},
 			"one_time": j{"time_frame": asTimeFrame(nil)},
 		}))
-		h.Validate("neither one_time nor recurring", asRule("v", j{"operation": "mute"}))
-		h.Validate("always_active and dynamic", asRule("v", j{"operation": "mute", "recurring": j{
+		h.validateSorted("neither one_time nor recurring", asRule("v", j{"operation": "mute"}))
+		h.validateSorted("always_active and dynamic", asRule("v", j{"operation": "mute", "recurring": j{
 			"always_active": true,
 			"dynamic":       j{"repeat_every": float64(1), "frequency": j{"daily": j{}}, "time_frame": asTimeFrame(nil)},
 		}}))
-		h.Validate("operation in upper case", asRule("v", j{"operation": "MUTE", "recurring": j{"always_active": true}}))
-		h.Validate("operation unspecified", asRule("v", j{"operation": "unspecified", "recurring": j{"always_active": true}}))
-		h.Validate("unknown time zone", asRule("v", j{"operation": "mute", "one_time": j{"time_frame": asTimeFrame(j{"time_zone": "UTC+15"})}}))
-		h.Validate("end_time and duration", asRule("v", j{"operation": "mute", "one_time": j{"time_frame": asTimeFrame(j{"end_time": "2030-01-05T00:00:00.000"})}}))
-		h.Validate("weekday in lower case", asRule("v", j{"operation": "mute", "recurring": j{"dynamic": j{
+		h.validateSorted("operation in upper case", asRule("v", j{"operation": "MUTE", "recurring": j{"always_active": true}}))
+		h.validateSorted("operation unspecified", asRule("v", j{"operation": "unspecified", "recurring": j{"always_active": true}}))
+		h.validateSorted("unknown time zone", asRule("v", j{"operation": "mute", "one_time": j{"time_frame": asTimeFrame(j{"time_zone": "UTC+15"})}}))
+		h.validateSorted("end_time and duration", asRule("v", j{"operation": "mute", "one_time": j{"time_frame": asTimeFrame(j{"end_time": "2030-01-05T00:00:00.000"})}}))
+		h.validateSorted("weekday in lower case", asRule("v", j{"operation": "mute", "recurring": j{"dynamic": j{
 			"repeat_every": float64(1), "frequency": j{"weekly": j{"days": l{"sunday"}}}, "time_frame": asTimeFrame(nil),
 		}}}))
-		h.Validate("duration frequency in singular", asRule("v", j{"operation": "mute", "one_time": j{
+		h.validateSorted("duration frequency in singular", asRule("v", j{"operation": "mute", "one_time": j{
 			"time_frame": asTimeFrame(j{"duration": j{"for_over": float64(1), "frequency": "hour"}}),
 		}}))
 	},
