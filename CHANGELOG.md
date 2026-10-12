@@ -1,5 +1,15 @@
 # Unreleased
 
+#### resource/coralogix_archive_logs
+- CHORE: The resource is generated from the API contract. Create and Update set the archive target with the same call, as before.
+- CHORE: `id` is always `archive-logs-settings`. Before, an import with another ID kept that ID.
+- CHORE: `terraform destroy` warns that the API keeps the archive target. Before, it only wrote a log line.
+- CHORE: A refresh that finds no archive target warns when it removes the resource from the state. Before, it removed it silently.
+- FIX: A refresh that gets a 404 for a missing API route (`Not Found: Not Found` from the gateway) fails and keeps the resource in state. Before, it removed the resource from state with a warning, so the next apply set the target again.
+- FIX: An update that gets a 404 fails with `Resource no longer exists`, and the next refresh removes the resource from state. Before, it removed the resource from state during the update, and Terraform failed with `Missing Resource State After Update`.
+- CHORE: API errors read `Unable to create archive_logs` or `Unable to update archive_logs` instead of `Error replacing coralogix_archive_logs`.
+- DOCS: `active` and `archiving_format_id` have descriptions.
+
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.40`.
 - FEAT: `api.upsert` in `behavior-overrides.yaml` generates a singleton that a GET reads and a POST on the same path sets. `fixedID` gives the released value of its `id` attribute. Create and Update send the whole resource with the POST, and Delete makes no call and warns that the API keeps the resource.
@@ -23,6 +33,10 @@
 
 #### resource/coralogix_alert
 - DOCS: Describe `phantom_mode`: the alert sends no notifications and opens no incident of its own, and the API rejects a phantom alert whose `notification_group` sets a notification target.
+
+#### provider
+- CHORE: Bump `coralogix-management-sdk` to the version with the archive target contract (bucket length, `isActive` description). It also makes the dashboard folder `name` a plain string, which the SDK always sends: a `coralogix_dashboards_folder` without `name` now sends `"name": ""` instead of no name, and still fails with a 400 (`folder name cannot be empty` instead of `folder name not found`).
+
 # Release 3.22.0
 
 #### resource/coralogix_connector, resource/coralogix_global_router, resource/coralogix_preset
