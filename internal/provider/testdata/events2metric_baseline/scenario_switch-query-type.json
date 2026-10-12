@@ -1,0 +1,129 @@
+[
+  {
+    "step": "create logs",
+    "config": {
+      "logs_query": {},
+      "name": "switch"
+    },
+    "plan": {
+      "data_source": null,
+      "description": null,
+      "id": "(unknown)",
+      "logs_query": {
+        "applications": null,
+        "lucene": "(unknown)",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "switch",
+      "permutations": "(unknown)",
+      "spans_query": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
+        "body": {
+          "name": "switch",
+          "permutationsLimit": 0,
+          "type": "E2M_TYPE_LOGS2METRICS"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "data_source": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "switch",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 0
+      },
+      "spans_query": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: spans query instead",
+    "config": {
+      "name": "switch",
+      "spans_query": {}
+    },
+    "plan": {
+      "data_source": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": null,
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "switch",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 0
+      },
+      "spans_query": {
+        "actions": null,
+        "applications": null,
+        "lucene": null,
+        "services": null,
+        "subsystems": null
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
+        "body": {
+          "description": "",
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "switch",
+          "permutations": {
+            "hasExceededLimit": false,
+            "limit": 0
+          },
+          "type": "E2M_TYPE_SPANS2METRICS"
+        },
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "description",
+      "spans_query.lucene"
+    ],
+    "state": {
+      "data_source": null,
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": null,
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "switch",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 0
+      },
+      "spans_query": {
+        "actions": null,
+        "applications": null,
+        "lucene": "",
+        "services": null,
+        "subsystems": null
+      }
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"description\")"
+    ]
+  }
+]

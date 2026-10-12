@@ -1,0 +1,146 @@
+[
+  {
+    "step": "no query",
+    "config": {
+      "name": "n"
+    },
+    "validateDiagnostics": [
+      "error: Missing Attribute Configuration | Exactly one of these attributes must be configured: [spans_query,logs_query]"
+    ],
+    "state": null
+  },
+  {
+    "step": "both queries",
+    "config": {
+      "logs_query": {},
+      "name": "n",
+      "spans_query": {}
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"spans_query\")] | Exactly one of these attributes must be configured: [spans_query,logs_query]"
+    ],
+    "state": null
+  },
+  {
+    "step": "name with a dot",
+    "config": {
+      "logs_query": {},
+      "name": "a.b"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"name\")] | Attribute name Invalid metric name, name may only contain ASCII letters and digits, as well as underscores and colons., got: a.b"
+    ],
+    "state": null
+  },
+  {
+    "step": "empty name",
+    "config": {
+      "logs_query": {},
+      "name": ""
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"name\")] | Attribute name string length must be at least 1, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "unknown severity",
+    "config": {
+      "logs_query": {
+        "severities": [
+          "debug"
+        ]
+      },
+      "name": "n"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"logs_query\").AttributeName(\"severities\").ElementKeyValue(tftypes.String<\"debug\">)] | Attribute logs_query.severities[Value(\"debug\")] value must be one of: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Verbose\" \"Warning\"], got: \"debug\""
+    ],
+    "state": null
+  },
+  {
+    "step": "empty severities",
+    "config": {
+      "logs_query": {
+        "severities": []
+      },
+      "name": "n"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"logs_query\").AttributeName(\"severities\")] | Attribute logs_query.severities set must contain at least 1 elements, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "empty applications",
+    "config": {
+      "logs_query": {
+        "applications": []
+      },
+      "name": "n"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"logs_query\").AttributeName(\"applications\")] | Attribute logs_query.applications set must contain at least 1 elements, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "unknown sample type",
+    "config": {
+      "logs_query": {},
+      "metric_fields": {
+        "f": {
+          "aggregations": {
+            "samples": {
+              "type": "Avg"
+            }
+          },
+          "source_field": "f"
+        }
+      },
+      "name": "n"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"metric_fields\").ElementKeyString(\"f\").AttributeName(\"aggregations\").AttributeName(\"samples\").AttributeName(\"type\")] | Attribute metric_fields[\"f\"].aggregations.samples.type value must be one of: [\"Max\" \"Min\"], got: \"Avg\""
+    ],
+    "state": null
+  },
+  {
+    "step": "empty metric fields",
+    "config": {
+      "logs_query": {},
+      "metric_fields": {},
+      "name": "n"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"metric_fields\")] | Attribute metric_fields map must contain at least 1 elements, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "empty metric labels",
+    "config": {
+      "logs_query": {},
+      "metric_labels": {},
+      "name": "n"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"metric_labels\")] | Attribute metric_labels map must contain at least 1 elements, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "negative limit",
+    "config": {
+      "logs_query": {},
+      "name": "n",
+      "permutations": {
+        "limit": -1
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"permutations\").AttributeName(\"limit\")] | Attribute permutations.limit value must be at least 0, got: -1"
+    ],
+    "state": null
+  }
+]

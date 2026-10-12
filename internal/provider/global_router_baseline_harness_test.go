@@ -537,6 +537,22 @@ func proposedNested(o *tfprotov6.SchemaObject, prior tftypes.Value, hasPrior boo
 			out[i] = proposedNew(o.Attributes, pi, cs[i])
 		}
 		return tftypes.NewValue(cfg.Type(), out)
+	case tfprotov6.SchemaObjectNestingModeMap:
+		// Terraform core pairs map elements by key.
+		var cs, ps map[string]tftypes.Value
+		_ = cfg.As(&cs)
+		if !prior.IsNull() {
+			_ = prior.As(&ps)
+		}
+		out := make(map[string]tftypes.Value, len(cs))
+		for k, c := range cs {
+			pi, ok := ps[k]
+			if !ok {
+				pi = tftypes.NewValue(c.Type(), nil)
+			}
+			out[k] = proposedNew(o.Attributes, pi, c)
+		}
+		return tftypes.NewValue(cfg.Type(), out)
 	}
 	return cfg
 }

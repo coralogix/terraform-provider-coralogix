@@ -1,0 +1,210 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "logs_query": {},
+      "name": "perm",
+      "permutations": {
+        "limit": 10
+      }
+    },
+    "plan": {
+      "data_source": null,
+      "description": null,
+      "id": "(unknown)",
+      "logs_query": {
+        "applications": null,
+        "lucene": "(unknown)",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "perm",
+      "permutations": {
+        "has_exceed_limit": "(unknown)",
+        "limit": 10
+      },
+      "spans_query": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
+        "body": {
+          "name": "perm",
+          "permutationsLimit": 10,
+          "type": "E2M_TYPE_LOGS2METRICS"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "data_source": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "perm",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 10
+      },
+      "spans_query": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: limit 20",
+    "config": {
+      "logs_query": {},
+      "name": "perm",
+      "permutations": {
+        "limit": 20
+      }
+    },
+    "plan": {
+      "data_source": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "perm",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 20
+      },
+      "spans_query": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
+        "body": {
+          "description": "",
+          "id": "00000000-0000-4000-8000-000000000001",
+          "logsQuery": {
+            "lucene": ""
+          },
+          "name": "perm",
+          "permutations": {
+            "hasExceededLimit": false,
+            "limit": 20
+          },
+          "type": "E2M_TYPE_LOGS2METRICS"
+        },
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "description"
+    ],
+    "state": {
+      "data_source": null,
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "perm",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 20
+      },
+      "spans_query": null
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"description\")"
+    ]
+  },
+  {
+    "step": "update: permutations left out",
+    "config": {
+      "logs_query": {},
+      "name": "perm"
+    },
+    "plan": {
+      "data_source": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "perm",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 20
+      },
+      "spans_query": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
+        "body": {
+          "description": "",
+          "id": "00000000-0000-4000-8000-000000000001",
+          "logsQuery": {
+            "lucene": ""
+          },
+          "name": "perm",
+          "permutations": {
+            "hasExceededLimit": false,
+            "limit": 20
+          },
+          "type": "E2M_TYPE_LOGS2METRICS"
+        },
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "description"
+    ],
+    "state": {
+      "data_source": null,
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "perm",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 20
+      },
+      "spans_query": null
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"description\")"
+    ]
+  }
+]

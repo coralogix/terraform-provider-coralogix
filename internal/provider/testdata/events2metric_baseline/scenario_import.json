@@ -1,0 +1,234 @@
+[
+  {
+    "step": "import",
+    "state": null
+  },
+  {
+    "step": "import (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "data_source": null,
+      "description": "made outside Terraform",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "x",
+        "severities": [
+          "Info"
+        ],
+        "subsystems": null
+      },
+      "metric_fields": {
+        "f": {
+          "aggregations": {
+            "avg": {
+              "enable": true,
+              "target_metric_name": "cx_avg"
+            },
+            "count": {
+              "enable": true,
+              "target_metric_name": "cx_count"
+            },
+            "histogram": {
+              "buckets": [],
+              "enable": false,
+              "target_metric_name": "cx_bucket"
+            },
+            "max": {
+              "enable": true,
+              "target_metric_name": "cx_max"
+            },
+            "min": {
+              "enable": true,
+              "target_metric_name": "cx_min"
+            },
+            "samples": {
+              "enable": true,
+              "target_metric_name": "cx_value",
+              "type": "Max"
+            },
+            "sum": {
+              "enable": true,
+              "target_metric_name": "cx_sum"
+            }
+          },
+          "source_field": "f"
+        }
+      },
+      "metric_labels": {
+        "L": "l"
+      },
+      "name": "seeded",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 7
+      },
+      "spans_query": null
+    },
+    "drift": [
+      "AttributeName(\"description\")",
+      "AttributeName(\"logs_query\")",
+      "AttributeName(\"logs_query\").AttributeName(\"applications\")",
+      "AttributeName(\"logs_query\").AttributeName(\"lucene\")",
+      "AttributeName(\"logs_query\").AttributeName(\"severities\")",
+      "AttributeName(\"logs_query\").AttributeName(\"subsystems\")",
+      "AttributeName(\"metric_fields\")",
+      "AttributeName(\"metric_fields\").ElementKeyString(\"f\")",
+      "AttributeName(\"metric_labels\")",
+      "AttributeName(\"metric_labels\").ElementKeyString(\"L\")",
+      "AttributeName(\"name\")",
+      "AttributeName(\"permutations\")",
+      "AttributeName(\"permutations\").AttributeName(\"has_exceed_limit\")",
+      "AttributeName(\"permutations\").AttributeName(\"limit\")"
+    ]
+  },
+  {
+    "step": "plan the matching config",
+    "config": {
+      "description": "made outside Terraform",
+      "logs_query": {
+        "lucene": "x",
+        "severities": [
+          "Info"
+        ]
+      },
+      "metric_fields": {
+        "f": {
+          "source_field": "f"
+        }
+      },
+      "metric_labels": {
+        "L": "l"
+      },
+      "name": "seeded",
+      "permutations": {
+        "limit": 7
+      }
+    },
+    "plan": {
+      "data_source": null,
+      "description": "made outside Terraform",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "x",
+        "severities": [
+          "Info"
+        ],
+        "subsystems": null
+      },
+      "metric_fields": {
+        "f": {
+          "aggregations": {
+            "avg": {
+              "enable": true,
+              "target_metric_name": "cx_avg"
+            },
+            "count": {
+              "enable": true,
+              "target_metric_name": "cx_count"
+            },
+            "histogram": {
+              "buckets": [],
+              "enable": false,
+              "target_metric_name": "cx_bucket"
+            },
+            "max": {
+              "enable": true,
+              "target_metric_name": "cx_max"
+            },
+            "min": {
+              "enable": true,
+              "target_metric_name": "cx_min"
+            },
+            "samples": {
+              "enable": true,
+              "target_metric_name": "cx_value",
+              "type": "Max"
+            },
+            "sum": {
+              "enable": true,
+              "target_metric_name": "cx_sum"
+            }
+          },
+          "source_field": "f"
+        }
+      },
+      "metric_labels": {
+        "L": "l"
+      },
+      "name": "seeded",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 7
+      },
+      "spans_query": null
+    },
+    "noChange": true,
+    "state": {
+      "data_source": null,
+      "description": "made outside Terraform",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "x",
+        "severities": [
+          "Info"
+        ],
+        "subsystems": null
+      },
+      "metric_fields": {
+        "f": {
+          "aggregations": {
+            "avg": {
+              "enable": true,
+              "target_metric_name": "cx_avg"
+            },
+            "count": {
+              "enable": true,
+              "target_metric_name": "cx_count"
+            },
+            "histogram": {
+              "buckets": [],
+              "enable": false,
+              "target_metric_name": "cx_bucket"
+            },
+            "max": {
+              "enable": true,
+              "target_metric_name": "cx_max"
+            },
+            "min": {
+              "enable": true,
+              "target_metric_name": "cx_min"
+            },
+            "samples": {
+              "enable": true,
+              "target_metric_name": "cx_value",
+              "type": "Max"
+            },
+            "sum": {
+              "enable": true,
+              "target_metric_name": "cx_sum"
+            }
+          },
+          "source_field": "f"
+        }
+      },
+      "metric_labels": {
+        "L": "l"
+      },
+      "name": "seeded",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 7
+      },
+      "spans_query": null
+    }
+  }
+]

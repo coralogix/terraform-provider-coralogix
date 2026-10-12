@@ -1,0 +1,144 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "logs_query": {},
+      "name": "exceeded",
+      "permutations": {
+        "limit": 5
+      }
+    },
+    "plan": {
+      "data_source": null,
+      "description": null,
+      "id": "(unknown)",
+      "logs_query": {
+        "applications": null,
+        "lucene": "(unknown)",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "exceeded",
+      "permutations": {
+        "has_exceed_limit": "(unknown)",
+        "limit": 5
+      },
+      "spans_query": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
+        "body": {
+          "name": "exceeded",
+          "permutationsLimit": 5,
+          "type": "E2M_TYPE_LOGS2METRICS"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "data_source": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "exceeded",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 5
+      },
+      "spans_query": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: the limit was exceeded",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "data_source": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "exceeded",
+      "permutations": {
+        "has_exceed_limit": true,
+        "limit": 5
+      },
+      "spans_query": null
+    },
+    "drift": [
+      "AttributeName(\"permutations\").AttributeName(\"has_exceed_limit\")"
+    ]
+  },
+  {
+    "step": "plan the same config",
+    "config": {
+      "logs_query": {},
+      "name": "exceeded",
+      "permutations": {
+        "limit": 5
+      }
+    },
+    "plan": {
+      "data_source": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "exceeded",
+      "permutations": {
+        "has_exceed_limit": true,
+        "limit": 5
+      },
+      "spans_query": null
+    },
+    "noChange": true,
+    "state": {
+      "data_source": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "exceeded",
+      "permutations": {
+        "has_exceed_limit": true,
+        "limit": 5
+      },
+      "spans_query": null
+    }
+  }
+]

@@ -1,0 +1,414 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "data_source": "system/poc.error_tracking",
+      "description": "logs2metric",
+      "logs_query": {
+        "applications": [
+          "filter:startsWith:nginx"
+        ],
+        "lucene": "remote_addr_enriched:/.*/",
+        "severities": [
+          "Debug",
+          "Error"
+        ],
+        "subsystems": [
+          "api"
+        ]
+      },
+      "metric_fields": {
+        "geo_point": {
+          "aggregations": {
+            "avg": {
+              "enable": true
+            },
+            "histogram": {
+              "buckets": [
+                1.5,
+                2
+              ],
+              "enable": true
+            },
+            "max": {
+              "enable": false
+            },
+            "min": {
+              "enable": false
+            },
+            "samples": {
+              "enable": true,
+              "type": "Min"
+            }
+          },
+          "source_field": "location_geopoint"
+        },
+        "method": {
+          "source_field": "method"
+        }
+      },
+      "metric_labels": {
+        "Path": "http_referer",
+        "Status": "status"
+      },
+      "name": "full",
+      "permutations": {
+        "limit": 20000
+      }
+    },
+    "plan": {
+      "data_source": "system/poc.error_tracking",
+      "description": "logs2metric",
+      "id": "(unknown)",
+      "logs_query": {
+        "applications": [
+          "filter:startsWith:nginx"
+        ],
+        "lucene": "remote_addr_enriched:/.*/",
+        "severities": [
+          "Debug",
+          "Error"
+        ],
+        "subsystems": [
+          "api"
+        ]
+      },
+      "metric_fields": {
+        "geo_point": {
+          "aggregations": {
+            "avg": {
+              "enable": true,
+              "target_metric_name": "(unknown)"
+            },
+            "count": "(unknown)",
+            "histogram": {
+              "buckets": [
+                1.5,
+                2
+              ],
+              "enable": true,
+              "target_metric_name": "(unknown)"
+            },
+            "max": {
+              "enable": false,
+              "target_metric_name": "(unknown)"
+            },
+            "min": {
+              "enable": false,
+              "target_metric_name": "(unknown)"
+            },
+            "samples": {
+              "enable": true,
+              "target_metric_name": "(unknown)",
+              "type": "Min"
+            },
+            "sum": "(unknown)"
+          },
+          "source_field": "location_geopoint"
+        },
+        "method": {
+          "aggregations": "(unknown)",
+          "source_field": "method"
+        }
+      },
+      "metric_labels": {
+        "Path": "http_referer",
+        "Status": "status"
+      },
+      "name": "full",
+      "permutations": {
+        "has_exceed_limit": "(unknown)",
+        "limit": 20000
+      },
+      "spans_query": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
+        "body": {
+          "dataSource": "system/poc.error_tracking",
+          "description": "logs2metric",
+          "logsQuery": {
+            "applicationnameFilters": [
+              "filter:startsWith:nginx"
+            ],
+            "lucene": "remote_addr_enriched:/.*/",
+            "severityFilters": [
+              "SEVERITY_DEBUG",
+              "SEVERITY_ERROR"
+            ],
+            "subsystemnameFilters": [
+              "api"
+            ]
+          },
+          "metricFields": [
+            {
+              "aggregations": [
+                {
+                  "aggType": "AGG_TYPE_MIN",
+                  "enabled": false,
+                  "targetMetricName": "min"
+                },
+                {
+                  "aggType": "AGG_TYPE_MAX",
+                  "enabled": false,
+                  "targetMetricName": "max"
+                },
+                {
+                  "aggType": "AGG_TYPE_AVG",
+                  "enabled": true,
+                  "targetMetricName": "avg"
+                },
+                {
+                  "aggType": "AGG_TYPE_SAMPLES",
+                  "enabled": true,
+                  "samples": {
+                    "sampleType": "SAMPLE_TYPE_MIN"
+                  },
+                  "targetMetricName": "samples"
+                },
+                {
+                  "aggType": "AGG_TYPE_HISTOGRAM",
+                  "enabled": true,
+                  "histogram": {
+                    "buckets": [
+                      1.5,
+                      2
+                    ]
+                  },
+                  "targetMetricName": "histogram"
+                }
+              ],
+              "sourceField": "location_geopoint",
+              "targetBaseMetricName": "geo_point"
+            },
+            {
+              "sourceField": "method",
+              "targetBaseMetricName": "method"
+            }
+          ],
+          "metricLabels": [
+            {
+              "sourceField": "http_referer",
+              "targetLabel": "Path"
+            },
+            {
+              "sourceField": "status",
+              "targetLabel": "Status"
+            }
+          ],
+          "name": "full",
+          "permutationsLimit": 20000,
+          "type": "E2M_TYPE_LOGS2METRICS"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "data_source": "system/poc.error_tracking",
+      "description": "logs2metric",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": [
+          "filter:startsWith:nginx"
+        ],
+        "lucene": "remote_addr_enriched:/.*/",
+        "severities": [
+          "Debug",
+          "Error"
+        ],
+        "subsystems": [
+          "api"
+        ]
+      },
+      "metric_fields": {
+        "geo_point": {
+          "aggregations": {
+            "avg": {
+              "enable": true,
+              "target_metric_name": "cx_avg"
+            },
+            "count": {
+              "enable": true,
+              "target_metric_name": "cx_count"
+            },
+            "histogram": {
+              "buckets": [
+                1.5,
+                2
+              ],
+              "enable": true,
+              "target_metric_name": "cx_bucket"
+            },
+            "max": {
+              "enable": false,
+              "target_metric_name": "cx_max"
+            },
+            "min": {
+              "enable": false,
+              "target_metric_name": "cx_min"
+            },
+            "samples": {
+              "enable": true,
+              "target_metric_name": "cx_value",
+              "type": "Min"
+            },
+            "sum": {
+              "enable": true,
+              "target_metric_name": "cx_sum"
+            }
+          },
+          "source_field": "location_geopoint"
+        },
+        "method": {
+          "aggregations": {
+            "avg": {
+              "enable": true,
+              "target_metric_name": "cx_avg"
+            },
+            "count": {
+              "enable": true,
+              "target_metric_name": "cx_count"
+            },
+            "histogram": {
+              "buckets": [],
+              "enable": false,
+              "target_metric_name": "cx_bucket"
+            },
+            "max": {
+              "enable": true,
+              "target_metric_name": "cx_max"
+            },
+            "min": {
+              "enable": true,
+              "target_metric_name": "cx_min"
+            },
+            "samples": {
+              "enable": true,
+              "target_metric_name": "cx_value",
+              "type": "Max"
+            },
+            "sum": {
+              "enable": true,
+              "target_metric_name": "cx_sum"
+            }
+          },
+          "source_field": "method"
+        }
+      },
+      "metric_labels": {
+        "Path": "http_referer",
+        "Status": "status"
+      },
+      "name": "full",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 20000
+      },
+      "spans_query": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: only the name and an empty logs query are left",
+    "config": {
+      "logs_query": {},
+      "name": "full"
+    },
+    "plan": {
+      "data_source": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "remote_addr_enriched:/.*/",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "full",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 20000
+      },
+      "spans_query": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
+        "body": {
+          "description": "",
+          "id": "00000000-0000-4000-8000-000000000001",
+          "logsQuery": {
+            "lucene": "remote_addr_enriched:/.*/"
+          },
+          "name": "full",
+          "permutations": {
+            "hasExceededLimit": false,
+            "limit": 20000
+          },
+          "type": "E2M_TYPE_LOGS2METRICS"
+        },
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "description"
+    ],
+    "state": {
+      "data_source": null,
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "remote_addr_enriched:/.*/",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "full",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 20000
+      },
+      "spans_query": null
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"description\")"
+    ]
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "data_source": null,
+      "description": "",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "remote_addr_enriched:/.*/",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "full",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 20000
+      },
+      "spans_query": null
+    }
+  }
+]
