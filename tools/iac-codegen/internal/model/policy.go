@@ -44,6 +44,10 @@ type Policy struct {
 	// changed-field mask a query parameter would send. A full replace (PUT)
 	// has no mask, so the key is an error there.
 	UpdateMaskInBody bool
+	// TopLevelMaskReplacesOneOf: the server replaces the whole value of a
+	// top-level mask path, so a mask without dotted paths can change a nested
+	// oneOf. The key is an error when it changes nothing.
+	TopLevelMaskReplacesOneOf bool
 	// appliedUnsupported records Component.arm keys that splitUnsupported
 	// dropped. Create and Update types are discarded after merge, so a walk of
 	// the response cannot see a key that names only a request component.

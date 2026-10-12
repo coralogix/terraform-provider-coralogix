@@ -335,7 +335,7 @@ func (s *resolver) nested(path string, t *model.Type) error {
 		for _, v := range t.Values {
 			s.add(sdkRef{Path: path + "." + v, Kind: kindConst, Name: strings.ToUpper(name) + "_" + v, Rule: ruleEnumValue})
 		}
-		if s.policy.EnumOverride(t.Schema) {
+		if s.policy.EnumOverride(t.Schema) && t.EnumZero != "" {
 			// The overrides map the zero value to a Terraform value, so the SDK must have it.
 			s.add(sdkRef{Path: path + "." + t.EnumZero, Kind: kindConst, Name: strings.ToUpper(name) + "_" + t.EnumZero, Rule: ruleEnumValue})
 		}

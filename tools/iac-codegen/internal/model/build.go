@@ -1454,12 +1454,19 @@ func stringType(t *Type, s *base.Schema, w walk) error {
 	case len(s.Enum) != 0:
 		t.Kind = Enum
 		t.MinLength, t.MaxLength = nil, nil
-		zero, err := enumZero(s.Enum, w.policy != nil && w.policy.enumAnyPrefix(t.Schema))
-		if err != nil {
-			return err
+		business := s.Enum
+		if w.policy != nil && w.policy.Existing && !strings.HasSuffix(s.Enum[0].Value, "_UNSPECIFIED") {
+			// A released enum whose zero value is a business value, such as
+			// PROMPT = 0. Every value is a business value, and none reads as null.
+		} else {
+			zero, err := enumZero(s.Enum, w.policy != nil && w.policy.enumAnyPrefix(t.Schema))
+			if err != nil {
+				return err
+			}
+			t.EnumZero = zero
+			business = s.Enum[1:]
 		}
-		t.EnumZero = zero
-		for _, n := range s.Enum[1:] {
+		for _, n := range business {
 			t.Values = append(t.Values, n.Value)
 		}
 		if len(t.Values) == 0 {

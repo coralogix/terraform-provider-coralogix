@@ -671,3 +671,43 @@ types:
 		t.Fatal(reportOf(t, err))
 	}
 }
+
+// A released enum can start with a business value, such as PROMPT = 0.
+// Every value maps both ways, and a zero line names nothing.
+func TestEnumWithBusinessZeroRenders(t *testing.T) {
+	input, _ := syntheticInput(t)
+	spec := strings.Replace(string(input.OpenAPI),
+		"enum: [THING_KIND_UNSPECIFIED, THING_KIND_STANDARD, THING_KIND_ADVANCED, THING_KIND_P5_OR_UNSPECIFIED]",
+		"enum: [THING_KIND_STANDARD, THING_KIND_ADVANCED]", 1)
+	if spec == string(input.OpenAPI) {
+		t.Fatal("cannot locate the ThingKind enum")
+	}
+	line := func(zero string) *overrides.File {
+		return mustParse(t, `
+resource: Thing
+mode: existing
+validators:
+  inferred: false
+enums:
+  ThingKind: {`+zero+`values: [THING_KIND_STANDARD, THING_KIND_ADVANCED], verbatim: true}
+`)
+	}
+	validated, err := validateOpenAPIWith([]byte(spec), "Thing", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, line(""))
+	if err != nil {
+		t.Fatal(reportOf(t, err))
+	}
+	files, err := renderWith(validated.resource, validated.refs, "generated", validated.overrides)
+	if err != nil {
+		t.Fatal(err)
+	}
+	convert := string(files["convert.go"])
+	for _, want := range []string{`"THING_KIND_STANDARD": things_service.ThingKind("THING_KIND_STANDARD")`, `things_service.ThingKind("THING_KIND_ADVANCED"): "THING_KIND_ADVANCED"`} {
+		if !strings.Contains(convert, want) {
+			t.Fatalf("convert.go lacks %s", want)
+		}
+	}
+	_, err = validateOpenAPIWith([]byte(spec), "Thing", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, line("zero: unspecified, "))
+	if !reportHas(requireReport(t, err), "OVERRIDE_UNUSED", "behavior-overrides.yaml:enums.ThingKind") {
+		t.Fatalf("zero line: err = %v, want OVERRIDE_UNUSED", err)
+	}
+}

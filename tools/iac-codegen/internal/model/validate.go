@@ -1201,7 +1201,7 @@ func responseResourceProxy(op *v3.Operation, name string) *base.SchemaProxy {
 
 func validateBuiltResource(r *Resource) issue.Report {
 	if r.Replace {
-		return nil
+		return topLevelMaskUnused(r, "Update is a full replace, which has no mask.")
 	}
 	if r.UpdateMaskPattern == "" {
 		return issue.Report{{Code: "UPDATE_MASK_CONTRACT_MISSING", Location: "paths.update." + r.Update.OperationID, Message: "The PATCH update mask has no pattern that defines accepted mask paths.", Remediation: "Add the authoritative update-mask path pattern to the source API contract."}}
@@ -1211,9 +1211,31 @@ func validateBuiltResource(r *Resource) issue.Report {
 		return issue.Report{{Code: "UPDATE_MASK_CONTRACT_INVALID", Location: "paths.update." + r.Update.OperationID, Message: err.Error() + ".", Remediation: "Use a mask pattern that accepts field names and comma-separated lists of them, rejects *, and defines whether dotted paths are supported."}}
 	}
 	if leaf {
+		return topLevelMaskUnused(r, "The mask pattern accepts dotted paths, so Update names the oneOf arm.")
+	}
+	report := nestedOneOfMaskIssues(r)
+	if !r.Policy.TopLevelMaskReplacesOneOf {
+		return report
+	}
+	if len(report) == 0 {
+		return topLevelMaskUnused(r, "No Update field holds a nested oneOf.")
+	}
+	// The server replaces the whole top-level value, and the body holds the
+	// selected arm, so the top-level path changes the oneOf.
+	return nil
+}
+
+// topLevelMaskUnused reports api.topLevelMaskReplacesOneOf when it changes nothing.
+func topLevelMaskUnused(r *Resource, why string) issue.Report {
+	if !r.Policy.TopLevelMaskReplacesOneOf {
 		return nil
 	}
-	return nestedOneOfMaskIssues(r)
+	return issue.Report{{
+		Code:        "OVERRIDE_UNUSED",
+		Location:    "behavior-overrides.yaml:api.topLevelMaskReplacesOneOf",
+		Message:     "api.topLevelMaskReplacesOneOf changes nothing. " + why,
+		Remediation: "Delete the key.",
+	}}
 }
 
 func nestedOneOfMaskIssues(r *Resource) issue.Report {

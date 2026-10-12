@@ -176,6 +176,13 @@ func enumLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 			return wholeLine(fmt.Errorf("enum %q has no value %q", line.Component, value))
 		}
 	}
+	if !hasZeroValue(contract) && line.EnumZero != "" {
+		return &lineIssue{
+			code:    "OVERRIDE_UNUSED",
+			message: fmt.Sprintf("enum %q has no zero value: its first value %s is a business value", line.Component, contract[0]),
+			fix:     "Delete zero and put the first value in values or rejected.",
+		}
+	}
 	if hasZeroValue(contract) && line.EnumZero == "" {
 		return &lineIssue{
 			code:    "ENUM_ZERO_UNDECIDED",

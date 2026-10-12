@@ -1590,3 +1590,47 @@ func TestOneOfNoArmRule(t *testing.T) {
 		})
 	}
 }
+
+func TestExistingEnumWithBusinessZero(t *testing.T) {
+	spec := strings.Replace(string(validSpec(t)),
+		"enum: [THING_KIND_UNSPECIFIED, THING_KIND_STANDARD, THING_KIND_ADVANCED, THING_KIND_P5_OR_UNSPECIFIED]",
+		"enum: [THING_KIND_STANDARD, THING_KIND_ADVANCED]", 1)
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := BuildWithPolicy(doc, "Thing", OperationIDs{}, Policy{}); err == nil || !strings.Contains(err.Error(), "must be <PREFIX>_UNSPECIFIED") {
+		t.Fatalf("new resource: err = %v, want the zero value error", err)
+	}
+	resource, err := BuildWithPolicy(doc, "Thing", OperationIDs{}, Policy{Existing: true, NoInferredValidators: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range resource.Fields {
+		if f.Name != "kind" {
+			continue
+		}
+		if f.Type.EnumZero != "" || !slices.Equal(f.Type.Values, []string{"THING_KIND_STANDARD", "THING_KIND_ADVANCED"}) {
+			t.Fatalf("zero = %q, values = %v; want no zero and both business values", f.Type.EnumZero, f.Type.Values)
+		}
+		return
+	}
+	t.Fatal("no kind field")
+}
+
+func TestTopLevelMaskReplacesOneOf(t *testing.T) {
+	dotted := updateBodyMask(t, string(validSpec(t)), true)
+	top := strings.Replace(dotted,
+		"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'",
+		"pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'", 1)
+	if top == dotted {
+		t.Fatal("cannot locate the body mask pattern")
+	}
+	replaces := Policy{Existing: true, UpdateMaskInBody: true, NoInferredValidators: true, TopLevelMaskReplacesOneOf: true}
+	if codes := maskCodes(t, top, replaces); slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") || slices.Contains(codes, "OVERRIDE_UNUSED") {
+		t.Fatalf("codes %v, the server replaces the whole top-level value", codes)
+	}
+	if codes := maskCodes(t, dotted, replaces); !slices.Contains(codes, "OVERRIDE_UNUSED") {
+		t.Fatalf("codes %v do not contain OVERRIDE_UNUSED for a dotted mask", codes)
+	}
+}

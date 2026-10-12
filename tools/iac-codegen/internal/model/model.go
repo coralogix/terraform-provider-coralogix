@@ -172,7 +172,7 @@ type Type struct {
 	// (protobuf 64-bit numbers).
 	WireString bool
 	Values     []string // Enum: the business values, without EnumZero
-	EnumZero   string   // Enum: the exact protobuf zero value
+	EnumZero   string   // Enum: the exact protobuf zero value; empty when the zero value is a business value (existing mode)
 	Elem       *Type    // List, Set, Map
 	Fields     []*Field // Object: the properties; OneOf: the arms
 	AllowNone  bool     // OneOf: the value can have no arm set, as in OneOfGroup
