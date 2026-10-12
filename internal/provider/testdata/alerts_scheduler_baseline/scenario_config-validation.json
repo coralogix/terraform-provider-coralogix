@@ -1,0 +1,290 @@
+[
+  {
+    "step": "missing filter",
+    "config": {
+      "name": "v",
+      "schedule": {
+        "operation": "mute",
+        "recurring": {
+          "always_active": true
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"filter\")] | Must set a configuration value for the filter attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "missing schedule",
+    "config": {
+      "filter": {
+        "what_expression": "x"
+      },
+      "name": "v"
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"schedule\")] | Must set a configuration value for the schedule attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "both selectors",
+    "config": {
+      "filter": {
+        "alerts_unique_ids": [
+          "a"
+        ],
+        "meta_labels": [
+          {
+            "key": "k"
+          }
+        ],
+        "what_expression": "x"
+      },
+      "name": "v",
+      "schedule": {
+        "operation": "mute",
+        "recurring": {
+          "always_active": true
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"filter\").AttributeName(\"meta_labels\")] | Attribute \"filter.alerts_unique_ids\" cannot be specified when \"filter.meta_labels\" is specified",
+      "error: Invalid Attribute Combination [AttributeName(\"filter\").AttributeName(\"alerts_unique_ids\")] | Attribute \"filter.meta_labels\" cannot be specified when \"filter.alerts_unique_ids\" is specified"
+    ],
+    "state": null
+  },
+  {
+    "step": "both one_time and recurring",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "v",
+      "schedule": {
+        "one_time": {
+          "time_frame": {
+            "duration": {
+              "for_over": 2,
+              "frequency": "hours"
+            },
+            "start_time": "2030-01-04T00:00:00.000",
+            "time_zone": "UTC+2"
+          }
+        },
+        "operation": "mute",
+        "recurring": {
+          "always_active": true
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"one_time\")] | 2 attributes specified when one (and only one) of [schedule.one_time.<.recurring] is required",
+      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"recurring\")] | 2 attributes specified when one (and only one) of [schedule.recurring.<.one_time] is required"
+    ],
+    "state": null
+  },
+  {
+    "step": "neither one_time nor recurring",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "v",
+      "schedule": {
+        "operation": "mute"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"recurring\")] | No attribute specified when one (and only one) of [schedule.recurring.<.one_time] is required",
+      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"one_time\")] | No attribute specified when one (and only one) of [schedule.one_time.<.recurring] is required"
+    ],
+    "state": null
+  },
+  {
+    "step": "always_active and dynamic",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "v",
+      "schedule": {
+        "operation": "mute",
+        "recurring": {
+          "always_active": true,
+          "dynamic": {
+            "frequency": {
+              "daily": {}
+            },
+            "repeat_every": 1,
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"recurring\").AttributeName(\"dynamic\")] | 2 attributes specified when one (and only one) of [schedule.recurring.dynamic.<.always_active,schedule.recurring.dynamic.<.dynamic] is required"
+    ],
+    "state": null
+  },
+  {
+    "step": "operation in upper case",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "v",
+      "schedule": {
+        "operation": "MUTE",
+        "recurring": {
+          "always_active": true
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"schedule\").AttributeName(\"operation\")] | Attribute schedule.operation value must be one of: [\"active\" \"mute\" \"unspecified\"], got: \"MUTE\""
+    ],
+    "state": null
+  },
+  {
+    "step": "operation unspecified",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "v",
+      "schedule": {
+        "operation": "unspecified",
+        "recurring": {
+          "always_active": true
+        }
+      }
+    },
+    "state": null
+  },
+  {
+    "step": "unknown time zone",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "v",
+      "schedule": {
+        "one_time": {
+          "time_frame": {
+            "duration": {
+              "for_over": 2,
+              "frequency": "hours"
+            },
+            "start_time": "2030-01-04T00:00:00.000",
+            "time_zone": "UTC+15"
+          }
+        },
+        "operation": "mute"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"schedule\").AttributeName(\"one_time\").AttributeName(\"time_frame\").AttributeName(\"time_zone\")] | Attribute schedule.one_time.time_frame.time_zone value must be one of: [\"UTC\" \"UTC-11\" \"UTC-10\" \"UTC-9\" \"UTC-8\" \"UTC-7\" \"UTC-6\" \"UTC-5\" \"UTC-4\" \"UTC-3\" \"UTC-2\" \"UTC-1\" \"UTC+0\" \"UTC+1\" \"UTC+2\" \"UTC+3\" \"UTC+4\" \"UTC+5\" \"UTC+6\" \"UTC+7\" \"UTC+8\" \"UTC+9\" \"UTC+10\" \"UTC+11\" \"UTC+12\" \"UTC+13\" \"UTC+14\"], got: \"UTC+15\""
+    ],
+    "state": null
+  },
+  {
+    "step": "end_time and duration",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "v",
+      "schedule": {
+        "one_time": {
+          "time_frame": {
+            "duration": {
+              "for_over": 2,
+              "frequency": "hours"
+            },
+            "end_time": "2030-01-05T00:00:00.000",
+            "start_time": "2030-01-04T00:00:00.000",
+            "time_zone": "UTC+2"
+          }
+        },
+        "operation": "mute"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"one_time\").AttributeName(\"time_frame\").AttributeName(\"end_time\")] | 2 attributes specified when one (and only one) of [schedule.one_time.time_frame.end_time.<.duration] is required",
+      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"one_time\").AttributeName(\"time_frame\").AttributeName(\"duration\")] | 2 attributes specified when one (and only one) of [schedule.one_time.time_frame.duration.<.end_time] is required"
+    ],
+    "state": null
+  },
+  {
+    "step": "weekday in lower case",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "v",
+      "schedule": {
+        "operation": "mute",
+        "recurring": {
+          "dynamic": {
+            "frequency": {
+              "weekly": {
+                "days": [
+                  "sunday"
+                ]
+              }
+            },
+            "repeat_every": 1,
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"schedule\").AttributeName(\"recurring\").AttributeName(\"dynamic\").AttributeName(\"frequency\").AttributeName(\"weekly\").AttributeName(\"days\").ElementKeyValue(tftypes.String<\"sunday\">)] | Attribute schedule.recurring.dynamic.frequency.weekly.days[Value(\"sunday\")] value must be one of: [\"Friday\" \"Monday\" \"Saturday\" \"Sunday\" \"Thursday\" \"Tuesday\" \"Wednesday\"], got: \"sunday\""
+    ],
+    "state": null
+  },
+  {
+    "step": "duration frequency in singular",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "v",
+      "schedule": {
+        "one_time": {
+          "time_frame": {
+            "duration": {
+              "for_over": 1,
+              "frequency": "hour"
+            },
+            "start_time": "2030-01-04T00:00:00.000",
+            "time_zone": "UTC+2"
+          }
+        },
+        "operation": "mute"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"schedule\").AttributeName(\"one_time\").AttributeName(\"time_frame\").AttributeName(\"duration\").AttributeName(\"frequency\")] | Attribute schedule.one_time.time_frame.duration.frequency value must be one of: [\"days\" \"hours\" \"minutes\"], got: \"hour\""
+    ],
+    "state": null
+  }
+]

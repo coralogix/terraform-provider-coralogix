@@ -1,0 +1,115 @@
+[
+  {
+    "step": "import",
+    "state": null
+  },
+  {
+    "step": "import (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "made outside Terraform",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": [
+          "alert-1"
+        ],
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "seeded",
+      "schedule": {
+        "one_time": null,
+        "operation": "mute",
+        "recurring": {
+          "always_active": true,
+          "dynamic": null
+        }
+      }
+    },
+    "drift": [
+      "AttributeName(\"description\")",
+      "AttributeName(\"enabled\")",
+      "AttributeName(\"filter\")",
+      "AttributeName(\"filter\").AttributeName(\"alerts_unique_ids\")",
+      "AttributeName(\"filter\").AttributeName(\"meta_labels\")",
+      "AttributeName(\"filter\").AttributeName(\"what_expression\")",
+      "AttributeName(\"name\")",
+      "AttributeName(\"schedule\")",
+      "AttributeName(\"schedule\").AttributeName(\"one_time\")",
+      "AttributeName(\"schedule\").AttributeName(\"operation\")",
+      "AttributeName(\"schedule\").AttributeName(\"recurring\")"
+    ]
+  },
+  {
+    "step": "plan the matching config",
+    "config": {
+      "description": "made outside Terraform",
+      "filter": {
+        "alerts_unique_ids": [
+          "alert-1"
+        ],
+        "what_expression": "source logs | filter true"
+      },
+      "name": "seeded",
+      "schedule": {
+        "operation": "mute",
+        "recurring": {
+          "always_active": true
+        }
+      }
+    },
+    "plan": {
+      "description": "made outside Terraform",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": [
+          "alert-1"
+        ],
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "seeded",
+      "schedule": {
+        "one_time": null,
+        "operation": "mute",
+        "recurring": {
+          "always_active": true,
+          "dynamic": null
+        }
+      }
+    },
+    "noChange": true,
+    "state": {
+      "description": "made outside Terraform",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": [
+          "alert-1"
+        ],
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "seeded",
+      "schedule": {
+        "one_time": null,
+        "operation": "mute",
+        "recurring": {
+          "always_active": true,
+          "dynamic": null
+        }
+      }
+    }
+  }
+]
