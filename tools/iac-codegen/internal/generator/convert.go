@@ -1338,10 +1338,11 @@ func (ix *refIndex) schemaRef(schema string) (sdkRef, error) {
 	return ref, nil
 }
 
-// markPrior sets NeedsPrior on every object with a KeepPriorOrder field, and on every object
-// that holds such an object. Only these flatten functions take the prior model. It also
-// marks the objects that a list keeping the prior order holds, and their nested objects: the
-// package compares their SDK values.
+// markPrior sets NeedsPrior on every object with a KeepPriorOrder field, a string that reads
+// an empty value as null, or an Equality field, and on every object that holds such an
+// object. Only these flatten functions take the prior model. It also marks the objects that
+// a list keeping the prior order holds, and their nested objects: the package compares their
+// SDK values.
 func markPrior(d *convData) error {
 	if err := markPriorFields(d); err != nil {
 		return err
@@ -1365,8 +1366,8 @@ func markPrior(d *convData) error {
 	return nil
 }
 
-// markPriorFields marks the objects with a KeepPriorOrder or an Equality field, and the objects that
-// a list keeping the prior order holds.
+// markPriorFields marks the objects with a KeepPriorOrder field, an Equality field, or a string
+// that reads an empty value as null, and the objects that a list keeping the prior order holds.
 func markPriorFields(d *convData) error {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
@@ -1374,6 +1375,11 @@ func markPriorFields(d *convData) error {
 				if f.Conv != convString {
 					return fmt.Errorf("%s.%s: equality needs a string field", obj.Model, f.TFName)
 				}
+				obj.NeedsPrior = true
+			}
+			// An empty string from the API is null when the value was omitted, and ""
+			// when the configuration set "". Flatten needs the prior value to tell them apart.
+			if f.ReadEmptyAsNull && f.Conv == convString {
 				obj.NeedsPrior = true
 			}
 			if !f.KeepPriorOrder {
@@ -1433,7 +1439,7 @@ func sortedFieldNames(obj *convObject) []string {
 // errPriorContainer reports a field that needs the prior model in a container whose flatten has no
 // prior value to pass: a map of objects, or a computed object stored as types.Object. A set of
 // objects has no order, so the prior item at the same index is not the same item.
-var errPriorContainer = errors.New("equality and keepPriorOrder are not supported in a map or set of objects or in a computed object")
+var errPriorContainer = errors.New("equality, keepPriorOrder, and readEmptyAs on a string are not supported in a map or set of objects or in a computed object")
 
 func checkPriorContainers(d *convData) error {
 	for _, obj := range d.Objects {

@@ -1246,6 +1246,11 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{- if .ReadEmptyAsNull}}
 	if out.{{.Model}}.ValueString() == "" {
 		out.{{.Model}} = types.StringNull()
+		// A configured "" and an omitted value both read back as "". The prior
+		// is the plan or the state, so a configured empty string stays "".
+		if prior != nil && !prior.{{.Model}}.IsNull() && !prior.{{.Model}}.IsUnknown() && prior.{{.Model}}.ValueString() == "" {
+			out.{{.Model}} = types.StringValue("")
+		}
 	}
 	{{- end}}
 {{- else if eq .Conv "bool"}}

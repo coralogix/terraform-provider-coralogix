@@ -97,13 +97,13 @@ func expandUpdate(ctx context.Context, m *CustomThingModel) (*custom_things_serv
 
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
-func flatten(ctx context.Context, v *custom_things_service.CustomThing) (*CustomThingModel, diag.Diagnostics) {
+func flatten(ctx context.Context, v *custom_things_service.CustomThing, prior *CustomThingModel) (*CustomThingModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if v == nil {
 		diags.AddError("Missing resource", "The API response has no CustomThing.")
 		return nil, diags
 	}
-	out := flattenCustomThing(ctx, path.Empty(), v, &diags)
+	out := flattenCustomThing(ctx, path.Empty(), v, prior, &diags)
 	return out, diags
 }
 
@@ -297,7 +297,7 @@ func expandNote(ctx context.Context, p path.Path, m *NoteModel, diags *diag.Diag
 	return out
 }
 
-func flattenNote(ctx context.Context, p path.Path, v *custom_things_service.Note, diags *diag.Diagnostics) *NoteModel {
+func flattenNote(ctx context.Context, p path.Path, v *custom_things_service.Note, prior *NoteModel, diags *diag.Diagnostics) *NoteModel {
 	if v == nil {
 		return nil
 	}
@@ -305,6 +305,11 @@ func flattenNote(ctx context.Context, p path.Path, v *custom_things_service.Note
 	out.Text = types.StringPointerValue(v.Text)
 	if out.Text.ValueString() == "" {
 		out.Text = types.StringNull()
+		// A configured "" and an omitted value both read back as "". The prior
+		// is the plan or the state, so a configured empty string stays "".
+		if prior != nil && !prior.Text.IsNull() && !prior.Text.IsUnknown() && prior.Text.ValueString() == "" {
+			out.Text = types.StringValue("")
+		}
 	}
 	return out
 }
@@ -397,7 +402,7 @@ func expandCustomThingUpdate(ctx context.Context, p path.Path, m *CustomThingMod
 	return out
 }
 
-func flattenCustomThing(ctx context.Context, p path.Path, v *custom_things_service.CustomThing, diags *diag.Diagnostics) *CustomThingModel {
+func flattenCustomThing(ctx context.Context, p path.Path, v *custom_things_service.CustomThing, prior *CustomThingModel, diags *diag.Diagnostics) *CustomThingModel {
 	if v == nil {
 		return nil
 	}
@@ -411,8 +416,17 @@ func flattenCustomThing(ctx context.Context, p path.Path, v *custom_things_servi
 	}
 	if v.Notes != nil {
 		items := make([]NoteModel, 0, len(v.Notes))
+		var priorNotes []NoteModel
+		if prior != nil {
+			priorNotes = priorItems[NoteModel](ctx, prior.Notes)
+		}
 		for i := range v.Notes {
-			items = append(items, *flattenNote(ctx, p.AtName("notes").AtListIndex(i), &v.Notes[i], diags))
+			// The prior item at the same index keeps the order of its own lists and the text of its documents.
+			var priorItem *NoteModel
+			if i < len(priorNotes) {
+				priorItem = &priorNotes[i]
+			}
+			items = append(items, *flattenNote(ctx, p.AtName("notes").AtListIndex(i), &v.Notes[i], priorItem, diags))
 		}
 		out.Notes = flattenList(ctx, types.ObjectType{AttrTypes: noteAttrTypes()}, items, diags)
 	}
@@ -611,6 +625,17 @@ func flattenEnum[T ~string](v *T, zero string) types.String {
 		return types.StringNull()
 	}
 	return types.StringValue(string(*v))
+}
+
+// priorItems returns the items of the prior list, or nil when it cannot be read. The prior only
+// keeps an order or the text of a document, so a prior that cannot be read is not an error.
+func priorItems[T any](ctx context.Context, v elements) []T {
+	var scratch diag.Diagnostics
+	items := expandElements[T](ctx, path.Empty(), v, &scratch)
+	if scratch.HasError() {
+		return nil
+	}
+	return items
 }
 
 func flattenTime(v *time.Time) types.String {

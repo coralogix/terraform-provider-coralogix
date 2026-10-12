@@ -33,8 +33,9 @@ types:
       name:
         markdownDescription: ""
       description:
-        # The API returns "" when description is omitted. Read that as null so an
-        # omitted value stays absent. computed: false keeps the attribute optional.
+        # The API returns "" both when description is omitted and when it is "".
+        # An omitted value stays null. A configured "" stays "". computed: false
+        # keeps the attribute optional.
         computed: false
         readEmptyAs: "null"
         markdownDescription: ""

@@ -132,13 +132,13 @@ func expandUpdate(ctx context.Context, m *PresetModel) (*presets_service.Replace
 
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
-func flatten(ctx context.Context, v *presets_service.Preset) (*PresetModel, diag.Diagnostics) {
+func flatten(ctx context.Context, v *presets_service.Preset, prior *PresetModel) (*PresetModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if v == nil {
 		diags.AddError("Missing resource", "The API response has no Preset.")
 		return nil, diags
 	}
-	out := flattenPreset(ctx, path.Empty(), v, &diags)
+	out := flattenPreset(ctx, path.Empty(), v, prior, &diags)
 	if out.Id.IsNull() {
 		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
 	}
@@ -504,7 +504,7 @@ func expandPresetUpdate(ctx context.Context, p path.Path, m *PresetModel, diags 
 	return out
 }
 
-func flattenPreset(ctx context.Context, p path.Path, v *presets_service.Preset, diags *diag.Diagnostics) *PresetModel {
+func flattenPreset(ctx context.Context, p path.Path, v *presets_service.Preset, prior *PresetModel, diags *diag.Diagnostics) *PresetModel {
 	if v == nil {
 		return nil
 	}
@@ -532,6 +532,11 @@ func flattenPreset(ctx context.Context, p path.Path, v *presets_service.Preset, 
 	out.Description = types.StringPointerValue(v.Description)
 	if out.Description.ValueString() == "" {
 		out.Description = types.StringNull()
+		// A configured "" and an omitted value both read back as "". The prior
+		// is the plan or the state, so a configured empty string stays "".
+		if prior != nil && !prior.Description.IsNull() && !prior.Description.IsUnknown() && prior.Description.ValueString() == "" {
+			out.Description = types.StringValue("")
+		}
 	}
 	out.EntityType = flattenEnumMapped(p.AtName("entity_type"), &v.EntityType, notificationCenterEntityTypeFromAPI, diags)
 	out.Id = types.StringPointerValue(v.Id)

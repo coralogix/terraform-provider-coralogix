@@ -260,8 +260,8 @@ func (r *Resource) setState(ctx context.Context, v *legacy_things_service.Legacy
 }
 
 // priorModel returns the model in the state or the plan, or nil when there is none or it
-// cannot be read. The prior keeps the order of lists that the API does not order, and the text
-// of documents that the API returns in another format.
+// cannot be read. The prior keeps a value the API does not return on its own: the order of a
+// list, the text of a document, or a configured empty string.
 func priorModel(ctx context.Context, data tfData) *LegacyThingModel {
 	var m LegacyThingModel
 	if data == nil || data.Get(ctx, &m).HasError() {

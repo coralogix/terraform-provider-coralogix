@@ -240,7 +240,7 @@ func (r *Resource) delete(ctx context.Context, id string) error {
 // the state takes the value of the API. flatten returns an error when the response has no
 // resource.
 func (r *Resource) setState(ctx context.Context, v *presets_service.Preset, prior tfData, state *tfsdk.State) diag.Diagnostics {
-	m, diags := flatten(ctx, v)
+	m, diags := flatten(ctx, v, priorModel(ctx, prior))
 	if diags.HasError() {
 		return diags
 	}
@@ -257,10 +257,21 @@ func (r *Resource) setState(ctx context.Context, v *presets_service.Preset, prio
 	return diags
 }
 
+// priorModel returns the model in the state or the plan, or nil when there is none or it
+// cannot be read. The prior keeps a value the API does not return on its own: the order of a
+// list, the text of a document, or a configured empty string.
+func priorModel(ctx context.Context, data tfData) *PresetModel {
+	var m PresetModel
+	if data == nil || data.Get(ctx, &m).HasError() {
+		return nil
+	}
+	return &m
+}
+
 // Flatten returns the Terraform model of a resource in an API response, for a data source that
 // uses the schema and the model of this resource. It has no prior model.
 func Flatten(ctx context.Context, v *presets_service.Preset) (*PresetModel, diag.Diagnostics) {
-	return flatten(ctx, v)
+	return flatten(ctx, v, nil)
 }
 
 // stateID returns the id in the state.
