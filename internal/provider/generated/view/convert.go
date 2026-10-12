@@ -170,9 +170,9 @@ func sortedValueKeys(values map[string]attr.Value) []string {
 }
 
 // expandCreate returns the Create request body. A null value is not sent.
-func expandCreate(ctx context.Context, m *ViewModel) (*views_service.ViewFolder, diag.Diagnostics) {
+func expandCreate(ctx context.Context, m *ViewModel) (*views_service.CreateViewRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	out := expandViewFolder(ctx, path.Empty(), m, &diags)
+	out := expandCreateViewRequest(ctx, path.Empty(), m, &diags)
 	return out, diags
 }
 
@@ -347,11 +347,11 @@ func emptyValue(at string, v attr.Value) bool {
 	return false
 }
 
-func expandViewFolder(ctx context.Context, p path.Path, m *ViewModel, diags *diag.Diagnostics) *views_service.ViewFolder {
+func expandCreateViewRequest(ctx context.Context, p path.Path, m *ViewModel, diags *diag.Diagnostics) *views_service.CreateViewRequest {
 	if m == nil {
 		return nil
 	}
-	out := &views_service.ViewFolder{}
+	out := &views_service.CreateViewRequest{}
 	out.Filters = expandSelectedFilters(ctx, p.AtName("filters"), m.Filters, diags)
 	out.FolderId = expandString(m.FolderId)
 	out.IsCompactMode = valueOf(expandBool(m.IsCompactMode))
@@ -509,7 +509,7 @@ func expandView1(ctx context.Context, p path.Path, m *ViewModel, diags *diag.Dia
 	out.Name = valueOf(expandString(m.Name))
 	out.SearchQuery = expandSearchQuery(ctx, p.AtName("search_query"), m.SearchQuery, diags)
 	out.TimeSelection = valueOf(expandTimeSelection(ctx, p.AtName("time_selection"), m.TimeSelection, diags))
-	out.ViewType = valueOf(expandEnum[views_service.ViewType](m.ViewType))
+	out.ViewType = expandEnum[views_service.ViewType](m.ViewType)
 	return out
 }
 
@@ -525,7 +525,7 @@ func flattenView(ctx context.Context, p path.Path, v *views_service.View, diags 
 	out.Name = types.StringPointerValue(&v.Name)
 	out.SearchQuery = flattenSearchQuery(ctx, p.AtName("search_query"), v.SearchQuery, diags)
 	out.TimeSelection = flattenTimeSelection(ctx, p.AtName("time_selection"), &v.TimeSelection, diags)
-	out.ViewType = flattenEnum(&v.ViewType, "VIEW_TYPE_UNSPECIFIED")
+	out.ViewType = flattenEnum(v.ViewType, "VIEW_TYPE_UNSPECIFIED")
 	return out
 }
 

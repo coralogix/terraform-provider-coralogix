@@ -11,6 +11,8 @@
 - FEAT: A `readOnly` field inside a component that the request shares with the response is computed: flatten reads it, and expand does not send it.
 - FEAT: Add the `lengthBetween: [min, max]` validator line for released `stringvalidator.LengthBetween` validators.
 - FIX: An inline request body gets the `1` suffix only when a component of the same name is in the same per-tag SDK package, as openapi-generator names it.
+- FIX: Generated Read, Update, and Delete treat only a resource-not-found 404 (`cxsdk.IsNotFound`) as a missing resource. A 404 of a route that does not exist, for example in a region without the service, is now an error and no longer removes the resource from state. This applies to every generated resource: `coralogix_configuration_group`, `coralogix_connector`, `coralogix_global_router`, `coralogix_preset`, `coralogix_view`, and `coralogix_view_folder`.
+- FEAT: An Update field that Create requires is checked as a required field, because Terraform sends it on every Update. An enum needs no presence marker there.
 
 #### resource/coralogix_configuration_group
 - BREAKING (Beta): `coralogix_fleet_configuration_group` is renamed `coralogix_configuration_group`. Remove the old resource from state and import the group under the new name.

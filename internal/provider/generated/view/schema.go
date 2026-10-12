@@ -44,7 +44,7 @@ func Schema() schema.Schema {
 								"selected_values": schema.MapAttribute{
 									Optional:            true,
 									ElementType:         types.BoolType,
-									MarkdownDescription: "Filter selected values",
+									MarkdownDescription: "Filter values to select, each set to true. The service keeps only the values set to true and drops a value set to false.",
 								},
 							},
 						},
@@ -70,7 +70,7 @@ func Schema() schema.Schema {
 			},
 			"is_compact_mode": schema.BoolAttribute{
 				Required:            true,
-				MarkdownDescription: "The is compact mode.",
+				MarkdownDescription: "Whether the view opens in compact mode. The service returns false when the value was never set.",
 			},
 			"name": schema.StringAttribute{
 				Required: true,

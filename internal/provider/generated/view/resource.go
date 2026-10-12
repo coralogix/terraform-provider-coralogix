@@ -5,7 +5,6 @@ package view
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -115,7 +114,7 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 		return
 	}
 	v, err := r.get(ctx, id)
-	if cxsdk.Code(err) == http.StatusNotFound {
+	if cxsdk.IsNotFound(err) {
 		resp.Diagnostics.AddWarning("Resource disappeared during read",
 			fmt.Sprintf("%s with id %v was not found. Terraform removed it from state.", TypeName, id))
 		resp.State.RemoveResource(ctx)
@@ -149,7 +148,7 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 	} else {
 		v, err = r.update(ctx, id, body)
 	}
-	if cxsdk.Code(err) == http.StatusNotFound {
+	if cxsdk.IsNotFound(err) {
 		resp.Diagnostics.AddWarning("Resource disappeared during update",
 			fmt.Sprintf("The API did not find %s with id %v. Terraform removed it from state.", TypeName, id))
 		resp.State.RemoveResource(ctx)
@@ -162,7 +161,8 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 	resp.Diagnostics.Append(r.setState(ctx, v, req.Plan, &resp.State)...)
 }
 
-// Delete treats a resource that the API does not find as deleted.
+// Delete treats a resource that the API does not find as deleted. A 404 of a route that
+// does not exist is an error: the resource can still exist.
 func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	id, diags := stateID(ctx, req.State)
 	resp.Diagnostics.Append(diags...)
@@ -170,15 +170,15 @@ func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp 
 		return
 	}
 	err := r.delete(ctx, id)
-	if err != nil && cxsdk.Code(err) != http.StatusNotFound {
+	if err != nil && !cxsdk.IsNotFound(err) {
 		resp.Diagnostics.AddError("Unable to delete "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 	}
 }
 
 // The API calls. Each returns the error with its HTTP status and body.
 
-func (r *Resource) create(ctx context.Context, body *views_service.ViewFolder) (*views_service.View, error) {
-	out, httpResp, err := r.client.ViewsServiceCreateView(ctx).ViewFolder(*body).Execute()
+func (r *Resource) create(ctx context.Context, body *views_service.CreateViewRequest) (*views_service.View, error) {
+	out, httpResp, err := r.client.ViewsServiceCreateView(ctx).CreateViewRequest(*body).Execute()
 	if err != nil {
 		return nil, cxsdk.NewAPIError(httpResp, err)
 	}

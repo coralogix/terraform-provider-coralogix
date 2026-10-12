@@ -43,7 +43,7 @@ resource "coralogix_view" "example" {
 
 ### Required
 
-- `is_compact_mode` (Boolean) The is compact mode.
+- `is_compact_mode` (Boolean) Whether the view opens in compact mode. The service returns false when the value was never set.
 - `name` (String) View name
 - `time_selection` (Attributes) Time selection. (see [below for nested schema](#nestedatt--time_selection))
 - `view_type` (String) View type.
@@ -104,7 +104,7 @@ Required:
 
 Optional:
 
-- `selected_values` (Map of Boolean) Filter selected values
+- `selected_values` (Map of Boolean) Filter values to select, each set to true. The service keeps only the values set to true and drops a value set to false.
 
 
 
