@@ -1,7 +1,7 @@
 # Unreleased
 
 #### resource/coralogix_view
-- FEAT: Add `coralogix_view` for a saved Explore view. `name` and `time_selection` are required. `search_query`, `filters`, `folder_id`, `view_type`, and `is_compact_mode` can be set, changed, and removed. An omitted `view_type`, `is_compact_mode`, or `search_query.syntax_type` reads back as the server default (`VIEW_TYPE_LOGS`, `false`, `SYNTAX_TYPE_LUCENE`), and removing one restores that default. A configured `is_compact_mode` is applied with a replace right after create, because create does not take it. `time_selection.quick_selection.seconds` is between 60 and 604800, and `time_selection.quick_selection.caption` is computed.
+- FEAT: Add `coralogix_view` for a saved Explore view. `name` and `time_selection` are required. `search_query`, `filters`, `folder_id`, `view_type`, and `is_compact_mode` can be set, changed, and removed. An omitted `view_type`, `is_compact_mode`, or `search_query.syntax_type` reads back as the server default (`VIEW_TYPE_LOGS`, `false`, `SYNTAX_TYPE_LUCENE`), and removing one restores that default. A configured `is_compact_mode` is applied with a replace right after create, because create does not take it. `time_selection.quick_selection.seconds` must be one of the presets that the API stores (60, 120, 300, 900, 1800, 3600, 7200, 21600, 43200, 86400, 172800, 259200, 432000, 604800), `filters.filters[].selected_values` accepts only `true` values, and `time_selection.quick_selection.caption` is computed.
 
 #### resource/coralogix_view_folder
 - CHORE: The resource is generated from the API contract. Schema version stays 1. `id` stays computed and keeps its value when the folder is renamed. `name` stays required and must be between 1 and 100 characters.
@@ -16,6 +16,7 @@
 - FEAT: A server default can sit next to an enum `$ref`, and Get can state it with the same default instead of `required`. An omitted value then reads as null.
 - FEAT: A field that only Update and Get have, with a declared Update default, is managed. The generated Create follows with an Update when the configuration sets another value.
 - FEAT: A new resource supports a scalar server default on an optional nested field. The attribute is Optional and Computed, a request does not send its unknown value, and an object whose attributes are empty, `""`, or their default reads as the omitted object.
+- FEAT: An integer `enum` renders an `int32validator`/`int64validator.OneOf`, and a boolean `enum` of one value a `boolvalidator.Equals`, also for map values. The acceptance test picks the listed values.
 
 #### resource/coralogix_configuration_group
 - BREAKING (Beta): `coralogix_fleet_configuration_group` is renamed `coralogix_configuration_group`. Remove the old resource from state and import the group under the new name.

@@ -80,7 +80,7 @@ Required:
 
 Required:
 
-- `seconds` (Number) Length of the quick time range, in seconds. The server stores the nearest of 60, 120, 300, 900, 1800, 3600, 7200, 21600, 43200, 86400, 172800, 259200, 432000, and 604800.
+- `seconds` (Number) Length of the quick time range, in seconds: one of 60, 120, 300, 900, 1800, 3600, 7200, 21600, 43200, 86400, 172800, 259200, 432000, and 604800.
 
 Read-Only:
 

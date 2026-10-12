@@ -78,7 +78,7 @@ const fullConfig = `resource "coralogix_view" "test" {
   }
   time_selection = {
     quick_selection = {
-      seconds = 3600
+      seconds = 60
     }
   }
   view_type = "VIEW_TYPE_LOGS"
@@ -89,7 +89,7 @@ const updatedConfig = `resource "coralogix_view" "test" {
     filters = [
       {
         name = "@{run}-name-updated"
-        selected_values = { key = false }
+        selected_values = { key = true }
       },
     ]
   }
@@ -102,7 +102,7 @@ const updatedConfig = `resource "coralogix_view" "test" {
   }
   time_selection = {
     quick_selection = {
-      seconds = 3600
+      seconds = 120
     }
   }
   view_type = "VIEW_TYPE_LOGS"
@@ -112,7 +112,7 @@ const minimalConfig = `resource "coralogix_view" "test" {
   name = "@{run}-name"
   time_selection = {
     quick_selection = {
-      seconds = 3600
+      seconds = 60
     }
   }
 }`
@@ -130,6 +130,7 @@ func fullChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 		resource.TestCheckResourceAttr(resourceAddress, "search_query.query", render(run, "@{run}-query")),
 		resource.TestCheckResourceAttr(resourceAddress, "search_query.syntax_type", "SYNTAX_TYPE_LUCENE"),
+		resource.TestCheckResourceAttr(resourceAddress, "time_selection.quick_selection.seconds", "60"),
 		resource.TestCheckResourceAttr(resourceAddress, "view_type", "VIEW_TYPE_LOGS"),
 	)
 }
@@ -138,11 +139,12 @@ func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "filters.filters.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "filters.filters.0.name", render(run, "@{run}-name-updated")),
-		resource.TestCheckResourceAttr(resourceAddress, "filters.filters.0.selected_values.key", "false"),
+		resource.TestCheckResourceAttr(resourceAddress, "filters.filters.0.selected_values.key", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "is_compact_mode", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "search_query.query", render(run, "@{run}-query-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "search_query.syntax_type", "SYNTAX_TYPE_LUCENE"),
+		resource.TestCheckResourceAttr(resourceAddress, "time_selection.quick_selection.seconds", "120"),
 		resource.TestCheckResourceAttr(resourceAddress, "view_type", "VIEW_TYPE_LOGS"),
 	)
 }
@@ -150,6 +152,7 @@ func updatedChecks(run string) resource.TestCheckFunc {
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "time_selection.quick_selection.seconds", "60"),
 		resource.TestCheckResourceAttr(resourceAddress, "is_compact_mode", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "view_type", "VIEW_TYPE_LOGS"),
 		resource.TestCheckNoResourceAttr(resourceAddress, "folder_id"),

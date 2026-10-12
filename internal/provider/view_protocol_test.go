@@ -147,3 +147,24 @@ func TestViewImportOfAnotherTabPlansNoChange(t *testing.T) {
 		t.Fatalf("plan changes the imported view: %v", toJSON(state))
 	}
 }
+
+// A value that the service would not store as sent fails validation before any request: a
+// seconds value that is not a preset, and a selected value set to false.
+func TestViewRejectsValuesTheServiceChanges(t *testing.T) {
+	h := newViewHarness(t)
+	tests := map[string]j{
+		"seconds not a preset": {"time_selection": j{"quick_selection": j{"seconds": 61.0}}},
+		"selected value false": {"filters": j{"filters": l{j{"name": "severity", "selected_values": j{"error": false}}}}},
+	}
+	for name, extra := range tests {
+		if diags := h.validate(h.config(viewConfig(extra))); !hasError(diags) {
+			t.Errorf("%s: validation passed, want an error", name)
+		}
+	}
+	if diags := h.validate(h.config(viewConfig(j{"filters": j{"filters": l{j{"name": "severity", "selected_values": j{"error": true}}}}}))); hasError(diags) {
+		t.Errorf("selected value true: %v", diagStrings(diags))
+	}
+	if reqs := h.views().takeRequests(); len(reqs) != 0 {
+		t.Errorf("validation sent requests: %v", reqs)
+	}
+}
