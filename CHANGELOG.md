@@ -13,6 +13,9 @@
 - FIX: A request body, or a `requestWrapper` property, written as `allOf: [$ref]` reads as the referenced schema in validation and in the model. Before, `clientSetID` and `updateIDInBody` reported the id missing, and the model sent none of the fields.
 - FIX: A field line on a component that the user sets in one place gives a read-only copy of that component only its text. Before, `required: true` and `computed: false` failed generation with "required: true needs a field that the user sets", and a `default` or `useStateForUnknown` planned a value the server does not set.
 
+#### resource/coralogix_events2metric
+- CHORE: Add protocol baseline golden files against an in-memory events2metrics API.
+
 # Release 3.21.0
 
 #### resource/coralogix_configuration_group

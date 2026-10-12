@@ -1,0 +1,107 @@
+(schema)  version=1
+    markdown: "Coralogix Events2Metrics. Converts logs and spans into metrics for long-term monitoring. For more info please review - https://coralogix.com/docs/user-guides/monitoring-and-insights/events2metrics/."
+data_source  StringAttribute optional
+    markdown: "Data source in `<namespace>/<dataset_name>` format. If not set, defaults to the standard logs/spans stream."
+description  StringAttribute optional
+    markdown: "Events2Metric description."
+id  StringAttribute computed
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+logs_query  SingleNestedAttribute optional
+    markdown: "logs-events2metric type. Exactly one of \"spans_query\" or \"logs_query\" must be defined."
+logs_query.applications  SetAttribute optional elem=basetypes.StringType
+    markdown: "An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx"
+    validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
+logs_query.lucene  StringAttribute optional computed
+    description: "The search_query that we wanted to be notified on."
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+logs_query.severities  SetAttribute optional elem=basetypes.StringType
+    markdown: "An array of severities that we interested in. Can be one of [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Verbose\" \"Warning\"]"
+    validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
+    validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: value must be one of: ["Critical" "Debug" "Error" "Info" "Unspecified" "Verbose" "Warning"]
+logs_query.subsystems  SetAttribute optional elem=basetypes.StringType
+    markdown: "An array that contains log’s subsystem names that we want to be notified on.  Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx"
+    validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
+metric_fields  MapNestedAttribute optional
+    validator: mapvalidator.sizeAtLeastValidator map must contain at least 1 elements
+metric_fields[]  NestedObject
+metric_fields[].aggregations  SingleNestedAttribute optional computed
+    plan modifier: objectplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.avg  SingleNestedAttribute optional computed
+    plan modifier: objectplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.avg.enable  BoolAttribute optional computed
+    plan modifier: boolplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.avg.target_metric_name  StringAttribute computed
+    plan modifier: stringplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.count  SingleNestedAttribute optional computed
+    plan modifier: objectplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.count.enable  BoolAttribute optional computed
+    plan modifier: boolplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.count.target_metric_name  StringAttribute computed
+    plan modifier: stringplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.histogram  SingleNestedAttribute optional computed
+    plan modifier: objectplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.histogram.buckets  ListAttribute required elem=basetypes.Float64Type
+metric_fields[].aggregations.histogram.enable  BoolAttribute optional computed
+    plan modifier: boolplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.histogram.target_metric_name  StringAttribute computed
+    plan modifier: stringplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.max  SingleNestedAttribute optional computed
+    plan modifier: objectplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.max.enable  BoolAttribute optional computed
+    plan modifier: boolplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.max.target_metric_name  StringAttribute computed
+    plan modifier: stringplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.min  SingleNestedAttribute optional computed
+    plan modifier: objectplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.min.enable  BoolAttribute optional computed
+    plan modifier: boolplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.min.target_metric_name  StringAttribute computed
+    plan modifier: stringplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.samples  SingleNestedAttribute optional computed
+    plan modifier: objectplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.samples.enable  BoolAttribute optional computed
+    plan modifier: boolplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.samples.target_metric_name  StringAttribute computed
+    plan modifier: stringplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.samples.type  StringAttribute required
+    markdown: "Can be one of [\"Max\" \"Min\"]."
+    validator: stringvalidator.oneOfValidator value must be one of: ["Max" "Min"]
+metric_fields[].aggregations.sum  SingleNestedAttribute optional computed
+    plan modifier: objectplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.sum.enable  BoolAttribute optional computed
+    plan modifier: boolplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].aggregations.sum.target_metric_name  StringAttribute computed
+    plan modifier: stringplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+metric_fields[].source_field  StringAttribute required
+metric_labels  MapAttribute optional elem=basetypes.StringType
+    validator: mapvalidator.sizeAtLeastValidator map must contain at least 1 elements
+name  StringAttribute required
+    markdown: "Events2Metric name. Events2Metric names have to be unique per account."
+    validator: stringvalidator.lengthAtLeastValidator string length must be at least 1
+    validator: stringvalidator.regexMatchesValidator Invalid metric name, name may only contain ASCII letters and digits, as well as underscores and colons.
+permutations  SingleNestedAttribute optional computed
+    markdown: "Defines the permutations' info of the events2metric."
+    plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+permutations.has_exceed_limit  BoolAttribute computed
+    markdown: "Notify if the limit permutations' limit of the events2metric has exceed (computed)."
+    plan modifier: boolplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+permutations.limit  Int64Attribute optional computed
+    markdown: "Defines the permutations' limit of the events2metric."
+    validator: int64validator.atLeastValidator value must be at least 0
+spans_query  SingleNestedAttribute optional
+    markdown: "spans-events2metric type. Exactly one of \"spans_query\" or \"logs_query\" should be defined."
+spans_query.actions  SetAttribute optional elem=basetypes.StringType
+    markdown: "An array that contains log’s actions names that we want to be notified on.  Actions can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx"
+    validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
+spans_query.applications  SetAttribute optional elem=basetypes.StringType
+    markdown: "An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx"
+    validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
+spans_query.lucene  StringAttribute optional computed
+    description: "The search_query that we wanted to be notified on."
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+spans_query.services  SetAttribute optional elem=basetypes.StringType
+    markdown: "An array that contains log’s services names that we want to be notified on.  Services can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx"
+    validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
+spans_query.subsystems  SetAttribute optional elem=basetypes.StringType
+    markdown: "An array that contains log’s subsystem names that we want to be notified on.  Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx"
+    validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
