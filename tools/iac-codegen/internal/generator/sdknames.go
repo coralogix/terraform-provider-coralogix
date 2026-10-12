@@ -145,7 +145,7 @@ func resolveSDKNames(r *model.Resource, tag, module, providerModule string) ([]s
 	for _, ref := range []sdkRef{
 		{Path: "cxsdk", Kind: kindPackage, Name: "cxsdk"},
 		{Path: "cxsdk.errors", Kind: kindFunc, Name: "NewAPIError", Want: "func(resp *http.Response, err error) error"},
-		{Path: "cxsdk.errors", Kind: kindFunc, Name: "Code", Want: "func(err error) int"},
+		{Path: "cxsdk.errors", Kind: kindFunc, Name: "IsNotFound", Want: "func(err error) bool"},
 	} {
 		ref.Pkg, ref.Rule = sdkClientSet(module), ruleClientSet
 		s.refs = append(s.refs, ref)

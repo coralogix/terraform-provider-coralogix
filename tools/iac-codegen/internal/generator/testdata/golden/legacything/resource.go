@@ -5,7 +5,6 @@ package legacything
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -130,7 +129,7 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 		return
 	}
 	v, err := r.get(ctx, id)
-	if cxsdk.Code(err) == http.StatusNotFound {
+	if cxsdk.IsNotFound(err) {
 		resp.Diagnostics.AddWarning("Resource disappeared during read",
 			fmt.Sprintf("%s with id %v was not found. Terraform removed it from state.", TypeName, id))
 		resp.State.RemoveResource(ctx)
@@ -170,7 +169,7 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 	} else {
 		v, err = r.update(ctx, body)
 	}
-	if cxsdk.Code(err) == http.StatusNotFound {
+	if cxsdk.IsNotFound(err) {
 		resp.Diagnostics.AddWarning("Resource disappeared during update",
 			fmt.Sprintf("The API did not find %s with id %v. Terraform removed it from state.", TypeName, id))
 		resp.State.RemoveResource(ctx)
@@ -183,7 +182,8 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 	resp.Diagnostics.Append(r.setState(ctx, v, req.Plan, &resp.State)...)
 }
 
-// Delete treats a resource that the API does not find as deleted.
+// Delete treats a resource that the API does not find as deleted. A 404 of a route that
+// does not exist is an error: the resource can still exist.
 func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	id, diags := stateID(ctx, req.State)
 	resp.Diagnostics.Append(diags...)
@@ -191,7 +191,7 @@ func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp 
 		return
 	}
 	err := r.delete(ctx, id)
-	if err != nil && cxsdk.Code(err) != http.StatusNotFound {
+	if err != nil && !cxsdk.IsNotFound(err) {
 		resp.Diagnostics.AddError("Unable to delete "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 	}
 }
@@ -296,7 +296,7 @@ func (r *Resource) upgradeByRefresh(ctx context.Context, req resource.UpgradeSta
 		return
 	}
 	v, err := r.get(ctx, id)
-	if cxsdk.Code(err) == http.StatusNotFound {
+	if cxsdk.IsNotFound(err) {
 		resp.Diagnostics.AddWarning("Resource disappeared during state upgrade",
 			fmt.Sprintf("%s with id %v was not found. Terraform removed it from state.", TypeName, id))
 		resp.State.RemoveResource(ctx)

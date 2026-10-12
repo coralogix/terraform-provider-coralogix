@@ -1082,7 +1082,7 @@ func TestGeneratedPresenceCollectionAndUpdateContract(t *testing.T) {
 	}
 	for _, fragment := range []string{
 		`req.ProviderData.(*clientset.ClientSet)`,
-		`if cxsdk.Code(err) == http.StatusNotFound {`,
+		`if cxsdk.IsNotFound(err) {`,
 		`resp.Diagnostics.AddWarning("Resource disappeared during read"`,
 		`resp.Diagnostics.AddWarning("Resource disappeared during update"`,
 		`resp.State.RemoveResource(ctx)`,

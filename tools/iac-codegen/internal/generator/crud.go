@@ -44,7 +44,7 @@ type crudData struct {
 	ProviderPkg, ProviderName string
 	CXPkg, CXName             string
 	ClientSet, Accessor       string
-	NewAPIError, APICode      string
+	NewAPIError, APINotFound  string
 	Create, Get               crudOp
 	Update, Delete            crudOp
 }
@@ -268,11 +268,14 @@ func cxsdkNames(ix *refIndex, out *crudData) error {
 	if err != nil {
 		return err
 	}
-	code, err := ix.funcRef("cxsdk.errors", "Code")
+	// IsNotFound tells a missing resource from a 404 of a route that does not
+	// exist, for example in a region without the service. Only the first one
+	// removes the resource from state.
+	notFound, err := ix.funcRef("cxsdk.errors", "IsNotFound")
 	if err != nil {
 		return err
 	}
 	out.CXPkg, out.CXName = pkg.Pkg, pkg.Name
-	out.NewAPIError, out.APICode = newAPIError.Name, code.Name
+	out.NewAPIError, out.APINotFound = newAPIError.Name, notFound.Name
 	return nil
 }

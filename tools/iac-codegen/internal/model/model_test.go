@@ -1572,3 +1572,41 @@ func TestOneOfNoArmRule(t *testing.T) {
 		})
 	}
 }
+
+// Terraform requires a field that Create requires and sends it on every Update. An enum
+// never sends its zero value, so the Update request needs no presence marker for it. When
+// Create does not require the field, Update must still state its presence.
+func TestCreateRequiredEnumNeedsNoUpdatePresence(t *testing.T) {
+	const updateConfig = "                config:\n                  allOf:\n"
+	const updateKind = "                kind:\n                  $ref: '#/components/schemas/ThingKind'\n" + updateConfig
+	tests := map[string]struct {
+		createRequired string
+		wantIssue      bool
+	}{
+		"required in create": {"required: [name, kind, config]", false},
+		"optional in create": {"required: [name, config]", true},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			spec := string(validSpec(t))
+			if strings.Count(spec, updateConfig) != 1 {
+				t.Fatal("the fixture changed: update the replaced text")
+			}
+			spec = strings.Replace(spec, updateConfig, updateKind, 1)
+			spec = strings.Replace(spec, "required: [name, kind, config]", test.createRequired, 1)
+			doc, err := Load([]byte(spec))
+			if err != nil {
+				t.Fatal(err)
+			}
+			found := false
+			for _, item := range ValidateWithPolicy(doc, "Thing", OperationIDs{}, Policy{}) {
+				if item.Location == "components.schemas.Thing.kind.update" && item.Code == "FIELD_PRESENCE_UNKNOWN" {
+					found = true
+				}
+			}
+			if found != test.wantIssue {
+				t.Fatalf("FIELD_PRESENCE_UNKNOWN at kind.update = %t, want %t", found, test.wantIssue)
+			}
+		})
+	}
+}
