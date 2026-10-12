@@ -71,6 +71,42 @@ func TestGadgetServerDefaults(t *testing.T) {
 	}
 }
 
+// Omitting an Update field resets it to its server default. That needs no presence marker only
+// when a configured value cannot look like omission: false next to a default of true would.
+func TestServerDefaultUpdatePresence(t *testing.T) {
+	createActive := "                name: {type: string, minLength: 1, x-coralogix-presence: true}\n                level"
+	tests := map[string]struct {
+		def  string
+		want bool
+	}{
+		"default false": {"false", false},
+		"default true":  {"true", true},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			active := "                active: {type: boolean, default: " + test.def
+			spec := gadgetSpec(t,
+				createActive, strings.Replace(createActive, "\n                level", "\n"+active+", x-coralogix-presence: true}\n                level", 1),
+				"                mode: {$ref: '#/components/schemas/GadgetMode'}\n", "                mode: {$ref: '#/components/schemas/GadgetMode'}\n"+active+"}\n",
+				"\n        mode: {$ref: '#/components/schemas/GadgetMode'}\n", "\n        mode: {$ref: '#/components/schemas/GadgetMode'}\n        active: {type: boolean, default: "+test.def+", x-coralogix-presence: true}\n",
+			)
+			doc, err := Load(spec)
+			if err != nil {
+				t.Fatal(err)
+			}
+			found := false
+			for _, item := range ValidateWithPolicy(doc, "Gadget", OperationIDs{}, Policy{}) {
+				if item.Location == "components.schemas.Gadget.active.update" && item.Code == "FIELD_PRESENCE_UNKNOWN" {
+					found = true
+				}
+			}
+			if found != test.want {
+				t.Fatalf("FIELD_PRESENCE_UNKNOWN at active.update = %t, want %t", found, test.want)
+			}
+		})
+	}
+}
+
 func TestGadgetServerDefaultContract(t *testing.T) {
 	tests := map[string]struct {
 		replacements []string

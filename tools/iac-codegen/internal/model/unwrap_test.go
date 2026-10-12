@@ -223,6 +223,27 @@ func TestBodyTitleCollidesOnlyWithinTheTag(t *testing.T) {
 		"component of another tag":  {"Other Service", false},
 		"component of the same tag": {"Wrap Things Service", true},
 	}
+	// A component that only a parameter of the tag uses is in the package too.
+	t.Run("parameter of the same tag", func(t *testing.T) {
+		spec := wrapSpec(t,
+			"title: Create Wrap Thing Request", "title: OtherThing",
+			"  /wrap/v1/things/{id}:\n", "  /wrap/v1/other:\n    get:\n      tags: [Wrap Things Service]\n      operationId: WrapThingsService_ListOther\n"+
+				"      parameters:\n        - {name: filter, in: query, schema: {$ref: '#/components/schemas/OtherThing'}}\n"+
+				"      responses:\n        '200':\n          description: ok\n  /wrap/v1/things/{id}:\n",
+			"  schemas:\n", "  schemas:\n    OtherThing:\n      type: string\n      enum: [OTHER_THING_UNSPECIFIED, OTHER_THING_A]\n",
+		)
+		doc, err := Load(spec)
+		if err != nil {
+			t.Fatal(err)
+		}
+		r, err := BuildWithPolicy(doc, "WrapThing", OperationIDs{}, wrapPolicy())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !r.Create.BodyTitleIsComponent {
+			t.Fatal("a component that a parameter of the tag uses collides with the body title")
+		}
+	})
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			spec := wrapSpec(t,

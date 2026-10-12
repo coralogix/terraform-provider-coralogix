@@ -8,6 +8,10 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
 
+// updateOnlyAttr is an attribute that Create cannot send, with the Go expression of its
+// declared server default.
+type updateOnlyAttr struct{ Attr, Default string }
+
 // crudData is the template data for the resource: CRUD, import, and the
 // provider data. Every SDK name comes from the checked sdkRefs.
 type crudData struct {
@@ -28,9 +32,10 @@ type crudData struct {
 	UpdateIDInBody bool
 	// Existing: the resource has users. The package exports Flatten for a handwritten data source.
 	Existing bool
-	// UpdateOnly are the Terraform attributes that Create cannot send. Create stores their
-	// server default, and Create follows with an Update when the configuration sets another value.
-	UpdateOnly []string
+	// UpdateOnly are the attributes that Create cannot send. Create follows with an Update
+	// when the configuration sets another value than the one Create stored, or omits the
+	// attribute and Create stored another value than the declared server default.
+	UpdateOnly []updateOnlyAttr
 	// Upgrades are the state upgraders: one per older schema version.
 	Upgrades []upgradeData
 	// MaskInBody: updateMask is an optional JSON body property. Update sets it
@@ -113,9 +118,14 @@ func buildCRUDWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*cru
 		Resource:       resource.Name,
 	}
 	for _, f := range r.Fields {
-		if updateOnly(f) {
-			out.UpdateOnly = append(out.UpdateOnly, tfName(f.Name))
+		if !updateOnly(f) {
+			continue
 		}
+		value, err := serverDefaultValue(f.Type, *declaredDefault(f))
+		if err != nil {
+			return nil, fmt.Errorf("%s: server default: %w", f.Name, err)
+		}
+		out.UpdateOnly = append(out.UpdateOnly, updateOnlyAttr{Attr: tfName(f.Name), Default: value})
 	}
 	if err := resourceIDData(r, ix, out); err != nil {
 		return nil, err

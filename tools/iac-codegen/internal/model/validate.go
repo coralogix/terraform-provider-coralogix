@@ -561,8 +561,11 @@ func validateFieldContract(p Policy, name, idParam, field string, create, update
 		createRequired := cp != nil && slices.Contains(create.Required, field)
 		report = append(report, fieldPresenceIssue(location+".create", field, create, cp, false)...)
 		// A field with a server default resets to it when Update omits it: the generated
-		// Update leaves a removed value out. Omission has that meaning, so it needs no marker.
-		if cp == nil || createRequired || schemaDefault(cp) == nil {
+		// Update leaves a removed value out. Omission has that meaning, so it needs no marker
+		// when a configured value cannot look like omission: an enum never sends its zero
+		// value, and a default that is the zero value is what an omitted zero stores anyway.
+		// Any other zero, such as false next to a default of true, still needs presence.
+		if cp == nil || createRequired || !omissionIsDefault(up, schemaDefault(cp)) {
 			report = append(report, fieldPresenceIssue(location+".update", field, update, up, createRequired)...)
 		}
 	}
@@ -742,6 +745,29 @@ const permissivePattern = `^[\s\S]*$`
 func goPattern(pattern string) bool {
 	_, err := regexp.Compile(pattern)
 	return err == nil
+}
+
+// omissionIsDefault reports whether omitting an Update field with server default d stores the
+// same value as sending the value that the generated SDK leaves out: the zero value.
+func omissionIsDefault(proxy *base.SchemaProxy, d *string) bool {
+	if d == nil || proxy == nil {
+		return false
+	}
+	schema, err := schemaOf(proxy)
+	if err != nil {
+		return false
+	}
+	if target := refSiblingTarget(proxy, schema); target != nil {
+		schema = target
+	}
+	if !scalarZeroValueValid(valueSchema(schema)) {
+		return true // the zero value is not a value that Terraform sends
+	}
+	switch *d {
+	case "false", "0", "0.0", "":
+		return true
+	}
+	return false
 }
 
 func schemaDefault(proxy *base.SchemaProxy) *string {

@@ -422,6 +422,12 @@ func schemasReferencedByTags(doc *v3.Document, tags map[string]bool) map[string]
 				continue
 			}
 			walk(bodyProxy(op))
+			// openapi-generator also keeps the components that parameters use.
+			for _, param := range slices.Concat(item.Parameters, op.Parameters) {
+				if param != nil {
+					walk(param.Schema)
+				}
+			}
 			if op.Responses == nil || op.Responses.Codes == nil {
 				continue
 			}
