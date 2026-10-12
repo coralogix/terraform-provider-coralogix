@@ -23,7 +23,13 @@ terraform {
 }
 
 resource "coralogix_view" "example" {
-  name = "Logs view"
+  name            = "Logs view"
+  view_type       = "VIEW_TYPE_LOGS"
+  is_compact_mode = false
+  search_query = {
+    query       = "coralogix.metadata.applicationName:\"production\""
+    syntax_type = "SYNTAX_TYPE_LUCENE"
+  }
   time_selection = {
     quick_selection = {
       seconds = 3600
@@ -37,16 +43,16 @@ resource "coralogix_view" "example" {
 
 ### Required
 
+- `is_compact_mode` (Boolean) The is compact mode.
 - `name` (String) View name
 - `time_selection` (Attributes) Time selection. (see [below for nested schema](#nestedatt--time_selection))
+- `view_type` (String) View type.
 
 ### Optional
 
 - `filters` (Attributes) Selected filters. (see [below for nested schema](#nestedatt--filters))
 - `folder_id` (String) Unique identifier for folders
-- `is_compact_mode` (Boolean) The is compact mode.
 - `search_query` (Attributes) Search query. (see [below for nested schema](#nestedatt--search_query))
-- `view_type` (String)
 
 ### Read-Only
 
@@ -74,7 +80,7 @@ Required:
 
 Required:
 
-- `seconds` (Number) Length of the quick time range, in seconds.
+- `seconds` (Number) Length of the quick time range, in seconds. The server stores the nearest of 60, 120, 300, 900, 1800, 3600, 7200, 21600, 43200, 86400, 172800, 259200, 432000, and 604800.
 
 Read-Only:
 
@@ -85,7 +91,7 @@ Read-Only:
 <a id="nestedatt--filters"></a>
 ### Nested Schema for `filters`
 
-Required:
+Optional:
 
 - `filters` (Attributes List) List of filters. (see [below for nested schema](#nestedatt--filters--filters))
 
@@ -108,7 +114,4 @@ Optional:
 Required:
 
 - `query` (String) Query string.
-
-Optional:
-
 - `syntax_type` (String) Syntax type.

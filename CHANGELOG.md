@@ -1,14 +1,16 @@
 # Unreleased
 
 #### resource/coralogix_view
-- FEAT: Add `coralogix_view` for a saved Explore view. `name` and `time_selection` are required. `search_query`, `filters`, `folder_id`, `view_type`, and `is_compact_mode` can be set, changed, and removed. Omitting `view_type` stores `VIEW_TYPE_LOGS`. Omitting `is_compact_mode` stores false. `time_selection.quick_selection.caption` is computed.
+- FEAT: Add `coralogix_view` for a saved Explore view. `name`, `time_selection`, `view_type`, and `is_compact_mode` are required. `search_query` (with required `query` and `syntax_type`), `filters`, and `folder_id` can be set, changed, and removed. `time_selection.quick_selection.seconds` is between 60 and 604800, and `time_selection.quick_selection.caption` is computed.
 
 #### resource/coralogix_view_folder
 - CHORE: The resource is generated from the API contract. Schema version stays 1. `id` stays computed and keeps its value when the folder is renamed. `name` stays required and must be between 1 and 100 characters.
 
 #### tools/iac-codegen
-- FEAT: Keep contract validators when `validators.inferred` is omitted, accept RFC3339 timestamps, and treat an update id that lives only in the body as computed.
-- FEAT: Accept a server default on a shared read schema, a field that create omits and replace can set, a nested read-only field, and a required integer whose range includes zero.
+- FEAT: An existing resource whose Update sends the id only in the body (`updateIDInBody`) can have a Create body without the id. The id is computed, and Update sends the value from state.
+- FEAT: A `readOnly` field inside a component that the request shares with the response is computed: flatten reads it, and expand does not send it.
+- FEAT: Add the `lengthBetween: [min, max]` validator line for released `stringvalidator.LengthBetween` validators.
+- FIX: An inline request body gets the `1` suffix only when a component of the same name is in the same per-tag SDK package, as openapi-generator names it.
 
 #### resource/coralogix_configuration_group
 - BREAKING (Beta): `coralogix_fleet_configuration_group` is renamed `coralogix_configuration_group`. Remove the old resource from state and import the group under the new name.

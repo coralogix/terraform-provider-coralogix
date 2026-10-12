@@ -15,6 +15,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.24.0
 	github.com/hashicorp/terraform-plugin-docs v0.20.1
 	github.com/hashicorp/terraform-plugin-framework v1.17.0
+	github.com/hashicorp/terraform-plugin-framework-timetypes v0.5.0
 	github.com/hashicorp/terraform-plugin-framework-validators v0.19.0
 	github.com/hashicorp/terraform-plugin-go v0.29.0
 	github.com/hashicorp/terraform-plugin-log v0.10.0
