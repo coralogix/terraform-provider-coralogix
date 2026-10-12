@@ -39,6 +39,10 @@ type tfResource struct {
 	// server sets them, and Terraform plans them as unknown when the resource
 	// changes, so the request checks leave them out.
 	ServerPaths []string
+	// DefaultPaths are the paths of the nested attributes with a server default, in the form
+	// of ComputedPaths. A request does not send an unknown value of one: the server stores
+	// the default.
+	DefaultPaths []defaultPath
 	// SchemaVersion and ResourceMarkdownDescription are the released schema version and the
 	// released description of the resource. Both come from the behavior-overrides file.
 	SchemaVersion               int64
@@ -145,6 +149,13 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	out.ConfigValidators = b.validators
 	out.Models = b.models
 	out.RequestReplaceKinds = b.replaceKinds
+	out.DefaultPaths = b.defaultPaths
+	for _, kind := range b.defaultKinds {
+		out.HasServerDefaults = true
+		if !containsString(out.ServerDefaultKinds, kind) {
+			out.ServerDefaultKinds = append(out.ServerDefaultKinds, kind)
+		}
+	}
 	if file != nil {
 		if err := applyOverrides(out, file); err != nil {
 			return nil, err
@@ -241,10 +252,10 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 	}
 	if serverDefault(r, f) {
 		// The user may override this value. When it is omitted, the server
-		// supplies the declared default and Get always returns it. The plan
-		// modifier makes removal unknown until Update clears the value and
+		// supplies the declared default, and Get returns it or omits it. The
+		// plan modifier makes removal unknown until Update clears the value and
 		// Get returns that default.
-		value, err := serverDefaultValue(f.Type, *f.Create.Default)
+		value, err := serverDefaultValue(f.Type, *declaredDefault(f))
 		if err != nil {
 			return nil, fmt.Errorf("server default: %w", err)
 		}
@@ -511,7 +522,32 @@ func containsString(values []string, target string) bool {
 }
 
 func hasServerDefault(f *model.ResourceField) bool {
-	return f.Create != nil && !f.Create.Required && f.Create.Default != nil && f.Get != nil && f.Get.Required
+	d := declaredDefault(f)
+	if d == nil || f.Get == nil || f.Create != nil && f.Create.Required {
+		return false
+	}
+	// The response states the default: it always returns the value, or an
+	// omitted value means the default.
+	return f.Get.Required || f.Get.Default != nil && *f.Get.Default == *d
+}
+
+// declaredDefault is the server default of a top-level field: the Create default,
+// or the Update default of a field that only Update has. Create stores it.
+func declaredDefault(f *model.ResourceField) *string {
+	if f.Create != nil {
+		return f.Create.Default
+	}
+	if f.Update != nil {
+		return f.Update.Default
+	}
+	return nil
+}
+
+// updateOnly reports whether Create cannot send the managed field f. Create
+// stores its default, and the generated Create follows with an Update when the
+// configuration sets another value.
+func updateOnly(f *model.ResourceField) bool {
+	return f.Behavior == model.Normal && f.Create == nil && f.Update != nil
 }
 
 // serverDefaultValue returns the typed Terraform value used only to detect
@@ -618,6 +654,8 @@ type tfBuilder struct {
 	sent         sentSet         // component fields that a request sends in some place
 	validators   []string        // resource config validators
 	replaceKinds []string        // RequestReplaceKinds
+	defaultKinds []string        // ServerDefaultKinds of nested attributes
+	defaultPaths []defaultPath   // DefaultPaths
 	file         *overrides.File
 }
 
@@ -774,6 +812,9 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		case model.Immutable:
 			b.requiresReplace(a, child.dotted())
 		}
+		if err := b.nestedServerDefault(a, child, f); err != nil {
+			return nil, fmt.Errorf("%s: %w", f.Name, err)
+		}
 		attrs = append(attrs, a)
 		fields = append(fields, b.modelField(f.Name, f.Type, f.Behavior, only))
 	}
@@ -801,6 +842,38 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	}
 	return attrs, nil
 }
+
+// nestedServerDefault makes a an Optional and Computed attribute with the server-default plan
+// modifier, when f is a nested field of a new resource that the requests may omit and whose
+// server default the response states. An existing resource keeps the released behavior, which
+// its behavior-overrides file states.
+func (b *tfBuilder) nestedServerDefault(a *tfAttr, p attrPath, f *model.Field) error {
+	if b.file != nil || f.Behavior != model.Normal || f.Create == nil || f.Create.Required || f.Create.Default == nil {
+		return nil
+	}
+	d := *f.Create.Default
+	if !f.Attrs.Required && (f.Attrs.Default == nil || *f.Attrs.Default != d) {
+		return nil
+	}
+	value, err := serverDefaultValue(f.Type, d)
+	if err != nil {
+		return fmt.Errorf("server default: %w", err)
+	}
+	a.Computed = true
+	a.Modifiers = append(a.Modifiers, "serverDefaultModifier{value: "+value+"}")
+	b.defaultPaths = append(b.defaultPaths, defaultPath{Path: p.dotted(), Value: value})
+	if !containsString(b.defaultKinds, a.ValueKind) {
+		b.defaultKinds = append(b.defaultKinds, a.ValueKind)
+	}
+	return nil
+}
+
+// defaultPath is a nested attribute with a server default: its path in the form of
+// ComputedPaths, and the Go expression of the default.
+type defaultPath struct{ Path, Value string }
+
+// RequestFilter reports whether requestValue has attributes to drop from a request value.
+func (r *tfResource) RequestFilter() bool { return len(r.ServerPaths) != 0 || len(r.DefaultPaths) != 0 }
 
 // modelFieldDifference names the first model field that differs between two
 // places of a component, with its Go type in each place.

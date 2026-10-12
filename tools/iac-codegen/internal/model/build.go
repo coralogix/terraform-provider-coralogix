@@ -616,6 +616,24 @@ func componentName(ref string) (string, error) {
 	return name, nil
 }
 
+// refSiblingTarget returns the target of a $ref that has sibling keywords, such
+// as a default next to an enum $ref, and nil for any other schema. sibling is
+// the schema of proxy, which holds only the sibling keywords.
+func refSiblingTarget(proxy *base.SchemaProxy, sibling *base.Schema) *base.Schema {
+	if proxy == nil || len(sibling.Type) != 0 || !proxy.IsTransformedRefWithSiblings() {
+		return nil
+	}
+	semantic, err := proxy.BuildTransformedRefSemanticSchema(sibling)
+	if err != nil || semantic == nil || len(semantic.AllOf) != 2 || semantic.AllOf[1] == nil {
+		return nil
+	}
+	target, err := schemaOf(semantic.AllOf[1])
+	if err != nil {
+		return nil
+	}
+	return target
+}
+
 func schemaOf(proxy *base.SchemaProxy) (*base.Schema, error) {
 	if proxy == nil {
 		return nil, errors.New("missing schema")
@@ -922,7 +940,7 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		return nil, fmt.Errorf("update body: %w", err)
 	}
 	gp := propertyOf(getSchema, name)
-	behavior, err := classifyTopLevel(r.Policy, r.IDParam, name, cp != nil, up != nil, gp != nil)
+	behavior, err := classifyTopLevel(r.Policy, r.IDParam, name, cp != nil, up != nil, gp != nil, schemaDefault(up) != nil)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", name, err)
 	}
@@ -979,6 +997,10 @@ func description(proxy *base.SchemaProxy) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if target := refSiblingTarget(proxy, s); s.Description == "" && target != nil {
+		// A $ref with a sibling default keeps the description of its target.
+		return target.Description, nil
+	}
 	return s.Description, nil
 }
 
@@ -1029,6 +1051,11 @@ func typeOf(proxy *base.SchemaProxy, path string, w walk) (*Type, error) {
 	s, err := schemaOf(proxy)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	if target := refSiblingTarget(proxy, s); target != nil {
+		// OpenAPI 3.1 keeps a sibling such as default next to $ref. Schema()
+		// returns only the siblings, so the type is the one of the target.
+		s = target
 	}
 	if err := checkSupported(s); err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)

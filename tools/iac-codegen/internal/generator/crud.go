@@ -28,6 +28,9 @@ type crudData struct {
 	UpdateIDInBody bool
 	// Existing: the resource has users. The package exports Flatten for a handwritten data source.
 	Existing bool
+	// UpdateOnly are the Terraform attributes that Create cannot send. Create stores their
+	// server default, and Create follows with an Update when the configuration sets another value.
+	UpdateOnly []string
 	// Upgrades are the state upgraders: one per older schema version.
 	Upgrades []upgradeData
 	// MaskInBody: updateMask is an optional JSON body property. Update sets it
@@ -108,6 +111,11 @@ func buildCRUDWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*cru
 		SDKName:        ix.pkg.Name,
 		Client:         client.Name,
 		Resource:       resource.Name,
+	}
+	for _, f := range r.Fields {
+		if updateOnly(f) {
+			out.UpdateOnly = append(out.UpdateOnly, tfName(f.Name))
+		}
 	}
 	if err := resourceIDData(r, ix, out); err != nil {
 		return nil, err

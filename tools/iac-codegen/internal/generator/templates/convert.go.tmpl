@@ -91,14 +91,14 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 		if fieldDiags.HasError() {
 			continue
 		}
-{{- if $.ServerPaths}}
+{{- if $.RequestFilter}}
 		p = requestValue(ctx, field.attr, p, &diags)
 {{- end}}
 		validateRequestValue(path.Root(field.attr), c, p, field.serverDefault, &diags)
 	}
 	return diags
 }
-{{- if $.ServerPaths}}
+{{- if $.RequestFilter}}
 
 // serverAttrs are the paths of the computed attributes inside the values
 // that a request sends, with list and map steps left out. The server sets
@@ -108,6 +108,17 @@ var serverAttrs = map[string]bool{
 	{{printf "%q" .}}: true,
 {{- end}}
 }
+
+{{- if $.DefaultPaths}}
+
+// defaultAttrs are the nested attributes with a server default, by path. A
+// request does not send an unknown value of one, so the server stores the default.
+var defaultAttrs = map[string]attr.Value{
+{{- range $.DefaultPaths}}
+	{{printf "%q" .Path}}: {{.Value}},
+{{- end}}
+}
+{{- end}}
 
 // requestValue returns v with a null value for each attribute that the server
 // sets. When the resource changes, Terraform plans these attributes as
@@ -122,7 +133,7 @@ func requestValue(ctx context.Context, at string, v attr.Value, diags *diag.Diag
 		attrTypes := v.AttributeTypes(ctx)
 		out := make(map[string]attr.Value, len(attrTypes))
 		for name, child := range v.Attributes() {
-			if serverAttrs[at+"."+name] {
+			if serverAttrs[at+"."+name]{{if $.DefaultPaths}} || defaultAttrs[at+"."+name] != nil && child.IsUnknown(){{end}} {
 				out[name] = nullValue(ctx, attrTypes[name], diags)
 			} else {
 				out[name] = requestValue(ctx, at+"."+name, child, diags)
@@ -375,6 +386,10 @@ func priorEmptyMap(ctx context.Context, at string, v, prior types.Map, diags *di
 
 // emptyValue reports whether v is null, an empty list, set, or map, or an
 // object outside a oneOf arm whose attributes are all empty.
+{{- if $.DefaultPaths}} The service fills
+// an omitted object with its server defaults, so an attribute that is "" or
+// that equals its declared server default is empty inside an object.
+{{- end}}
 func emptyValue(at string, v attr.Value) bool {
 	if v.IsNull() {
 		return true
@@ -394,7 +409,7 @@ func emptyValue(at string, v attr.Value) bool {
 			return false
 		}
 		for name, child := range v.Attributes() {
-			if !emptyValue(at+"."+name, child) {
+			if !emptyValue(at+"."+name, child){{if $.DefaultPaths}} && !defaultValue(at+"."+name, child){{end}} {
 				return false
 			}
 		}
@@ -402,6 +417,18 @@ func emptyValue(at string, v attr.Value) bool {
 	}
 	return false
 }
+{{- if $.DefaultPaths}}
+
+// defaultValue reports whether child, an attribute of an object at path at, is
+// "" or its declared server default.
+func defaultValue(at string, child attr.Value) bool {
+	if d := defaultAttrs[at]; d != nil && child.Equal(d) {
+		return true
+	}
+	s, ok := child.(types.String)
+	return ok && !s.IsNull() && !s.IsUnknown() && s.ValueString() == ""
+}
+{{- end}}
 {{range .Objects}}
 {{- if .Expand}}
 func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{$sdk}}.{{.SDK}} {

@@ -539,7 +539,7 @@ func validateFieldContract(p Policy, name, idParam, field string, create, update
 	}
 	gp := propertyOf(get, field)
 	location := fieldLocation(name, field)
-	if _, err := classifyTopLevel(p, idParam, field, cp != nil, up != nil, gp != nil); err != nil {
+	if _, err := classifyTopLevel(p, idParam, field, cp != nil, up != nil, gp != nil, schemaDefault(up) != nil); err != nil {
 		return issue.Report{{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field locations are Create=%t, Update=%t, Get=%t.", cp != nil, up != nil, gp != nil), Remediation: "Use a managed, immutable, or computed field lifecycle."}}
 	}
 	var report issue.Report
@@ -589,19 +589,32 @@ func fieldDefaultContractIssues(p Policy, name, location, field string, create, 
 	if createOptional && getRequired && createDefault == nil && !p.released(name, field) {
 		report = append(report, issue.Issue{Code: "FIELD_SERVER_DEFAULT_UNDECLARED", Location: location, Message: "The field is optional in Create but required in Get, so the server supplies a value without a declared default.", Remediation: "Declare the exact OpenAPI default, or separate the client-owned request field from the server-owned response field."})
 	}
+	// A field that only Update has declares its server default there: Create stores it.
+	updateOnly := cp == nil && up != nil
+	if updateOnly {
+		createDefault = updateDefault
+	}
+	// The response states the default with required, when it always returns the value, or by
+	// declaring the same default, when an omitted value means the default.
+	getDefault := schemaDefault(gp)
+	getStatesDefault := getRequired || createDefault != nil && getDefault != nil && *getDefault == *createDefault
+	if createDefault != nil && getDefault != nil && *getDefault != *createDefault {
+		report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The Get field declares a different default than the request.", Remediation: "Declare the same default in every schema of the field."})
+	}
 	updateRequired := up != nil && slices.Contains(update.Required, field)
-	report = append(report, declaredDefaultIssues(location, createDefault, updateDefault, createOptional && getRequired, updateRequired)...)
+	report = append(report, declaredDefaultIssues(location, createDefault, updateDefault, (createOptional || updateOnly) && getStatesDefault, updateRequired)...)
 	for _, candidate := range []struct {
 		name  string
 		proxy *base.SchemaProxy
 	}{{"create", cp}, {"update", up}} {
-		report = append(report, nestedDefaultIssues(p, location+"."+candidate.name, candidate.proxy, true, map[*base.Schema]bool{})...)
+		report = append(report, nestedDefaultIssues(p, location+"."+candidate.name, candidate.proxy, map[*base.Schema]bool{})...)
 	}
 	return report
 }
 
 // declaredDefaultIssues checks that a declared server default fits the field: optional in Create
-// and Update, required in Get, and the same default in Create and Update.
+// and Update, required in Get or with the same default there, and the same default in Create and
+// Update.
 func declaredDefaultIssues(location string, createDefault, updateDefault *string, serverOwned, updateRequired bool) issue.Report {
 	switch {
 	case createDefault == nil && updateDefault != nil:
@@ -609,7 +622,7 @@ func declaredDefaultIssues(location string, createDefault, updateDefault *string
 	case createDefault == nil:
 		return nil
 	case !serverOwned:
-		return issue.Report{{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "A declared server default needs an optional Create field and a required Get field.", Remediation: "Make the field optional in Create, required in Get, and let the server return the declared default."}}
+		return issue.Report{{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "A declared server default needs an optional Create field, and a Get field that is required or declares the same default.", Remediation: "Make the field optional in Create, and require it in Get or declare the same default there."}}
 	case updateRequired || updateDefault != nil && *updateDefault != *createDefault:
 		// Update may omit the default: generation reads only the Create default.
 		return issue.Report{{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The mutable field is required in Update, or Update declares a different default than Create.", Remediation: "Make the field optional in Update. Omit its default there, or declare the Create default."}}
@@ -740,7 +753,7 @@ func schemaDefault(proxy *base.SchemaProxy) *string {
 	return &value
 }
 
-func nestedDefaultIssues(p Policy, location string, proxy *base.SchemaProxy, root bool, seen map[*base.Schema]bool) issue.Report {
+func nestedDefaultIssues(p Policy, location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
 	if proxy == nil {
 		return nil
 	}
@@ -750,17 +763,21 @@ func nestedDefaultIssues(p Policy, location string, proxy *base.SchemaProxy, roo
 	}
 	seen[schema] = true
 	var report issue.Report
-	if !root && schema.Default != nil && !p.Existing {
-		report = append(report, issue.Issue{Code: "NESTED_FIELD_DEFAULT_UNSUPPORTED", Location: location, Message: "A nested request field declares a server default.", Remediation: "Move the defaulted value to a top-level field or wait for nested server-default support."})
-	}
 	for _, name := range propertyNames(schema) {
-		report = append(report, nestedDefaultIssues(p, location+"."+name, propertyOf(schema, name), false, seen)...)
+		child := propertyOf(schema, name)
+		// A new resource plans an omitted nested field with a server default as unknown,
+		// and the response returns the default: merge requires the same default there. A
+		// required field is never omitted, so its default says nothing.
+		if !p.Existing && schemaDefault(child) != nil && slices.Contains(schema.Required, name) {
+			report = append(report, issue.Issue{Code: "NESTED_FIELD_DEFAULT_UNSUPPORTED", Location: location + "." + name, Message: "A required nested request field declares a server default.", Remediation: "Make the field optional, or remove its default."})
+		}
+		report = append(report, nestedDefaultIssues(p, location+"."+name, child, seen)...)
 	}
 	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, nestedDefaultIssues(p, location+"[]", schema.Items.A, false, seen)...)
+		report = append(report, nestedDefaultIssues(p, location+"[]", schema.Items.A, seen)...)
 	}
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, nestedDefaultIssues(p, location+"{}", schema.AdditionalProperties.A, false, seen)...)
+		report = append(report, nestedDefaultIssues(p, location+"{}", schema.AdditionalProperties.A, seen)...)
 	}
 	return report
 }

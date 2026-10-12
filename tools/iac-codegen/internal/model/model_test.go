@@ -54,7 +54,7 @@ func TestBodyOnlyUpdateIDIsComputed(t *testing.T) {
 		{"id in the path", Policy{}, "id", "id", "", false},
 	}
 	for _, test := range tests {
-		got, err := classifyTopLevel(test.policy, test.idParam, test.field, false, true, true)
+		got, err := classifyTopLevel(test.policy, test.idParam, test.field, false, true, true, false)
 		if (err == nil) != test.valid || got != test.want {
 			t.Errorf("%s: classifyTopLevel = %q, %v; want %q, valid=%t", test.name, got, err, test.want, test.valid)
 		}
