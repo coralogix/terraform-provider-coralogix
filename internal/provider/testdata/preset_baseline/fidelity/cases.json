@@ -1,0 +1,149 @@
+{
+  "cases": [
+    {
+      "name": "create omits presetType, description, and attachment",
+      "steps": [
+        {
+          "method": "POST",
+          "path": ":createCustom",
+          "capture": "id",
+          "body": {
+            "preset": {
+              "name": "bare",
+              "entityType": "ALERTS",
+              "connectorType": "GENERIC_HTTPS",
+              "parentId": "preset_system_generic_https_alerts_empty",
+              "configOverrides": [
+                {
+                  "conditionType": {"matchEntityTypeAndSubType": {"entitySubType": "logsImmediateResolved"}},
+                  "messageConfig": {"fields": [{"fieldName": "body", "template": "{}"}]}
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "duplicate message fields collapse and config override order is kept",
+      "steps": [
+        {
+          "method": "POST",
+          "path": ":createCustom",
+          "capture": "id",
+          "body": {
+            "preset": {
+              "name": "ordered",
+              "entityType": "ALERTS",
+              "connectorType": "GENERIC_HTTPS",
+              "parentId": "preset_system_generic_https_alerts_empty",
+              "configOverrides": [
+                {
+                  "conditionType": {"matchEntityTypeAndSubType": {"entitySubType": "logsImmediateResolved"}},
+                  "messageConfig": {"fields": [
+                    {"fieldName": "body", "template": "{}"},
+                    {"fieldName": "body", "template": "{}"}
+                  ]}
+                },
+                {
+                  "conditionType": {"matchEntityType": {}},
+                  "messageConfig": {"fields": [{"fieldName": "body", "template": "{}"}]}
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "replace without config overrides is rejected",
+      "steps": [
+        {
+          "method": "POST",
+          "path": ":createCustom",
+          "capture": "id",
+          "body": {
+            "preset": {
+              "name": "cleared",
+              "entityType": "ALERTS",
+              "connectorType": "GENERIC_HTTPS",
+              "parentId": "preset_system_generic_https_alerts_empty",
+              "description": "keep",
+              "attachmentConfig": {"policy": "ENABLED"},
+              "configOverrides": [
+                {
+                  "conditionType": {"matchEntityTypeAndSubType": {"entitySubType": "logsImmediateResolved"}},
+                  "messageConfig": {"fields": [{"fieldName": "body", "template": "{}"}]}
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": ":replaceCustom",
+          "body": {
+            "preset": {
+              "id": "{{id}}",
+              "name": "cleared",
+              "entityType": "ALERTS",
+              "connectorType": "GENERIC_HTTPS",
+              "parentId": "preset_system_generic_https_alerts_empty",
+              "description": "",
+              "attachmentConfig": {"policy": "AUTO"}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "missing parent, system delete, and system replace",
+      "steps": [
+        {
+          "method": "POST",
+          "path": ":createCustom",
+          "body": {
+            "preset": {
+              "name": "orphan",
+              "entityType": "ALERTS",
+              "connectorType": "GENERIC_HTTPS"
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": ":createCustom",
+          "body": {
+            "preset": {
+              "name": "missing-parent",
+              "entityType": "ALERTS",
+              "connectorType": "GENERIC_HTTPS",
+              "parentId": "preset_system_does_not_exist"
+            }
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/custom/preset_system_generic_https_alerts_empty"
+        },
+        {
+          "method": "PUT",
+          "path": ":replaceCustom",
+          "body": {
+            "preset": {
+              "id": "preset_system_generic_https_alerts_empty",
+              "name": "Generic HTTPS empty",
+              "entityType": "ALERTS",
+              "connectorType": "GENERIC_HTTPS",
+              "parentId": "preset_system_generic_https_alerts_empty"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

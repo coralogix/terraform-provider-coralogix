@@ -28,11 +28,19 @@ type Policy struct {
 	// the resource, for example "router". "" means that the body is the resource.
 	RequestWrapper string
 	// UpdateIDInBody means that Update has no id in its path. The id is a field of
-	// the resource in the body, and Update uses the Create path.
+	// the resource in the body. Update uses the Create path, unless CustomMethods
+	// names a different path.
 	UpdateIDInBody bool
+	// CustomMethods means Get, Update, and Delete are not the Create path with an id.
+	// Get and Delete each carry the same {id} path parameter. Update has no path
+	// parameter. New resources leave this false.
+	CustomMethods bool
 	// ClientSetID means that the client can send the id on Create, and the Get
 	// response does not require it.
 	ClientSetID bool
+	// Operations names the lifecycle operationIds from behavior-overrides. Flags
+	// still override an empty slot. A flag and the file cannot name different ids.
+	Operations OperationIDs
 	// DeleteOperation is the operationId of the operation that removes the resource
 	// when the API has no DELETE. It is a POST on the Get path plus one segment, for
 	// example /things/{id}/archive, with the id path parameter of Get, no request
@@ -53,6 +61,10 @@ type Policy struct {
 	// Skip lists "Component.field" of fields that the resource does not manage.
 	// The generator does not send them and does not store them.
 	Skip []string
+	// FixedRequest lists "Component.field" that Create and Update always send as a
+	// fixed API value. A nested read-only field in this list is sent, so it is not
+	// a server-only field the renderer has to drop.
+	FixedRequest []string
 	// Released lists "Component.field" of fields that keep their released behavior.
 	// The behavior-overrides file states it, so the contract need not say whether
 	// omission differs from an empty value. A field that is not listed follows the
@@ -104,17 +116,39 @@ func (p Policy) requestBody(op *v3.Operation) *base.SchemaProxy {
 	return proxy // a later check reports the missing wrapper property
 }
 
-// operationIDs returns the explicit operation IDs with the Delete operation of the policy. The
-// policy and an explicit ID cannot both name the Delete operation.
+// operationIDs returns the lifecycle operation IDs. A flag fills a slot the file
+// leaves empty. The file and a flag cannot name different ids for one step.
+// api.delete.operation still names a POST delete when the file has no operations.delete.
 func (p Policy) operationIDs(ids OperationIDs) (OperationIDs, error) {
-	if p.DeleteOperation == "" {
-		return ids, nil
+	var err error
+	ids.Create, err = oneOperationID(opCreate, p.Operations.Create, ids.Create)
+	if err != nil {
+		return ids, err
 	}
-	if ids.Delete != "" {
-		return ids, fmt.Errorf("%s: the overrides name %s, and the flag names %s", opDelete, p.DeleteOperation, ids.Delete)
+	ids.Get, err = oneOperationID(opGet, p.Operations.Get, ids.Get)
+	if err != nil {
+		return ids, err
 	}
-	ids.Delete = p.DeleteOperation
-	return ids, nil
+	ids.Update, err = oneOperationID(opUpdate, p.Operations.Update, ids.Update)
+	if err != nil {
+		return ids, err
+	}
+	fromFile := p.Operations.Delete
+	if fromFile == "" {
+		fromFile = p.DeleteOperation
+	}
+	ids.Delete, err = oneOperationID(opDelete, fromFile, ids.Delete)
+	return ids, err
+}
+
+func oneOperationID(v verb, fromFile, flag string) (string, error) {
+	if flag != "" && fromFile != "" && flag != fromFile {
+		return "", fmt.Errorf("%s: the overrides name %s, and the flag names %s", v, fromFile, flag)
+	}
+	if flag != "" {
+		return flag, nil
+	}
+	return fromFile, nil
 }
 
 // methods returns the HTTP methods that the operation of the lifecycle step may use.
@@ -127,6 +161,10 @@ func (p Policy) methods(v verb) []string {
 
 func (p Policy) skips(component, field string) bool {
 	return component != "" && slices.Contains(p.Skip, component+"."+field)
+}
+
+func (p Policy) fixedRequest(component, field string) bool {
+	return component != "" && slices.Contains(p.FixedRequest, component+"."+field)
 }
 
 func (p Policy) released(component, field string) bool {
