@@ -29,9 +29,6 @@ type tfResource struct {
 	// attributes that hold values that the server sets. They use
 	// requestReplaceModifier instead of RequiresReplace.
 	RequestReplaceKinds []string
-	// UseStateUnlessKinds are the Terraform value kinds that use
-	// useStateForUnknownUnless. The modifier keeps the prior value unless a sibling changes.
-	UseStateUnlessKinds []string
 	PlanModifierPkgs    []string // lower-case Terraform value kinds with standard plan modifiers
 	DefaultPkgs         []string // lower-case Terraform value kinds with static defaults
 	// ComputedPaths are the paths of the computed attributes, with list and map
@@ -295,9 +292,6 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 				a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return !slices.Contains(a.GroupValidators, v) })
 			}
 			if line, ok := file.Types[a.Component].Fields[a.Property]; ok {
-				if err := applyUnlessModifier(out, attrs, a, line); err != nil {
-					return err
-				}
 				if err := applyField(a, line, file); err != nil {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
 				}
@@ -342,30 +336,6 @@ func stripComputedNode(a *tfAttr) {
 	for _, child := range a.Attributes {
 		stripComputedNode(child)
 	}
-}
-
-// applyUnlessModifier adds useStateForUnknownUnless when the line names sibling
-// attributes. A name that is not an attribute of the same object is an error.
-func applyUnlessModifier(out *tfResource, siblings []*tfAttr, a *tfAttr, line overrides.Field) error {
-	if len(line.UseStateForUnknownUnless) == 0 {
-		return nil
-	}
-	names := map[string]bool{}
-	for _, sib := range siblings {
-		names[sib.Name] = true
-	}
-	quoted := make([]string, 0, len(line.UseStateForUnknownUnless))
-	for _, name := range line.UseStateForUnknownUnless {
-		if name == a.Name || !names[name] {
-			return fmt.Errorf("%s.%s: useStateForUnknownUnless: %q is not a sibling attribute", a.Component, a.Property, name)
-		}
-		quoted = append(quoted, strconv.Quote(name))
-	}
-	a.Modifiers = append(a.Modifiers, "useStateForUnknownUnless{siblings: []string{"+strings.Join(quoted, ", ")+"}}")
-	if !containsString(out.UseStateUnlessKinds, a.ValueKind) {
-		out.UseStateUnlessKinds = append(out.UseStateUnlessKinds, a.ValueKind)
-	}
-	return nil
 }
 
 // requestValue reports whether the field is sent as a fixed API value and is not a Terraform attribute.

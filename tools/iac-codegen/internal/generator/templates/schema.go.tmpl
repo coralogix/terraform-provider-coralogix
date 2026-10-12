@@ -3,7 +3,7 @@
 package {{.Package}}
 
 import (
-{{- if or .HasServerDefaults .RequestReplaceKinds .UseStateUnlessKinds}}
+{{- if or .HasServerDefaults .RequestReplaceKinds}}
 	"context"
 {{- end}}
 	"regexp"
@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
-{{- if or .HasServerDefaults .RequestReplaceKinds .UseStateUnlessKinds}}
+{{- if or .HasServerDefaults .RequestReplaceKinds}}
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 {{- end}}
 {{- if .RequestReplaceKinds}}
@@ -134,43 +134,6 @@ func (m serverDefaultModifier) PlanModify{{.}}(_ context.Context, req planmodifi
 	} else if preserve {
 		resp.PlanValue = req.StateValue
 	}
-}
-{{end}}
-{{- end}}
-
-{{- if .UseStateUnlessKinds}}
-// useStateForUnknownUnless keeps the prior value when the plan value is unknown,
-// unless a named sibling attribute changed. Create has no prior value, so the
-// plan stays unknown. A sibling that is unknown counts as a change.
-type useStateForUnknownUnless struct{ siblings []string }
-
-func (m useStateForUnknownUnless) Description(context.Context) string {
-	return "Keeps the prior value unless a named sibling attribute changes."
-}
-
-func (m useStateForUnknownUnless) MarkdownDescription(ctx context.Context) string {
-	return m.Description(ctx)
-}
-
-{{range .UseStateUnlessKinds}}
-func (m useStateForUnknownUnless) PlanModify{{.}}(ctx context.Context, req planmodifier.{{.}}Request, resp *planmodifier.{{.}}Response) {
-	if !req.PlanValue.IsUnknown() || req.StateValue.IsNull() || req.StateValue.IsUnknown() {
-		return
-	}
-	parent := req.Path.ParentPath()
-	for _, name := range m.siblings {
-		var plan, state attr.Value
-		at := parent.AtName(name)
-		resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, at, &plan)...)
-		resp.Diagnostics.Append(req.State.GetAttribute(ctx, at, &state)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		if plan == nil || state == nil || !plan.Equal(state) {
-			return
-		}
-	}
-	resp.PlanValue = req.StateValue
 }
 {{end}}
 {{- end}}

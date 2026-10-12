@@ -58,49 +58,7 @@ func stageOutput(parent, output string, files map[string][]byte) (string, error)
 			return "", fmt.Errorf("write staged %s: %w", name, err)
 		}
 	}
-	if err := copyKeptTests(output, stage, files); err != nil {
-		_ = os.RemoveAll(stage)
-		return "", err
-	}
 	return stage, nil
-}
-
-func keepEntry(entry os.DirEntry) bool {
-	return !entry.IsDir() && (inputFile(entry.Name()) || keptTestFile(entry.Name()))
-}
-
-// keptTestFile reports a Go test file that people write in the output directory.
-// Publish keeps it. The next generate does not delete it.
-func keptTestFile(name string) bool {
-	return filepath.Base(name) == name && strings.HasSuffix(name, "_test.go")
-}
-
-// copyKeptTests copies test files from the current output into the stage.
-// A generated file of the same name wins.
-func copyKeptTests(output, stage string, generated map[string][]byte) error {
-	entries, err := os.ReadDir(output)
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
-	if err != nil {
-		return fmt.Errorf("read output directory: %w", err)
-	}
-	for _, entry := range entries {
-		if entry.IsDir() || !keptTestFile(entry.Name()) {
-			continue
-		}
-		if _, ok := generated[entry.Name()]; ok {
-			continue
-		}
-		data, err := os.ReadFile(filepath.Join(output, entry.Name()))
-		if err != nil {
-			return fmt.Errorf("read kept test %s: %w", entry.Name(), err)
-		}
-		if err := os.WriteFile(filepath.Join(stage, entry.Name()), data, 0o644); err != nil {
-			return fmt.Errorf("write kept test %s: %w", entry.Name(), err)
-		}
-	}
-	return nil
 }
 
 func replaceOutput(output, parent, stage string) error {
@@ -152,8 +110,8 @@ func checkOwned(path string) error {
 		return fmt.Errorf("output %s exists but is not generator-owned", path)
 	}
 	for _, entry := range entries {
-		if keepEntry(entry) {
-			continue // YAML that publish keeps, or a test file people write
+		if inputFile(entry.Name()) && !entry.IsDir() {
+			continue // YAML that publish keeps
 		}
 		if entry.IsDir() || filepath.Ext(entry.Name()) != ".go" || strings.Contains(entry.Name(), string(filepath.Separator)) {
 			return fmt.Errorf("output %s is not generator-owned: unexpected entry %s", path, entry.Name())

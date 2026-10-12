@@ -556,13 +556,18 @@ func validateFieldContract(p Policy, name, field string, create, update, get *ba
 	// the contract need not say whether omission differs from an empty value.
 	if !p.released(name, field) {
 		report = append(report, fieldPresenceIssue(location+".create", field, create, cp)...)
-		report = append(report, fieldPresenceIssue(location+".update", field, update, up)...)
+		if !createRequires(create, cp, field) {
+			report = append(report, fieldPresenceIssue(location+".update", field, update, up)...)
+		}
 	}
 	// The response decides which wrappers collapse, as in the generated resource: a request can
 	// name its components differently.
 	wrapped := p.unwraps(name, field, wrapperComponent(gp))
-	report = append(report, nestedPresenceIssues(p, location+".create", cp, gp, wrapped, map[presenceVisit]bool{})...)
-	report = append(report, nestedPresenceIssues(p, location+".update", up, gp, wrapped, map[presenceVisit]bool{})...)
+	// A skipped field is never sent, so the fields inside it need no presence.
+	if !p.skips(name, field) {
+		report = append(report, nestedPresenceIssues(p, location+".create", cp, gp, nil, wrapped, map[presenceVisit]bool{})...)
+		report = append(report, nestedPresenceIssues(p, location+".update", up, gp, cp, wrapped, map[presenceVisit]bool{})...)
+	}
 	report = append(report, nestedReadOnlyIssues(p, location+".create", cp, map[*base.Schema]bool{})...)
 	report = append(report, nestedReadOnlyIssues(p, location+".update", up, map[*base.Schema]bool{})...)
 	report = append(report, unsupportedSchemaIssues(p, location+".create", cp, true, map[*base.Schema]bool{})...)
@@ -749,7 +754,8 @@ func nestedDefaultIssues(p Policy, location string, proxy *base.SchemaProxy, roo
 	seen[schema] = true
 	object, _, _ := validationObject(schema)
 	var report issue.Report
-	if !root && object.Default != nil && !p.Existing {
+	// The default can sit on the allOf wrapper or on the schema it names.
+	if !root && (schema.Default != nil || object.Default != nil) && !p.Existing {
 		report = append(report, issue.Issue{Code: "NESTED_FIELD_DEFAULT_UNSUPPORTED", Location: location, Message: "A nested request field declares a server default.", Remediation: "Move the defaulted value to a top-level field or wait for nested server-default support."})
 	}
 	for _, name := range propertyNames(object) {
@@ -1094,20 +1100,45 @@ func stringZeroValueValid(schema *base.Schema) bool {
 	return err == nil && re.MatchString(value)
 }
 
+// createRequires reports whether Create requires the field. Terraform then requires it, and a
+// required value is never empty, so Update always sends a value: omission and an empty value
+// never differ there, and Update needs no presence mark.
+func createRequires(create *base.Schema, cp *base.SchemaProxy, field string) bool {
+	return cp != nil && slices.Contains(create.Required, field)
+}
+
+// asksPresence reports whether a nested field must state presence. A field with a line keeps its
+// released behavior. A field that Create requires in the same place needs no mark in Update, as
+// createRequires says.
+func asksPresence(p Policy, component *base.SchemaProxy, name string, createRequired []string) bool {
+	return !p.released(referencedComponent(component), name) && !slices.Contains(createRequired, name)
+}
+
+// unsentField reports whether Terraform never sends a nested request field: the field is
+// readOnly, or a line skips it.
+func unsentField(p Policy, component *base.SchemaProxy, name string, child *base.SchemaProxy) bool {
+	if p.skips(referencedComponent(component), name) {
+		return true
+	}
+	schema, err := schemaOf(child)
+	return err == nil && schema.ReadOnly != nil && *schema.ReadOnly
+}
+
 // presenceVisit is one request schema that nestedPresenceIssues checked, with the response
 // schema in the same place, as a wrapper that collapses or as an object. A component can be
 // both, in two places.
 type presenceVisit struct {
-	schema, get *base.Schema
-	wrapped     bool
+	schema, get, create *base.Schema
+	wrapped             bool
 }
 
 // nestedPresenceIssues reports the nested request fields that do not state presence. get is the
 // response schema in the same place. wrapped is true when proxy, or the items of the list that
 // proxy is, is a wrapper that collapses: the wrapper states the presence of its property,
 // because Terraform null sends no wrapper. The response components decide which wrappers
-// collapse, as they do in the generated resource.
-func nestedPresenceIssues(p Policy, location string, proxy, get *base.SchemaProxy, wrapped bool, seen map[presenceVisit]bool) issue.Report {
+// collapse, as they do in the generated resource. create is the Create schema in the same
+// place when proxy is an Update schema, and nil otherwise.
+func nestedPresenceIssues(p Policy, location string, proxy, get, create *base.SchemaProxy, wrapped bool, seen map[presenceVisit]bool) issue.Report {
 	if proxy == nil {
 		return nil
 	}
@@ -1116,7 +1147,8 @@ func nestedPresenceIssues(p Policy, location string, proxy, get *base.SchemaProx
 		return nil
 	}
 	getSchema, _ := schemaOf(get)
-	visit := presenceVisit{schema, getSchema, wrapped}
+	createSchema, _ := schemaOf(create)
+	visit := presenceVisit{schema, getSchema, createSchema, wrapped}
 	if seen[visit] {
 		return nil
 	}
@@ -1129,26 +1161,26 @@ func nestedPresenceIssues(p Policy, location string, proxy, get *base.SchemaProx
 	parent := *object
 	parent.Required = required
 	getObject, _, _ := validationObject(getSchema)
+	createObject, _, createRequired := validationObject(createSchema)
 	var report issue.Report
 	grouped := groupedFields(schema)
 	owner, _ := componentName(unwrapRef(get))
 	for _, name := range propertyNames(object) {
 		child := propertyOf(object, name)
-		childSchema, childErr := schemaOf(child)
-		if childErr == nil && childSchema.ReadOnly != nil && *childSchema.ReadOnly {
+		if unsentField(p, component, name, child) {
 			continue
 		}
-		if !wrapped && !grouped[name] && !p.released(referencedComponent(component), name) {
+		if !wrapped && !grouped[name] && asksPresence(p, component, name, createRequired) {
 			report = append(report, fieldPresenceIssue(location+"."+name, name, &parent, child)...)
 		}
 		getChild := propertyOf(getObject, name)
-		report = append(report, nestedPresenceIssues(p, location+"."+name, child, getChild, p.unwraps(owner, name, wrapperComponent(getChild)), seen)...)
+		report = append(report, nestedPresenceIssues(p, location+"."+name, child, getChild, propertyOf(createObject, name), p.unwraps(owner, name, wrapperComponent(getChild)), seen)...)
 	}
 	if object.Items != nil && object.Items.IsA() {
-		report = append(report, nestedPresenceIssues(p, location+"[]", object.Items.A, itemsOf(getObject), wrapped, seen)...)
+		report = append(report, nestedPresenceIssues(p, location+"[]", object.Items.A, itemsOf(getObject), itemsOf(createObject), wrapped, seen)...)
 	}
 	if object.AdditionalProperties != nil && object.AdditionalProperties.IsA() {
-		report = append(report, nestedPresenceIssues(p, location+"{}", object.AdditionalProperties.A, nil, false, seen)...)
+		report = append(report, nestedPresenceIssues(p, location+"{}", object.AdditionalProperties.A, nil, nil, false, seen)...)
 	}
 	return report
 }

@@ -23,7 +23,6 @@ types:
         equality: json
       integrationVersion:
         computed: true
-        useStateForUnknownUnless: [chart_version]
       chartName:
         validators:
           - enumExceptZero: true

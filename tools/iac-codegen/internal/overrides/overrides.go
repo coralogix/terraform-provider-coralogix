@@ -175,10 +175,6 @@ type Field struct {
 	Computed *bool `yaml:"computed"`
 	// UseStateForUnknown keeps the value in the state when the config has none.
 	UseStateForUnknown bool `yaml:"useStateForUnknown"`
-	// UseStateForUnknownUnless keeps that value unless one of these sibling attributes
-	// changed. The names are Terraform attribute names. A missing sibling is an error.
-	// It cannot be set with useStateForUnknown.
-	UseStateForUnknownUnless []string `yaml:"useStateForUnknownUnless"`
 	// Default is a static default in the schema: a string, a bool, or a number.
 	Default any `yaml:"default"`
 	// ReadEmptyAs: "null" reads an empty list or object from the API as null.
@@ -384,7 +380,6 @@ func (l Field) keys() []string {
 	add(l.Deprecation != "", "deprecation")
 	add(l.Computed != nil, "computed")
 	add(l.UseStateForUnknown, "useStateForUnknown")
-	add(len(l.UseStateForUnknownUnless) != 0, "useStateForUnknownUnless")
 	add(l.Default != nil, "default")
 	add(l.ReadEmptyAs != "", "readEmptyAs")
 	add(l.ReadNullAs != "", "readNullAs")
@@ -437,7 +432,7 @@ func (l Field) empty() bool {
 
 func (l Field) emptyMode() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
-		l.Computed == nil && !l.UseStateForUnknown && len(l.UseStateForUnknownUnless) == 0
+		l.Computed == nil && !l.UseStateForUnknown
 }
 
 func (l Field) emptyValue() bool {
@@ -481,14 +476,6 @@ func (l Field) checkConflicts() error {
 	}
 	if l.Skip && l.RequestValue != "" {
 		return errors.New("requestValue sends the field, so skip cannot be set")
-	}
-	if l.UseStateForUnknown && len(l.UseStateForUnknownUnless) != 0 {
-		return errors.New("useStateForUnknown and useStateForUnknownUnless cannot both be set")
-	}
-	for _, name := range l.UseStateForUnknownUnless {
-		if name == "" {
-			return errors.New("useStateForUnknownUnless names a sibling attribute")
-		}
 	}
 	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON {
 		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
