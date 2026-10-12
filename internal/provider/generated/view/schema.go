@@ -119,7 +119,7 @@ func Schema() schema.Schema {
 					"custom_selection": schema.SingleNestedAttribute{
 						Optional: true,
 						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("quick_selection")),
+							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("quick_selection")),
 						},
 						Attributes: map[string]schema.Attribute{
 							"from_time": schema.StringAttribute{
@@ -146,7 +146,7 @@ func Schema() schema.Schema {
 					"quick_selection": schema.SingleNestedAttribute{
 						Optional: true,
 						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("custom_selection")),
+							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("custom_selection")),
 						},
 						Attributes: map[string]schema.Attribute{
 							"caption": schema.StringAttribute{

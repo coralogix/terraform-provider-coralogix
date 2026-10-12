@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/views_service"
@@ -93,6 +94,10 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	resp.Diagnostics.Append(validateUpdateOnly(ctx, req.Config, req.Plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	v, err := r.create(ctx, body)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create "+TypeName, err.Error())
@@ -114,29 +119,59 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 
 // updateOnlyFields are the attributes that Create cannot send. Create stores
 // their server default.
-var updateOnlyFields = []string{
-	"is_compact_mode",
+var updateOnlyFields = []struct {
+	attr          string
+	serverDefault attr.Value
+}{
+	{attr: "is_compact_mode", serverDefault: types.BoolValue(false)},
+}
+
+// validateUpdateOnly stops Create before the API call when a configured
+// attribute that only the follow-up Update sends is still unknown.
+func validateUpdateOnly(ctx context.Context, config tfsdk.Config, plan tfsdk.Plan) diag.Diagnostics {
+	var diags diag.Diagnostics
+	for _, field := range updateOnlyFields {
+		var c, p attr.Value
+		diags.Append(config.GetAttribute(ctx, path.Root(field.attr), &c)...)
+		diags.Append(plan.GetAttribute(ctx, path.Root(field.attr), &p)...)
+		if diags.HasError() {
+			return diags
+		}
+		validateRequestValue(path.Root(field.attr), c, p, true, &diags)
+	}
+	return diags
 }
 
 // applyUpdateOnly follows Create with an Update when the configuration sets an
 // attribute that Create cannot send to another value than the one Create
-// stored. The Update body is the created resource with those values.
+// stored, or omits it and Create stored another value than the server default.
+// The Update body is the created resource with the configured values, and
+// without the omitted ones, so the server stores their default.
 func (r *Resource) applyUpdateOnly(ctx context.Context, config tfsdk.Config, plan tfsdk.Plan, state *tfsdk.State) diag.Diagnostics {
 	var diags diag.Diagnostics
 	next := tfsdk.State{Schema: state.Schema, Raw: state.Raw.Copy()}
 	differs := false
-	for _, name := range updateOnlyFields {
+	for _, field := range updateOnlyFields {
 		var c, p, s attr.Value
-		diags.Append(config.GetAttribute(ctx, path.Root(name), &c)...)
-		diags.Append(plan.GetAttribute(ctx, path.Root(name), &p)...)
-		diags.Append(state.GetAttribute(ctx, path.Root(name), &s)...)
+		diags.Append(config.GetAttribute(ctx, path.Root(field.attr), &c)...)
+		diags.Append(plan.GetAttribute(ctx, path.Root(field.attr), &p)...)
+		diags.Append(state.GetAttribute(ctx, path.Root(field.attr), &s)...)
 		if diags.HasError() {
 			return diags
 		}
-		if c.IsNull() || p.Equal(s) {
+		switch {
+		case !c.IsNull() && !p.Equal(s):
+			diags.Append(next.SetAttribute(ctx, path.Root(field.attr), p)...)
+		case c.IsNull() && !s.IsNull() && !s.Equal(field.serverDefault):
+			null, err := s.Type(ctx).ValueFromTerraform(ctx, tftypes.NewValue(s.Type(ctx).TerraformType(ctx), nil))
+			if err != nil {
+				diags.AddAttributeError(path.Root(field.attr), "Invalid value", err.Error())
+				return diags
+			}
+			diags.Append(next.SetAttribute(ctx, path.Root(field.attr), null)...)
+		default:
 			continue
 		}
-		diags.Append(next.SetAttribute(ctx, path.Root(name), p)...)
 		differs = true
 	}
 	if !differs || diags.HasError() {

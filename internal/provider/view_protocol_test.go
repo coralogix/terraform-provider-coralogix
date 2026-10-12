@@ -17,6 +17,9 @@ package provider
 import (
 	"net/http"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // These tests drive the generated coralogix_view through the plugin protocol against
@@ -166,5 +169,67 @@ func TestViewRejectsValuesTheServiceChanges(t *testing.T) {
 	}
 	if reqs := h.views().takeRequests(); len(reqs) != 0 {
 		t.Errorf("validation sent requests: %v", reqs)
+	}
+}
+
+// A time selection needs quick_selection or custom_selection: the service rejects neither.
+func TestViewRequiresATimeSelectionArm(t *testing.T) {
+	h := newViewHarness(t)
+	if diags := h.validate(h.config(viewConfig(j{"time_selection": j{}}))); !hasError(diags) {
+		t.Fatal("time_selection = {} passed validation, want an error")
+	}
+}
+
+// When Create stores another is_compact_mode than the server default and the configuration
+// omits it, the follow-up replace omits it too, so the service stores the default.
+func TestViewCreateConvergesAnOmittedUpdateOnlyValue(t *testing.T) {
+	h := newViewHarness(t)
+	h.views().createCompact = true
+	h.Apply("create", h.null(), viewConfig())
+	step := lastStep(t, h)
+	if got := methods(step.Requests); len(got) != 2 || got[1] != http.MethodPut {
+		t.Fatalf("requests = %v, want POST then PUT", got)
+	}
+	if body, _ := step.Requests[1].Body.(map[string]any); body["isCompactMode"] != nil {
+		t.Fatalf("replace body = %v, want no isCompactMode", body)
+	}
+	if got := attrOf(t, step.State, "is_compact_mode"); got != false {
+		t.Fatalf("is_compact_mode = %v, want false", got)
+	}
+}
+
+// A configured is_compact_mode that is still unknown when Create runs fails before any request,
+// so no view is created and left tainted.
+func TestViewCreateRejectsAnUnknownUpdateOnlyValue(t *testing.T) {
+	h := newViewHarness(t)
+	cfg := h.config(viewConfig(j{"is_compact_mode": true}))
+	planned, _, diags := h.plan(h.null(), cfg)
+	if hasError(diags) {
+		t.Fatal(diagStrings(diags))
+	}
+	unknown := func(v tftypes.Value) tftypes.Value {
+		out, err := tftypes.Transform(v, func(p *tftypes.AttributePath, value tftypes.Value) (tftypes.Value, error) {
+			if p.Equal(tftypes.NewAttributePath().WithAttributeName("is_compact_mode")) {
+				return tftypes.NewValue(tftypes.Bool, tftypes.UnknownValue), nil
+			}
+			return value, nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+	resp, err := h.server.ApplyResourceChange(h.ctx, &tfprotov6.ApplyResourceChangeRequest{
+		TypeName:     h.typeName,
+		PriorState:   h.dynamic(h.typ, h.null()),
+		PlannedState: h.dynamic(h.typ, unknown(planned)),
+		Config:       h.dynamic(h.typ, unknown(cfg)),
+	})
+	h.must(err)
+	if !hasError(resp.Diagnostics) {
+		t.Fatal("create with an unknown is_compact_mode passed, want an error")
+	}
+	if reqs := h.views().takeRequests(); len(reqs) != 0 {
+		t.Fatalf("create sent requests: %v", methods(reqs))
 	}
 }

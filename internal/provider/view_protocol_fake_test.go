@@ -50,10 +50,12 @@ var viewPresets = map[int]string{
 //   - selectedValues keeps only the values set to true
 //   - a view saved on another Explore tab reads back without viewType
 type viewFake struct {
-	mu       sync.Mutex
-	views    map[string]map[string]any
-	seq      int
-	requests []grRequest
+	// createCompact is what create stores for isCompactMode. The service stores false.
+	createCompact bool
+	mu            sync.Mutex
+	views         map[string]map[string]any
+	seq           int
+	requests      []grRequest
 }
 
 func newViewFake(t *testing.T) *viewFake {
@@ -185,7 +187,7 @@ func (f *viewFake) store(id string, n int, in map[string]any, replace bool) (int
 	if syntax == "" || syntax == "SYNTAX_TYPE_UNSPECIFIED" {
 		syntax = "SYNTAX_TYPE_LUCENE"
 	}
-	compact := false
+	compact := f.createCompact
 	if replace {
 		compact, _ = in["isCompactMode"].(bool)
 	}
