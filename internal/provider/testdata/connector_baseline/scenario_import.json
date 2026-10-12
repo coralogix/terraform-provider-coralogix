@@ -1,0 +1,113 @@
+[
+  {
+    "step": "import",
+    "applyDiagnostics": [
+      "warning: An imported secret is written to state | Importing reads the connector's current configuration from Coralogix, including every field value it carries, and writes it to state. Treat an imported secret as exposed and rotate it.\n\nTo keep it out of state from then on, move the value from connector_config.fields into connector_config.field_values_wo, give it an entry in connector_config.field_values_wo_versions, and apply. That apply removes the imported value from state. Write-only attributes need Terraform 1.11 or later."
+    ],
+    "state": null
+  },
+  {
+    "step": "import (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/connectors/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "config_overrides": [],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "made outside Terraform",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "seeded",
+      "type": "generic_https"
+    },
+    "drift": [
+      "AttributeName(\"config_overrides\")",
+      "AttributeName(\"connector_config\")",
+      "AttributeName(\"connector_config\").AttributeName(\"field_values_wo\")",
+      "AttributeName(\"connector_config\").AttributeName(\"field_values_wo_versions\")",
+      "AttributeName(\"connector_config\").AttributeName(\"fields\")",
+      "AttributeName(\"description\")",
+      "AttributeName(\"name\")",
+      "AttributeName(\"type\")"
+    ]
+  },
+  {
+    "step": "plan the matching config",
+    "config": {
+      "connector_config": {
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "made outside Terraform",
+      "name": "seeded",
+      "type": "generic_https"
+    },
+    "plan": {
+      "config_overrides": [],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "made outside Terraform",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "seeded",
+      "type": "generic_https"
+    },
+    "noChange": true,
+    "state": {
+      "config_overrides": [],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "made outside Terraform",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "seeded",
+      "type": "generic_https"
+    }
+  }
+]

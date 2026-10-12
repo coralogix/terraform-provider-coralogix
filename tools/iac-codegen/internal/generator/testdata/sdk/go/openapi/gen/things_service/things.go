@@ -30,6 +30,64 @@ type QueueThingConfig struct {
 
 type ThingStatus struct {
 	Health string
+	Items  []ThingItem
+}
+
+type ThingSpec struct {
+	Mode     *string
+	Region   *string
+	Revision string
+	Source   *ThingSource
+	Items    []ThingItem
+	Targets  []ThingTarget
+}
+
+type ThingSpecCreate struct {
+	Mode    *string
+	Region  *string
+	Items   []ThingItemCreate
+	Targets []ThingTargetInput
+}
+
+type ThingSpecUpdate struct {
+	Mode  *string
+	Items []ThingItemUpdate
+}
+
+type ThingItem struct {
+	Id         string
+	Key        *string
+	Name       string
+	CreateTime *time.Time
+	StartTime  *time.Time
+}
+
+type ThingItemCreate struct {
+	Key       *string
+	Name      string
+	StartTime *time.Time
+}
+
+type ThingItemUpdate struct {
+	Name      string
+	StartTime *time.Time
+}
+
+type ThingTarget struct {
+	Id   string
+	Name string
+}
+
+type ThingTargetInput struct {
+	Name string
+}
+
+type ThingSource struct {
+	Origin *string
+}
+
+type ThingDetail struct {
+	Name string
 }
 
 type Thing struct {
@@ -40,11 +98,15 @@ type Thing struct {
 	Kind         *ThingKind
 	Config       *ThingConfig
 	Status       *ThingStatus
+	Spec         *ThingSpec
 	Destinations []string
 	Tags         []string
+	Details      []ThingDetail
 	Labels       map[string]string
 	CreateTime   *time.Time
 	UpdateTime   *time.Time
+	ExpireTime   *time.Time
+	Windows      []time.Time
 }
 
 type CreateThingRequest struct {
@@ -53,9 +115,13 @@ type CreateThingRequest struct {
 	Enabled      *bool
 	Kind         ThingKind
 	Config       ThingConfig
+	Spec         *ThingSpecCreate
 	Destinations []string
 	Tags         []string
+	Details      []ThingDetail
 	Labels       map[string]string
+	ExpireTime   *time.Time
+	Windows      []time.Time
 }
 
 type UpdateThingRequest struct {
@@ -63,9 +129,14 @@ type UpdateThingRequest struct {
 	Description  *string
 	Enabled      *bool
 	Config       *ThingConfig
+	Spec         *ThingSpecUpdate
 	Destinations []string
 	Tags         []string
+	Details      []ThingDetail
 	Labels       map[string]string
+	ExpireTime   *time.Time
+	Windows      []time.Time
+	UpdateMask   *string
 }
 
 type ThingsServiceAPIService struct {

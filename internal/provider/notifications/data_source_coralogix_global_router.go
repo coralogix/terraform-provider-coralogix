@@ -67,7 +67,7 @@ func (d *GlobalRouterDataSource) Configure(_ context.Context, req datasource.Con
 
 func (d *GlobalRouterDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	var resourceResp resource.SchemaResponse
-	globalrouter.NewResource().Schema(ctx, resource.SchemaRequest{}, &resourceResp)
+	globalrouter.NewResource(globalrouter.Hooks{}).Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 

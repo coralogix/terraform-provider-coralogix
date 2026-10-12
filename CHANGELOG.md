@@ -10,8 +10,93 @@
 - FEAT: Keep contract validators when `validators.inferred` is omitted, accept RFC3339 timestamps, and treat an update id that lives only in the body as computed.
 - FEAT: Accept a server default on a shared read schema, a field that create omits and replace can set, a nested read-only field, and a required integer whose range includes zero.
 
+#### resource/coralogix_configuration_group
+- BREAKING (Beta): `coralogix_fleet_configuration_group` is renamed `coralogix_configuration_group`. Remove the old resource from state and import the group under the new name.
+- BREAKING (Beta): The resource is generated from the API contract. A family is either `raw` (its own `remote_configurations`) or `preset` (generated from a configuration template); `remote_configuration` is renamed `remote_configurations`, `agent_selector` holds an `attributes` map, `priority_order` is an Int32, and `chart_name` values are `chart_name_otel_integration`, `chart_name_otel_ecs_ec2`, and `chart_name_otel_{linux,windows,macos}_standalone`.
+- FEAT: Preset families: `chart_name`, `chart_version`, `metadata`, and `observability_features`; `integration_version` is resolved by the API when omitted.
+- BREAKING (Beta): `name` is required. The family-level `collector_version` is removed: set `family.raw.collector_version`, and read `family.preset.collector_version`, which the API derives from `chart_version`. When `raw.collector_version` is set, every `agent_selector` must include a matching `service.version`.
+- FEAT: Read-only `archived` attribute.
+- FEAT: `raw_configuration` and `observability_features` compare as YAML and JSON documents, so a change of format plans no change.
+
+#### data-source/coralogix_configuration_group
+- BREAKING (Beta): `coralogix_fleet_configuration_group` is renamed `coralogix_configuration_group` and uses the schema of the generated resource.
+
+#### resource/coralogix_preset
+- CHORE: Adapt to the management SDK, where preset `name`, `connector_type`, and `entity_type` are required values.
+- FIX: An omitted `description` reads back as absent. Before, it read back as `""`, because the API returns an empty string. A configured empty `description` stays `""`.
+- CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Changing `id` still recreates the resource.
+
+#### resource/coralogix_connector
+- CHORE: Generated upgrade test covers a connector that already uses `field_values_wo`.
+- CHORE: Bump `coralogix-management-sdk` so Connector required fields and unordered field sets come from the OpenAPI contract.
+- CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Write-only `connector_config.field_values_wo` is a generated extra attribute (`WriteOnly: true`); handwritten code only merges secrets into the request and restores versions after read.
+- CHORE: Add protocol baseline golden files against an in-memory connector API.
+- FIX: Creating a connector without `description` no longer fails.
+- FIX: Deleting a connector that the API has already removed succeeds.
+
 #### resource/coralogix_alert
 - DOCS: Describe `notification_group.group_by_keys` (combined vs. separate cases).
+
+#### resource/coralogix_global_router
+- FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
+
+#### tools/iac-codegen
+- FIX: `behavior-overrides.yaml` rejects a Delete operation named in both `api.delete.operation` and `api.operations.delete`. Before, `api.operations` chose the operation id while `api.delete` still turned on POST-action delete checks.
+- FEAT: `readEmptyAs: null` on a string reads an omitted value as null. A configured `""` stays `""`.
+- FIX: `requestValue` on a nested read-only field is sent on create and update.
+- FEAT: `api.operations` stores the four operation ids, so `tfgen generate` needs no operation flags.
+- FEAT: `requestValue` sends a fixed API value on create and update. The field is not a Terraform attribute.
+- FEAT: `readNullAs: empty` reads a missing list or set of objects as an empty collection.
+- FEAT: `requireOne` emits `ExactlyOneOf` for the arms of a oneOf.
+- FEAT: `readRejected: true` reads a rejected enum value as the API spelling. Without it, that value fails the read.
+- FIX: Remove `promote`. `unwrap` shows a one-property wrapper as the plain attribute. A missing enum stays null, including one marked with presence. A string `default` is what that resource reads a missing value as.
+- FIX: A `date-time` field of a component has one type in every place of the component: `timetypes.RFC3339` when a request sends it in some place, otherwise a plain string. Before, a field inside a computed value always became `timetypes.RFC3339`, so a response-only time in a component that is also managed elsewhere failed generation with "has a computed object field in one place and a managed one in another".
+- FIX: The error for a component that needs another model struct in each place names the field and its Go type in each place.
+- CHORE: Bump the generator to `v0.1.0-beta.20`.
+- CHORE: Bump the generator to `v0.1.0-beta.19`.
+- CHORE: Bump the generator to `v0.1.0-beta.18`.
+- FEAT: `unwrap` in `behavior-overrides.yaml` shows a value that the API holds in a one-property wrapper object as the plain value, for example `{"query": {"value": "error"}}` as `query = "error"`. A top-level list names the wrapper components, and an `unwrap: true` or `unwrap: false` field line decides one place. The value can be a scalar, an enum, a list, an object, or a oneOf, a wrapper inside a wrapper, or the items of a list.
+- FEAT: Existing mode accepts `api.updateMaskInBody: true` when PATCH `updateMask` is an optional JSON body property. The generated update builds the same body and the same changed-field mask as a query-parameter mask, then sets that mask on the body. The schema has no mask attribute. A mask that names only top-level fields still cannot change a nested oneOf.
+- FIX: `api.updateMaskInBody: true` on a full replace (PUT) is an error. Before, generation ignored the key and produced a replace that does not set a mask.
+- CHORE: Bump the generator to `v0.1.0-beta.17`.
+- FEAT: A `date-time` field that Create or Update sends, alone or in a list or set, is supported. It is a `timetypes.RFC3339` attribute that must be in UTC (`Z`). A time that only the response has stays a plain string.
+- CHORE: Bump the generator to `v0.1.0-beta.16`.
+- FEAT: A string `pattern` in Create, Update, and the response becomes a `stringvalidator.RegexMatches` validator, also on list items and map values. Only a pattern that Go cannot compile, such as a lookahead, or a pattern on an enum blocks generation. The acceptance test builds a matching value when its made-up string does not match, and generation stops when no value fits.
+- FEAT: A Delete can return `google.protobuf.Empty`, which the OpenAPI fork writes as an inline object with no fields.
+- CHORE: Bump the generator to `v0.1.0-beta.15`.
+- FEAT: `upgradeCases` in `acceptance.yaml` adds extra upgrade subtests. An extraAttribute is included when `values` or a case supplies its HCL, so a write-only map can use a real field name instead of a made-up `key`.
+- CHORE: Bump the generator to `v0.1.0-beta.13`.
+- FEAT: Support nested objects whose Create, Update, and response schemas differ. A nested field that only the response has is computed. A nested field that Create has and Update does not is immutable. A type mismatch now names the exact nested field. A nested one-of can require an arm in Create and allow no arm in Update and the response.
+- FIX: An immutable nested value that holds computed fields no longer replaces the resource on every change. The replace check now compares only the values that Create sends.
+- FEAT: A missing `required` list means that no field is required. The OpenAPI fork cannot write an empty list, so an all-optional message, such as a PATCH body, was ineligible. A `required: []` line in `behavior-overrides.yaml` is now unused and reported.
+- FEAT: A string `pattern` that only the resource response has, for example on a server-set `id`, no longer blocks generation.
+- FIX: Reject an immutable value that holds an optional and computed field from `behavior-overrides.yaml`. An omitted one would replace the resource on every change.
+- FIX: The generated acceptance test treats an immutable value with server-set fields as immutable. Before, it could expect an update where the plan replaces the resource.
+- FEAT: A field with a server default no longer needs the default on its Update schema. The generated resource reads only the Create default. An Update default that differs from the Create default is still rejected.
+- FEAT: `equality: yaml` or `equality: json` on a string field compares its value as a document, so a reformatted YAML or JSON value does not plan a change.
+- FIX: A resource in existing mode keeps the configured form of an empty list, set, or map. An omitted list or map that the API returns empty no longer fails the apply with `was null, but now` an empty value.
+- FEAT: `keepPriorOrder` works on a list whose request items use another component than its response items, such as a Create item without the server-set id and hash. The items pair on the fields that the request sends.
+- CHORE: Bump the generator to `v0.1.0-beta.12`.
+- FEAT: A `default` line in `behavior-overrides.yaml` accepts a number for an `Int64`, `Int32`, `Float64`, or `Float32` attribute, for example `{computed: true, default: 0}`. Before, it accepted only a string or a bool.
+- FIX: In existing mode, a top-level field with a server default in the contract uses that default when `behavior-overrides.yaml` has no `default` or `computed: false` line for it. Before, the field became plain `Optional`, and an apply without it failed with `was null, but now` the default.
+- CHORE: Bump the generator to `v0.1.0-beta.6`.
+- CHORE: Bump the generator to `v0.1.0-beta.7`.
+- CHORE: Bump the generator to `v0.1.0-beta.8`.
+- CHORE: Bump the generator to `v0.1.0-beta.11`.
+- CHORE: Bump the generator to `v0.1.0-beta.10`.
+- FIX: The generated acceptance test leaves out `types.<Type>.extraAttributes`. A made-up map key such as `key` is not an API field.
+- CHORE: Bump the generator to `v0.1.0-beta.9`.
+- FEAT: `types.<Type>.extraAttributes` declares Terraform-only map attributes, including `writeOnly: true`. The archived-thing golden fixture covers the shape.
+- FEAT: Existing-resource `NewResource` takes `Hooks{BeforeWrite, AfterRead}` so overlays pass write-only logic at construction instead of package `init`.
+- FEAT: Existing-resource `lengthAtLeast` keeps a released non-empty string validator.
+- FEAT: Existing-resource mode accepts a custom-method lifecycle: Get and Delete each carry the id, and Update keeps the id in the body.
+- FEAT: `verbatim` on an enum keeps the API spelling as the Terraform value.
+- FEAT: Generate unordered sets of objects. The Thing golden fixture includes a set of objects.
+- FIX: Namespaced OpenAPI components such as `notification_center.ConnectorConfigField` render as valid Go model types.
+- FIX: A nested object collection marked `x-coralogix-collection: set` now flattens as a set in the generated attr.Type map, matching the schema.
+- FIX: A client-set `id` (`clientSetID: true`) has `RequiresReplace`. Before, a change of `id` planned an in-place update that the API answered with 404.
+- FEAT: A `useStateForUnknown` key that the generator already applies, for example on a client-set `id`, is reported as `OVERRIDE_UNUSED`.
+- CHORE: Bump the generator to `v0.1.0-beta.14`.
 
 # Release 3.20.0
 

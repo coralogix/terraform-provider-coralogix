@@ -90,6 +90,122 @@ func TestAcceptanceMakesPlainValuesByMode(t *testing.T) {
 	}
 }
 
+// extraAttributes are not API fields. A made-up map key such as key would fail the API.
+func TestAcceptanceOmitsExtraAttributes(t *testing.T) {
+	s := testSynth(t, "")
+	attrs := append(sampleAttrs(), &tfAttr{
+		Name: "token_wo", Kind: "Map", ValueKind: "Map", Optional: true, Extra: true, WriteOnly: true, ElementType: "types.StringType",
+	})
+	body, checks, err := s.attrs(attrs, "", "", accFull, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(body, "token_wo") {
+		t.Fatalf("config sets extraAttribute token_wo:\n%s", body)
+	}
+	for _, c := range checks {
+		if strings.Contains(c.Path, "token_wo") {
+			t.Fatalf("checks include extraAttribute %s", c.Path)
+		}
+	}
+}
+
+func extraWriteOnlyAttr() *tfAttr {
+	return &tfAttr{Name: "token_wo", Kind: "Map", ValueKind: "Map", Optional: true, Extra: true, WriteOnly: true, ElementType: "types.StringType"}
+}
+
+// A value in the acceptance file names a real map key, so the extraAttribute can be set.
+func TestAcceptanceSetsExtraAttributesWhenValuesNameThem(t *testing.T) {
+	s := testSynth(t, "values:\n  token_wo: '{ secret = \"x\" }'\n")
+	body, checks, err := s.attrs(append(sampleAttrs(), extraWriteOnlyAttr()), "", "", accFull, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(body, `token_wo = { secret = "x" }`) {
+		t.Fatalf("config lacks the extraAttribute value:\n%s", body)
+	}
+	found := false
+	for _, c := range checks {
+		if c.Path == "token_wo" && c.Absent {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("write-only extraAttribute must be absent from state: %v", checks)
+	}
+}
+
+func extraUpgradeResource() *tfResource {
+	return &tfResource{Package: "p", CRUD: &crudData{TypeName: "thing", IDAttr: "id", Resource: "Thing"}, Attributes: []*tfAttr{
+		{Name: "name", Kind: "String", Required: true},
+		extraWriteOnlyAttr(),
+		{Name: "token_wo_versions", Kind: "Map", Optional: true, Extra: true, ElementType: "types.Int64Type"},
+	}}
+}
+
+func extraUpgradeFile(t *testing.T) *acceptance.File {
+	t.Helper()
+	file, err := acceptance.Parse([]byte(`
+resource: Thing
+upgradeFrom: "1.0.0"
+upgradeCases:
+  - name: write-only
+    values:
+      token_wo: '{ secret = "x" }'
+      token_wo_versions: '{ secret = 1 }'
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return file
+}
+
+func extraReleased() map[string]acceptance.UpgradeAttribute {
+	return map[string]acceptance.UpgradeAttribute{
+		"name":              {Type: "String", Required: true},
+		"token_wo":          {Type: "Map(String)"},
+		"token_wo_versions": {Type: "Map(Int64)"},
+	}
+}
+
+// An upgrade case is the full upgrade config plus extraAttribute values the lifecycle tests omit.
+func TestAcceptanceUpgradeCaseIncludesWriteOnlyExtra(t *testing.T) {
+	data, err := buildAcceptance(extraUpgradeResource(), "example.com/provider", extraUpgradeFile(t),
+		&acceptance.UpgradeAttributes{From: "1.0.0", Attributes: extraReleased()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(data.UpgradeCases) != 1 || data.UpgradeCases[0].Name != "write-only" || data.UpgradeCases[0].Ident != "WriteOnly" {
+		t.Fatalf("upgrade cases = %+v", data.UpgradeCases)
+	}
+	if !strings.Contains(data.UpgradeCases[0].Config, `token_wo = { secret = "x" }`) {
+		t.Fatalf("upgrade case lacks write-only extraAttribute:\n%s", data.UpgradeCases[0].Config)
+	}
+	if strings.Contains(data.Full.Config, "token_wo") {
+		t.Fatalf("lifecycle config must still omit extraAttributes:\n%s", data.Full.Config)
+	}
+	found := false
+	for _, c := range data.UpgradeCases[0].Checks {
+		if c.Path == "token_wo" && c.Absent {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("upgrade case must check that the write-only map is absent: %v", data.UpgradeCases[0].Checks)
+	}
+}
+
+// The released provider rejects an extraAttribute that the upgrade snapshot does not list.
+func TestAcceptanceUpgradeCaseRequiresReleasedExtra(t *testing.T) {
+	released := extraReleased()
+	delete(released, "token_wo")
+	_, err := buildAcceptance(extraUpgradeResource(), "example.com/provider", extraUpgradeFile(t),
+		&acceptance.UpgradeAttributes{From: "1.0.0", Attributes: released})
+	if err == nil || !strings.Contains(err.Error(), "not in upgrade-attributes.yaml") {
+		t.Fatalf("err = %v, want the extraAttribute missing from the snapshot", err)
+	}
+}
+
 // A made-up number fits the range validators of the attribute.
 func TestAcceptanceNumbersFitTheirRange(t *testing.T) {
 	tests := map[string]struct {
@@ -112,8 +228,8 @@ func TestAcceptanceNumbersFitTheirRange(t *testing.T) {
 			if test.validator != "" {
 				a.Validators = []string{test.validator}
 			}
-			full, _ := scalarValue(a, accFull)
-			updated, _ := scalarValue(a, accUpdated)
+			full, _, _ := scalarValue(a, accFull)
+			updated, _, _ := scalarValue(a, accUpdated)
 			if full != test.full || updated != test.updated {
 				t.Fatalf("values = %s, %s; want %s, %s", full, updated, test.full, test.updated)
 			}
@@ -177,7 +293,7 @@ func TestAcceptanceStringsFitTheirLength(t *testing.T) {
 			if test.validator != "" {
 				a.Validators = []string{test.validator}
 			}
-			full, updated := stringValue(a, false), stringValue(a, true)
+			full, updated := mustStringValue(t, a, false), mustStringValue(t, a, true)
 			if full != test.full || updated != test.updated {
 				t.Fatalf("values = %q, %q; want %q, %q", full, updated, test.full, test.updated)
 			}
@@ -228,14 +344,16 @@ func TestAcceptanceNextActionFollowsTheConfigs(t *testing.T) {
 	note := &tfAttr{Name: "note", Kind: "String", Optional: true, Computed: true}
 	label := &tfAttr{Name: "label", Kind: "String", Optional: true}
 	zone := &tfAttr{Name: "zone", Kind: "String", Optional: true, Computed: true, Modifiers: []string{"stringplanmodifier.RequiresReplace()"}}
+	targets := &tfAttr{Name: "targets", Kind: "String", Optional: true, Modifiers: []string{`requestReplaceModifier{at: "targets"}`}}
 	tests := map[string]struct {
 		attrs    []*tfAttr
 		from, to accMode
 		want     string
 	}{
-		"a mutable value changes":     {[]*tfAttr{enum, name, region}, accFull, accUpdated, accPlanNoReplace},
-		"nothing changes":             {[]*tfAttr{enum, region}, accFull, accUpdated, accPlanNoop},
-		"an immutable value is added": {[]*tfAttr{enum, name, region}, accMinimal, accFull, accPlanReplace},
+		"a mutable value changes":                      {[]*tfAttr{enum, name, region}, accFull, accUpdated, accPlanNoReplace},
+		"nothing changes":                              {[]*tfAttr{enum, region}, accFull, accUpdated, accPlanNoop},
+		"an immutable value is added":                  {[]*tfAttr{enum, name, region}, accMinimal, accFull, accPlanReplace},
+		"a value with requestReplaceModifier is added": {[]*tfAttr{enum, name, targets}, accMinimal, accFull, accPlanReplace},
 		// A default or an API value in state can equal the next value: update or no change.
 		"a left-out value is set to its default": {[]*tfAttr{enum, paused}, accMinimal, accUpdated, accPlanNoReplace},
 		"a left-out computed value":              {[]*tfAttr{enum, note}, accMinimal, accFull, accPlanNoReplace},
@@ -565,10 +683,10 @@ func TestAcceptanceChecksRemovedComputedAttributes(t *testing.T) {
 		t.Fatal(err)
 	}
 	defaults, kept := s.removed(attrs, full)
-	if got := fmt.Sprint(defaults); got != "[{disabled false} {tier basic}]" {
+	if got := fmt.Sprint(defaults); got != "[{disabled false false} {tier basic false}]" {
 		t.Errorf("defaults = %s, want disabled and tier", got)
 	}
-	if got := fmt.Sprint(kept); got != "[{limit 1}]" {
+	if got := fmt.Sprint(kept); got != "[{limit 1 false}]" {
 		t.Errorf("kept = %s, want limit with its full value", got)
 	}
 }
@@ -635,21 +753,26 @@ func TestAcceptanceMinimalIncludesParentsOfNestedFields(t *testing.T) {
 	}
 }
 
-// nextAction compares only top-level attributes, so RequiresReplace below them stops generation.
+// nextAction compares only top-level attributes, so a replace modifier below them stops generation.
+// requestReplaceModifier replaces the resource as RequiresReplace does.
 func TestAcceptanceRejectsNestedRequiresReplace(t *testing.T) {
-	res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "thing", IDAttr: "id", Resource: "Thing"}, Attributes: []*tfAttr{
-		{Name: "name", Kind: "String", Required: true},
-		{Name: "rules", Kind: "ListNested", Optional: true, Attributes: []*tfAttr{
-			{Name: "region", Kind: "String", Required: true, Modifiers: []string{"stringplanmodifier.RequiresReplace()"}},
-		}},
-	}}
-	file, err := acceptance.Parse([]byte("resource: Thing\n"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = buildAcceptance(res, "example.com/provider", file, nil)
-	if err == nil || !strings.Contains(err.Error(), `"rules[].region" has RequiresReplace below the top level`) {
-		t.Fatalf("err = %v, want nested RequiresReplace rejected", err)
+	for _, modifier := range []string{"stringplanmodifier.RequiresReplace()", `requestReplaceModifier{at: "rules.region"}`} {
+		t.Run(modifier, func(t *testing.T) {
+			res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "thing", IDAttr: "id", Resource: "Thing"}, Attributes: []*tfAttr{
+				{Name: "name", Kind: "String", Required: true},
+				{Name: "rules", Kind: "ListNested", Optional: true, Attributes: []*tfAttr{
+					{Name: "region", Kind: "String", Required: true, Modifiers: []string{modifier}},
+				}},
+			}}
+			file, err := acceptance.Parse([]byte("resource: Thing\n"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = buildAcceptance(res, "example.com/provider", file, nil)
+			if err == nil || !strings.Contains(err.Error(), `"rules[].region" has RequiresReplace below the top level`) {
+				t.Fatalf("err = %v, want nested RequiresReplace rejected", err)
+			}
+		})
 	}
 }
 

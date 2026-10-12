@@ -31,17 +31,32 @@ paths:
                   $ref: '#/components/schemas/ThingKind'
                 config:
                   $ref: '#/components/schemas/ThingConfig'
+                spec:
+                  $ref: '#/components/schemas/ThingSpecCreate'
                 destinations:
                   type: array
-                  items: {type: string}
+                  items: {type: string, pattern: '^https://[a-z.]+$'}
                 tags:
                   type: array
                   uniqueItems: true
                   x-coralogix-collection: set
                   items: {type: string}
+                details:
+                  type: array
+                  uniqueItems: true
+                  x-coralogix-collection: set
+                  items:
+                    $ref: '#/components/schemas/ThingDetail'
                 labels:
                   type: object
                   additionalProperties: {type: string}
+                expireTime:
+                  type: string
+                  format: date-time
+                  x-coralogix-presence: true
+                windows:
+                  type: array
+                  items: {type: string, format: date-time}
       responses:
         '200':
           description: Created
@@ -99,17 +114,32 @@ paths:
                 config:
                   allOf:
                     - $ref: '#/components/schemas/ThingConfig'
+                spec:
+                  $ref: '#/components/schemas/ThingSpecUpdate'
                 destinations:
                   type: array
-                  items: {type: string}
+                  items: {type: string, pattern: '^https://[a-z.]+$'}
                 tags:
                   type: array
                   uniqueItems: true
                   x-coralogix-collection: set
                   items: {type: string}
+                details:
+                  type: array
+                  uniqueItems: true
+                  x-coralogix-collection: set
+                  items:
+                    $ref: '#/components/schemas/ThingDetail'
                 labels:
                   type: object
                   additionalProperties: {type: string}
+                expireTime:
+                  type: string
+                  format: date-time
+                  x-coralogix-presence: true
+                windows:
+                  type: array
+                  items: {type: string, format: date-time}
       responses:
         '200':
           description: Updated
@@ -152,9 +182,11 @@ components:
           $ref: '#/components/schemas/ThingConfig'
         status:
           $ref: '#/components/schemas/ThingStatus'
+        spec:
+          $ref: '#/components/schemas/ThingSpec'
         destinations:
           type: array
-          items: {type: string}
+          items: {type: string, pattern: '^https://[a-z.]+$'}
           description: Ordered destinations.
         tags:
           type: array
@@ -162,10 +194,25 @@ components:
           x-coralogix-collection: set
           items: {type: string}
           description: Unordered unique tags.
+        details:
+          type: array
+          uniqueItems: true
+          x-coralogix-collection: set
+          items:
+            $ref: '#/components/schemas/ThingDetail'
+          description: Unordered unique details.
         labels:
           type: object
           additionalProperties: {type: string}
           description: String labels by key.
+        expireTime:
+          type: string
+          format: date-time
+          description: When the thing expires, in UTC.
+        windows:
+          type: array
+          items: {type: string, format: date-time}
+          description: Ordered maintenance window starts, in UTC.
         createTime:
           type: string
           format: date-time
@@ -174,6 +221,14 @@ components:
           type: string
           format: date-time
           description: The server-generated update time.
+    ThingDetail:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: The detail name.
     ThingKind:
       type: string
       enum: [THING_KIND_UNSPECIFIED, THING_KIND_STANDARD, THING_KIND_ADVANCED, THING_KIND_P5_OR_UNSPECIFIED]
@@ -207,6 +262,134 @@ components:
       required: [health]
       properties:
         health:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThingItem'
+          description: The items that the server applied.
+    ThingSpec:
+      type: object
+      required: [revision]
+      properties:
+        mode:
+          type: string
+          description: The processing mode.
+        region:
+          type: string
+          description: The region. A change replaces the thing.
+        revision:
+          type: string
+          description: The server-assigned revision of the settings.
+        source:
+          $ref: '#/components/schemas/ThingSource'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThingItem'
+          description: Ordered items.
+        targets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThingTarget'
+          description: The targets. A change replaces the thing.
+    ThingSpecCreate:
+      type: object
+      required: []
+      properties:
+        mode:
+          type: string
+          x-coralogix-presence: true
+        region:
+          type: string
+          x-coralogix-presence: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThingItemCreate'
+        targets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThingTargetInput'
+    ThingSpecUpdate:
+      type: object
+      required: []
+      properties:
+        mode:
+          type: string
+          x-coralogix-presence: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThingItemUpdate'
+    ThingItem:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          description: The server-assigned item identifier.
+        key:
+          type: string
+          description: The item key. A change replaces the thing.
+        name:
+          type: string
+          minLength: 1
+        createTime:
+          type: string
+          format: date-time
+          description: The server-generated creation time of the item.
+        startTime:
+          type: string
+          format: date-time
+          description: When the item starts, in UTC.
+    ThingItemCreate:
+      type: object
+      required: [name]
+      properties:
+        key:
+          type: string
+          x-coralogix-presence: true
+        name:
+          type: string
+          minLength: 1
+        startTime:
+          type: string
+          format: date-time
+          x-coralogix-presence: true
+    ThingItemUpdate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        startTime:
+          type: string
+          format: date-time
+          x-coralogix-presence: true
+    ThingTarget:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          description: The server-assigned target identifier.
+        name:
+          type: string
+          minLength: 1
+    ThingTargetInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+    ThingSource:
+      type: object
+      required: []
+      properties:
+        origin:
           type: string
     DeleteThingResponse:
       type: object

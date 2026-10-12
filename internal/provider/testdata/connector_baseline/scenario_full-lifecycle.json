@@ -1,0 +1,317 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "config_overrides": [
+        {
+          "entity_type": "alerts",
+          "fields": [
+            {
+              "field_name": "url",
+              "template": "https://example.com/alerts"
+            }
+          ]
+        }
+      ],
+      "connector_config": {
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "primary connector",
+      "name": "main",
+      "type": "generic_https"
+    },
+    "plan": {
+      "config_overrides": [
+        {
+          "entity_type": "alerts",
+          "fields": [
+            {
+              "field_name": "url",
+              "template": "https://example.com/alerts"
+            }
+          ]
+        }
+      ],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "primary connector",
+      "id": "(unknown)",
+      "name": "main",
+      "type": "generic_https"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/connectors",
+        "body": {
+          "connector": {
+            "configOverrides": [
+              {
+                "entityType": "ALERTS",
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "template": "https://example.com/alerts"
+                  }
+                ]
+              }
+            ],
+            "connectorConfig": {
+              "fields": [
+                {
+                  "fieldName": "method",
+                  "value": "post"
+                },
+                {
+                  "fieldName": "url",
+                  "value": "https://example.com/hook"
+                }
+              ]
+            },
+            "description": "primary connector",
+            "name": "main",
+            "type": "GENERIC_HTTPS"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "config_overrides": [
+        {
+          "entity_type": "alerts",
+          "fields": [
+            {
+              "field_name": "url",
+              "template": "https://example.com/alerts"
+            }
+          ]
+        }
+      ],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "primary connector",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main",
+      "type": "generic_https"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/connectors/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "config_overrides": [
+        {
+          "entity_type": "alerts",
+          "fields": [
+            {
+              "field_name": "url",
+              "template": "https://example.com/alerts"
+            }
+          ]
+        }
+      ],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "primary connector",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main",
+      "type": "generic_https"
+    }
+  },
+  {
+    "step": "update: change description and name",
+    "config": {
+      "config_overrides": [
+        {
+          "entity_type": "alerts",
+          "fields": [
+            {
+              "field_name": "url",
+              "template": "https://example.com/alerts"
+            }
+          ]
+        }
+      ],
+      "connector_config": {
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "changed",
+      "name": "main-updated",
+      "type": "generic_https"
+    },
+    "plan": {
+      "config_overrides": [
+        {
+          "entity_type": "alerts",
+          "fields": [
+            {
+              "field_name": "url",
+              "template": "https://example.com/alerts"
+            }
+          ]
+        }
+      ],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "changed",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main-updated",
+      "type": "generic_https"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/connectors",
+        "body": {
+          "connector": {
+            "configOverrides": [
+              {
+                "entityType": "ALERTS",
+                "fields": [
+                  {
+                    "fieldName": "url",
+                    "template": "https://example.com/alerts"
+                  }
+                ]
+              }
+            ],
+            "connectorConfig": {
+              "fields": [
+                {
+                  "fieldName": "method",
+                  "value": "post"
+                },
+                {
+                  "fieldName": "url",
+                  "value": "https://example.com/hook"
+                }
+              ]
+            },
+            "description": "changed",
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "main-updated",
+            "type": "GENERIC_HTTPS"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "config_overrides": [
+        {
+          "entity_type": "alerts",
+          "fields": [
+            {
+              "field_name": "url",
+              "template": "https://example.com/alerts"
+            }
+          ]
+        }
+      ],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "changed",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main-updated",
+      "type": "generic_https"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/connectors/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

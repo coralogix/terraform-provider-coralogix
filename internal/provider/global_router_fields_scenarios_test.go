@@ -221,7 +221,7 @@ var fieldScenarios = map[string]func(h *grHarness){
 		for i, c := range cases {
 			cfg := with(full, j{"name": fmt.Sprintf("dr%d", i), "routing_labels": j{"environment": fmt.Sprintf("dr%d", i)}})
 			s := h.Apply("create for "+c.name, h.null(), cfg)
-			h.api.mutate(idOf(s), c.change)
+			h.routers().mutate(idOf(s), c.change)
 			next := h.Refresh("refresh after "+c.name+" changed", s)
 			if !next.IsNull() {
 				h.Apply("plan the same config after "+c.name, next, cfg)

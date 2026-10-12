@@ -22,7 +22,6 @@ types:
     fields:
       id:
         markdownDescription: "The id. Leave it empty for a generated one."
-        useStateForUnknown: true
       name:
         markdownDescription: "The name."
         required: true
@@ -51,7 +50,6 @@ types:
         keepPriorOrder: true
         validators: [{sizeAtLeast: 1}]
   LegacyLabels:
-    required: []
     fields:
       env: {description: "", computed: true}
   LegacyTarget:

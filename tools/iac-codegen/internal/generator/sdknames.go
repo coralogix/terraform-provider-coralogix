@@ -157,6 +157,12 @@ func resolveSDKNames(r *model.Resource, tag, module, providerModule string) ([]s
 // one field that holds it. The resource fields are then the fields of the resource type, which the
 // "fields" names cover.
 func (s *resolver) bodyFields(r *model.Resource, resource string) error {
+	if r.MaskInBody {
+		// The body property carries the same mask a query parameter would. It is
+		// *string, or a string when the SDK uses a value.
+		s.add(sdkRef{Path: "update.body." + r.UpdateMask, Kind: kindField, Owner: s.bodies["update"], Name: goFieldName(r.UpdateMask),
+			Want: "*string", WantValue: "string", Rule: ruleProperty})
+	}
 	if wrapper := r.Policy.RequestWrapper; wrapper != "" {
 		for _, name := range []string{"create", "update"} {
 			s.add(sdkRef{Path: name + ".body." + wrapper, Kind: kindField, Owner: s.bodies[name], Name: goFieldName(wrapper),
@@ -166,19 +172,29 @@ func (s *resolver) bodyFields(r *model.Resource, resource string) error {
 	}
 	for _, f := range r.Fields {
 		if f.Create != nil {
-			if err := s.field("create.body."+f.Name, s.bodies["create"], f.Name, f.Type, f.Create.Required); err != nil {
+			if err := s.requestField("create.body."+f.Name, s.bodies["create"], f.Name, f.Type.CreateType(), f.Create.Required); err != nil {
 				return err
 			}
 		}
 	}
 	for _, f := range r.Fields {
 		if f.Update != nil {
-			if err := s.field("update.body."+f.Name, s.bodies["update"], f.Name, f.Type, f.Update.Required); err != nil {
+			if err := s.requestField("update.body."+f.Name, s.bodies["update"], f.Name, f.Type.UpdateType(), f.Update.Required); err != nil {
 				return err
 			}
 		}
 	}
 	return nil
+}
+
+// requestField adds the Go field of a request body, and the request
+// components inside it. A component that the response also uses is already
+// walked.
+func (s *resolver) requestField(path, owner, name string, t *model.Type, allowValue bool) error {
+	if err := s.field(path, owner, name, t, allowValue); err != nil {
+		return err
+	}
+	return s.nested(path, t)
 }
 
 // operations adds the SDK names of the four operations.
@@ -236,7 +252,7 @@ func (s *resolver) operation(r *model.Resource, name string, op model.Operation,
 	s.add(sdkRef{Path: path, Kind: kindMethod, Owner: client, Name: method,
 		Want: "func(" + params + ") " + builder, Rule: ruleOperationID})
 	s.add(sdkRef{Path: path, Kind: kindType, Name: builder, Rule: ruleOperationID})
-	if name == "update" && !r.Replace {
+	if name == "update" && !r.Replace && !r.MaskInBody {
 		s.add(sdkRef{Path: path + ".mask", Kind: kindMethod, Owner: builder, Name: goFieldName(r.UpdateMask),
 			Want: "func(" + lowerFirst(goFieldName(r.UpdateMask)) + " string) " + builder, Rule: ruleParameter})
 	}
@@ -296,11 +312,6 @@ func (s *resolver) field(path, owner, name string, t *model.Type, allowValue boo
 	if allowValue && strings.HasPrefix(goType, "*") {
 		ref.WantValue = goType[1:]
 	}
-	// The Go client uses a pointer for an optional map and a value for a
-	// required one. The check keeps the type the SDK actually has.
-	if strings.HasPrefix(goType, "map[") {
-		ref.WantValue = "*" + goType
-	}
 	s.add(ref)
 	return nil
 }
@@ -308,6 +319,9 @@ func (s *resolver) field(path, owner, name string, t *model.Type, allowValue boo
 // nested adds the types, fields, and enum constants inside t. It walks each
 // component schema once, so a path shows the first place that uses it.
 func (s *resolver) nested(path string, t *model.Type) error {
+	if len(t.Wrappers) != 0 {
+		return s.wrappers(path, t)
+	}
 	switch t.Kind {
 	case model.List, model.Set, model.Map:
 		return s.nested(path, t.Elem)
@@ -321,7 +335,7 @@ func (s *resolver) nested(path string, t *model.Type) error {
 		for _, v := range t.Values {
 			s.add(sdkRef{Path: path + "." + v, Kind: kindConst, Name: strings.ToUpper(name) + "_" + v, Rule: ruleEnumValue})
 		}
-		if s.policy.EnumOverride(t.Schema) {
+		if s.policy.EnumOverride(t.Schema) && t.EnumZero != "" {
 			// The overrides map the zero value to a Terraform value, so the SDK must have it.
 			s.add(sdkRef{Path: path + "." + t.EnumZero, Kind: kindConst, Name: strings.ToUpper(name) + "_" + t.EnumZero, Rule: ruleEnumValue})
 		}
@@ -346,9 +360,31 @@ func (s *resolver) nested(path string, t *model.Type) error {
 	return nil
 }
 
+// wrappers adds the type of each wrapper of t and the field that holds the value, then the names
+// inside the value. A wrapper that another place walked as an object has the same field type.
+func (s *resolver) wrappers(path string, t *model.Type) error {
+	for i, w := range t.Wrappers {
+		if !s.seen[w.Schema] {
+			s.seen[w.Schema] = true
+			name := goTypeName(w.Schema)
+			s.add(sdkRef{Path: path, Kind: kindType, Name: name, Rule: ruleComponent, Schema: w.Schema})
+			rest := *t
+			rest.Wrappers = t.Wrappers[i+1:]
+			if err := s.field(path+"."+w.Field, name, w.Field, &rest, w.Attrs.Required); err != nil {
+				return err
+			}
+		}
+		path += "." + w.Field
+	}
+	return s.nested(path, t.Unwrapped())
+}
+
 // fieldType is the Go type of an optional SDK struct field. A required field
 // can also be the value type (see field).
 func fieldType(t *model.Type) (string, rule, error) {
+	if len(t.Wrappers) != 0 {
+		return "*" + goTypeName(t.Wrappers[0].Schema), ruleProperty, nil
+	}
 	if (t.Kind == model.Object || t.Kind == model.OneOf) && len(t.Fields) == 0 {
 		return "map[string]interface{}", ruleEmptyObject, nil
 	}

@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
-	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
 )
 
@@ -288,7 +287,7 @@ func TestCollectionsAndObjectsNeedNoPresence(t *testing.T) {
 	}
 }
 
-func TestRequiredDeclarationContract(t *testing.T) {
+func TestMissingRequiredListMeansNoneRequired(t *testing.T) {
 	tests := map[string]struct {
 		old string
 		new string
@@ -298,8 +297,8 @@ func TestRequiredDeclarationContract(t *testing.T) {
 			new: "              title: UpdateThingRequest\n              type: object\n              properties:\n",
 		},
 		"nested object": {
-			old: "    HttpThingConfig:\n      type: object\n      required: [endpoint]\n      properties:\n",
-			new: "    HttpThingConfig:\n      type: object\n      properties:\n",
+			old: "    ThingConfig:\n      type: object\n      required: []\n      properties:\n",
+			new: "    ThingConfig:\n      type: object\n      properties:\n",
 		},
 	}
 	for name, test := range tests {
@@ -309,8 +308,10 @@ func TestRequiredDeclarationContract(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "REQUIRED_DECLARATION_MISSING") {
-				t.Fatalf("codes %v do not contain REQUIRED_DECLARATION_MISSING", codes)
+			// The OpenAPI fork cannot write an empty list, so a missing list
+			// means that no field is required.
+			if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
+				t.Fatalf("a missing required list is ineligible: %v", report)
 			}
 		})
 	}
@@ -391,7 +392,7 @@ func TestNestedPresenceContract(t *testing.T) {
           type: boolean
 `)
 	proxy := doc.Components.Schemas.GetOrZero("Nested")
-	if codes := reportCodes(nestedPresenceIssues(Policy{}, "request.config", proxy, map[*base.Schema]bool{})); !slices.Contains(codes, "FIELD_PRESENCE_UNKNOWN") {
+	if codes := reportCodes(nestedPresenceIssues(Policy{}, "request.config", proxy, nil, false, map[presenceVisit]bool{})); !slices.Contains(codes, "FIELD_PRESENCE_UNKNOWN") {
 		t.Fatalf("codes %v do not contain FIELD_PRESENCE_UNKNOWN", codes)
 	}
 
@@ -404,7 +405,7 @@ func TestNestedPresenceContract(t *testing.T) {
           x-coralogix-presence: true
 `)
 	proxy = doc.Components.Schemas.GetOrZero("Nested")
-	if report := nestedPresenceIssues(Policy{}, "request.config", proxy, map[*base.Schema]bool{}); len(report) != 0 {
+	if report := nestedPresenceIssues(Policy{}, "request.config", proxy, nil, false, map[presenceVisit]bool{}); len(report) != 0 {
 		t.Fatal(report)
 	}
 
@@ -419,7 +420,7 @@ func TestNestedPresenceContract(t *testing.T) {
         - required: [b]
 `)
 	proxy = doc.Components.Schemas.GetOrZero("Choice")
-	if report := nestedPresenceIssues(Policy{}, "request.choice", proxy, map[*base.Schema]bool{}); len(report) != 0 {
+	if report := nestedPresenceIssues(Policy{}, "request.choice", proxy, nil, false, map[presenceVisit]bool{}); len(report) != 0 {
 		t.Fatalf("oneOf arms use their union presence and need no annotation: %v", report)
 	}
 }
@@ -468,13 +469,30 @@ func TestServerDefaultContract(t *testing.T) {
 		t.Fatal(report)
 	}
 
-	inconsistent := strings.Replace(base, defaultBlock, noDefaultBlock, 1)
-	doc, err = Load([]byte(inconsistent))
+	// The first block is the Create field and the last block is the Update field.
+	updateBlock := strings.LastIndex(base, defaultBlock)
+	withUpdate := func(block string) string {
+		return base[:updateBlock] + block + base[updateBlock+len(defaultBlock):]
+	}
+	doc, err = Load([]byte(withUpdate(noDefaultBlock)))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "FIELD_DEFAULT_CONTRACT_INCONSISTENT") {
-		t.Fatalf("codes %v do not contain FIELD_DEFAULT_CONTRACT_INCONSISTENT", codes)
+	if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
+		t.Fatalf("Update without the Create default: %v", report)
+	}
+
+	for name, spec := range map[string]string{
+		"Update default only":      strings.Replace(base, defaultBlock, noDefaultBlock, 1),
+		"different Update default": withUpdate(strings.Replace(defaultBlock, "default: true", "default: false", 1)),
+	} {
+		doc, err = Load([]byte(spec))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "FIELD_DEFAULT_CONTRACT_INCONSISTENT") {
+			t.Fatalf("%s: codes %v do not contain FIELD_DEFAULT_CONTRACT_INCONSISTENT", name, codes)
+		}
 	}
 
 	invalid := strings.ReplaceAll(base, "default: true", "default: not-a-boolean")
@@ -487,7 +505,41 @@ func TestServerDefaultContract(t *testing.T) {
 	}
 }
 
-func TestWriteOnlyAndPatternAreIneligible(t *testing.T) {
+// In existing mode, only a default line replaces the declared server default. Another line
+// keeps the generated resource on the declared default, so the contract of it is still checked.
+func TestExistingModeServerDefaultContract(t *testing.T) {
+	base := string(validSpec(t))
+	defaultBlock := "                enabled:\n                  type: boolean\n                  default: true\n                  x-coralogix-presence: true"
+	noDefaultBlock := "                enabled:\n                  type: boolean\n                  x-coralogix-presence: true"
+	updateBlock := strings.LastIndex(base, defaultBlock)
+	different := base[:updateBlock] + strings.Replace(defaultBlock, "default: true", "default: false", 1) + base[updateBlock+len(defaultBlock):]
+	released := Policy{Existing: true, Released: []string{"Thing.enabled"}}
+	withDefault := Policy{Existing: true, Released: []string{"Thing.enabled"}, Defaults: []string{"Thing.enabled"}}
+	tests := map[string]struct {
+		spec   string
+		policy Policy
+		want   string // "" means no default issue
+	}{
+		"other line, different Update default":   {different, released, "FIELD_DEFAULT_CONTRACT_INCONSISTENT"},
+		"default line, different Update default": {different, withDefault, ""},
+		"other line, no declared default":        {strings.ReplaceAll(base, defaultBlock, noDefaultBlock), released, ""},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			doc, err := Load([]byte(test.spec))
+			if err != nil {
+				t.Fatal(err)
+			}
+			codes := reportCodes(ValidateWithPolicy(doc, "Thing", OperationIDs{}, test.policy))
+			hasDefaultIssue := slices.ContainsFunc(codes, func(c string) bool { return strings.Contains(c, "DEFAULT") })
+			if test.want == "" && hasDefaultIssue || test.want != "" && !slices.Contains(codes, test.want) {
+				t.Fatalf("codes = %v, want %q", codes, test.want)
+			}
+		})
+	}
+}
+
+func TestWriteOnlyAndLookaroundPatternAreIneligible(t *testing.T) {
 	base := string(validSpec(t))
 	tests := map[string]struct {
 		spec string
@@ -497,8 +549,12 @@ func TestWriteOnlyAndPatternAreIneligible(t *testing.T) {
 			spec: strings.Replace(base, "        enabled:\n          type: boolean\n", "        enabled:\n          type: boolean\n          writeOnly: true\n", 1),
 			code: "FIELD_WRITE_ONLY_UNSUPPORTED",
 		},
-		"pattern": {
-			spec: strings.Replace(base, "        name:\n          type: string\n", "        name:\n          type: string\n          pattern: '^[a-z]+$'\n", 1),
+		"pattern on a request enum": {
+			spec: strings.Replace(base, "    ThingKind:\n      type: string\n", "    ThingKind:\n      type: string\n      pattern: '^[a-z]+$'\n", 1),
+			code: "STRING_PATTERN_UNSUPPORTED",
+		},
+		"request pattern that Go cannot compile": {
+			spec: strings.Replace(base, "                name:\n                  type: string\n", "                name:\n                  type: string\n                  pattern: '^(?!x)[a-z]+$'\n", 1),
 			code: "STRING_PATTERN_UNSUPPORTED",
 		},
 	}
@@ -512,6 +568,81 @@ func TestWriteOnlyAndPatternAreIneligible(t *testing.T) {
 				t.Fatalf("codes %v do not contain %s", codes, test.code)
 			}
 		})
+	}
+}
+
+// A pattern becomes a validator of the configuration. The configuration never
+// sets a value that only the response has, so a pattern there is no issue.
+func TestResponseOnlyPatternIsEligible(t *testing.T) {
+	spec := strings.Replace(string(validSpec(t)),
+		"        id:\n          type: string\n          description: The server-assigned identifier.\n",
+		"        id:\n          type: string\n          pattern: '^[0-9a-f-]+$'\n          description: The server-assigned identifier.\n", 1)
+	if !strings.Contains(spec, "pattern: '^[0-9a-f-]+$'") {
+		t.Fatal("fixture text not found")
+	}
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report := Validate(doc, "Thing", OperationIDs{}); len(report) != 0 {
+		t.Fatalf("a pattern on the response-only id is ineligible: %v", report)
+	}
+}
+
+// withNamePattern sets pattern on name in the Create body, the Update body, and
+// Thing. Only Thing when requests is false.
+func withNamePattern(t *testing.T, pattern string, requests bool) string {
+	t.Helper()
+	spec := string(validSpec(t))
+	if requests {
+		spec = strings.Replace(spec, "                name:\n                  type: string\n", "                name:\n                  type: string\n                  pattern: '"+pattern+"'\n", 2)
+	}
+	return strings.Replace(spec, "        name:\n          type: string\n", "        name:\n          type: string\n          pattern: '"+pattern+"'\n", 1)
+}
+
+func namePattern(t *testing.T, spec string, policy Policy) string {
+	t.Helper()
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report := ValidateWithPolicy(doc, "Thing", OperationIDs{}, policy); len(report) != 0 {
+		t.Fatalf("ineligible: %v", report)
+	}
+	r, err := BuildWithPolicy(doc, "Thing", OperationIDs{}, policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range r.Fields {
+		if f.Name == "name" {
+			return f.Type.Pattern
+		}
+	}
+	t.Fatal("no name field")
+	return ""
+}
+
+func TestRequestPatternIsTheFieldPattern(t *testing.T) {
+	const pattern = "^[a-z][a-z0-9-]*$"
+	if got := namePattern(t, withNamePattern(t, pattern, true), Policy{}); got != pattern {
+		t.Errorf("pattern = %q, want %q", got, pattern)
+	}
+	if got := namePattern(t, withNamePattern(t, `^[\s\S]*$`, true), Policy{}); got != "" {
+		t.Errorf("free-text pattern = %q, want none", got)
+	}
+	// An existing resource keeps the released behavior: no pattern validator.
+	if got := namePattern(t, withNamePattern(t, pattern, true), Policy{Existing: true}); got != "" {
+		t.Errorf("existing-mode pattern = %q, want none", got)
+	}
+}
+
+func TestRequestPatternMustMatchTheResponse(t *testing.T) {
+	doc, err := Load([]byte(withNamePattern(t, "^[a-z]+$", false)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if codes := reportCodes(Validate(doc, "Thing", OperationIDs{})); !slices.Contains(codes, "FIELD_TYPE_INCONSISTENT") {
+		t.Fatalf("codes %v do not contain FIELD_TYPE_INCONSISTENT", codes)
 	}
 }
 
@@ -686,6 +817,82 @@ func TestPatchUpdateContract(t *testing.T) {
 	}
 }
 
+func TestBodyUpdateMaskIsOmitted(t *testing.T) {
+	withMask := updateBodyMask(t, string(validSpec(t)), true)
+	doc, err := Load([]byte(withMask))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resource, err := BuildWithPolicy(doc, "Thing", OperationIDs{}, Policy{Existing: true, UpdateMaskInBody: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !resource.MaskInBody || resource.UpdateMask != "updateMask" || resource.UpdateMaskPattern == "" {
+		t.Fatalf("body %t, mask %q, pattern %q", resource.MaskInBody, resource.UpdateMask, resource.UpdateMaskPattern)
+	}
+
+	both := updateBodyMask(t, string(validSpec(t)), false)
+	doc, err = Load([]byte(both))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = BuildWithPolicy(doc, "Thing", OperationIDs{}, Policy{Existing: true, UpdateMaskInBody: true})
+	if err == nil || !strings.Contains(err.Error(), "both") {
+		t.Fatalf("err = %v, want the mask to be rejected as both a body property and a parameter", err)
+	}
+}
+
+func TestBodyUpdateMaskRejectsNestedOneOf(t *testing.T) {
+	dotted := updateBodyMask(t, string(validSpec(t)), true)
+	top := strings.Replace(dotted,
+		"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'",
+		"pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'", 1)
+	if top == dotted {
+		t.Fatal("cannot locate the body mask pattern")
+	}
+	body := Policy{Existing: true, UpdateMaskInBody: true, NoInferredValidators: true}
+	if codes := maskCodes(t, top, body); !slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
+		t.Fatalf("codes %v do not contain UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED", codes)
+	}
+	if codes := maskCodes(t, dotted, body); slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
+		t.Fatalf("codes %v, a pattern that accepts an arm path must not reject the nested oneOf", codes)
+	}
+}
+
+func maskCodes(t *testing.T, spec string, p Policy) []string {
+	t.Helper()
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return reportCodes(ValidateWithPolicy(doc, "Thing", OperationIDs{}, p))
+}
+
+// updateBodyMask adds an optional updateMask string to the Update body. dropQuery
+// removes the updateMask query parameter.
+func updateBodyMask(t *testing.T, spec string, dropQuery bool) string {
+	t.Helper()
+	start := strings.Index(spec, "operationId: ThingsService_UpdateThing")
+	if start < 0 {
+		t.Fatal("cannot locate the update operation")
+	}
+	tail := spec[start:]
+	if dropQuery {
+		params := strings.Index(tail, "      parameters:\n")
+		body := strings.Index(tail, "      requestBody:\n")
+		if params < 0 || body < 0 || params > body {
+			t.Fatal("cannot locate the update mask parameter")
+		}
+		tail = tail[:params] + tail[body:]
+	}
+	labels := "                labels:\n                  type: object\n                  additionalProperties: {type: string}\n"
+	if !strings.Contains(tail, labels) {
+		t.Fatal("cannot locate the update body")
+	}
+	tail = strings.Replace(tail, labels, labels+"                updateMask:\n                  type: string\n                  pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'\n", 1)
+	return spec[:start] + tail
+}
+
 func TestUpdateMaskProtoName(t *testing.T) {
 	data := string(validSpec(t))
 	protoName := strings.Replace(data, "        - name: updateMask\n", "        - name: update_mask\n", 1)
@@ -746,6 +953,37 @@ func TestSingleAllOfResponseIsDirect(t *testing.T) {
 	}
 }
 
+func TestDeleteResponseCanBeInlineEmptyObject(t *testing.T) {
+	ref := "                $ref: '#/components/schemas/DeleteThingResponse'\n"
+	for name, c := range map[string]struct {
+		schema   string
+		eligible bool
+	}{
+		"empty object, as for google.protobuf.Empty": {"                type: object\n", true},
+		"object with fields":                         {"                type: object\n                properties:\n                  ok:\n                    type: boolean\n", false},
+	} {
+		spec := strings.Replace(string(validSpec(t)), ref, c.schema, 1)
+		doc, err := Load([]byte(spec))
+		if err != nil {
+			t.Fatal(err)
+		}
+		codes := reportCodes(Validate(doc, "Thing", OperationIDs{}))
+		if c.eligible != (len(codes) == 0) {
+			t.Fatalf("%s: codes %v, want eligible=%v", name, codes, c.eligible)
+		}
+		if !c.eligible {
+			continue
+		}
+		resource, err := Build(doc, "Thing")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := resource.Delete.Response; !got.Empty || got.Schema != "" {
+			t.Errorf("%s: Delete response = %+v, want an empty response with no component", name, got)
+		}
+	}
+}
+
 func TestPutUpdateContract(t *testing.T) {
 	data := validSpec(t)
 	put := strings.Replace(string(data), "    patch:\n", "    put:\n", 1)
@@ -764,6 +1002,11 @@ func TestPutUpdateContract(t *testing.T) {
 	}
 	if !resource.Replace || resource.UpdateMask != "" {
 		t.Fatalf("PUT resource = replace %t, mask %q", resource.Replace, resource.UpdateMask)
+	}
+
+	_, err = BuildWithPolicy(doc, "Thing", OperationIDs{}, Policy{Existing: true, UpdateMaskInBody: true})
+	if err == nil || !strings.Contains(err.Error(), "full replace") {
+		t.Fatalf("err = %v, want api.updateMaskInBody rejected on a PUT", err)
 	}
 }
 
@@ -1095,4 +1338,212 @@ func reportCodes(report issue.Report) []string {
 		codes = append(codes, item.Code)
 	}
 	return codes
+}
+
+// specType returns the type of the spec field of the fixture, with the
+// request components that Build merged into it.
+func specType(t *testing.T) *Type {
+	t.Helper()
+	doc, err := Load(validSpec(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := Build(doc, "Thing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range r.Fields {
+		if f.Name == "spec" {
+			return f.Type
+		}
+	}
+	t.Fatal("no spec field")
+	return nil
+}
+
+func TestNestedFieldLifecycle(t *testing.T) {
+	spec := specType(t)
+	if spec.CreateSchema != "ThingSpecCreate" || spec.UpdateSchema != "ThingSpecUpdate" {
+		t.Fatalf("request components = %s, %s", spec.CreateSchema, spec.UpdateSchema)
+	}
+	item := fieldNamed(spec.Fields, "items").Type.Elem
+	source := fieldNamed(spec.Fields, "source").Type
+	target := fieldNamed(spec.Fields, "targets").Type.Elem
+	for _, test := range []struct {
+		object *Type
+		field  string
+		want   Behavior
+	}{
+		{spec, "mode", Normal},
+		{spec, "region", Immutable},
+		{spec, "revision", Computed},
+		{spec, "source", Computed},
+		{spec, "items", Normal},
+		{spec, "targets", Immutable},
+		{target, "id", Computed}, // inside an immutable value, Create does not send it
+		{target, "name", Normal},
+		{item, "id", Computed},
+		{item, "key", Immutable},
+		{item, "name", Normal},
+		{source, "origin", ""}, // inside a computed value
+	} {
+		if got := fieldNamed(test.object.Fields, test.field).Behavior; got != test.want {
+			t.Errorf("%s.%s = %q, want %q", test.object.Schema, test.field, got, test.want)
+		}
+	}
+}
+
+func TestNestedRequestTypes(t *testing.T) {
+	spec := specType(t)
+	create, update := spec.CreateType(), spec.UpdateType()
+	if create.Schema != "ThingSpecCreate" || create.Model != "ThingSpec" || !slices.Equal(fieldNames(create), []string{"mode", "region", "items", "targets"}) {
+		t.Errorf("Create type = %s for %s with %v", create.Schema, create.Model, fieldNames(create))
+	}
+	if update.Schema != "ThingSpecUpdate" || !slices.Equal(fieldNames(update), []string{"mode", "items"}) {
+		t.Errorf("Update type = %s with %v", update.Schema, fieldNames(update))
+	}
+	updateItem := fieldNamed(update.Fields, "items").Type.Elem
+	if updateItem.Schema != "ThingItemUpdate" || updateItem.Model != "ThingItem" || !slices.Equal(fieldNames(updateItem), []string{"name", "startTime"}) {
+		t.Errorf("Update item type = %s for %s with %v", updateItem.Schema, updateItem.Model, fieldNames(updateItem))
+	}
+}
+
+func TestNestedFieldContract(t *testing.T) {
+	const updateItem = "    ThingItemUpdate:\n      type: object\n      required: [name]\n      properties:\n        name:\n          type: string\n          minLength: 1\n"
+	tests := map[string]struct {
+		old, new, code, location string
+	}{
+		"different kind": {
+			updateItem, strings.Replace(updateItem, "type: string\n          minLength: 1", "type: boolean\n          x-coralogix-presence: true", 1),
+			"FIELD_TYPE_INCONSISTENT", "components.schemas.Thing.spec.items[].name",
+		},
+		"different limits": {
+			updateItem, strings.Replace(updateItem, "minLength: 1", "minLength: 2", 1),
+			"FIELD_TYPE_INCONSISTENT", "components.schemas.Thing.spec.items[].name",
+		},
+		"request field missing from the response": {
+			updateItem, updateItem + "        extra:\n          type: string\n          x-coralogix-presence: true\n",
+			"FIELD_LIFECYCLE_UNSUPPORTED", "components.schemas.Thing.spec.items[].extra",
+		},
+		"Update field missing from Create": {
+			updateItem, updateItem + "        id:\n          type: string\n          x-coralogix-presence: true\n",
+			"FIELD_LIFECYCLE_UNSUPPORTED", "components.schemas.Thing.spec.items[].id",
+		},
+		"optional in Create, required in Update": {
+			"    ThingSpecUpdate:\n      type: object\n      required: []\n", "    ThingSpecUpdate:\n      type: object\n      required: [mode]\n",
+			"FIELD_REQUIREDNESS_UNSUPPORTED", "components.schemas.Thing.spec.mode",
+		},
+		"different oneOf arms": {
+			"                config:\n                  allOf:\n                    - $ref: '#/components/schemas/ThingConfig'\n",
+			"                config:\n                  $ref: '#/components/schemas/ThingConfigUpdate'\n",
+			"FIELD_TYPE_INCONSISTENT", "components.schemas.Thing.config",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			spec := string(validSpec(t))
+			if !strings.Contains(spec, test.old) {
+				t.Fatal("fixture text not found")
+			}
+			spec = strings.Replace(spec, test.old, test.new, 1)
+			spec = strings.Replace(spec, "    DeleteThingResponse:\n",
+				"    ThingConfigUpdate:\n      type: object\n      required: []\n      properties:\n        http:\n          $ref: '#/components/schemas/HttpThingConfig'\n      oneOf:\n        - required: [http]\n    DeleteThingResponse:\n", 1)
+			doc, err := Load([]byte(spec))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var found []issue.Issue
+			for _, item := range Validate(doc, "Thing", OperationIDs{}) {
+				if item.Location == test.location {
+					found = append(found, item)
+				}
+			}
+			// Validate and Build report the same issue once.
+			if len(found) != 1 || found[0].Code != test.code {
+				t.Fatalf("issues at %s = %v, want one %s", test.location, found, test.code)
+			}
+		})
+	}
+}
+
+// looseConfigSpec returns the fixture with the config oneOf of the given
+// request and response schemas replaced by ThingConfigLoose, a copy that
+// allows no arm. Create, Update, and the response are "create", "update", and
+// "get".
+func looseConfigSpec(t *testing.T, loose ...string) string {
+	t.Helper()
+	spec := string(validSpec(t))
+	refs := map[string][2]string{
+		"create": {"                config:\n                  $ref: '#/components/schemas/ThingConfig'\n                spec:\n", "                config:\n                  $ref: '#/components/schemas/ThingConfigLoose'\n                spec:\n"},
+		"update": {"                config:\n                  allOf:\n                    - $ref: '#/components/schemas/ThingConfig'\n", "                config:\n                  $ref: '#/components/schemas/ThingConfigLoose'\n"},
+		"get":    {"        config:\n          $ref: '#/components/schemas/ThingConfig'\n        status:\n", "        config:\n          $ref: '#/components/schemas/ThingConfigLoose'\n        status:\n"},
+	}
+	for _, op := range loose {
+		if !strings.Contains(spec, refs[op][0]) {
+			t.Fatalf("fixture text for %s not found", op)
+		}
+		spec = strings.Replace(spec, refs[op][0], refs[op][1], 1)
+	}
+	return strings.Replace(spec, "    DeleteThingResponse:\n", `    ThingConfigLoose:
+      type: object
+      required: []
+      properties:
+        http:
+          $ref: '#/components/schemas/HttpThingConfig'
+        queue:
+          $ref: '#/components/schemas/QueueThingConfig'
+      oneOf:
+        - required: [http]
+        - required: [queue]
+        - not:
+            anyOf:
+              - required: [http]
+              - required: [queue]
+    DeleteThingResponse:
+`, 1)
+}
+
+func TestOneOfNoArmRule(t *testing.T) {
+	tests := map[string]struct {
+		loose []string
+		issue string // "" when eligible
+	}{
+		"Update and response allow no arm":      {loose: []string{"update", "get"}},
+		"only Update allows no arm":             {loose: []string{"update"}},
+		"Create allows no arm, response not":    {loose: []string{"create"}, issue: "the resource response requires one"},
+		"Create and response allow, Update not": {loose: []string{"create", "get"}, issue: "the Update request requires one"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			doc, err := Load([]byte(looseConfigSpec(t, test.loose...)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var found []issue.Issue
+			for _, item := range Validate(doc, "Thing", OperationIDs{}) {
+				if item.Location == "components.schemas.Thing.config" {
+					found = append(found, item)
+				}
+			}
+			if test.issue == "" {
+				if len(found) != 0 {
+					t.Fatalf("issues = %v, want none", found)
+				}
+				r, err := Build(doc, "Thing")
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, f := range r.Fields {
+					// The configuration follows Create, which requires an arm.
+					if f.Name == "config" && f.Type.AllowNone {
+						t.Fatal("config allows no arm, want the Create rule")
+					}
+				}
+				return
+			}
+			if len(found) != 1 || found[0].Code != "FIELD_TYPE_INCONSISTENT" || !strings.Contains(found[0].Message, test.issue) {
+				t.Fatalf("issues = %v, want one FIELD_TYPE_INCONSISTENT with %q", found, test.issue)
+			}
+		})
+	}
 }

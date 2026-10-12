@@ -229,6 +229,9 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	if err != nil {
 		return nil, fmt.Errorf("build validated resource: %w", err)
 	}
+	if report = unwrapUsageIssues(resource, file); len(report) != 0 {
+		return nil, &EligibilityError{Report: report}
+	}
 	tag, err := resourceTag(doc, resource)
 	if err != nil {
 		return nil, eligibilityIssue("OPERATION_TAG_INCOMPATIBLE", "paths", err, "Give every lifecycle operation exactly one matching SDK package tag.")
@@ -287,12 +290,7 @@ func rendererIssues(resource *model.Resource, refs []sdkRef, file *overrides.Fil
 	var report issue.Report
 	for _, check := range checks {
 		if err := check.run(); err != nil {
-			report = append(report, issue.Issue{
-				Code:        "RENDERER_SHAPE_UNSUPPORTED",
-				Location:    check.location,
-				Message:     err.Error(),
-				Remediation: "Use a resource shape that the generic Terraform renderer supports.",
-			})
+			report = append(report, shapeIssue(check.location, err))
 		}
 	}
 	if len(report) != 0 {
@@ -307,6 +305,39 @@ func rendererIssues(resource *model.Resource, refs []sdkRef, file *overrides.Fil
 		})
 	}
 	return report
+}
+
+func shapeIssue(location string, err error) issue.Issue {
+	if errors.Is(err, errPriorContainer) {
+		return issue.Issue{
+			Code:        "OVERRIDE_PRIOR_CONTAINER",
+			Location:    location,
+			Message:     err.Error(),
+			Remediation: "Delete the equality or keepPriorOrder key from the fields of the object that the map or the computed object holds.",
+		}
+	}
+	if errors.Is(err, errUnwrapCombination) {
+		return issue.Issue{
+			Code:        "UNWRAP_COMBINATION_UNSUPPORTED",
+			Location:    location,
+			Message:     err.Error(),
+			Remediation: "Delete the keepPriorOrder or equality key, or the unwrap line of the field.",
+		}
+	}
+	if errors.Is(err, errStaleOverrideKey) {
+		return issue.Issue{
+			Code:        "OVERRIDE_UNUSED",
+			Location:    location,
+			Message:     err.Error(),
+			Remediation: "Delete only the named key from the line.",
+		}
+	}
+	return issue.Issue{
+		Code:        "RENDERER_SHAPE_UNSUPPORTED",
+		Location:    location,
+		Message:     err.Error(),
+		Remediation: "Use a resource shape that the generic Terraform renderer supports.",
+	}
 }
 
 func eligibilityIssue(code, location string, err error, remediation string) error {

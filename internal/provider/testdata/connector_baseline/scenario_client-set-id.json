@@ -1,0 +1,242 @@
+[
+  {
+    "step": "create with id",
+    "config": {
+      "connector_config": {
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "id": "my-connector",
+      "name": "mine",
+      "type": "generic_https"
+    },
+    "plan": {
+      "config_overrides": "(unknown)",
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "",
+      "id": "my-connector",
+      "name": "mine",
+      "type": "generic_https"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/connectors",
+        "body": {
+          "connector": {
+            "connectorConfig": {
+              "fields": [
+                {
+                  "fieldName": "method",
+                  "value": "post"
+                },
+                {
+                  "fieldName": "url",
+                  "value": "https://example.com/hook"
+                }
+              ]
+            },
+            "description": "",
+            "id": "my-connector",
+            "name": "mine",
+            "type": "GENERIC_HTTPS"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "config_overrides": [],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "",
+      "id": "my-connector",
+      "name": "mine",
+      "type": "generic_https"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update",
+    "config": {
+      "connector_config": {
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "changed",
+      "id": "my-connector",
+      "name": "mine",
+      "type": "generic_https"
+    },
+    "plan": {
+      "config_overrides": "(unknown)",
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "changed",
+      "id": "my-connector",
+      "name": "mine",
+      "type": "generic_https"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/connectors",
+        "body": {
+          "connector": {
+            "connectorConfig": {
+              "fields": [
+                {
+                  "fieldName": "method",
+                  "value": "post"
+                },
+                {
+                  "fieldName": "url",
+                  "value": "https://example.com/hook"
+                }
+              ]
+            },
+            "description": "changed",
+            "id": "my-connector",
+            "name": "mine",
+            "type": "GENERIC_HTTPS"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "config_overrides": [],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "changed",
+      "id": "my-connector",
+      "name": "mine",
+      "type": "generic_https"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "import",
+    "applyDiagnostics": [
+      "warning: An imported secret is written to state | Importing reads the connector's current configuration from Coralogix, including every field value it carries, and writes it to state. Treat an imported secret as exposed and rotate it.\n\nTo keep it out of state from then on, move the value from connector_config.fields into connector_config.field_values_wo, give it an entry in connector_config.field_values_wo_versions, and apply. That apply removes the imported value from state. Write-only attributes need Terraform 1.11 or later."
+    ],
+    "state": null
+  },
+  {
+    "step": "import (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/connectors/my-connector",
+        "status": 200
+      }
+    ],
+    "state": {
+      "config_overrides": [],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "changed",
+      "id": "my-connector",
+      "name": "mine",
+      "type": "generic_https"
+    },
+    "drift": [
+      "AttributeName(\"config_overrides\")",
+      "AttributeName(\"connector_config\")",
+      "AttributeName(\"connector_config\").AttributeName(\"field_values_wo\")",
+      "AttributeName(\"connector_config\").AttributeName(\"field_values_wo_versions\")",
+      "AttributeName(\"connector_config\").AttributeName(\"fields\")",
+      "AttributeName(\"description\")",
+      "AttributeName(\"name\")",
+      "AttributeName(\"type\")"
+    ]
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/connectors/my-connector",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

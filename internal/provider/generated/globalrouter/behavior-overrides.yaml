@@ -39,7 +39,6 @@ types:
     fields:
       id:
         markdownDescription: "The ID of the GlobalRouter. Use `router_default` for the default; leave empty for auto generated or provide your own (unique) id."
-        useStateForUnknown: true
       name:
         markdownDescription: "Name of the GlobalRouter."
       description:
@@ -107,8 +106,6 @@ types:
       id: {skip: true}
 
   RoutingLabels:
-    # The contract does not declare a required list for the labels. All are optional.
-    required: []
     fields:
       environment: {description: "", computed: true}
       service: {description: "", computed: true}

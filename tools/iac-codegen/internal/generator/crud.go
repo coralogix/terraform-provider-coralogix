@@ -30,8 +30,11 @@ type crudData struct {
 	Existing bool
 	// Upgrades are the state upgraders: one per older schema version.
 	Upgrades []upgradeData
+	// MaskInBody: updateMask is an optional JSON body property. Update sets it
+	// to the same changed-field mask a query parameter would send.
+	MaskInBody bool
 	// UpdateMask is the SDK request-builder method for the PATCH updateMask
-	// query parameter. It is empty for a full replace.
+	// query parameter. It is empty for a full replace and for MaskInBody.
 	UpdateMask string
 	SDKName    string // package name of the resource SDK package
 	Client     string // SDK client type
@@ -91,13 +94,14 @@ func buildCRUDWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*cru
 		return nil, err
 	}
 	out := &crudData{
-		TypeName:  tfName(r.Name),
-		Model:     modelTypeName(r.Name),
-		IDAttr:    "id",
-		IDGoType:  "string",
-		IDTFType:  "String",
-		Singleton: r.Singleton,
-		Replace:   r.Replace,
+		TypeName:   tfName(r.Name),
+		Model:      modelTypeName(r.Name),
+		IDAttr:     "id",
+		IDGoType:   "string",
+		IDTFType:   "String",
+		Singleton:  r.Singleton,
+		Replace:    r.Replace,
+		MaskInBody: r.MaskInBody,
 
 		UpdateIDInBody: r.Policy.UpdateIDInBody,
 		Existing:       r.Policy.Existing,
@@ -114,7 +118,7 @@ func buildCRUDWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*cru
 			out.Upgrades = append(out.Upgrades, upgradeData{Version: version, ImportPath: importPath, Alias: fmt.Sprintf("priorSchema%d", version), Func: function})
 		}
 	}
-	if err := updateExtras(ix, r.Replace, out); err != nil {
+	if err := updateExtras(ix, r, out); err != nil {
 		return nil, err
 	}
 	if err := providerNames(ix, client.Name, out); err != nil {
@@ -168,8 +172,8 @@ func resourceIDData(r *model.Resource, ix *refIndex, out *crudData) error {
 	return nil
 }
 
-func updateExtras(ix *refIndex, replace bool, out *crudData) error {
-	if replace {
+func updateExtras(ix *refIndex, r *model.Resource, out *crudData) error {
+	if r.Replace || r.MaskInBody {
 		return nil
 	}
 	builder, err := ix.typeRef("update")

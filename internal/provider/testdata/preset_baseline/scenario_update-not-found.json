@@ -1,0 +1,228 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {}
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
+      "connector_type": "generic_https",
+      "entity_type": "alerts",
+      "name": "gone",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "plan": {
+      "attachment_config": "AUTO",
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {},
+            "match_entity_type_and_sub_type": null
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
+      "connector_type": "generic_https",
+      "description": null,
+      "entity_type": "alerts",
+      "id": "(unknown)",
+      "name": "gone",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/presets:createCustom",
+        "body": {
+          "preset": {
+            "attachmentConfig": {
+              "policy": "AUTO"
+            },
+            "configOverrides": [
+              {
+                "messageConfig": {
+                  "fields": [
+                    {
+                      "fieldName": "body",
+                      "template": "{}"
+                    }
+                  ]
+                },
+                "payloadType": "generic_https_default"
+              }
+            ],
+            "connectorType": "GENERIC_HTTPS",
+            "entityType": "ALERTS",
+            "name": "gone",
+            "parentId": "preset_system_generic_https_alerts_empty",
+            "presetType": "CUSTOM"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "attachment_config": "AUTO",
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {},
+            "match_entity_type_and_sub_type": null
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
+      "connector_type": "generic_https",
+      "description": null,
+      "entity_type": "alerts",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "gone",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: preset was deleted outside Terraform",
+    "config": {
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {}
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
+      "connector_type": "generic_https",
+      "description": "changed",
+      "entity_type": "alerts",
+      "name": "gone",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "plan": {
+      "attachment_config": "AUTO",
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {},
+            "match_entity_type_and_sub_type": null
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
+      "connector_type": "generic_https",
+      "description": "changed",
+      "entity_type": "alerts",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "gone",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/presets:replaceCustom",
+        "body": {
+          "preset": {
+            "attachmentConfig": {
+              "policy": "AUTO"
+            },
+            "configOverrides": [
+              {
+                "messageConfig": {
+                  "fields": [
+                    {
+                      "fieldName": "body",
+                      "template": "{}"
+                    }
+                  ]
+                },
+                "payloadType": "generic_https_default"
+              }
+            ],
+            "connectorType": "GENERIC_HTTPS",
+            "description": "changed",
+            "entityType": "ALERTS",
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "gone",
+            "parentId": "preset_system_generic_https_alerts_empty",
+            "presetType": "CUSTOM"
+          }
+        },
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: Resource disappeared during update | The API did not find preset with id 00000000-0000-4000-8000-000000000001. Terraform removed it from state.",
+      "error: Missing Resource State After Update | The Terraform Provider unexpectedly returned no resource state after having no errors in the resource update. This is always an issue in the Terraform Provider and should be reported to the provider developers."
+    ],
+    "state": {
+      "attachment_config": "AUTO",
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {},
+            "match_entity_type_and_sub_type": null
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
+      "connector_type": "generic_https",
+      "description": null,
+      "entity_type": "alerts",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "gone",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    }
+  }
+]

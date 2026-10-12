@@ -12,12 +12,6 @@ func TestCheckAcceptsLocalCandidate(t *testing.T) {
 	}
 }
 
-func TestGenerateDoesNotAcceptOpenAPIInput(t *testing.T) {
-	if status := run([]string{"generate", "--resource", "Thing", "--openapi", "candidate.yaml"}); status != 2 {
-		t.Fatalf("status = %d, want 2", status)
-	}
-}
-
 func TestCheckDoesNotAcceptOutput(t *testing.T) {
 	if status := run([]string{"check", "--resource", "Thing", "--openapi", "candidate.yaml", "--out", "generated"}); status != 2 {
 		t.Fatalf("status = %d, want 2", status)

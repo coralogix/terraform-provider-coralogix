@@ -1,0 +1,23 @@
+[
+  {
+    "step": "import an id that does not exist",
+    "applyDiagnostics": [
+      "warning: An imported secret is written to state | Importing reads the connector's current configuration from Coralogix, including every field value it carries, and writes it to state. Treat an imported secret as exposed and rotate it.\n\nTo keep it out of state from then on, move the value from connector_config.fields into connector_config.field_values_wo, give it an entry in connector_config.field_values_wo_versions, and apply. That apply removes the imported value from state. Write-only attributes need Terraform 1.11 or later."
+    ],
+    "state": null
+  },
+  {
+    "step": "import an id that does not exist (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/connectors/does-not-exist",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: Resource disappeared during read | connector with id does-not-exist was not found. Terraform removed it from state."
+    ],
+    "state": null
+  }
+]

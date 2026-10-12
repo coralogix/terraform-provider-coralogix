@@ -2,14 +2,23 @@ package thing
 
 import (
 	"context"
+	"slices"
 	"testing"
+	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"example.com/iac-test-sdk/go/openapi/gen/things_service"
@@ -110,7 +119,7 @@ func TestOptionalGetPresenceRoundTrips(t *testing.T) {
 	ctx := context.Background()
 	var diags diag.Diagnostics
 	omitted := flattenThing(ctx, path.Root("thing"), &things_service.Thing{}, &diags)
-	if !omitted.Description.IsNull() || !omitted.Destinations.IsNull() || !omitted.Tags.IsNull() || !omitted.Labels.IsNull() {
+	if !omitted.Description.IsNull() || !omitted.Destinations.IsNull() || !omitted.Tags.IsNull() || !omitted.Details.IsNull() || !omitted.Labels.IsNull() {
 		t.Fatalf("omitted optional fields = %#v, want null values", omitted)
 	}
 
@@ -119,9 +128,10 @@ func TestOptionalGetPresenceRoundTrips(t *testing.T) {
 		Description:  &emptyDescription,
 		Destinations: []string{},
 		Tags:         []string{},
+		Details:      []things_service.ThingDetail{},
 		Labels:       map[string]string{},
 	}, &diags)
-	if explicit.Description.IsNull() || explicit.Description.ValueString() != "" || explicit.Destinations.IsNull() || explicit.Tags.IsNull() || explicit.Labels.IsNull() {
+	if explicit.Description.IsNull() || explicit.Description.ValueString() != "" || explicit.Destinations.IsNull() || explicit.Tags.IsNull() || explicit.Details.IsNull() || explicit.Labels.IsNull() {
 		t.Fatalf("explicit empty fields = %#v, want present values", explicit)
 	}
 	if diags.HasError() {
@@ -138,6 +148,7 @@ func TestOptionalGetPresenceRoundTrips(t *testing.T) {
 		Enabled:      types.BoolNull(),
 		Destinations: types.ListNull(types.StringType),
 		Tags:         types.SetNull(types.StringType),
+		Details:      types.SetNull(types.ObjectType{AttrTypes: map[string]attr.Type{"name": types.StringType}}),
 		Labels:       types.MapNull(types.StringType),
 	})
 	updateDiags.Append(bodyDiags...)
@@ -146,9 +157,55 @@ func TestOptionalGetPresenceRoundTrips(t *testing.T) {
 	}
 }
 
+// A time that a request sends round-trips with every digit of its fraction, plans no change when
+// the API returns it with other fraction digits, and must be in UTC.
+func TestTimeRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+	configured := timetypes.NewRFC3339ValueMust("2030-01-01T00:00:00.5Z")
+	sent := expandRFC3339(path.Root("expire_time"), configured, &diags)
+	if read := flattenRFC3339(sent); !read.Equal(configured) {
+		t.Fatalf("round trip = %s, want %s", read, configured)
+	}
+	zeros := timetypes.NewRFC3339ValueMust("2030-01-01T00:00:00.000Z")
+	returned := flattenRFC3339(expandRFC3339(path.Root("expire_time"), zeros, &diags))
+	if equal, d := zeros.StringSemanticEquals(ctx, returned); !equal || d.HasError() {
+		t.Fatalf("%s and %s plan a change", zeros, returned)
+	}
+	if flattenRFC3339(nil).IsNull() != true || expandRFC3339(path.Root("expire_time"), timetypes.NewRFC3339Null(), &diags) != nil {
+		t.Fatal("null does not round-trip")
+	}
+
+	attribute := Schema().Attributes["expire_time"].(schema.StringAttribute)
+	for value, wantError := range map[string]bool{"2030-01-01T02:00:00+02:00": true, "2030-01-01T00:00:00Z": false} {
+		var failed bool
+		for _, v := range attribute.Validators {
+			resp := &validator.StringResponse{}
+			v.ValidateString(ctx, validator.StringRequest{Path: path.Root("expire_time"), ConfigValue: types.StringValue(value)}, resp)
+			failed = failed || resp.Diagnostics.HasError()
+		}
+		if failed != wantError {
+			t.Errorf("%s: validation error = %v, want %v", value, failed, wantError)
+		}
+	}
+
+	windows := []time.Time{time.Date(2030, 1, 2, 0, 0, 0, 0, time.UTC), time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC)}
+	list := flattenTimesList(ctx, windows, &diags)
+	if back := expandTimes(ctx, path.Root("windows"), list, &diags); !slices.EqualFunc(back, windows, time.Time.Equal) {
+		t.Fatalf("windows = %v, want %v in order", back, windows)
+	}
+	if flattenTimesList(ctx, nil, &diags).IsNull() != true {
+		t.Fatal("a missing list is not null")
+	}
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+}
+
 func TestCollectionPresenceAndStability(t *testing.T) {
 	t.Run("list presence and order", testListPresenceAndOrder)
 	t.Run("set stability", testSetStability)
+	t.Run("set of objects", testSetOfObjects)
 	t.Run("map and flatten", testMapAndFlatten)
 }
 
@@ -188,6 +245,34 @@ func testSetStability(t *testing.T) {
 	}
 	if got := expandStringsSet[string](ctx, path.Root("tags"), duplicate, &diags); len(got) != 1 || got[0] != "a" {
 		t.Fatalf("expanded duplicate set = %#v", got)
+	}
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+}
+
+func testSetOfObjects(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+	elem := types.ObjectType{AttrTypes: map[string]attr.Type{"name": types.StringType}}
+	first := types.SetValueMust(elem, []attr.Value{
+		types.ObjectValueMust(elem.AttrTypes, map[string]attr.Value{"name": types.StringValue("a")}),
+		types.ObjectValueMust(elem.AttrTypes, map[string]attr.Value{"name": types.StringValue("b")}),
+	})
+	second := types.SetValueMust(elem, []attr.Value{
+		types.ObjectValueMust(elem.AttrTypes, map[string]attr.Value{"name": types.StringValue("b")}),
+		types.ObjectValueMust(elem.AttrTypes, map[string]attr.Value{"name": types.StringValue("a")}),
+	})
+	if !first.Equal(second) {
+		t.Fatal("set of objects order changed equality")
+	}
+	items := expandElements[ThingDetailModel](ctx, path.Root("details"), first, &diags)
+	if len(items) != 2 {
+		t.Fatalf("expanded details = %#v", items)
+	}
+	got := expandThingDetail(ctx, path.Root("details"), &items[0], &diags)
+	if got == nil || got.Name == "" {
+		t.Fatalf("flattened detail = %#v", got)
 	}
 	if diags.HasError() {
 		t.Fatal(diags)
@@ -285,9 +370,13 @@ func requestValues() map[string]attr.Value {
 		"enabled":      types.BoolNull(),
 		"kind":         types.StringNull(),
 		"config":       types.ObjectNull(configType),
+		"spec":         types.ObjectNull(Schema().Attributes["spec"].GetType().(types.ObjectType).AttrTypes),
 		"destinations": types.ListNull(types.StringType),
 		"tags":         types.SetNull(types.StringType),
+		"details":      types.SetNull(types.ObjectType{AttrTypes: map[string]attr.Type{"name": types.StringType}}),
 		"labels":       types.MapNull(types.StringType),
+		"expire_time":  timetypes.NewRFC3339Null(),
+		"windows":      types.ListNull(timetypes.RFC3339Type{}),
 	}
 }
 
@@ -394,5 +483,221 @@ func TestEmptyObjectRules(t *testing.T) {
 	}
 	if diags.HasError() {
 		t.Fatal(diags)
+	}
+}
+
+// nestedFixture builds Terraform values of the resource with a spec. The
+// spec has a normal mode, an immutable region, a computed revision and
+// source, items with a computed id and an immutable key, and an immutable
+// list of targets with a computed id. target is the name of the one target.
+type nestedFixture struct {
+	root, spec, item, source, targetType tftypes.Object
+	items, targets                       tftypes.List
+	target                               string
+}
+
+func newNestedFixture(ctx context.Context) nestedFixture {
+	root := Schema().Type().TerraformType(ctx).(tftypes.Object)
+	spec := root.AttributeTypes["spec"].(tftypes.Object)
+	items := spec.AttributeTypes["items"].(tftypes.List)
+	targets := spec.AttributeTypes["targets"].(tftypes.List)
+	return nestedFixture{root: root, spec: spec, items: items, item: items.ElementType.(tftypes.Object),
+		source: spec.AttributeTypes["source"].(tftypes.Object), targets: targets,
+		targetType: targets.ElementType.(tftypes.Object), target: "t1"}
+}
+
+func (f nestedFixture) withTarget(name string) nestedFixture {
+	f.target = name
+	return f
+}
+
+func tfString(v interface{}) tftypes.Value { return tftypes.NewValue(tftypes.String, v) }
+
+func (f nestedFixture) itemValue(id, key interface{}, name string) tftypes.Value {
+	return tftypes.NewValue(f.item, map[string]tftypes.Value{"id": tfString(id), "key": tfString(key), "name": tfString(name), "create_time": tfString(nil), "start_time": tfString(nil)})
+}
+
+// specValue is the spec in configuration (server false) or in state (server true).
+func (f nestedFixture) specValue(server bool, mode, region string, items ...tftypes.Value) tftypes.Value {
+	revision, source, targetID := tfString(nil), tftypes.NewValue(f.source, nil), tfString(nil)
+	if server {
+		revision = tfString("1")
+		source = tftypes.NewValue(f.source, map[string]tftypes.Value{"origin": tfString("api")})
+		targetID = tfString("target-1")
+	}
+	target := tftypes.NewValue(f.targetType, map[string]tftypes.Value{"id": targetID, "name": tfString(f.target)})
+	return tftypes.NewValue(f.spec, map[string]tftypes.Value{
+		"mode": tfString(mode), "region": tfString(region), "revision": revision, "source": source,
+		"items": tftypes.NewValue(f.items, items), "targets": tftypes.NewValue(f.targets, []tftypes.Value{target}),
+	})
+}
+
+// resourceValue is the resource in configuration (server false) or in state (server true).
+func (f nestedFixture) resourceValue(server bool, name string, spec tftypes.Value) tftypes.Value {
+	values := nullTFValues(f.root)
+	values["name"] = tfString(name)
+	values["kind"] = tfString("THING_KIND_STANDARD")
+	configType := f.root.AttributeTypes["config"].(tftypes.Object)
+	httpType := configType.AttributeTypes["http"].(tftypes.Object)
+	values["config"] = tftypes.NewValue(configType, map[string]tftypes.Value{
+		"http":  tftypes.NewValue(httpType, map[string]tftypes.Value{"endpoint": tfString("https://example.com")}),
+		"queue": tftypes.NewValue(configType.AttributeTypes["queue"], nil),
+	})
+	values["spec"] = spec
+	if server {
+		statusType := f.root.AttributeTypes["status"].(tftypes.Object)
+		values["id"] = tfString("thing-1")
+		values["enabled"] = tftypes.NewValue(tftypes.Bool, true)
+		values["status"] = tftypes.NewValue(statusType, map[string]tftypes.Value{"health": tfString("ok"), "items": tftypes.NewValue(statusType.AttributeTypes["items"], nil)})
+		values["create_time"] = tfString("2026-01-01T00:00:00Z")
+		values["update_time"] = tfString("2026-01-01T00:00:00Z")
+	}
+	return tftypes.NewValue(f.root, values)
+}
+
+type testProvider struct{}
+
+func (testProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "test"
+}
+func (testProvider) Schema(context.Context, provider.SchemaRequest, *provider.SchemaResponse) {}
+func (testProvider) Configure(context.Context, provider.ConfigureRequest, *provider.ConfigureResponse) {
+}
+func (testProvider) Resources(context.Context) []func() frameworkresource.Resource {
+	return []func() frameworkresource.Resource{NewResource}
+}
+func (testProvider) DataSources(context.Context) []func() datasource.DataSource { return nil }
+
+// planChange runs the Terraform plan of the resource. proposed is the value
+// that Terraform core proposes: the configuration, and the prior value of a
+// computed attribute that the configuration leaves null.
+func (f nestedFixture) planChange(t *testing.T, prior, config, proposed tftypes.Value) (tftypes.Value, []*tftypes.AttributePath) {
+	t.Helper()
+	ctx := context.Background()
+	server, err := providerserver.NewProtocol6WithError(testProvider{})()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := server.GetProviderSchema(ctx, &tfprotov6.GetProviderSchemaRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	encode := func(v tftypes.Value) *tfprotov6.DynamicValue {
+		dv, err := tfprotov6.NewDynamicValue(f.root, v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return &dv
+	}
+	resp, err := server.PlanResourceChange(ctx, &tfprotov6.PlanResourceChangeRequest{
+		TypeName: "test_" + TypeName, PriorState: encode(prior), Config: encode(config), ProposedNewState: encode(proposed),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range resp.Diagnostics {
+		if d.Severity == tfprotov6.DiagnosticSeverityError {
+			t.Fatalf("plan: %s: %s", d.Summary, d.Detail)
+		}
+	}
+	planned, err := resp.PlannedState.Unmarshal(f.root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return planned, resp.RequiresReplace
+}
+
+func TestNestedLifecyclePlans(t *testing.T) {
+	ctx := context.Background()
+	f := newNestedFixture(ctx)
+	prior := f.resourceValue(true, "thing", f.specValue(true, "fast", "eu", f.itemValue("item-1", "k1", "a")))
+	keyPath := func(i int) *tftypes.AttributePath {
+		return tftypes.NewAttributePath().WithAttributeName("spec").WithAttributeName("items").WithElementKeyInt(i).WithAttributeName("key")
+	}
+	tests := map[string]struct {
+		config, proposed tftypes.Value
+		replace          *tftypes.AttributePath // nil: an update or no change
+		mask             string                 // the update mask of an update
+	}{
+		"no change": {
+			config:   f.resourceValue(false, "thing", f.specValue(false, "fast", "eu", f.itemValue(nil, "k1", "a"))),
+			proposed: prior,
+		},
+		"top-level change leaves the spec out of the mask": {
+			config:   f.resourceValue(false, "renamed", f.specValue(false, "fast", "eu", f.itemValue(nil, "k1", "a"))),
+			proposed: f.resourceValue(true, "renamed", f.specValue(true, "fast", "eu", f.itemValue("item-1", "k1", "a"))),
+			mask:     "name",
+		},
+		"normal nested change": {
+			config:   f.resourceValue(false, "thing", f.specValue(false, "slow", "eu", f.itemValue(nil, "k1", "a"))),
+			proposed: f.resourceValue(true, "thing", f.specValue(true, "slow", "eu", f.itemValue("item-1", "k1", "a"))),
+			mask:     "spec.mode",
+		},
+		"immutable nested change": {
+			config:   f.resourceValue(false, "thing", f.specValue(false, "fast", "us", f.itemValue(nil, "k1", "a"))),
+			proposed: f.resourceValue(true, "thing", f.specValue(true, "fast", "us", f.itemValue("item-1", "k1", "a"))),
+			replace:  tftypes.NewAttributePath().WithAttributeName("spec").WithAttributeName("region"),
+		},
+		"new item with an immutable value": {
+			config:   f.resourceValue(false, "thing", f.specValue(false, "fast", "eu", f.itemValue(nil, "k1", "a"), f.itemValue(nil, "k2", "b"))),
+			proposed: f.resourceValue(true, "thing", f.specValue(true, "fast", "eu", f.itemValue("item-1", "k1", "a"), f.itemValue(nil, "k2", "b"))),
+			replace:  keyPath(1),
+		},
+		"changed immutable list": {
+			config:   f.withTarget("t2").resourceValue(false, "thing", f.withTarget("t2").specValue(false, "fast", "eu", f.itemValue(nil, "k1", "a"))),
+			proposed: f.withTarget("t2").resourceValue(true, "thing", f.withTarget("t2").specValue(true, "fast", "eu", f.itemValue("item-1", "k1", "a"))),
+			replace:  tftypes.NewAttributePath().WithAttributeName("spec").WithAttributeName("targets"),
+		},
+		"new item without an immutable value": {
+			config:   f.resourceValue(false, "thing", f.specValue(false, "fast", "eu", f.itemValue(nil, "k1", "a"), f.itemValue(nil, nil, "b"))),
+			proposed: f.resourceValue(true, "thing", f.specValue(true, "fast", "eu", f.itemValue("item-1", "k1", "a"), f.itemValue(nil, nil, "b"))),
+			mask:     "spec.items",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			planned, replace := f.planChange(t, prior, test.config, test.proposed)
+			if test.replace != nil {
+				if !slices.ContainsFunc(replace, test.replace.Equal) {
+					t.Fatalf("requires replace = %v, want %v", replace, test.replace)
+				}
+				return
+			}
+			if len(replace) != 0 {
+				t.Fatalf("requires replace = %v, want none", replace)
+			}
+			if test.mask == "" {
+				if !planned.Equal(prior) {
+					t.Fatalf("planned = %s, want the prior state", planned)
+				}
+				return
+			}
+			s := Schema()
+			_, mask, diags := updateRequest(ctx, tfsdk.Config{Schema: s, Raw: test.config}, tfsdk.Plan{Schema: s, Raw: planned}, tfsdk.State{Schema: s, Raw: prior})
+			if diags.HasError() || mask != test.mask {
+				t.Fatalf("update mask = %q, %v; want %q", mask, diags, test.mask)
+			}
+		})
+	}
+}
+
+func TestNestedServerValuesDoNotBlockCreate(t *testing.T) {
+	ctx := context.Background()
+	f := newNestedFixture(ctx)
+	s := Schema()
+	config := f.resourceValue(false, "thing", f.specValue(false, "fast", "eu", f.itemValue(nil, "k1", "a")))
+	plan := f.resourceValue(false, "thing", tftypes.NewValue(f.spec, map[string]tftypes.Value{
+		"mode": tfString("fast"), "region": tfString("eu"), "revision": tfString(tftypes.UnknownValue),
+		"source": tftypes.NewValue(f.source, tftypes.UnknownValue),
+		"items":  tftypes.NewValue(f.items, []tftypes.Value{f.itemValue(tftypes.UnknownValue, "k1", "a")}),
+		"targets": tftypes.NewValue(f.targets, []tftypes.Value{tftypes.NewValue(f.targetType, map[string]tftypes.Value{
+			"id": tfString(tftypes.UnknownValue), "name": tfString("t1"),
+		})}),
+	}))
+	if diags := validateCreate(ctx, tfsdk.Config{Schema: s, Raw: config}, tfsdk.Plan{Schema: s, Raw: plan}); diags.HasError() {
+		t.Fatalf("unknown server values blocked Create: %v", diags)
+	}
+	plan = f.resourceValue(false, "thing", f.specValue(false, "fast", "eu", f.itemValue(nil, tftypes.UnknownValue, "a")))
+	if diags := validateCreate(ctx, tfsdk.Config{Schema: s, Raw: plan}, tfsdk.Plan{Schema: s, Raw: plan}); !diags.HasError() {
+		t.Fatal("an unknown configured nested value was accepted")
 	}
 }

@@ -15,7 +15,6 @@ func legacyPolicy() Policy {
 		UpdateIDInBody: true,
 		ClientSetID:    true,
 		EnumAnyPrefix:  []string{"legacy.Kind"},
-		EmptyRequired:  []string{"LegacyLabels"},
 		Skip:           []string{"LegacyTarget.id"},
 		Released: []string{
 			"LegacyThing.id", "LegacyThing.name", "LegacyThing.labels", "LegacyThing.rules",
@@ -51,24 +50,12 @@ func TestLegacyResourceIsRefusedWithoutPolicy(t *testing.T) {
 	for _, want := range []string{
 		"ENUM_ZERO_INVALID",
 		"FIELD_LIFECYCLE_UNSUPPORTED",
-		"REQUIRED_DECLARATION_MISSING",
 		"RESOURCE_ID_OPTIONAL",
 		"RESPONSE_WRAPPER_UNSUPPORTED",
-		"STRING_PATTERN_UNSUPPORTED",
 		"UPDATE_ID_IN_BODY_UNSUPPORTED",
 	} {
 		if !slices.Contains(got, want) {
 			t.Errorf("codes %v do not contain %s", got, want)
-		}
-	}
-}
-
-func TestNestedReadOnlyDoesNotNeedSkip(t *testing.T) {
-	p := legacyPolicy()
-	p.Skip = nil
-	for _, code := range legacyCodes(t, p) {
-		if code == "FIELD_LIFECYCLE_UNSUPPORTED" {
-			t.Fatal("a nested readOnly field is computed")
 		}
 	}
 }
@@ -90,7 +77,7 @@ func TestEachPolicyFieldRelaxesOneRule(t *testing.T) {
 		"update id in body": {func(p *Policy) { p.UpdateIDInBody = false }, "UPDATE_ID_IN_BODY_UNSUPPORTED"},
 		"client set id":     {func(p *Policy) { p.ClientSetID = false }, "RESOURCE_ID_OPTIONAL"},
 		"enum prefix":       {func(p *Policy) { p.EnumAnyPrefix = nil }, "ENUM_ZERO_INVALID"},
-		"empty required":    {func(p *Policy) { p.EmptyRequired = nil }, "REQUIRED_DECLARATION_MISSING"},
+		"skip":              {func(p *Policy) { p.Skip = nil }, "FIELD_LIFECYCLE_UNSUPPORTED"},
 		"released":          {func(p *Policy) { p.Released = nil }, "FIELD_PRESENCE_UNKNOWN"},
 		"existing":          {func(p *Policy) { p.Existing = false }, "RESPONSE_WRAPPER_UNSUPPORTED"},
 	}

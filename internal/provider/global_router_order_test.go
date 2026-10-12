@@ -131,7 +131,7 @@ func TestGlobalRouterTargetOrder(t *testing.T) {
 			h := newGRHarness(t)
 			cfg := router("order", j{"rules": l{j{"name": "r", "condition": "true", "entity_type": "alerts", "targets": tt.prior}}})
 			state := h.Apply("create", h.null(), cfg)
-			h.api.mutate(idOf(state), func(f *grFake, stored map[string]any) { f.setRuleTargets(stored, 0, tt.api) })
+			h.routers().mutate(idOf(state), func(f *grFake, stored map[string]any) { f.setRuleTargets(stored, 0, tt.api) })
 
 			got := ruleTargetKeys(t, toJSON(h.Refresh("refresh", state)), 0)
 			if !slices.Equal(got, tt.expect) {
@@ -146,7 +146,7 @@ func TestGlobalRouterTargetOrderPairsRulesByIndex(t *testing.T) {
 	h := newGRHarness(t)
 	cfg := router("pairs", j{"rules": l{j{"name": "r0", "condition": "true", "entity_type": "alerts", "targets": l{cfgTgt("a", "", ""), cfgTgt("b", "", "")}}}})
 	state := h.Apply("create", h.null(), cfg)
-	h.api.mutate(idOf(state), func(f *grFake, stored map[string]any) {
+	h.routers().mutate(idOf(state), func(f *grFake, stored map[string]any) {
 		stored["rules"] = []any{
 			map[string]any{"name": "r0", "condition": "true", "entityType": "ALERTS", "customDetails": map[string]any{}, "targets": []any{}},
 			map[string]any{"name": "r1", "condition": "true", "entityType": "ALERTS", "customDetails": map[string]any{}, "targets": []any{}},
@@ -167,7 +167,7 @@ func TestGlobalRouterTargetOrderPairsRulesByIndex(t *testing.T) {
 // Import starts with only an id, so Read gets null rules from the state. The API order stays.
 func TestGlobalRouterTargetOrderAfterImport(t *testing.T) {
 	h := newGRHarness(t)
-	id := h.api.seed(j{
+	id := h.routers().seed(j{
 		"name": "imported", "routingLabels": j{"environment": "imported"},
 		"rules": l{j{"name": "r", "condition": "true", "entityType": "ALERTS", "targets": l{tgt("pd", "", ""), tgt("http", "", "")}}},
 	})

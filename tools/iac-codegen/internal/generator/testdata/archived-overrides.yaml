@@ -8,3 +8,14 @@ validators:
 api:
   delete:
     operation: ArchivedThingsService_ArchiveArchivedThing
+
+types:
+  ArchivedThing:
+    extraAttributes:
+      token_wo:
+        elementType: string
+        writeOnly: true
+        markdownDescription: "Write-only token. Terraform sends it and does not store it."
+      token_wo_versions:
+        elementType: int64
+        markdownDescription: "Version of each token_wo entry. Increment to send a rotated value."

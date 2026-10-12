@@ -32,26 +32,26 @@ data "coralogix_connector" "generic_https_example_data_by_name" {
 
 ### Read-Only
 
-- `config_overrides` (Attributes List) (see [below for nested schema](#nestedatt--config_overrides))
-- `connector_config` (Attributes) (see [below for nested schema](#nestedatt--connector_config))
-- `description` (String)
-- `type` (String) Connector type. Valid values are: [email eventbridge generic_https incident_io microsoft_teams pagerduty pagerduty_incidents service_now slack unspecified]. `incident_io` is a preview type.
+- `config_overrides` (Attributes List) The config overrides. Removing this block keeps the value until another attribute changes. Set `config_overrides = []` to clear it. (see [below for nested schema](#nestedatt--config_overrides))
+- `connector_config` (Attributes) Configuration for a specific output schema of a connector (see [below for nested schema](#nestedatt--connector_config))
+- `description` (String) Human-readable description. The API stores an omitted description as an empty string, so Terraform treats this field as Optional and Computed with a default of `""`. Removing the attribute clears it.
+- `type` (String) Connector type. Valid values are: unspecified, slack, generic_https, pagerduty, pagerduty_incidents, email, service_now, microsoft_teams, eventbridge, incident_io. `incident_io` is a preview type.
 
 <a id="nestedatt--config_overrides"></a>
 ### Nested Schema for `config_overrides`
 
 Read-Only:
 
-- `entity_type` (String) Entity type for the connector. Valid values are: [alerts cases test_notifications unspecified]
-- `fields` (Attributes Set) (see [below for nested schema](#nestedatt--config_overrides--fields))
+- `entity_type` (String) Entity type for the connector. Valid values are: unspecified, alerts, cases, test_notifications.
+- `fields` (Attributes Set) List of fields. The server does not keep the order of the fields. (see [below for nested schema](#nestedatt--config_overrides--fields))
 
 <a id="nestedatt--config_overrides--fields"></a>
 ### Nested Schema for `config_overrides.fields`
 
 Read-Only:
 
-- `field_name` (String)
-- `template` (String)
+- `field_name` (String) The field name.
+- `template` (String) Template.
 
 
 
@@ -64,12 +64,12 @@ Read-Only:
 
 Importing is the one exception. An import has neither configuration nor prior state, so nothing identifies which field is a secret, and the API returns every field's value: the secret is written to state by the import itself. The following apply removes it again. Treat a secret that has been through an import as exposed, and rotate it. Reading the same connector through `data.coralogix_connector` also returns the value, under `connector_config.fields`: a data source reads from the API and has no configuration telling it which value is managed write-only.
 - `field_values_wo_versions` (Map of Number) Version of each `field_values_wo` entry, keyed by the same field name. Increment a value to send a rotated secret: Terraform holds no copy of a write-only value, so it cannot notice that one changed. These versions are kept in state and are not secret.
-- `fields` (Attributes Set) (see [below for nested schema](#nestedatt--connector_config--fields))
+- `fields` (Attributes Set) List of fields. The server does not keep the order of the fields. (see [below for nested schema](#nestedatt--connector_config--fields))
 
 <a id="nestedatt--connector_config--fields"></a>
 ### Nested Schema for `connector_config.fields`
 
 Read-Only:
 
-- `field_name` (String)
-- `value` (String)
+- `field_name` (String) The field name.
+- `value` (String) The value.

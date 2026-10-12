@@ -3,6 +3,7 @@ package generator
 import (
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -24,11 +25,20 @@ type tfResource struct {
 	CRUD               *crudData // CRUD, import, and the provider data
 	HasServerDefaults  bool
 	ServerDefaultKinds []string // Terraform scalar kinds that need reset planning
-	PlanModifierPkgs   []string // lower-case Terraform value kinds with standard plan modifiers
-	DefaultPkgs        []string // lower-case Terraform value kinds with static defaults
+	// RequestReplaceKinds are the Terraform value kinds of the immutable
+	// attributes that hold values that the server sets. They use
+	// requestReplaceModifier instead of RequiresReplace.
+	RequestReplaceKinds []string
+	PlanModifierPkgs    []string // lower-case Terraform value kinds with standard plan modifiers
+	DefaultPkgs         []string // lower-case Terraform value kinds with static defaults
 	// ComputedPaths are the paths of the computed attributes, with list and map
 	// steps left out, as in Conv.OneOfArms.
 	ComputedPaths []string
+	// ServerPaths are the paths of the computed-only attributes inside the
+	// attributes that a request sends, in the form of ComputedPaths. The
+	// server sets them, and Terraform plans them as unknown when the resource
+	// changes, so the request checks leave them out.
+	ServerPaths []string
 	// SchemaVersion and ResourceMarkdownDescription are the released schema version and the
 	// released description of the resource. Both come from the behavior-overrides file.
 	SchemaVersion               int64
@@ -45,6 +55,9 @@ type tfAttr struct {
 	Computed    bool
 	Description string
 	ElementType string // Set, List: the element type, for example "types.StringType"
+	// CustomType is the Terraform type of a scalar attribute that is not the plain type of its
+	// kind, for example rfc3339Type, or "".
+	CustomType string
 	// ElemValidators are the validators of one element of a collection of plain values, the
 	// arguments of its Value<Kind>sAre validator. The acceptance test makes an element that passes.
 	ElemValidators []string
@@ -68,6 +81,12 @@ type tfAttr struct {
 	PlainDescription   bool
 	DeprecationMessage string
 	Default            string // Go expression of a static default, or ""
+	// WriteOnly: Terraform sends the value and does not store it. Only extraAttributes set this.
+	WriteOnly bool
+	// Extra: the attribute is from types.<Type>.extraAttributes, not the API. The generated
+	// acceptance test leaves it out unless values or an upgrade case supplies the map: a made-up
+	// map key is not a valid API field.
+	Extra bool
 }
 
 // tfModel is one Go struct of the Terraform model.
@@ -96,7 +115,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // buildTFResourceWith is buildTFResource for a resource with a behavior-overrides file
 // (nil for a new resource).
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
-	b := &tfBuilder{seen: map[string]bool{}}
+	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: r.Name + "Model"}
 	root := &tfModel{Name: out.Model}
 	b.models = append(b.models, root)
@@ -106,12 +125,15 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 		}
 	}
 	for _, f := range r.Fields {
+		if requestValue(file, r.Name, f.Name) {
+			continue
+		}
 		a, err := b.resourceAttribute(out, r, f)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		out.Attributes = append(out.Attributes, a)
-		root.Fields = append(root.Fields, b.modelField(f.Name, f.Type, f.Behavior == model.Computed))
+		root.Fields = append(root.Fields, b.modelField(f.Name, f.Type, f.Behavior, responseOnly(f.Behavior)))
 	}
 	for _, g := range r.Groups {
 		var arms []string
@@ -122,16 +144,42 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	}
 	out.ConfigValidators = b.validators
 	out.Models = b.models
+	out.RequestReplaceKinds = b.replaceKinds
 	if file != nil {
 		if err := applyOverrides(out, file); err != nil {
+			return nil, err
+		}
+		if err := checkImmutableValues(out.Attributes, ""); err != nil {
 			return nil, err
 		}
 	}
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
 	out.DefaultPkgs = defaultPackages(out.Attributes)
 	out.ComputedPaths = computedPaths(nil, "", out.Attributes)
+	for _, a := range out.Attributes {
+		if !computedOnly(a) {
+			out.ServerPaths = serverPaths(out.ServerPaths, a.Name, a.Attributes)
+		}
+	}
 	return out, nil
 }
+
+// serverPaths appends the paths of the computed-only attributes in attrs, in
+// schema order, below the attribute at parent. The descendants of a
+// computed-only attribute are computed too, so they add nothing.
+func serverPaths(out []string, parent string, attrs []*tfAttr) []string {
+	for _, a := range attrs {
+		at := parent + "." + a.Name
+		if computedOnly(a) {
+			out = append(out, at)
+			continue
+		}
+		out = serverPaths(out, at, a.Attributes)
+	}
+	return out
+}
+
+func computedOnly(a *tfAttr) bool { return a.Computed && !a.Optional && !a.Required }
 
 // computedPaths appends the paths of the computed attributes in attrs, in
 // schema order. A nested attribute adds its name to the path. A list, set, or
@@ -187,16 +235,16 @@ func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
 // resourceAttribute builds the attribute of a top-level field: its type, its server default, a
 // client-set id, and the plan modifiers of its behavior.
 func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *model.ResourceField) (*tfAttr, error) {
-	a, err := b.attribute(attrPath{"root", tfName(f.Name)}, r.Name, f.Name, f.Description, f.Type, fieldAttrs(f))
+	a, err := b.attribute(attrPath{"root", tfName(f.Name)}, r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), responseOnly(f.Behavior))
 	if err != nil {
 		return nil, err
 	}
 	if serverDefault(r, f) {
 		// The user may override this value. When it is omitted, the server
-		// supplies the declared default and Get returns it. The plan
+		// supplies the declared default and Get always returns it. The plan
 		// modifier makes removal unknown until Update clears the value and
 		// Get returns that default.
-		value, err := serverDefaultValue(f.Type, *declaredDefault(f))
+		value, err := serverDefaultValue(f.Type, *f.Create.Default)
 		if err != nil {
 			return nil, fmt.Errorf("server default: %w", err)
 		}
@@ -207,21 +255,29 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 			out.ServerDefaultKinds = append(out.ServerDefaultKinds, a.ValueKind)
 		}
 	}
-	if r.Policy.ClientSetID && f.Name == r.IDParam {
+	clientSetID := r.Policy.ClientSetID && f.Name == r.IDParam
+	if clientSetID {
 		// The user can set the id. Without a value, the server makes one.
+		// The id names the resource, so a new id replaces it: Update cannot
+		// find a resource under the new id. UseStateForUnknown runs first, so
+		// an id that the user removes keeps its value and replaces nothing.
 		a.Required, a.Optional, a.Computed = false, true, true
+		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
 	}
-	switch f.Behavior {
-	case model.Computed:
+	switch {
+	case f.Behavior == model.Computed:
 		markComputed(a)
 		if f.Name == r.IDParam {
 			a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
 		}
-	case model.Immutable:
-		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.RequiresReplace()")
+	case f.Behavior == model.Immutable || clientSetID:
+		b.requiresReplace(a, a.Name)
 	}
 	return a, nil
 }
+
+// errStaleOverrideKey reports a key of a field line that the generator already applies.
+var errStaleOverrideKey = errors.New("the generator already applies this key, so it changes nothing")
 
 // applyOverrides applies the behavior-overrides file to the attributes. A field with a line
 // keeps the released behavior that the line states.
@@ -249,10 +305,24 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 		}
 		return nil
 	}
-	return walk(out.Attributes)
+	if err := walk(out.Attributes); err != nil {
+		return err
+	}
+	return nil
+}
+
+// requestValue reports whether the field is sent as a fixed API value and is not a Terraform attribute.
+func requestValue(file *overrides.File, component, field string) bool {
+	if file == nil {
+		return false
+	}
+	return file.Types[component].Fields[field].RequestValue != ""
 }
 
 func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
+	if l.RequireOne {
+		requireOneArm(a)
+	}
 	if l.Required {
 		a.Required, a.Optional = true, false
 	}
@@ -268,9 +338,18 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 	}
 	if l.UseStateForUnknown {
 		modifier := strings.ToLower(a.ValueKind) + "planmodifier.UseStateForUnknown()"
-		if !slices.Contains(a.Modifiers, modifier) {
-			a.Modifiers = append(a.Modifiers, modifier)
+		if containsString(a.Modifiers, modifier) {
+			// A client-set or computed id already has it. A key that changes nothing is an error.
+			return fmt.Errorf("useStateForUnknown: %w", errStaleOverrideKey)
 		}
+		a.Modifiers = append(a.Modifiers, modifier)
+	}
+	if l.Equality != "" {
+		if a.ValueKind != "String" {
+			return fmt.Errorf("equality needs a string attribute, not %s", a.ValueKind)
+		}
+		// First, so that RequiresReplace and the other modifiers see the state value of an equal document.
+		a.Modifiers = append([]string{"equivalentDocument{equal: " + l.Equality + "Equal}"}, a.Modifiers...)
 	}
 	if l.Default != nil {
 		expr, err := defaultExpr(a, l.Default)
@@ -313,8 +392,37 @@ func defaultExpr(a *tfAttr, value any) (string, error) {
 		if a.Kind == "Bool" {
 			return fmt.Sprintf("booldefault.StaticBool(%t)", v), nil
 		}
+	case int:
+		switch a.Kind {
+		case "Int64":
+			return fmt.Sprintf("int64default.StaticInt64(%d)", v), nil
+		case "Int32":
+			if v < math.MinInt32 || v > math.MaxInt32 {
+				return "", fmt.Errorf("the default %d does not fit an Int32 attribute", v)
+			}
+			return fmt.Sprintf("int32default.StaticInt32(%d)", v), nil
+		case "Float64", "Float32":
+			return floatDefaultExpr(a.Kind, float64(v))
+		}
+	case float64:
+		if a.Kind == "Float64" || a.Kind == "Float32" {
+			return floatDefaultExpr(a.Kind, v)
+		}
 	}
 	return "", fmt.Errorf("a default of type %T does not fit a %s attribute", value, a.Kind)
+}
+
+// floatDefaultExpr is the Go expression of a static default of a Float64 or Float32 attribute.
+func floatDefaultExpr(kind string, v float64) (string, error) {
+	bits := 64
+	if kind == "Float32" {
+		bits = 32
+	}
+	if math.IsNaN(v) || math.IsInf(v, 0) || bits == 32 && math.Abs(v) > math.MaxFloat32 {
+		return "", fmt.Errorf("the default %v does not fit a %s attribute", v, kind)
+	}
+	// 'f' writes a Go literal, and the state text of the value, that the acceptance test compares.
+	return fmt.Sprintf("%sdefault.Static%s(%s)", strings.ToLower(kind), kind, strconv.FormatFloat(v, 'f', -1, bits)), nil
 }
 
 // validatorExpr is the Go expression of a released validator.
@@ -331,13 +439,15 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 		return "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")", nil
 	case v.SizeAtLeast != nil && (a.ValueKind == "List" || a.ValueKind == "Set" || a.ValueKind == "Map"):
 		return fmt.Sprintf("%s.SizeAtLeast(%d)", pkg, *v.SizeAtLeast), nil
+	case v.LengthAtLeast != nil && a.ValueKind == "String":
+		return fmt.Sprintf("stringvalidator.LengthAtLeast(%d)", *v.LengthAtLeast), nil
 	}
 	return "", fmt.Errorf("the validator does not fit a %s attribute", a.ValueKind)
 }
 
 // enumValidatorExpr is the validator that accepts the Terraform values of the enum of the attribute.
-// The values are the zero value and the lower case of each accepted value, in sorted order. They
-// come from the enums line, so the validator and the conversion maps cannot disagree.
+// The values are the zero value and the Terraform value of each accepted value, in sorted order.
+// They come from the enums line, so the validator and the conversion maps cannot disagree.
 func enumValidatorExpr(a *tfAttr, file *overrides.File) (string, error) {
 	enum, ok := file.Enums[a.EnumSchema]
 	if a.EnumSchema == "" || a.ValueKind != "String" || !ok {
@@ -348,7 +458,11 @@ func enumValidatorExpr(a *tfAttr, file *overrides.File) (string, error) {
 		values = append(values, enum.Zero)
 	}
 	for _, v := range enum.Values {
-		values = append(values, strings.ToLower(v))
+		if enum.Verbatim {
+			values = append(values, v)
+		} else {
+			values = append(values, strings.ToLower(v))
+		}
 	}
 	slices.Sort(values)
 	quoted := make([]string, 0, len(values))
@@ -394,28 +508,8 @@ func containsString(values []string, target string) bool {
 	return false
 }
 
-func declaredDefault(f *model.ResourceField) *string {
-	if f.Create != nil && f.Create.Default != nil {
-		return f.Create.Default
-	}
-	if f.Update != nil && f.Update.Default != nil {
-		return f.Update.Default
-	}
-	return nil
-}
-
 func hasServerDefault(f *model.ResourceField) bool {
-	d := declaredDefault(f)
-	if d == nil || f.Get == nil {
-		return false
-	}
-	if f.Create != nil && f.Create.Required {
-		return false
-	}
-	if f.Update != nil && (f.Update.Required || f.Update.Default == nil || *f.Update.Default != *d) {
-		return false
-	}
-	return true
+	return f.Create != nil && !f.Create.Required && f.Create.Default != nil && f.Get != nil && f.Get.Required
 }
 
 // serverDefaultValue returns the typed Terraform value used only to detect
@@ -517,9 +611,26 @@ func fieldAttrs(f *model.ResourceField) model.Attrs {
 }
 
 type tfBuilder struct {
-	models     []*tfModel
-	seen       map[string]bool // model structs already added
-	validators []string        // resource config validators
+	models       []*tfModel
+	seen         map[string]bool // model structs already added
+	sent         sentSet         // component fields that a request sends in some place
+	validators   []string        // resource config validators
+	replaceKinds []string        // RequestReplaceKinds
+	file         *overrides.File
+}
+
+// requireOneArm turns a oneOf that allows no arm into ExactlyOneOf. The contract
+// allows none, and the released resource required one.
+func requireOneArm(a *tfAttr) {
+	for _, child := range a.Attributes {
+		child.OneOfRequired = true
+		for i, v := range child.Validators {
+			child.Validators[i] = strings.Replace(v, ".ConflictsWith(", ".ExactlyOneOf(", 1)
+		}
+		for i, v := range child.GroupValidators {
+			child.GroupValidators[i] = strings.Replace(v, ".ConflictsWith(", ".ExactlyOneOf(", 1)
+		}
+	}
 }
 
 // attrPath is a Terraform attribute path: "root", then the names. The step
@@ -530,6 +641,18 @@ const (
 	anyListItem = "[]"
 	anyMapValue = "{}"
 )
+
+// dotted is the path in the form of tfResource.ComputedPaths: the names,
+// joined by dots, without the list and map steps.
+func (p attrPath) dotted() string {
+	var names []string
+	for _, n := range p[1:] {
+		if n != anyListItem && n != anyMapValue {
+			names = append(names, n)
+		}
+	}
+	return strings.Join(names, ".")
+}
 
 func (p attrPath) expr() string {
 	s := fmt.Sprintf("path.MatchRoot(%q)", p[1])
@@ -547,18 +670,17 @@ func (p attrPath) expr() string {
 	return s
 }
 
-func (b *tfBuilder) attribute(p attrPath, component, name, desc string, t *model.Type, attrs model.Attrs) (*tfAttr, error) {
+func (b *tfBuilder) attribute(p attrPath, component, name, desc string, t *model.Type, attrs model.Attrs, computed bool) (*tfAttr, error) {
 	a := &tfAttr{Name: tfName(name), Description: desc, Required: attrs.Required, Optional: !attrs.Required, Component: component, Property: name}
-	if err := b.setType(a, p, t); err != nil {
+	if err := b.setType(a, p, t, computed); err != nil {
 		return nil, err
-	}
-	if attrs.ReadOnly {
-		markComputed(a)
 	}
 	return a, nil
 }
 
-func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type) error {
+// setType sets the kind, the type, and the validators of a. computed is true for a field that only
+// the response has.
+func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type, computed bool) error {
 	switch t.Kind {
 	case model.String, model.Enum, model.Bool, model.Number, model.Integer:
 		kind, vals, err := scalar(t)
@@ -568,6 +690,10 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type) error {
 		a.Kind, a.ValueKind, a.Validators = kind, kind, vals
 		if t.Kind == model.Enum {
 			a.EnumSchema = t.Schema
+		}
+		if sentTime(t, computed) {
+			a.CustomType = rfc3339Type
+			a.Validators = append(a.Validators, utcValidator)
 		}
 	case model.Set, model.List, model.Map:
 		return b.collection(a, p, t)
@@ -598,7 +724,6 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 	switch t.Elem.Kind {
 	case model.Object:
 		a.Kind = kind + "Nested"
-		// buildConv rejects a set of objects, so a Set never gets here.
 		attrs, err := b.objectAttributes(append(append(attrPath{}, p...), step), t.Elem)
 		if err != nil {
 			return err
@@ -610,6 +735,10 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 			return err
 		}
 		a.Kind, a.ElementType, a.ElemValidators = kind, "types."+elem+"Type", vals
+		if isTime(t.Elem) {
+			a.ElementType, a.ElemValidators = rfc3339Type, append(vals, utcValidator)
+			vals = a.ElemValidators
+		}
 		if len(vals) > 0 {
 			a.Validators = append(a.Validators, fmt.Sprintf("%s.Value%ssAre(%s)", pkg, elem, strings.Join(vals, ", ")))
 		}
@@ -628,13 +757,23 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	var attrs []*tfAttr
 	var fields []tfModelField
 	for _, f := range t.Fields {
+		if requestValue(b.file, t.Schema, f.Name) {
+			continue
+		}
 		child := append(append(attrPath{}, p...), tfName(f.Name))
-		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, f.Attrs)
+		only := b.sent.responseOnly(t.Schema, f)
+		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f), only)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
+		switch f.Behavior {
+		case model.Computed:
+			markComputed(a)
+		case model.Immutable:
+			b.requiresReplace(a, child.dotted())
+		}
 		attrs = append(attrs, a)
-		fields = append(fields, b.modelField(f.Name, f.Type, false))
+		fields = append(fields, b.modelField(f.Name, f.Type, f.Behavior, only))
 	}
 	groups := t.Groups
 	if t.Kind == model.OneOf {
@@ -645,18 +784,125 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		groups = append(groups, group)
 	}
 	addGroupValidators(attrs, groups)
-	if name := modelTypeName(t.Schema); !b.seen[name] {
+	name := modelTypeName(t.Schema)
+	if !b.seen[name] {
 		b.seen[name] = true
 		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
+		return attrs, nil
+	}
+	// One model struct serves every place of the component. A computed
+	// object is a types.Object, so it must be computed in every place.
+	for _, m := range b.models {
+		if m.Name == name && !slices.Equal(m.Fields, fields) {
+			return nil, fmt.Errorf("component %s needs another model struct in each place: %s", t.Schema, modelFieldDifference(m.Fields, fields))
+		}
 	}
 	return attrs, nil
 }
 
-func (b *tfBuilder) modelField(name string, t *model.Type, computed bool) tfModelField {
+// modelFieldDifference names the first model field that differs between two
+// places of a component, with its Go type in each place.
+func modelFieldDifference(first, other []tfModelField) string {
+	for i := range min(len(first), len(other)) {
+		if first[i] != other[i] {
+			return fmt.Sprintf("field %s is %s in one place and %s in another", first[i].TFName, first[i].Type, other[i].Type)
+		}
+	}
+	return fmt.Sprintf("the places have %d and %d fields", len(first), len(other))
+}
+
+// requiresReplace makes a change of the immutable attribute a at path at
+// replace the resource. The stock RequiresReplace compares whole values. When
+// the resource changes, Terraform plans the attributes that the server sets as
+// unknown, so a value that holds them would replace the resource on every
+// change. requestReplaceModifier compares the values without them.
+func (b *tfBuilder) requiresReplace(a *tfAttr, at string) {
+	if !hasServerValue(a.Attributes) {
+		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.RequiresReplace()")
+		return
+	}
+	a.Modifiers = append(a.Modifiers, fmt.Sprintf("requestReplaceModifier{at: %q}", at))
+	if !containsString(b.replaceKinds, a.ValueKind) {
+		b.replaceKinds = append(b.replaceKinds, a.ValueKind)
+	}
+}
+
+// checkImmutableValues rejects an immutable value that holds an optional and
+// computed attribute. Only a behavior-overrides line makes a nested attribute
+// optional and computed. When the user leaves it out and the resource
+// changes, Terraform plans it as unknown. The replace check cannot tell that
+// from a change of the user, so the resource would be replaced.
+func checkImmutableValues(attrs []*tfAttr, parent string) error {
+	for _, a := range attrs {
+		at := a.Name
+		if parent != "" {
+			at = parent + "." + a.Name
+		}
+		if replaces(a) {
+			if child := optionalComputed(a.Attributes, at); child != "" {
+				return fmt.Errorf("%s: the immutable value holds the optional and computed attribute %s. A change of another attribute would plan it as unknown and replace the resource", at, child)
+			}
+		}
+		if err := checkImmutableValues(a.Attributes, at); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// replaces reports whether a change of a replaces the resource.
+func replaces(a *tfAttr) bool {
+	return slices.ContainsFunc(a.Modifiers, func(m string) bool {
+		return strings.HasSuffix(m, "planmodifier.RequiresReplace()") || strings.HasPrefix(m, "requestReplaceModifier{")
+	})
+}
+
+// optionalComputed returns the path of the first optional and computed
+// attribute in attrs or their descendants, or "".
+func optionalComputed(attrs []*tfAttr, parent string) string {
+	for _, a := range attrs {
+		at := parent + "." + a.Name
+		if a.Optional && a.Computed {
+			return at
+		}
+		if child := optionalComputed(a.Attributes, at); child != "" {
+			return child
+		}
+	}
+	return ""
+}
+
+// hasServerValue reports whether attrs or their descendants have a
+// computed-only attribute.
+func hasServerValue(attrs []*tfAttr) bool {
+	for _, a := range attrs {
+		if computedOnly(a) || hasServerValue(a.Attributes) {
+			return true
+		}
+	}
+	return false
+}
+
+// nestedAttrs are the attributes that decide Required for a nested field.
+// Create decides, as for a top-level field. A field that Create does not
+// send has the attributes of the resource response.
+func nestedAttrs(f *model.Field) model.Attrs {
+	if f.Create != nil {
+		return *f.Create
+	}
+	return f.Attrs
+}
+
+// modelField returns the model field of a field with behavior. responseOnly is true when no
+// request sends the field.
+func (b *tfBuilder) modelField(name string, t *model.Type, behavior model.Behavior, responseOnly bool) tfModelField {
 	var goType string
 	switch t.Kind {
 	case model.String, model.Enum:
 		goType = "types.String"
+		if sentTime(t, responseOnly) {
+			goType = "timetypes.RFC3339"
+		}
 	case model.Bool:
 		goType = "types.Bool"
 	case model.Number:
@@ -676,7 +922,7 @@ func (b *tfBuilder) modelField(name string, t *model.Type, computed bool) tfMode
 	case model.Map:
 		goType = "types.Map"
 	case model.Object, model.OneOf:
-		if computed {
+		if behavior == model.Computed {
 			goType = "types.Object"
 		} else {
 			goType = "*" + modelTypeName(t.Schema)
@@ -686,7 +932,6 @@ func (b *tfBuilder) modelField(name string, t *model.Type, computed bool) tfMode
 }
 
 // modelTypeName is the Terraform model struct of a component schema.
-// A dotted component such as views.v1.Filter becomes ViewsV1FilterModel.
 func modelTypeName(schema string) string { return model.GoName(schema) + "Model" }
 
 // scalar returns the attribute kind and the validators of a scalar type.
@@ -696,6 +941,9 @@ func scalar(t *model.Type) (string, []string, error) {
 		var vals []string
 		if v := lengthValidator(t.MinLength, t.MaxLength); v != "" {
 			vals = append(vals, v)
+		}
+		if t.Pattern != "" {
+			vals = append(vals, patternValidator(t.Pattern))
 		}
 		return "String", vals, nil
 	case model.Enum:
@@ -730,6 +978,71 @@ func scalar(t *model.Type) (string, []string, error) {
 		return "", nil, fmt.Errorf("integer format %q is not supported", t.Format)
 	}
 	return "", nil, fmt.Errorf("kind %s is not a scalar", t.Kind)
+}
+
+// rfc3339Type is the Terraform type of a time that a request sends. It checks the RFC 3339 format,
+// and a value that differs only in fractional seconds plans no change.
+const rfc3339Type = "timetypes.RFC3339Type{}"
+
+// utcValidator requires a time in UTC. The API returns every time in UTC, so a configured offset
+// such as +02:00 would read back as another text, and the apply would fail.
+const utcValidator = "stringvalidator.RegexMatches(regexp.MustCompile(`(?i)z$`), \"must be a UTC time that ends in Z, for example 2030-01-01T00:00:00Z\")"
+
+// isTime reports whether t is a date-time string.
+func isTime(t *model.Type) bool { return t.Kind == model.String && t.Format == "date-time" }
+
+// sentTime reports whether t is a time that a request sends. A time that only the response has stays
+// a plain string, as the API returns it, with no validator.
+func sentTime(t *model.Type, computed bool) bool { return isTime(t) && !computed }
+
+// responseOnly reports whether only the response has the value of a field with behavior.
+func responseOnly(behavior model.Behavior) bool {
+	return behavior != model.Normal && behavior != model.Immutable
+}
+
+// sentSet holds the fields of components that a request sends in at least one place, as
+// "Component.field".
+type sentSet map[string]bool
+
+// sentFields returns the component fields that a request sends in some place of r.
+func sentFields(r *model.Resource) sentSet {
+	sent := sentSet{}
+	for _, f := range r.Fields {
+		sent.add(f.Type)
+	}
+	return sent
+}
+
+func (s sentSet) add(t *model.Type) {
+	if t == nil {
+		return
+	}
+	s.add(t.Elem)
+	for _, f := range t.Fields {
+		if !responseOnly(f.Behavior) {
+			s[t.Schema+"."+f.Name] = true
+		}
+		s.add(f.Type)
+	}
+}
+
+// responseOnly reports whether no request sends field f of component in any place. One model
+// struct serves every place of a component, so a time field needs one type in all of them. A
+// field inside a computed value has no behavior of its own (""), so another place decides:
+// a time that Create sends in one place is timetypes.RFC3339 also where only the response has it.
+func (s sentSet) responseOnly(component string, f *model.Field) bool {
+	return responseOnly(f.Behavior) && !s[component+"."+f.Name]
+}
+
+// patternValidator returns a validator that the value matches pattern. The
+// pattern is a raw string literal when it can be, so it reads as in the API.
+// An empty message makes the validator show the pattern.
+func patternValidator(pattern string) string {
+	literal := strconv.Quote(pattern)
+	if !strings.Contains(pattern, "`") {
+		literal = "`" + pattern + "`"
+	}
+	return fmt.Sprintf("stringvalidator.RegexMatches(regexp.MustCompile(%s), \"\")", literal)
 }
 
 func lengthValidator(minLen, maxLen *int64) string {

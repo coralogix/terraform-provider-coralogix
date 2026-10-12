@@ -1,0 +1,170 @@
+[
+  {
+    "step": "create with id",
+    "config": {
+      "description": "d",
+      "id": "first",
+      "name": "mine",
+      "routing_labels": {
+        "environment": "mine"
+      }
+    },
+    "plan": {
+      "create_time": "(unknown)",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "first",
+      "name": "mine",
+      "routing_labels": {
+        "environment": "mine",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "body": {
+          "router": {
+            "description": "d",
+            "disabled": false,
+            "id": "first",
+            "name": "mine",
+            "routingLabels": {
+              "environment": "mine"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "first",
+      "name": "mine",
+      "routing_labels": {
+        "environment": "mine",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:01Z"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "change the id: replace",
+    "config": {
+      "description": "d",
+      "id": "second",
+      "name": "mine",
+      "routing_labels": {
+        "environment": "mine"
+      }
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": "(unknown)",
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "second",
+      "name": "mine",
+      "routing_labels": {
+        "environment": "mine",
+        "service": "(unknown)",
+        "team": "(unknown)"
+      },
+      "rules": "(unknown)",
+      "update_time": "(unknown)"
+    },
+    "requiresReplace": [
+      "AttributeName(\"id\")"
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "first",
+      "name": "mine",
+      "routing_labels": {
+        "environment": "mine",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:01Z"
+    }
+  },
+  {
+    "step": "remove the id: no change",
+    "config": {
+      "description": "d",
+      "name": "mine",
+      "routing_labels": {
+        "environment": "mine"
+      }
+    },
+    "plan": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "first",
+      "name": "mine",
+      "routing_labels": {
+        "environment": "mine",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:01Z"
+    },
+    "noChange": true,
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "d",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "first",
+      "name": "mine",
+      "routing_labels": {
+        "environment": "mine",
+        "service": null,
+        "team": null
+      },
+      "rules": [],
+      "update_time": "2026-01-01T00:00:01Z"
+    }
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/first",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

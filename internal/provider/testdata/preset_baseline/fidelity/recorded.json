@@ -1,0 +1,209 @@
+{
+  "cases": [
+    {
+      "name": "create omits presetType, description, and attachment",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "preset": {
+              "configOverrides": [
+                {
+                  "conditionType": {
+                    "matchEntityTypeAndSubType": {
+                      "entitySubType": "logsImmediateResolved"
+                    }
+                  },
+                  "messageConfig": {
+                    "fields": [
+                      {
+                        "fieldName": "body",
+                        "template": "{}"
+                      }
+                    ]
+                  },
+                  "payloadType": "generic_https_default"
+                }
+              ],
+              "connectorType": "GENERIC_HTTPS",
+              "createTime": "2026-10-12T10:33:32.991738Z",
+              "description": "",
+              "entityType": "ALERTS",
+              "id": "{{id}}",
+              "name": "bare",
+              "parentId": "preset_system_generic_https_alerts_empty",
+              "presetType": "CUSTOM",
+              "updateTime": "2026-10-12T10:33:32.991738Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "preset": {
+              "configOverrides": [
+                {
+                  "conditionType": {
+                    "matchEntityTypeAndSubType": {
+                      "entitySubType": "logsImmediateResolved"
+                    }
+                  },
+                  "messageConfig": {
+                    "fields": [
+                      {
+                        "fieldName": "body",
+                        "template": "{}"
+                      }
+                    ]
+                  },
+                  "payloadType": "generic_https_default"
+                }
+              ],
+              "connectorType": "GENERIC_HTTPS",
+              "createTime": "2026-10-12T10:33:32.991738Z",
+              "description": "",
+              "entityType": "ALERTS",
+              "id": "{{id}}",
+              "name": "bare",
+              "parentId": "preset_system_generic_https_alerts_empty",
+              "presetType": "CUSTOM",
+              "updateTime": "2026-10-12T10:33:32.991738Z"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "duplicate message fields collapse and config override order is kept",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "preset": {
+              "configOverrides": [
+                {
+                  "conditionType": {
+                    "matchEntityTypeAndSubType": {
+                      "entitySubType": "logsImmediateResolved"
+                    }
+                  },
+                  "messageConfig": {
+                    "fields": [
+                      {
+                        "fieldName": "body",
+                        "template": "{}"
+                      }
+                    ]
+                  },
+                  "payloadType": "generic_https_default"
+                },
+                {
+                  "conditionType": {
+                    "matchEntityType": {}
+                  },
+                  "messageConfig": {
+                    "fields": [
+                      {
+                        "fieldName": "body",
+                        "template": "{}"
+                      }
+                    ]
+                  },
+                  "payloadType": "generic_https_default"
+                }
+              ],
+              "connectorType": "GENERIC_HTTPS",
+              "createTime": "2026-10-12T10:33:33.166880Z",
+              "description": "",
+              "entityType": "ALERTS",
+              "id": "{{id}}",
+              "name": "ordered",
+              "parentId": "preset_system_generic_https_alerts_empty",
+              "presetType": "CUSTOM",
+              "updateTime": "2026-10-12T10:33:33.166880Z"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "replace without config overrides is rejected",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "preset": {
+              "attachmentConfig": {
+                "policy": "ENABLED"
+              },
+              "configOverrides": [
+                {
+                  "conditionType": {
+                    "matchEntityTypeAndSubType": {
+                      "entitySubType": "logsImmediateResolved"
+                    }
+                  },
+                  "messageConfig": {
+                    "fields": [
+                      {
+                        "fieldName": "body",
+                        "template": "{}"
+                      }
+                    ]
+                  },
+                  "payloadType": "generic_https_default"
+                }
+              ],
+              "connectorType": "GENERIC_HTTPS",
+              "createTime": "2026-10-12T10:33:33.257335Z",
+              "description": "keep",
+              "entityType": "ALERTS",
+              "id": "{{id}}",
+              "name": "cleared",
+              "parentId": "preset_system_generic_https_alerts_empty",
+              "presetType": "CUSTOM",
+              "updateTime": "2026-10-12T10:33:33.257335Z"
+            }
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"Config overrides must not be empty\"}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "missing parent, system delete, and system replace",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"Parent id is required for custom preset\"}"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: {\"reason\":\"System preset with id preset_system_does_not_exist not found\"}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"reason\":\"Config overrides must not be empty\"}"
+          }
+        }
+      ]
+    }
+  ]
+}

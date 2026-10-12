@@ -1,0 +1,20 @@
+[
+  {
+    "step": "import an id that does not exist",
+    "state": null
+  },
+  {
+    "step": "import an id that does not exist (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/presets/does-not-exist",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: Resource disappeared during read | preset with id does-not-exist was not found. Terraform removed it from state."
+    ],
+    "state": null
+  }
+]

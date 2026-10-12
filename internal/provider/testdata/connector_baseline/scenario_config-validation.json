@@ -1,0 +1,102 @@
+[
+  {
+    "step": "missing name",
+    "config": {
+      "type": "generic_https"
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"name\")] | Must set a configuration value for the name attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "missing type",
+    "config": {
+      "name": "n"
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type\")] | Must set a configuration value for the type attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "type ibm_event_notifications",
+    "config": {
+      "connector_config": {
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "name": "v",
+      "type": "ibm_event_notifications"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type\")] | Attribute type value must be one of: [\"email\" \"eventbridge\" \"generic_https\" \"incident_io\" \"microsoft_teams\" \"pagerduty\" \"pagerduty_incidents\" \"service_now\" \"slack\" \"unspecified\"], got: \"ibm_event_notifications\""
+    ],
+    "state": null
+  },
+  {
+    "step": "type GENERIC_HTTPS in upper case",
+    "config": {
+      "connector_config": {
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "name": "v",
+      "type": "GENERIC_HTTPS"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type\")] | Attribute type value must be one of: [\"email\" \"eventbridge\" \"generic_https\" \"incident_io\" \"microsoft_teams\" \"pagerduty\" \"pagerduty_incidents\" \"service_now\" \"slack\" \"unspecified\"], got: \"GENERIC_HTTPS\""
+    ],
+    "state": null
+  },
+  {
+    "step": "entity_type olly_scheduled_tasks",
+    "config": {
+      "config_overrides": [
+        {
+          "entity_type": "olly_scheduled_tasks",
+          "fields": [
+            {
+              "field_name": "url",
+              "template": "https://example.com"
+            }
+          ]
+        }
+      ],
+      "connector_config": {
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "name": "v",
+      "type": "generic_https"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"config_overrides\").ElementKeyInt(0).AttributeName(\"entity_type\")] | Attribute config_overrides[0].entity_type value must be one of: [\"alerts\" \"cases\" \"test_notifications\" \"unspecified\"], got: \"olly_scheduled_tasks\""
+    ],
+    "state": null
+  }
+]

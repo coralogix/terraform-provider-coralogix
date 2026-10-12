@@ -2,6 +2,8 @@
 // Terraform and no SDK types. Build reads it from an OpenAPI document.
 package model
 
+import "strings"
+
 // OperationIDs selects lifecycle operations when suffix discovery is ambiguous.
 // Empty fields use deterministic suffix discovery.
 type OperationIDs struct {
@@ -32,12 +34,16 @@ type Resource struct {
 	// every Update field, and the server clears a field that the body does
 	// not have. It has no update mask. False: PATCH with an update mask.
 	Replace bool
-	// UpdateMask is the optional Update query parameter that holds the update
-	// mask, or "" for a full replace. It is not a resource field.
+	// UpdateMask is the update-mask name: the query parameter, or the JSON body
+	// property when MaskInBody is set. It is "" for a full replace. It is not
+	// a resource field.
 	UpdateMask string
 	// UpdateMaskPattern is the "pattern" of the update mask string, "" when
 	// the spec has none. It shows which mask paths the API accepts.
 	UpdateMaskPattern string
+	// MaskInBody: PATCH updateMask is an optional JSON body property. Update
+	// sets it to the same changed-field mask a query parameter would send.
+	MaskInBody bool
 	// Policy is the rule set that Build used. It is the zero value for a new resource.
 	Policy Policy
 	// Groups are the oneOf groups among the top-level fields.
@@ -45,6 +51,12 @@ type Resource struct {
 	// Fields are the top-level resource fields: the Get fields in spec order,
 	// then Create-only and Update-only fields (Build rejects those).
 	Fields []*ResourceField
+	// UnwrapUsed are the unwrap lines of the policy that decided a place: "unwrap.<Component>"
+	// for a component of the list, and "<Component>.<field>" for a field line.
+	UnwrapUsed map[string]bool
+	// HiddenWrappers are the wrapper components that collapse in every place, so Terraform has
+	// no attribute for their property.
+	HiddenWrappers map[string]bool
 }
 
 // Operation is one HTTP operation of the resource.
@@ -62,7 +74,7 @@ type Operation struct {
 
 // Response is the 200 response body.
 type Response struct {
-	Schema string // component name
+	Schema string // component name, "" for an inline empty object
 	// Field is the property that wraps the resource, for example "aiEvaluation".
 	// It is empty when the response does not return the resource, or is the
 	// resource itself (Direct).
@@ -100,15 +112,21 @@ type ResourceField struct {
 type Field struct {
 	Name        string
 	Description string
-	Attrs       Attrs
+	Attrs       Attrs // attributes in the resource response
 	Type        *Type
+	// Behavior is how the field is managed inside its parent object, as for a
+	// top-level field. It is "" inside a computed value: the whole value is
+	// computed.
+	Behavior Behavior
+	// Create and Update are the attributes of the field in the request type of
+	// its parent object. nil: that request does not have the field.
+	Create, Update *Attrs
 }
 
 // Attrs are the facts about a field in one place (a request body or an object).
 type Attrs struct {
 	Required bool    // in the parent "required" list
 	Presence bool    // x-coralogix-presence: true
-	ReadOnly bool    // the server sets the value; a request must not send it
 	Default  *string // YAML text of "default", nil when there is none
 }
 
@@ -130,14 +148,25 @@ const (
 
 // OneOfGroup is a set of fields of an object of which at most one is set.
 type OneOfGroup struct {
-	Arms      []string // field names
-	AllowNone bool     // the value can have no arm set
+	Arms []string // field names
+	// AllowNone: the value can have no arm set. When Create sends the value,
+	// it is the Create rule, which the Terraform configuration follows.
+	AllowNone bool
 }
 
 // Type is the type of a field.
 type Type struct {
 	Kind   Kind
 	Schema string // component name, "" for an inline schema
+	// CreateSchema and UpdateSchema are the components of an Object or a
+	// OneOf in the Create and Update requests. They can differ from Schema,
+	// the component in the resource response. "" when the request does not
+	// send the value.
+	CreateSchema, UpdateSchema string
+	// Model is the component of the resource response that holds the
+	// Terraform model of a request type. It is set only on the types that
+	// CreateType and UpdateType return.
+	Model  string
 	Format string // for example "double", "uint64", "date-time"
 	// WireString is true for an integer that JSON sends as a string
 	// (protobuf 64-bit numbers).
@@ -146,7 +175,7 @@ type Type struct {
 	EnumZero   string   // Enum: the exact protobuf zero value
 	Elem       *Type    // List, Set, Map
 	Fields     []*Field // Object: the properties; OneOf: the arms
-	AllowNone  bool     // OneOf: the value can have no arm set
+	AllowNone  bool     // OneOf: the value can have no arm set, as in OneOfGroup
 	// Groups are the oneOf groups of an Object that also has normal fields,
 	// or has more than one group. Each arm is one of Fields.
 	Groups []OneOfGroup
@@ -155,6 +184,47 @@ type Type struct {
 	Discriminator string
 
 	MinLength, MaxLength *int64
-	Minimum, Maximum     *float64
-	MinItems, MaxItems   *int64 // List, Set: items. Map: entries (minProperties, maxProperties).
+	// Pattern is the regular expression that a String must match, "" for
+	// none. The free-text pattern is none. Existing resources have none.
+	Pattern            string
+	Minimum, Maximum   *float64
+	MinItems, MaxItems *int64 // List, Set: items. Map: entries (minProperties, maxProperties).
+	// Wrappers are the one-property objects that hold the value in the API, outer first. The
+	// rest of the type is the value inside them, which Terraform shows. They are set only by
+	// the unwrap lines of a behavior-overrides file.
+	Wrappers []Wrapper
+}
+
+// Wrapper is one object with one property that holds a value in the API, for example
+// LuceneQuery in {"luceneQuery": {"value": "error"}}. Terraform shows only the value.
+type Wrapper struct {
+	// Schema is the component in the resource response. CreateSchema and UpdateSchema are the
+	// components in the requests, "" when that request does not send the value.
+	Schema, CreateSchema, UpdateSchema string
+	// Field is the one property that holds the value.
+	Field string
+	// Attrs are the attributes of Field in the resource response. Create and Update are its
+	// attributes in the requests, nil when that request does not send the value.
+	Attrs          Attrs
+	Create, Update *Attrs
+}
+
+// WrapperPath returns the API path from the outer wrapper to the value, for example
+// "filter.value", or "" when the value has no wrapper.
+func (t *Type) WrapperPath() string {
+	names := make([]string, 0, len(t.Wrappers))
+	for _, w := range t.Wrappers {
+		names = append(names, w.Field)
+	}
+	return strings.Join(names, ".")
+}
+
+// Unwrapped returns the type of the value inside the wrappers. It is t when t has none.
+func (t *Type) Unwrapped() *Type {
+	if len(t.Wrappers) == 0 {
+		return t
+	}
+	out := *t
+	out.Wrappers = nil
+	return &out
 }

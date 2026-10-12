@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -63,7 +64,6 @@ func ValidateWithPolicy(doc *v3.Document, name string, ids OperationIDs, p Polic
 	}
 	if len(ops) == len(verbs) {
 		report = append(report, requestSchemaSeparationIssues(p, name, ops)...)
-		report = append(report, requiredDeclarationIssues(p, name, ops)...)
 		report = append(report, validateFieldContracts(p, name, ops)...)
 		report = append(report, responseWrapperIssues(p, name, ops)...)
 	}
@@ -73,9 +73,20 @@ func ValidateWithPolicy(doc *v3.Document, name string, ids OperationIDs, p Polic
 			report = append(report, buildIssue(err))
 		} else {
 			report = append(report, validateBuiltResource(r)...)
+			report = append(report, componentNameCollisions(resourceType(r))...)
 		}
 	}
 	return report.Normalize()
+}
+
+// resourceType is the type of the resource response, with the request
+// components that Build merged into it.
+func resourceType(r *Resource) *Type {
+	t := &Type{Kind: Object, Schema: r.Name}
+	for _, f := range r.Fields {
+		t.Fields = append(t.Fields, &Field{Name: f.Name, Type: f.Type})
+	}
+	return t
 }
 
 func requestSchemaSeparationIssues(p Policy, name string, ops map[verb]foundOp) issue.Report {
@@ -130,59 +141,6 @@ func reusedRequestSchemaIssue(location, role, reused string) issue.Issue {
 	}
 }
 
-func requiredDeclarationIssues(p Policy, name string, ops map[verb]foundOp) issue.Report {
-	seen := map[*base.Schema]bool{}
-	roots := []struct {
-		location string
-		proxy    *base.SchemaProxy
-	}{
-		{"paths.create." + ops[opCreate].op.OperationId + ".requestBody", p.requestBody(ops[opCreate].op)},
-		{"paths.update." + ops[opUpdate].op.OperationId + ".requestBody", p.requestBody(ops[opUpdate].op)},
-		{"components.schemas." + name, responseResourceProxy(ops[opGet].op, name)},
-	}
-	var report issue.Report
-	for _, root := range roots {
-		report = append(report, requiredDeclarationIssuesAt(p, root.location, root.proxy, seen)...)
-	}
-	return report
-}
-
-func requiredDeclarationIssuesAt(p Policy, location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
-	if proxy == nil {
-		return nil
-	}
-	schema, err := schemaOf(proxy)
-	if err != nil || seen[schema] {
-		return nil
-	}
-	seen[schema] = true
-	location = referencedSchemaLocation(proxy, location)
-	var report issue.Report
-	// A oneOf states which fields are required on each arm. The parent object has no
-	// required list of its own, and an empty required list is not emitted.
-	if fixedObject(schema) && len(schema.OneOf) == 0 && (schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()) && !p.emptyRequired(referencedComponent(proxy)) {
-		report = append(report, issue.Issue{
-			Code:        "REQUIRED_DECLARATION_MISSING",
-			Location:    location,
-			Message:     "The object does not declare which fields are required.",
-			Remediation: "Add an explicit required list. Use required: [] when every field is optional.",
-		})
-	}
-	for index, inner := range schema.AllOf {
-		report = append(report, requiredDeclarationIssuesAt(p, fmt.Sprintf("%s.allOf[%d]", location, index), inner, seen)...)
-	}
-	for _, field := range propertyNames(schema) {
-		report = append(report, requiredDeclarationIssuesAt(p, location+"."+field, propertyOf(schema, field), seen)...)
-	}
-	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, requiredDeclarationIssuesAt(p, location+"[]", schema.Items.A, seen)...)
-	}
-	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, requiredDeclarationIssuesAt(p, location+"{}", schema.AdditionalProperties.A, seen)...)
-	}
-	return report
-}
-
 // referencedComponent returns the component name of a $ref schema, or "".
 func referencedComponent(proxy *base.SchemaProxy) string {
 	if proxy == nil {
@@ -193,20 +151,6 @@ func referencedComponent(proxy *base.SchemaProxy) string {
 		return ""
 	}
 	return name
-}
-
-func referencedSchemaLocation(proxy *base.SchemaProxy, fallback string) string {
-	if name, err := componentName(proxy.GetReference()); err == nil {
-		return "components.schemas." + name
-	}
-	return fallback
-}
-
-func fixedObject(schema *base.Schema) bool {
-	if !slices.Equal(schema.Type, []string{"object"}) {
-		return false
-	}
-	return schema.AdditionalProperties == nil || !schema.AdditionalProperties.IsA() && !schema.AdditionalProperties.B
 }
 
 func validateOperations(doc *v3.Document, name string, ids OperationIDs, p Policy) (map[verb]foundOp, issue.Report) {
@@ -377,6 +321,9 @@ func validateFieldContracts(p Policy, name string, ops map[verb]foundOp) issue.R
 	for _, field := range names {
 		if field == bodyOnlyID {
 			continue // Build reports the unsupported Update identity contract.
+		}
+		if p.UpdateMaskInBody && isUpdateMaskName(field) {
+			continue // The mask stays in the JSON body and is not a Terraform field.
 		}
 		report = append(report, validateFieldContract(p, name, field, create, update, get)...)
 	}
@@ -590,8 +537,8 @@ func validateFieldContract(p Policy, name, field string, create, update, get *ba
 		cp, up = nil, nil
 	}
 	gp := propertyOf(get, field)
-	location := "components.schemas." + name + "." + field
-	if _, err := classifyField(p, field, cp != nil, up != nil, gp != nil, schemaDefault(up) != nil); err != nil {
+	location := fieldLocation(name, field)
+	if _, err := Classify(cp != nil, up != nil, gp != nil); err != nil {
 		return issue.Report{{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field locations are Create=%t, Update=%t, Get=%t.", cp != nil, up != nil, gp != nil), Remediation: "Use a managed, immutable, or computed field lifecycle."}}
 	}
 	var report issue.Report
@@ -611,13 +558,16 @@ func validateFieldContract(p Policy, name, field string, create, update, get *ba
 		report = append(report, fieldPresenceIssue(location+".create", field, create, cp)...)
 		report = append(report, fieldPresenceIssue(location+".update", field, update, up)...)
 	}
-	report = append(report, nestedPresenceIssues(p, location+".create", cp, map[*base.Schema]bool{})...)
-	report = append(report, nestedPresenceIssues(p, location+".update", up, map[*base.Schema]bool{})...)
+	// The response decides which wrappers collapse, as in the generated resource: a request can
+	// name its components differently.
+	wrapped := p.unwraps(name, field, wrapperComponent(gp))
+	report = append(report, nestedPresenceIssues(p, location+".create", cp, gp, wrapped, map[presenceVisit]bool{})...)
+	report = append(report, nestedPresenceIssues(p, location+".update", up, gp, wrapped, map[presenceVisit]bool{})...)
 	report = append(report, nestedReadOnlyIssues(p, location+".create", cp, map[*base.Schema]bool{})...)
 	report = append(report, nestedReadOnlyIssues(p, location+".update", up, map[*base.Schema]bool{})...)
-	report = append(report, unsupportedSchemaIssues(p, location+".create", cp, map[*base.Schema]bool{})...)
-	report = append(report, unsupportedSchemaIssues(p, location+".update", up, map[*base.Schema]bool{})...)
-	report = append(report, unsupportedSchemaIssues(p, location+".get", gp, map[*base.Schema]bool{})...)
+	report = append(report, unsupportedSchemaIssues(p, location+".create", cp, true, map[*base.Schema]bool{})...)
+	report = append(report, unsupportedSchemaIssues(p, location+".update", up, true, map[*base.Schema]bool{})...)
+	report = append(report, unsupportedSchemaIssues(p, location+".get", gp, false, map[*base.Schema]bool{})...)
 	return report
 }
 
@@ -627,24 +577,18 @@ func fieldDefaultContractIssues(p Policy, name, location, field string, create, 
 	updateDefault := schemaDefault(up)
 	report = append(report, defaultValueIssues(location+".create", cp)...)
 	report = append(report, defaultValueIssues(location+".update", up)...)
-	if p.released(name, field) {
-		return report // a released field keeps its released default; the overrides state it
+	if p.OverridesDefault(name, field) {
+		return report // the default line of the overrides replaces the declared default
 	}
 	createOptional := cp != nil && !slices.Contains(create.Required, field)
 	getRequired := gp != nil && slices.Contains(get.Required, field)
-	if createOptional && getRequired && createDefault == nil {
+	// A released field states how an omitted value behaves, so it needs no declared default.
+	// A declared default is still checked: the generated resource uses it.
+	if createOptional && getRequired && createDefault == nil && !p.released(name, field) {
 		report = append(report, issue.Issue{Code: "FIELD_SERVER_DEFAULT_UNDECLARED", Location: location, Message: "The field is optional in Create but required in Get, so the server supplies a value without a declared default.", Remediation: "Declare the exact OpenAPI default, or separate the client-owned request field from the server-owned response field."})
 	}
-	if createDefault != nil {
-		switch {
-		case !createOptional:
-			report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "A declared server default needs an optional Create field.", Remediation: "Make the field optional in Create and let the server return the declared default."})
-		case up != nil && (slices.Contains(update.Required, field) || updateDefault == nil || *updateDefault != *createDefault):
-			report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The mutable field does not declare the same optional default in Create and Update.", Remediation: "Declare the same typed OpenAPI default on the optional Create and Update fields."})
-		}
-	} else if updateDefault != nil && cp != nil {
-		report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The Update field declares a default that Create does not declare.", Remediation: "Declare the same typed OpenAPI default on the optional Create and Update fields."})
-	}
+	updateRequired := up != nil && slices.Contains(update.Required, field)
+	report = append(report, declaredDefaultIssues(location, createDefault, updateDefault, createOptional && getRequired, updateRequired)...)
 	for _, candidate := range []struct {
 		name  string
 		proxy *base.SchemaProxy
@@ -652,6 +596,23 @@ func fieldDefaultContractIssues(p Policy, name, location, field string, create, 
 		report = append(report, nestedDefaultIssues(p, location+"."+candidate.name, candidate.proxy, true, map[*base.Schema]bool{})...)
 	}
 	return report
+}
+
+// declaredDefaultIssues checks that a declared server default fits the field: optional in Create
+// and Update, required in Get, and the same default in Create and Update.
+func declaredDefaultIssues(location string, createDefault, updateDefault *string, serverOwned, updateRequired bool) issue.Report {
+	switch {
+	case createDefault == nil && updateDefault != nil:
+		return issue.Report{{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The Update field declares a default that Create does not declare.", Remediation: "Declare the default on the optional Create field, or remove it from Update."}}
+	case createDefault == nil:
+		return nil
+	case !serverOwned:
+		return issue.Report{{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "A declared server default needs an optional Create field and a required Get field.", Remediation: "Make the field optional in Create, required in Get, and let the server return the declared default."}}
+	case updateRequired || updateDefault != nil && *updateDefault != *createDefault:
+		// Update may omit the default: generation reads only the Create default.
+		return issue.Report{{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The mutable field is required in Update, or Update declares a different default than Create.", Remediation: "Make the field optional in Update. Omit its default there, or declare the Create default."}}
+	}
+	return nil
 }
 
 func defaultValueIssues(location string, proxy *base.SchemaProxy) issue.Report {
@@ -758,10 +719,11 @@ func defaultNumberLimits(schema *base.Schema, value float64) error {
 // every value, so it is not a constraint.
 const permissivePattern = `^[\s\S]*$`
 
-// uuidPattern is the published UUID pattern. Terraform checks the length; the
-// service checks the pattern. The generator does not emit regular expressions.
-func uuidPattern(schema *base.Schema) bool {
-	return schema.Pattern == `^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`
+// goPattern reports whether the generated validator can use pattern: Go
+// compiles it, or it is empty.
+func goPattern(pattern string) bool {
+	_, err := regexp.Compile(pattern)
+	return err == nil
 }
 
 func schemaDefault(proxy *base.SchemaProxy) *string {
@@ -801,7 +763,11 @@ func nestedDefaultIssues(p Policy, location string, proxy *base.SchemaProxy, roo
 	return report
 }
 
-func unsupportedSchemaIssues(p Policy, location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
+// unsupportedSchemaIssues reports the keywords below proxy that the generator
+// cannot honor. request is false for the resource response. A pattern becomes a
+// Go regular expression validator of the configuration. The configuration sets
+// only the values that a request sends, so a response pattern is no issue.
+func unsupportedSchemaIssues(p Policy, location string, proxy *base.SchemaProxy, request bool, seen map[*base.Schema]bool) issue.Report {
 	if proxy == nil {
 		return nil
 	}
@@ -814,19 +780,32 @@ func unsupportedSchemaIssues(p Policy, location string, proxy *base.SchemaProxy,
 	if schema.WriteOnly != nil && *schema.WriteOnly {
 		report = append(report, issue.Issue{Code: "FIELD_WRITE_ONLY_UNSUPPORTED", Location: location, Message: "The field is writeOnly, but this generator cannot preserve or rotate a value that the API does not return.", Remediation: "Use a handwritten resource until generic write-only state and version handling is supported."})
 	}
-	if schema.Pattern != "" && schema.Pattern != permissivePattern && !uuidPattern(schema) && !p.Existing {
-		report = append(report, issue.Issue{Code: "STRING_PATTERN_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field declares the unsupported pattern %q.", schema.Pattern), Remediation: "Remove the pattern or wait for generated regular-expression validation support."})
+	if request && !p.Existing {
+		report = append(report, patternIssues(location, schema)...)
 	}
 	for _, name := range propertyNames(schema) {
-		report = append(report, unsupportedSchemaIssues(p, location+"."+name, propertyOf(schema, name), seen)...)
+		report = append(report, unsupportedSchemaIssues(p, location+"."+name, propertyOf(schema, name), request, seen)...)
 	}
 	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, unsupportedSchemaIssues(p, location+"[]", schema.Items.A, seen)...)
+		report = append(report, unsupportedSchemaIssues(p, location+"[]", schema.Items.A, request, seen)...)
 	}
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, unsupportedSchemaIssues(p, location+"{}", schema.AdditionalProperties.A, seen)...)
+		report = append(report, unsupportedSchemaIssues(p, location+"{}", schema.AdditionalProperties.A, request, seen)...)
 	}
 	return report
+}
+
+// patternIssues reports a request pattern that the generated validator cannot
+// enforce: Go (RE2) cannot compile it, or it is on an enum, whose attribute
+// gets only the OneOf validator.
+func patternIssues(location string, schema *base.Schema) issue.Report {
+	switch {
+	case !goPattern(schema.Pattern):
+		return issue.Report{{Code: "STRING_PATTERN_UNSUPPORTED", Location: location, Message: fmt.Sprintf("Go regular expressions (RE2) cannot compile the pattern %q.", schema.Pattern), Remediation: "Use a pattern without lookaround or backreferences."}}
+	case len(schema.Enum) != 0 && schema.Pattern != "" && schema.Pattern != permissivePattern:
+		return issue.Report{{Code: "STRING_PATTERN_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The enum declares the pattern %q. The enum values already limit the value.", schema.Pattern), Remediation: "Remove the pattern from the enum."}}
+	}
+	return nil
 }
 
 func rootGroupContractIssues(name string, create, update, get *base.Schema) issue.Report {
@@ -898,7 +877,13 @@ func nestedReadOnlyIssues(p Policy, location string, proxy *base.SchemaProxy, se
 			continue // the resource does not manage this field, so it is never sent
 		}
 		if childSchema.ReadOnly != nil && *childSchema.ReadOnly {
-			continue // a nested readOnly field is computed and is not sent
+			// requestValue sends a fixed value, so the field is not a server-only
+			// property the renderer has to drop.
+			if p.fixedRequest(referencedComponent(proxy), name) {
+				continue
+			}
+			report = append(report, issue.Issue{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: childLocation, Message: "A nested request field is readOnly and cannot be removed by the current resource renderer.", Remediation: "Use separate request and response schemas so server-only fields are absent from request objects."})
+			continue
 		}
 		report = append(report, nestedReadOnlyIssues(p, childLocation, child, seen)...)
 	}
@@ -911,23 +896,29 @@ func nestedReadOnlyIssues(p Policy, location string, proxy *base.SchemaProxy, se
 	return report
 }
 
-func fieldTypeIssues(p Policy, location string, candidates ...*base.SchemaProxy) issue.Report {
-	var canonical *Type
-	for _, candidate := range candidates {
-		if candidate == nil {
+// fieldTypeIssues merges the Create and Update types of a field into its type
+// in the resource response, as Build does. A schema that is not supported is
+// left out: unsupportedSchemaIssues reports it.
+func fieldTypeIssues(p Policy, location string, gp, cp, up *base.SchemaProxy) issue.Report {
+	if gp == nil {
+		return nil
+	}
+	get, err := typeOf(gp, location, walk{policy: &p})
+	if err != nil {
+		return nil
+	}
+	var requests [2]*Type
+	for i, proxy := range []*base.SchemaProxy{cp, up} {
+		if proxy == nil {
 			continue
 		}
-		current, err := typeOf(candidate, location, walk{policy: &p})
-		if err != nil {
-			continue
+		if requests[i], err = typeOf(proxy, location, walk{policy: &p}); err != nil {
+			return nil
 		}
-		if canonical == nil {
-			canonical = current
-			continue
-		}
-		if !reflect.DeepEqual(canonical, current) {
-			return issue.Report{{Code: "FIELD_TYPE_INCONSISTENT", Location: location, Message: "The Create, Update, and Get schemas do not use the same field type.", Remediation: "Use one compatible schema for the field in every lifecycle operation."}}
-		}
+	}
+	var contract *contractError
+	if err := mergeRequests(location, get, requests[0], requests[1]); errors.As(err, &contract) {
+		return issue.Report{contract.issue()}
 	}
 	return nil
 }
@@ -950,13 +941,6 @@ func fieldPresenceIssue(location, field string, parent *base.Schema, proxy *base
 	// A list or map has no presence: empty and missing are the same. A
 	// message always has presence, so it needs no marker.
 	if !scalarSchema(value) || required && !scalarZeroValueValid(schema) {
-		return nil
-	}
-	// A default says what omission means. A proto3 enum cannot tell omission
-	// from its zero value unless the contract adds x-coralogix-presence.
-	// A required integer with both bounds is a published numeric range: the
-	// JSON schema already requires the property.
-	if schema.Default != nil || len(value.Enum) != 0 || required && boundedInteger(value) {
 		return nil
 	}
 	presence := schema.Extensions.GetOrZero(extPresence)
@@ -1041,13 +1025,6 @@ func scalarZeroValueValid(schema *base.Schema) bool {
 	}
 }
 
-func boundedInteger(schema *base.Schema) bool {
-	if len(schema.Type) != 1 || (schema.Type[0] != "integer" && schema.Type[0] != "number") {
-		return false
-	}
-	return schema.Minimum != nil && schema.Maximum != nil
-}
-
 func numericZeroValueValid(schema *base.Schema) bool {
 	return (schema.Minimum == nil || *schema.Minimum <= 0) && (schema.Maximum == nil || *schema.Maximum >= 0)
 }
@@ -1072,35 +1049,83 @@ func stringZeroValueValid(schema *base.Schema) bool {
 	return err == nil && re.MatchString(value)
 }
 
-func nestedPresenceIssues(p Policy, location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
+// presenceVisit is one request schema that nestedPresenceIssues checked, with the response
+// schema in the same place, as a wrapper that collapses or as an object. A component can be
+// both, in two places.
+type presenceVisit struct {
+	schema, get *base.Schema
+	wrapped     bool
+}
+
+// nestedPresenceIssues reports the nested request fields that do not state presence. get is the
+// response schema in the same place. wrapped is true when proxy, or the items of the list that
+// proxy is, is a wrapper that collapses: the wrapper states the presence of its property,
+// because Terraform null sends no wrapper. The response components decide which wrappers
+// collapse, as they do in the generated resource.
+func nestedPresenceIssues(p Policy, location string, proxy, get *base.SchemaProxy, wrapped bool, seen map[presenceVisit]bool) issue.Report {
 	if proxy == nil {
 		return nil
 	}
 	schema, err := schemaOf(proxy)
-	if err != nil || seen[schema] {
+	if err != nil {
 		return nil
 	}
-	seen[schema] = true
+	getSchema, _ := schemaOf(get)
+	visit := presenceVisit{schema, getSchema, wrapped}
+	if seen[visit] {
+		return nil
+	}
+	seen[visit] = true
 	var report issue.Report
 	grouped := groupedFields(schema)
+	owner, _ := componentName(unwrapRef(get))
 	for _, name := range propertyNames(schema) {
 		child := propertyOf(schema, name)
 		childSchema, childErr := schemaOf(child)
 		if childErr == nil && childSchema.ReadOnly != nil && *childSchema.ReadOnly {
 			continue
 		}
-		if !grouped[name] && !p.released(referencedComponent(proxy), name) {
+		if !wrapped && !grouped[name] && !p.released(referencedComponent(proxy), name) {
 			report = append(report, fieldPresenceIssue(location+"."+name, name, schema, child)...)
 		}
-		report = append(report, nestedPresenceIssues(p, location+"."+name, child, seen)...)
+		getChild := propertyOf(getSchema, name)
+		report = append(report, nestedPresenceIssues(p, location+"."+name, child, getChild, p.unwraps(owner, name, wrapperComponent(getChild)), seen)...)
 	}
 	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, nestedPresenceIssues(p, location+"[]", schema.Items.A, seen)...)
+		report = append(report, nestedPresenceIssues(p, location+"[]", schema.Items.A, itemsOf(getSchema), wrapped, seen)...)
 	}
 	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, nestedPresenceIssues(p, location+"{}", schema.AdditionalProperties.A, seen)...)
+		report = append(report, nestedPresenceIssues(p, location+"{}", schema.AdditionalProperties.A, nil, false, seen)...)
 	}
 	return report
+}
+
+// itemsOf returns the items of the list schema s, or nil.
+func itemsOf(s *base.Schema) *base.SchemaProxy {
+	if s == nil || s.Items == nil || !s.Items.IsA() {
+		return nil
+	}
+	return s.Items.A
+}
+
+// wrapperComponent returns the component of a property that could be a wrapper: the property
+// itself, or the items of a list. It returns "" for any other schema.
+func wrapperComponent(proxy *base.SchemaProxy) string {
+	if proxy == nil {
+		return ""
+	}
+	if name, err := componentName(unwrapRef(proxy)); err == nil {
+		return name
+	}
+	s, err := schemaOf(proxy)
+	if err != nil {
+		return ""
+	}
+	name, err := componentName(unwrapRef(itemsOf(s)))
+	if err != nil {
+		return ""
+	}
+	return name
 }
 
 func groupedFields(schema *base.Schema) map[string]bool {
@@ -1175,26 +1200,29 @@ func responseResourceProxy(op *v3.Operation, name string) *base.SchemaProxy {
 }
 
 func validateBuiltResource(r *Resource) issue.Report {
-	var report issue.Report
 	if r.Replace {
 		return nil
 	}
 	if r.UpdateMaskPattern == "" {
-		report = append(report, issue.Issue{Code: "UPDATE_MASK_CONTRACT_MISSING", Location: "paths.update." + r.Update.OperationID, Message: "The PATCH update mask has no pattern that defines accepted mask paths.", Remediation: "Add the authoritative update-mask path pattern to the source API contract."})
-		return report
+		return issue.Report{{Code: "UPDATE_MASK_CONTRACT_MISSING", Location: "paths.update." + r.Update.OperationID, Message: "The PATCH update mask has no pattern that defines accepted mask paths.", Remediation: "Add the authoritative update-mask path pattern to the source API contract."}}
 	}
 	_, leaf, err := UpdateMaskRule(r.UpdateMaskPattern)
 	if err != nil {
-		return append(report, issue.Issue{Code: "UPDATE_MASK_CONTRACT_INVALID", Location: "paths.update." + r.Update.OperationID, Message: err.Error() + ".", Remediation: "Use a mask pattern that accepts field names and comma-separated lists of them, rejects *, and defines whether dotted paths are supported."})
+		return issue.Report{{Code: "UPDATE_MASK_CONTRACT_INVALID", Location: "paths.update." + r.Update.OperationID, Message: err.Error() + ".", Remediation: "Use a mask pattern that accepts field names and comma-separated lists of them, rejects *, and defines whether dotted paths are supported."}}
 	}
 	if leaf {
-		return report
+		return nil
 	}
+	return nestedOneOfMaskIssues(r)
+}
+
+func nestedOneOfMaskIssues(r *Resource) issue.Report {
+	var report issue.Report
 	for _, field := range r.Fields {
 		if field.Update == nil {
 			continue
 		}
-		paths := oneOfMaskPaths(field.Name, field.Type)
+		paths := oneOfMaskPaths(field.Name, field.Type.UpdateType())
 		if len(paths) == 0 {
 			continue
 		}
@@ -1211,6 +1239,9 @@ func validateBuiltResource(r *Resource) issue.Report {
 func oneOfMaskPaths(prefix string, t *Type) []string {
 	if t == nil {
 		return nil
+	}
+	if len(t.Wrappers) != 0 {
+		prefix += "." + t.WrapperPath()
 	}
 	var paths []string
 	if t.Kind == OneOf {
@@ -1275,18 +1306,27 @@ func componentNameCollisions(root *Type) issue.Report {
 			return
 		}
 		visitedTypes[t] = true
-		if t.Schema != "" && !visitedSchemas[t.Schema] {
-			visitedSchemas[t.Schema] = true
-			generated := GoName(t.Schema)
-			if previous, ok := generatedNames[generated]; ok && previous != t.Schema {
+		// A request component of an object names its expand function. A wrapper that collapsed
+		// is no longer a type of the graph, but the generated code still names its components.
+		schemas := []string{t.Schema, t.CreateSchema, t.UpdateSchema}
+		for _, w := range t.Wrappers {
+			schemas = append(schemas, w.Schema, w.CreateSchema, w.UpdateSchema)
+		}
+		for _, schema := range schemas {
+			if schema == "" || visitedSchemas[schema] {
+				continue
+			}
+			visitedSchemas[schema] = true
+			generated := GoName(schema)
+			if previous, ok := generatedNames[generated]; ok && previous != schema {
 				report = append(report, issue.Issue{
 					Code:        "GO_COMPONENT_NAME_COLLISION",
 					Location:    "components.schemas",
-					Message:     fmt.Sprintf("Components %q and %q both generate the Go name %q.", previous, t.Schema, generated),
+					Message:     fmt.Sprintf("Components %q and %q both generate the Go name %q.", previous, schema, generated),
 					Remediation: "Rename a source API component so every generated Go type name is unique.",
 				})
 			} else {
-				generatedNames[generated] = t.Schema
+				generatedNames[generated] = schema
 			}
 		}
 		walk(t.Elem)
@@ -1391,6 +1431,10 @@ func constraintSchemaIssueCode(message string) string {
 }
 
 func buildIssue(err error) issue.Issue {
+	var contract *contractError
+	if errors.As(err, &contract) {
+		return contract.issue()
+	}
 	message := err.Error()
 	code := "RESOURCE_LIFECYCLE_INCOMPLETE"
 	remediation := "Correct the source API contract so the complete resource lifecycle is deterministic."

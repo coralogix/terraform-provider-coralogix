@@ -233,6 +233,14 @@ func (c *ClientSet) GlobalRouters() *globalRouters.GlobalRoutersServiceAPIServic
 	return c.globalRouters
 }
 
+func (c *ClientSet) Connectors() *connectors.ConnectorsServiceAPIService {
+	return c.connectors
+}
+
+func (c *ClientSet) Presets() *presets.PresetsServiceAPIService {
+	return c.presets
+}
+
 func (c *ClientSet) GetNotifications() (*connectors.ConnectorsServiceAPIService, *globalRouters.GlobalRoutersServiceAPIService, *presets.PresetsServiceAPIService) {
 	return c.connectors, c.globalRouters, c.presets
 

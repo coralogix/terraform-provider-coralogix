@@ -84,6 +84,113 @@ func generateArchivedThing(t *testing.T) string {
 	return out
 }
 
+// The golden output of a resource with string fields that hold documents: a JSON field, and a
+// YAML field in a list of objects. A change of format alone plans no change.
+func TestGoldenOutputDocumentEquality(t *testing.T) {
+	out := generateConfigThing(t)
+	golden := filepath.Join("testdata", "golden", "configthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputDocumentEquality -update:\n%s", diff)
+	}
+}
+
+// generateConfigThing generates the synthetic resource whose string fields hold documents.
+func generateConfigThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "configthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "configthing")
+	options := Options{Resource: "ConfigThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "configthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// The golden output of a resource whose API holds values in wrapper objects. Terraform shows only
+// the values: a string, an enum, a required number, a list of wrapped items, an object, and a
+// list inside two wrappers. One component collapses in one place and stays an object in another.
+func TestGoldenOutputWrappedValues(t *testing.T) {
+	out := generateWrapThing(t)
+	golden := filepath.Join("testdata", "golden", "wrapthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputWrappedValues -update:\n%s", diff)
+	}
+}
+
+// The golden output of a resource whose lifecycle is custom methods and whose overrides use a
+// fixed request value, including one on a nested read-only field, a string read from "" as null,
+// a business-first enum, a missing list read as empty, and ExactlyOneOf.
+func TestGoldenOutputCustomMethods(t *testing.T) {
+	out := generateCustomThing(t)
+	golden := filepath.Join("testdata", "golden", "customthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputCustomMethods -update:\n%s", diff)
+	}
+}
+
+// generateCustomThing generates the synthetic resource with custom-method operations.
+func generateCustomThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "customthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "customthing")
+	options := Options{Resource: "CustomThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "customthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// generateWrapThing generates the synthetic resource whose API holds values in wrapper objects.
+func generateWrapThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "wrapthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "wrapthing")
+	options := Options{Resource: "WrapThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "wrapthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
 func TestGoldenOutput(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	first := filepath.Join(t.TempDir(), "thing")
@@ -141,6 +248,7 @@ func TestGoldenCanonicalAPIContract(t *testing.T) {
 		`objectvalidator.ExactlyOneOf`,
 		`"destinations": schema.ListAttribute{`,
 		`"tags": schema.SetAttribute{`,
+		`"details": schema.SetNestedAttribute{`,
 		`"create_time": schema.StringAttribute{`,
 		`"update_time": schema.StringAttribute{`,
 	} {
@@ -170,6 +278,83 @@ func TestGeneratedUpdateMaskUsesQueryParameter(t *testing.T) {
 	if !bytes.Contains(resource, []byte(".UpdateThingRequest(*body).UpdateMask(mask).Execute()")) {
 		t.Fatalf("resource.go does not send updateMask through the query setter:\n%s", resource)
 	}
+}
+
+// A released PATCH that puts updateMask in the JSON body uses the same update
+// as a query-parameter mask, then sets that mask on the body.
+func TestBodyUpdateMaskSetsTheSameMask(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	input.OpenAPI = []byte(moveUpdateMaskIntoBody(t, string(input.OpenAPI)))
+	out := generateBodyMaskResource(t, input, sdkDir)
+	assertBodyUpdateMask(t, out)
+	compileGenerated(t, out, input)
+}
+
+func moveUpdateMaskIntoBody(t *testing.T, text string) string {
+	t.Helper()
+	start := strings.Index(text, "operationId: ThingsService_UpdateThing")
+	if start < 0 {
+		t.Fatal("cannot locate the update operation")
+	}
+	tail := text[start:]
+	params := strings.Index(tail, "      parameters:\n")
+	body := strings.Index(tail, "      requestBody:\n")
+	if params < 0 || body < 0 || params > body {
+		t.Fatal("cannot locate the update mask parameter")
+	}
+	tail = tail[:params] + tail[body:]
+	labels := "                labels:\n                  type: object\n                  additionalProperties: {type: string}\n"
+	if !strings.Contains(tail, labels) {
+		t.Fatal("cannot locate the update body")
+	}
+	tail = strings.Replace(tail, labels, labels+"                updateMask:\n                  type: string\n                  pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'\n", 1)
+	return text[:start] + tail
+}
+
+func generateBodyMaskResource(t *testing.T, input source.Input, sdkDir string) string {
+	t.Helper()
+	dir := t.TempDir()
+	overrides := filepath.Join(dir, "behavior-overrides.yaml")
+	const file = `resource: Thing
+mode: existing
+validators:
+  inferred: false
+api:
+  updateMaskInBody: true
+`
+	if err := os.WriteFile(overrides, []byte(file), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "thing")
+	if err := generateFromInput(Options{Resource: "Thing", OutputDir: out, OverridesPath: overrides}, input, sdkDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+func assertBodyUpdateMask(t *testing.T, out string) {
+	t.Helper()
+	resource := mustRead(t, filepath.Join(out, "resource.go"))
+	if bytes.Contains(resource, []byte("UpdateMask(")) || !bytes.Contains(resource, []byte("body.UpdateMask = &mask")) {
+		t.Fatalf("resource.go does not set the mask on the body:\n%s", resource)
+	}
+	mask := mustRead(t, filepath.Join(out, "mask.go"))
+	if bytes.Contains(mask, []byte("keepChanged")) || bytes.Contains(mask, []byte("body.UpdateMask")) {
+		t.Fatalf("mask.go does not reuse the query-parameter update:\n%s", mask)
+	}
+	schema := mustRead(t, filepath.Join(out, "schema.go"))
+	if bytes.Contains(schema, []byte("update_mask")) || bytes.Contains(schema, []byte("updateMask")) {
+		t.Fatalf("schema.go exposes the mask:\n%s", schema)
+	}
+}
+
+func mustRead(t *testing.T, path string) []byte {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
 }
 
 // The OpenAPI fork names the mask query parameter with its proto name. The
@@ -239,6 +424,25 @@ func TestEnumCollectionFlatteningUsesGuardedHelpers(t *testing.T) {
 	}
 }
 
+func TestObjectCollectionAttrTypeFollowsSetOrList(t *testing.T) {
+	child := &convObject{
+		Model:         "Item",
+		AttrTypesFunc: "itemAttrTypes",
+		Fields:        []*convField{{TFName: "name", Conv: convString}},
+	}
+	b := &convBuilder{}
+	got, err := b.attrType(&convObject{Model: "Parent"}, &convField{
+		TFName: "items", Conv: convObjects, Collection: "Set", Object: child,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "types.SetType{ElemType: types.ObjectType{AttrTypes: itemAttrTypes()}}"
+	if got != want {
+		t.Fatalf("attr type:\n  got  %s\n  want %s", got, want)
+	}
+}
+
 func TestEligibilityFailurePreservesOutput(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("x-coralogix-presence: true"), nil, 2)
@@ -304,12 +508,6 @@ func TestContractGapsUseSharedFailClosedValidation(t *testing.T) {
 		"reused request schema": {
 			spec: replaceOperationBodySchema(t, base, "ThingsService_CreateThing", "              $ref: '#/components/schemas/Thing'\n"),
 			code: "REQUEST_SCHEMA_REUSED",
-		},
-		"missing required declaration": {
-			spec: strings.Replace(base,
-				"              title: UpdateThingRequest\n              type: object\n              required: []\n              properties:\n",
-				"              title: UpdateThingRequest\n              type: object\n              properties:\n", 1),
-			code: "REQUIRED_DECLARATION_MISSING",
 		},
 		"missing required scalar presence": {
 			spec: strings.Replace(base,
@@ -578,7 +776,7 @@ func TestCheckRejectsRendererUnsupportedShapes(t *testing.T) {
 		spec string
 		code string
 	}{
-		"set of objects":               {setOfObjectsSpec(base), "RENDERER_SHAPE_UNSUPPORTED"},
+		"invalid generated identifier": {invalidGeneratedIdentifierSpec(t, base), "RENDERER_OUTPUT_INVALID"},
 		"acronym name collision":       {acronymNameCollisionSpec(t, base), "TERRAFORM_NAME_COLLISION"},
 		"Go field name collision":      {goNameCollisionSpec(t, base), "GO_NAME_COLLISION"},
 		"Go component name collision":  {goComponentNameCollisionSpec(t, base), "GO_COMPONENT_NAME_COLLISION"},
@@ -610,6 +808,18 @@ func TestCheckRejectsRendererUnsupportedShapes(t *testing.T) {
 				t.Fatalf("generated output exists after renderer rejection: %v", err)
 			}
 		})
+	}
+}
+
+func TestCheckAllowsSetOfObjects(t *testing.T) {
+	input, _ := syntheticInput(t)
+	work := t.TempDir()
+	candidate := filepath.Join(work, "candidate.yaml")
+	if err := os.WriteFile(candidate, []byte(setOfObjectsSpec(string(input.OpenAPI))), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Check(CheckOptions{Resource: "Thing", OpenAPIPath: candidate}); err != nil {
+		t.Fatalf("check set of objects: %v", err)
 	}
 }
 
@@ -655,6 +865,26 @@ func setOfObjectsSpec(spec string) string {
         value:
           type: string
           minLength: 1
+`
+}
+
+func invalidGeneratedIdentifierSpec(t *testing.T, spec string) string {
+	t.Helper()
+	createField := "                name:\n                  type: string\n                  minLength: 1\n                  x-coralogix-presence: true"
+	createWithDetail := createField + "\n                detail:\n                  x-coralogix-presence: true\n                  allOf:\n                    - $ref: '#/components/schemas/1FilterOperator'"
+	spec = replaceAfter(t, spec, "operationId: ThingsService_CreateThing", createField, createWithDetail)
+	updateField := createField
+	updateWithDetail := updateField + "\n                detail:\n                  x-coralogix-presence: true\n                  allOf:\n                    - $ref: '#/components/schemas/1FilterOperator'"
+	spec = replaceAfter(t, spec, "operationId: ThingsService_UpdateThing", updateField, updateWithDetail)
+	responseField := "        name:\n          type: string\n          minLength: 1\n          description: The display name."
+	responseWithDetail := responseField + "\n        detail:\n          $ref: '#/components/schemas/1FilterOperator'"
+	spec = replaceAfter(t, spec, "    Thing:", responseField, responseWithDetail)
+	return spec + `
+    1FilterOperator:
+      type: object
+      required: [value]
+      properties:
+        value: {type: string, minLength: 1}
 `
 }
 
@@ -1003,6 +1233,36 @@ func TestDeleteOverrideRuntimeSemantics(t *testing.T) {
 	input, _ := syntheticInput(t)
 	out := generateArchivedThing(t)
 	semantics, err := os.ReadFile(filepath.Join("testdata", "archived_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// The generated resource with document fields compares them as documents in its plan and its
+// flatten, and plans no change when only the format of a document changes.
+func TestDocumentEqualityRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateConfigThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "configthing_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// The generated resource whose API holds values in wrapper objects puts each value in its wrappers
+// on expand and takes it out on flatten, and keeps null apart from a zero value.
+func TestWrappedValuesRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateWrapThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "wrapthing_semantics_test.go"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1366,4 +1626,53 @@ func TestSingletonIDIsStatic(t *testing.T) {
 		t.Fatal(err)
 	}
 	compileGenerated(t, out, input)
+}
+
+// An immutable value that holds a value that the server sets compares only the
+// request values. The stock RequiresReplace would compare the unknown server
+// value and replace the resource on every change.
+func TestImmutableServerValuesUseRequestReplace(t *testing.T) {
+	settings := &model.Type{Kind: model.Object, Schema: "Settings", CreateSchema: "SettingsCreate", Fields: []*model.Field{
+		{Name: "name", Type: &model.Type{Kind: model.String}, Behavior: model.Normal, Create: &model.Attrs{Required: true}},
+		{Name: "id", Type: &model.Type{Kind: model.String}, Behavior: model.Computed},
+	}}
+	resource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{
+		{Name: "settings", Type: settings, Behavior: model.Immutable, Create: &model.Attrs{}, Get: &model.Attrs{}, InGet: true},
+		{Name: "region", Type: &model.Type{Kind: model.String}, Behavior: model.Immutable, Create: &model.Attrs{Presence: true}, Get: &model.Attrs{}, InGet: true},
+	}}
+	data, err := buildTFResource(resource, "thing")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := data.Attributes[0].Modifiers; !slices.Equal(got, []string{`requestReplaceModifier{at: "settings"}`}) {
+		t.Errorf("settings modifiers = %v, want requestReplaceModifier", got)
+	}
+	if got := data.Attributes[1].Modifiers; !slices.Equal(got, []string{"stringplanmodifier.RequiresReplace()"}) {
+		t.Errorf("region modifiers = %v, want the stock RequiresReplace", got)
+	}
+	if !slices.Equal(data.RequestReplaceKinds, []string{"Object"}) || !slices.Equal(data.ServerPaths, []string{"settings.id"}) {
+		t.Errorf("kinds %v, server paths %v", data.RequestReplaceKinds, data.ServerPaths)
+	}
+}
+
+// A behavior-overrides line can make a nested attribute optional and computed.
+// Inside an immutable value, an omitted one would be unknown after any change
+// and replace the resource, so the generator rejects it.
+func TestImmutableValueRejectsOptionalComputedOverride(t *testing.T) {
+	settings := &model.Type{Kind: model.Object, Schema: "Settings", CreateSchema: "Settings", Fields: []*model.Field{
+		{Name: "name", Type: &model.Type{Kind: model.String}, Behavior: model.Normal, Create: &model.Attrs{Required: true}},
+		{Name: "zone", Type: &model.Type{Kind: model.String}, Behavior: model.Normal, Create: &model.Attrs{}},
+	}}
+	resource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{
+		{Name: "settings", Type: settings, Behavior: model.Immutable, Create: &model.Attrs{}, Get: &model.Attrs{}, InGet: true},
+	}}
+	base := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\n"
+	if _, err := buildTFResourceWith(resource, "thing", mustParse(t, base)); err != nil {
+		t.Fatalf("immutable value without overrides: %v", err)
+	}
+	file := mustParse(t, base+"types:\n  Settings:\n    fields:\n      zone: {computed: true}\n")
+	_, err := buildTFResourceWith(resource, "thing", file)
+	if err == nil || !strings.Contains(err.Error(), "settings: the immutable value holds the optional and computed attribute settings.zone") {
+		t.Fatalf("err = %v, want the optional and computed attribute settings.zone", err)
+	}
 }

@@ -2,6 +2,7 @@ package overrides
 
 import (
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -38,7 +39,6 @@ func TestParseAndPolicy(t *testing.T) {
 		UpdateIDInBody: true,
 		ClientSetID:    true,
 		EnumAnyPrefix:  []string{"Kind"},
-		EmptyRequired:  []string{"Labels"},
 		Skip:           []string{"Target.id"},
 		Released:       []string{"Target.id"},
 
@@ -56,6 +56,24 @@ func TestParseAndPolicy(t *testing.T) {
 	}
 }
 
+func TestPolicyCopiesBodyMask(t *testing.T) {
+	text := `
+resource: Thing
+mode: existing
+validators:
+  inferred: false
+api:
+  updateMaskInBody: true
+`
+	f, err := Parse([]byte(text))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !f.Policy().UpdateMaskInBody {
+		t.Fatal("policy did not copy updateMaskInBody")
+	}
+}
+
 func TestParseIsStrict(t *testing.T) {
 	tests := map[string]struct {
 		text string
@@ -67,6 +85,8 @@ func TestParseIsStrict(t *testing.T) {
 		"no resource":     {"mode: existing\n", "resource is required"},
 		"wrong mode":      {"resource: Thing\nmode: new\n", `mode is "new"`},
 		"no mode":         {"resource: Thing\n", `mode is ""`},
+		"no validators":   {"resource: Thing\nmode: existing\n", "validators.inferred: false is required"},
+		"inferred true":   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: true\n", "validators.inferred: false is required"},
 		"bad readEmptyAs": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {readEmptyAs: zero}\n", "readEmptyAs"},
 		"bad default":     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {default: [a]}\n", "default is"},
 		"two validators":  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {validators: [{oneOf: [a], sizeAtLeast: 1}]}\n", "exactly one"},
@@ -74,6 +94,9 @@ func TestParseIsStrict(t *testing.T) {
 		"skip and more":   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, computed: true}\n", "skipped field"},
 		"required list":   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    required: [a]\n", "only the empty list"},
 		"type with no op": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T: {}\n", "has no override"},
+		"bad extra type":  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      token_wo:\n        elementType: bool\n        markdownDescription: x\n", "elementType"},
+		"unwrap twice":    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nunwrap: [A, A]\n", "names A twice"},
+		"skip and unwrap": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, unwrap: true}\n", "skipped field"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -82,21 +105,6 @@ func TestParseIsStrict(t *testing.T) {
 				t.Fatalf("err = %v, want it to contain %q", err, test.want)
 			}
 		})
-	}
-}
-
-func TestInferredValidatorsDefaultToTheContract(t *testing.T) {
-	for _, text := range []string{
-		"resource: Thing\nmode: existing\n",
-		"resource: Thing\nmode: existing\nvalidators:\n  inferred: true\n",
-	} {
-		file, err := Parse([]byte(text))
-		if err != nil {
-			t.Fatalf("Parse(%q) = %v", text, err)
-		}
-		if file.Policy().NoInferredValidators {
-			t.Fatalf("Parse(%q) dropped contract validators", text)
-		}
 	}
 }
 
@@ -118,6 +126,35 @@ func TestARequiredFieldCannotBeComputed(t *testing.T) {
 	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {required: true, computed: true}\n"))
 	if err == nil || !strings.Contains(err.Error(), "cannot be computed") {
 		t.Fatalf("err = %v, want an error about a required and computed field", err)
+	}
+}
+
+// A released number field, such as an Int64 with a static 0, states its default as a number.
+func TestADefaultCanBeANumber(t *testing.T) {
+	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      count: {computed: true, default: 0}\n      ratio: {computed: true, default: 0.5}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fields := f.Types["R"].Fields
+	if fields["count"].Default != 0 || fields["ratio"].Default != 0.5 {
+		t.Fatalf("defaults = %#v, %#v, want 0 and 0.5", fields["count"].Default, fields["ratio"].Default)
+	}
+	if got := strings.Join(f.Policy().Defaults, ","); got != "R.count,R.ratio" {
+		t.Fatalf("policy defaults = %s, want R.count,R.ratio", got)
+	}
+}
+
+// A line whose mode a server default cannot have replaces the server default of the contract.
+// Another line keeps it.
+func TestLinesThatReplaceTheServerDefault(t *testing.T) {
+	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n" +
+		"      a: {default: 0}\n      b: {required: true}\n      c: {computed: false}\n" +
+		"      d: {computed: true}\n      e: {computed: true, useStateForUnknown: true}\n      f: {description: Text.}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(f.Policy().Defaults, ","); got != "R.a,R.c" {
+		t.Fatalf("policy defaults = %s, want R.a,R.c", got)
 	}
 }
 
@@ -153,10 +190,11 @@ func TestDeleteOperation(t *testing.T) {
 		text string
 		want string
 	}{
-		"no operation":     {head + "  delete: {}\n", "api.delete.operation is required"},
-		"empty operation":  {head + "  delete:\n    operation: \"\"\n", "api.delete.operation is required"},
-		"unknown key":      {head + "  delete:\n    operation: Service_ArchiveR\n    before: deactivate\n", "before"},
-		"operation scalar": {head + "  delete: Service_ArchiveR\n", "overrides.Delete"},
+		"no operation":       {head + "  delete: {}\n", "api.delete.operation is required"},
+		"empty operation":    {head + "  delete:\n    operation: \"\"\n", "api.delete.operation is required"},
+		"unknown key":        {head + "  delete:\n    operation: Service_ArchiveR\n    before: deactivate\n", "before"},
+		"operation scalar":   {head + "  delete: Service_ArchiveR\n", "overrides.Delete"},
+		"also in operations": {head + "  delete:\n    operation: Service_ArchiveR\n  operations:\n    create: Service_CreateR\n    get: Service_GetR\n    update: Service_UpdateR\n    delete: Service_DeleteR\n", "keep only api.operations.delete"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -165,5 +203,63 @@ func TestDeleteOperation(t *testing.T) {
 				t.Fatalf("err = %v, want it to contain %q", err, test.want)
 			}
 		})
+	}
+}
+
+func TestEquality(t *testing.T) {
+	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n"
+	f, err := Parse([]byte(head + "      config: {equality: yaml}\n      settings: {equality: json, description: A JSON object.}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, l := range f.Lines() {
+		got = append(got, l.String()+"="+l.Equality+":"+strings.Join(l.Keys, "+"))
+	}
+	if want := "types.R.fields.config=yaml:equality,types.R.fields.settings=json:description+equality"; strings.Join(got, ",") != want {
+		t.Fatalf("lines = %s, want %s", strings.Join(got, ","), want)
+	}
+	if released := f.Policy().Released; len(released) != 0 {
+		t.Fatalf("released = %v: equality does not state presence", released)
+	}
+	tests := map[string]struct {
+		line string
+		want string
+	}{
+		"unknown value":  {"{equality: toml}", `equality is "toml"`},
+		"upper case":     {"{equality: YAML}", `equality is "YAML"`},
+		"skipped field":  {"{skip: true, equality: yaml}", "skipped field"},
+		"not a scalar":   {"{equality: [yaml]}", "into string"},
+		"empty is unset": {"{equality: \"\"}", "sets nothing"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := Parse([]byte(head + "      config: " + test.line + "\n"))
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}
+
+func TestUnwrapPolicy(t *testing.T) {
+	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\nunwrap: [Query, UUID]\ntypes:\n  R:\n    fields:\n      label: {unwrap: true}\n      raw: {unwrap: false}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := f.Policy()
+	if !reflect.DeepEqual(p.Unwrap, []string{"Query", "UUID"}) {
+		t.Errorf("unwrap = %v", p.Unwrap)
+	}
+	if want := map[string]bool{"R.label": true, "R.raw": false}; !reflect.DeepEqual(p.UnwrapFields, want) {
+		t.Errorf("unwrap fields = %v, want %v", p.UnwrapFields, want)
+	}
+	if len(p.Released) != 0 {
+		t.Errorf("released = %v: an unwrap line says nothing about presence", p.Released)
+	}
+	for _, line := range f.Lines() {
+		if !slices.Contains(line.Keys, "unwrap") {
+			t.Errorf("line %s keys = %v, want unwrap", line, line.Keys)
+		}
 	}
 }

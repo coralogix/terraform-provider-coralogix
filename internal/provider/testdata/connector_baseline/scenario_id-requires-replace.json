@@ -1,0 +1,157 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "connector_config": {
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "id": "first",
+      "name": "r",
+      "type": "generic_https"
+    },
+    "plan": {
+      "config_overrides": "(unknown)",
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "",
+      "id": "first",
+      "name": "r",
+      "type": "generic_https"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/connectors",
+        "body": {
+          "connector": {
+            "connectorConfig": {
+              "fields": [
+                {
+                  "fieldName": "method",
+                  "value": "post"
+                },
+                {
+                  "fieldName": "url",
+                  "value": "https://example.com/hook"
+                }
+              ]
+            },
+            "description": "",
+            "id": "first",
+            "name": "r",
+            "type": "GENERIC_HTTPS"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "config_overrides": [],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "",
+      "id": "first",
+      "name": "r",
+      "type": "generic_https"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: change id",
+    "config": {
+      "connector_config": {
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "id": "second",
+      "name": "r",
+      "type": "generic_https"
+    },
+    "plan": {
+      "config_overrides": "(unknown)",
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "",
+      "id": "second",
+      "name": "r",
+      "type": "generic_https"
+    },
+    "requiresReplace": [
+      "AttributeName(\"id\")"
+    ],
+    "state": {
+      "config_overrides": [],
+      "connector_config": {
+        "field_values_wo": null,
+        "field_values_wo_versions": null,
+        "fields": [
+          {
+            "field_name": "method",
+            "value": "post"
+          },
+          {
+            "field_name": "url",
+            "value": "https://example.com/hook"
+          }
+        ]
+      },
+      "description": "",
+      "id": "first",
+      "name": "r",
+      "type": "generic_https"
+    }
+  }
+]

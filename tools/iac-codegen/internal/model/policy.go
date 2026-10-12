@@ -28,17 +28,30 @@ type Policy struct {
 	// the resource, for example "router". "" means that the body is the resource.
 	RequestWrapper string
 	// UpdateIDInBody means that Update has no id in its path. The id is a field of
-	// the resource in the body, and Update uses the Create path.
+	// the resource in the body. Update uses the Create path, unless CustomMethods
+	// names a different path.
 	UpdateIDInBody bool
+	// CustomMethods means Get, Update, and Delete are not the Create path with an id.
+	// Get and Delete each carry the same {id} path parameter. Update has no path
+	// parameter. New resources leave this false.
+	CustomMethods bool
 	// ClientSetID means that the client can send the id on Create, and the Get
 	// response does not require it.
 	ClientSetID bool
+	// Operations names the lifecycle operationIds from behavior-overrides. Flags
+	// still override an empty slot. A flag and the file cannot name different ids.
+	Operations OperationIDs
 	// DeleteOperation is the operationId of the operation that removes the resource
 	// when the API has no DELETE. It is a POST on the Get path plus one segment, for
 	// example /things/{id}/archive, with the id path parameter of Get, no request
 	// body, and a response that the generated code ignores. "" means a DELETE on
 	// the Get path.
 	DeleteOperation string
+	// UpdateMaskInBody: PATCH updateMask is an optional property of the JSON
+	// body, not a query parameter. The generated update sets it to the same
+	// changed-field mask a query parameter would send. A full replace (PUT)
+	// has no mask, so the key is an error there.
+	UpdateMaskInBody bool
 	// EnumAnyPrefix lists the enum components whose business values do not use
 	// the prefix of the zero value (ENTITY_TYPE_UNSPECIFIED, ALERTS).
 	EnumAnyPrefix []string
@@ -48,16 +61,42 @@ type Policy struct {
 	// Skip lists "Component.field" of fields that the resource does not manage.
 	// The generator does not send them and does not store them.
 	Skip []string
+	// FixedRequest lists "Component.field" that Create and Update always send as a
+	// fixed API value. A nested read-only field in this list is sent, so it is not
+	// a server-only field the renderer has to drop.
+	FixedRequest []string
 	// Released lists "Component.field" of fields that keep their released behavior.
 	// The behavior-overrides file states it, so the contract need not say whether
 	// omission differs from an empty value. A field that is not listed follows the
 	// contract, and the contract must state it.
 	Released []string
+	// Defaults lists "Component.field" of top-level fields whose line replaces the server default
+	// of the contract: a static default or computed: false. A field that is not
+	// listed uses the server default of the contract, also when it has another line.
+	Defaults []string
 	// NoInferredValidators means that no limit of the contract becomes a validator.
 	NoInferredValidators bool
 	// ReadOnly lists "Component.field" of top-level fields that the server sets, although
 	// the contract does not mark them readOnly yet. They are in Get only.
 	ReadOnly []string
+	// Unwrap lists the components with one property that Terraform shows as the value of that
+	// property, in every place that has no field line.
+	Unwrap []string
+	// UnwrapFields maps "Component.field" to the choice of a field line: true shows the value
+	// inside the wrapper of the field, or of its items, and false keeps the object.
+	UnwrapFields map[string]bool
+}
+
+// unwraps reports whether Terraform shows the value inside component, the wrapper that holds
+// the value of field of the owner component, or its items.
+func (p Policy) unwraps(owner, field, component string) bool {
+	if !p.Existing {
+		return false
+	}
+	if on, ok := p.UnwrapFields[owner+"."+field]; ok {
+		return on
+	}
+	return component != "" && slices.Contains(p.Unwrap, component)
 }
 
 // requestBody returns the schema that holds the resource in a Create or Update
@@ -77,17 +116,39 @@ func (p Policy) requestBody(op *v3.Operation) *base.SchemaProxy {
 	return proxy // a later check reports the missing wrapper property
 }
 
-// operationIDs returns the explicit operation IDs with the Delete operation of the policy. The
-// policy and an explicit ID cannot both name the Delete operation.
+// operationIDs returns the lifecycle operation IDs. A flag fills a slot the file
+// leaves empty. The file and a flag cannot name different ids for one step.
+// api.delete.operation still names a POST delete when the file has no operations.delete.
 func (p Policy) operationIDs(ids OperationIDs) (OperationIDs, error) {
-	if p.DeleteOperation == "" {
-		return ids, nil
+	var err error
+	ids.Create, err = oneOperationID(opCreate, p.Operations.Create, ids.Create)
+	if err != nil {
+		return ids, err
 	}
-	if ids.Delete != "" {
-		return ids, fmt.Errorf("%s: the overrides name %s, and the flag names %s", opDelete, p.DeleteOperation, ids.Delete)
+	ids.Get, err = oneOperationID(opGet, p.Operations.Get, ids.Get)
+	if err != nil {
+		return ids, err
 	}
-	ids.Delete = p.DeleteOperation
-	return ids, nil
+	ids.Update, err = oneOperationID(opUpdate, p.Operations.Update, ids.Update)
+	if err != nil {
+		return ids, err
+	}
+	fromFile := p.Operations.Delete
+	if fromFile == "" {
+		fromFile = p.DeleteOperation
+	}
+	ids.Delete, err = oneOperationID(opDelete, fromFile, ids.Delete)
+	return ids, err
+}
+
+func oneOperationID(v verb, fromFile, flag string) (string, error) {
+	if flag != "" && fromFile != "" && flag != fromFile {
+		return "", fmt.Errorf("%s: the overrides name %s, and the flag names %s", v, fromFile, flag)
+	}
+	if flag != "" {
+		return flag, nil
+	}
+	return fromFile, nil
 }
 
 // methods returns the HTTP methods that the operation of the lifecycle step may use.
@@ -102,8 +163,18 @@ func (p Policy) skips(component, field string) bool {
 	return component != "" && slices.Contains(p.Skip, component+"."+field)
 }
 
+func (p Policy) fixedRequest(component, field string) bool {
+	return component != "" && slices.Contains(p.FixedRequest, component+"."+field)
+}
+
 func (p Policy) released(component, field string) bool {
 	return p.Existing && component != "" && slices.Contains(p.Released, component+"."+field)
+}
+
+// OverridesDefault reports whether the behavior-overrides file replaces the default of the field.
+// Then the generated resource does not use the server default of the contract.
+func (p Policy) OverridesDefault(component, field string) bool {
+	return p.Existing && component != "" && slices.Contains(p.Defaults, component+"."+field)
 }
 
 // EnumOverride reports whether the file states the Terraform values of the enum.

@@ -1,0 +1,73 @@
+{
+  "comment": "Requests that a recorder sends to the real backend, and the offline test sends to the fake. Tokens: {{C1}}..{{C6}} connector ids, {{GEN}} an id that the server made (set by 'capture'). {{MISSING}} is an id that was never created.",
+  "cases": [
+    {
+      "name": "minimal-lifecycle",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"connector": {"id": "{{C1}}", "name": "{{C1}}", "type": "GENERIC_HTTPS", "connectorConfig": {"fields": [{"fieldName": "url", "value": "https://example.com"}]}}}},
+        {"method": "GET", "path": "/{{C1}}"},
+        {"method": "PUT", "path": "", "body": {"connector": {"id": "{{C1}}", "name": "renamed", "type": "GENERIC_HTTPS", "connectorConfig": {"fields": [{"fieldName": "url", "value": "https://example.com"}]}}}},
+        {"method": "GET", "path": "/{{C1}}"},
+        {"method": "DELETE", "path": "/{{C1}}"},
+        {"method": "GET", "path": "/{{C1}}"},
+        {"method": "DELETE", "path": "/{{C1}}"}
+      ]
+    },
+    {
+      "name": "description-and-config-overrides",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"connector": {"id": "{{C2}}", "name": "{{C2}}", "type": "GENERIC_HTTPS", "connectorConfig": {"fields": [{"fieldName": "url", "value": "https://example.com"}]}}}},
+        {"method": "GET", "path": "/{{C2}}"},
+        {"method": "PUT", "path": "", "body": {"connector": {"id": "{{C2}}", "name": "{{C2}}", "type": "GENERIC_HTTPS", "description": "d", "connectorConfig": {"fields": [{"fieldName": "url", "value": "https://example.com"}]}, "configOverrides": [{"entityType": "ALERTS", "fields": [{"fieldName": "url", "template": "https://example.com/alerts"}]}]}}},
+        {"method": "GET", "path": "/{{C2}}"},
+        {"method": "PUT", "path": "", "body": {"connector": {"id": "{{C2}}", "name": "{{C2}}", "type": "GENERIC_HTTPS", "connectorConfig": {"fields": [{"fieldName": "url", "value": "https://example.com"}]}}}},
+        {"method": "GET", "path": "/{{C2}}"},
+        {"method": "PUT", "path": "", "body": {"connector": {"id": "{{C2}}", "name": "{{C2}}", "type": "GENERIC_HTTPS", "description": "", "connectorConfig": {"fields": [{"fieldName": "url", "value": "https://example.com"}]}, "configOverrides": []}}},
+        {"method": "GET", "path": "/{{C2}}"}
+      ]
+    },
+    {
+      "name": "fields-set",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"connector": {"id": "{{C3}}", "name": "{{C3}}", "type": "GENERIC_HTTPS", "connectorConfig": {"fields": [{"fieldName": "method", "value": "post"}, {"fieldName": "url", "value": "https://example.com/hook"}]}}}},
+        {"method": "GET", "path": "/{{C3}}"}
+      ]
+    },
+    {
+      "name": "validation",
+      "steps": [
+        {"method": "POST", "path": "", "body": {}},
+        {"method": "POST", "path": "", "body": {"connector": {}}},
+        {"method": "POST", "path": "", "body": {"connector": {"id": "{{C4}}", "name": "", "type": "SLACK"}}},
+        {"method": "POST", "path": "", "body": {"connector": {"id": "{{C4}}", "name": "{{C4}}"}}},
+        {"method": "POST", "path": "", "body": {"connector": {"id": "{{C4}}", "name": "{{C4}}", "type": "NOT_AN_ENUM"}}},
+        {"method": "PUT", "path": "", "body": {"connector": {"name": "no id", "type": "SLACK"}}},
+        {"method": "GET", "path": "/missing"},
+        {"method": "DELETE", "path": "/missing"}
+      ]
+    },
+    {
+      "name": "duplicate-id-and-generated-id",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"connector": {"id": "{{C5}}", "name": "{{C5}}", "type": "EMAIL", "connectorConfig": {"fields": [{"fieldName": "emailAddresses", "value": "[\"tf-fidelity@example.com\"]"}]}}}},
+        {"method": "POST", "path": "", "body": {"connector": {"id": "{{C5}}", "name": "{{C5}}", "type": "EMAIL", "connectorConfig": {"fields": [{"fieldName": "emailAddresses", "value": "[\"tf-fidelity@example.com\"]"}]}}}},
+        {"method": "POST", "path": "", "capture": "GEN", "body": {"connector": {"name": "generated", "type": "EMAIL", "connectorConfig": {"fields": [{"fieldName": "emailAddresses", "value": "[\"tf-fidelity@example.com\"]"}]}}}},
+        {"method": "GET", "path": "/{{GEN}}"}
+      ]
+    },
+    {
+      "name": "update-missing-id",
+      "steps": [
+        {"method": "PUT", "path": "", "body": {"connector": {"id": "{{MISSING}}", "name": "missing", "type": "GENERIC_HTTPS", "connectorConfig": {"fields": [{"fieldName": "url", "value": "https://example.com"}]}}}}
+      ]
+    },
+    {
+      "name": "secret-field",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"connector": {"id": "{{C6}}", "name": "{{C6}}", "type": "PAGERDUTY", "connectorConfig": {"fields": [{"fieldName": "integrationKey", "value": "secret-token-value"}]}}}},
+        {"method": "GET", "path": "/{{C6}}"},
+        {"method": "DELETE", "path": "/{{C6}}"}
+      ]
+    }
+  ]
+}

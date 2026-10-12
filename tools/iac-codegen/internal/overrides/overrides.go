@@ -44,6 +44,10 @@ type File struct {
 	Types map[string]Type `yaml:"types"`
 	// Enums has one entry per OpenAPI enum component.
 	Enums map[string]Enum `yaml:"enums"`
+	// Unwrap lists the components with one property that the released resource shows as the
+	// value of that property, for example LuceneQuery in {"luceneQuery": {"value": "error"}}. It
+	// applies in every place that has no unwrap key on its field line.
+	Unwrap []string `yaml:"unwrap"`
 }
 
 // Schema is the Terraform schema version of a released resource.
@@ -78,9 +82,8 @@ func (u Upgrade) PriorSchemaFunc() (importPath, function string, ok bool) {
 type Validators struct {
 	// Inferred: false means that no limit of the contract (minLength, maxLength,
 	// minItems, ...) becomes a validator. A released provider did not check these
-	// limits, and a new validator would reject configs that work today. Omitted or
-	// true keeps those limits. The validators of a released resource that are not in
-	// the contract are written as field lines.
+	// limits, and a new validator would reject configs that work today. Only false is
+	// supported. The validators of the released resource are written as field lines.
 	Inferred *bool `yaml:"inferred"`
 }
 
@@ -92,8 +95,29 @@ type API struct {
 	UpdateIDInBody bool `yaml:"updateIDInBody"`
 	// ClientSetID: the client can send the id on Create.
 	ClientSetID bool `yaml:"clientSetID"`
+	// CustomMethods: Get, Update, and Delete are not the Create path with an id.
+	// Get and Delete each have the same {id} path parameter on their own paths.
+	// Update has no path parameter, and the id stays in the body. New resources
+	// keep the stricter path rules.
+	CustomMethods bool `yaml:"customMethods"`
+	// Operations names the lifecycle operationIds when they do not end in
+	// _Create, _Get, _Update, or _Delete plus the resource name. Generate then
+	// needs no operation flags.
+	Operations *Operations `yaml:"operations"`
 	// Delete names the operation that removes the resource when the API has no DELETE.
 	Delete *Delete `yaml:"delete"`
+	// UpdateMaskInBody: PATCH updateMask is an optional JSON body property.
+	// The generated update sets it to the same changed-field mask a query
+	// parameter would send.
+	UpdateMaskInBody bool `yaml:"updateMaskInBody"`
+}
+
+// Operations names the four lifecycle operationIds. All four are required.
+type Operations struct {
+	Create string `yaml:"create"`
+	Get    string `yaml:"get"`
+	Update string `yaml:"update"`
+	Delete string `yaml:"delete"`
 }
 
 // Delete is how a released resource is removed when the API has no DELETE, for example a
@@ -111,6 +135,21 @@ type Type struct {
 	Required *[]string `yaml:"required"`
 	// Fields overrides single fields of the object.
 	Fields map[string]Field `yaml:"fields"`
+	// ExtraAttributes are Terraform attributes that the API contract does not
+	// have. The generator adds them to the schema and the model of this type.
+	// Expand does not send them. Flatten writes a typed null. A handwritten
+	// overlay reads them from configuration.
+	ExtraAttributes map[string]ExtraAttribute `yaml:"extraAttributes"`
+}
+
+// ExtraAttribute is one Terraform-only attribute of a generated object.
+type ExtraAttribute struct {
+	// ElementType is the map value type: "string" or "int64".
+	ElementType string `yaml:"elementType"`
+	// WriteOnly: Terraform sends the value and does not store it.
+	WriteOnly bool `yaml:"writeOnly"`
+	// MarkdownDescription is the docs text of the attribute.
+	MarkdownDescription string `yaml:"markdownDescription"`
 }
 
 // Field overrides one field of an object. A field with a line keeps the released
@@ -136,21 +175,43 @@ type Field struct {
 	Computed *bool `yaml:"computed"`
 	// UseStateForUnknown keeps the value in the state when the config has none.
 	UseStateForUnknown bool `yaml:"useStateForUnknown"`
-	// Default is a static default in the schema (a string or a bool).
+	// Default is a static default in the schema: a string, a bool, or a number.
 	Default any `yaml:"default"`
 	// ReadEmptyAs: "null" reads an empty list or object from the API as null.
 	ReadEmptyAs string `yaml:"readEmptyAs"`
+	// ReadNullAs: "empty" reads a missing list or set as an empty collection.
+	ReadNullAs string `yaml:"readNullAs"`
+	// RequireOne makes a oneOf that allows no arm use ExactlyOneOf. The released
+	// resource required one arm even though the contract allows none.
+	RequireOne bool `yaml:"requireOne"`
+	// RequestValue is an API value that Create and Update always send. The field
+	// is not a Terraform attribute.
+	RequestValue string `yaml:"requestValue"`
 	// KeepPriorOrder returns the list items in the order of the plan or state, because
 	// the API does not keep the order.
 	KeepPriorOrder bool `yaml:"keepPriorOrder"`
 	// Validators are the released validators of the field.
 	Validators []Validator `yaml:"validators"`
+	// Equality: "yaml" or "json" compares a string field as a YAML or JSON document. The API
+	// returns the document normalized, so a change of format alone must not plan a change.
+	Equality string `yaml:"equality"`
+	// Unwrap: true shows the value inside the wrapper of the field, or of its items, in this
+	// place. false keeps the object of a component that the unwrap list names.
+	Unwrap *bool `yaml:"unwrap"`
 }
+
+// Equality values of a field line.
+const (
+	EqualityYAML = "yaml"
+	EqualityJSON = "json"
+)
 
 // Validator is one released validator. Exactly one key is set.
 type Validator struct {
 	OneOf       []string `yaml:"oneOf"`
 	SizeAtLeast *int     `yaml:"sizeAtLeast"`
+	// LengthAtLeast is a released stringvalidator.LengthAtLeast.
+	LengthAtLeast *int `yaml:"lengthAtLeast"`
 	// Enum: true accepts the Terraform values of the enum of the field, as the enums line of
 	// the enum states them. The list of values has one source, so it cannot drift.
 	Enum bool `yaml:"enum"`
@@ -162,11 +223,17 @@ type Enum struct {
 	// A new resource uses null for it. A released resource kept a value in its state.
 	Zero string `yaml:"zero"`
 	// Values are the enum values that the resource accepts. The Terraform value is the
-	// lower case of the API value.
+	// lower case of the API value, unless Verbatim is set.
 	Values []string `yaml:"values"`
+	// Verbatim keeps the API spelling as the Terraform value. Attachment policies stay
+	// AUTO, ENABLED, and DISABLED.
+	Verbatim bool `yaml:"verbatim"`
 	// Rejected are the values of the contract that the resource does not accept. The generator
 	// reports a value of the contract that is in neither list, so a new API value needs a decision.
 	Rejected []string `yaml:"rejected"`
+	// ReadRejected: a rejected value still reads back as the API spelling. The write map and the
+	// schema validator do not accept it. Without this key, a rejected value fails the read.
+	ReadRejected bool `yaml:"readRejected"`
 }
 
 // Parse reads the file. An unknown key or a wrong value is an error.
@@ -196,19 +263,28 @@ func (f *File) check() error {
 	if err := f.Schema.checkUpgrades(); err != nil {
 		return err
 	}
-	// Omitted or true keeps the contract limits as validators. false drops them, for a
-	// released resource whose provider did not check those limits.
+	if f.Validators.Inferred == nil || *f.Validators.Inferred {
+		return errors.New("validators.inferred: false is required: a released resource does not turn contract limits into validators")
+	}
 	if err := f.checkEnums(); err != nil {
+		return err
+	}
+	if err := f.checkUnwrap(); err != nil {
 		return err
 	}
 	if err := f.API.check(); err != nil {
 		return err
 	}
+	return f.checkTypes()
+}
+
+// checkTypes checks the type lines: the required list, the field lines, and the extra attributes.
+func (f *File) checkTypes() error {
 	for name, t := range f.Types {
 		if t.Required != nil && len(*t.Required) != 0 {
 			return fmt.Errorf("types.%s.required: only the empty list [] is allowed", name)
 		}
-		if t.Required == nil && len(t.Fields) == 0 {
+		if t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 {
 			return fmt.Errorf("types.%s has no override", name)
 		}
 		for field, line := range t.Fields {
@@ -216,14 +292,31 @@ func (f *File) check() error {
 				return fmt.Errorf("types.%s.fields.%s: %w", name, field, err)
 			}
 		}
+		for field, extra := range t.ExtraAttributes {
+			if err := extra.check(field); err != nil {
+				return fmt.Errorf("types.%s.extraAttributes.%s: %w", name, field, err)
+			}
+			if _, ok := t.Fields[field]; ok {
+				return fmt.Errorf("types.%s.extraAttributes.%s: the type already has a field override of that name", name, field)
+			}
+		}
 	}
 	return nil
 }
 
-// check checks that a Delete override names its operation.
+// check checks that a Delete override names its operation, and that only one line names it.
 func (a API) check() error {
 	if a.Delete != nil && a.Delete.Operation == "" {
 		return errors.New("api.delete.operation is required")
+	}
+	if a.Operations == nil {
+		return nil
+	}
+	if a.Operations.Create == "" || a.Operations.Get == "" || a.Operations.Update == "" || a.Operations.Delete == "" {
+		return errors.New("api.operations needs create, get, update, and delete")
+	}
+	if a.Delete != nil {
+		return errors.New("api.delete and api.operations both name the Delete operation: keep only api.operations.delete")
 	}
 	return nil
 }
@@ -253,6 +346,19 @@ func (f *File) checkEnums() error {
 	return nil
 }
 
+// checkUnwrap checks that the unwrap list names each component once.
+func (f *File) checkUnwrap() error {
+	for i, name := range f.Unwrap {
+		if name == "" {
+			return fmt.Errorf("unwrap[%d] is empty", i)
+		}
+		if slices.Contains(f.Unwrap[:i], name) {
+			return fmt.Errorf("unwrap names %s twice", name)
+		}
+	}
+	return nil
+}
+
 // keys returns the names of the keys that the line sets, in the order of the file format.
 func (l Field) keys() []string {
 	var keys []string
@@ -271,21 +377,55 @@ func (l Field) keys() []string {
 	add(l.UseStateForUnknown, "useStateForUnknown")
 	add(l.Default != nil, "default")
 	add(l.ReadEmptyAs != "", "readEmptyAs")
+	add(l.ReadNullAs != "", "readNullAs")
+	add(l.RequireOne, "requireOne")
+	add(l.RequestValue != "", "requestValue")
 	add(l.KeepPriorOrder, "keepPriorOrder")
 	add(len(l.Validators) != 0, "validators")
+	add(l.Equality != "", "equality")
+	add(l.Unwrap != nil, "unwrap")
 	return keys
 }
 
 // statesPresence reports whether the line says how an omitted value behaves. A line that only
 // changes a text, a validator, or the order does not: the contract must still state presence.
 func (l Field) statesPresence() bool {
-	return l.Skip || l.ReadOnly || l.Required || l.Computed != nil || l.Default != nil || l.ReadEmptyAs != ""
+	return l.Skip || l.ReadOnly || l.Required || l.Computed != nil || l.Default != nil || l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequestValue != ""
+}
+
+// replacesServerDefault reports whether the line states a mode that a server default of the
+// contract cannot have: its own default, or no computed value. required: true needs no check:
+// a server default needs a field that Get requires, and then the line is unused.
+func (l Field) replacesServerDefault() bool {
+	return l.Default != nil || l.Computed != nil && !*l.Computed
+}
+
+func (e ExtraAttribute) check(name string) error {
+	if name == "" {
+		return errors.New("the attribute name is empty")
+	}
+	for _, r := range name {
+		if r != '_' && (r < 'a' || r > 'z') && (r < '0' || r > '9') {
+			return fmt.Errorf("the attribute name %q must be a Terraform name (lowercase letters, digits, underscores)", name)
+		}
+	}
+	if name[0] < 'a' || name[0] > 'z' {
+		return fmt.Errorf("the attribute name %q must start with a letter", name)
+	}
+	if e.ElementType != "string" && e.ElementType != "int64" {
+		return fmt.Errorf("elementType is %q, want string or int64", e.ElementType)
+	}
+	if e.MarkdownDescription == "" {
+		return errors.New("markdownDescription is required")
+	}
+	return nil
 }
 
 func (l Field) empty() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
-		l.Computed == nil && !l.UseStateForUnknown && l.Default == nil && l.ReadEmptyAs == "" &&
-		!l.KeepPriorOrder && len(l.Validators) == 0
+		l.Computed == nil && !l.UseStateForUnknown && l.Default == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" &&
+		!l.RequireOne && l.RequestValue == "" &&
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil
 }
 
 func (l Field) check() error {
@@ -295,10 +435,22 @@ func (l Field) check() error {
 	if l.ReadEmptyAs != "" && l.ReadEmptyAs != "null" {
 		return fmt.Errorf("readEmptyAs is %q, want \"null\"", l.ReadEmptyAs)
 	}
+	if l.ReadNullAs != "" && l.ReadNullAs != "empty" {
+		return fmt.Errorf("readNullAs is %q, want \"empty\"", l.ReadNullAs)
+	}
+	if l.ReadEmptyAs != "" && l.ReadNullAs != "" {
+		return errors.New("readEmptyAs and readNullAs cannot both be set")
+	}
+	if l.Skip && l.RequestValue != "" {
+		return errors.New("requestValue sends the field, so skip cannot be set")
+	}
+	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON {
+		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
+	}
 	switch l.Default.(type) {
-	case nil, string, bool:
+	case nil, string, bool, int, float64:
 	default:
-		return fmt.Errorf("default is %T, want a string or a bool", l.Default)
+		return fmt.Errorf("default is %T, want a string, a bool, or a number", l.Default)
 	}
 	if l.Required && l.Computed != nil && *l.Computed {
 		return errors.New("a required field cannot be computed")
@@ -315,7 +467,8 @@ func (l Field) check() error {
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
 func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Default != nil || l.KeepPriorOrder ||
-		l.ReadEmptyAs != "" || len(l.Validators) != 0
+		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.RequestValue != "" ||
+		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil
 }
 
 func checkValidators(validators []Validator) error {
@@ -327,11 +480,14 @@ func checkValidators(validators []Validator) error {
 		if v.SizeAtLeast != nil {
 			set++
 		}
+		if v.LengthAtLeast != nil {
+			set++
+		}
 		if v.Enum {
 			set++
 		}
 		if set != 1 {
-			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, and enum")
+			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, and enum")
 		}
 	}
 	return nil
@@ -340,30 +496,51 @@ func checkValidators(validators []Validator) error {
 // Policy returns the rule set for the model.
 func (f *File) Policy() model.Policy {
 	p := model.Policy{
-		Existing:       true,
-		RequestWrapper: f.API.RequestWrapper,
-		UpdateIDInBody: f.API.UpdateIDInBody,
-		ClientSetID:    f.API.ClientSetID,
-		NoInferredValidators: f.Validators.Inferred != nil && !*f.Validators.Inferred,
+		Existing:         true,
+		RequestWrapper:   f.API.RequestWrapper,
+		UpdateIDInBody:   f.API.UpdateIDInBody,
+		ClientSetID:      f.API.ClientSetID,
+		CustomMethods:    f.API.CustomMethods,
+		UpdateMaskInBody: f.API.UpdateMaskInBody,
+		// The file states validators.inferred: false; Parse checked it.
+		NoInferredValidators: true,
+	}
+	if f.API.Operations != nil {
+		p.Operations = model.OperationIDs{
+			Create: f.API.Operations.Create,
+			Get:    f.API.Operations.Get,
+			Update: f.API.Operations.Update,
+			Delete: f.API.Operations.Delete,
+		}
 	}
 	if f.API.Delete != nil {
 		p.DeleteOperation = f.API.Delete.Operation
 	}
 	p.EnumAnyPrefix = append(p.EnumAnyPrefix, sortedKeys(f.Enums)...)
+	p.Unwrap = slices.Clone(f.Unwrap)
 	for _, name := range sortedKeys(f.Types) {
 		t := f.Types[name]
-		if t.Required != nil {
-			p.EmptyRequired = append(p.EmptyRequired, name)
-		}
 		for _, field := range sortedKeys(t.Fields) {
+			if on := t.Fields[field].Unwrap; on != nil {
+				if p.UnwrapFields == nil {
+					p.UnwrapFields = map[string]bool{}
+				}
+				p.UnwrapFields[name+"."+field] = *on
+			}
 			if t.Fields[field].Skip {
 				p.Skip = append(p.Skip, name+"."+field)
+			}
+			if t.Fields[field].RequestValue != "" {
+				p.FixedRequest = append(p.FixedRequest, name+"."+field)
 			}
 			if t.Fields[field].ReadOnly {
 				p.ReadOnly = append(p.ReadOnly, name+"."+field)
 			}
 			if t.Fields[field].statesPresence() {
 				p.Released = append(p.Released, name+"."+field)
+			}
+			if t.Fields[field].replacesServerDefault() {
+				p.Defaults = append(p.Defaults, name+"."+field)
 			}
 		}
 	}
@@ -384,7 +561,7 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Equality: f.Equality, Keys: f.keys()})
 		}
 	}
 	return out
@@ -409,6 +586,7 @@ type Line struct {
 	// EnumRejected are the values of the contract that the resource does not accept.
 	EnumRejected []string
 	ReadOnly     bool     // for a field line: the file says that the server sets the field
+	Equality     string   // for a field line: "yaml" or "json" when the line compares the value as a document
 	Required     bool     // for a field line: the file says that the field is required
 	Keys         []string // for a field line: every key that the line sets
 }

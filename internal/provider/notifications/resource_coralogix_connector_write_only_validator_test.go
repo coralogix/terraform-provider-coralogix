@@ -40,10 +40,10 @@ func validateWriteOnlyFields(t *testing.T, secrets, versions types.Map) []string
 	t.Helper()
 	ctx := context.Background()
 
-	config, diags := types.ObjectValueFrom(ctx, connectorConfigAttr(), ConnectorConfigModel{
-		ConnectorConfigFields: types.SetNull(types.ObjectType{AttrTypes: connectorConfigFieldAttrs()}),
-		FieldValuesWO:         secrets,
-		FieldValuesWOVersions: versions,
+	config, diags := types.ObjectValue(connectorConfigAttr(), map[string]attr.Value{
+		"fields":                   types.SetNull(types.ObjectType{AttrTypes: connectorConfigFieldAttrs()}),
+		"field_values_wo":          secrets,
+		"field_values_wo_versions": versions,
 	})
 	if diags.HasError() {
 		t.Fatalf("build connector config: %v", diags)
@@ -168,10 +168,10 @@ func TestConnectorNullVersionErrorNamesTheField(t *testing.T) {
 		"additionalHeaders": types.Int64Null(),
 	})
 
-	config, diags := types.ObjectValueFrom(ctx, connectorConfigAttr(), ConnectorConfigModel{
-		ConnectorConfigFields: types.SetNull(types.ObjectType{AttrTypes: connectorConfigFieldAttrs()}),
-		FieldValuesWO:         secrets,
-		FieldValuesWOVersions: versions,
+	config, diags := types.ObjectValue(connectorConfigAttr(), map[string]attr.Value{
+		"fields":                   types.SetNull(types.ObjectType{AttrTypes: connectorConfigFieldAttrs()}),
+		"field_values_wo":          secrets,
+		"field_values_wo_versions": versions,
 	})
 	if diags.HasError() {
 		t.Fatal(diags)

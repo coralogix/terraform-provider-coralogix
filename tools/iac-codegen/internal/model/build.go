@@ -3,7 +3,6 @@ package model
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"regexp"
 	"slices"
 	"strings"
@@ -82,6 +81,9 @@ func BuildWithPolicy(doc *v3.Document, name string, ids OperationIDs, policy Pol
 		r.IDType = r.Fields[index].Type
 	}
 	r.pruneSkipped()
+	if err := r.unwrap(); err != nil {
+		return nil, err
+	}
 	return r, nil
 }
 
@@ -245,14 +247,19 @@ func (r *Resource) readOperations(ops map[verb]foundOp) error {
 		return fmt.Errorf("create: %d path parameters, want none", len(params))
 	}
 	itemPath := ops[opGet].path
-	if want := ops[opCreate].path + "/{" + id + "}"; itemPath != want {
-		return fmt.Errorf("get: path %s, want %s", itemPath, want)
+	if !r.Policy.CustomMethods {
+		if want := ops[opCreate].path + "/{" + id + "}"; itemPath != want {
+			return fmt.Errorf("get: path %s, want %s", itemPath, want)
+		}
 	}
 	for _, v := range item {
 		if v == opDelete && r.Policy.DeleteOperation != "" {
 			if !deleteActionPath(itemPath, ops[v].path) {
 				return fmt.Errorf("%s: path %s, want %s/<action>", v, ops[v].path, itemPath)
 			}
+			continue
+		}
+		if r.Policy.CustomMethods && v == opDelete {
 			continue
 		}
 		if ops[v].path != itemPath {
@@ -279,7 +286,7 @@ func (r *Resource) itemOperations(ops map[verb]foundOp) ([]verb, error) {
 		if n := len(pathParams(upd)); n != 0 {
 			return nil, fmt.Errorf("%s: the id is in the request body, but the path has %d parameters", opUpdate, n)
 		}
-		if upd.path != ops[opCreate].path {
+		if !r.Policy.CustomMethods && upd.path != ops[opCreate].path {
 			return nil, fmt.Errorf("%s: path %s, want %s (as in create)", opUpdate, upd.path, ops[opCreate].path)
 		}
 		return []verb{opDelete}, nil
@@ -331,113 +338,18 @@ func (r *Resource) readTargets(ops map[verb]foundOp) error {
 	return nil
 }
 
-// readBodyTitles reads the title of each inline request body. openapi-generator
-// adds "1" when a component schema in the same generated package has that name.
-// The Go SDK is one package per tag, and unused components are dropped, so a
-// component that only another tag references does not collide.
+// readBodyTitles reads the title of each inline request body, and whether a
+// component schema has the same name.
 func (r *Resource) readBodyTitles(doc *v3.Document, ops map[verb]foundOp) {
-	referenced := schemasReferencedByTags(doc, operationTags(ops))
 	for v, o := range map[verb]*Operation{opCreate: &r.Create, opUpdate: &r.Update} {
 		proxy := bodyProxy(ops[v].op)
 		if o.Body != "inline" || proxy == nil || proxy.Schema() == nil {
 			continue
 		}
 		o.BodyTitle = proxy.Schema().Title
-		o.BodyTitleIsComponent = o.BodyTitle != "" && referenced[o.BodyTitle]
+		o.BodyTitleIsComponent = o.BodyTitle != "" && doc.Components != nil && doc.Components.Schemas != nil &&
+			doc.Components.Schemas.GetOrZero(o.BodyTitle) != nil
 	}
-}
-
-func operationTags(ops map[verb]foundOp) map[string]bool {
-	tags := map[string]bool{}
-	for _, f := range ops {
-		if f.op == nil {
-			continue
-		}
-		for _, tag := range f.op.Tags {
-			tags[tag] = true
-		}
-	}
-	return tags
-}
-
-// schemasReferencedByTags is the set of component names reachable from
-// operations that carry one of tags. That is the set that remains in the
-// per-tag Go package after unused components are removed.
-func schemasReferencedByTags(doc *v3.Document, tags map[string]bool) map[string]bool {
-	out := map[string]bool{}
-	if doc == nil || doc.Paths == nil || doc.Paths.PathItems == nil || len(tags) == 0 {
-		return out
-	}
-	seen := map[*base.SchemaProxy]bool{}
-	var walk func(*base.SchemaProxy)
-	walk = func(proxy *base.SchemaProxy) {
-		if proxy == nil || seen[proxy] {
-			return
-		}
-		seen[proxy] = true
-		if ref := proxy.GetReference(); ref != "" {
-			name, err := componentName(ref)
-			if err != nil || out[name] {
-				return
-			}
-			out[name] = true
-			if doc.Components != nil && doc.Components.Schemas != nil {
-				walk(doc.Components.Schemas.GetOrZero(name))
-			}
-			return
-		}
-		s := proxy.Schema()
-		if s == nil {
-			return
-		}
-		if s.Properties != nil {
-			for _, p := range s.Properties.FromOldest() {
-				walk(p)
-			}
-		}
-		if s.Items != nil && s.Items.IsA() {
-			walk(s.Items.A)
-		}
-		if s.AdditionalProperties != nil && s.AdditionalProperties.IsA() {
-			walk(s.AdditionalProperties.A)
-		}
-		for _, p := range slices.Concat(s.AllOf, s.OneOf, s.AnyOf) {
-			walk(p)
-		}
-		walk(s.Not)
-	}
-	for _, item := range doc.Paths.PathItems.FromOldest() {
-		if item == nil {
-			continue
-		}
-		for _, op := range item.GetOperations().FromOldest() {
-			if op == nil || !sharesTag(op.Tags, tags) {
-				continue
-			}
-			walk(bodyProxy(op))
-			if op.Responses == nil || op.Responses.Codes == nil {
-				continue
-			}
-			for _, resp := range op.Responses.Codes.FromOldest() {
-				if resp == nil || resp.Content == nil {
-					continue
-				}
-				if media := resp.Content.GetOrZero(jsonMedia); media != nil {
-					walk(media.Schema)
-				}
-			}
-		}
-	}
-	return out
-}
-
-func sharesTag(opTags []string, tags map[string]bool) bool {
-	for _, tag := range opTags {
-		if tags[tag] {
-			return true
-		}
-	}
-	return false
 }
 
 func pathParams(f foundOp) []*v3.Parameter {
@@ -496,19 +408,45 @@ func emptyResponse(out Response, proxy *base.SchemaProxy) (Response, error) {
 	return out, nil
 }
 
+// emptyInlineObject reports whether proxy is an inline object with no fields
+// and no composition, as the OpenAPI fork writes google.protobuf.Empty.
+func emptyInlineObject(proxy *base.SchemaProxy) bool {
+	s, err := schemaOf(proxy)
+	if err != nil || proxy.IsReference() {
+		return false
+	}
+	return (len(s.Type) == 0 || slices.Equal(s.Type, []string{"object"})) &&
+		(s.Properties == nil || s.Properties.Len() == 0) &&
+		s.AdditionalProperties == nil && len(s.AllOf) == 0 && len(s.OneOf) == 0 && len(s.AnyOf) == 0
+}
+
+// okSchema returns the JSON schema of the 200 response.
+func okSchema(op *v3.Operation) (*base.SchemaProxy, error) {
+	if op == nil || op.Responses == nil || op.Responses.Codes == nil {
+		return nil, errors.New("no responses")
+	}
+	resp := op.Responses.Codes.GetOrZero("200")
+	if resp == nil || resp.Content == nil || resp.Content.GetOrZero(jsonMedia) == nil || resp.Content.GetOrZero(jsonMedia).Schema == nil {
+		return nil, fmt.Errorf("no 200 %s response schema", jsonMedia)
+	}
+	return resp.Content.GetOrZero(jsonMedia).Schema, nil
+}
+
 // response reads the 200 response. When wrapped is true, the response must
 // have exactly one property, and that property must be the resource.
 // response reads the 200 response. With wrapped, it must return the resource:
 // the resource itself (Direct), or one field that wraps it.
 func (r *Resource) response(op *v3.Operation, wrapped bool) (Response, error) {
-	if op == nil || op.Responses == nil || op.Responses.Codes == nil {
-		return Response{}, errors.New("no responses")
+	schema, err := okSchema(op)
+	if err != nil {
+		return Response{}, err
 	}
-	resp := op.Responses.Codes.GetOrZero("200")
-	if resp == nil || resp.Content == nil || resp.Content.GetOrZero(jsonMedia) == nil || resp.Content.GetOrZero(jsonMedia).Schema == nil {
-		return Response{}, fmt.Errorf("no 200 %s response schema", jsonMedia)
+	proxy := responseRef(schema)
+	if proxy == nil && !wrapped && emptyInlineObject(schema) {
+		// google.protobuf.Empty is an inline object with no fields. The SDK
+		// returns map[string]interface{}, the same as for an empty component.
+		return Response{Empty: true}, nil
 	}
-	proxy := responseRef(resp.Content.GetOrZero(jsonMedia).Schema)
 	if proxy == nil {
 		return Response{}, errors.New("200 response schema is inline, want a $ref")
 	}
@@ -746,6 +684,12 @@ func (r *Resource) checkUpdateContract(updateBody *base.Schema, update foundOp) 
 func (r *Resource) checkUpdateMask(updateBody *base.Schema, update foundOp) error {
 	bodyMask := maskProperty(updateBody)
 	params := maskParameters(update)
+	if r.Policy.UpdateMaskInBody {
+		if r.Replace {
+			return errors.New("api.updateMaskInBody does not apply to a full replace (PUT)")
+		}
+		return r.readBodyUpdateMask(updateBody, bodyMask, params)
+	}
 	if r.Replace {
 		return checkNoUpdateMask(bodyMask, params)
 	}
@@ -768,6 +712,33 @@ func checkNoUpdateMask(bodyMask string, params []*v3.Parameter) error {
 	if len(params) != 0 {
 		return fmt.Errorf("update parameters: a full replace (PUT) has no %s parameter", params[0].Name)
 	}
+	return nil
+}
+
+// readBodyUpdateMask accepts an optional updateMask string on the JSON body.
+// The generated update sets it to the same changed-field mask a query
+// parameter would send.
+func (r *Resource) readBodyUpdateMask(body *base.Schema, name string, params []*v3.Parameter) error {
+	if !r.Policy.Existing {
+		return errors.New("api.updateMaskInBody is only for a released resource")
+	}
+	if len(params) != 0 {
+		return fmt.Errorf("update parameters: %s is both a body property and a parameter", params[0].Name)
+	}
+	if name == "" {
+		return fmt.Errorf("update body: api.updateMaskInBody needs an optional %s or %s string property", updateMaskField, updateMaskProtoField)
+	}
+	proxy := propertyOf(body, name)
+	s, err := schemaOf(proxy)
+	if err != nil || !slices.Equal(s.Type, []string{"string"}) {
+		return fmt.Errorf("update body: %s must have a string schema", name)
+	}
+	if slices.Contains(body.Required, name) {
+		return fmt.Errorf("update body: %s must be optional", name)
+	}
+	r.MaskInBody = true
+	r.UpdateMask = name
+	r.UpdateMaskPattern = s.Pattern
 	return nil
 }
 
@@ -825,6 +796,9 @@ func (r *Resource) requestProperty(body *base.Schema, name string) (*base.Schema
 	if r.Policy.readOnly(r.Name, name) {
 		return nil, nil // the server sets the field, so it is not in a request
 	}
+	if r.Policy.UpdateMaskInBody && isUpdateMaskName(name) {
+		return nil, nil // the mask stays out of the Terraform schema and is not sent
+	}
 	return requestProperty(body, name)
 }
 
@@ -853,12 +827,7 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		return nil, fmt.Errorf("update body: %w", err)
 	}
 	gp := propertyOf(getSchema, name)
-	updateDefault := false
-	if up != nil {
-		updateAttrs, attrErr := attrsOf(updateBody, name, up)
-		updateDefault = attrErr == nil && updateAttrs.Default != nil
-	}
-	behavior, err := classifyField(r.Policy, name, cp != nil, up != nil, gp != nil, updateDefault)
+	behavior, err := Classify(cp != nil, up != nil, gp != nil)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", name, err)
 	}
@@ -875,7 +844,8 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		return nil, fmt.Errorf("%s: get: %w", name, err)
 	}
 	f.Get = &getAttrs
-	for _, loc := range []struct {
+	var requests [2]*Type
+	for i, loc := range []struct {
 		name  string
 		body  *base.Schema
 		proxy *base.SchemaProxy
@@ -887,12 +857,8 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		if loc.proxy == nil {
 			continue
 		}
-		t, err := typeOf(loc.proxy, name, walk{policy: &r.Policy})
-		if err != nil {
+		if requests[i], err = typeOf(loc.proxy, name, walk{policy: &r.Policy}); err != nil {
 			return nil, fmt.Errorf("%s: %w", loc.name, err)
-		}
-		if !reflect.DeepEqual(t, f.Type) {
-			return nil, fmt.Errorf("%s: %s type differs from the get type", name, loc.name)
 		}
 		a, err := attrsOf(loc.body, name, loc.proxy)
 		if err != nil {
@@ -900,7 +866,15 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		}
 		*loc.attrs = &a
 	}
+	if err := mergeRequests(fieldLocation(r.Name, name), f.Type, requests[0], requests[1]); err != nil {
+		return nil, err
+	}
 	return f, nil
+}
+
+// fieldLocation is the issue location of a top-level field.
+func fieldLocation(resource, field string) string {
+	return "components.schemas." + resource + "." + field
 }
 
 // description is the description of a property schema, also when it wraps a
@@ -947,19 +921,7 @@ func attrsOf(parent *base.Schema, name string, proxy *base.SchemaProxy) (Attrs, 
 		v := s.Default.Value
 		a.Default = &v
 	}
-	if s.ReadOnly != nil && *s.ReadOnly {
-		a.ReadOnly = true
-	}
 	return a, nil
-}
-
-// referencedTypeSchema returns the schema a $ref-with-siblings points at.
-func referencedTypeSchema(proxy *base.SchemaProxy, sibling *base.Schema) (*base.Schema, error) {
-	semantic, err := proxy.BuildTransformedRefSemanticSchema(sibling)
-	if err != nil || semantic == nil || len(semantic.AllOf) != 2 || semantic.AllOf[1] == nil {
-		return nil, err
-	}
-	return schemaOf(semantic.AllOf[1])
 }
 
 // typeOf builds the type of a schema. path is the field path for errors.
@@ -971,13 +933,6 @@ func typeOf(proxy *base.SchemaProxy, path string, w walk) (*Type, error) {
 	s, err := schemaOf(proxy)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
-	}
-	if len(s.Type) != 1 && proxy.IsTransformedRefWithSiblings() {
-		// OpenAPI 3.1 keeps a sibling such as default next to $ref. Schema()
-		// then returns only the sibling, so the type lives on the target.
-		if resolved, resolveErr := referencedTypeSchema(proxy, s); resolveErr == nil && resolved != nil {
-			s = resolved
-		}
 	}
 	if err := checkSupported(s); err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
@@ -1391,8 +1346,14 @@ func stringType(t *Type, s *base.Schema, w walk) error {
 		if err != nil {
 			return err
 		}
-		t.EnumZero = zero
-		for _, n := range s.Enum[1:] {
+		start := 1
+		if zero == "" {
+			// No *_UNSPECIFIED sentinel. The first value is a business value.
+			start = 0
+		} else {
+			t.EnumZero = zero
+		}
+		for _, n := range s.Enum[start:] {
 			t.Values = append(t.Values, n.Value)
 		}
 		if len(t.Values) == 0 {
@@ -1403,6 +1364,9 @@ func stringType(t *Type, s *base.Schema, w walk) error {
 		t.WireString = true
 	default:
 		t.Kind = String
+		if s.Pattern != permissivePattern && (w.policy == nil || !w.policy.Existing) {
+			t.Pattern = s.Pattern
+		}
 	}
 	return nil
 }
@@ -1410,15 +1374,30 @@ func stringType(t *Type, s *base.Schema, w walk) error {
 // enumZero returns the exact protobuf zero value. The zero value is first,
 // ends in _UNSPECIFIED, and supplies the prefix of every business value.
 // A later business value may also end in _UNSPECIFIED. With anyPrefix (existing
-// resources), a business value need not use the prefix.
+// resources), a business value need not use the prefix. A first value that is
+// not *_UNSPECIFIED is a business value: the returned sentinel is empty, and
+// the caller keeps every value. An empty sentinel is not the protobuf zero.
 func enumZero(values []*yaml.Node, anyPrefix bool) (string, error) {
-	if len(values) < 2 {
-		return "", errors.New("enum needs one zero value and at least one business value")
+	if len(values) < 1 {
+		return "", errors.New("enum has no values")
 	}
 	zero := values[0].Value
 	prefix, ok := strings.CutSuffix(zero, "_UNSPECIFIED")
 	if !ok || prefix == "" {
-		return "", fmt.Errorf("first enum value %q must be <PREFIX>_UNSPECIFIED", zero)
+		if !anyPrefix {
+			return "", fmt.Errorf("first enum value %q must be <PREFIX>_UNSPECIFIED", zero)
+		}
+		seen := map[string]bool{}
+		for _, value := range values {
+			if seen[value.Value] {
+				return "", fmt.Errorf("enum value %q is repeated", value.Value)
+			}
+			seen[value.Value] = true
+		}
+		return "", nil
+	}
+	if len(values) < 2 {
+		return "", errors.New("enum needs one zero value and at least one business value")
 	}
 	for _, value := range values[1:] {
 		if value.Value == zero {

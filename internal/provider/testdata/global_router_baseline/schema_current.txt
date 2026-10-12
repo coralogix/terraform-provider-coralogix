@@ -37,6 +37,7 @@ fallback_targets[].target.preset_id  StringAttribute optional
     description: "ID of the preset."
 id  StringAttribute optional computed
     markdown: "The ID of the GlobalRouter. Use `router_default` for the default; leave empty for auto generated or provide your own (unique) id."
+    plan modifier: stringplanmodifier.requiresReplaceIfModifier If the value of this attribute changes, Terraform will destroy and recreate the resource.
     plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 name  StringAttribute required
     markdown: "Name of the GlobalRouter."

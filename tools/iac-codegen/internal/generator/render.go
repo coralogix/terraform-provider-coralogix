@@ -54,14 +54,30 @@ func renderAll(r *model.Resource, refs []sdkRef, pkg string, file *overrides.Fil
 	if data.CRUD, err = buildCRUDWith(r, refs, file); err != nil {
 		return nil, err
 	}
+	if err := attachExtraAttributes(data, file); err != nil {
+		return nil, err
+	}
 	files := maps.Clone(generatedFiles)
+	if data.Conv.UsesEquality() {
+		if data.HasServerDefaults {
+			// ModifyPlan keeps the state in place of every unknown that the configuration does
+			// not set. A server default plans unknown on purpose, and would be lost.
+			return nil, fmt.Errorf("equality and a server default in one resource are not supported; in existing mode, a default line in %s replaces the server default", overrides.FileName)
+		}
+		files["equality.go"] = "equality.go.tmpl"
+	}
 	if data.Conv.Replace {
 		// A full replace has no update mask (E11).
 		delete(files, "mask.go")
 		files["replace.go"] = "replace.go.tmpl"
 	}
 	out := map[string][]byte{}
-	for file, tmpl := range files {
+	order := []string{"schema.go", "model.go", "convert.go", "equality.go", "mask.go", "resource.go", "replace.go"}
+	for _, file := range order {
+		tmpl, ok := files[file]
+		if !ok {
+			continue
+		}
 		var buf bytes.Buffer
 		if err := templates.ExecuteTemplate(&buf, tmpl, data); err != nil {
 			return nil, fmt.Errorf("%s: %w", file, err)

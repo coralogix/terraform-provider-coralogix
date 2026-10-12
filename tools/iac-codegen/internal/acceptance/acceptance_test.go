@@ -20,11 +20,15 @@ skip: [fallback]
 minimal: [routing_labels]
 upgradeMinimal: [description]
 upgradeFrom: "3.19.0"
+upgradeCases:
+  - name: write-only
+    values:
+      token_wo: '{ secret = "x" }'
 `))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if f.Resource != "GlobalRouter" || len(f.Env) != 2 || f.UpgradeFrom != "3.19.0" || f.Skip[0] != "fallback" || f.Minimal[0] != "routing_labels" || f.UpgradeMinimal[0] != "description" {
+	if f.Resource != "GlobalRouter" || len(f.Env) != 2 || f.UpgradeFrom != "3.19.0" || f.Skip[0] != "fallback" || f.Minimal[0] != "routing_labels" || f.UpgradeMinimal[0] != "description" || len(f.UpgradeCases) != 1 || f.UpgradeCases[0].Name != "write-only" {
 		t.Fatalf("file = %+v", f)
 	}
 	if got := f.ValuePaths(); len(got) != 1 || got[0] != "rules[].targets[].connector_id" {
@@ -50,6 +54,10 @@ func TestParseRejectsWhatCannotWork(t *testing.T) {
 		"bad minimal path":     {"resource: R\nminimal: [a.B]\n", "not a field path"},
 		"bad upgradeMinimal":   {"resource: R\nupgradeFrom: \"1.0.0\"\nupgradeMinimal: [Bad]\n", "not a field path"},
 		"upgradeMinimal alone": {"resource: R\nupgradeMinimal: [description]\n", "upgradeMinimal needs upgradeFrom"},
+		"upgradeCases alone":   {"resource: R\nupgradeCases:\n  - name: write-only\n    values:\n      a: b\n", "upgradeCases needs upgradeFrom"},
+		"bad case name":        {"resource: R\nupgradeFrom: \"1.0.0\"\nupgradeCases:\n  - name: WriteOnly\n    values:\n      a: b\n", "want a name such as write-only"},
+		"case twice":           {"resource: R\nupgradeFrom: \"1.0.0\"\nupgradeCases:\n  - name: a\n    values:\n      x: y\n  - name: a\n    values:\n      x: z\n", "listed twice"},
+		"empty case values":    {"resource: R\nupgradeFrom: \"1.0.0\"\nupgradeCases:\n  - name: a\n", "values is empty"},
 		"bad version":          {"resource: R\nupgradeFrom: latest\n", "want a release"},
 		"backtick":             {"resource: R\nprerequisites: \"a`b\"\n", "backtick"},
 	}

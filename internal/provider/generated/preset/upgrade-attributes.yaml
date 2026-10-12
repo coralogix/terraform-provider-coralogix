@@ -1,0 +1,22 @@
+# Written by coralogix-iac-codegen. Do not edit.
+# The attributes that the released provider of the upgrade test has. The upgrade test leaves out
+# every other attribute. The generator takes the list from the schema when upgradeFrom changes.
+from: 3.20.0
+attributes:
+    attachment_config: {type: String}
+    config_overrides: {type: ListNested}
+    config_overrides[].condition_type: {type: SingleNested, required: true}
+    config_overrides[].condition_type.match_entity_type: {type: SingleNested}
+    config_overrides[].condition_type.match_entity_type_and_sub_type: {type: SingleNested}
+    config_overrides[].condition_type.match_entity_type_and_sub_type.entity_sub_type: {type: String, required: true}
+    config_overrides[].message_config: {type: SingleNested, required: true}
+    config_overrides[].message_config.fields: {type: SetNested, required: true}
+    config_overrides[].message_config.fields[].field_name: {type: String, required: true}
+    config_overrides[].message_config.fields[].template: {type: String, required: true}
+    config_overrides[].payload_type: {type: String}
+    connector_type: {type: String, required: true}
+    description: {type: String}
+    entity_type: {type: String, required: true}
+    id: {type: String}
+    name: {type: String, required: true}
+    parent_id: {type: String, required: true}
