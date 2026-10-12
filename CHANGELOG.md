@@ -31,6 +31,9 @@
 - FEAT: `requireOne` emits `ExactlyOneOf` for the arms of a oneOf.
 - FEAT: `readRejected: true` reads a rejected enum value as the API spelling. Without it, that value fails the read.
 - FIX: Remove `promote`. `unwrap` shows a one-property wrapper as the plain attribute. A missing business-first enum, including a missing unwrapped value, reads as its first value.
+- FIX: A `date-time` field of a component has one type in every place of the component: `timetypes.RFC3339` when a request sends it in some place, otherwise a plain string. Before, a field inside a computed value always became `timetypes.RFC3339`, so a response-only time in a component that is also managed elsewhere failed generation with "has a computed object field in one place and a managed one in another".
+- FIX: The error for a component that needs another model struct in each place names the field and its Go type in each place.
+- CHORE: Bump the generator to `v0.1.0-beta.20`.
 - CHORE: Bump the generator to `v0.1.0-beta.19`.
 - CHORE: Bump the generator to `v0.1.0-beta.18`.
 - FEAT: `unwrap` in `behavior-overrides.yaml` shows a value that the API holds in a one-property wrapper object as the plain value, for example `{"query": {"value": "error"}}` as `query = "error"`. A top-level list names the wrapper components, and an `unwrap: true` or `unwrap: false` field line decides one place. The value can be a scalar, an enum, a list, an object, or a oneOf, a wrapper inside a wrapper, or the items of a list.

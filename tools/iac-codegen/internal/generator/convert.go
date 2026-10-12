@@ -323,7 +323,7 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 	if err != nil {
 		return nil, err
 	}
-	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, file: file, resource: r}
+	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, file: file, resource: r, sent: sentFields(r)}
 	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, Existing: r.Policy.Existing}
 	if err := out.setBodyMask(ix, r); err != nil {
 		return nil, err
@@ -448,7 +448,7 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 			// The SDK struct still has it, and the released client sends the fixed value.
 			typ = f.Type
 		}
-		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, typ, f.Behavior == model.Computed)
+		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, typ, responseOnly(f.Behavior))
 		if err != nil {
 			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
 		}
@@ -659,6 +659,7 @@ type convBuilder struct {
 	listed   []*convObject // objects that a list holds
 	file     *overrides.File
 	resource *model.Resource
+	sent     sentSet // component fields that a request sends in some place
 	enumMaps []*enumMap
 	wraps    []*wrapHelper
 }
@@ -991,7 +992,7 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	obj.AttrTypesFunc = lowerFirst(obj.Func) + "AttrTypes"
 	b.objects = append(b.objects, obj)
 	for _, f := range t.Fields {
-		cf, err := b.field(ref.Path, component, f.Name, f.Type, f.Behavior == model.Computed)
+		cf, err := b.field(ref.Path, component, f.Name, f.Type, b.sent.responseOnly(component, f))
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
@@ -1028,7 +1029,7 @@ func (b *convBuilder) injectFixedRequest(obj *convObject, owner string, t *model
 		if present[f.Name] || !b.fixedRequest(t.Model, f.Name) {
 			continue
 		}
-		cf, err := b.field(owner, t.Model, f.Name, f.Type, f.Behavior == model.Computed)
+		cf, err := b.field(owner, t.Model, f.Name, f.Type, b.sent.responseOnly(t.Model, f))
 		if err != nil {
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
