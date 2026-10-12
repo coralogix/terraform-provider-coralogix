@@ -1,0 +1,35 @@
+[
+  {
+    "step": "create: the API accepts only the region of the environment",
+    "config": {
+      "bucket": "archive-bucket",
+      "region": "ap-southeast-2"
+    },
+    "plan": {
+      "active": true,
+      "archiving_format_id": "(unknown)",
+      "bucket": "archive-bucket",
+      "enable_tags": "(unknown)",
+      "id": "(unknown)",
+      "region": "ap-southeast-2"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "body": {
+          "isActive": true,
+          "s3": {
+            "bucket": "archive-bucket",
+            "region": "ap-southeast-2"
+          }
+        },
+        "status": 408
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error replacing coralogix_archive_logs | error - 408 Request Timeout — {\"code\":408,\"message\":\"Deadline Exceeded: Region ap-southeast-2 is not supported, must use eu-north-1.\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]
