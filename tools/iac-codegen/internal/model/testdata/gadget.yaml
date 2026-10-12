@@ -1,6 +1,6 @@
 # A new resource whose replace body is the resource itself, as the views API has it.
-# - mode: an enum with a server default next to its $ref. The response declares the same
-#   default, because an older record reads back without the value.
+# - mode: an enum with a server default next to its $ref in Create. Replace and the response
+#   declare none: an older record reads back without the value, which is not the default.
 # - compact: only replace sets it. Create stores the default.
 # - search.syntax: a nested enum with a server default.
 openapi: 3.1.0
@@ -55,9 +55,7 @@ paths:
               required: [name]
               properties:
                 name: {type: string, minLength: 1, x-coralogix-presence: true}
-                mode:
-                  $ref: '#/components/schemas/GadgetMode'
-                  default: GADGET_MODE_BASIC
+                mode: {$ref: '#/components/schemas/GadgetMode'}
                 compact: {type: boolean, default: false, x-coralogix-presence: true}
                 search: {$ref: '#/components/schemas/GadgetSearch'}
       responses:
@@ -83,9 +81,7 @@ components:
       properties:
         id: {type: string, readOnly: true, x-coralogix-presence: true}
         name: {type: string, minLength: 1, x-coralogix-presence: true}
-        mode:
-          $ref: '#/components/schemas/GadgetMode'
-          default: GADGET_MODE_BASIC
+        mode: {$ref: '#/components/schemas/GadgetMode'}
         compact: {type: boolean, default: false, x-coralogix-presence: true}
         search: {$ref: '#/components/schemas/GadgetSearch'}
     GadgetSearch:

@@ -80,12 +80,12 @@ func TestGadgetServerDefaultContract(t *testing.T) {
 			[]string{"compact: {type: boolean, default: false, x-coralogix-presence: true}\n                search", "compact: {type: boolean, x-coralogix-presence: true}\n                search"},
 			"FIELD_LIFECYCLE_UNSUPPORTED",
 		},
-		"response does not state the default": {
-			[]string{"        mode:\n          $ref: '#/components/schemas/GadgetMode'\n          default: GADGET_MODE_BASIC\n        compact", "        mode: {$ref: '#/components/schemas/GadgetMode'}\n        compact"},
+		"response declares another default": {
+			[]string{"        mode: {$ref: '#/components/schemas/GadgetMode'}\n        compact", "        mode:\n          $ref: '#/components/schemas/GadgetMode'\n          default: GADGET_MODE_EXPERT\n        compact"},
 			"FIELD_DEFAULT_CONTRACT_INCONSISTENT",
 		},
-		"response declares another default": {
-			[]string{"        mode:\n          $ref: '#/components/schemas/GadgetMode'\n          default: GADGET_MODE_BASIC\n        compact", "        mode:\n          $ref: '#/components/schemas/GadgetMode'\n          default: GADGET_MODE_EXPERT\n        compact"},
+		"replace declares another default": {
+			[]string{"                mode: {$ref: '#/components/schemas/GadgetMode'}\n", "                mode:\n                  $ref: '#/components/schemas/GadgetMode'\n                  default: GADGET_MODE_EXPERT\n"},
 			"FIELD_DEFAULT_CONTRACT_INCONSISTENT",
 		},
 		"required nested field with a default": {

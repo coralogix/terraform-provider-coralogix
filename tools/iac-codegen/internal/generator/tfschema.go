@@ -523,12 +523,9 @@ func containsString(values []string, target string) bool {
 
 func hasServerDefault(f *model.ResourceField) bool {
 	d := declaredDefault(f)
-	if d == nil || f.Get == nil || f.Create != nil && f.Create.Required {
-		return false
-	}
-	// The response states the default: it always returns the value, or an
-	// omitted value means the default.
-	return f.Get.Required || f.Get.Default != nil && *f.Get.Default == *d
+	// Get returns the value. When it omits it, the state is null: validation
+	// already requires a Get default, when there is one, to be the same.
+	return d != nil && f.Get != nil && (f.Create == nil || !f.Create.Required)
 }
 
 // declaredDefault is the server default of a top-level field: the Create default,
