@@ -173,6 +173,9 @@ type Type struct {
 	// (protobuf 64-bit numbers).
 	WireString bool
 	Values     []string // Enum: the business values, without EnumZero
+	// Allowed are the values an integer or a boolean accepts, from its enum, as
+	// JSON text. Empty: any value in the limits.
+	Allowed []string
 	EnumZero   string   // Enum: the exact protobuf zero value
 	Elem       *Type    // List, Set, Map
 	Fields     []*Field // Object: the properties; OneOf: the arms

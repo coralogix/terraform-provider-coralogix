@@ -3,6 +3,7 @@
 #   declare none: an older record reads back without the value, which is not the default.
 # - compact: only replace sets it. Create stores the default.
 # - search.syntax: a nested enum with a server default.
+# - level: an integer that accepts listed values. search.flags: a map whose values must be true.
 openapi: 3.1.0
 info: {title: gadget, version: 1.0.0}
 paths:
@@ -20,6 +21,7 @@ paths:
               required: [name]
               properties:
                 name: {type: string, minLength: 1, x-coralogix-presence: true}
+                level: {type: integer, format: int32, enum: [1, 5], x-coralogix-presence: true}
                 mode:
                   $ref: '#/components/schemas/GadgetMode'
                   default: GADGET_MODE_BASIC
@@ -55,6 +57,7 @@ paths:
               required: [name]
               properties:
                 name: {type: string, minLength: 1, x-coralogix-presence: true}
+                level: {type: integer, format: int32, enum: [1, 5], x-coralogix-presence: true}
                 mode: {$ref: '#/components/schemas/GadgetMode'}
                 compact: {type: boolean, default: false, x-coralogix-presence: true}
                 search: {$ref: '#/components/schemas/GadgetSearch'}
@@ -81,6 +84,7 @@ components:
       properties:
         id: {type: string, readOnly: true, x-coralogix-presence: true}
         name: {type: string, minLength: 1, x-coralogix-presence: true}
+        level: {type: integer, format: int32, enum: [1, 5], x-coralogix-presence: true}
         mode: {$ref: '#/components/schemas/GadgetMode'}
         compact: {type: boolean, default: false, x-coralogix-presence: true}
         search: {$ref: '#/components/schemas/GadgetSearch'}
@@ -89,6 +93,9 @@ components:
       required: [text]
       properties:
         text: {type: string, minLength: 1, x-coralogix-presence: true}
+        flags:
+          type: object
+          additionalProperties: {type: boolean, enum: [true]}
         syntax:
           $ref: '#/components/schemas/GadgetSyntax'
           default: GADGET_SYNTAX_PLAIN

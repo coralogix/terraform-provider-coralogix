@@ -88,6 +88,10 @@ func TestGadgetServerDefaultContract(t *testing.T) {
 			[]string{"                mode: {$ref: '#/components/schemas/GadgetMode'}\n", "                mode:\n                  $ref: '#/components/schemas/GadgetMode'\n                  default: GADGET_MODE_EXPERT\n"},
 			"FIELD_DEFAULT_CONTRACT_INCONSISTENT",
 		},
+		"replace lists other integer values": {
+			[]string{"                level: {type: integer, format: int32, enum: [1, 5], x-coralogix-presence: true}\n                mode: {$ref", "                level: {type: integer, format: int32, enum: [1, 6], x-coralogix-presence: true}\n                mode: {$ref"},
+			"FIELD_TYPE_INCONSISTENT",
+		},
 		"required nested field with a default": {
 			[]string{"required: [text]", "required: [text, syntax]"},
 			"NESTED_FIELD_DEFAULT_UNSUPPORTED",

@@ -3,7 +3,7 @@
 package {{.Package}}
 
 import (
-{{- if or .HasServerDefaults .RequestReplaceKinds}}
+{{- if or .HasServerDefaults .RequestReplaceKinds .MapBoolValues}}
 	"context"
 {{- end}}
 	"regexp"
@@ -98,6 +98,45 @@ func (m requestReplaceModifier) PlanModify{{.}}(ctx context.Context, req planmod
 {{end}}
 {{- end}}
 
+{{- if .MapBoolValues}}
+// mapBoolValuesAre validates each value of a map of booleans.
+func mapBoolValuesAre(validators ...validator.Bool) validator.Map {
+	return mapBoolValues{validators: validators}
+}
+
+type mapBoolValues struct{ validators []validator.Bool }
+
+func (v mapBoolValues) Description(context.Context) string {
+	return "Every value of the map is valid."
+}
+
+func (v mapBoolValues) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v mapBoolValues) ValidateMap(ctx context.Context, req validator.MapRequest, resp *validator.MapResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	for key, elem := range req.ConfigValue.Elements() {
+		value, ok := elem.(types.Bool)
+		if !ok {
+			continue
+		}
+		for _, check := range v.validators {
+			r := &validator.BoolResponse{}
+			check.ValidateBool(ctx, validator.BoolRequest{
+				Path:           req.Path.AtMapKey(key),
+				PathExpression: req.PathExpression.AtMapKey(key),
+				ConfigValue:    value,
+				Config:         req.Config,
+			}, r)
+			resp.Diagnostics.Append(r.Diagnostics...)
+		}
+	}
+}
+
+{{end}}
 {{- if .HasServerDefaults}}
 // serverDefaultModifier distinguishes removal from a steady server default.
 // It never inserts the default into configuration or an API request. When a
