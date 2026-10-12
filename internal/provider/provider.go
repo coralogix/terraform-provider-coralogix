@@ -33,6 +33,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/enrichment_rules"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/events2metrics"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/fleet"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/configurationgroup"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/globalrouter"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/integrations"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/logs"
@@ -445,6 +446,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		notifications.NewPresetResource,
 		parsing_rules.NewParsingRulesResource,
 		enrichment_rules.NewDataEnrichmentsResource,
-		fleet.NewFleetConfigurationGroupResource,
+		func() resource.Resource { return configurationgroup.NewResource(configurationgroup.Hooks{}) },
 	}
 }

@@ -877,6 +877,11 @@ func nestedReadOnlyIssues(p Policy, location string, proxy *base.SchemaProxy, se
 			continue // the resource does not manage this field, so it is never sent
 		}
 		if childSchema.ReadOnly != nil && *childSchema.ReadOnly {
+			// requestValue sends a fixed value, so the field is not a server-only
+			// property the renderer has to drop.
+			if p.fixedRequest(referencedComponent(proxy), name) {
+				continue
+			}
 			report = append(report, issue.Issue{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: childLocation, Message: "A nested request field is readOnly and cannot be removed by the current resource renderer.", Remediation: "Use separate request and response schemas so server-only fields are absent from request objects."})
 			continue
 		}

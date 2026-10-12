@@ -514,7 +514,7 @@ func (f nestedFixture) withTarget(name string) nestedFixture {
 func tfString(v interface{}) tftypes.Value { return tftypes.NewValue(tftypes.String, v) }
 
 func (f nestedFixture) itemValue(id, key interface{}, name string) tftypes.Value {
-	return tftypes.NewValue(f.item, map[string]tftypes.Value{"id": tfString(id), "key": tfString(key), "name": tfString(name)})
+	return tftypes.NewValue(f.item, map[string]tftypes.Value{"id": tfString(id), "key": tfString(key), "name": tfString(name), "create_time": tfString(nil), "start_time": tfString(nil)})
 }
 
 // specValue is the spec in configuration (server false) or in state (server true).
@@ -548,7 +548,7 @@ func (f nestedFixture) resourceValue(server bool, name string, spec tftypes.Valu
 		statusType := f.root.AttributeTypes["status"].(tftypes.Object)
 		values["id"] = tfString("thing-1")
 		values["enabled"] = tftypes.NewValue(tftypes.Bool, true)
-		values["status"] = tftypes.NewValue(statusType, map[string]tftypes.Value{"health": tfString("ok")})
+		values["status"] = tftypes.NewValue(statusType, map[string]tftypes.Value{"health": tfString("ok"), "items": tftypes.NewValue(statusType.AttributeTypes["items"], nil)})
 		values["create_time"] = tfString("2026-01-01T00:00:00Z")
 		values["update_time"] = tfString("2026-01-01T00:00:00Z")
 	}

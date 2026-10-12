@@ -1,0 +1,29 @@
+# What the generated acceptance test needs for coralogix_preset, besides the schema.
+# The handwritten examples also use these system parents:
+# preset_system_slack_alerts_basic, preset_system_pagerduty_alerts_basic, preset_system_email_alerts.
+resource: Preset
+
+values:
+  connector_type: '"generic_https"'
+  entity_type: '"alerts"'
+  parent_id: '"preset_system_generic_https_alerts_empty"'
+  config_overrides[].condition_type.match_entity_type_and_sub_type.entity_sub_type: '"logsImmediateResolved"'
+  config_overrides[].message_config.fields[].field_name: '"body"'
+  config_overrides[].message_config.fields[].template: '"{}"'
+
+# payload_type names an output schema. The parent id generic_https_empty is not one, and the
+# API rejects it. The handwritten preset omits payload_type. match_entity_type is the other
+# oneOf arm; the handwritten preset sets the subtype arm.
+skip:
+  - config_overrides[].payload_type
+  - config_overrides[].condition_type.match_entity_type
+
+# A custom preset with an empty config_overrides list is rejected.
+minimal:
+  - config_overrides
+
+# Provider 3.20.0 cannot create a preset without a description (plans null, API returns "").
+upgradeMinimal:
+  - description
+
+upgradeFrom: "3.20.0"

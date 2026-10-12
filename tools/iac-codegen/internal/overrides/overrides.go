@@ -95,6 +95,15 @@ type API struct {
 	UpdateIDInBody bool `yaml:"updateIDInBody"`
 	// ClientSetID: the client can send the id on Create.
 	ClientSetID bool `yaml:"clientSetID"`
+	// CustomMethods: Get, Update, and Delete are not the Create path with an id.
+	// Get and Delete each have the same {id} path parameter on their own paths.
+	// Update has no path parameter, and the id stays in the body. New resources
+	// keep the stricter path rules.
+	CustomMethods bool `yaml:"customMethods"`
+	// Operations names the lifecycle operationIds when they do not end in
+	// _Create, _Get, _Update, or _Delete plus the resource name. Generate then
+	// needs no operation flags.
+	Operations *Operations `yaml:"operations"`
 	// Delete names the operation that removes the resource when the API has no DELETE.
 	Delete *Delete `yaml:"delete"`
 	// UpdateMaskInBody: PATCH updateMask is an optional JSON body property.
@@ -106,6 +115,14 @@ type API struct {
 	// sends a changed oneOf under its top-level field, for an API whose mask
 	// pattern rejects dotted paths.
 	TopLevelMaskReplacesOneOf bool `yaml:"topLevelMaskReplacesOneOf"`
+}
+
+// Operations names the four lifecycle operationIds. All four are required.
+type Operations struct {
+	Create string `yaml:"create"`
+	Get    string `yaml:"get"`
+	Update string `yaml:"update"`
+	Delete string `yaml:"delete"`
 }
 
 // Delete is how a released resource is removed when the API has no DELETE, for example a
@@ -174,6 +191,14 @@ type Field struct {
 	Default any `yaml:"default"`
 	// ReadEmptyAs: "null" reads an empty list or object from the API as null.
 	ReadEmptyAs string `yaml:"readEmptyAs"`
+	// ReadNullAs: "empty" reads a missing list or set as an empty collection.
+	ReadNullAs string `yaml:"readNullAs"`
+	// RequireOne makes a oneOf that allows no arm use ExactlyOneOf. The released
+	// resource required one arm even though the contract allows none.
+	RequireOne bool `yaml:"requireOne"`
+	// RequestValue is an API value that Create and Update always send. The field
+	// is not a Terraform attribute.
+	RequestValue string `yaml:"requestValue"`
 	// KeepPriorOrder returns the list items in the order of the plan or state, because
 	// the API does not keep the order.
 	KeepPriorOrder bool `yaml:"keepPriorOrder"`
@@ -215,21 +240,17 @@ type Enum struct {
 	// A new resource uses null for it. A released resource kept a value in its state.
 	Zero string `yaml:"zero"`
 	// Values are the enum values that the resource accepts. The Terraform value is the
-	// lower case of the API value.
+	// lower case of the API value, unless Verbatim is set.
 	Values []string `yaml:"values"`
+	// Verbatim keeps the API spelling as the Terraform value. Attachment policies stay
+	// AUTO, ENABLED, and DISABLED.
+	Verbatim bool `yaml:"verbatim"`
 	// Rejected are the values of the contract that the resource does not accept. The generator
 	// reports a value of the contract that is in neither list, so a new API value needs a decision.
 	Rejected []string `yaml:"rejected"`
-	// Verbatim: the Terraform value is the API value. Otherwise it is the lower case of the API value.
-	Verbatim bool `yaml:"verbatim"`
-}
-
-// TerraformValue is the Terraform value of one API enum value.
-func (e Enum) TerraformValue(api string) string {
-	if e.Verbatim {
-		return api
-	}
-	return strings.ToLower(api)
+	// ReadRejected: a rejected value still reads back as the API spelling. The write map and the
+	// schema validator do not accept it. Without this key, a rejected value fails the read.
+	ReadRejected bool `yaml:"readRejected"`
 }
 
 // Parse reads the file. An unknown key or a wrong value is an error.
@@ -300,10 +321,19 @@ func (f *File) checkTypes() error {
 	return nil
 }
 
-// check checks that a Delete override names its operation.
+// check checks that a Delete override names its operation, and that only one line names it.
 func (a API) check() error {
 	if a.Delete != nil && a.Delete.Operation == "" {
 		return errors.New("api.delete.operation is required")
+	}
+	if a.Operations == nil {
+		return nil
+	}
+	if a.Operations.Create == "" || a.Operations.Get == "" || a.Operations.Update == "" || a.Operations.Delete == "" {
+		return errors.New("api.operations needs create, get, update, and delete")
+	}
+	if a.Delete != nil {
+		return errors.New("api.delete and api.operations both name the Delete operation: keep only api.operations.delete")
 	}
 	return nil
 }
@@ -364,6 +394,9 @@ func (l Field) keys() []string {
 	add(l.UseStateForUnknown, "useStateForUnknown")
 	add(l.Default != nil, "default")
 	add(l.ReadEmptyAs != "", "readEmptyAs")
+	add(l.ReadNullAs != "", "readNullAs")
+	add(l.RequireOne, "requireOne")
+	add(l.RequestValue != "", "requestValue")
 	add(l.KeepPriorOrder, "keepPriorOrder")
 	add(len(l.Validators) != 0, "validators")
 	add(l.Equality != "", "equality")
@@ -375,7 +408,7 @@ func (l Field) keys() []string {
 // statesPresence reports whether the line says how an omitted value behaves. A line that only
 // changes a text, a validator, or the order does not: the contract must still state presence.
 func (l Field) statesPresence() bool {
-	return l.Skip || l.ReadOnly || l.Required || l.Computed != nil || l.Default != nil || l.ReadEmptyAs != ""
+	return l.Skip || l.ReadOnly || l.Required || l.Computed != nil || l.Default != nil || l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequestValue != ""
 }
 
 // replacesServerDefault reports whether the line states a mode that a server default of the
@@ -432,7 +465,8 @@ func (t Type) check(name string) error {
 
 func (l Field) empty() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
-		l.Computed == nil && !l.UseStateForUnknown && l.Default == nil && l.ReadEmptyAs == "" &&
+		l.Computed == nil && !l.UseStateForUnknown && l.Default == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" &&
+		!l.RequireOne && l.RequestValue == "" &&
 		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && !l.RequiresReplace
 }
 
@@ -442,6 +476,15 @@ func (l Field) check() error {
 	}
 	if l.ReadEmptyAs != "" && l.ReadEmptyAs != "null" {
 		return fmt.Errorf("readEmptyAs is %q, want \"null\"", l.ReadEmptyAs)
+	}
+	if l.ReadNullAs != "" && l.ReadNullAs != "empty" {
+		return fmt.Errorf("readNullAs is %q, want \"empty\"", l.ReadNullAs)
+	}
+	if l.ReadEmptyAs != "" && l.ReadNullAs != "" {
+		return errors.New("readEmptyAs and readNullAs cannot both be set")
+	}
+	if l.Skip && l.RequestValue != "" {
+		return errors.New("requestValue sends the field, so skip cannot be set")
 	}
 	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON {
 		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
@@ -469,7 +512,8 @@ func (l Field) check() error {
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
 func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Default != nil || l.KeepPriorOrder ||
-		l.ReadEmptyAs != "" || len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || l.RequiresReplace
+		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.RequestValue != "" ||
+		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || l.RequiresReplace
 }
 
 func checkValidators(validators []Validator) error {
@@ -501,10 +545,19 @@ func (f *File) Policy() model.Policy {
 		RequestWrapper:            f.API.RequestWrapper,
 		UpdateIDInBody:            f.API.UpdateIDInBody,
 		ClientSetID:               f.API.ClientSetID,
+		CustomMethods:             f.API.CustomMethods,
 		UpdateMaskInBody:          f.API.UpdateMaskInBody,
 		TopLevelMaskReplacesOneOf: f.API.TopLevelMaskReplacesOneOf,
 		// The file states validators.inferred: false; Parse checked it.
 		NoInferredValidators: true,
+	}
+	if f.API.Operations != nil {
+		p.Operations = model.OperationIDs{
+			Create: f.API.Operations.Create,
+			Get:    f.API.Operations.Get,
+			Update: f.API.Operations.Update,
+			Delete: f.API.Operations.Delete,
+		}
 	}
 	if f.API.Delete != nil {
 		p.DeleteOperation = f.API.Delete.Operation
@@ -522,6 +575,9 @@ func (f *File) Policy() model.Policy {
 			}
 			if t.Fields[field].Skip {
 				p.Skip = append(p.Skip, name+"."+field)
+			}
+			if t.Fields[field].RequestValue != "" {
+				p.FixedRequest = append(p.FixedRequest, name+"."+field)
 			}
 			if t.Fields[field].ReadOnly {
 				p.ReadOnly = append(p.ReadOnly, name+"."+field)

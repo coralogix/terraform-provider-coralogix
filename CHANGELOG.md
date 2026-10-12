@@ -1,5 +1,21 @@
 # Unreleased
 
+#### resource/coralogix_configuration_group
+- BREAKING (Beta): `coralogix_fleet_configuration_group` is renamed `coralogix_configuration_group`. Remove the old resource from state and import the group under the new name.
+- BREAKING (Beta): The resource is generated from the API contract. A family is either `raw` (its own `remote_configurations`) or `preset` (generated from a configuration template); `remote_configuration` is renamed `remote_configurations`, `agent_selector` holds an `attributes` map, `priority_order` is an Int32, and `chart_name` values are `chart_name_otel_integration`, `chart_name_otel_ecs_ec2`, and `chart_name_otel_{linux,windows,macos}_standalone`.
+- FEAT: Preset families: `chart_name`, `chart_version`, `metadata`, and `observability_features`; `integration_version` is resolved by the API when omitted.
+- BREAKING (Beta): `name` is required. The family-level `collector_version` is removed: set `family.raw.collector_version`, and read `family.preset.collector_version`, which the API derives from `chart_version`. When `raw.collector_version` is set, every `agent_selector` must include a matching `service.version`.
+- FEAT: Read-only `archived` attribute.
+- FEAT: `raw_configuration` and `observability_features` compare as YAML and JSON documents, so a change of format plans no change.
+
+#### data-source/coralogix_configuration_group
+- BREAKING (Beta): `coralogix_fleet_configuration_group` is renamed `coralogix_configuration_group` and uses the schema of the generated resource.
+
+#### resource/coralogix_preset
+- CHORE: Adapt to the management SDK, where preset `name`, `connector_type`, and `entity_type` are required values.
+- FIX: An omitted `description` reads back as absent. Before, it read back as `""`, because the API returns an empty string. A configured empty `description` stays `""`.
+- CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Changing `id` still recreates the resource.
+
 #### resource/coralogix_connector
 - CHORE: Generated upgrade test covers a connector that already uses `field_values_wo`.
 - CHORE: Bump `coralogix-management-sdk` so Connector required fields and unordered field sets come from the OpenAPI contract.
@@ -15,15 +31,28 @@
 - FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
 
 #### tools/iac-codegen
-- CHORE: Bump the generator to `v0.1.0-beta.19`.
 - FEAT: `requiresReplace: true` on a top-level field forces a new resource when that field changes, although Update accepts it.
 - FIX: `requiresReplace: true` together with `computed: true` is rejected. That pair is Optional+Computed with RequiresReplace, so omitting the field replaces the resource whenever something else changes.
-- FEAT: `unsupportedArms` keeps a oneOf arm out of the schema and reports it when a response selects it. `enums` `verbatim: true` keeps the API spelling as the Terraform value.
+- FEAT: `unsupportedArms` keeps a oneOf arm out of the schema and reports it when a response selects it.
 - FIX: `unsupportedArms` renders. Before, generation failed with `no SDK field` for the unsupported arm.
 - FIX: Existing-mode check reads a resource that a response field wraps in `allOf: [$ref]`, as the OpenAPI fork writes a field with a description. Before, every field read as missing from Get.
 - FIX: A client-set id keeps `RequiresReplace`. The check against Optional+Computed with RequiresReplace skips an attribute with `UseStateForUnknown`, which plans an omitted value as its prior state.
-- FEAT: Existing mode accepts an enum whose first value is a business value, such as `PROMPT`. Every value maps to a Terraform value, and an `enums` line for it has no `zero`.
+- FEAT: Existing mode accepts an enum whose first value is a business value, such as `PROMPT`, also without an `enums` line, for example the items of a list.
 - FEAT: `api.topLevelMaskReplacesOneOf: true` lets a top-level update mask change a nested oneOf when the server replaces the whole value of that path.
+- CHORE: Bump the generator to `v0.1.0-beta.21`.
+- FIX: `behavior-overrides.yaml` rejects a Delete operation named in both `api.delete.operation` and `api.operations.delete`. Before, `api.operations` chose the operation id while `api.delete` still turned on POST-action delete checks.
+- FEAT: `readEmptyAs: null` on a string reads an omitted value as null. A configured `""` stays `""`.
+- FIX: `requestValue` on a nested read-only field is sent on create and update.
+- FEAT: `api.operations` stores the four operation ids, so `tfgen generate` needs no operation flags.
+- FEAT: `requestValue` sends a fixed API value on create and update. The field is not a Terraform attribute.
+- FEAT: `readNullAs: empty` reads a missing list or set of objects as an empty collection.
+- FEAT: `requireOne` emits `ExactlyOneOf` for the arms of a oneOf.
+- FEAT: `readRejected: true` reads a rejected enum value as the API spelling. Without it, that value fails the read.
+- FIX: Remove `promote`. `unwrap` shows a one-property wrapper as the plain attribute. A missing enum stays null, including one marked with presence. A string `default` is what that resource reads a missing value as.
+- FIX: A `date-time` field of a component has one type in every place of the component: `timetypes.RFC3339` when a request sends it in some place, otherwise a plain string. Before, a field inside a computed value always became `timetypes.RFC3339`, so a response-only time in a component that is also managed elsewhere failed generation with "has a computed object field in one place and a managed one in another".
+- FIX: The error for a component that needs another model struct in each place names the field and its Go type in each place.
+- CHORE: Bump the generator to `v0.1.0-beta.20`.
+- CHORE: Bump the generator to `v0.1.0-beta.19`.
 - CHORE: Bump the generator to `v0.1.0-beta.18`.
 - FEAT: `unwrap` in `behavior-overrides.yaml` shows a value that the API holds in a one-property wrapper object as the plain value, for example `{"query": {"value": "error"}}` as `query = "error"`. A top-level list names the wrapper components, and an `unwrap: true` or `unwrap: false` field line decides one place. The value can be a scalar, an enum, a list, an object, or a oneOf, a wrapper inside a wrapper, or the items of a list.
 - FEAT: Existing mode accepts `api.updateMaskInBody: true` when PATCH `updateMask` is an optional JSON body property. The generated update builds the same body and the same changed-field mask as a query-parameter mask, then sets that mask on the body. The schema has no mask attribute. A mask that names only top-level fields still cannot change a nested oneOf.
@@ -59,6 +88,8 @@
 - FEAT: `types.<Type>.extraAttributes` declares Terraform-only map attributes, including `writeOnly: true`. The archived-thing golden fixture covers the shape.
 - FEAT: Existing-resource `NewResource` takes `Hooks{BeforeWrite, AfterRead}` so overlays pass write-only logic at construction instead of package `init`.
 - FEAT: Existing-resource `lengthAtLeast` keeps a released non-empty string validator.
+- FEAT: Existing-resource mode accepts a custom-method lifecycle: Get and Delete each carry the id, and Update keeps the id in the body.
+- FEAT: `verbatim` on an enum keeps the API spelling as the Terraform value.
 - FEAT: Generate unordered sets of objects. The Thing golden fixture includes a set of objects.
 - FIX: Namespaced OpenAPI components such as `notification_center.ConnectorConfigField` render as valid Go model types.
 - FIX: A nested object collection marked `x-coralogix-collection: set` now flattens as a set in the generated attr.Type map, matching the schema.

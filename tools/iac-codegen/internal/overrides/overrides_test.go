@@ -197,10 +197,11 @@ func TestDeleteOperation(t *testing.T) {
 		text string
 		want string
 	}{
-		"no operation":     {head + "  delete: {}\n", "api.delete.operation is required"},
-		"empty operation":  {head + "  delete:\n    operation: \"\"\n", "api.delete.operation is required"},
-		"unknown key":      {head + "  delete:\n    operation: Service_ArchiveR\n    before: deactivate\n", "before"},
-		"operation scalar": {head + "  delete: Service_ArchiveR\n", "overrides.Delete"},
+		"no operation":       {head + "  delete: {}\n", "api.delete.operation is required"},
+		"empty operation":    {head + "  delete:\n    operation: \"\"\n", "api.delete.operation is required"},
+		"unknown key":        {head + "  delete:\n    operation: Service_ArchiveR\n    before: deactivate\n", "before"},
+		"operation scalar":   {head + "  delete: Service_ArchiveR\n", "overrides.Delete"},
+		"also in operations": {head + "  delete:\n    operation: Service_ArchiveR\n  operations:\n    create: Service_CreateR\n    get: Service_GetR\n    update: Service_UpdateR\n    delete: Service_DeleteR\n", "keep only api.operations.delete"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

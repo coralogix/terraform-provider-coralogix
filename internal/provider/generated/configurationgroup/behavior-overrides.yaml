@@ -1,0 +1,58 @@
+# Generator overrides for coralogix_configuration_group.
+resource: ConfigurationGroup
+mode: existing
+markdownDescription: 'Coralogix Fleet Management configuration group: the OpenTelemetry Collector configurations that matching agents receive. Its family is either `raw` (collector configurations you write) or `preset` (generated from a configuration template). Destroy archives the group. **Note:** This resource is in Beta stage.'
+schema:
+  version: 0
+validators:
+  inferred: false
+api:
+  # The API archives a configuration group instead of deleting it.
+  delete:
+    operation: ConfigurationGroupService_ArchiveConfigurationGroup
+types:
+  RemoteConfiguration:
+    fields:
+      rawConfiguration:
+        equality: yaml
+        validators:
+          - lengthAtLeast: 1
+  PresetConfigurationFamily:
+    fields:
+      observabilityFeatures:
+        equality: json
+      integrationVersion:
+        computed: true
+      chartName:
+        validators:
+          - oneOf:
+              - chart_name_otel_integration
+              - chart_name_otel_ecs_ec2
+              - chart_name_otel_linux_standalone
+              - chart_name_otel_windows_standalone
+              - chart_name_otel_macos_standalone
+        markdownDescription: 'Configuration template type: `chart_name_otel_integration` for Kubernetes, `chart_name_otel_ecs_ec2` for ECS on EC2, or `chart_name_otel_linux_standalone`, `chart_name_otel_windows_standalone`, or `chart_name_otel_macos_standalone` for hosts.'
+  ConfigurationGroup:
+    fields:
+      priorityOrder:
+        default: 0
+        computed: true
+      name:
+        validators:
+          - lengthAtLeast: 1
+  ConfigurationFamily:
+    fields:
+      active:
+        default: false
+        computed: true
+  RawConfigurationFamily:
+    fields:
+      remoteConfigurations:
+        keepPriorOrder: true
+        validators:
+          - sizeAtLeast: 1
+enums:
+  ChartName:
+    zero: CHART_NAME_UNSPECIFIED
+    values: [CHART_NAME_OTEL_INTEGRATION, CHART_NAME_OTEL_ECS_EC2, CHART_NAME_OTEL_LINUX_STANDALONE, CHART_NAME_OTEL_WINDOWS_STANDALONE, CHART_NAME_OTEL_MACOS_STANDALONE]
+    rejected: [CHART_NAME_OPENTELEMETRY_COLLECTOR]

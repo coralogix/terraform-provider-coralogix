@@ -707,7 +707,7 @@ enums:
 		}
 	}
 	_, err = validateOpenAPIWith([]byte(spec), "Thing", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, line("zero: unspecified, "))
-	if !reportHas(requireReport(t, err), "OVERRIDE_UNUSED", "behavior-overrides.yaml:enums.ThingKind") {
-		t.Fatalf("zero line: err = %v, want OVERRIDE_UNUSED", err)
+	if !reportHas(requireReport(t, err), "ENUM_ZERO_INVALID", "behavior-overrides.yaml:enums.ThingKind") {
+		t.Fatalf("zero line: err = %v, want ENUM_ZERO_INVALID", err)
 	}
 }
