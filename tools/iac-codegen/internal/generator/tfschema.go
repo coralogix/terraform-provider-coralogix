@@ -787,6 +787,12 @@ func checkImmutableValues(attrs []*tfAttr, parent string) error {
 			at = parent + "." + a.Name
 		}
 		if replaces(a) {
+			// The attribute itself, not only a descendant. Optional+Computed
+			// plans an omitted value as unknown, and the stock RequiresReplace
+			// treats that unknown as a change.
+			if a.Optional && a.Computed {
+				return fmt.Errorf("%s: an optional and computed attribute cannot require replacement. Omitting it plans the value as unknown and replaces the resource when something else changes", at)
+			}
 			if child := optionalComputed(a.Attributes, at); child != "" {
 				return fmt.Errorf("%s: the immutable value holds the optional and computed attribute %s. A change of another attribute would plan it as unknown and replace the resource", at, child)
 			}

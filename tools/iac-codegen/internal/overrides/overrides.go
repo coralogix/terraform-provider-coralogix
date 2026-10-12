@@ -181,7 +181,9 @@ type Field struct {
 	// place. false keeps the object of a component that the unwrap list names.
 	Unwrap *bool `yaml:"unwrap"`
 	// RequiresReplace: a change replaces the resource, although Update accepts
-	// the field. Only a top-level field of the resource can set it.
+	// the field. Only a top-level field of the resource can set it. It cannot
+	// be combined with computed: true: an omitted Optional+Computed value is
+	// planned unknown, and RequiresReplace then replaces the resource.
 	RequiresReplace bool `yaml:"requiresReplace"`
 }
 
@@ -446,6 +448,9 @@ func (l Field) check() error {
 	}
 	if l.Required && l.Computed != nil && *l.Computed {
 		return errors.New("a required field cannot be computed")
+	}
+	if l.RequiresReplace && l.Computed != nil && *l.Computed {
+		return errors.New("requiresReplace cannot be combined with computed: true")
 	}
 	if l.Description != nil && l.MarkdownDescription != nil {
 		return errors.New("set description or markdownDescription, not both")

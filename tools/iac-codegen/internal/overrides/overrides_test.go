@@ -122,6 +122,13 @@ func TestAValidatorSetsExactlyOneKey(t *testing.T) {
 	}
 }
 
+func TestRequiresReplaceCannotBeComputed(t *testing.T) {
+	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {requiresReplace: true, computed: true}\n"))
+	if err == nil || !strings.Contains(err.Error(), "requiresReplace cannot be combined with computed: true") {
+		t.Fatalf("err = %v, want an error about requiresReplace and computed", err)
+	}
+}
+
 func TestARequiredFieldCannotBeComputed(t *testing.T) {
 	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {required: true, computed: true}\n"))
 	if err == nil || !strings.Contains(err.Error(), "cannot be computed") {

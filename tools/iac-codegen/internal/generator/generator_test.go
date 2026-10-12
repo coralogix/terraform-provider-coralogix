@@ -1662,3 +1662,21 @@ func TestImmutableValueRejectsOptionalComputedOverride(t *testing.T) {
 		t.Fatalf("err = %v, want the optional and computed attribute settings.zone", err)
 	}
 }
+
+// requiresReplace on an optional field that an override also marks computed
+// emits Optional+Computed with the stock RequiresReplace. Omitting the field
+// plans it unknown on any other change, which replaces the resource.
+func TestRequiresReplaceRejectsOptionalComputed(t *testing.T) {
+	resource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{
+		{Name: "name", Type: &model.Type{Kind: model.String}, Behavior: model.Immutable, Create: &model.Attrs{}, Get: &model.Attrs{}, InGet: true},
+	}}
+	base := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\n"
+	if _, err := buildTFResourceWith(resource, "thing", mustParse(t, base)); err != nil {
+		t.Fatalf("requiresReplace without computed: %v", err)
+	}
+	file := mustParse(t, base+"types:\n  Thing:\n    fields:\n      name: {computed: true}\n")
+	_, err := buildTFResourceWith(resource, "thing", file)
+	if err == nil || !strings.Contains(err.Error(), "name: an optional and computed attribute cannot require replacement") {
+		t.Fatalf("err = %v, want the optional and computed attribute name", err)
+	}
+}
