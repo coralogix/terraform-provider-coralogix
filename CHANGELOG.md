@@ -30,7 +30,7 @@
 - FEAT: `readNullAs: empty` reads a missing list or set of objects as an empty collection.
 - FEAT: `requireOne` emits `ExactlyOneOf` for the arms of a oneOf.
 - FEAT: `readRejected: true` reads a rejected enum value as the API spelling. Without it, that value fails the read.
-- FIX: Remove `promote`. `unwrap` shows a one-property wrapper as the plain attribute. A missing business-first enum, including a missing unwrapped value, reads as its first value.
+- FIX: Remove `promote`. `unwrap` shows a one-property wrapper as the plain attribute. A missing enum stays null, including one marked with presence. A string `default` is what that resource reads a missing value as.
 - FIX: A `date-time` field of a component has one type in every place of the component: `timetypes.RFC3339` when a request sends it in some place, otherwise a plain string. Before, a field inside a computed value always became `timetypes.RFC3339`, so a response-only time in a component that is also managed elsewhere failed generation with "has a computed object field in one place and a managed one in another".
 - FIX: The error for a component that needs another model struct in each place names the field and its Go type in each place.
 - CHORE: Bump the generator to `v0.1.0-beta.20`.
@@ -70,7 +70,6 @@
 - FEAT: `types.<Type>.extraAttributes` declares Terraform-only map attributes, including `writeOnly: true`. The archived-thing golden fixture covers the shape.
 - FEAT: Existing-resource `NewResource` takes `Hooks{BeforeWrite, AfterRead}` so overlays pass write-only logic at construction instead of package `init`.
 - FEAT: Existing-resource `lengthAtLeast` keeps a released non-empty string validator.
-- FEAT: `tfgen generate` accepts `--openapi` so a candidate document can be rendered against the Go types of the pinned SDK.
 - FEAT: Existing-resource mode accepts a custom-method lifecycle: Get and Delete each carry the id, and Update keeps the id in the body.
 - FEAT: `verbatim` on an enum keeps the API spelling as the Terraform value.
 - FEAT: Generate unordered sets of objects. The Thing golden fixture includes a set of objects.

@@ -14,7 +14,7 @@ go run ./cmd/tfgen generate \
   --out ../../internal/provider/generated/resource_name
 ```
 
-The command walks to the provider root. It reads the Management SDK version from the provider `go.mod`. It then reads `openapi.yaml` from that exact module version in the local Go module cache. SDK inspection runs with `GOPROXY=off` and `GOSUMDB=off`. The command stops if required local module data is missing. It does not fetch OpenAPI from a live service. `--openapi` replaces that document for one run. Go types still come from the pinned SDK.
+The command walks to the provider root. It reads the Management SDK version from the provider `go.mod`. It then reads `openapi.yaml` from that exact module version in the local Go module cache. SDK inspection runs with `GOPROXY=off` and `GOSUMDB=off`. The command stops if required local module data is missing. It does not fetch OpenAPI from a live service.
 
 Check a candidate OpenAPI document before its SDK is released:
 
@@ -127,7 +127,7 @@ Keys of a field line: `skip`, `readOnly`, `required`, `description`, `markdownDe
 
 `api.customMethods: true` is existing-mode only. Get and Delete may use different paths when each path has the same `{id}` parameter. Update has no path parameter, and the id stays in the body. New resources keep the rule that Get is Create plus `/{id}`, Update is the Create path, and Delete is the Get path. `api.operations` names the four operationIds, so `tfgen generate` needs no operation flags.
 
-`enums.<Enum>.readRejected: true` reads a rejected value back as the API spelling. Without it, that value fails the read. An enum whose first value is a business value, not `*_UNSPECIFIED`, reads a missing value as that first value, including when `unwrap` removes a missing wrapper.
+`enums.<Enum>.readRejected: true` reads a rejected value back as the API spelling. Without it, that value fails the read. A missing enum reads as null. `x-coralogix-presence` means the same thing: the value was not set. A string `default` on the field is the reading of a missing value for that resource, including a missing unwrapped value.
 
 `unwrap` removes wrapper objects that the API has and the released resource does not show. A wrapper is an object component with exactly one property, for example `LuceneQuery` in `{"query": {"value": "error"}}`. Terraform shows `query = "error"`.
 

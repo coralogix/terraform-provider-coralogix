@@ -109,8 +109,8 @@ types:
         markdownDescription: ""
 
 enums:
-  # presetType is skipped. The line exists so SYSTEM and CUSTOM type-check; their
-  # prefix is not PRESET_TYPE.
+  # Create and update send CUSTOM through requestValue. The line exists so SYSTEM
+  # and CUSTOM type-check; their prefix is not PRESET_TYPE.
   PresetType:
     zero: unspecified
     values: [SYSTEM, CUSTOM]
@@ -125,7 +125,7 @@ enums:
     rejected: [OLLY_SCHEDULED_TASKS]
     readRejected: true
   AttachmentConfigPolicy:
-    # AUTO is a business value (proto zero), not an *_UNSPECIFIED sentinel.
-    # A missing value, or a missing wrapper, reads back as AUTO.
+    # AUTO is a business value, not an *_UNSPECIFIED sentinel. The field default
+    # is what a missing value reads back as.
     verbatim: true
     values: [AUTO, ENABLED, DISABLED]

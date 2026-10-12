@@ -227,8 +227,8 @@ type convField struct {
 	// returns as the same document in another format, and "" otherwise.
 	Equality    string
 	ObjectValue bool // a computed object stored as unknown-capable types.Object
-	// Missing is the Terraform value of a missing business-first enum, the first
-	// value of the contract. A nil pointer, including a missing wrapper, reads as it.
+	// Missing is the string default from the behavior overrides. Flatten writes it
+	// when the API omits an enum that has no presence. A field with presence stays null.
 	Missing string
 	// Value is true when the SDK field is a value, not a pointer. The SDK
 	// does that for a required field (F18). Expand sends the zero value for
@@ -448,7 +448,7 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 			// The SDK struct still has it, and the released client sends the fixed value.
 			typ = f.Type
 		}
-		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, typ, responseOnly(f.Behavior))
+		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, typ, responseOnly(f.Behavior), hasPresence(f.Get))
 		if err != nil {
 			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
 		}
@@ -754,6 +754,10 @@ func checkExpandNames(objects []*convObject) error {
 	return nil
 }
 
+func hasPresence(a *model.Attrs) bool {
+	return a != nil && a.Presence
+}
+
 // fixedRequest reports whether the field is always sent as a fixed API value.
 func (b *convBuilder) fixedRequest(component, name string) bool {
 	return b.file != nil && b.file.Types[component].Fields[name].RequestValue != ""
@@ -761,7 +765,7 @@ func (b *convBuilder) fixedRequest(component, name string) bool {
 
 // field returns the conversion of the property name of the SDK struct at
 // owner (an SDK name path).
-func (b *convBuilder) field(owner, component, name string, t *model.Type, computed bool) (*convField, error) {
+func (b *convBuilder) field(owner, component, name string, t *model.Type, computed, presence bool) (*convField, error) {
 	ref, err := b.ix.fieldRef(owner + "." + name)
 	if err != nil {
 		return nil, err
@@ -788,8 +792,14 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type, comput
 		}
 		cf.Conv = "fixed"
 	}
-	if cf.Conv == convEnum && cf.EnumZero == "" && cf.EnumMap != nil {
-		cf.Missing = firstEnumTF(cf.EnumMap, t)
+	// A business-first enum has no *_UNSPECIFIED zero. Presence means a missing
+	// value was not set, so it stays null. A string default is that resource's
+	// reading of a missing value, such as AUTO. A schema default on an enum
+	// that has a zero value stays a schema default.
+	if cf.Conv == convEnum && cf.EnumZero == "" && cf.EnumMap != nil && !presence && b.file != nil {
+		if s, ok := b.file.Types[component].Fields[name].Default.(string); ok {
+			cf.Missing = s
+		}
 	}
 	if err := checkReadEmptyAs(cf); err != nil {
 		return nil, err
@@ -811,19 +821,6 @@ func (b *convBuilder) releaseEnumMap(m *enumMap) {
 		}
 	}
 	b.enumMaps = slices.DeleteFunc(b.enumMaps, func(e *enumMap) bool { return e == m })
-}
-
-// firstEnumTF is the Terraform spelling of the first contract value of a business-first enum.
-func firstEnumTF(m *enumMap, t *model.Type) string {
-	if len(t.Values) == 0 {
-		return ""
-	}
-	for _, v := range m.Values {
-		if v.API == t.Values[0] {
-			return v.TF
-		}
-	}
-	return ""
 }
 
 func checkFieldType(cf *convField, ref sdkRef, want string) (*convField, error) {
@@ -992,7 +989,7 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	obj.AttrTypesFunc = lowerFirst(obj.Func) + "AttrTypes"
 	b.objects = append(b.objects, obj)
 	for _, f := range t.Fields {
-		cf, err := b.field(ref.Path, component, f.Name, f.Type, b.sent.responseOnly(component, f))
+		cf, err := b.field(ref.Path, component, f.Name, f.Type, b.sent.responseOnly(component, f), f.Attrs.Presence)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
@@ -1029,7 +1026,7 @@ func (b *convBuilder) injectFixedRequest(obj *convObject, owner string, t *model
 		if present[f.Name] || !b.fixedRequest(t.Model, f.Name) {
 			continue
 		}
-		cf, err := b.field(owner, t.Model, f.Name, f.Type, b.sent.responseOnly(t.Model, f))
+		cf, err := b.field(owner, t.Model, f.Name, f.Type, b.sent.responseOnly(t.Model, f), f.Attrs.Presence)
 		if err != nil {
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
