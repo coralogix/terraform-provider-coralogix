@@ -409,9 +409,9 @@ func extractPreset(ctx context.Context, plan *PresetResourceModel) (*presets.Pre
 	}
 	preset := &presets.Preset{
 		Id:              utils.TypeStringToStringPointer(plan.ID),
-		EntityType:      &entityType,
-		ConnectorType:   &connectorType,
-		Name:            plan.Name.ValueStringPointer(),
+		EntityType:      entityType,
+		ConnectorType:   connectorType,
+		Name:            plan.Name.ValueString(),
 		ConfigOverrides: configOverrides,
 		Description:     plan.Description.ValueStringPointer(),
 		PresetType:      &presetType,
@@ -547,17 +547,17 @@ func flattenPreset(ctx context.Context, preset *presets.Preset) (*PresetResource
 	if diags.HasError() {
 		return nil, diags
 	}
-	connectorType, exists := presetConnectorTypeApiToSchema[*preset.ConnectorType]
+	connectorType, exists := presetConnectorTypeApiToSchema[preset.ConnectorType]
 	if !exists {
-		connectorType = string(*preset.ConnectorType)
+		connectorType = string(preset.ConnectorType)
 	}
 
 	model := &PresetResourceModel{
 		ID:              utils.StringPointerToTypeString(preset.Id),
-		EntityType:      types.StringValue(presetsNotificationCenterEntityTypeApiToSchema[*preset.EntityType]),
+		EntityType:      types.StringValue(presetsNotificationCenterEntityTypeApiToSchema[preset.EntityType]),
 		ConnectorType:   types.StringValue(connectorType),
 		ConfigOverrides: configOverrides,
-		Name:            types.StringPointerValue(preset.Name),
+		Name:            types.StringValue(preset.Name),
 		ParentId:        utils.StringPointerToTypeString(preset.ParentId),
 		Description:     types.StringPointerValue(preset.Description),
 		// Normalize a missing policy to the schema default (AUTO) to avoid drift.

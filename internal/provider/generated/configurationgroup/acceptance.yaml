@@ -1,0 +1,40 @@
+# What the generated acceptance test needs for coralogix_configuration_group, besides the schema.
+# The test sets the preset arm of the family.
+resource: configuration_group
+
+values:
+  # An archive needs an inactive family, so every config keeps it inactive.
+  family.active: "false"
+  family.preset.chart_name: '"chart_name_otel_integration"'
+  family.preset.chart_version: '"0.0.353"'
+  family.preset.integration_version: '"0.9.0"'
+  family.preset.metadata: '{ ClusterName = "@{run}", KubernetesRunningOn = "openshift", PrivateLinkEnabled = "false" }'
+  family.preset.observability_features: |-
+    jsonencode({
+      apm = {
+        enabled      = true
+        ebpf         = false
+        profiling    = { enabled = false }
+        sampling     = {}
+        span_metrics = { enabled = true, histogram_buckets = [], transform_statements = [] }
+      }
+      coralogix_operator = false
+      fleet_management   = { enabled = false, remote_config = false }
+      kubernetes_events  = true
+      logs               = { enabled = false }
+      metrics = {
+        cluster          = false
+        collector        = false
+        host             = { enabled = false }
+        kubelet          = false
+        kubernetes_extra = { enabled = false, scrape_all = false }
+        statsd           = false
+        target_allocator = false
+      }
+      reduce_resources_attributes = true
+      resource_catalog            = false
+    })
+
+# The otel-integration chart requires ClusterName in metadata.
+minimal:
+  - family.preset.metadata
