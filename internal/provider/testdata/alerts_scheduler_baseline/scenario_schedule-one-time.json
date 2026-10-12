@@ -1,0 +1,244 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "once",
+      "schedule": {
+        "one_time": {
+          "time_frame": {
+            "end_time": "2030-01-05T00:00:00.000",
+            "start_time": "2030-01-04T00:00:00.000",
+            "time_zone": "UTC"
+          }
+        },
+        "operation": "mute"
+      }
+    },
+    "plan": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "(unknown)",
+      "meta_labels": null,
+      "name": "once",
+      "schedule": {
+        "one_time": {
+          "time_frame": {
+            "duration": null,
+            "end_time": "2030-01-05T00:00:00.000",
+            "start_time": "2030-01-04T00:00:00.000",
+            "time_zone": "UTC"
+          }
+        },
+        "operation": "mute",
+        "recurring": null
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1",
+        "body": {
+          "alertSchedulerRule": {
+            "description": "",
+            "enabled": true,
+            "filter": {
+              "whatExpression": "source logs | filter true"
+            },
+            "name": "once",
+            "schedule": {
+              "oneTime": {
+                "timeframe": {
+                  "endTime": "2030-01-05T00:00:00.000",
+                  "startTime": "2030-01-04T00:00:00.000",
+                  "timezone": "UTC+0"
+                }
+              },
+              "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "once",
+      "schedule": {
+        "one_time": {
+          "time_frame": {
+            "duration": null,
+            "end_time": "2030-01-05T00:00:00.000",
+            "start_time": "2030-01-04T00:00:00.000",
+            "time_zone": "UTC"
+          }
+        },
+        "operation": "mute",
+        "recurring": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "once",
+      "schedule": {
+        "one_time": {
+          "time_frame": {
+            "duration": null,
+            "end_time": "2030-01-05T00:00:00.000",
+            "start_time": "2030-01-04T00:00:00.000",
+            "time_zone": "UTC"
+          }
+        },
+        "operation": "mute",
+        "recurring": null
+      }
+    }
+  },
+  {
+    "step": "update: duration instead of end_time",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "once",
+      "schedule": {
+        "one_time": {
+          "time_frame": {
+            "duration": {
+              "for_over": 2,
+              "frequency": "hours"
+            },
+            "start_time": "2030-01-04T00:00:00.000",
+            "time_zone": "UTC"
+          }
+        },
+        "operation": "mute"
+      }
+    },
+    "plan": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "(unknown)",
+      "meta_labels": null,
+      "name": "once",
+      "schedule": {
+        "one_time": {
+          "time_frame": {
+            "duration": {
+              "for_over": 2,
+              "frequency": "hours"
+            },
+            "end_time": null,
+            "start_time": "2030-01-04T00:00:00.000",
+            "time_zone": "UTC"
+          }
+        },
+        "operation": "mute",
+        "recurring": null
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1",
+        "body": {
+          "alertSchedulerRule": {
+            "description": "",
+            "enabled": true,
+            "filter": {
+              "whatExpression": "source logs | filter true"
+            },
+            "name": "once",
+            "schedule": {
+              "oneTime": {
+                "timeframe": {
+                  "duration": {
+                    "forOver": 2,
+                    "frequency": "DURATION_FREQUENCY_HOUR"
+                  },
+                  "startTime": "2030-01-04T00:00:00.000",
+                  "timezone": "UTC+0"
+                }
+              },
+              "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+            },
+            "uniqueIdentifier": "00000000-0000-4000-8000-000000000001"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "once",
+      "schedule": {
+        "one_time": {
+          "time_frame": {
+            "duration": {
+              "for_over": 2,
+              "frequency": "hours"
+            },
+            "end_time": null,
+            "start_time": "2030-01-04T00:00:00.000",
+            "time_zone": "UTC"
+          }
+        },
+        "operation": "mute",
+        "recurring": null
+      }
+    },
+    "replanEmpty": true
+  }
+]
