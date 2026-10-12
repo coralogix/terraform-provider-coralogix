@@ -1,0 +1,61 @@
+# Where coralogix_archive_logs differs from the API contract, because users already have it.
+#
+# A field with a line here keeps its released behavior. A field without a line follows the API
+# contract.
+resource: v2.Target
+mode: existing
+typeName: archive_logs
+
+markdownDescription: "Coralogix archive-logs. Configures the S3 bucket Coralogix archives logs and traces into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/."
+
+schema:
+  version: 0
+
+validators:
+  inferred: false
+
+# The released id of the one archive target of the company.
+fixedID: archive-logs-settings
+
+api:
+  # The API has one archive target per company. POST sets it, and GET reads it. It cannot be
+  # removed, so destroy only removes it from the state.
+  upsert:
+    get: S3TargetService_GetTarget
+    set: S3TargetService_SetTarget
+
+types:
+  v2.Target:
+    fields:
+      # The released attributes are the fields of s3 and archiveSpec.
+      s3:
+        hoist: true
+      archiveSpec:
+        hoist: true
+      # This REST API sets only S3 targets.
+      ibmCos:
+        skip: true
+      bucket:
+        markdownDescription: "The bucket name to store the archived logs in."
+      region:
+        computed: true # the API stores its own region when the request has none
+        useStateForUnknown: true
+        markdownDescription: "The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions"
+      isActive:
+        name: active
+        computed: true
+        default: true
+      archivingFormatId:
+        useStateForUnknown: true
+      enableTags:
+        useStateForUnknown: true
+        markdownDescription: "" # the released attribute had none; the contract text adds nothing
+      # The API has one format, and Get always returns it.
+      format:
+        skip: true
+      # The released resource does not manage the role. A role set outside Terraform would read
+      # back and plan its removal after an upgrade, so it stays out until it can be added safely.
+      roleArn:
+        skip: true
+      externalId:
+        skip: true

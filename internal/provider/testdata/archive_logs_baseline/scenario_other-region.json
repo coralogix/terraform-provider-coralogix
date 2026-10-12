@@ -10,7 +10,7 @@
       "archiving_format_id": "(unknown)",
       "bucket": "archive-bucket",
       "enable_tags": "(unknown)",
-      "id": "(unknown)",
+      "id": "archive-logs-settings",
       "region": "ap-southeast-2"
     },
     "requests": [
@@ -28,7 +28,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_archive_logs | error - 408 Request Timeout — {\"code\":408,\"message\":\"Deadline Exceeded: Region ap-southeast-2 is not supported, must use eu-north-1.\"}\noperation - Create"
+      "error: Unable to create archive_logs | 408 Request Timeout — {\"code\":408,\"message\":\"Deadline Exceeded: Region ap-southeast-2 is not supported, must use eu-north-1.\"}"
     ],
     "state": null
   }

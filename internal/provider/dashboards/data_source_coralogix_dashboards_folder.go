@@ -105,7 +105,7 @@ func (d *DashboardsFolderDataSource) Read(ctx context.Context, req datasource.Re
 	var found = false
 	for _, folder := range listResult.GetFolder() {
 		found = folder.GetId() == data.ID.ValueString() ||
-			*folder.Name == data.Name.ValueString()
+			folder.GetName() == data.Name.ValueString()
 		if found {
 			dashboardsFolder = folder
 			break

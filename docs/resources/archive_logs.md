@@ -41,11 +41,11 @@ resource "coralogix_archive_logs" "example" {
 
 ### Optional
 
-- `active` (Boolean)
+- `active` (Boolean) Whether archiving to this target is active.
 - `region` (String) The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions
 
 ### Read-Only
 
-- `archiving_format_id` (String)
+- `archiving_format_id` (String) The archiving format ID.
 - `enable_tags` (Boolean)
-- `id` (String) The ID of this resource.
+- `id` (String) The fixed id of this singleton: there is one per company.

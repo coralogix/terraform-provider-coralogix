@@ -3,6 +3,16 @@
 #### resource/coralogix_ai_evaluation
 - CHORE: Add protocol baseline golden files against an in-memory evaluation API, checked against answers recorded from a real tenant.
 
+#### resource/coralogix_archive_logs
+- CHORE: The resource is generated from the API contract. Create and Update set the archive target with the same call, as before.
+- CHORE: `id` is always `archive-logs-settings`. Before, an import with another ID kept that ID.
+- CHORE: `terraform destroy` warns that the API keeps the archive target. Before, it only wrote a log line.
+- CHORE: A refresh that finds no archive target warns when it removes the resource from the state. Before, it removed it silently.
+- FIX: A refresh that gets a 404 for a missing API route (`Not Found: Not Found` from the gateway) fails and keeps the resource in state. Before, it removed the resource from state with a warning, so the next apply set the target again.
+- FIX: An update that gets a 404 fails with `Resource no longer exists`, and the next refresh removes the resource from state. Before, it removed the resource from state during the update, and Terraform failed with `Missing Resource State After Update`.
+- CHORE: API errors read `Unable to create archive_logs` or `Unable to update archive_logs` instead of `Error replacing coralogix_archive_logs`.
+- DOCS: `active` and `archiving_format_id` have descriptions.
+
 #### resource/coralogix_alerts_scheduler
 - CHORE: The resource is generated from the API contract. Schema version stays 0, every attribute keeps its type, and plans and state keep their values: `start_time` and `time_zone` keep their configured form (with or without `Z`, `UTC` or `UTC+0`), and `UTC` is sent as `UTC+0`.
 - FIX: `schedule.recurring.dynamic.frequency.daily = {}` no longer fails with "inconsistent result after apply". The state keeps `daily = {}`, and the plan after a refresh is empty.
@@ -21,6 +31,7 @@
 
 #### provider
 - CHORE: Bump `coralogix-management-sdk` to the version with the alert suppression rule contract. The SDK holds required fields as values; `coralogix_alerts_scheduler`, `coralogix_events2metric`, and `coralogix_slo_v2` adapt, with no change to plans.
+- CHORE: Bump `coralogix-management-sdk` to the version with the archive target contract (bucket length, `isActive` description). It also makes the dashboard folder `name` a plain string, which the SDK always sends: a `coralogix_dashboards_folder` without `name` now sends `"name": ""` instead of no name, and still fails with a 400 (`folder name cannot be empty` instead of `folder name not found`).
 
 #### resource/coralogix_dashboards_folder
 - CHORE: Add protocol baseline golden files against an in-memory dashboard folders API, checked against answers recorded from a real tenant.
