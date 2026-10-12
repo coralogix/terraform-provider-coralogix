@@ -1,10 +1,7 @@
 # Unreleased
 
 #### resource/coralogix_preset
-- FIX: An omitted `description` reads back as absent. A configured empty `description` stays `""`. The API returns an empty string for both.
-- FIX: Create and update send `presetType` `CUSTOM`.
-- FIX: A missing `attachment_config` reads back as `AUTO`. A missing `config_overrides` reads back as an empty list.
-- FIX: A rejected connector or entity type, such as `IBM_EVENT_NOTIFICATIONS`, still reads back as the API spelling. The schema does not accept it.
+- FIX: An omitted `description` reads back as absent. Before, it read back as `""`, because the API returns an empty string. A configured empty `description` stays `""`.
 - CHORE: Bump `coralogix-management-sdk` so preset `name`, `entity_type`, and `connector_type` are required values from the OpenAPI contract.
 - CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Changing `id` still recreates the resource.
 
