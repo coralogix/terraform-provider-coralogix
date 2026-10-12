@@ -259,6 +259,17 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 		if report = overrideIssues(doc, component, file); len(report) != 0 {
 			return nil, &EligibilityError{Report: report}
 		}
+		// The upsert and inline keys change the contract that the model reads (reshape.go).
+		reshaped, ids, report := reshape(data, component, operationIDs, file, policy)
+		if len(report) != 0 {
+			return nil, &EligibilityError{Report: report}
+		}
+		if file.Inlined != nil {
+			if doc, err = model.Load(reshaped); err != nil {
+				return nil, fmt.Errorf("read the reshaped contract: %w", err)
+			}
+			operationIDs = ids
+		}
 	}
 	if report = terraformContractIssues(doc, component, operationIDs, policy, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
@@ -291,6 +302,7 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 		}
 		refs = append(refs, armRefs...)
 	}
+	refs = inlineSDKNames(upsertSDKNames(refs, file), file)
 	if report = rendererIssues(resource, refs, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report.Normalize()}
 	}

@@ -546,3 +546,53 @@ func TestEnumAliasesAreChecked(t *testing.T) {
 		})
 	}
 }
+
+func TestParseUpsertInlineAndName(t *testing.T) {
+	text := `
+resource: Target
+mode: existing
+typeName: archive_logs
+singletonID: {fixed: settings}
+validators:
+  inferred: false
+api:
+  operations: {create: S_SetTarget, get: S_GetTarget, update: S_SetTarget, delete: none}
+types:
+  Target:
+    fields:
+      s3: {inline: true}
+      isActive: {name: active, optional: true, computed: true, default: true}
+`
+	f, err := Parse([]byte(text))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := f.Policy()
+	if f.TypeName != "archive_logs" || f.FixedID() != "settings" || f.IDFromAPI() || !f.Upserts() || p.Operations != (model.OperationIDs{}) ||
+		!slices.Equal(f.InlinedFields(), []string{"s3"}) || p.Names["Target.isActive"] != "active" || slices.Contains(p.Optional, "Target.isActive") {
+		t.Fatalf("file = %+v, policy = %+v", f, p)
+	}
+}
+
+func TestParseRejectsUpsertInlineAndNameMistakes(t *testing.T) {
+	const head = "resource: Target\nmode: existing\nvalidators:\n  inferred: false\n"
+	const upsert = "api:\n  operations: {create: S, get: G, update: S, delete: none}\n"
+	tests := map[string]struct{ text, want string }{
+		"delete none with two calls":  {head + "api:\n  operations: {create: C, get: G, update: U, delete: none}\n", "create and update must name the same operation"},
+		"delete none with idProperty": {head + upsert + "  idProperty: uid\n", "idProperty"},
+		"singletonID with both keys":  {head + "singletonID: {fixed: a, fromAPI: true}\n", "exactly one of fixed"},
+		"singletonID with no key":     {head + "singletonID: {}\n", "exactly one of fixed"},
+		"inline with other keys":      {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, computed: true}\n", "sets only inline"},
+		"inline on a nested type":     {head + "types:\n  Other:\n    fields:\n      s3: {inline: true}\n", "applies to a field of the resource Target"},
+		"name not a Terraform name":   {head + "types:\n  Target:\n    fields:\n      isActive: {name: Active}\n", "is not a Terraform attribute name"},
+		"skipped field with a name":   {head + "types:\n  Target:\n    fields:\n      isActive: {skip: true, name: active}\n", "a skipped field has no other behavior"},
+		"the removed fixedID key":     {head + "fixedID: settings\n", "fixedID not found"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte(test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
