@@ -466,16 +466,7 @@ func (r *Resource) response(op *v3.Operation, wrapped bool) (Response, error) {
 	if err != nil {
 		return Response{}, err
 	}
-	keys := propertyNames(s)
-	if len(keys) != 1 && r.Policy.Existing {
-		// A released API can return other values next to the resource, such as
-		// the ids of objects that the call also changed. The generated code reads
-		// only the resource.
-		keys = slices.DeleteFunc(slices.Clone(keys), func(key string) bool {
-			inner, err := componentName(unwrapRef(propertyOf(s, key)))
-			return err != nil || inner != r.Name
-		})
-	}
+	keys := r.wrapperKeys(s)
 	if len(keys) != 1 {
 		return Response{}, fmt.Errorf("response %s has properties %v, want one that wraps %s", name, propertyNames(s), r.Name)
 	}
@@ -488,6 +479,21 @@ func (r *Resource) response(op *v3.Operation, wrapped bool) (Response, error) {
 	}
 	out.Field = keys[0]
 	return out, nil
+}
+
+// wrapperKeys returns the properties of a response that wraps the resource. A released API can
+// return other values next to the resource, such as the ids of objects that the call also
+// changed, so existing mode keeps only the properties that hold the resource. The generated
+// code reads only the resource.
+func (r *Resource) wrapperKeys(s *base.Schema) []string {
+	keys := propertyNames(s)
+	if len(keys) == 1 || !r.Policy.Existing {
+		return keys
+	}
+	return slices.DeleteFunc(keys, func(key string) bool {
+		inner, err := componentName(unwrapRef(propertyOf(s, key)))
+		return err != nil || inner != r.Name
+	})
 }
 
 // responseRef returns a 200 response schema that is "$ref: X", or the $ref

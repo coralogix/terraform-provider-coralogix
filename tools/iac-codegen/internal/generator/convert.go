@@ -328,12 +328,7 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 	if err := out.setBodyMask(ix, r); err != nil {
 		return nil, err
 	}
-	if !r.Singleton && (r.Policy.ClientSetID || r.Policy.Existing && !idRequiredInGet(r)) {
-		// The contract may not require the id in the response (a proto3 optional field, or a
-		// schema that a released API shares with the request), so flatten checks it. Without
-		// the id, Read, Update, and Delete would have no identity.
-		out.IDGuard = camelize(r.IDParam)
-	}
+	out.IDGuard = idGuard(r)
 
 	roots := []convRoot{
 		{&out.Create, "create.body", true, func(f *model.ResourceField) bool { return f.Create != nil }},
@@ -503,12 +498,17 @@ func (b *convBuilder) rootObject(out *convData, root convRoot, ref sdkRef) (*con
 		}
 		return obj, "fields", nil
 	}
+	function := camelize(ref.Name)
 	if root.path == "create.body" {
 		out.CreateBody = ref.Name
 	} else {
 		out.UpdateBody = ref.Name
+		if ref.Name == out.CreateBody {
+			// A released API can take one body type for Create and Update. Each expands its own fields.
+			function += "Update"
+		}
 	}
-	return &convObject{Func: camelize(ref.Name), Model: modelTypeName(r.Name), SDK: ref.Name}, root.path, nil
+	return &convObject{Func: function, Model: modelTypeName(r.Name), SDK: ref.Name}, root.path, nil
 }
 
 // checkReadEmptyAs rejects readEmptyAs where the renderer has no such normalization. The flag
@@ -1582,6 +1582,16 @@ func (d *convData) UsesEquality(kind ...string) bool {
 
 // HasPrior reports whether flatten takes the prior model of the resource.
 func (d *convData) HasPrior() bool { return d.Resource != nil && d.Resource.NeedsPrior }
+
+// idGuard returns the model field of the id when flatten must check it, else "". The contract
+// may not require the id in the response (a proto3 optional field, or a schema that a released
+// API shares with the request). Without the id, Read, Update, and Delete would have no identity.
+func idGuard(r *model.Resource) string {
+	if r.Singleton || !r.Policy.ClientSetID && (!r.Policy.Existing || idRequiredInGet(r)) {
+		return ""
+	}
+	return camelize(r.IDParam)
+}
 
 // idRequiredInGet reports whether the Get response requires the resource id.
 func idRequiredInGet(r *model.Resource) bool {

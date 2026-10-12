@@ -1,0 +1,16 @@
+resource: SharedThing
+mode: existing
+
+validators:
+  inferred: false
+
+api:
+  updateIDInBody: true
+
+types:
+  SharedThing:
+    fields:
+      id:
+        readOnly: true
+      name:
+        required: true
