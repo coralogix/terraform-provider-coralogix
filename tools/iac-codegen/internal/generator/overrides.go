@@ -16,6 +16,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
+	"github.com/pb33f/libopenapi/orderedmap"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -96,7 +97,7 @@ func overrideIssues(doc *v3.Document, component string, file *overrides.File) is
 		})
 	}
 	for _, line := range file.Lines() {
-		if problem := lineProblem(doc, line, component); problem != nil {
+		if problem := lineProblem(doc, line, component, file); problem != nil {
 			report = append(report, issue.Issue{
 				Code:        cmp.Or(problem.code, "OVERRIDE_UNUSED"),
 				Location:    overrides.FileName + ":" + line.String(),
@@ -141,7 +142,7 @@ func (i *lineIssue) remediation(line overrides.Line) string {
 }
 
 // lineProblem checks one line. resource is the component of the resource response.
-func lineProblem(doc *v3.Document, line overrides.Line, resource string) *lineIssue {
+func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *overrides.File) *lineIssue {
 	if doc.Components == nil || doc.Components.Schemas == nil {
 		return wholeLine(errors.New("the API contract has no component schemas"))
 	}
@@ -152,6 +153,11 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string) *lineIs
 	schema, err := proxy.BuildSchema()
 	if err != nil {
 		return wholeLine(fmt.Errorf("component %q: %w", line.Component, err))
+	}
+	if line.Kind == overrides.KindField && line.Component == file.Resource {
+		if schema, err = withHoistedFields(schema, file); err != nil {
+			return wholeLine(err)
+		}
 	}
 	switch line.Kind {
 	case overrides.KindEnum:
@@ -169,6 +175,52 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string) *lineIs
 		}
 	}
 	return nil
+}
+
+// withHoistedFields returns the resource component with the fields of its hoisted objects: they
+// are top-level attributes, so their lines are lines of the resource component. The model checks
+// that a hoisted field is an object.
+func withHoistedFields(schema *base.Schema, file *overrides.File) (*base.Schema, error) {
+	var hoisted []string
+	for _, line := range file.Lines() {
+		if line.Kind == overrides.KindField && line.Component == file.Resource && line.Hoist {
+			hoisted = append(hoisted, line.Field)
+		}
+	}
+	if len(hoisted) == 0 || schema.Properties == nil {
+		return schema, nil
+	}
+	out := *schema
+	out.Properties = orderedmap.New[string, *base.SchemaProxy]()
+	out.Required = slices.Clone(schema.Required)
+	for name, proxy := range schema.Properties.FromOldest() {
+		out.Properties.Set(name, proxy)
+	}
+	for _, name := range hoisted {
+		proxy := schema.Properties.GetOrZero(name)
+		if proxy == nil {
+			continue // the line of the hoisted field reports it
+		}
+		object, err := proxy.BuildSchema()
+		if err != nil {
+			return nil, fmt.Errorf("field %q: %w", name, err)
+		}
+		if len(object.AllOf) == 1 {
+			if object, err = object.AllOf[0].BuildSchema(); err != nil {
+				return nil, fmt.Errorf("field %q: %w", name, err)
+			}
+		}
+		if object.Properties == nil {
+			continue
+		}
+		for child, childProxy := range object.Properties.FromOldest() {
+			if out.Properties.GetOrZero(child) == nil {
+				out.Properties.Set(child, childProxy)
+			}
+		}
+		out.Required = append(out.Required, object.Required...)
+	}
+	return &out, nil
 }
 
 // enumLineProblem checks an enums line. Each value that the file names must be in the contract,

@@ -868,3 +868,28 @@ func TestAcceptanceRejectsAPathInSkipAndMinimal(t *testing.T) {
 		})
 	}
 }
+
+// The acceptance test is named after the Terraform type, which a typeName line can make differ
+// from the SDK type: coralogix_slo_v2 for the component Slo.
+func TestAcceptanceTestIsNamedAfterTheTerraformType(t *testing.T) {
+	file, err := acceptance.Parse([]byte("resource: Slo\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct{ typeName, sdk, want string }{
+		{"slo_v2", "Slo", "SloV2"},
+		{"archive_logs", "V2Target", "ArchiveLogs"},
+		{"global_router", "GlobalRouter", "GlobalRouter"},
+	} {
+		res := &tfResource{Package: "p", CRUD: &crudData{TypeName: c.typeName, IDAttr: "id", Resource: c.sdk}, Attributes: []*tfAttr{
+			{Name: "name", Kind: "String", Required: true},
+		}}
+		data, err := buildAcceptance(res, "example.com/provider", file, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if data.Name != c.want {
+			t.Errorf("type %s, SDK type %s: test name TestAccCoralogixResource%sGenerated, want %sGenerated", c.typeName, c.sdk, data.Name, c.want)
+		}
+	}
+}
