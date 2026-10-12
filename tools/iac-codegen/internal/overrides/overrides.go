@@ -456,8 +456,9 @@ func (t Type) check(name string) error {
 			return fmt.Errorf("types.%s.unsupportedArms: %q is empty or repeated", name, arm)
 		}
 		seen[arm] = true
-		if t.Fields[arm].Skip {
-			return fmt.Errorf("types.%s.unsupportedArms: %q is also skipped", name, arm)
+		if _, ok := t.Fields[arm]; ok {
+			// The arm is not in the schema, so a line on it would change nothing.
+			return fmt.Errorf("types.%s.unsupportedArms: %q also has a field line", name, arm)
 		}
 	}
 	return nil

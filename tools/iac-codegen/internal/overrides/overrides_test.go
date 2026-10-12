@@ -270,3 +270,12 @@ func TestUnwrapPolicy(t *testing.T) {
 		}
 	}
 }
+
+func TestAnUnsupportedArmHasNoFieldLine(t *testing.T) {
+	for _, line := range []string{"{skip: true}", "{description: A queue.}", "{computed: true}"} {
+		_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  C:\n    unsupportedArms: [queue]\n    unsupportedSummary: S\n    unsupportedDetail: D\n    fields:\n      queue: " + line + "\n"))
+		if err == nil || !strings.Contains(err.Error(), `"queue" also has a field line`) {
+			t.Fatalf("%s: err = %v, want an error about the field line", line, err)
+		}
+	}
+}

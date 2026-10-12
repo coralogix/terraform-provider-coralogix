@@ -711,3 +711,50 @@ enums:
 		t.Fatalf("zero line: err = %v, want ENUM_ZERO_INVALID", err)
 	}
 }
+
+// When Create and Update use a component without the arm, only the response
+// has it. The request objects must not look for it on their SDK structs.
+func TestUnsupportedArmOnlyInResponse(t *testing.T) {
+	input, _ := syntheticInput(t)
+	spec := strings.Replace(string(input.OpenAPI), "$ref: '#/components/schemas/ThingConfig'\n", "$ref: '#/components/schemas/ThingConfigWrite'\n", 2)
+	spec = strings.Replace(spec, "    ThingConfig:\n", `    ThingConfigWrite:
+      type: object
+      required: []
+      properties:
+        http:
+          $ref: '#/components/schemas/HttpThingConfig'
+      oneOf:
+        - required: [http]
+    ThingConfig:
+`, 1)
+	if strings.Count(spec, "ThingConfigWrite'") != 2 {
+		t.Fatal("cannot point Create and Update at ThingConfigWrite")
+	}
+	file := mustParse(t, `
+resource: Thing
+mode: existing
+validators:
+  inferred: false
+types:
+  ThingConfig:
+    unsupportedArms: [queue]
+    unsupportedSummary: Unsupported config
+    unsupportedDetail: The queue config is not supported.
+`)
+	validated, err := validateOpenAPIWith([]byte(spec), "Thing", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, file)
+	if err != nil {
+		t.Fatal(reportOf(t, err))
+	}
+	for _, ref := range validated.refs {
+		if ref.Kind == kindField && ref.Owner == "ThingConfigWrite" && ref.Name == "Queue" {
+			t.Fatalf("the SDK check wants %s.%s, which only the response has", ref.Owner, ref.Name)
+		}
+	}
+	files, err := renderWith(validated.resource, validated.refs, "generated", validated.overrides)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(files["convert.go"]), "The queue config is not supported.") {
+		t.Fatal("flatten does not report the unsupported arm")
+	}
+}

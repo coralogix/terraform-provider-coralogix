@@ -268,6 +268,11 @@ func (t *Type) requestType(op verb) *Type {
 	if op == opUpdate {
 		out.Schema = t.UpdateSchema
 	}
+	if out.Schema != t.Schema {
+		// Unsupported arms are the response's. Flatten reports them; a request
+		// component need not have them, and expand never sends them.
+		out.Unsupported, out.UnsupportedSummary, out.UnsupportedDetail = nil, "", ""
+	}
 	out.Fields = nil
 	for _, f := range t.Fields {
 		attrs := f.Create
