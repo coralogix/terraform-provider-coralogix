@@ -31,6 +31,16 @@
 - FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.25`.
+- FEAT: `useStateForUnknownUnless` keeps the prior value of an optional computed attribute unless a named sibling attribute changes. A missing sibling is an error. It cannot be set with `useStateForUnknown`.
+- CHORE: Bump the generator to `v0.1.0-beta.24`.
+- FIX: A `requestValue` field is not in the Create or Update check lists. Those lists read Terraform attributes. A field that the request schema does not mark read-only stayed in the lists, so every Create and every Update failed.
+- CHORE: Bump the generator to `v0.1.0-beta.23`.
+- FIX: Presence, default, read-only, and schema checks walk a schema that is only `allOf` of one `$ref`. Required fields are the union of the required lists, so a required field inside the ref is not optional.
+- CHORE: Bump the generator to `v0.1.0-beta.22`.
+- FEAT: `enumExceptZero: true` accepts the enum values and leaves out the zero value. `enum: true` still accepts the zero value. The conversion maps still contain it.
+- CHORE: Bump the generator to `v0.1.0-beta.21`.
+- FIX: A computed-only attribute, and every attribute inside it, has no validators and no document plan modifier. A field line on a component that is also managed no longer copies those checks onto the computed-only place. A computed `id` still keeps `UseStateForUnknown`.
 - FIX: `behavior-overrides.yaml` rejects a Delete operation named in both `api.delete.operation` and `api.operations.delete`. Before, `api.operations` chose the operation id while `api.delete` still turned on POST-action delete checks.
 - FEAT: `readEmptyAs: null` on a string reads an omitted value as null. A configured `""` stays `""`.
 - FIX: `requestValue` on a nested read-only field is sent on create and update.

@@ -29,6 +29,9 @@ type tfResource struct {
 	// attributes that hold values that the server sets. They use
 	// requestReplaceModifier instead of RequiresReplace.
 	RequestReplaceKinds []string
+	// UseStateUnlessKinds are the Terraform value kinds that use
+	// useStateForUnknownUnless. The modifier keeps the prior value unless a sibling changes.
+	UseStateUnlessKinds []string
 	PlanModifierPkgs    []string // lower-case Terraform value kinds with standard plan modifiers
 	DefaultPkgs         []string // lower-case Terraform value kinds with static defaults
 	// ComputedPaths are the paths of the computed attributes, with list and map
@@ -292,6 +295,9 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 				a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return !slices.Contains(a.GroupValidators, v) })
 			}
 			if line, ok := file.Types[a.Component].Fields[a.Property]; ok {
+				if err := applyUnlessModifier(out, attrs, a, line); err != nil {
+					return err
+				}
 				if err := applyField(a, line, file); err != nil {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
 				}
@@ -307,6 +313,57 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 	}
 	if err := walk(out.Attributes); err != nil {
 		return err
+	}
+	// Field lines run after markComputed, so they can put validators and document
+	// modifiers back on a computed-only copy of a component. Configuration is
+	// always null there, so those checks never run.
+	stripComputedConfig(out.Attributes)
+	return nil
+}
+
+// stripComputedConfig removes configuration checks from a computed-only attribute
+// and every descendant. UseStateForUnknown stays: a computed id keeps its value.
+func stripComputedConfig(attrs []*tfAttr) {
+	for _, a := range attrs {
+		if computedOnly(a) {
+			stripComputedNode(a)
+			continue
+		}
+		stripComputedConfig(a.Attributes)
+	}
+}
+
+func stripComputedNode(a *tfAttr) {
+	a.Validators = nil
+	a.GroupValidators = nil
+	a.Modifiers = slices.DeleteFunc(a.Modifiers, func(m string) bool {
+		return strings.HasPrefix(m, "equivalentDocument{")
+	})
+	for _, child := range a.Attributes {
+		stripComputedNode(child)
+	}
+}
+
+// applyUnlessModifier adds useStateForUnknownUnless when the line names sibling
+// attributes. A name that is not an attribute of the same object is an error.
+func applyUnlessModifier(out *tfResource, siblings []*tfAttr, a *tfAttr, line overrides.Field) error {
+	if len(line.UseStateForUnknownUnless) == 0 {
+		return nil
+	}
+	names := map[string]bool{}
+	for _, sib := range siblings {
+		names[sib.Name] = true
+	}
+	quoted := make([]string, 0, len(line.UseStateForUnknownUnless))
+	for _, name := range line.UseStateForUnknownUnless {
+		if name == a.Name || !names[name] {
+			return fmt.Errorf("%s.%s: useStateForUnknownUnless: %q is not a sibling attribute", a.Component, a.Property, name)
+		}
+		quoted = append(quoted, strconv.Quote(name))
+	}
+	a.Modifiers = append(a.Modifiers, "useStateForUnknownUnless{siblings: []string{"+strings.Join(quoted, ", ")+"}}")
+	if !containsString(out.UseStateUnlessKinds, a.ValueKind) {
+		out.UseStateUnlessKinds = append(out.UseStateUnlessKinds, a.ValueKind)
 	}
 	return nil
 }
@@ -430,7 +487,9 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 	pkg := strings.ToLower(a.ValueKind) + "validator"
 	switch {
 	case v.Enum:
-		return enumValidatorExpr(a, file)
+		return enumValidatorExpr(a, file, false)
+	case v.EnumExceptZero:
+		return enumValidatorExpr(a, file, true)
 	case len(v.OneOf) != 0 && a.ValueKind == "String":
 		quoted := make([]string, 0, len(v.OneOf))
 		for _, one := range v.OneOf {
@@ -448,13 +507,14 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 // enumValidatorExpr is the validator that accepts the Terraform values of the enum of the attribute.
 // The values are the zero value and the Terraform value of each accepted value, in sorted order.
 // They come from the enums line, so the validator and the conversion maps cannot disagree.
-func enumValidatorExpr(a *tfAttr, file *overrides.File) (string, error) {
+// exceptZero leaves the zero value out of the validator. The conversion maps still contain it.
+func enumValidatorExpr(a *tfAttr, file *overrides.File, exceptZero bool) (string, error) {
 	enum, ok := file.Enums[a.EnumSchema]
 	if a.EnumSchema == "" || a.ValueKind != "String" || !ok {
 		return "", errors.New("the enum validator needs a field of an enum type that has a line under enums")
 	}
 	var values []string
-	if enum.Zero != "" {
+	if enum.Zero != "" && !exceptZero {
 		values = append(values, enum.Zero)
 	}
 	for _, v := range enum.Values {

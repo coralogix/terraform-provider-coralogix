@@ -23,14 +23,10 @@ types:
         equality: json
       integrationVersion:
         computed: true
+        useStateForUnknownUnless: [chart_version]
       chartName:
         validators:
-          - oneOf:
-              - chart_name_otel_integration
-              - chart_name_otel_ecs_ec2
-              - chart_name_otel_linux_standalone
-              - chart_name_otel_windows_standalone
-              - chart_name_otel_macos_standalone
+          - enumExceptZero: true
         markdownDescription: 'Configuration template type: `chart_name_otel_integration` for Kubernetes, `chart_name_otel_ecs_ec2` for ECS on EC2, or `chart_name_otel_linux_standalone`, `chart_name_otel_windows_standalone`, or `chart_name_otel_macos_standalone` for hosts.'
   ConfigurationGroup:
     fields:

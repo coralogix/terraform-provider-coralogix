@@ -1181,6 +1181,44 @@ func TestComputedOneOfUsesUnknownCapableModelType(t *testing.T) {
 	}
 }
 
+// A field line applies to every place of a component. A computed-only place has no
+// configuration, so the validators and the document modifier must not be copied there.
+// The managed place keeps them. A computed id keeps UseStateForUnknown.
+func TestComputedOnlyDropsFieldLineConfig(t *testing.T) {
+	doc := &model.Type{Kind: model.Object, Schema: "Doc", Fields: []*model.Field{{
+		Name: "raw", Type: &model.Type{Kind: model.String, MinLength: int64Pointer(1)},
+		Behavior: model.Normal, Attrs: model.Attrs{Required: true},
+		Create: &model.Attrs{Required: true}, Update: &model.Attrs{Required: true},
+	}}}
+	listType := &model.Type{Kind: model.List, Elem: doc}
+	resource := &model.Resource{Name: "Thing", IDParam: "id", Fields: []*model.ResourceField{
+		{Name: "id", Type: &model.Type{Kind: model.String}, Behavior: model.Computed, Get: &model.Attrs{Required: true}, InGet: true},
+		{Name: "items", Type: listType, Behavior: model.Normal, Create: &model.Attrs{Required: true}, Update: &model.Attrs{Required: true}, Get: &model.Attrs{Required: true}, InGet: true},
+		{Name: "generated", Type: listType, Behavior: model.Computed, Get: &model.Attrs{Required: true}, InGet: true},
+	}}
+	file := mustParse(t, "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Doc:\n    fields:\n      raw:\n        equality: yaml\n        validators:\n          - lengthAtLeast: 1\n")
+	data, err := buildTFResourceWith(resource, "thing", file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	byName := map[string]*tfAttr{}
+	for _, a := range data.Attributes {
+		byName[a.Name] = a
+	}
+	managed := byName["items"].Attributes[0]
+	if !slices.Contains(managed.Validators, "stringvalidator.LengthAtLeast(1)") || !slices.Contains(managed.Modifiers, "equivalentDocument{equal: yamlEqual}") {
+		t.Fatalf("managed raw = validators %v modifiers %v, want LengthAtLeast and equivalentDocument", managed.Validators, managed.Modifiers)
+	}
+	computed := byName["generated"].Attributes[0]
+	if !computedOnly(computed) || len(computed.Validators) != 0 || len(computed.Modifiers) != 0 {
+		t.Fatalf("computed raw flags=(computed-only %t) validators=%v modifiers=%v, want no config checks", computedOnly(computed), computed.Validators, computed.Modifiers)
+	}
+	id := byName["id"]
+	if !computedOnly(id) || !slices.Contains(id.Modifiers, "stringplanmodifier.UseStateForUnknown()") {
+		t.Fatalf("id modifiers = %v, want computed-only with UseStateForUnknown", id.Modifiers)
+	}
+}
+
 func assertComputedTree(t *testing.T, attr *tfAttr) {
 	t.Helper()
 	if attr.Required || attr.Optional || !attr.Computed || len(attr.Validators) != 0 {
@@ -1267,6 +1305,73 @@ func TestWrappedValuesRuntimeSemantics(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// requestValue on a field the request schema does not mark read-only is not a
+// Terraform attribute. Create and Update must not read it. Reading a missing
+// attribute fails every Create and every Update.
+func TestWritableRequestValueIsNotChecked(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "customthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	readonly := "        kind:\n          allOf: [{$ref: '#/components/schemas/ThingKind'}]\n          readOnly: true\n"
+	writable := "        kind:\n          allOf: [{$ref: '#/components/schemas/ThingKind'}]\n"
+	if !strings.Contains(string(spec), readonly) {
+		t.Fatal("the root kind field is not read-only in the fixture")
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = []byte(strings.Replace(string(spec), readonly, writable, 1))
+	out := filepath.Join(t.TempDir(), "customthing")
+	options := Options{Resource: "CustomThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "customthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	convert, err := os.ReadFile(filepath.Join(out, "convert.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(convert, []byte("out.Kind = &fixed")) {
+		t.Fatal("Create no longer sends the fixed kind value")
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(schema, []byte("\t\t\t\"kind\":")) {
+		t.Fatal("kind is a Terraform attribute")
+	}
+	check := []byte(`package customthing
+
+import (
+	"context"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+)
+
+func TestRequestValueDoesNotBlockCreateOrUpdate(t *testing.T) {
+	ctx := context.Background()
+	s := Schema()
+	typ := s.Type().TerraformType(ctx).(tftypes.Object)
+	values := map[string]tftypes.Value{}
+	for name, attrType := range typ.AttributeTypes {
+		values[name] = tftypes.NewValue(attrType, nil)
+	}
+	raw := tftypes.NewValue(typ, values)
+	if diags := validateCreate(ctx, tfsdk.Config{Schema: s, Raw: raw}, tfsdk.Plan{Schema: s, Raw: raw}); diags.HasError() {
+		t.Fatalf("Create: %v", diags)
+	}
+	if _, diags := updateChanged(ctx, tfsdk.Config{Schema: s, Raw: raw}, tfsdk.Plan{Schema: s, Raw: raw}, tfsdk.State{Schema: s, Raw: raw}); diags.HasError() {
+		t.Fatalf("Update: %v", diags)
+	}
+}
+`)
+	if err := os.WriteFile(filepath.Join(out, "request_value_test.go"), check, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	compileGenerated(t, out, input)

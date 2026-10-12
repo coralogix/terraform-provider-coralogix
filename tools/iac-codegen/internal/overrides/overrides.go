@@ -175,6 +175,10 @@ type Field struct {
 	Computed *bool `yaml:"computed"`
 	// UseStateForUnknown keeps the value in the state when the config has none.
 	UseStateForUnknown bool `yaml:"useStateForUnknown"`
+	// UseStateForUnknownUnless keeps that value unless one of these sibling attributes
+	// changed. The names are Terraform attribute names. A missing sibling is an error.
+	// It cannot be set with useStateForUnknown.
+	UseStateForUnknownUnless []string `yaml:"useStateForUnknownUnless"`
 	// Default is a static default in the schema: a string, a bool, or a number.
 	Default any `yaml:"default"`
 	// ReadEmptyAs: "null" reads an empty list or object from the API as null.
@@ -213,8 +217,13 @@ type Validator struct {
 	// LengthAtLeast is a released stringvalidator.LengthAtLeast.
 	LengthAtLeast *int `yaml:"lengthAtLeast"`
 	// Enum: true accepts the Terraform values of the enum of the field, as the enums line of
-	// the enum states them. The list of values has one source, so it cannot drift.
+	// the enum states them, including the zero value. The list of values has one source, so it
+	// cannot drift.
 	Enum bool `yaml:"enum"`
+	// EnumExceptZero accepts the same values as Enum, except the zero value. The conversion
+	// maps still contain the zero value, so a response that has it still converts. A user
+	// cannot configure it.
+	EnumExceptZero bool `yaml:"enumExceptZero"`
 }
 
 // Enum overrides one enum component.
@@ -375,6 +384,7 @@ func (l Field) keys() []string {
 	add(l.Deprecation != "", "deprecation")
 	add(l.Computed != nil, "computed")
 	add(l.UseStateForUnknown, "useStateForUnknown")
+	add(len(l.UseStateForUnknownUnless) != 0, "useStateForUnknownUnless")
 	add(l.Default != nil, "default")
 	add(l.ReadEmptyAs != "", "readEmptyAs")
 	add(l.ReadNullAs != "", "readNullAs")
@@ -422,9 +432,16 @@ func (e ExtraAttribute) check(name string) error {
 }
 
 func (l Field) empty() bool {
+	return l.emptyMode() && l.emptyValue()
+}
+
+func (l Field) emptyMode() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
-		l.Computed == nil && !l.UseStateForUnknown && l.Default == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" &&
-		!l.RequireOne && l.RequestValue == "" &&
+		l.Computed == nil && !l.UseStateForUnknown && len(l.UseStateForUnknownUnless) == 0
+}
+
+func (l Field) emptyValue() bool {
+	return l.Default == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && l.RequestValue == "" &&
 		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil
 }
 
@@ -432,20 +449,8 @@ func (l Field) check() error {
 	if l.empty() {
 		return errors.New("the line sets nothing")
 	}
-	if l.ReadEmptyAs != "" && l.ReadEmptyAs != "null" {
-		return fmt.Errorf("readEmptyAs is %q, want \"null\"", l.ReadEmptyAs)
-	}
-	if l.ReadNullAs != "" && l.ReadNullAs != "empty" {
-		return fmt.Errorf("readNullAs is %q, want \"empty\"", l.ReadNullAs)
-	}
-	if l.ReadEmptyAs != "" && l.ReadNullAs != "" {
-		return errors.New("readEmptyAs and readNullAs cannot both be set")
-	}
-	if l.Skip && l.RequestValue != "" {
-		return errors.New("requestValue sends the field, so skip cannot be set")
-	}
-	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON {
-		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
+	if err := l.checkConflicts(); err != nil {
+		return err
 	}
 	switch l.Default.(type) {
 	case nil, string, bool, int, float64:
@@ -462,6 +467,33 @@ func (l Field) check() error {
 		return errors.New("a skipped field has no other behavior")
 	}
 	return checkValidators(l.Validators)
+}
+
+func (l Field) checkConflicts() error {
+	if l.ReadEmptyAs != "" && l.ReadEmptyAs != "null" {
+		return fmt.Errorf("readEmptyAs is %q, want \"null\"", l.ReadEmptyAs)
+	}
+	if l.ReadNullAs != "" && l.ReadNullAs != "empty" {
+		return fmt.Errorf("readNullAs is %q, want \"empty\"", l.ReadNullAs)
+	}
+	if l.ReadEmptyAs != "" && l.ReadNullAs != "" {
+		return errors.New("readEmptyAs and readNullAs cannot both be set")
+	}
+	if l.Skip && l.RequestValue != "" {
+		return errors.New("requestValue sends the field, so skip cannot be set")
+	}
+	if l.UseStateForUnknown && len(l.UseStateForUnknownUnless) != 0 {
+		return errors.New("useStateForUnknown and useStateForUnknownUnless cannot both be set")
+	}
+	for _, name := range l.UseStateForUnknownUnless {
+		if name == "" {
+			return errors.New("useStateForUnknownUnless names a sibling attribute")
+		}
+	}
+	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON {
+		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
+	}
+	return nil
 }
 
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
@@ -486,8 +518,11 @@ func checkValidators(validators []Validator) error {
 		if v.Enum {
 			set++
 		}
+		if v.EnumExceptZero {
+			set++
+		}
 		if set != 1 {
-			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, and enum")
+			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, enum, and enumExceptZero")
 		}
 	}
 	return nil
