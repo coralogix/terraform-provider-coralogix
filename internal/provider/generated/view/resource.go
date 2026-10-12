@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -99,11 +100,65 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	}
 	diags = r.setState(ctx, v, req.Plan, &resp.State)
 	resp.Diagnostics.Append(diags...)
+	if !diags.HasError() {
+		// The resource exists and the state is complete. An error here leaves
+		// the state, so Terraform marks the resource as tainted.
+		resp.Diagnostics.Append(r.applyUpdateOnly(ctx, req.Config, req.Plan, &resp.State)...)
+	}
 	if diags.HasError() && v != nil {
 		// The resource exists, but the state is not complete. Keep the id, so
 		// Terraform marks the resource as tainted and can delete it.
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), v.Id)...)
 	}
+}
+
+// updateOnlyFields are the attributes that Create cannot send. Create stores
+// their server default.
+var updateOnlyFields = []string{
+	"is_compact_mode",
+}
+
+// applyUpdateOnly follows Create with an Update when the configuration sets an
+// attribute that Create cannot send to another value than the one Create
+// stored. The Update body is the created resource with those values.
+func (r *Resource) applyUpdateOnly(ctx context.Context, config tfsdk.Config, plan tfsdk.Plan, state *tfsdk.State) diag.Diagnostics {
+	var diags diag.Diagnostics
+	next := tfsdk.State{Schema: state.Schema, Raw: state.Raw.Copy()}
+	differs := false
+	for _, name := range updateOnlyFields {
+		var c, p, s attr.Value
+		diags.Append(config.GetAttribute(ctx, path.Root(name), &c)...)
+		diags.Append(plan.GetAttribute(ctx, path.Root(name), &p)...)
+		diags.Append(state.GetAttribute(ctx, path.Root(name), &s)...)
+		if diags.HasError() {
+			return diags
+		}
+		if c.IsNull() || p.Equal(s) {
+			continue
+		}
+		diags.Append(next.SetAttribute(ctx, path.Root(name), p)...)
+		differs = true
+	}
+	if !differs || diags.HasError() {
+		return diags
+	}
+	id, d := stateID(ctx, *state)
+	diags.Append(d...)
+	if diags.HasError() {
+		return diags
+	}
+	body, d := updateRequest(ctx, config, &next, state)
+	diags.Append(d...)
+	if diags.HasError() || body == nil {
+		return diags
+	}
+	v, err := r.update(ctx, id, body)
+	if err != nil {
+		diags.AddError("Unable to update "+TypeName+" after create", err.Error())
+		return diags
+	}
+	diags.Append(r.setState(ctx, v, plan, state)...)
+	return diags
 }
 
 // Read removes the resource from the state when the API does not find it.

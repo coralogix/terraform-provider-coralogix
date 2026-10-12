@@ -109,14 +109,12 @@ const updatedConfig = `resource "coralogix_view" "test" {
 }`
 
 const minimalConfig = `resource "coralogix_view" "test" {
-  is_compact_mode = true
   name = "@{run}-name"
   time_selection = {
     quick_selection = {
       seconds = 3600
     }
   }
-  view_type = "VIEW_TYPE_LOGS"
 }`
 
 func config(run, resourceBlock string) string {
@@ -151,8 +149,8 @@ func updatedChecks(run string) resource.TestCheckFunc {
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "is_compact_mode", "true"),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "is_compact_mode", "false"),
 		resource.TestCheckResourceAttr(resourceAddress, "view_type", "VIEW_TYPE_LOGS"),
 		resource.TestCheckNoResourceAttr(resourceAddress, "folder_id"),
 	)

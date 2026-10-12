@@ -43,16 +43,16 @@ resource "coralogix_view" "example" {
 
 ### Required
 
-- `is_compact_mode` (Boolean) Whether the view opens in compact mode. The service returns false when the value was never set.
 - `name` (String) View name
 - `time_selection` (Attributes) Time selection. (see [below for nested schema](#nestedatt--time_selection))
-- `view_type` (String) View type.
 
 ### Optional
 
 - `filters` (Attributes) Selected filters. (see [below for nested schema](#nestedatt--filters))
 - `folder_id` (String) Unique identifier for folders
+- `is_compact_mode` (Boolean) Whether the view opens in compact mode. Create stores false, and a replace that omits the value stores false.
 - `search_query` (Attributes) Search query. (see [below for nested schema](#nestedatt--search_query))
+- `view_type` (String) View type.
 
 ### Read-Only
 
@@ -114,4 +114,7 @@ Optional:
 Required:
 
 - `query` (String) Query string.
+
+Optional:
+
 - `syntax_type` (String) Syntax type.

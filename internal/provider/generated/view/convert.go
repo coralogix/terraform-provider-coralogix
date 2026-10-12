@@ -43,11 +43,10 @@ var createFields = []struct {
 }{
 	{attr: "filters", serverDefault: false},
 	{attr: "folder_id", serverDefault: false},
-	{attr: "is_compact_mode", serverDefault: false},
 	{attr: "name", serverDefault: false},
 	{attr: "search_query", serverDefault: false},
 	{attr: "time_selection", serverDefault: false},
-	{attr: "view_type", serverDefault: false},
+	{attr: "view_type", serverDefault: true},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -74,6 +73,12 @@ var serverAttrs = map[string]bool{
 	"time_selection.quick_selection.caption": true,
 }
 
+// defaultAttrs are the nested attributes with a server default, by path. A
+// request does not send an unknown value of one, so the server stores the default.
+var defaultAttrs = map[string]attr.Value{
+	"search_query.syntax_type": types.StringValue("SYNTAX_TYPE_LUCENE"),
+}
+
 // requestValue returns v with a null value for each attribute that the server
 // sets. When the resource changes, Terraform plans these attributes as
 // unknown. A request does not send them, so a change check and an
@@ -87,7 +92,7 @@ func requestValue(ctx context.Context, at string, v attr.Value, diags *diag.Diag
 		attrTypes := v.AttributeTypes(ctx)
 		out := make(map[string]attr.Value, len(attrTypes))
 		for name, child := range v.Attributes() {
-			if serverAttrs[at+"."+name] {
+			if serverAttrs[at+"."+name] || defaultAttrs[at+"."+name] != nil && child.IsUnknown() {
 				out[name] = nullValue(ctx, attrTypes[name], diags)
 			} else {
 				out[name] = requestValue(ctx, at+"."+name, child, diags)
@@ -208,7 +213,10 @@ var oneOfArms = map[string]bool{
 // steps left out.
 var computedAttrs = map[string]bool{
 	"id":                                     true,
+	"is_compact_mode":                        true,
+	"search_query.syntax_type":               true,
 	"time_selection.quick_selection.caption": true,
+	"view_type":                              true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -318,7 +326,9 @@ func priorEmptyMap(ctx context.Context, at string, v, prior types.Map, diags *di
 }
 
 // emptyValue reports whether v is null, an empty list, set, or map, or an
-// object outside a oneOf arm whose attributes are all empty.
+// object outside a oneOf arm whose attributes are all empty. The service fills
+// an omitted object with its server defaults, so an attribute that is "" or
+// that equals its declared server default is empty inside an object.
 func emptyValue(at string, v attr.Value) bool {
 	if v.IsNull() {
 		return true
@@ -338,13 +348,23 @@ func emptyValue(at string, v attr.Value) bool {
 			return false
 		}
 		for name, child := range v.Attributes() {
-			if !emptyValue(at+"."+name, child) {
+			if !emptyValue(at+"."+name, child) && !defaultValue(at+"."+name, child) {
 				return false
 			}
 		}
 		return true
 	}
 	return false
+}
+
+// defaultValue reports whether child, an attribute of an object at path at, is
+// "" or its declared server default.
+func defaultValue(at string, child attr.Value) bool {
+	if d := defaultAttrs[at]; d != nil && child.Equal(d) {
+		return true
+	}
+	s, ok := child.(types.String)
+	return ok && !s.IsNull() && !s.IsUnknown() && s.ValueString() == ""
 }
 
 func expandCreateViewRequest(ctx context.Context, p path.Path, m *ViewModel, diags *diag.Diagnostics) *views_service.CreateViewRequest {
@@ -354,11 +374,10 @@ func expandCreateViewRequest(ctx context.Context, p path.Path, m *ViewModel, dia
 	out := &views_service.CreateViewRequest{}
 	out.Filters = expandSelectedFilters(ctx, p.AtName("filters"), m.Filters, diags)
 	out.FolderId = expandString(m.FolderId)
-	out.IsCompactMode = valueOf(expandBool(m.IsCompactMode))
 	out.Name = valueOf(expandString(m.Name))
 	out.SearchQuery = expandSearchQuery(ctx, p.AtName("search_query"), m.SearchQuery, diags)
 	out.TimeSelection = valueOf(expandTimeSelection(ctx, p.AtName("time_selection"), m.TimeSelection, diags))
-	out.ViewType = valueOf(expandEnum[views_service.ViewType](m.ViewType))
+	out.ViewType = expandEnum[views_service.ViewType](m.ViewType)
 	return out
 }
 
@@ -425,7 +444,7 @@ func expandSearchQuery(ctx context.Context, p path.Path, m *SearchQueryModel, di
 	}
 	out := &views_service.SearchQuery{}
 	out.Query = valueOf(expandString(m.Query))
-	out.SyntaxType = valueOf(expandEnum[views_service.SyntaxType](m.SyntaxType))
+	out.SyntaxType = expandEnum[views_service.SyntaxType](m.SyntaxType)
 	return out
 }
 
@@ -435,7 +454,7 @@ func flattenSearchQuery(ctx context.Context, p path.Path, v *views_service.Searc
 	}
 	out := &SearchQueryModel{}
 	out.Query = types.StringPointerValue(&v.Query)
-	out.SyntaxType = flattenEnum(&v.SyntaxType, "SYNTAX_TYPE_UNSPECIFIED")
+	out.SyntaxType = flattenEnum(v.SyntaxType, "SYNTAX_TYPE_UNSPECIFIED")
 	return out
 }
 
@@ -505,7 +524,7 @@ func expandView1(ctx context.Context, p path.Path, m *ViewModel, diags *diag.Dia
 	out := &views_service.View1{}
 	out.Filters = expandSelectedFilters(ctx, p.AtName("filters"), m.Filters, diags)
 	out.FolderId = expandString(m.FolderId)
-	out.IsCompactMode = valueOf(expandBool(m.IsCompactMode))
+	out.IsCompactMode = expandBool(m.IsCompactMode)
 	out.Name = valueOf(expandString(m.Name))
 	out.SearchQuery = expandSearchQuery(ctx, p.AtName("search_query"), m.SearchQuery, diags)
 	out.TimeSelection = valueOf(expandTimeSelection(ctx, p.AtName("time_selection"), m.TimeSelection, diags))
@@ -521,7 +540,7 @@ func flattenView(ctx context.Context, p path.Path, v *views_service.View, diags 
 	out.Filters = flattenSelectedFilters(ctx, p.AtName("filters"), v.Filters, diags)
 	out.FolderId = types.StringPointerValue(v.FolderId)
 	out.Id = types.Int32PointerValue(&v.Id)
-	out.IsCompactMode = types.BoolPointerValue(&v.IsCompactMode)
+	out.IsCompactMode = types.BoolPointerValue(v.IsCompactMode)
 	out.Name = types.StringPointerValue(&v.Name)
 	out.SearchQuery = flattenSearchQuery(ctx, p.AtName("search_query"), v.SearchQuery, diags)
 	out.TimeSelection = flattenTimeSelection(ctx, p.AtName("time_selection"), &v.TimeSelection, diags)

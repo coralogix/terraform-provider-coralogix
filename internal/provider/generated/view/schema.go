@@ -3,6 +3,7 @@
 package view
 
 import (
+	"context"
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
@@ -10,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -69,8 +71,12 @@ func Schema() schema.Schema {
 				MarkdownDescription: "id",
 			},
 			"is_compact_mode": schema.BoolAttribute{
-				Required:            true,
-				MarkdownDescription: "Whether the view opens in compact mode. The service returns false when the value was never set.",
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Bool{
+					serverDefaultModifier{value: types.BoolValue(false)},
+				},
+				MarkdownDescription: "Whether the view opens in compact mode. Create stores false, and a replace that omits the value stores false.",
 			},
 			"name": schema.StringAttribute{
 				Required: true,
@@ -90,9 +96,13 @@ func Schema() schema.Schema {
 						MarkdownDescription: "Query string.",
 					},
 					"syntax_type": schema.StringAttribute{
-						Required: true,
+						Optional: true,
+						Computed: true,
 						Validators: []validator.String{
 							stringvalidator.OneOf("SYNTAX_TYPE_LUCENE", "SYNTAX_TYPE_DATAPRIME"),
+						},
+						PlanModifiers: []planmodifier.String{
+							serverDefaultModifier{value: types.StringValue("SYNTAX_TYPE_LUCENE")},
 						},
 						MarkdownDescription: "Syntax type.",
 					},
@@ -153,9 +163,13 @@ func Schema() schema.Schema {
 				MarkdownDescription: "Time selection.",
 			},
 			"view_type": schema.StringAttribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
 				Validators: []validator.String{
 					stringvalidator.OneOf("VIEW_TYPE_LOGS", "VIEW_TYPE_TEMPLATES", "VIEW_TYPE_ARCHIVE_LOGS", "VIEW_TYPE_ARCHIVE_TEMPLATES"),
+				},
+				PlanModifiers: []planmodifier.String{
+					serverDefaultModifier{value: types.StringValue("VIEW_TYPE_LOGS")},
 				},
 				MarkdownDescription: "View type.",
 			},
@@ -166,4 +180,52 @@ func Schema() schema.Schema {
 // ConfigValidators are the resource validators.
 func ConfigValidators() []resource.ConfigValidator {
 	return []resource.ConfigValidator{}
+}
+
+// serverDefaultModifier distinguishes removal from a steady server default.
+// It never inserts the default into configuration or an API request. When a
+// user removes a different value, it makes the plan unknown. Update then sends
+// the field in the update mask without a body value, and the API resets it.
+type serverDefaultModifier struct{ value attr.Value }
+
+func (m serverDefaultModifier) Description(context.Context) string {
+	return "Resets a removed value to the server default."
+}
+
+func (m serverDefaultModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func serverDefaultPlan(config, state, declared attr.Value) (unknown, preserve bool) {
+	if config.IsUnknown() || !config.IsNull() || state.IsNull() || state.IsUnknown() {
+		return false, false
+	}
+	if state.Equal(declared) {
+		return false, true
+	}
+	return true, false
+}
+
+func (m serverDefaultModifier) PlanModifyBool(_ context.Context, req planmodifier.BoolRequest, resp *planmodifier.BoolResponse) {
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+	unknown, preserve := serverDefaultPlan(req.ConfigValue, req.StateValue, m.value)
+	if unknown {
+		resp.PlanValue = types.BoolUnknown()
+	} else if preserve {
+		resp.PlanValue = req.StateValue
+	}
+}
+
+func (m serverDefaultModifier) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+	unknown, preserve := serverDefaultPlan(req.ConfigValue, req.StateValue, m.value)
+	if unknown {
+		resp.PlanValue = types.StringUnknown()
+	} else if preserve {
+		resp.PlanValue = req.StateValue
+	}
 }

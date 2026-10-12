@@ -26,11 +26,11 @@ var updateFields = []struct {
 }{
 	{attr: "filters", serverDefault: false},
 	{attr: "folder_id", serverDefault: false},
-	{attr: "is_compact_mode", serverDefault: false},
+	{attr: "is_compact_mode", serverDefault: true},
 	{attr: "name", serverDefault: false},
 	{attr: "search_query", serverDefault: false},
 	{attr: "time_selection", serverDefault: false},
-	{attr: "view_type", serverDefault: false},
+	{attr: "view_type", serverDefault: true},
 }
 
 // updateChanged reports whether an Update field has a different value in the
