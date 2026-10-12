@@ -1242,6 +1242,20 @@ func TestDeleteOverrideRuntimeSemantics(t *testing.T) {
 	compileGenerated(t, out, input)
 }
 
+// The generated Update of a resource whose server-set id is in the Update body sends that id.
+func TestCustomMethodsRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateCustomThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "customthing_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
 // The generated resource with document fields compares them as documents in its plan and its
 // flatten, and plans no change when only the format of a document changes.
 func TestDocumentEqualityRuntimeSemantics(t *testing.T) {

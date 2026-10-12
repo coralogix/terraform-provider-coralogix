@@ -42,6 +42,11 @@
 - FIX: Remove `promote`. `unwrap` shows a one-property wrapper as the plain attribute. A missing enum stays null, including one marked with presence. A string `default` is what that resource reads a missing value as.
 - FIX: A `date-time` field of a component has one type in every place of the component: `timetypes.RFC3339` when a request sends it in some place, otherwise a plain string. Before, a field inside a computed value always became `timetypes.RFC3339`, so a response-only time in a component that is also managed elsewhere failed generation with "has a computed object field in one place and a managed one in another".
 - FIX: The error for a component that needs another model struct in each place names the field and its Go type in each place.
+- FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.
+- FEAT: In existing-resource mode, the Get response may leave the server-set id optional, as a schema that the request shares cannot require it. The generated flatten fails when the id is missing.
+- FIX: An Update with the id in its body sends a server-set id. Before, no Update field sent it, so the update request had no id.
+- FIX: `required: true` and `computed: false` on a field also apply to a read-only copy of its component, which stays computed. Before, generation failed with "required: true needs a field that the user sets".
+- CHORE: Bump the generator to `v0.1.0-beta.21`.
 - CHORE: Bump the generator to `v0.1.0-beta.20`.
 - CHORE: Bump the generator to `v0.1.0-beta.19`.
 - CHORE: Bump the generator to `v0.1.0-beta.18`.

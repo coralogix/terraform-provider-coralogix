@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -75,7 +76,6 @@ func TestEachPolicyFieldRelaxesOneRule(t *testing.T) {
 	}{
 		"request wrapper":   {func(p *Policy) { p.RequestWrapper = "" }, "FIELD_LIFECYCLE_UNSUPPORTED"},
 		"update id in body": {func(p *Policy) { p.UpdateIDInBody = false }, "UPDATE_ID_IN_BODY_UNSUPPORTED"},
-		"client set id":     {func(p *Policy) { p.ClientSetID = false }, "RESOURCE_ID_OPTIONAL"},
 		"enum prefix":       {func(p *Policy) { p.EnumAnyPrefix = nil }, "ENUM_ZERO_INVALID"},
 		"skip":              {func(p *Policy) { p.Skip = nil }, "FIELD_LIFECYCLE_UNSUPPORTED"},
 		"released":          {func(p *Policy) { p.Released = nil }, "FIELD_PRESENCE_UNKNOWN"},
@@ -89,6 +89,58 @@ func TestEachPolicyFieldRelaxesOneRule(t *testing.T) {
 				t.Fatalf("codes = %v, want %s", got, test.code)
 			}
 		})
+	}
+}
+
+// A released API can share its schema between the request and the response, so the
+// contract cannot require the id that only the server sets. Existing mode accepts it, and
+// flatten checks the id.
+func TestExistingResourceAcceptsAnOptionalServerSetID(t *testing.T) {
+	p := legacyPolicy()
+	p.ClientSetID = false
+	if got := legacyCodes(t, p); slices.Contains(got, "RESOURCE_ID_OPTIONAL") {
+		t.Fatalf("codes = %v, want no RESOURCE_ID_OPTIONAL", got)
+	}
+}
+
+// legacyDocWithSiblings is testdata/legacy.yaml with a value next to the resource in the
+// Create and Replace responses, as a released API returns the ids of objects the call changed.
+func legacyDocWithSiblings(t *testing.T) []byte {
+	t.Helper()
+	data := string(legacyDoc(t))
+	for _, name := range []string{"CreateLegacyThingResponse", "ReplaceLegacyThingResponse"} {
+		old := "    " + name + ":\n      type: object\n      required: [thing]\n      properties:\n"
+		if !strings.Contains(data, old) {
+			t.Fatalf("testdata/legacy.yaml has no %s", name)
+		}
+		data = strings.Replace(data, old, old+"        changedIds: {type: array, items: {type: string}}\n", 1)
+	}
+	return []byte(data)
+}
+
+func TestExistingResourceReadsTheResourceNextToOtherResponseValues(t *testing.T) {
+	doc, err := Load(legacyDocWithSiblings(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := BuildWithPolicy(doc, "LegacyThing", OperationIDs{}, legacyPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Create.Response.Field != "thing" || r.Update.Response.Field != "thing" {
+		t.Fatalf("create response field %q, update response field %q, want thing", r.Create.Response.Field, r.Update.Response.Field)
+	}
+}
+
+func TestNewResourceRefusesOtherResponseValues(t *testing.T) {
+	doc, err := Load(legacyDocWithSiblings(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := legacyPolicy()
+	p.Existing = false
+	if _, err := BuildWithPolicy(doc, "LegacyThing", OperationIDs{}, p); err == nil || !strings.Contains(err.Error(), "want one that wraps LegacyThing") {
+		t.Fatalf("err = %v, want a response with one property", err)
 	}
 }
 

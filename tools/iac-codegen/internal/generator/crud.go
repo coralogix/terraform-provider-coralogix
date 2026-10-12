@@ -26,6 +26,9 @@ type crudData struct {
 	Replace bool
 	// UpdateIDInBody: the Update call takes no id. The id is a field of the body.
 	UpdateIDInBody bool
+	// UpdateIDFromState: the body id is a value that only the server sets, so no Update
+	// field sends it. Update copies the state id into the resource that the body wraps.
+	UpdateIDFromState bool
 	// Existing: the resource has users. The package exports Flatten for a handwritten data source.
 	Existing bool
 	// Upgrades are the state upgraders: one per older schema version.
@@ -112,6 +115,9 @@ func buildCRUDWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*cru
 	if err := resourceIDData(r, ix, out); err != nil {
 		return nil, err
 	}
+	if err := updateIDFromState(r, out); err != nil {
+		return nil, err
+	}
 	if file != nil {
 		for _, version := range sortedVersions(file) {
 			importPath, function, _ := file.Schema.Upgrade[version].PriorSchemaFunc()
@@ -169,6 +175,25 @@ func resourceIDData(r *model.Resource, ix *refIndex, out *crudData) error {
 		return fmt.Errorf("SDK field %s has type %s, the id needs *%s or %s", id.sdkName(), id.Want, idGoType, idGoType)
 	}
 	out.IDAttr, out.IDField, out.IDValue = tfName(r.IDParam), id.Name, id.Want == idGoType
+	return nil
+}
+
+// updateIDFromState decides how an Update with the id in its body sends the id. A client-set
+// id is an Update field. A server-set id is not, so Update copies the state id into the body.
+// It can do that only when the body wraps the resource type, whose id field resourceIDData
+// checked.
+func updateIDFromState(r *model.Resource, out *crudData) error {
+	if r.Singleton || !r.Policy.UpdateIDInBody {
+		return nil
+	}
+	i := slices.IndexFunc(r.Fields, func(f *model.ResourceField) bool { return f.Name == r.IDParam })
+	if i < 0 || r.Fields[i].Update != nil {
+		return nil
+	}
+	if r.Policy.RequestWrapper == "" {
+		return fmt.Errorf("the Update body needs the id %q, but no Update field sends it: set api.requestWrapper, or let the user set the id with api.clientSetID", r.IDParam)
+	}
+	out.UpdateIDFromState = true
 	return nil
 }
 

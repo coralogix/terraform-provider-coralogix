@@ -438,7 +438,9 @@ func resourceIDIssues(p Policy, name string, ops map[verb]foundOp, get *base.Sch
 	}
 	location := "components.schemas." + name + "." + id
 	var report issue.Report
-	if !slices.Contains(get.Required, id) && !p.ClientSetID {
+	// A released resource can share its schema between the request and the response, so the
+	// contract cannot require the id that only the server sets. Flatten checks it instead.
+	if !slices.Contains(get.Required, id) && !p.ClientSetID && !p.Existing {
 		report = append(report, issue.Issue{
 			Code:        "RESOURCE_ID_OPTIONAL",
 			Location:    location,

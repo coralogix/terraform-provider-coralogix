@@ -284,6 +284,21 @@ var errStaleOverrideKey = errors.New("the generator already applies this key, so
 func applyOverrides(out *tfResource, file *overrides.File) error {
 	out.SchemaVersion = file.Schema.Version
 	out.ResourceMarkdownDescription = file.MarkdownDescription
+	// A component can hold a field that the user sets in one place and that the server owns in
+	// another, for example a read-only copy of the request value. required: true and
+	// computed: false state the mode of the field that the user sets. A server-owned copy
+	// stays computed and takes the other keys of the line.
+	settable := map[string]bool{}
+	var collect func(attrs []*tfAttr)
+	collect = func(attrs []*tfAttr) {
+		for _, a := range attrs {
+			if !serverOwned(a) {
+				settable[a.Component+"."+a.Property] = true
+			}
+			collect(a.Attributes)
+		}
+	}
+	collect(out.Attributes)
 	var walk func(attrs []*tfAttr) error
 	walk = func(attrs []*tfAttr) error {
 		for _, a := range attrs {
@@ -292,6 +307,12 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 				a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return !slices.Contains(a.GroupValidators, v) })
 			}
 			if line, ok := file.Types[a.Component].Fields[a.Property]; ok {
+				if serverOwned(a) && settable[a.Component+"."+a.Property] {
+					line.Required = false
+					if line.Computed != nil && !*line.Computed {
+						line.Computed = nil
+					}
+				}
 				if err := applyField(a, line, file); err != nil {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
 				}
@@ -366,6 +387,12 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 		a.Validators = append(a.Validators, expr)
 	}
 	return nil
+}
+
+// serverOwned reports whether only the server sets the attribute: it is computed and the user
+// cannot set it.
+func serverOwned(a *tfAttr) bool {
+	return a.Computed && !a.Required && !a.Optional
 }
 
 // checkAttrMode rejects an attribute that the Framework cannot build: one that is neither required,

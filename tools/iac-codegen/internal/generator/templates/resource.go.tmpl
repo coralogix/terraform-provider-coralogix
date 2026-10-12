@@ -229,6 +229,10 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		body.{{$.Conv.UpdateMaskField}} = mask
 		{{- end}}
 {{- end}}
+{{- if .UpdateIDFromState}}
+		// Only the server sets the id, so no Update field sends it. The body names the resource by it.
+		body.{{$.Conv.UpdateWrap.Field}}.{{.IDField}} = {{if not .IDValue}}&{{end}}id
+{{- end}}
 		v, err = r.update(ctx{{if not .UpdateIDInBody}}, id{{end}}, body{{if and (not .Replace) (not .MaskInBody)}}, mask{{end}})
 	}
 	if {{$cx}}.{{.APICode}}(err) == http.StatusNotFound {
