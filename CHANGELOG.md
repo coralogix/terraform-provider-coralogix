@@ -31,6 +31,7 @@
 - FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
 
 #### tools/iac-codegen
+- FIX: `behavior-overrides.yaml` rejects a Delete operation named in both `api.delete.operation` and `api.operations.delete`. Before, `api.operations` chose the operation id while `api.delete` still turned on POST-action delete checks.
 - FEAT: `readEmptyAs: null` on a string reads an omitted value as null. A configured `""` stays `""`.
 - FIX: `requestValue` on a nested read-only field is sent on create and update.
 - FEAT: `api.operations` stores the four operation ids, so `tfgen generate` needs no operation flags.

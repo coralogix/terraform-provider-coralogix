@@ -304,7 +304,7 @@ func (f *File) checkTypes() error {
 	return nil
 }
 
-// check checks that a Delete override names its operation.
+// check checks that a Delete override names its operation, and that only one line names it.
 func (a API) check() error {
 	if a.Delete != nil && a.Delete.Operation == "" {
 		return errors.New("api.delete.operation is required")
@@ -314,6 +314,9 @@ func (a API) check() error {
 	}
 	if a.Operations.Create == "" || a.Operations.Get == "" || a.Operations.Update == "" || a.Operations.Delete == "" {
 		return errors.New("api.operations needs create, get, update, and delete")
+	}
+	if a.Delete != nil {
+		return errors.New("api.delete and api.operations both name the Delete operation: keep only api.operations.delete")
 	}
 	return nil
 }
