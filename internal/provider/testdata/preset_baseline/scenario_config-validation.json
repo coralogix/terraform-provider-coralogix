@@ -26,6 +26,22 @@
   {
     "step": "connector_type ibm_event_notifications",
     "config": {
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {}
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
       "connector_type": "ibm_event_notifications",
       "entity_type": "alerts",
       "name": "v",
@@ -39,6 +55,22 @@
   {
     "step": "connector_type GENERIC_HTTPS in upper case",
     "config": {
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {}
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
       "connector_type": "GENERIC_HTTPS",
       "entity_type": "alerts",
       "name": "v",
@@ -52,6 +84,22 @@
   {
     "step": "entity_type olly_scheduled_tasks",
     "config": {
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {}
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
       "connector_type": "generic_https",
       "entity_type": "olly_scheduled_tasks",
       "name": "v",
@@ -66,6 +114,22 @@
     "step": "attachment_config enabled in lower case",
     "config": {
       "attachment_config": "enabled",
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {}
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
       "connector_type": "generic_https",
       "entity_type": "alerts",
       "name": "v",

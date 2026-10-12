@@ -123,7 +123,9 @@ func TestRecordPresetFidelity(t *testing.T) {
 			if status == http.StatusForbidden && !presetStepMayForbid(s) {
 				t.Fatalf("Notification Center returned 403 Permission Denied. Recording needs a management API key that can create a custom preset.")
 			}
-			if status >= 200 && status < 300 && presetStepMayForbid(s) {
+			// Delete of a system id on the custom path returns 200 and leaves the
+			// preset. A replace that returns 2xx would change that preset.
+			if s.Method != http.MethodDelete && status >= 200 && status < 300 && presetStepMayForbid(s) {
 				t.Fatalf("a system preset step succeeded with %d on %s %s", status, s.Method, s.Path)
 			}
 			rec.Steps = append(rec.Steps, struct {
@@ -187,8 +189,9 @@ func recordPresetFidelityStep(t *testing.T, base, apiKey string, s fidelityStep,
 	return resp.StatusCode, unsubstJSON(t, parsed, vars)
 }
 
-// presetStepMayForbid reports a step whose target is a system preset. Those
-// calls are in the cases to record the rejection. A custom create is not.
+// presetStepMayForbid reports a step whose target is a system preset. A custom
+// create is not. Delete of that id is recorded as the API answers it. Replace
+// is expected to be rejected.
 func presetStepMayForbid(s fidelityStep) bool {
 	if s.Method == http.MethodDelete && strings.Contains(s.Path, "/custom/preset_system_") {
 		return true

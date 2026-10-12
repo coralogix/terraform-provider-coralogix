@@ -33,10 +33,10 @@ const presetSystemParent = "preset_system_generic_https_alerts_empty"
 
 // presetFake follows notification-config-hub PresetsService, not the Go client.
 // Custom create requires a system parent whose entity and connector types match.
-// presetType is ignored on input and stored as CUSTOM. An empty description and
-// an AUTO attachment policy are omitted on read (proto3 defaults). configOverrides
-// keep their order and a replace stores exactly the list that was sent. Message
-// fields are a set ordered by fieldName; a repeated fieldName keeps the first.
+// presetType is ignored on input and stored as CUSTOM. An omitted description
+// reads back as "". An AUTO attachment policy is omitted. configOverrides are
+// required, keep their order, and a replace stores the list that was sent.
+// Message fields are a set ordered by fieldName; a repeated fieldName keeps the first.
 type presetFake struct {
 	mu           sync.Mutex
 	presets      map[string]map[string]any
@@ -75,7 +75,7 @@ func (f *presetFake) reset() {
 			"presetType":    "SYSTEM",
 			"configOverrides": []any{map[string]any{
 				"conditionType": map[string]any{"matchEntityType": map[string]any{}},
-				"payloadType":   "generic_https_empty",
+				"payloadType":   "generic_https_default",
 				"messageConfig": map[string]any{"fields": []any{
 					map[string]any{"fieldName": "body", "template": "{}"},
 				}},
@@ -160,7 +160,7 @@ func (f *presetFake) delete(id string) (int, any) {
 		return grFail(f.deleteStatus, "Preset with id '"+id+"' not found")
 	}
 	if _, system := f.system[id]; system {
-		return grFail(http.StatusNotFound, "Preset with id '"+id+"' not found")
+		return http.StatusOK, map[string]any{}
 	}
 	if _, found := f.presets[id]; !found {
 		return grFail(http.StatusNotFound, "Preset with id '"+id+"' not found")
@@ -205,6 +205,8 @@ func (f *presetFake) write(body any, replace bool) (int, any) {
 	}
 	if desc, _ := preset["description"].(string); desc != "" {
 		stored["description"] = desc
+	} else {
+		stored["description"] = ""
 	}
 	if policy := attachmentPolicy(preset["attachmentConfig"]); policy != "" {
 		stored["attachmentPolicy"] = policy
@@ -254,7 +256,10 @@ func (f *presetFake) check(preset map[string]any, replace bool) (int, any) {
 	}
 	parent, found := f.system[parentID]
 	if !found {
-		return grFail(http.StatusBadRequest, "Parent preset not found")
+		return grFail(http.StatusNotFound, "System preset with id "+parentID+" not found")
+	}
+	if status, resp := emptyOverrides(preset["configOverrides"]); status != 0 {
+		return status, resp
 	}
 	if parent["entityType"] != entity || parent["connectorType"] != connector {
 		return grFail(http.StatusBadRequest, "Parent preset entity type and connector type must match with child preset")
@@ -292,7 +297,7 @@ func (f *presetFake) present(stored map[string]any) map[string]any {
 	if parent, ok := stored["parentId"].(string); ok && parent != "" {
 		out["parentId"] = parent
 	}
-	if desc, ok := stored["description"].(string); ok && desc != "" {
+	if desc, ok := stored["description"].(string); ok {
 		out["description"] = desc
 	}
 	if policy, _ := stored["attachmentPolicy"].(string); policy != "" && policy != "AUTO" {
@@ -326,6 +331,17 @@ func parentPayload(parent map[string]any) string {
 		}
 	}
 	return ""
+}
+
+func emptyOverrides(in any) (int, any) {
+	if in == nil {
+		return grFail(http.StatusBadRequest, "Config overrides must not be empty")
+	}
+	arr, ok := in.([]any)
+	if ok && len(arr) == 0 {
+		return grFail(http.StatusBadRequest, "Config overrides must not be empty")
+	}
+	return 0, nil
 }
 
 func normalizeOverrides(in any, parent map[string]any) ([]any, int, any) {

@@ -14,7 +14,23 @@
     ],
     "state": {
       "attachment_config": "DISABLED",
-      "config_overrides": [],
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {},
+            "match_entity_type_and_sub_type": null
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
       "connector_type": "generic_https",
       "description": "made outside Terraform",
       "entity_type": "alerts",
@@ -25,6 +41,7 @@
     "drift": [
       "AttributeName(\"attachment_config\")",
       "AttributeName(\"config_overrides\")",
+      "AttributeName(\"config_overrides\").ElementKeyInt(0)",
       "AttributeName(\"connector_type\")",
       "AttributeName(\"description\")",
       "AttributeName(\"entity_type\")",
@@ -36,6 +53,22 @@
     "step": "plan the matching config",
     "config": {
       "attachment_config": "DISABLED",
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {}
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
       "connector_type": "generic_https",
       "description": "made outside Terraform",
       "entity_type": "alerts",
@@ -44,7 +77,23 @@
     },
     "plan": {
       "attachment_config": "DISABLED",
-      "config_overrides": [],
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {},
+            "match_entity_type_and_sub_type": null
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
       "connector_type": "generic_https",
       "description": "made outside Terraform",
       "entity_type": "alerts",
@@ -55,7 +104,23 @@
     "noChange": true,
     "state": {
       "attachment_config": "DISABLED",
-      "config_overrides": [],
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {},
+            "match_entity_type_and_sub_type": null
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
       "connector_type": "generic_https",
       "description": "made outside Terraform",
       "entity_type": "alerts",

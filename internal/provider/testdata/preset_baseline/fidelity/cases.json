@@ -12,7 +12,13 @@
               "name": "bare",
               "entityType": "ALERTS",
               "connectorType": "GENERIC_HTTPS",
-              "parentId": "preset_system_generic_https_alerts_empty"
+              "parentId": "preset_system_generic_https_alerts_empty",
+              "configOverrides": [
+                {
+                  "conditionType": {"matchEntityTypeAndSubType": {"entitySubType": "logsImmediateResolved"}},
+                  "messageConfig": {"fields": [{"fieldName": "body", "template": "{}"}]}
+                }
+              ]
             }
           }
         },
@@ -23,7 +29,7 @@
       ]
     },
     {
-      "name": "message fields are a set and config override order is kept",
+      "name": "duplicate message fields collapse and config override order is kept",
       "steps": [
         {
           "method": "POST",
@@ -37,17 +43,15 @@
               "parentId": "preset_system_generic_https_alerts_empty",
               "configOverrides": [
                 {
-                  "conditionType": {"matchEntityTypeAndSubType": {"entitySubType": "second"}},
+                  "conditionType": {"matchEntityTypeAndSubType": {"entitySubType": "logsImmediateResolved"}},
                   "messageConfig": {"fields": [
-                    {"fieldName": "zeta", "template": "z"},
-                    {"fieldName": "alpha", "template": "a"},
-                    {"fieldName": "alpha", "template": "duplicate"}
+                    {"fieldName": "body", "template": "{}"},
+                    {"fieldName": "body", "template": "{}"}
                   ]}
                 },
                 {
                   "conditionType": {"matchEntityType": {}},
-                  "payloadType": "kept",
-                  "messageConfig": {"fields": [{"fieldName": "body", "template": "b"}]}
+                  "messageConfig": {"fields": [{"fieldName": "body", "template": "{}"}]}
                 }
               ]
             }
@@ -56,7 +60,7 @@
       ]
     },
     {
-      "name": "replace clears config overrides and does not inherit the parent",
+      "name": "replace without config overrides is rejected",
       "steps": [
         {
           "method": "POST",
@@ -72,8 +76,8 @@
               "attachmentConfig": {"policy": "ENABLED"},
               "configOverrides": [
                 {
-                  "conditionType": {"matchEntityType": {}},
-                  "messageConfig": {"fields": [{"fieldName": "body", "template": "b"}]}
+                  "conditionType": {"matchEntityTypeAndSubType": {"entitySubType": "logsImmediateResolved"}},
+                  "messageConfig": {"fields": [{"fieldName": "body", "template": "{}"}]}
                 }
               ]
             }

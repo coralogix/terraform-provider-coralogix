@@ -2,6 +2,22 @@
   {
     "step": "create",
     "config": {
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {}
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
       "connector_type": "generic_https",
       "entity_type": "alerts",
       "id": "first",
@@ -10,7 +26,23 @@
     },
     "plan": {
       "attachment_config": "AUTO",
-      "config_overrides": "(unknown)",
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {},
+            "match_entity_type_and_sub_type": null
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
       "connector_type": "generic_https",
       "description": null,
       "entity_type": "alerts",
@@ -27,6 +59,19 @@
             "attachmentConfig": {
               "policy": "AUTO"
             },
+            "configOverrides": [
+              {
+                "messageConfig": {
+                  "fields": [
+                    {
+                      "fieldName": "body",
+                      "template": "{}"
+                    }
+                  ]
+                },
+                "payloadType": "generic_https_default"
+              }
+            ],
             "connectorType": "GENERIC_HTTPS",
             "entityType": "ALERTS",
             "id": "first",
@@ -40,7 +85,23 @@
     ],
     "state": {
       "attachment_config": "AUTO",
-      "config_overrides": [],
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {},
+            "match_entity_type_and_sub_type": null
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
       "connector_type": "generic_https",
       "description": null,
       "entity_type": "alerts",
@@ -53,6 +114,22 @@
   {
     "step": "update: change id",
     "config": {
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {}
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
       "connector_type": "generic_https",
       "entity_type": "alerts",
       "id": "second",
@@ -61,7 +138,23 @@
     },
     "plan": {
       "attachment_config": "AUTO",
-      "config_overrides": "(unknown)",
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {},
+            "match_entity_type_and_sub_type": null
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
       "connector_type": "generic_https",
       "description": null,
       "entity_type": "alerts",
@@ -74,7 +167,23 @@
     ],
     "state": {
       "attachment_config": "AUTO",
-      "config_overrides": [],
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {},
+            "match_entity_type_and_sub_type": null
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
       "connector_type": "generic_https",
       "description": null,
       "entity_type": "alerts",

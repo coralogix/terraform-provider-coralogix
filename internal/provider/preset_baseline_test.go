@@ -53,6 +53,11 @@ func presetConfig(name string, extra ...j) j {
 		"entity_type":    "alerts",
 		"connector_type": "generic_https",
 		"parent_id":      presetSystemParent,
+		"config_overrides": l{
+			presetOverride("generic_https_default", l{
+				j{"field_name": "body", "template": "{}"},
+			}),
+		},
 	}
 	for _, e := range extra {
 		for k, v := range e {
@@ -155,6 +160,11 @@ var presetScenarios = map[string]func(h *grHarness){
 			"name": "seeded", "entityType": "ALERTS", "connectorType": "GENERIC_HTTPS",
 			"parentId": presetSystemParent, "description": "made outside Terraform",
 			"attachmentConfig": j{"policy": "DISABLED"},
+			"configOverrides": l{j{
+				"conditionType": j{"matchEntityType": j{}},
+				"payloadType":   "generic_https_default",
+				"messageConfig": j{"fields": l{j{"fieldName": "body", "template": "{}"}}},
+			}},
 		})
 		s := h.Import("import", id)
 		h.Apply("plan the matching config", s, presetConfig("seeded", j{
