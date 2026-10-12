@@ -39,6 +39,8 @@ types:
     fields:
       remoteConfigurations:
         keepPriorOrder: true
+        validators:
+          - sizeAtLeast: 1
 enums:
   ChartName:
     zero: CHART_NAME_UNSPECIFIED

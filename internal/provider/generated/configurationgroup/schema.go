@@ -3,6 +3,7 @@
 package configurationgroup
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -157,6 +158,9 @@ func Schema() schema.Schema {
 							},
 							"remote_configurations": schema.ListNestedAttribute{
 								Required: true,
+								Validators: []validator.List{
+									listvalidator.SizeAtLeast(1),
+								},
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
 										"agent_selector": schema.SingleNestedAttribute{
