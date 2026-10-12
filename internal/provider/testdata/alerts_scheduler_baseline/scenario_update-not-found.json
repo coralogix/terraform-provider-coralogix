@@ -1,0 +1,158 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "gone",
+      "schedule": {
+        "operation": "mute",
+        "recurring": {
+          "always_active": true
+        }
+      }
+    },
+    "plan": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "(unknown)",
+      "meta_labels": null,
+      "name": "gone",
+      "schedule": {
+        "one_time": null,
+        "operation": "mute",
+        "recurring": {
+          "always_active": true,
+          "dynamic": null
+        }
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1",
+        "body": {
+          "alertSchedulerRule": {
+            "description": "",
+            "enabled": true,
+            "filter": {
+              "whatExpression": "source logs | filter true"
+            },
+            "name": "gone",
+            "schedule": {
+              "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "gone",
+      "schedule": {
+        "one_time": null,
+        "operation": "mute",
+        "recurring": {
+          "always_active": true,
+          "dynamic": null
+        }
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: deleted outside Terraform",
+    "config": {
+      "description": "changed",
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "gone",
+      "schedule": {
+        "operation": "mute",
+        "recurring": {
+          "always_active": true
+        }
+      }
+    },
+    "plan": {
+      "description": "changed",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "(unknown)",
+      "meta_labels": null,
+      "name": "gone",
+      "schedule": {
+        "one_time": null,
+        "operation": "mute",
+        "recurring": {
+          "always_active": true,
+          "dynamic": null
+        }
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1",
+        "body": {
+          "alertSchedulerRule": {
+            "description": "changed",
+            "enabled": true,
+            "filter": {
+              "whatExpression": "source logs | filter true"
+            },
+            "name": "gone",
+            "schedule": {
+              "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+            },
+            "uniqueIdentifier": "00000000-0000-4000-8000-000000000001"
+          }
+        },
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error updating alerts-scheduler | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: {\\\"reason\\\":\\\"alert scheduler rule 00000000-0000-4000-8000-000000000001 not found\\\"}\"}\noperation - Update"
+    ],
+    "state": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "gone",
+      "schedule": {
+        "one_time": null,
+        "operation": "mute",
+        "recurring": {
+          "always_active": true,
+          "dynamic": null
+        }
+      }
+    }
+  }
+]
