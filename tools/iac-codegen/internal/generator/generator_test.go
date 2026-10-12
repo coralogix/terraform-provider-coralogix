@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -1675,4 +1676,67 @@ func TestImmutableValueRejectsOptionalComputedOverride(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "settings: the immutable value holds the optional and computed attribute settings.zone") {
 		t.Fatalf("err = %v, want the optional and computed attribute settings.zone", err)
 	}
+}
+
+// LegacyTarget is one component in the request and the response, and its id is readOnly.
+// Without a skip line, the id is a computed attribute: flatten reads it, expand does not send
+// it, and the output compiles against the SDK struct that has the field.
+func TestSharedComponentReadOnlyFieldIsFlattenedOnly(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "legacy.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overrides, err := os.ReadFile(filepath.Join("testdata", "legacy-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const skip = "      id: {skip: true}\n"
+	if !strings.Contains(string(overrides), skip) {
+		t.Fatal("legacy-overrides.yaml has no skip line for LegacyTarget.id: update the test")
+	}
+	overridesPath := filepath.Join(t.TempDir(), "behavior-overrides.yaml")
+	if err := os.WriteFile(overridesPath, []byte(strings.Replace(string(overrides), skip, "", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "legacything")
+	options := Options{Resource: "LegacyThing", OutputDir: out, OverridesPath: overridesPath}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	convert, err := os.ReadFile(filepath.Join(out, "convert.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	expand := functionBody(t, string(convert), "func expandLegacyTarget(")
+	flatten := functionBody(t, string(convert), "func flattenLegacyTarget(")
+	if strings.Contains(expand, ".Id") {
+		t.Errorf("expandLegacyTarget sends the readOnly id:\n%s", expand)
+	}
+	if !strings.Contains(flatten, "out.Id = ") {
+		t.Errorf("flattenLegacyTarget does not read the id:\n%s", flatten)
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !regexp.MustCompile(`"id": schema\.StringAttribute\{\s*Computed: +true,`).Match(schema) {
+		t.Errorf("schema.go has no computed-only target id")
+	}
+	compileGenerated(t, out, input)
+}
+
+// functionBody returns the text of the Go function that starts with signature.
+func functionBody(t *testing.T, source, signature string) string {
+	t.Helper()
+	start := strings.Index(source, signature)
+	if start < 0 {
+		t.Fatalf("no %s in the output", signature)
+	}
+	end := strings.Index(source[start:], "\n}\n")
+	if end < 0 {
+		t.Fatalf("%s has no end", signature)
+	}
+	return source[start : start+end]
 }

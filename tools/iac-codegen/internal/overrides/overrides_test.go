@@ -122,6 +122,15 @@ func TestAValidatorSetsExactlyOneKey(t *testing.T) {
 	}
 }
 
+func TestLengthBetweenIsMinAndMax(t *testing.T) {
+	for _, bounds := range []string{"[1]", "[5, 1]", "[-1, 3]", "[1, 2, 3]"} {
+		_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {validators: [{lengthBetween: " + bounds + "}]}\n"))
+		if err == nil || !strings.Contains(err.Error(), "lengthBetween") {
+			t.Fatalf("%s: err = %v, want an error about lengthBetween", bounds, err)
+		}
+	}
+}
+
 func TestARequiredFieldCannotBeComputed(t *testing.T) {
 	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {required: true, computed: true}\n"))
 	if err == nil || !strings.Contains(err.Error(), "cannot be computed") {

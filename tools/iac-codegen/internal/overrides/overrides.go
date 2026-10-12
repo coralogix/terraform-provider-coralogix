@@ -212,6 +212,8 @@ type Validator struct {
 	SizeAtLeast *int     `yaml:"sizeAtLeast"`
 	// LengthAtLeast is a released stringvalidator.LengthAtLeast.
 	LengthAtLeast *int `yaml:"lengthAtLeast"`
+	// LengthBetween is a released stringvalidator.LengthBetween: [min, max].
+	LengthBetween []int `yaml:"lengthBetween"`
 	// Enum: true accepts the Terraform values of the enum of the field, as the enums line of
 	// the enum states them. The list of values has one source, so it cannot drift.
 	Enum bool `yaml:"enum"`
@@ -483,11 +485,17 @@ func checkValidators(validators []Validator) error {
 		if v.LengthAtLeast != nil {
 			set++
 		}
+		if v.LengthBetween != nil {
+			if len(v.LengthBetween) != 2 || v.LengthBetween[0] < 0 || v.LengthBetween[0] > v.LengthBetween[1] {
+				return errors.New("lengthBetween is [min, max] with 0 <= min <= max")
+			}
+			set++
+		}
 		if v.Enum {
 			set++
 		}
 		if set != 1 {
-			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, and enum")
+			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, lengthBetween, and enum")
 		}
 	}
 	return nil
@@ -529,9 +537,6 @@ func (f *File) Policy() model.Policy {
 			}
 			if t.Fields[field].Skip {
 				p.Skip = append(p.Skip, name+"."+field)
-			}
-			if t.Fields[field].RequestValue != "" {
-				p.FixedRequest = append(p.FixedRequest, name+"."+field)
 			}
 			if t.Fields[field].ReadOnly {
 				p.ReadOnly = append(p.ReadOnly, name+"."+field)

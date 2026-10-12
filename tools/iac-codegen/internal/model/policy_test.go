@@ -77,7 +77,6 @@ func TestEachPolicyFieldRelaxesOneRule(t *testing.T) {
 		"update id in body": {func(p *Policy) { p.UpdateIDInBody = false }, "UPDATE_ID_IN_BODY_UNSUPPORTED"},
 		"client set id":     {func(p *Policy) { p.ClientSetID = false }, "RESOURCE_ID_OPTIONAL"},
 		"enum prefix":       {func(p *Policy) { p.EnumAnyPrefix = nil }, "ENUM_ZERO_INVALID"},
-		"skip":              {func(p *Policy) { p.Skip = nil }, "FIELD_LIFECYCLE_UNSUPPORTED"},
 		"released":          {func(p *Policy) { p.Released = nil }, "FIELD_PRESENCE_UNKNOWN"},
 		"existing":          {func(p *Policy) { p.Existing = false }, "RESPONSE_WRAPPER_UNSUPPORTED"},
 	}
@@ -89,6 +88,34 @@ func TestEachPolicyFieldRelaxesOneRule(t *testing.T) {
 				t.Fatalf("codes = %v, want %s", got, test.code)
 			}
 		})
+	}
+}
+
+// LegacyTarget is one component in the request and the response. The request does not
+// send its readOnly id, so the id is computed, and the resource needs no skip line for it.
+func TestNestedReadOnlyRequestFieldIsComputed(t *testing.T) {
+	doc, err := Load(legacyDoc(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := legacyPolicy()
+	p.Skip = nil
+	if got := legacyCodes(t, p); len(got) != 0 {
+		t.Fatalf("codes = %v, want none", got)
+	}
+	r, err := BuildWithPolicy(doc, "LegacyThing", OperationIDs{}, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rules := r.Fields[slices.IndexFunc(r.Fields, func(f *ResourceField) bool { return f.Name == "rules" })]
+	targets := fieldNamed(rules.Type.Elem.Fields, "targets")
+	id := fieldNamed(targets.Type.Elem.Fields, "id")
+	connector := fieldNamed(targets.Type.Elem.Fields, "connectorId")
+	if id.Behavior != Computed || id.Create != nil || id.Update != nil {
+		t.Errorf("id: behavior %q, create %v, update %v; want computed and in no request", id.Behavior, id.Create, id.Update)
+	}
+	if connector.Behavior != Normal {
+		t.Errorf("connectorId: behavior %q, want normal", connector.Behavior)
 	}
 }
 

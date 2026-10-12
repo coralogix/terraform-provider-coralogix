@@ -36,6 +36,31 @@ func TestClassifyFieldLifecycle(t *testing.T) {
 	}
 }
 
+// With updateIDInBody, the id path parameter of Get is a computed field even when only
+// Update sends it. The rule follows the parameter name, and no other field gets it.
+func TestBodyOnlyUpdateIDIsComputed(t *testing.T) {
+	inBody := Policy{UpdateIDInBody: true}
+	tests := []struct {
+		name    string
+		policy  Policy
+		idParam string
+		field   string
+		want    Behavior
+		valid   bool
+	}{
+		{"id in the body", inBody, "id", "id", Computed, true},
+		{"named id parameter", inBody, "folder_id", "folder_id", Computed, true},
+		{"another field", inBody, "folder_id", "id", "", false},
+		{"id in the path", Policy{}, "id", "id", "", false},
+	}
+	for _, test := range tests {
+		got, err := classifyTopLevel(test.policy, test.idParam, test.field, false, true, true)
+		if (err == nil) != test.valid || got != test.want {
+			t.Errorf("%s: classifyTopLevel = %q, %v; want %q, valid=%t", test.name, got, err, test.want, test.valid)
+		}
+	}
+}
+
 func TestResolveResourceName(t *testing.T) {
 	doc, err := Load(validSpec(t))
 	if err != nil {

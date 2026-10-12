@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -205,5 +206,41 @@ func TestUnwrapIsOnlyForExistingResources(t *testing.T) {
 	p.Existing = false
 	if typ := wrapField(t, buildWrapThing(t, p), "query").Type; typ.Kind != Object || len(typ.Wrappers) != 0 {
 		t.Fatalf("query = %s with %d wrappers, want the object", typ.Kind, len(typ.Wrappers))
+	}
+}
+
+// openapi-generator writes one Go package per tag and drops the components that the tag does
+// not use. An inline body title gets the "1" suffix only when a component of the same name is
+// in that package, so a component that only another tag uses does not rename the body type.
+func TestBodyTitleCollidesOnlyWithinTheTag(t *testing.T) {
+	otherPath := "  /other/v1/things:\n    get:\n      tags: [%s]\n      operationId: OtherService_GetOther\n" +
+		"      responses:\n        '200':\n          description: ok\n          content:\n            application/json:\n" +
+		"              schema: {$ref: '#/components/schemas/OtherThing'}\n  /wrap/v1/things/{id}:\n"
+	tests := map[string]struct {
+		tag  string
+		want bool
+	}{
+		"component of another tag":  {"Other Service", false},
+		"component of the same tag": {"Wrap Things Service", true},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			spec := wrapSpec(t,
+				"title: Create Wrap Thing Request", "title: OtherThing",
+				"  /wrap/v1/things/{id}:\n", fmt.Sprintf(otherPath, test.tag),
+				"  schemas:\n", "  schemas:\n    OtherThing:\n      type: object\n      required: []\n      properties:\n        note: {type: string}\n",
+			)
+			doc, err := Load(spec)
+			if err != nil {
+				t.Fatal(err)
+			}
+			r, err := BuildWithPolicy(doc, "WrapThing", OperationIDs{}, wrapPolicy())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if r.Create.BodyTitle != "OtherThing" || r.Create.BodyTitleIsComponent != test.want {
+				t.Fatalf("create body title %q collides %t, want OtherThing and %t", r.Create.BodyTitle, r.Create.BodyTitleIsComponent, test.want)
+			}
+		})
 	}
 }

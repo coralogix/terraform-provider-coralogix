@@ -312,10 +312,11 @@ func validateFieldContracts(p Policy, name string, ops map[verb]foundOp) issue.R
 	slices.Sort(names)
 	names = slices.Compact(names)
 	var report issue.Report
-	bodyOnlyID := ""
-	if len(pathParams(ops[opUpdate])) == 0 && !p.UpdateIDInBody {
-		if params := pathParams(ops[opGet]); len(params) == 1 {
-			bodyOnlyID = params[0].Name
+	idParam, bodyOnlyID := "", ""
+	if params := pathParams(ops[opGet]); len(params) == 1 {
+		idParam = params[0].Name
+		if len(pathParams(ops[opUpdate])) == 0 && !p.UpdateIDInBody {
+			bodyOnlyID = idParam
 		}
 	}
 	for _, field := range names {
@@ -325,7 +326,7 @@ func validateFieldContracts(p Policy, name string, ops map[verb]foundOp) issue.R
 		if p.UpdateMaskInBody && isUpdateMaskName(field) {
 			continue // The mask stays in the JSON body and is not a Terraform field.
 		}
-		report = append(report, validateFieldContract(p, name, field, create, update, get)...)
+		report = append(report, validateFieldContract(p, name, idParam, field, create, update, get)...)
 	}
 	report = append(report, resourceIDIssues(p, name, ops, get)...)
 	report = append(report, bodyIDIssues(p, ops, create, update)...)
@@ -531,14 +532,14 @@ func responseWrapperIssues(p Policy, name string, ops map[verb]foundOp) issue.Re
 	return report
 }
 
-func validateFieldContract(p Policy, name, field string, create, update, get *base.Schema) issue.Report {
+func validateFieldContract(p Policy, name, idParam, field string, create, update, get *base.Schema) issue.Report {
 	cp, up := requestContractProperty(create, field), requestContractProperty(update, field)
 	if p.readOnly(name, field) {
 		cp, up = nil, nil
 	}
 	gp := propertyOf(get, field)
 	location := fieldLocation(name, field)
-	if _, err := Classify(cp != nil, up != nil, gp != nil); err != nil {
+	if _, err := classifyTopLevel(p, idParam, field, cp != nil, up != nil, gp != nil); err != nil {
 		return issue.Report{{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field locations are Create=%t, Update=%t, Get=%t.", cp != nil, up != nil, gp != nil), Remediation: "Use a managed, immutable, or computed field lifecycle."}}
 	}
 	var report issue.Report
@@ -563,8 +564,6 @@ func validateFieldContract(p Policy, name, field string, create, update, get *ba
 	wrapped := p.unwraps(name, field, wrapperComponent(gp))
 	report = append(report, nestedPresenceIssues(p, location+".create", cp, gp, wrapped, map[presenceVisit]bool{})...)
 	report = append(report, nestedPresenceIssues(p, location+".update", up, gp, wrapped, map[presenceVisit]bool{})...)
-	report = append(report, nestedReadOnlyIssues(p, location+".create", cp, map[*base.Schema]bool{})...)
-	report = append(report, nestedReadOnlyIssues(p, location+".update", up, map[*base.Schema]bool{})...)
 	report = append(report, unsupportedSchemaIssues(p, location+".create", cp, true, map[*base.Schema]bool{})...)
 	report = append(report, unsupportedSchemaIssues(p, location+".update", up, true, map[*base.Schema]bool{})...)
 	report = append(report, unsupportedSchemaIssues(p, location+".get", gp, false, map[*base.Schema]bool{})...)
@@ -854,46 +853,6 @@ func rootContractGroups(schema *base.Schema) ([]OneOfGroup, error) {
 		return strings.Compare(strings.Join(a.Arms, "\x00"), strings.Join(b.Arms, "\x00"))
 	})
 	return groups, nil
-}
-
-func nestedReadOnlyIssues(p Policy, location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
-	if proxy == nil {
-		return nil
-	}
-	schema, err := schemaOf(proxy)
-	if err != nil || seen[schema] {
-		return nil
-	}
-	seen[schema] = true
-	var report issue.Report
-	for _, name := range propertyNames(schema) {
-		child := propertyOf(schema, name)
-		childSchema, childErr := schemaOf(child)
-		if childErr != nil {
-			continue
-		}
-		childLocation := location + "." + name
-		if p.skips(referencedComponent(proxy), name) {
-			continue // the resource does not manage this field, so it is never sent
-		}
-		if childSchema.ReadOnly != nil && *childSchema.ReadOnly {
-			// requestValue sends a fixed value, so the field is not a server-only
-			// property the renderer has to drop.
-			if p.fixedRequest(referencedComponent(proxy), name) {
-				continue
-			}
-			report = append(report, issue.Issue{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: childLocation, Message: "A nested request field is readOnly and cannot be removed by the current resource renderer.", Remediation: "Use separate request and response schemas so server-only fields are absent from request objects."})
-			continue
-		}
-		report = append(report, nestedReadOnlyIssues(p, childLocation, child, seen)...)
-	}
-	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, nestedReadOnlyIssues(p, location+"[]", schema.Items.A, seen)...)
-	}
-	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, nestedReadOnlyIssues(p, location+"{}", schema.AdditionalProperties.A, seen)...)
-	}
-	return report
 }
 
 // fieldTypeIssues merges the Create and Update types of a field into its type

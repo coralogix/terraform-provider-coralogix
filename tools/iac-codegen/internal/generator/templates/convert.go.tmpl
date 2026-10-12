@@ -410,7 +410,9 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 	}
 	out := &{{$sdk}}.{{.SDK}}{}
 {{- range .Fields}}
+{{- if not .FlattenOnly}}
 {{- template "expandField" .}}
+{{- end}}
 {{- end}}
 	return out
 }
