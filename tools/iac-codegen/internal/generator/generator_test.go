@@ -1819,7 +1819,7 @@ func TestSingletonGeneration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(schema), "stringdefault.StaticString(TypeName)") || strings.Contains(string(schema), "UseStateForUnknown") {
+	if !strings.Contains(string(schema), "stringdefault.StaticString(SingletonID)") || strings.Contains(string(schema), "UseStateForUnknown") {
 		t.Fatalf("singleton id must have a static default and no plan modifier:\n%s", schema)
 	}
 	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
@@ -1828,6 +1828,9 @@ func TestSingletonGeneration(t *testing.T) {
 	}
 	if !strings.Contains(string(resource), "SettingsServiceGetSettings(ctx).Execute()") {
 		t.Fatalf("singleton Get must have no id argument:\n%s", resource)
+	}
+	if !strings.Contains(string(resource), "const SingletonID = TypeName") {
+		t.Fatalf("a singleton without an upsert id must use the type name as its id:\n%s", resource)
 	}
 	semantics := `package settings
 
@@ -2096,6 +2099,57 @@ func TestRenamedUpdateOnlyFieldUsesItsName(t *testing.T) {
 	}
 	if !strings.Contains(string(resource), `{attr: "compact_mode",`) || strings.Contains(string(resource), `{attr: "compact",`) {
 		t.Fatalf("updateOnlyFields does not name compact_mode:\n%s", functionBody(t, string(resource), "var updateOnlyFields"))
+	}
+	compileGenerated(t, out, input)
+}
+
+// The golden output of a singleton that one call sets and another reads. Create and Update are
+// the Set call, Delete makes no call, and the fields of the hoisted objects are top-level
+// attributes. Read treats a response without the hoisted arm as no resource.
+func TestGoldenOutputUpsert(t *testing.T) {
+	out := generateUpsertThing(t)
+	golden := filepath.Join("testdata", "golden", "upsertthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputUpsert -update:\n%s", diff)
+	}
+}
+
+// generateUpsertThing generates the synthetic singleton that one call sets and another reads.
+func generateUpsertThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "upsert.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "upsertthing")
+	options := Options{Resource: "Target", OutputDir: out, OverridesPath: filepath.Join("testdata", "upsert-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// The generated singleton that one call sets creates and updates with that call, makes no call on
+// Delete, and removes the resource from the state when the API returns another arm.
+func TestUpsertRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateUpsertThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "upsert_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
 	}
 	compileGenerated(t, out, input)
 }

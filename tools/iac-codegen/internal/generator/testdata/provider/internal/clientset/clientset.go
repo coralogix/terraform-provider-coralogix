@@ -10,6 +10,7 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/shared_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/suppressed_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/upsert_service"
 	"example.com/iac-test-sdk/go/openapi/gen/wrap_things_service"
 )
 
@@ -24,6 +25,7 @@ type ClientSet struct {
 	Shared         *shared_things_service.SharedThingsServiceAPIService
 	Echo           *echo_things_service.EchoThingsServiceAPIService
 	Suppressed     *suppressed_things_service.SuppressedThingsServiceAPIService
+	UpsertClient   *upsert_service.UpsertServiceAPIService
 }
 
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
@@ -61,3 +63,4 @@ func (c *ClientSet) EchoThings() *echo_things_service.EchoThingsServiceAPIServic
 func (c *ClientSet) SuppressedThings() *suppressed_things_service.SuppressedThingsServiceAPIService {
 	return c.Suppressed
 }
+func (c *ClientSet) Upsert() *upsert_service.UpsertServiceAPIService { return c.UpsertClient }

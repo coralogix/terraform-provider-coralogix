@@ -1,0 +1,35 @@
+# The behavior-overrides file of the synthetic singleton that one call sets and another reads.
+resource: Target
+mode: existing
+typeName: upsert_thing
+
+validators:
+  inferred: false
+
+fixedID: upsert-thing-settings
+
+api:
+  upsert:
+    get: UpsertService_GetTarget
+    set: UpsertService_SetTarget
+
+types:
+  Target:
+    fields:
+      spec:
+        hoist: true
+      meta:
+        hoist: true
+      other:
+        skip: true
+      enabled:
+        name: active
+        computed: true
+        default: true
+      zone:
+        computed: true
+        useStateForUnknown: true
+      version:
+        useStateForUnknown: true
+      token:
+        readOnly: true

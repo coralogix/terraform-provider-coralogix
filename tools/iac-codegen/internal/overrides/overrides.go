@@ -40,7 +40,7 @@ type File struct {
 	// Schema is the Terraform schema version and how old state is upgraded.
 	Schema Schema `yaml:"schema"`
 	// API describes the parts of the HTTP contract that differ from a new resource.
-	API iacoverrides.API `yaml:"api"`
+	API API `yaml:"api"`
 	// Validators says which validators the generated resource has.
 	Validators Validators `yaml:"validators"`
 	// Types has one entry per OpenAPI component.
@@ -51,6 +51,12 @@ type File struct {
 	// value of that property, for example LuceneQuery in {"luceneQuery": {"value": "error"}}. It
 	// applies in every place that has no unwrap key on its field line.
 	Unwrap []string `yaml:"unwrap"`
+	// Hoisted is what the generator derives from the upsert and hoist lines. It is not a key of
+	// the file.
+	Hoisted *Hoisted `yaml:"-"`
+	// FixedID is the released value of the id attribute of a singleton, for example
+	// "archive-logs-settings". "" uses the resource type name.
+	FixedID string `yaml:"fixedID"`
 	// TypeName is the released resource type name without the provider prefix, for example
 	// "slo_v2" for coralogix_slo_v2. "" names the resource after its OpenAPI component.
 	TypeName string `yaml:"typeName"`
@@ -58,6 +64,89 @@ type File struct {
 	// fields of the resource, for example sli = {request_based_metric_sli = ...} for the
 	// requestBasedMetricSli field of the API.
 	Groups map[string]Group `yaml:"groups"`
+}
+
+// API is the api section: the API keys of the iac module, and the Terraform keys.
+type API struct {
+	iacoverrides.API `yaml:",inline"`
+	// Upsert names the two calls of a singleton that always exists: a Get, and a Set that
+	// creates or replaces it. The API has no Create, Update, or Delete, so the generated Delete
+	// makes no call.
+	Upsert *Upsert `yaml:"upsert"`
+}
+
+// Upsert is a singleton that one call sets and another reads, for example GET and POST on
+// /logs/data-setup/v2. Create and Update send the whole resource with Set.
+type Upsert struct {
+	// Get is the operationId of the GET without path parameters.
+	Get string `yaml:"get"`
+	// Set is the operationId of the POST on the same path. It creates or replaces the resource.
+	Set string `yaml:"set"`
+}
+
+// Check checks the API keys, and that an upsert names both calls and no other key that names an
+// operation or the id: the singleton has one Set call and no id.
+func (a API) Check() error {
+	if err := a.API.Check(); err != nil {
+		return err
+	}
+	if a.Upsert == nil {
+		return nil
+	}
+	if a.Upsert.Get == "" || a.Upsert.Set == "" {
+		return errors.New("api.upsert.get and api.upsert.set are required")
+	}
+	if a.Operations != nil || a.Delete != nil || a.RequestWrapper != "" || a.UpdateIDInBody || a.ClientSetID || a.ServerSetID || a.IDProperty != "" || a.CustomMethods || a.UpdateMaskInBody {
+		return errors.New("api.upsert is a singleton that one call sets: it cannot have operations, delete, requestWrapper, updateIDInBody, clientSetID, serverSetID, idProperty, customMethods, or updateMaskInBody")
+	}
+	return nil
+}
+
+// Hoisted is, for each hoisted top-level field, the API object that holds it in the Create body,
+// the Update body, and the resource response. The generator reads the contract with each hoisted
+// object replaced by its fields, so the model sees top-level fields; the renderer reads and writes
+// them through the object.
+type Hoisted struct {
+	Create, Update, Get map[string]Parent
+}
+
+// Parent is the object field of the API that holds a hoisted top-level field.
+type Parent struct {
+	Field  string // API property of the object, for example "s3"
+	Schema string // component of the object
+	// Arm: the object is an arm of a oneOf group of the resource response, and the file skips the
+	// other arms. When Get returns no such object, the resource does not exist.
+	Arm bool
+}
+
+// Upserts reports whether the resource is a singleton that one call sets (api.upsert).
+func (f *File) Upserts() bool { return f != nil && f.API.Upsert != nil }
+
+// HoistedFields returns the fields of the resource that hoist lines name, in order.
+func (f *File) HoistedFields() []string {
+	if f == nil {
+		return nil
+	}
+	var out []string
+	for _, field := range sortedKeys(f.Types[f.Resource].Fields) {
+		if f.Types[f.Resource].Fields[field].Hoist {
+			out = append(out, field)
+		}
+	}
+	return out
+}
+
+// ParentOf returns the object that holds field in root ("create", "update", or "get"), or nil.
+func (f *File) ParentOf(root, field string) *Parent {
+	if f == nil || f.Hoisted == nil {
+		return nil
+	}
+	m := map[string]map[string]Parent{"create": f.Hoisted.Create, "update": f.Hoisted.Update, "get": f.Hoisted.Get}[root]
+	parent, ok := m[field]
+	if !ok {
+		return nil
+	}
+	return &parent
 }
 
 // Group is a required Terraform object that holds top-level fields of the resource.
@@ -220,6 +309,10 @@ type Field struct {
 	// ValueNames shows a list or set of integers as the names of its values, for example the
 	// weekdays 1 to 7 as Sunday to Saturday. Terraform holds strings; the API holds the numbers.
 	ValueNames map[int64]string `yaml:"valueNames"`
+	// Hoist: true shows the fields of this object field of the resource as top-level
+	// attributes, as the released resource did. The API sends and returns them inside the object.
+	// The lines of those fields are lines of the resource component.
+	Hoist bool `yaml:"hoist"`
 	// AsBool shows an object without fields as a bool, for example a oneOf arm alwaysActive: {}.
 	// true sends the empty object, false is an error, and a response that has the object reads
 	// as true; one without it reads as null.
@@ -406,7 +499,27 @@ func (f *File) check() error {
 	if err := f.API.Check(); err != nil {
 		return err
 	}
-	return f.checkTypes()
+	if err := f.checkTypes(); err != nil {
+		return err
+	}
+	return f.checkHoist()
+}
+
+// checkHoist checks that hoist lines are on fields of the resource component: a hoisted object
+// shows its fields as top-level attributes, and a nested object has none.
+func (f *File) checkHoist() error {
+	for _, name := range sortedKeys(f.Types) {
+		if name == f.Resource {
+			continue
+		}
+		for _, field := range sortedKeys(f.Types[name].Fields) {
+			line := f.Types[name].Fields[field]
+			if line.Hoist {
+				return fmt.Errorf("types.%s.fields.%s: hoist applies to a field of the resource %s", name, field, f.Resource)
+			}
+		}
+	}
+	return nil
 }
 
 // checkTypes checks the type lines: the required list, the field lines, and the extra attributes.
@@ -550,6 +663,7 @@ func (l Field) keys() []string {
 	add(len(l.Validators) != 0, "validators")
 	add(l.Equality != "", "equality")
 	add(l.Unwrap != nil, "unwrap")
+	add(l.Hoist, "hoist")
 	return keys
 }
 
@@ -597,7 +711,7 @@ func (l Field) empty() bool {
 
 func (l Field) emptyMode() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && l.Name == "" && len(l.ValueNames) == 0 && !l.AsBool && l.TerraformType == "" && !l.DefaultArm && l.Deprecation == "" &&
-		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown
+		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown && !l.Hoist
 }
 
 func (l Field) emptyValue() bool {
@@ -643,6 +757,9 @@ func (l Field) check() error {
 	}
 	if err := checkValueNames(l.ValueNames); err != nil {
 		return err
+	}
+	if l.Hoist && len(l.keys()) != 1 {
+		return errors.New("a hoisted field has no attribute of its own, so the line sets only hoist: put the other keys on the lines of its fields")
 	}
 	return checkValidators(l.Validators)
 }
@@ -829,7 +946,7 @@ func (f *File) Policy() model.Policy {
 
 // Exceptions returns the keys of the file that describe the API.
 func (f *File) Exceptions() iacoverrides.Exceptions {
-	e := iacoverrides.Exceptions{API: f.API, Unwrap: f.Unwrap}
+	e := iacoverrides.Exceptions{API: f.API.API, Unwrap: f.Unwrap}
 	for name, t := range f.Types {
 		for field, line := range t.Fields {
 			if e.Fields == nil {
@@ -859,7 +976,7 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, NoAttribute: t.noAttribute(), RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Accepted: file.accepted(f.KeyedBy), Equality: f.Equality, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, NoAttribute: t.noAttribute(), RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Accepted: file.accepted(f.KeyedBy), Equality: f.Equality, Hoist: f.Hoist, Keys: f.keys()})
 		}
 		for _, group := range sortedKeys(t.Groups) {
 			out = append(out, Line{Kind: KindGroup, Component: name, Field: group, GroupFields: t.Groups[group].Fields})
@@ -908,6 +1025,7 @@ type Line struct {
 	// NoAttribute are, for a field line, the fields of the component without a Terraform
 	// attribute: skipped fields and requestValue fields. A name line can take their name.
 	NoAttribute []string
+	Hoist       bool // for a field line: the fields of the object are top-level attributes
 	// RequestValueBy is, for a field line, the API value sent for each object field that is set.
 	RequestValueBy map[string]string
 	// KeyedBy is, for a field line, the key and value properties of a list shown as a map.
