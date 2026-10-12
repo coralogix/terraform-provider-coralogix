@@ -63,7 +63,7 @@ func Schema() schema.Schema {
 							"chart_name": schema.StringAttribute{
 								Required: true,
 								Validators: []validator.String{
-									stringvalidator.OneOf("CHART_NAME_UNSPECIFIED", "chart_name_otel_ecs_ec2", "chart_name_otel_integration", "chart_name_otel_linux_standalone", "chart_name_otel_macos_standalone", "chart_name_otel_windows_standalone"),
+									stringvalidator.OneOf("chart_name_otel_integration", "chart_name_otel_ecs_ec2", "chart_name_otel_linux_standalone", "chart_name_otel_windows_standalone", "chart_name_otel_macos_standalone"),
 								},
 								MarkdownDescription: "Configuration template type: `chart_name_otel_integration` for Kubernetes, `chart_name_otel_ecs_ec2` for ECS on EC2, or `chart_name_otel_linux_standalone`, `chart_name_otel_windows_standalone`, or `chart_name_otel_macos_standalone` for hosts.",
 							},
@@ -125,6 +125,9 @@ func Schema() schema.Schema {
 										},
 										"raw_configuration": schema.StringAttribute{
 											Computed: true,
+											Validators: []validator.String{
+												stringvalidator.LengthAtLeast(1),
+											},
 											PlanModifiers: []planmodifier.String{
 												equivalentDocument{equal: yamlEqual},
 											},
@@ -192,6 +195,9 @@ func Schema() schema.Schema {
 										},
 										"raw_configuration": schema.StringAttribute{
 											Required: true,
+											Validators: []validator.String{
+												stringvalidator.LengthAtLeast(1),
+											},
 											PlanModifiers: []planmodifier.String{
 												equivalentDocument{equal: yamlEqual},
 											},
@@ -249,7 +255,10 @@ func Schema() schema.Schema {
 				MarkdownDescription: "Configuration group UUID v7.",
 			},
 			"name": schema.StringAttribute{
-				Required:            true,
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
 				MarkdownDescription: "Display name, unique among the team's configuration groups.",
 			},
 			"priority_order": schema.Int32Attribute{

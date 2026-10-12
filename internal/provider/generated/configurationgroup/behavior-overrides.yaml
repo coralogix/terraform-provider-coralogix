@@ -15,6 +15,8 @@ types:
     fields:
       rawConfiguration:
         equality: yaml
+        validators:
+          - lengthAtLeast: 1
   PresetConfigurationFamily:
     fields:
       observabilityFeatures:
@@ -23,13 +25,21 @@ types:
         computed: true
       chartName:
         validators:
-          - enum: true
+          - oneOf:
+              - chart_name_otel_integration
+              - chart_name_otel_ecs_ec2
+              - chart_name_otel_linux_standalone
+              - chart_name_otel_windows_standalone
+              - chart_name_otel_macos_standalone
         markdownDescription: 'Configuration template type: `chart_name_otel_integration` for Kubernetes, `chart_name_otel_ecs_ec2` for ECS on EC2, or `chart_name_otel_linux_standalone`, `chart_name_otel_windows_standalone`, or `chart_name_otel_macos_standalone` for hosts.'
   ConfigurationGroup:
     fields:
       priorityOrder:
         default: 0
         computed: true
+      name:
+        validators:
+          - lengthAtLeast: 1
   ConfigurationFamily:
     fields:
       active:
