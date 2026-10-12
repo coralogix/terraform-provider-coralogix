@@ -392,6 +392,9 @@ func fieldType(t *model.Type) (string, rule, error) {
 	if len(t.Wrappers) != 0 {
 		return "*" + goTypeName(t.Wrappers[0].Schema), ruleProperty, nil
 	}
+	if t.Opaque {
+		return "*" + goTypeName(t.Schema), ruleProperty, nil
+	}
 	if (t.Kind == model.Object || t.Kind == model.OneOf) && len(t.Fields) == 0 {
 		return "map[string]interface{}", ruleEmptyObject, nil
 	}

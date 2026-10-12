@@ -183,6 +183,9 @@ type Type struct {
 	// reports a response that selects one.
 	Unsupported                           []*Field
 	UnsupportedSummary, UnsupportedDetail string
+	// Opaque is the value of an unsupported arm: the generator does not read
+	// it, so only its component (Schema) is known. Flatten needs no more.
+	Opaque bool
 	// Discriminator is the string field that names the set arm (an OpenAPI
 	// discriminator with no mapping). It is also a normal field (F36).
 	Discriminator string

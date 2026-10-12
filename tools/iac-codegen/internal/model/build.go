@@ -1108,7 +1108,7 @@ func objectType(t *Type, s *base.Schema, path string, w walk) error {
 	if err := checkRequired(s); err != nil {
 		return fmt.Errorf("%s: %w", path, err)
 	}
-	fields, err := objectFields(s, path, w)
+	fields, err := objectFields(s, path, w, t.Schema)
 	if err != nil {
 		return err
 	}
@@ -1307,11 +1307,20 @@ func oneOfGroups(s *base.Schema, path string, fields []*Field) ([]OneOfGroup, er
 	return groups, nil
 }
 
-func objectFields(s *base.Schema, path string, w walk) ([]*Field, error) {
+func objectFields(s *base.Schema, path string, w walk, component string) ([]*Field, error) {
 	var fields []*Field
 	for _, name := range propertyNames(s) {
 		proxy := propertyOf(s, name)
-		ft, err := typeOf(proxy, path+"."+name, w)
+		var ft *Type
+		var err error
+		if listedUnsupported(w.policy, component, name) {
+			// The resource never configures this arm, so its value need not be a
+			// shape the generator supports.
+			ft = opaqueType(proxy)
+		}
+		if ft == nil {
+			ft, err = typeOf(proxy, path+"."+name, w)
+		}
 		if err != nil {
 			if !w.keep(err) {
 				return nil, err
@@ -1329,6 +1338,35 @@ func objectFields(s *base.Schema, path string, w walk) ([]*Field, error) {
 		fields = append(fields, &Field{Name: name, Description: d, Attrs: a, Type: ft})
 	}
 	return fields, nil
+}
+
+// listedUnsupported reports whether the policy lists component.field as an
+// unsupported oneOf arm.
+func listedUnsupported(p *Policy, component, field string) bool {
+	return p != nil && component != "" && slices.Contains(p.Unsupported, component+"."+field)
+}
+
+// opaqueType is the value of an unsupported arm without reading it: an empty
+// object, or the component that the arm references. It returns nil for an
+// inline value, which the caller then reads.
+func opaqueType(proxy *base.SchemaProxy) *Type {
+	name, err := componentName(unwrapRef(proxy))
+	if err != nil {
+		return nil
+	}
+	s, err := schemaOf(proxy)
+	if err != nil {
+		return nil
+	}
+	if inner, err := singleAllOf(s, ""); err == nil {
+		if s, err = schemaOf(inner); err != nil {
+			return nil
+		}
+	}
+	if s.Properties == nil || s.Properties.Len() == 0 {
+		return &Type{Kind: Object, Schema: name}
+	}
+	return &Type{Kind: Object, Schema: name, Opaque: true}
 }
 
 // oneOfArms reads the oneOf of s: one {required: [arm]} entry for each arm,

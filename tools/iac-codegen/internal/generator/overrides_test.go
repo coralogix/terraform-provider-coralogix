@@ -758,3 +758,40 @@ types:
 		t.Fatal("flatten does not report the unsupported arm")
 	}
 }
+
+// The generator does not read the value of an unsupported arm, so its shape
+// need not be one the generator supports. Flatten needs only the SDK field.
+func TestUnsupportedArmValueIsNotRead(t *testing.T) {
+	input, _ := syntheticInput(t)
+	plain := "    QueueThingConfig:\n      type: object\n      required: [topic]\n      properties:\n        topic:\n          type: string\n          minLength: 1\n"
+	odd := "    QueueThingConfig:\n      type: object\n      required: [topic]\n      properties:\n        topic:\n          anyOf: [{type: string}, {type: integer}]\n"
+	spec := string(input.OpenAPI)
+	if !strings.Contains(spec, plain) {
+		t.Fatal("cannot locate QueueThingConfig")
+	}
+	spec = strings.Replace(spec, plain, odd, 1)
+	file := mustParse(t, `
+resource: Thing
+mode: existing
+validators:
+  inferred: false
+types:
+  ThingConfig:
+    unsupportedArms: [queue]
+    unsupportedSummary: Unsupported config
+    unsupportedDetail: The queue config is not supported.
+`)
+	validated, err := validateOpenAPIWith([]byte(spec), "Thing", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, file)
+	if err != nil {
+		t.Fatal(reportOf(t, err))
+	}
+	found := false
+	for _, ref := range validated.refs {
+		if ref.Kind == kindField && ref.Owner == "ThingConfig" && ref.Name == "Queue" {
+			found = ref.Want == "*QueueThingConfig"
+		}
+	}
+	if !found {
+		t.Fatal("the SDK check does not want ThingConfig.Queue as *QueueThingConfig")
+	}
+}
