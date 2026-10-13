@@ -38,6 +38,9 @@ type Policy struct {
 	// ClientSetID means that the client can send the id on Create, and the Get
 	// response does not require it.
 	ClientSetID bool
+	// ServerSetID means that the server sets the id and returns it in every response, and
+	// the Get response does not require it: the request shares the resource schema.
+	ServerSetID bool
 	// Operations names the lifecycle operationIds from behavior-overrides. Flags
 	// still override an empty slot. A flag and the file cannot name different ids.
 	Operations OperationIDs

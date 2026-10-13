@@ -1612,18 +1612,8 @@ func (d *convData) HasPrior() bool { return d.Resource != nil && d.Resource.Need
 // may not require the id in the response (a proto3 optional field, or a schema that a released
 // API shares with the request). Without the id, Read, Update, and Delete would have no identity.
 func idGuard(r *model.Resource) string {
-	if r.Singleton || !r.Policy.ClientSetID && (!r.Policy.Existing || idRequiredInGet(r)) {
+	if r.Singleton || !r.Policy.ClientSetID && !r.Policy.ServerSetID {
 		return ""
 	}
 	return camelize(r.IDParam)
-}
-
-// idRequiredInGet reports whether the Get response requires the resource id.
-func idRequiredInGet(r *model.Resource) bool {
-	for _, f := range r.Fields {
-		if f.Name == r.IDParam {
-			return f.Get != nil && f.Get.Required
-		}
-	}
-	return false
 }

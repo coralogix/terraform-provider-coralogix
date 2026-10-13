@@ -285,9 +285,9 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 	out.SchemaVersion = file.Schema.Version
 	out.ResourceMarkdownDescription = file.MarkdownDescription
 	// A component can hold a field that the user sets in one place and that the server owns in
-	// another, for example a read-only copy of the request value. required: true and
-	// computed: false state the mode of the field that the user sets. A server-owned copy
-	// stays computed and takes the other keys of the line.
+	// another, for example a read-only copy of the request value. The line states how the user
+	// sets the field. The server-owned copy takes only its text: a mode, a default, a
+	// validator, or a plan modifier there would plan a value that the server does not set.
 	settable := map[string]bool{}
 	var collect func(attrs []*tfAttr)
 	collect = func(attrs []*tfAttr) {
@@ -308,10 +308,7 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 			}
 			if line, ok := file.Types[a.Component].Fields[a.Property]; ok {
 				if serverOwned(a) && settable[a.Component+"."+a.Property] {
-					line.Required = false
-					if line.Computed != nil && !*line.Computed {
-						line.Computed = nil
-					}
+					line = overrides.Field{Description: line.Description, MarkdownDescription: line.MarkdownDescription, Deprecation: line.Deprecation}
 				}
 				if err := applyField(a, line, file); err != nil {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)

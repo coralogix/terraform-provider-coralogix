@@ -439,8 +439,18 @@ func resourceIDIssues(p Policy, name string, ops map[verb]foundOp, get *base.Sch
 	location := "components.schemas." + name + "." + id
 	var report issue.Report
 	// A released resource can share its schema between the request and the response, so the
-	// contract cannot require the id that only the server sets. Flatten checks it instead.
-	if !slices.Contains(get.Required, id) && !p.ClientSetID && !p.Existing {
+	// contract cannot require the id that only the server sets. serverSetID states that the
+	// API returns it anyway, and flatten checks it.
+	required := slices.Contains(get.Required, id)
+	if required && p.ServerSetID {
+		report = append(report, issue.Issue{
+			Code:        "SERVER_SET_ID_UNNEEDED",
+			Location:    location,
+			Message:     fmt.Sprintf("The override serverSetID says that the Get response cannot require %q, but it does.", id),
+			Remediation: "Delete serverSetID from the overrides.",
+		})
+	}
+	if !required && !p.ClientSetID && !p.ServerSetID {
 		report = append(report, issue.Issue{
 			Code:        "RESOURCE_ID_OPTIONAL",
 			Location:    location,

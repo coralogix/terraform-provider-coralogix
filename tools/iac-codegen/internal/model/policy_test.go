@@ -76,6 +76,7 @@ func TestEachPolicyFieldRelaxesOneRule(t *testing.T) {
 	}{
 		"request wrapper":   {func(p *Policy) { p.RequestWrapper = "" }, "FIELD_LIFECYCLE_UNSUPPORTED"},
 		"update id in body": {func(p *Policy) { p.UpdateIDInBody = false }, "UPDATE_ID_IN_BODY_UNSUPPORTED"},
+		"client set id":     {func(p *Policy) { p.ClientSetID = false }, "RESOURCE_ID_OPTIONAL"},
 		"enum prefix":       {func(p *Policy) { p.EnumAnyPrefix = nil }, "ENUM_ZERO_INVALID"},
 		"released":          {func(p *Policy) { p.Released = nil }, "FIELD_PRESENCE_UNKNOWN"},
 		"existing":          {func(p *Policy) { p.Existing = false }, "RESPONSE_WRAPPER_UNSUPPORTED"},
@@ -131,13 +132,17 @@ func TestExistingResourceComputesANestedReadOnlyRequestField(t *testing.T) {
 }
 
 // A released API can share its schema between the request and the response, so the
-// contract cannot require the id that only the server sets. Existing mode accepts it, and
-// flatten checks the id.
-func TestExistingResourceAcceptsAnOptionalServerSetID(t *testing.T) {
+// contract cannot require the id that only the server sets. serverSetID states that the API
+// returns it anyway, and flatten checks the id. Without the line, an optional id is refused.
+func TestServerSetIDAcceptsAnOptionalID(t *testing.T) {
 	p := legacyPolicy()
 	p.ClientSetID = false
-	if got := legacyCodes(t, p); slices.Contains(got, "RESOURCE_ID_OPTIONAL") {
-		t.Fatalf("codes = %v, want no RESOURCE_ID_OPTIONAL", got)
+	if got := legacyCodes(t, p); !slices.Contains(got, "RESOURCE_ID_OPTIONAL") {
+		t.Fatalf("codes without serverSetID = %v, want RESOURCE_ID_OPTIONAL", got)
+	}
+	p.ServerSetID = true
+	if got := legacyCodes(t, p); len(got) != 0 {
+		t.Fatalf("codes with serverSetID = %v, want none", got)
 	}
 }
 

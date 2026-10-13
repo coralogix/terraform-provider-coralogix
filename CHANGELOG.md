@@ -1,5 +1,17 @@
 # Unreleased
 
+#### resource/coralogix_slo_v2
+- CHORE: Bump `coralogix-management-sdk` to the SLO contract that marks server-set fields read-only and requires the APM latency `time_window`.
+
+#### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.25`.
+- FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.
+- FEAT: `api.serverSetID: true` accepts a server-set id that the Get response does not require, because the request shares the schema. The generated flatten fails when the id is missing.
+- FIX: An Update with the id in its body sends a server-set id, in the resource that the body wraps or in the body itself. Before, no Update field sent it, so the update request had no id.
+- FEAT: In existing-resource mode, Create and Update can take one request body type, and a response can hold the resource in a required (value) field.
+- FEAT: In existing-resource mode, a read-only field inside a component that the request shares with the response is computed, and the request does not send it. Before, it was an attribute that the user could set, or generation failed.
+- FIX: A field line on a component that the user sets in one place gives a read-only copy of that component only its text. Before, `required: true` and `computed: false` failed generation with "required: true needs a field that the user sets", and a `default` or `useStateForUnknown` planned a value the server does not set.
+
 # Release 3.21.0
 
 #### resource/coralogix_configuration_group
@@ -32,17 +44,7 @@
 #### resource/coralogix_global_router
 - FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
 
-#### resource/coralogix_slo_v2
-- CHORE: Bump `coralogix-management-sdk` to the SLO contract that marks server-set fields read-only and requires the APM latency `time_window`.
-
 #### tools/iac-codegen
-- CHORE: Bump the generator to `v0.1.0-beta.25`.
-- FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.
-- FEAT: In existing-resource mode, the Get response may leave the server-set id optional, as a schema that the request shares cannot require it. The generated flatten fails when the id is missing.
-- FIX: An Update with the id in its body sends a server-set id, in the resource that the body wraps or in the body itself. Before, no Update field sent it, so the update request had no id.
-- FEAT: In existing-resource mode, Create and Update can take one request body type, and a response can hold the resource in a required (value) field.
-- FEAT: In existing-resource mode, a read-only field inside a component that the request shares with the response is computed, and the request does not send it. Before, it was an attribute that the user could set, or generation failed.
-- FIX: `required: true` and `computed: false` on a field also apply to a read-only copy of its component, which stays computed. Before, generation failed with "required: true needs a field that the user sets".
 - CHORE: Bump the generator to `v0.1.0-beta.24`.
 - FIX: A `requestValue` field is not in the Create or Update check lists. Those lists read Terraform attributes. A field that the request schema does not mark read-only stayed in the lists, so every Create and every Update failed.
 - CHORE: Bump the generator to `v0.1.0-beta.23`.

@@ -685,6 +685,14 @@ func TestRequiredLineKeepsAReadOnlyCopyComputed(t *testing.T) {
 	if copied.Required || copied.Optional || !copied.Computed || copied.Description != "The rule name." {
 		t.Errorf("last_rule.name required=%t optional=%t computed=%t description=%q, want computed with the line's text", copied.Required, copied.Optional, copied.Computed, copied.Description)
 	}
+	// kind: {computed: true, default: alpha}. A default on the read-only copy would plan a value
+	// that the server does not set.
+	if kind := attrAt(t, out.Attributes, "rules", "kind"); kind.Default == "" {
+		t.Errorf("rules.kind has no default, want the line's default")
+	}
+	if kind := attrAt(t, out.Attributes, "last_rule", "kind"); kind.Default != "" || len(kind.Modifiers) != 0 {
+		t.Errorf("last_rule.kind default=%q modifiers=%v, want neither", kind.Default, kind.Modifiers)
+	}
 }
 
 // A component that only a read-only field holds has no field that the user sets, so
@@ -715,15 +723,15 @@ func attrAt(t *testing.T, attrs []*tfAttr, names ...string) *tfAttr {
 	return a
 }
 
-// A released API can return a server-set id that its contract does not require. The generated
-// flatten then checks the id, as it does for a client-set one. An id that Get requires needs no
-// check.
+// serverSetID: a released API returns a server-set id that its contract does not require. The
+// generated flatten then checks the id, as it does for a client-set one. An id that Get requires
+// needs no check, and serverSetID on it is an error.
 func TestExistingResourceChecksAnOptionalServerSetID(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("testdata", "legacy-overrides.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	text := strings.Replace(string(data), "  clientSetID: true\n", "", 1)
+	text := strings.Replace(string(data), "  clientSetID: true\n", "  serverSetID: true\n", 1)
 	if text == string(data) {
 		t.Fatal("testdata/legacy-overrides.yaml has no clientSetID line")
 	}
@@ -742,5 +750,28 @@ func TestExistingResourceChecksAnOptionalServerSetID(t *testing.T) {
 	}
 	if convert, err := os.ReadFile(filepath.Join(generateCustomThing(t), "convert.go")); err != nil || strings.Contains(string(convert), `"Missing id"`) {
 		t.Fatalf("customthing convert.go checks an id that Get requires (err %v)", err)
+	}
+}
+
+func TestServerSetIDOnARequiredIDIsAnError(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "customthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "customthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := strings.Replace(string(data), "  updateIDInBody: true\n", "  updateIDInBody: true\n  serverSetID: true\n", 1)
+	_, err = validateOpenAPIWith(spec, "CustomThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, text))
+	if got := eligibilityCodes(t, err); !slices.Contains(got, "SERVER_SET_ID_UNNEEDED") {
+		t.Fatalf("codes = %v, want SERVER_SET_ID_UNNEEDED", got)
+	}
+}
+
+func TestClientAndServerSetIDAreExclusive(t *testing.T) {
+	_, err := overrides.Parse([]byte("resource: Thing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  clientSetID: true\n  serverSetID: true\n"))
+	if err == nil || !strings.Contains(err.Error(), "serverSetID") {
+		t.Fatalf("err = %v, want an error about clientSetID and serverSetID", err)
 	}
 }
