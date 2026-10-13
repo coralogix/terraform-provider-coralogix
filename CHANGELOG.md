@@ -28,6 +28,7 @@
 - FIX: `unsupportedArms` renders. Before, generation failed with `no SDK field` for the unsupported arm.
 - FIX: An unsupported arm can be missing from the Create and Update components; only the response needs it. A field line on an unsupported arm is an error, because the arm is not in the schema.
 - FIX: The generator does not read the value of an unsupported arm, so that value can use a shape the generator does not support, and the fields inside it need no `x-coralogix-presence`.
+- FIX: An Update that the API answers with 404 returns the error "Resource disappeared during update" and keeps the prior state. Before, it warned and removed the resource, which Terraform reported as the provider bug "Missing Resource State After Update". This changes `coralogix_connector`, `coralogix_global_router`, `coralogix_preset`, `coralogix_view`, `coralogix_view_folder`, and `coralogix_configuration_group`.
 - FEAT: `enums.<Enum>.readRejectedLower: true` reads a rejected value in lower case instead of the API spelling that `readRejected` keeps.
 - FIX: `unsupportedArms` that remove every arm of a oneOf group that requires one are an error. An unsupported arm defined inline with fields needs a component `$ref`; an empty inline arm is accepted.
 - FIX: Existing-mode check reads a resource that a response field wraps in `allOf: [$ref]`, as the OpenAPI fork writes a field with a description. Before, every field read as missing from Get.

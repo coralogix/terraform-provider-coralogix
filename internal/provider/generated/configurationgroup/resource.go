@@ -166,10 +166,11 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 	} else {
 		v, err = r.update(ctx, id, body, mask)
 	}
+	// An Update must return state or an error: Terraform reports a null state without an error as a
+	// provider bug. The error keeps the prior state, and the next refresh removes the resource.
 	if cxsdk.IsNotFound(err) {
-		resp.Diagnostics.AddWarning("Resource disappeared during update",
-			fmt.Sprintf("The API did not find %s with id %v. Terraform removed it from state.", TypeName, id))
-		resp.State.RemoveResource(ctx)
+		resp.Diagnostics.AddError("Resource disappeared during update",
+			fmt.Sprintf("The API did not find %s with id %v. Run Terraform again: the refresh removes it from state and plans to create it.", TypeName, id))
 		return
 	}
 	if err != nil {

@@ -1228,12 +1228,18 @@ func TestGeneratedPresenceCollectionAndUpdateContract(t *testing.T) {
 		`req.ProviderData.(*clientset.ClientSet)`,
 		`if cxsdk.IsNotFound(err) {`,
 		`resp.Diagnostics.AddWarning("Resource disappeared during read"`,
-		`resp.Diagnostics.AddWarning("Resource disappeared during update"`,
+		`resp.Diagnostics.AddError("Resource disappeared during update"`,
 		`resp.State.RemoveResource(ctx)`,
 	} {
 		if !bytes.Contains(resource, []byte(fragment)) {
 			t.Errorf("resource.go lacks runtime contract fragment %q", fragment)
 		}
+	}
+	// An Update that returns null state without an error is a provider bug to Terraform.
+	update := resource[bytes.Index(resource, []byte("func (r *Resource) Update(")):]
+	update = update[:bytes.Index(update, []byte("\n}\n"))]
+	if bytes.Contains(update, []byte("RemoveResource")) {
+		t.Error("Update removes the resource from state")
 	}
 }
 
