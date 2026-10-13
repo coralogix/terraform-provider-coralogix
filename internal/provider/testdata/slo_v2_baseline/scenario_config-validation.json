@@ -1,0 +1,268 @@
+[
+  {
+    "step": "missing name",
+    "config": {
+      "sli": {
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        }
+      },
+      "target_threshold_percentage": 99,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"name\")] | Must set a configuration value for the name attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "missing sli",
+    "config": {
+      "name": "n",
+      "target_threshold_percentage": 99,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"sli\")] | Must set a configuration value for the sli attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "two sli arms",
+    "config": {
+      "name": "v",
+      "sli": {
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        },
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.5,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"sli\").AttributeName(\"apm_sli\")] | 2 attributes specified when one (and only one) of [sli.apm_sli.<.request_based_metric_sli,sli.apm_sli.<.window_based_metric_sli] is required",
+      "error: Invalid Attribute Combination [AttributeName(\"sli\").AttributeName(\"request_based_metric_sli\")] | 2 attributes specified when one (and only one) of [sli.request_based_metric_sli.<.window_based_metric_sli,sli.request_based_metric_sli.<.apm_sli] is required",
+      "error: Invalid Attribute Combination [AttributeName(\"sli\").AttributeName(\"window_based_metric_sli\")] | 2 attributes specified when one (and only one) of [sli.window_based_metric_sli.<.request_based_metric_sli,sli.window_based_metric_sli.<.apm_sli] is required"
+    ],
+    "state": null
+  },
+  {
+    "step": "slo_time_frame 1_day",
+    "config": {
+      "name": "v",
+      "sli": {
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "1_day"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"window\").AttributeName(\"slo_time_frame\")] | Attribute window.slo_time_frame value must be one of: [\"14_days\" \"21_days\" \"28_days\" \"7_days\" \"unspecified\"], got: \"1_day\""
+    ],
+    "state": null
+  },
+  {
+    "step": "slo_time_frame in upper case",
+    "config": {
+      "name": "v",
+      "sli": {
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_DAYS"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"window\").AttributeName(\"slo_time_frame\")] | Attribute window.slo_time_frame value must be one of: [\"14_days\" \"21_days\" \"28_days\" \"7_days\" \"unspecified\"], got: \"7_DAYS\""
+    ],
+    "state": null
+  },
+  {
+    "step": "window unspecified",
+    "config": {
+      "name": "v",
+      "sli": {
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.5,
+          "window": "unspecified"
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"sli\").AttributeName(\"window_based_metric_sli\").AttributeName(\"window\")] | Attribute sli.window_based_metric_sli.window value must be one of: [\"1_minute\" \"5_minutes\"], got: \"unspecified\""
+    ],
+    "state": null
+  },
+  {
+    "step": "apm latency without quantile or average",
+    "config": {
+      "name": "v",
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "latency_config": {
+            "time_window": "1_minute"
+          },
+          "services": [
+            "checkout"
+          ]
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"sli\").AttributeName(\"apm_sli\").AttributeName(\"latency_config\").AttributeName(\"average\")] | No attribute specified when one (and only one) of [sli.apm_sli.latency_config.average.<.quantile] is required",
+      "error: Invalid Attribute Combination [AttributeName(\"sli\").AttributeName(\"apm_sli\").AttributeName(\"latency_config\").AttributeName(\"quantile\")] | No attribute specified when one (and only one) of [sli.apm_sli.latency_config.quantile.<.average] is required"
+    ],
+    "state": null
+  },
+  {
+    "step": "apm with error and latency",
+    "config": {
+      "name": "v",
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "error_config": {},
+          "latency_config": {
+            "average": {},
+            "time_window": "1_minute"
+          },
+          "services": [
+            "checkout"
+          ]
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"sli\").AttributeName(\"apm_sli\").AttributeName(\"error_config\")] | 2 attributes specified when one (and only one) of [sli.apm_sli.error_config.<.latency_config] is required",
+      "error: Invalid Attribute Combination [AttributeName(\"sli\").AttributeName(\"apm_sli\").AttributeName(\"latency_config\")] | 2 attributes specified when one (and only one) of [sli.apm_sli.latency_config.<.error_config] is required"
+    ],
+    "state": null
+  },
+  {
+    "step": "apm without services",
+    "config": {
+      "name": "v",
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "error_config": {}
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"sli\").AttributeName(\"apm_sli\").AttributeName(\"services\")] | Must set a configuration value for the sli.apm_sli.services attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "empty filters",
+    "config": {
+      "name": "v",
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "error_config": {},
+          "filters": [],
+          "services": [
+            "checkout"
+          ]
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"sli\").AttributeName(\"apm_sli\").AttributeName(\"filters\")] | Attribute sli.apm_sli.filters list must contain at least 1 elements, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "ownership tags with no dimension",
+    "config": {
+      "name": "v",
+      "ownership_tags": {},
+      "sli": {
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"ownership_tags\").AttributeName(\"service\")] | At least one attribute out of [ownership_tags.service.<.environment,ownership_tags.service.<.team,ownership_tags.service] must be specified"
+    ],
+    "state": null
+  }
+]

@@ -1,0 +1,164 @@
+(schema)  version=0
+    markdown: "Coralogix New SLO. Read more about limits and details at https://coralogix.com/docs/user-guides/slos/introduction/"
+apm_sli_metadata  SingleNestedAttribute computed
+    markdown: "Read-only copy of `sli.apm_sli` that the backend materializes for APM SLOs. Null for metric SLIs. It is never sent on create or replace."
+apm_sli_metadata.error_config  SingleNestedAttribute computed
+    markdown: "Set when the SLO measures the service's error rate."
+apm_sli_metadata.filters  ListNestedAttribute computed
+    markdown: "Label-based filters applied to the generated metrics."
+apm_sli_metadata.filters[]  NestedObject
+apm_sli_metadata.filters[].key  StringAttribute computed
+    markdown: "Label or tag name the filter matches on."
+apm_sli_metadata.filters[].values  ListAttribute computed elem=basetypes.StringType
+    markdown: "Matched values."
+apm_sli_metadata.grouping_keys  ListAttribute computed elem=basetypes.StringType
+    markdown: "Labels the SLO results are grouped by."
+apm_sli_metadata.latency_config  SingleNestedAttribute computed
+    markdown: "Set when the SLO measures the service's latency."
+apm_sli_metadata.latency_config.average  SingleNestedAttribute computed
+    markdown: "Set when the SLO measures mean latency."
+apm_sli_metadata.latency_config.quantile  SingleNestedAttribute computed
+    markdown: "Percentile-based latency measurement."
+apm_sli_metadata.latency_config.quantile.percentile  Float32Attribute computed
+    markdown: "Measured percentile, as a fraction."
+apm_sli_metadata.latency_config.threshold  Float32Attribute computed
+    markdown: "Latency threshold in milliseconds."
+apm_sli_metadata.latency_config.time_window  StringAttribute computed
+    markdown: "Time window for latency calculations."
+apm_sli_metadata.services  ListAttribute computed elem=basetypes.StringType
+    markdown: "Monitored APM Service Catalog services."
+description  StringAttribute optional
+    markdown: "Optional SLO description."
+grouping  SingleNestedAttribute computed
+    markdown: "Grouping configuration for SLO evaluations. Read-only: the backend derives it from the SLI - the `by (...)` clause of a metric query, or `service_name` for an APM SLI - and rejects writes. It is unrelated to the writable `sli.apm_sli.grouping_keys`."
+grouping.labels  ListAttribute computed elem=basetypes.StringType
+    markdown: "List of labels to group SLO evaluations by."
+id  StringAttribute computed
+    markdown: "SLO ID."
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+labels  MapAttribute optional computed elem=basetypes.StringType
+    markdown: "Optional map of labels to attach to the SLO. "
+name  StringAttribute required
+    markdown: "SLO name."
+ownership_tags  SingleNestedAttribute optional
+    markdown: "Service, environment and team ownership of the SLO, used by the SLO hub's ownership filters. At least one dimension must be configured - the backend drops an ownership block that holds no values. Removing the block clears the tags on the next apply."
+ownership_tags.environment  SingleNestedAttribute optional
+    markdown: "Environment ownership. Values are free-form strings. Exactly one of `static_values` or `label_keys` must be configured."
+ownership_tags.environment.label_keys  ListAttribute optional elem=basetypes.StringType
+    markdown: "Metric label names whose values identify this dimension at query time. Conflicts with `static_values`; an explicit empty list is rejected."
+    validator: listvalidator.sizeAtLeastValidator list must contain at least 1 elements
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.static_values]"
+ownership_tags.environment.resolved_values  ListAttribute computed elem=basetypes.StringType
+    markdown: "Read-only union of `static_values` and the values resolved from `label_keys`."
+ownership_tags.environment.static_values  ListAttribute optional elem=basetypes.StringType
+    markdown: "Static values that apply to the whole SLO. Conflicts with `label_keys`; an explicit empty list is rejected."
+    validator: listvalidator.sizeAtLeastValidator list must contain at least 1 elements
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.label_keys]"
+ownership_tags.service  SingleNestedAttribute optional
+    markdown: "Service ownership. `static_values` must name services that exist in the APM Service Catalog. Exactly one of `static_values` or `label_keys` must be configured."
+    validator: schemavalidator.AtLeastOneOfValidator Ensure that at least one attribute from this collection is set: [<.environment,<.team]
+ownership_tags.service.label_keys  ListAttribute optional elem=basetypes.StringType
+    markdown: "Metric label names whose values identify this dimension at query time. Conflicts with `static_values`; an explicit empty list is rejected."
+    validator: listvalidator.sizeAtLeastValidator list must contain at least 1 elements
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.static_values]"
+ownership_tags.service.resolved_values  ListAttribute computed elem=basetypes.StringType
+    markdown: "Read-only union of `static_values` and the values resolved from `label_keys`."
+ownership_tags.service.static_values  ListAttribute optional elem=basetypes.StringType
+    markdown: "Static values that apply to the whole SLO. Conflicts with `label_keys`; an explicit empty list is rejected."
+    validator: listvalidator.sizeAtLeastValidator list must contain at least 1 elements
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.label_keys]"
+ownership_tags.team  SingleNestedAttribute optional
+    markdown: "Team ownership. Values are free-form strings. Exactly one of `static_values` or `label_keys` must be configured."
+ownership_tags.team.label_keys  ListAttribute optional elem=basetypes.StringType
+    markdown: "Metric label names whose values identify this dimension at query time. Conflicts with `static_values`; an explicit empty list is rejected."
+    validator: listvalidator.sizeAtLeastValidator list must contain at least 1 elements
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.static_values]"
+ownership_tags.team.resolved_values  ListAttribute computed elem=basetypes.StringType
+    markdown: "Read-only union of `static_values` and the values resolved from `label_keys`."
+ownership_tags.team.static_values  ListAttribute optional elem=basetypes.StringType
+    markdown: "Static values that apply to the whole SLO. Conflicts with `label_keys`; an explicit empty list is rejected."
+    validator: listvalidator.sizeAtLeastValidator list must contain at least 1 elements
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.label_keys]"
+product_type  StringAttribute optional computed
+    markdown: "Product type of the SLO. One of: apm, unspecified. `apm` is only accepted together with `sli.apm_sli`; metric SLIs stay `unspecified`. The backend always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `product_type = \"unspecified\"` to reset it."
+    plan modifier: stringplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+    validator: stringvalidator.oneOfValidator value must be one of: ["apm" "unspecified"]
+sli  SingleNestedAttribute required
+    markdown: "SLI definition: exactly one of request_based_metric_sli, window_based_metric_sli or apm_sli must be provided."
+sli.apm_sli  SingleNestedAttribute optional
+    markdown: "SLI generated from an APM Service Catalog service instead of from PromQL. Requires `product_type = \"apm\"`."
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.request_based_metric_sli,<.window_based_metric_sli]"
+sli.apm_sli.error_config  SingleNestedAttribute optional
+    markdown: "Measure the service's error rate. Set it to the empty object `{}`; it carries no attributes. Exactly one of `error_config` or `latency_config` is required: the backend rejects an `apm_sli` with neither, and the SDK refuses to encode one with both."
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.latency_config]"
+sli.apm_sli.filters  ListNestedAttribute optional
+    markdown: "Additional label-based filters applied to the generated metrics. Omit the attribute for no filters; an explicit empty list is rejected."
+    validator: listvalidator.sizeAtLeastValidator list must contain at least 1 elements
+sli.apm_sli.filters[]  NestedObject
+sli.apm_sli.filters[].key  StringAttribute required
+    markdown: "Label or tag name to filter on."
+sli.apm_sli.filters[].values  ListAttribute required elem=basetypes.StringType
+    markdown: "Values to match, with OR semantics."
+    validator: listvalidator.sizeAtLeastValidator list must contain at least 1 elements
+sli.apm_sli.grouping_keys  ListAttribute optional elem=basetypes.StringType
+    markdown: "Labels to group the SLO results by. Omit the attribute for no extra grouping keys; an explicit empty list is rejected. Distinct from the read-only top-level `grouping`, which the backend fixes to `service_name` for APM SLOs."
+    validator: listvalidator.sizeAtLeastValidator list must contain at least 1 elements
+sli.apm_sli.latency_config  SingleNestedAttribute optional
+    markdown: "Measure the service's latency. Exactly one of `error_config` or `latency_config` is required."
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.error_config]"
+sli.apm_sli.latency_config.average  SingleNestedAttribute optional
+    markdown: "Mean-based latency measurement. Set it to the empty object `{}`; it carries no attributes. Exactly one of `quantile` or `average` is required."
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.quantile]"
+sli.apm_sli.latency_config.quantile  SingleNestedAttribute optional
+    markdown: "Percentile-based latency measurement. Exactly one of `quantile` or `average` is required: the backend rejects a `latency_config` with neither, and the SDK refuses to encode one with both."
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.average]"
+sli.apm_sli.latency_config.quantile.percentile  Float32Attribute optional computed
+    markdown: "Percentile to measure, as a fraction (`0.95` = P95). The backend stores `0` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `percentile = 0` to reset it."
+    plan modifier: float32planmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+sli.apm_sli.latency_config.threshold  Float32Attribute optional computed
+    markdown: "Latency threshold in milliseconds; a request is good when its latency is at or below it. The backend stores `0` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `threshold = 0` to reset it."
+    plan modifier: float32planmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+sli.apm_sli.latency_config.time_window  StringAttribute required
+    markdown: "Time window for latency calculations. One of: 1_minute, 5_minutes."
+    validator: stringvalidator.oneOfValidator value must be one of: ["1_minute" "5_minutes"]
+sli.apm_sli.services  ListAttribute required elem=basetypes.StringType
+    markdown: "Names of the APM Service Catalog services to monitor. The backend currently accepts exactly one service and rejects unknown service names."
+    validator: listvalidator.sizeAtLeastValidator list must contain at least 1 elements
+sli.request_based_metric_sli  SingleNestedAttribute optional
+    markdown: "SLI based on request metrics."
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.window_based_metric_sli,<.apm_sli]"
+sli.request_based_metric_sli.good_events  SingleNestedAttribute required
+    markdown: "Query defining good events."
+sli.request_based_metric_sli.good_events.query  StringAttribute required
+    markdown: "Query string for good events."
+sli.request_based_metric_sli.total_events  SingleNestedAttribute required
+    markdown: "Query defining total events."
+sli.request_based_metric_sli.total_events.query  StringAttribute required
+    markdown: "Query string for total events."
+sli.window_based_metric_sli  SingleNestedAttribute optional
+    markdown: "SLI based on time-window metrics."
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.request_based_metric_sli,<.apm_sli]"
+sli.window_based_metric_sli.comparison_operator  StringAttribute required
+    markdown: "Comparison operator used to evaluate the threshold. One of: greater_than,greater_than_or_equals,less_than,less_than_or_equals,unspecified"
+    validator: stringvalidator.oneOfValidator value must be one of: ["greater_than" "greater_than_or_equals" "less_than" "less_than_or_equals" "unspecified"]
+sli.window_based_metric_sli.missing_data_strategy  StringAttribute optional computed
+    markdown: "How windows without data are counted. One of: bad, good, uncounted. The backend stores `uncounted` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `missing_data_strategy = \"uncounted\"` to reset it."
+    plan modifier: stringplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
+    validator: stringvalidator.oneOfValidator value must be one of: ["bad" "good" "uncounted"]
+sli.window_based_metric_sli.query  SingleNestedAttribute required
+    markdown: "Query used for evaluating the time-window SLI."
+sli.window_based_metric_sli.query.query  StringAttribute required
+    markdown: "Query string for the metric."
+sli.window_based_metric_sli.threshold  Float32Attribute required
+    markdown: "Threshold value for the comparison."
+sli.window_based_metric_sli.window  StringAttribute required
+    markdown: "Time window type for evaluation. One of: 1_minute, 5_minutes."
+    validator: stringvalidator.oneOfValidator value must be one of: ["1_minute" "5_minutes"]
+target_threshold_percentage  Float32Attribute required
+    markdown: "The target threshold percentage."
+    validator: float32validator.betweenValidator value must be between 0.000000 and 100.000000
+window  SingleNestedAttribute required
+    markdown: "SLO time window. One of: 14_days, 21_days, 28_days, 7_days, unspecified."
+window.slo_time_frame  StringAttribute required
+    markdown: "SLO time window. One of: 14_days, 21_days, 28_days, 7_days, unspecified."
+    validator: stringvalidator.oneOfValidator value must be one of: ["14_days" "21_days" "28_days" "7_days" "unspecified"]

@@ -1,0 +1,155 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": "apm-error",
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "error_config": {},
+          "services": [
+            "checkout"
+          ]
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "plan": {
+      "apm_sli_metadata": "(unknown)",
+      "description": null,
+      "grouping": "(unknown)",
+      "id": "(unknown)",
+      "labels": "(unknown)",
+      "name": "apm-error",
+      "ownership_tags": null,
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "error_config": {},
+          "filters": null,
+          "grouping_keys": null,
+          "latency_config": null,
+          "services": [
+            "checkout"
+          ]
+        },
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/slo/slos/v1",
+        "body": {
+          "apmSli": {
+            "services": [
+              "checkout"
+            ]
+          },
+          "name": "apm-error",
+          "productType": "SLO_PRODUCT_TYPE_APM",
+          "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+          "targetThresholdPercentage": 99.5
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": {
+        "error_config": {},
+        "filters": null,
+        "grouping_keys": null,
+        "latency_config": null,
+        "services": [
+          "checkout"
+        ]
+      },
+      "description": null,
+      "grouping": {
+        "labels": [
+          "service_name"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "apm-error",
+      "ownership_tags": null,
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "error_config": {},
+          "filters": null,
+          "grouping_keys": null,
+          "latency_config": null,
+          "services": [
+            "checkout"
+          ]
+        },
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/slo/slos/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": {
+        "error_config": {},
+        "filters": null,
+        "grouping_keys": null,
+        "latency_config": null,
+        "services": [
+          "checkout"
+        ]
+      },
+      "description": null,
+      "grouping": {
+        "labels": [
+          "service_name"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "apm-error",
+      "ownership_tags": null,
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "error_config": {},
+          "filters": null,
+          "grouping_keys": null,
+          "latency_config": null,
+          "services": [
+            "checkout"
+          ]
+        },
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    }
+  }
+]

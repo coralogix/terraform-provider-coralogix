@@ -1,0 +1,819 @@
+{
+  "cases": [
+    {
+      "name": "request based: create, read, replace, delete",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "exclusionWindowIds": [],
+            "slo": {
+              "createTime": "\u003ccreateTime\u003e",
+              "creator": "\u003ccreator\u003e",
+              "grouping": {
+                "labels": [
+                  "service"
+                ]
+              },
+              "id": "{{id}}",
+              "labels": {},
+              "name": "tf-fidelity-request",
+              "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+              "requestBasedMetricSli": {
+                "goodEvents": {
+                  "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+                },
+                "totalEvents": {
+                  "query": "sum(rate(http_requests_total[1m])) by (service)"
+                }
+              },
+              "revision": {
+                "revision": 1,
+                "updateTime": "\u003cupdateTime\u003e"
+              },
+              "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+              "sloType": "SLO_TYPE_REQUEST",
+              "targetThresholdPercentage": 99.5,
+              "type": "request",
+              "updateTime": "\u003cupdateTime\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "slo": {
+              "createTime": "\u003ccreateTime\u003e",
+              "creator": "\u003ccreator\u003e",
+              "grouping": {
+                "labels": [
+                  "service"
+                ]
+              },
+              "id": "{{id}}",
+              "labels": {},
+              "name": "tf-fidelity-request",
+              "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+              "requestBasedMetricSli": {
+                "goodEvents": {
+                  "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+                },
+                "totalEvents": {
+                  "query": "sum(rate(http_requests_total[1m])) by (service)"
+                }
+              },
+              "revision": {
+                "revision": 1,
+                "updateTime": "\u003cupdateTime\u003e"
+              },
+              "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+              "sloType": "SLO_TYPE_REQUEST",
+              "targetThresholdPercentage": 99.5,
+              "type": "request",
+              "updateTime": "\u003cupdateTime\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "effectedSloAlertIds": [],
+            "exclusionWindowIds": [],
+            "slo": {
+              "createTime": "\u003ccreateTime\u003e",
+              "creator": "\u003ccreator\u003e",
+              "grouping": {
+                "labels": [
+                  "service"
+                ]
+              },
+              "id": "{{id}}",
+              "labels": {},
+              "name": "tf-fidelity-request-2",
+              "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+              "requestBasedMetricSli": {
+                "goodEvents": {
+                  "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+                },
+                "totalEvents": {
+                  "query": "sum(rate(http_requests_total[1m])) by (service)"
+                }
+              },
+              "revision": {
+                "revision": 1,
+                "updateTime": "\u003cupdateTime\u003e"
+              },
+              "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+              "sloType": "SLO_TYPE_REQUEST",
+              "targetThresholdPercentage": 99.9,
+              "type": "request",
+              "updateTime": "\u003cupdateTime\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "slo": {
+              "createTime": "\u003ccreateTime\u003e",
+              "creator": "\u003ccreator\u003e",
+              "grouping": {
+                "labels": [
+                  "service"
+                ]
+              },
+              "id": "{{id}}",
+              "labels": {},
+              "name": "tf-fidelity-request-2",
+              "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+              "requestBasedMetricSli": {
+                "goodEvents": {
+                  "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+                },
+                "totalEvents": {
+                  "query": "sum(rate(http_requests_total[1m])) by (service)"
+                }
+              },
+              "revision": {
+                "revision": 1,
+                "updateTime": "\u003cupdateTime\u003e"
+              },
+              "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+              "sloType": "SLO_TYPE_REQUEST",
+              "targetThresholdPercentage": 99.9,
+              "type": "request",
+              "updateTime": "\u003cupdateTime\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "effectedSloAlertIds": []
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Slo with id b3077f0e-4a7f-493e-a86f-d61523e8abd5 not found for company 4015638"
+          }
+        }
+      ]
+    },
+    {
+      "name": "window based: missing data strategy omitted, set, then omitted on replace",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "exclusionWindowIds": [],
+            "slo": {
+              "createTime": "\u003ccreateTime\u003e",
+              "creator": "\u003ccreator\u003e",
+              "grouping": {
+                "labels": [
+                  "job"
+                ]
+              },
+              "id": "{{id}}",
+              "labels": {},
+              "name": "tf-fidelity-window",
+              "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+              "revision": {
+                "revision": 1,
+                "updateTime": "\u003cupdateTime\u003e"
+              },
+              "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+              "sloType": "SLO_TYPE_REQUEST",
+              "targetThresholdPercentage": 99.5,
+              "type": "request",
+              "updateTime": "\u003cupdateTime\u003e",
+              "windowBasedMetricSli": {
+                "comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN",
+                "missingDataStrategy": "MISSING_DATA_STRATEGY_UNCOUNTED",
+                "query": {
+                  "query": "sum(rate(up[1m])) by (job)"
+                },
+                "threshold": 0.5,
+                "window": "WINDOW_SLO_WINDOW_1_MINUTE"
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "slo": {
+              "createTime": "\u003ccreateTime\u003e",
+              "creator": "\u003ccreator\u003e",
+              "grouping": {
+                "labels": [
+                  "job"
+                ]
+              },
+              "id": "{{id}}",
+              "labels": {},
+              "name": "tf-fidelity-window",
+              "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+              "revision": {
+                "revision": 1,
+                "updateTime": "\u003cupdateTime\u003e"
+              },
+              "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+              "sloType": "SLO_TYPE_REQUEST",
+              "targetThresholdPercentage": 99.5,
+              "type": "request",
+              "updateTime": "\u003cupdateTime\u003e",
+              "windowBasedMetricSli": {
+                "comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN",
+                "missingDataStrategy": "MISSING_DATA_STRATEGY_UNCOUNTED",
+                "query": {
+                  "query": "sum(rate(up[1m])) by (job)"
+                },
+                "threshold": 0.5,
+                "window": "WINDOW_SLO_WINDOW_1_MINUTE"
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "effectedSloAlertIds": [],
+            "exclusionWindowIds": [],
+            "slo": {
+              "createTime": "\u003ccreateTime\u003e",
+              "creator": "\u003ccreator\u003e",
+              "grouping": {
+                "labels": [
+                  "job"
+                ]
+              },
+              "id": "{{id}}",
+              "labels": {},
+              "name": "tf-fidelity-window",
+              "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+              "revision": {
+                "revision": 2,
+                "updateTime": "\u003cupdateTime\u003e"
+              },
+              "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+              "sloType": "SLO_TYPE_REQUEST",
+              "targetThresholdPercentage": 99.5,
+              "type": "request",
+              "updateTime": "\u003cupdateTime\u003e",
+              "windowBasedMetricSli": {
+                "comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN",
+                "missingDataStrategy": "MISSING_DATA_STRATEGY_BAD",
+                "query": {
+                  "query": "sum(rate(up[1m])) by (job)"
+                },
+                "threshold": 0.5,
+                "window": "WINDOW_SLO_WINDOW_1_MINUTE"
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "slo": {
+              "createTime": "\u003ccreateTime\u003e",
+              "creator": "\u003ccreator\u003e",
+              "grouping": {
+                "labels": [
+                  "job"
+                ]
+              },
+              "id": "{{id}}",
+              "labels": {},
+              "name": "tf-fidelity-window",
+              "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+              "revision": {
+                "revision": 2,
+                "updateTime": "\u003cupdateTime\u003e"
+              },
+              "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+              "sloType": "SLO_TYPE_REQUEST",
+              "targetThresholdPercentage": 99.5,
+              "type": "request",
+              "updateTime": "\u003cupdateTime\u003e",
+              "windowBasedMetricSli": {
+                "comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN",
+                "missingDataStrategy": "MISSING_DATA_STRATEGY_BAD",
+                "query": {
+                  "query": "sum(rate(up[1m])) by (job)"
+                },
+                "threshold": 0.5,
+                "window": "WINDOW_SLO_WINDOW_1_MINUTE"
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "effectedSloAlertIds": [],
+            "exclusionWindowIds": [],
+            "slo": {
+              "createTime": "\u003ccreateTime\u003e",
+              "creator": "\u003ccreator\u003e",
+              "grouping": {
+                "labels": [
+                  "job"
+                ]
+              },
+              "id": "{{id}}",
+              "labels": {},
+              "name": "tf-fidelity-window",
+              "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+              "revision": {
+                "revision": 3,
+                "updateTime": "\u003cupdateTime\u003e"
+              },
+              "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+              "sloType": "SLO_TYPE_REQUEST",
+              "targetThresholdPercentage": 99.5,
+              "type": "request",
+              "updateTime": "\u003cupdateTime\u003e",
+              "windowBasedMetricSli": {
+                "comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN",
+                "missingDataStrategy": "MISSING_DATA_STRATEGY_UNCOUNTED",
+                "query": {
+                  "query": "sum(rate(up[1m])) by (job)"
+                },
+                "threshold": 0.5,
+                "window": "WINDOW_SLO_WINDOW_1_MINUTE"
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "slo": {
+              "createTime": "\u003ccreateTime\u003e",
+              "creator": "\u003ccreator\u003e",
+              "grouping": {
+                "labels": [
+                  "job"
+                ]
+              },
+              "id": "{{id}}",
+              "labels": {},
+              "name": "tf-fidelity-window",
+              "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+              "revision": {
+                "revision": 3,
+                "updateTime": "\u003cupdateTime\u003e"
+              },
+              "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+              "sloType": "SLO_TYPE_REQUEST",
+              "targetThresholdPercentage": 99.5,
+              "type": "request",
+              "updateTime": "\u003cupdateTime\u003e",
+              "windowBasedMetricSli": {
+                "comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN",
+                "missingDataStrategy": "MISSING_DATA_STRATEGY_UNCOUNTED",
+                "query": {
+                  "query": "sum(rate(up[1m])) by (job)"
+                },
+                "threshold": 0.5,
+                "window": "WINDOW_SLO_WINDOW_1_MINUTE"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "labels, description, ownership tags, product type",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "exclusionWindowIds": [],
+            "slo": {
+              "createTime": "\u003ccreateTime\u003e",
+              "creator": "\u003ccreator\u003e",
+              "description": "d",
+              "grouping": {
+                "labels": [
+                  "service"
+                ]
+              },
+              "id": "{{id}}",
+              "labels": {
+                "team": "payments"
+              },
+              "name": "tf-fidelity-meta",
+              "ownershipTags": {
+                "service": {
+                  "labelKeys": [
+                    "service_name"
+                  ],
+                  "resolvedValues": [],
+                  "staticValues": []
+                },
+                "team": {
+                  "labelKeys": [],
+                  "resolvedValues": [],
+                  "staticValues": [
+                    "payments",
+                    "payments"
+                  ]
+                }
+              },
+              "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+              "requestBasedMetricSli": {
+                "goodEvents": {
+                  "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+                },
+                "totalEvents": {
+                  "query": "sum(rate(http_requests_total[1m])) by (service)"
+                }
+              },
+              "revision": {
+                "revision": 1,
+                "updateTime": "\u003cupdateTime\u003e"
+              },
+              "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+              "sloType": "SLO_TYPE_REQUEST",
+              "targetThresholdPercentage": 99.5,
+              "type": "request",
+              "updateTime": "\u003cupdateTime\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "slo": {
+              "createTime": "\u003ccreateTime\u003e",
+              "creator": "\u003ccreator\u003e",
+              "description": "d",
+              "grouping": {
+                "labels": [
+                  "service"
+                ]
+              },
+              "id": "{{id}}",
+              "labels": {
+                "team": "payments"
+              },
+              "name": "tf-fidelity-meta",
+              "ownershipTags": {
+                "service": {
+                  "labelKeys": [
+                    "service_name"
+                  ],
+                  "resolvedValues": [],
+                  "staticValues": []
+                },
+                "team": {
+                  "labelKeys": [],
+                  "resolvedValues": [],
+                  "staticValues": [
+                    "payments",
+                    "payments"
+                  ]
+                }
+              },
+              "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+              "requestBasedMetricSli": {
+                "goodEvents": {
+                  "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+                },
+                "totalEvents": {
+                  "query": "sum(rate(http_requests_total[1m])) by (service)"
+                }
+              },
+              "revision": {
+                "revision": 1,
+                "updateTime": "\u003cupdateTime\u003e"
+              },
+              "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+              "sloType": "SLO_TYPE_REQUEST",
+              "targetThresholdPercentage": 99.5,
+              "type": "request",
+              "updateTime": "\u003cupdateTime\u003e"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "server-owned fields are rejected or ignored",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.slo.v1.SlosService/CreateSlo: ValidationError: \"slo.grouping\" is not allowed"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.slo.v1.SlosService/CreateSlo: ValidationError: sloType must match the SLI type. Expected SLO_TYPE_REQUEST, got SLO_TYPE_WINDOW"
+          }
+        }
+      ]
+    },
+    {
+      "name": "two SLI arms",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: proto: (line 1:288): error parsing \"windowBasedMetricSli\", oneof com.coralogixapis.slo.v1.Slo.sli is already set"
+          }
+        }
+      ]
+    },
+    {
+      "name": "window unspecified",
+      "steps": [
+        {
+          "status": 500,
+          "response": {
+            "code": 500,
+            "message": "Internal Server Error: failed to create SLO: Not implemented yet: WindowSloWindow.WINDOW_SLO_WINDOW_UNSPECIFIED case"
+          }
+        }
+      ]
+    },
+    {
+      "name": "one day time frame",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "exclusionWindowIds": [],
+            "slo": {
+              "createTime": "\u003ccreateTime\u003e",
+              "creator": "\u003ccreator\u003e",
+              "grouping": {
+                "labels": [
+                  "service"
+                ]
+              },
+              "id": "{{id}}",
+              "labels": {},
+              "name": "tf-fidelity-one-day",
+              "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+              "requestBasedMetricSli": {
+                "goodEvents": {
+                  "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+                },
+                "totalEvents": {
+                  "query": "sum(rate(http_requests_total[1m])) by (service)"
+                }
+              },
+              "revision": {
+                "revision": 1,
+                "updateTime": "\u003cupdateTime\u003e"
+              },
+              "sloTimeFrame": "SLO_TIME_FRAME_1_DAY",
+              "sloType": "SLO_TYPE_REQUEST",
+              "targetThresholdPercentage": 99.5,
+              "type": "request",
+              "updateTime": "\u003cupdateTime\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "slo": {
+              "createTime": "\u003ccreateTime\u003e",
+              "creator": "\u003ccreator\u003e",
+              "grouping": {
+                "labels": [
+                  "service"
+                ]
+              },
+              "id": "{{id}}",
+              "labels": {},
+              "name": "tf-fidelity-one-day",
+              "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+              "requestBasedMetricSli": {
+                "goodEvents": {
+                  "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+                },
+                "totalEvents": {
+                  "query": "sum(rate(http_requests_total[1m])) by (service)"
+                }
+              },
+              "revision": {
+                "revision": 1,
+                "updateTime": "\u003cupdateTime\u003e"
+              },
+              "sloTimeFrame": "SLO_TIME_FRAME_1_DAY",
+              "sloType": "SLO_TYPE_REQUEST",
+              "targetThresholdPercentage": 99.5,
+              "type": "request",
+              "updateTime": "\u003cupdateTime\u003e"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "probe: omit name",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.slo.v1.SlosService/CreateSlo: ValidationError: \"slo.name\" is not allowed to be empty"
+          }
+        }
+      ]
+    },
+    {
+      "name": "probe: omit targetThresholdPercentage",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "exclusionWindowIds": [],
+            "slo": {
+              "createTime": "\u003ccreateTime\u003e",
+              "creator": "\u003ccreator\u003e",
+              "grouping": {
+                "labels": [
+                  "service"
+                ]
+              },
+              "id": "{{id}}",
+              "labels": {},
+              "name": "tf-fidelity-probe",
+              "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+              "requestBasedMetricSli": {
+                "goodEvents": {
+                  "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+                },
+                "totalEvents": {
+                  "query": "sum(rate(http_requests_total[1m])) by (service)"
+                }
+              },
+              "revision": {
+                "revision": 1,
+                "updateTime": "\u003cupdateTime\u003e"
+              },
+              "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+              "sloType": "SLO_TYPE_REQUEST",
+              "targetThresholdPercentage": 0,
+              "type": "request",
+              "updateTime": "\u003cupdateTime\u003e"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "probe: omit sloTimeFrame",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.slo.v1.SlosService/CreateSlo: ValidationError: \"slo.window\" is required"
+          }
+        }
+      ]
+    },
+    {
+      "name": "probe: omit goodEvents",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Good events query: Query is missing"
+          }
+        }
+      ]
+    },
+    {
+      "name": "probe: omit metric query",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Good events query: Query is missing"
+          }
+        }
+      ]
+    },
+    {
+      "name": "probe: omit window comparisonOperator",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Invalid comparison operator: 0"
+          }
+        }
+      ]
+    },
+    {
+      "name": "probe: omit window threshold",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "exclusionWindowIds": [],
+            "slo": {
+              "createTime": "\u003ccreateTime\u003e",
+              "creator": "\u003ccreator\u003e",
+              "grouping": {
+                "labels": [
+                  "job"
+                ]
+              },
+              "id": "{{id}}",
+              "labels": {},
+              "name": "tf-fidelity-probe",
+              "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+              "revision": {
+                "revision": 1,
+                "updateTime": "\u003cupdateTime\u003e"
+              },
+              "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+              "sloType": "SLO_TYPE_REQUEST",
+              "targetThresholdPercentage": 99.5,
+              "type": "request",
+              "updateTime": "\u003cupdateTime\u003e",
+              "windowBasedMetricSli": {
+                "comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN",
+                "missingDataStrategy": "MISSING_DATA_STRATEGY_UNCOUNTED",
+                "query": {
+                  "query": "sum(rate(up[1m])) by (job)"
+                },
+                "threshold": 0,
+                "window": "WINDOW_SLO_WINDOW_1_MINUTE"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "probe: omit window query",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Window query: Query is missing"
+          }
+        }
+      ]
+    },
+    {
+      "name": "probe: empty name",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.slo.v1.SlosService/CreateSlo: ValidationError: \"slo.name\" is not allowed to be empty"
+          }
+        }
+      ]
+    },
+    {
+      "name": "not found",
+      "steps": [
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Slo with id 00000000-0000-4000-8000-000000000000 not found for company 4015638"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Cannot replace Slo with id 00000000-0000-4000-8000-000000000000 because it does not exist"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Slo with id 00000000-0000-4000-8000-000000000000 not found for company 4015638"
+          }
+        }
+      ]
+    }
+  ]
+}

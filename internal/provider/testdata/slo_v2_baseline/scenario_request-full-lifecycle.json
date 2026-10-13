@@ -1,0 +1,515 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "description": "checkout availability",
+      "labels": {
+        "team": "payments"
+      },
+      "name": "request",
+      "ownership_tags": {
+        "service": {
+          "static_values": [
+            "checkout",
+            "checkout"
+          ]
+        },
+        "team": {
+          "label_keys": [
+            "team"
+          ]
+        }
+      },
+      "sli": {
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "plan": {
+      "apm_sli_metadata": "(unknown)",
+      "description": "checkout availability",
+      "grouping": "(unknown)",
+      "id": "(unknown)",
+      "labels": {
+        "team": "payments"
+      },
+      "name": "request",
+      "ownership_tags": {
+        "environment": null,
+        "service": {
+          "label_keys": null,
+          "resolved_values": "(unknown)",
+          "static_values": [
+            "checkout",
+            "checkout"
+          ]
+        },
+        "team": {
+          "label_keys": [
+            "team"
+          ],
+          "resolved_values": "(unknown)",
+          "static_values": null
+        }
+      },
+      "product_type": "(unknown)",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        },
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/slo/slos/v1",
+        "body": {
+          "description": "checkout availability",
+          "labels": {
+            "team": "payments"
+          },
+          "name": "request",
+          "ownershipTags": {
+            "service": {
+              "staticValues": [
+                "checkout",
+                "checkout"
+              ]
+            },
+            "team": {
+              "labelKeys": [
+                "team"
+              ]
+            }
+          },
+          "requestBasedMetricSli": {
+            "goodEvents": {
+              "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+            },
+            "totalEvents": {
+              "query": "sum(rate(http_requests_total[1m])) by (service)"
+            }
+          },
+          "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+          "targetThresholdPercentage": 99.5
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": null,
+      "description": "checkout availability",
+      "grouping": {
+        "labels": [
+          "service"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {
+        "team": "payments"
+      },
+      "name": "request",
+      "ownership_tags": {
+        "environment": null,
+        "service": {
+          "label_keys": null,
+          "resolved_values": null,
+          "static_values": [
+            "checkout",
+            "checkout"
+          ]
+        },
+        "team": {
+          "label_keys": [
+            "team"
+          ],
+          "resolved_values": null,
+          "static_values": null
+        }
+      },
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        },
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/slo/slos/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": null,
+      "description": "checkout availability",
+      "grouping": {
+        "labels": [
+          "service"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {
+        "team": "payments"
+      },
+      "name": "request",
+      "ownership_tags": {
+        "environment": null,
+        "service": {
+          "label_keys": null,
+          "resolved_values": null,
+          "static_values": [
+            "checkout",
+            "checkout"
+          ]
+        },
+        "team": {
+          "label_keys": [
+            "team"
+          ],
+          "resolved_values": null,
+          "static_values": null
+        }
+      },
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        },
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    }
+  },
+  {
+    "step": "update: name, target, time frame, labels",
+    "config": {
+      "description": "checkout availability",
+      "labels": {
+        "team": "payments",
+        "tier": "1"
+      },
+      "name": "request-renamed",
+      "ownership_tags": {
+        "service": {
+          "static_values": [
+            "checkout",
+            "checkout"
+          ]
+        },
+        "team": {
+          "label_keys": [
+            "team"
+          ]
+        }
+      },
+      "sli": {
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        }
+      },
+      "target_threshold_percentage": 99.9,
+      "window": {
+        "slo_time_frame": "28_days"
+      }
+    },
+    "plan": {
+      "apm_sli_metadata": "(unknown)",
+      "description": "checkout availability",
+      "grouping": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {
+        "team": "payments",
+        "tier": "1"
+      },
+      "name": "request-renamed",
+      "ownership_tags": {
+        "environment": null,
+        "service": {
+          "label_keys": null,
+          "resolved_values": "(unknown)",
+          "static_values": [
+            "checkout",
+            "checkout"
+          ]
+        },
+        "team": {
+          "label_keys": [
+            "team"
+          ],
+          "resolved_values": "(unknown)",
+          "static_values": null
+        }
+      },
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        },
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.9,
+      "window": {
+        "slo_time_frame": "28_days"
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/slo/slos/v1",
+        "body": {
+          "description": "checkout availability",
+          "id": "00000000-0000-4000-8000-000000000001",
+          "labels": {
+            "team": "payments",
+            "tier": "1"
+          },
+          "name": "request-renamed",
+          "ownershipTags": {
+            "service": {
+              "staticValues": [
+                "checkout",
+                "checkout"
+              ]
+            },
+            "team": {
+              "labelKeys": [
+                "team"
+              ]
+            }
+          },
+          "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+          "requestBasedMetricSli": {
+            "goodEvents": {
+              "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+            },
+            "totalEvents": {
+              "query": "sum(rate(http_requests_total[1m])) by (service)"
+            }
+          },
+          "sloTimeFrame": "SLO_TIME_FRAME_28_DAYS",
+          "targetThresholdPercentage": 99.9
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": null,
+      "description": "checkout availability",
+      "grouping": {
+        "labels": [
+          "service"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {
+        "team": "payments",
+        "tier": "1"
+      },
+      "name": "request-renamed",
+      "ownership_tags": {
+        "environment": null,
+        "service": {
+          "label_keys": null,
+          "resolved_values": null,
+          "static_values": [
+            "checkout",
+            "checkout"
+          ]
+        },
+        "team": {
+          "label_keys": [
+            "team"
+          ],
+          "resolved_values": null,
+          "static_values": null
+        }
+      },
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        },
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.9,
+      "window": {
+        "slo_time_frame": "28_days"
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: remove description, labels, and ownership tags",
+    "config": {
+      "name": "request-renamed",
+      "sli": {
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        }
+      },
+      "target_threshold_percentage": 99.9,
+      "window": {
+        "slo_time_frame": "28_days"
+      }
+    },
+    "plan": {
+      "apm_sli_metadata": "(unknown)",
+      "description": null,
+      "grouping": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": "(unknown)",
+      "name": "request-renamed",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        },
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.9,
+      "window": {
+        "slo_time_frame": "28_days"
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/slo/slos/v1",
+        "body": {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "request-renamed",
+          "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+          "requestBasedMetricSli": {
+            "goodEvents": {
+              "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+            },
+            "totalEvents": {
+              "query": "sum(rate(http_requests_total[1m])) by (service)"
+            }
+          },
+          "sloTimeFrame": "SLO_TIME_FRAME_28_DAYS",
+          "targetThresholdPercentage": 99.9
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": null,
+      "description": null,
+      "grouping": {
+        "labels": [
+          "service"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "request-renamed",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        },
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.9,
+      "window": {
+        "slo_time_frame": "28_days"
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/slo/slos/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

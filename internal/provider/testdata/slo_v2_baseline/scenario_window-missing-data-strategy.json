@@ -1,0 +1,430 @@
+[
+  {
+    "step": "create: strategy omitted",
+    "config": {
+      "name": "window",
+      "sli": {
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.5,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "plan": {
+      "apm_sli_metadata": "(unknown)",
+      "description": null,
+      "grouping": "(unknown)",
+      "id": "(unknown)",
+      "labels": "(unknown)",
+      "name": "window",
+      "ownership_tags": null,
+      "product_type": "(unknown)",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "missing_data_strategy": "(unknown)",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.5,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/slo/slos/v1",
+        "body": {
+          "name": "window",
+          "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+          "targetThresholdPercentage": 99.5,
+          "windowBasedMetricSli": {
+            "comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN",
+            "query": {
+              "query": "sum(rate(up[1m])) by (job)"
+            },
+            "threshold": 0.5,
+            "window": "WINDOW_SLO_WINDOW_1_MINUTE"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": null,
+      "description": null,
+      "grouping": {
+        "labels": [
+          "job"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "window",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "missing_data_strategy": "uncounted",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.5,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: set strategy bad",
+    "config": {
+      "name": "window",
+      "sli": {
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "missing_data_strategy": "bad",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.5,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "plan": {
+      "apm_sli_metadata": "(unknown)",
+      "description": null,
+      "grouping": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": "(unknown)",
+      "name": "window",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "missing_data_strategy": "bad",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.5,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/slo/slos/v1",
+        "body": {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "window",
+          "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+          "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+          "targetThresholdPercentage": 99.5,
+          "windowBasedMetricSli": {
+            "comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN",
+            "missingDataStrategy": "MISSING_DATA_STRATEGY_BAD",
+            "query": {
+              "query": "sum(rate(up[1m])) by (job)"
+            },
+            "threshold": 0.5,
+            "window": "WINDOW_SLO_WINDOW_1_MINUTE"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": null,
+      "description": null,
+      "grouping": {
+        "labels": [
+          "job"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "window",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "missing_data_strategy": "bad",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.5,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: remove strategy",
+    "config": {
+      "name": "window",
+      "sli": {
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.5,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "plan": {
+      "apm_sli_metadata": null,
+      "description": null,
+      "grouping": {
+        "labels": [
+          "job"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "window",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "missing_data_strategy": "bad",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.5,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "noChange": true,
+    "state": {
+      "apm_sli_metadata": null,
+      "description": null,
+      "grouping": {
+        "labels": [
+          "job"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "window",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "missing_data_strategy": "bad",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.5,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    }
+  },
+  {
+    "step": "update: change threshold with strategy removed",
+    "config": {
+      "name": "window",
+      "sli": {
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.7,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "plan": {
+      "apm_sli_metadata": "(unknown)",
+      "description": null,
+      "grouping": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": "(unknown)",
+      "name": "window",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "missing_data_strategy": "bad",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.7,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/slo/slos/v1",
+        "body": {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "window",
+          "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+          "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+          "targetThresholdPercentage": 99.5,
+          "windowBasedMetricSli": {
+            "comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN",
+            "missingDataStrategy": "MISSING_DATA_STRATEGY_BAD",
+            "query": {
+              "query": "sum(rate(up[1m])) by (job)"
+            },
+            "threshold": 0.7,
+            "window": "WINDOW_SLO_WINDOW_1_MINUTE"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": null,
+      "description": null,
+      "grouping": {
+        "labels": [
+          "job"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "window",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "missing_data_strategy": "bad",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.7,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/slo/slos/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": null,
+      "description": null,
+      "grouping": {
+        "labels": [
+          "job"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "window",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "missing_data_strategy": "bad",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.7,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    }
+  }
+]
