@@ -156,7 +156,7 @@
           "status": 404,
           "response": {
             "code": 404,
-            "message": "Not Found: Slo with id b3077f0e-4a7f-493e-a86f-d61523e8abd5 not found for company 4015638"
+            "message": "Not Found: Slo with id \u003cid\u003e not found for company \u003ccompany\u003e"
           }
         }
       ]
@@ -529,7 +529,7 @@
           "status": 400,
           "response": {
             "code": 400,
-            "message": "Bad Request: proto: (line 1:288): error parsing \"windowBasedMetricSli\", oneof com.coralogixapis.slo.v1.Slo.sli is already set"
+            "message": "Bad Request: proto: (line \u003cposition\u003e): error parsing \"windowBasedMetricSli\", oneof com.coralogixapis.slo.v1.Slo.sli is already set"
           }
         }
       ]
@@ -796,21 +796,21 @@
           "status": 404,
           "response": {
             "code": 404,
-            "message": "Not Found: Slo with id 00000000-0000-4000-8000-000000000000 not found for company 4015638"
+            "message": "Not Found: Slo with id \u003cid\u003e not found for company \u003ccompany\u003e"
           }
         },
         {
           "status": 404,
           "response": {
             "code": 404,
-            "message": "Not Found: Cannot replace Slo with id 00000000-0000-4000-8000-000000000000 because it does not exist"
+            "message": "Not Found: Cannot replace Slo with id \u003cid\u003e because it does not exist"
           }
         },
         {
           "status": 404,
           "response": {
             "code": 404,
-            "message": "Not Found: Slo with id 00000000-0000-4000-8000-000000000000 not found for company 4015638"
+            "message": "Not Found: Slo with id \u003cid\u003e not found for company \u003ccompany\u003e"
           }
         }
       ]

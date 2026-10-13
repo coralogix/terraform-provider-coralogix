@@ -215,7 +215,8 @@ func recordSLOFidelityStep(t *testing.T, base, apiKey string, s fidelityStep, va
 	} else {
 		parsed = map[string]any{}
 	}
-	return resp.StatusCode, sloFidelityResponse(parsed, s, resp.StatusCode, vars, created)
+	// The message placeholders keep a new recording free of the ids of this run.
+	return resp.StatusCode, sloFidelityMessage(sloFidelityResponse(parsed, s, resp.StatusCode, vars, created))
 }
 
 func cleanupRecordedSLOs(base, apiKey string, ids []string) {
