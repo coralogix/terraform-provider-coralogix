@@ -38,25 +38,44 @@ const asBasePath = "/alerts/suppression-rules/v1"
 //     an unknown one answers 404. Every Update stores a new version id.
 //   - The filter needs exactly one of alertUniqueIds (an empty list means all alerts) and
 //     alertMetaLabels. whatExpression must start with "source logs | filter ".
-//   - Omitted enabled is false. Omitted description reads back as "". Rule meta labels come
-//     back with ids and sorted by key, not in request order.
+//   - Omitted enabled is false. Omitted description reads back as "". Meta labels come back
+//     with ids: the rule labels in request order, the filter labels in reverse order. An alert
+//     id that the tenant does not have is rejected; the fake knows alert-1 and alert-2.
 //   - A time is read in the timezone of the time frame (an explicit offset or Z wins), kept to
 //     the second, and returned in that timezone with milliseconds and no offset. Create and
 //     Update echo the raw start time in submittedStartTime; Get does not. The server code moves
 //     a recurring start time to the first scheduled day, but the acceptance test reads a weekly
 //     Sunday rule back with its Monday start, so the fake keeps the start time.
 //   - always is the empty object. A dynamic rule with repeatEvery <= 0 reads back as always.
-//   - Get, Update, and Delete of a missing rule answer 404.
+//   - Get, Update, and Delete of a missing rule answer 404. Errors are text, as recorded:
+//     "Bad Request: [ <path> ] <message>" and "Not Found: <message>".
 type asFake struct {
 	mu       sync.Mutex
 	rules    map[string]map[string]any
+	alerts   []string // the alert ids of the tenant
 	seq      int
 	requests []grRequest
 }
 
+var asKnownAlerts = []string{"alert-1", "alert-2"}
+
+// asFail is an error answer of the API: the status text, then the message.
+func asFail(status int, message string) (int, any) {
+	return status, map[string]any{"code": status, "message": http.StatusText(status) + ": " + message}
+}
+
+// asInvalid is a validation error at the path of the field.
+func asInvalid(path, message string) (int, any) {
+	return asFail(http.StatusBadRequest, "[ "+path+" ] "+message)
+}
+
+func asNotFound(id string) (int, any) {
+	return asFail(http.StatusNotFound, "No suppression rule found with unique identifier "+id)
+}
+
 func newASFake(t *testing.T) *asFake {
 	t.Helper()
-	f := &asFake{rules: map[string]map[string]any{}}
+	f := &asFake{rules: map[string]map[string]any{}, alerts: asKnownAlerts}
 	srv := httptest.NewServer(f)
 	t.Cleanup(srv.Close)
 
@@ -130,12 +149,12 @@ func (f *asFake) handle(method, path string, body any) (int, any) {
 	case method == http.MethodGet && id != "":
 		stored, found := f.rules[id]
 		if !found {
-			return grFail(http.StatusNotFound, "alert scheduler rule "+id+" not found")
+			return asNotFound(id)
 		}
 		return http.StatusOK, map[string]any{"alertSchedulerRule": stored}
 	case method == http.MethodDelete && id != "":
 		if _, found := f.rules[id]; !found {
-			return grFail(http.StatusNotFound, "alert scheduler rule "+id+" not found")
+			return asNotFound(id)
 		}
 		delete(f.rules, id)
 		return http.StatusOK, map[string]any{}
@@ -151,22 +170,22 @@ func (f *asFake) uuidLike() string {
 func (f *asFake) write(in map[string]any, update bool) (int, any) {
 	rule, _ := in["alertSchedulerRule"].(map[string]any)
 	if rule == nil {
-		return grFail(http.StatusBadRequest, "alertSchedulerRule is required")
+		return asInvalid("alertSchedulerRule", "Required")
 	}
 	uid, _ := rule["uniqueIdentifier"].(string)
 	if update {
 		if uid == "" {
-			return grFail(http.StatusBadRequest, "uniqueIdentifier is required; the value provided in the id field is a version id")
+			return asInvalid("alertSchedulerRule", "uniqueIdentifier is required; the value provided in the id field is a version id and cannot be used to update a rule")
 		}
 		if _, found := f.rules[uid]; !found {
-			return grFail(http.StatusNotFound, "alert scheduler rule "+uid+" not found")
+			return asFail(http.StatusNotFound, "No result found")
 		}
 	} else if uid != "" || rule["id"] != nil {
 		// The server ignores the error of this check and answers OK with an empty rule.
 		return http.StatusOK, map[string]any{"alertSchedulerRule": map[string]any{}}
 	}
-	if msg := asCheck(rule); msg != "" {
-		return grFail(http.StatusBadRequest, msg)
+	if path, msg := f.check(rule); msg != "" {
+		return asInvalid(path, msg)
 	}
 	if !update {
 		uid = f.uuidLike()
@@ -185,64 +204,73 @@ func (f *asFake) write(in map[string]any, update bool) (int, any) {
 	return http.StatusOK, map[string]any{"alertSchedulerRule": out}
 }
 
-func asCheck(rule map[string]any) string {
+// check returns the path and the message of the first rule that the request breaks, as the
+// server words them.
+func (f *asFake) check(rule map[string]any) (string, string) {
+	const r = "alertSchedulerRule"
 	if name, _ := rule["name"].(string); name == "" {
-		return "name: String must contain at least 1 character(s)"
+		return r + ".name", "String must contain at least 1 character(s)"
 	}
 	filter, _ := rule["filter"].(map[string]any)
-	if what, _ := filter["whatExpression"].(string); !strings.HasPrefix(what, "source logs | filter ") {
-		return "whatExpression must start with 'source logs | filter'"
+	if what, _ := filter["whatExpression"].(string); !strings.HasPrefix(what, "source logs | filter") {
+		return r + ".filter.whatExpression", `Invalid dataPrime expression : {"syntax_error":"expression does not start with 'source logs | filter'"}`
 	}
-	_, ids := filter["alertUniqueIds"]
-	_, labels := filter["alertMetaLabels"]
-	if ids == labels {
-		return "filter: exactly one of alertUniqueIds and alertMetaLabels is required"
+	ids, hasIDs := filter["alertUniqueIds"].(map[string]any)
+	_, hasLabels := filter["alertMetaLabels"]
+	if hasIDs == hasLabels {
+		return r + ".filter.whichAlerts", "Invalid input"
+	}
+	for _, id := range asList(ids["value"]) {
+		if !slices.Contains(f.alerts, id.(string)) {
+			return r + ".filter.whichAlerts.alertUniqueIds.value", "invalid alert uniqe ids"
+		}
 	}
 	schedule, _ := rule["schedule"].(map[string]any)
 	if op, _ := schedule["scheduleOperation"].(string); op == "" || op == "SCHEDULE_OPERATION_UNSPECIFIED" {
-		return "scheduleOperation is required"
+		return r + ".schedule.scheduleOperation", "ScheduleOperation value UNSPECIFIED is not allowed"
 	}
 	if one, ok := schedule["oneTime"].(map[string]any); ok {
-		return asCheckTimeframe(one["timeframe"])
+		return asCheckTimeframe(r+".schedule.scheduler.oneTime.timeframe", one["timeframe"])
 	}
 	recurring, _ := schedule["recurring"].(map[string]any)
 	if _, ok := recurring["alwaysActive"]; ok {
-		return ""
+		return "", ""
 	}
 	dynamic, ok := recurring["schedule"].(map[string]any)
 	if !ok {
-		return "schedule: oneTime or recurring is required"
+		return r + ".schedule.scheduler", "Invalid input"
 	}
+	at := r + ".schedule.scheduler.recurring.condition.schedule"
 	if w, ok := dynamic["weekly"].(map[string]any); ok {
 		days := asList(w["daysOfWeek"])
 		if len(days) == 0 {
-			return "daysOfWeek must not be empty"
+			return at + ".frequency.weekly.daysOfWeek", "Need to insert daysOfWeek"
 		}
 		for _, d := range days {
 			if n, _ := d.(float64); n < 1 || n > 7 {
-				return "daysOfWeek must be between 1 and 7"
+				return at + ".frequency.weekly.daysOfWeek", "Invalid days in week (accept 1-7)"
 			}
 		}
 	}
 	if m, ok := dynamic["monthly"].(map[string]any); ok && len(asList(m["daysOfMonth"])) == 0 {
-		return "daysOfMonth must not be empty"
+		return at + ".frequency.monthly.daysOfMonth", "Need to insert daysOfWeek"
 	}
-	return asCheckTimeframe(dynamic["timeframe"])
+	return asCheckTimeframe(at+".timeframe", dynamic["timeframe"])
 }
 
-func asCheckTimeframe(v any) string {
+func asCheckTimeframe(at string, v any) (string, string) {
 	tf, _ := v.(map[string]any)
 	tz, _ := tf["timezone"].(string)
 	if _, ok := asZone(tz); !ok {
-		return "timezone is invalid"
+		return at + ".timezone", "invalid timezone"
 	}
 	if _, ok := tf["endTime"]; ok {
-		return ""
+		return "", ""
 	}
 	if _, ok := tf["duration"]; ok {
-		return ""
+		return "", ""
 	}
-	return "timeframe: endTime or duration is required"
+	return at + ".until", "Invalid input"
 }
 
 // normalize returns what the server stores, and the raw start time of the request.
@@ -251,7 +279,7 @@ func (f *asFake) normalize(rule map[string]any) (map[string]any, string) {
 		"name":        rule["name"],
 		"description": orDefault(rule["description"], ""),
 		"enabled":     orDefault(rule["enabled"], false),
-		"metaLabels":  f.labels(asList(rule["metaLabels"]), true),
+		"metaLabels":  f.labels(asList(rule["metaLabels"]), false),
 	}
 	filter := rule["filter"].(map[string]any)
 	outFilter := map[string]any{"whatExpression": filter["whatExpression"]}
@@ -259,7 +287,7 @@ func (f *asFake) normalize(rule map[string]any) (map[string]any, string) {
 		outFilter["alertUniqueIds"] = map[string]any{"value": orDefault(ids["value"], []any{})}
 	} else {
 		labels := filter["alertMetaLabels"].(map[string]any)
-		outFilter["alertMetaLabels"] = map[string]any{"value": f.labels(asList(labels["value"]), false)}
+		outFilter["alertMetaLabels"] = map[string]any{"value": f.labels(asList(labels["value"]), true)}
 	}
 	out["filter"] = outFilter
 
@@ -293,9 +321,9 @@ func (f *asFake) normalize(rule map[string]any) (map[string]any, string) {
 	return out, submitted
 }
 
-// labels gives each label an id. Rule labels come back sorted by key: the server reads them
-// from the meta-labels service, not in request order.
-func (f *asFake) labels(in []any, sorted bool) []any {
+// labels gives each label an id. The server keeps the order of the rule labels and returns the
+// filter labels in reverse order.
+func (f *asFake) labels(in []any, reverse bool) []any {
 	out := make([]any, 0, len(in))
 	for _, l := range in {
 		label := mapsClone(l.(map[string]any))
@@ -304,10 +332,8 @@ func (f *asFake) labels(in []any, sorted bool) []any {
 		}
 		out = append(out, label)
 	}
-	if sorted {
-		slices.SortStableFunc(out, func(a, b any) int {
-			return strings.Compare(a.(map[string]any)["key"].(string), b.(map[string]any)["key"].(string))
-		})
+	if reverse {
+		slices.Reverse(out)
 	}
 	return out
 }
