@@ -1910,3 +1910,48 @@ func functionBody(t *testing.T, source, signature string) string {
 	}
 	return source[start : start+end]
 }
+
+// An Update-only field with a default makes Create follow with an Update. When only the server
+// sets the id and Update finds the resource by the id in the body, that follow-up Update sends
+// the state id as the normal Update does.
+func TestFollowUpUpdateSendsTheServerSetID(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "sharedthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(spec)
+	put := strings.Index(text, "    put:")
+	replaceBody := "              title: SharedThing\n              type: object\n              properties:\n                id: {type: string, x-coralogix-presence: true}\n                name: {type: string}\n"
+	i := strings.Index(text[put:], replaceBody)
+	if put < 0 || i < 0 {
+		t.Fatal("sharedthing.yaml has no Replace body")
+	}
+	text = text[:put+i] + strings.Replace(replaceBody, "title: SharedThing\n", "title: SharedThingUpdate\n", 1) +
+		"                compact: {type: boolean, default: false, x-coralogix-presence: true}\n" + text[put+i+len(replaceBody):]
+	component := "    SharedThing:\n      title: SharedThing\n      type: object\n      properties:\n        id: {type: string, x-coralogix-presence: true}\n        name: {type: string}\n"
+	if !strings.Contains(text, component) {
+		t.Fatal("sharedthing.yaml has no SharedThing component")
+	}
+	text = strings.Replace(text, component, component+"        compact: {type: boolean, x-coralogix-presence: true}\n", 1)
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = []byte(text)
+	out := filepath.Join(t.TempDir(), "sharedthing")
+	options := Options{Resource: "SharedThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "sharedthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := string(resource)
+	start := strings.Index(src, "func (r *Resource) applyUpdateOnly(")
+	if start < 0 {
+		t.Fatal("resource.go has no applyUpdateOnly")
+	}
+	end := strings.Index(src[start:], "\n}\n")
+	if !strings.Contains(src[start:start+end], "body.Id = &id") {
+		t.Fatalf("applyUpdateOnly does not send the state id:\n%s", src[start:start+end])
+	}
+	compileGenerated(t, out, input)
+}

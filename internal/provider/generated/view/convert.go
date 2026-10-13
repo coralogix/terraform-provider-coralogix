@@ -266,6 +266,10 @@ func keepPriorEmpty(ctx context.Context, prior tfData, state *tfsdk.State) diag.
 // returns v, with the same rule applied to the attributes of an object and to
 // the elements of a list or map.
 func priorEmpty(ctx context.Context, at string, v, p attr.Value, diags *diag.Diagnostics) attr.Value {
+	// A read can leave out a nested value that equals its declared server default.
+	if d := defaultAttrs[at]; d != nil && v.IsNull() && p != nil && p.Equal(d) {
+		return p
+	}
 	if keepAPIValue(at, v, p) {
 		return v
 	}

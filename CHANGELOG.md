@@ -30,7 +30,8 @@
 - FEAT: `validators.rejectUnknown: true` gives an existing-mode resource without a released version the unknown-value check of a new resource. `coralogix_view` sets it.
 - FIX: A `$ref` with a sibling constraint such as `pattern` is an error. Before, the type came from the target and the constraint was lost.
 - FIX: Only an object that holds an attribute with a server default reads `""` or that default as empty. Before, every object did once the resource had a nested default.
-- FIX: A top-level server default that Get does not require keeps a configured default when a read omits the value. Before, the read stored null and the apply was inconsistent.
+- FIX: A server default that Get does not require keeps a configured default when a read omits the value, at the top level and in a nested object. Before, the read stored null and the apply was inconsistent.
+- FIX: The Update that follows Create for an Update-only field sends the state id in the body when only the server sets the id, as the normal Update does.
 
 # Release 3.21.0
 

@@ -257,13 +257,16 @@ func TestViewCreateRejectsAnUnknownRequestValue(t *testing.T) {
 func TestViewConfiguredDefaultSurvivesAnOmittedRead(t *testing.T) {
 	h := newViewHarness(t)
 	h.views().omitDefaults = true
-	state := h.Apply("create", h.null(), viewConfig(j{"view_type": "VIEW_TYPE_LOGS", "is_compact_mode": false}))
+	state := h.Apply("create", h.null(), viewConfig(j{"view_type": "VIEW_TYPE_LOGS", "is_compact_mode": false, "search_query": j{"query": "error", "syntax_type": "SYNTAX_TYPE_LUCENE"}}))
 	step := lastStep(t, h)
 	if got := attrOf(t, step.State, "view_type"); got != "VIEW_TYPE_LOGS" {
 		t.Fatalf("view_type = %v, want VIEW_TYPE_LOGS", got)
 	}
+	if got := attrOf(t, step.State, "search_query", "syntax_type"); got != "SYNTAX_TYPE_LUCENE" {
+		t.Fatalf("search_query.syntax_type = %v, want SYNTAX_TYPE_LUCENE", got)
+	}
 	h.Refresh("refresh", state)
-	h.Apply("plan", state, viewConfig(j{"view_type": "VIEW_TYPE_LOGS", "is_compact_mode": false}))
+	h.Apply("plan", state, viewConfig(j{"view_type": "VIEW_TYPE_LOGS", "is_compact_mode": false, "search_query": j{"query": "error", "syntax_type": "SYNTAX_TYPE_LUCENE"}}))
 	if step := h.steps[len(h.steps)-1]; !step.NoChange {
 		t.Fatal("the plan after an omitted read changes the view")
 	}

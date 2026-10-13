@@ -68,8 +68,8 @@ func viewNotFound(id string) (int, any) {
 type viewFake struct {
 	// createCompact is what create stores for isCompactMode. The service stores false.
 	createCompact bool
-	// omitDefaults leaves viewType and isCompactMode out of a response when they hold the
-	// default, as an API may for a value that equals its default.
+	// omitDefaults leaves viewType, isCompactMode, and searchQuery.syntaxType out of a response
+	// when they hold the default, as an API may for a value that equals its default.
 	omitDefaults bool
 	mu           sync.Mutex
 	views        map[string]map[string]any
@@ -259,6 +259,15 @@ func (f *viewFake) response(stored map[string]any) map[string]any {
 	}
 	if out["isCompactMode"] == false {
 		delete(out, "isCompactMode")
+	}
+	if sq, _ := out["searchQuery"].(map[string]any); sq["syntaxType"] == "SYNTAX_TYPE_LUCENE" {
+		trimmed := map[string]any{}
+		for k, v := range sq {
+			if k != "syntaxType" {
+				trimmed[k] = v
+			}
+		}
+		out["searchQuery"] = trimmed
 	}
 	return out
 }
