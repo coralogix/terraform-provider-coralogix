@@ -69,6 +69,9 @@ type Policy struct {
 	// Unsupported lists "Component.field" of oneOf arms the resource does not
 	// configure. Flatten reports a response that selects one.
 	Unsupported []string
+	// Sets lists "Component.field" of lists that are Terraform sets, although
+	// the contract does not mark them x-coralogix-collection: set.
+	Sets []string
 	// UnsupportedSummary and UnsupportedDetail are the diagnostic for those
 	// arms, keyed by the component name.
 	UnsupportedSummary map[string]string

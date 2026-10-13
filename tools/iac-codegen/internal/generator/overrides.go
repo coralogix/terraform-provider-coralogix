@@ -228,11 +228,20 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	if line.Required && slices.Contains(schema.Required, line.Field) {
 		stale = append(stale, "required")
 	}
+	if line.Collection != "" {
+		field, err := schema.Properties.GetOrZero(line.Field).BuildSchema()
+		if err != nil || !slices.Equal(field.Type, []string{"array"}) {
+			return wholeLine(fmt.Errorf("collection: set on %s.%s, which is not a list", line.Component, line.Field))
+		}
+		if n := field.Extensions.GetOrZero("x-coralogix-collection"); n != nil && n.Value == "set" {
+			stale = append(stale, "collection")
+		}
+	}
 	if len(stale) == 0 {
 		return nil
 	}
 	return &lineIssue{
-		message: fmt.Sprintf("the contract already states that %q is %s", line.Field, strings.Join(stale, " and ")),
+		message: fmt.Sprintf("the contract already states that %q is %s", line.Field, strings.Join(staleFacts(stale), " and ")),
 		stale:   stale,
 	}
 }
@@ -330,4 +339,16 @@ func contractReadOnly(schema *base.Schema, field string) bool {
 
 func hasNoRequiredList(schema *base.Schema) bool {
 	return schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()
+}
+
+// staleFacts names the facts of stale keys: collection says "a set".
+func staleFacts(keys []string) []string {
+	out := make([]string, len(keys))
+	for i, k := range keys {
+		out[i] = k
+		if k == "collection" {
+			out[i] = "a set"
+		}
+	}
+	return out
 }

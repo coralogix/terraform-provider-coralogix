@@ -191,6 +191,49 @@ func TestSharedBodyRuntimeSemantics(t *testing.T) {
 	compileGenerated(t, out, input)
 }
 
+// The golden output of a released resource like the AI evaluation API: Update sends no mask,
+// a field line forces replace, an unsupported oneOf arm, a list that is a set by a line, a
+// missing string read as "", an enum that starts with a business value, and a Get response
+// that wraps the resource in allOf.
+func TestGoldenOutputEvalThing(t *testing.T) {
+	out := generateEvalThing(t)
+	golden := filepath.Join("testdata", "golden", "evalthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputEvalThing -update:\n%s", diff)
+	}
+}
+
+// The generated EvalThing compiles against its SDK.
+func TestEvalThingCompiles(t *testing.T) {
+	input, _ := syntheticInput(t)
+	compileGenerated(t, generateEvalThing(t), input)
+}
+
+// generateEvalThing generates the synthetic resource like the AI evaluation API.
+func generateEvalThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "evalthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "evalthing")
+	options := Options{Resource: "EvalThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "evalthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
 // generateSharedThing generates the synthetic resource whose Create and Update share one body.
 func generateSharedThing(t *testing.T) string {
 	t.Helper()

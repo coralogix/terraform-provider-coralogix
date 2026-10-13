@@ -187,6 +187,10 @@ type Field struct {
 	// require the field. The SDK type of the field does not change. Delete this key when the
 	// contract requires the field.
 	Required bool `yaml:"required"`
+	// Collection: "set" makes a list a Terraform set, although the contract does
+	// not mark it x-coralogix-collection: set. The SDK type of the field does not
+	// change. Delete this key when the contract marks the field.
+	Collection string `yaml:"collection"`
 	// Deprecation is the released deprecation message.
 	Deprecation string `yaml:"deprecation"`
 	// Computed: true makes an optional field Optional+Computed. false makes it Optional.
@@ -416,6 +420,7 @@ func (l Field) keys() []string {
 	add(l.Equality != "", "equality")
 	add(l.Unwrap != nil, "unwrap")
 	add(l.RequiresReplace, "requiresReplace")
+	add(l.Collection != "", "collection")
 	return keys
 }
 
@@ -489,7 +494,8 @@ func (l Field) emptyMode() bool {
 
 func (l Field) emptyValue() bool {
 	return l.Default == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && l.RequestValue == "" &&
-		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && !l.RequiresReplace
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && !l.RequiresReplace &&
+		l.Collection == ""
 }
 
 func (l Field) check() error {
@@ -520,6 +526,9 @@ func (l Field) check() error {
 }
 
 func (l Field) checkConflicts() error {
+	if l.Collection != "" && l.Collection != "set" {
+		return fmt.Errorf("collection is %q, want \"set\"", l.Collection)
+	}
 	if l.ReadEmptyAs != "" && l.ReadEmptyAs != "null" {
 		return fmt.Errorf("readEmptyAs is %q, want \"null\"", l.ReadEmptyAs)
 	}
@@ -542,7 +551,7 @@ func (l Field) checkConflicts() error {
 func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.RequestValue != "" ||
-		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || l.RequiresReplace
+		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || l.RequiresReplace || l.Collection != ""
 }
 
 func checkValidators(validators []Validator) error {
@@ -624,6 +633,9 @@ func (f *File) Policy() model.Policy {
 			if t.Fields[field].RequiresReplace {
 				p.RequiresReplace = append(p.RequiresReplace, name+"."+field)
 			}
+			if t.Fields[field].Collection == "set" {
+				p.Sets = append(p.Sets, name+"."+field)
+			}
 		}
 		for _, arm := range t.UnsupportedArms {
 			p.Unsupported = append(p.Unsupported, name+"."+arm)
@@ -658,7 +670,7 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Equality: f.Equality, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Collection: f.Collection, Equality: f.Equality, Keys: f.keys()})
 		}
 	}
 	return out
@@ -685,6 +697,7 @@ type Line struct {
 	ReadOnly     bool     // for a field line: the file says that the server sets the field
 	Equality     string   // for a field line: "yaml" or "json" when the line compares the value as a document
 	Required     bool     // for a field line: the file says that the field is required
+	Collection   string   // for a field line: "set" says that the list is unordered
 	Keys         []string // for a field line: every key that the line sets
 }
 

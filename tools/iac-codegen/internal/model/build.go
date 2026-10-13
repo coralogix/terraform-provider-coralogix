@@ -1335,6 +1335,12 @@ func objectFields(s *base.Schema, path string, w walk, component string) ([]*Fie
 		if ft == nil {
 			ft, err = typeOf(proxy, path+"."+name, w)
 		}
+		if err == nil && w.policy != nil && component != "" && slices.Contains(w.policy.Sets, component+"."+name) {
+			if ft.Kind != List && ft.Kind != Set {
+				return nil, fmt.Errorf("%s.%s: collection: set needs a list", path, name)
+			}
+			ft.Kind = Set
+		}
 		if err != nil {
 			if !w.keep(err) {
 				return nil, err
