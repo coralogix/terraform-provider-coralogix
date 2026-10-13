@@ -35,6 +35,10 @@ env:
   GLOBAL_ROUTER_MIGRATION_ACC_PATTERN: &global_router_migration_acc_pattern '^TestAccCoralogixResourceGlobalRouterMigration$'
   # Every generated resource has a test whose name ends in GeneratedUpgrade. One shard runs them all.
   GENERATED_UPGRADE_ACC_PATTERN: &generated_upgrade_acc_pattern 'GeneratedUpgrade$'
+  # The archive logs target is one per company, so its tests must not run at the same time. The
+  # archive-logs shard runs all of them (handwritten, generated, and generated upgrade) with -p 1;
+  # every other job skips them.
+  ARCHIVE_LOGS_ACC_PATTERN: &archive_logs_acc_pattern '^TestAccCoralogix(Resource|DataSource)(Resource)?ArchiveLogs'
   DASHBOARD_SHARD_STRUCTURED_LINE_AND_TABLE: &dashboard_shard_structured_line_and_table '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/line-and-table$'
   DASHBOARD_SHARD_STRUCTURED_GAUGE_AND_BARS: &dashboard_shard_structured_gauge_and_bars '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/gauge-and-bars$'
   DASHBOARD_SHARD_STRUCTURED_HORIZONTAL_AND_HEXAGON: &dashboard_shard_structured_horizontal_and_hexagon '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/horizontal-and-hexagon$'
@@ -127,7 +131,7 @@ jobs:
             "$NON_DASHBOARD_SHARD_ALERTS_AND_INTEGRATIONS"
             "$NON_DASHBOARD_SHARD_DATA_PROCESSING"
           )
-          skip_pattern="$DASHBOARD_ACC_PATTERN|$EVENTS2METRIC_MIGRATION_ACC_PATTERN|$USER_MIGRATION_ACC_PATTERN"
+          skip_pattern="$DASHBOARD_ACC_PATTERN|$EVENTS2METRIC_MIGRATION_ACC_PATTERN|$USER_MIGRATION_ACC_PATTERN|$ARCHIVE_LOGS_ACC_PATTERN"
           for pattern in "${shard_patterns[@]}"; do
             skip_pattern+="|($pattern)"
           done
@@ -251,6 +255,10 @@ jobs:
             pattern: *global_router_migration_acc_pattern
           - shard: generated-upgrade
             pattern: *generated_upgrade_acc_pattern
+            skip: *archive_logs_acc_pattern
+          - shard: archive-logs
+            pattern: *archive_logs_acc_pattern
+            procs: 1
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -268,8 +276,9 @@ jobs:
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
           # The coralogix_slo_v2 upgrade test creates APM SLOs, which need a catalog service.
           CORALOGIX_SLO_V2_APM_SERVICE: ${{ secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
+          ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
         run: |
-          bash .github/scripts/run-tests-with-summary.sh env CORALOGIX_DASHBOARD_MIGRATION_ACC=1 CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 CORALOGIX_USER_MIGRATION_ACC=1 CORALOGIX_GLOBAL_ROUTER_MIGRATION_ACC=1 CORALOGIX_GENERATED_UPGRADE_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -run '${{ matrix.pattern }}' -v -count=1 -timeout 120m -parallel=3
+          bash .github/scripts/run-tests-with-summary.sh env CORALOGIX_DASHBOARD_MIGRATION_ACC=1 CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 CORALOGIX_USER_MIGRATION_ACC=1 CORALOGIX_GLOBAL_ROUTER_MIGRATION_ACC=1 CORALOGIX_GENERATED_UPGRADE_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test -p ${{ matrix.procs || 4 }} -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -run '${{ matrix.pattern }}' -skip '${{ matrix.skip }}' -v -count=1 -timeout 120m -parallel=3
 
   notify-failure:
     name: Notify Slack on failure
