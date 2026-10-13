@@ -2,6 +2,7 @@ package sharedthing
 
 import (
 	"context"
+	"math/big"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -22,8 +23,24 @@ func thingSchema(t *testing.T) (*Resource, frameworkresource.SchemaResponse, tft
 	return r, schemaResp, schemaResp.Schema.Type().TerraformType(ctx)
 }
 
+// thingValue is the resource with the id and the name, a one_day window, and a ratio of 0.5 as
+// the measure. Every other attribute is null.
 func thingValue(root tftypes.Type, id, name tftypes.Value) tftypes.Value {
-	return tftypes.NewValue(root, map[string]tftypes.Value{"id": id, "name": name})
+	object := root.(tftypes.Object)
+	values := map[string]tftypes.Value{}
+	for attr, attrType := range object.AttributeTypes {
+		values[attr] = tftypes.NewValue(attrType, nil)
+	}
+	values["id"], values["name"] = id, name
+	window := object.AttributeTypes["window"].(tftypes.Object)
+	values["window"] = tftypes.NewValue(window, map[string]tftypes.Value{"frame": tftypes.NewValue(tftypes.String, "one_day")})
+	measure := object.AttributeTypes["measure"].(tftypes.Object)
+	ratio := measure.AttributeTypes["by_ratio"].(tftypes.Object)
+	values["measure"] = tftypes.NewValue(measure, map[string]tftypes.Value{
+		"by_count": tftypes.NewValue(measure.AttributeTypes["by_count"], nil),
+		"by_ratio": tftypes.NewValue(ratio, map[string]tftypes.Value{"ratio": tftypes.NewValue(tftypes.Number, big.NewFloat(0.5))}),
+	})
+	return tftypes.NewValue(root, values)
 }
 
 // Create sends the resource as the body and reads the resource from the response, next to the
@@ -46,6 +63,21 @@ func TestCreateReadsTheResourceNextToOtherValues(t *testing.T) {
 	}
 	if len(shared_things_service.Created) != 1 || shared_things_service.Created[0].Id != nil {
 		t.Fatalf("create bodies = %+v, want one without an id", shared_things_service.Created)
+	}
+	// The groups are Terraform objects. The API holds their fields in the resource itself.
+	body := shared_things_service.Created[0]
+	if body.Frame == nil || *body.Frame != shared_things_service.SHAREDFRAME_SHARED_FRAME_ONE_DAY {
+		t.Fatalf("create body frame = %v, want SHARED_FRAME_ONE_DAY", body.Frame)
+	}
+	if body.ByCount != nil || body.ByRatio == nil || body.ByRatio.Ratio == nil || *body.ByRatio.Ratio != 0.5 {
+		t.Fatalf("create body measure = %+v, %+v, want only a ratio of 0.5", body.ByCount, body.ByRatio)
+	}
+	var frame types.String
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("window").AtName("frame"), &frame)...)
+	var ratio types.Float32
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("measure").AtName("by_ratio").AtName("ratio"), &ratio)...)
+	if resp.Diagnostics.HasError() || frame.ValueString() != "one_day" || ratio.ValueFloat32() != 0.5 {
+		t.Fatalf("state window.frame = %v, measure.by_ratio.ratio = %v (%v), want one_day and 0.5", frame, ratio, resp.Diagnostics)
 	}
 	var id types.String
 	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("id"), &id)...)
@@ -86,8 +118,8 @@ func TestUpdateSendsTheStateIDInTheBody(t *testing.T) {
 // Terraform cannot read, update, or delete the resource.
 func TestReadWithoutAnIDFails(t *testing.T) {
 	ctx := context.Background()
-	name := "a"
-	shared_things_service.Stored = shared_things_service.SharedThing{Name: &name}
+	name, frame := "a", shared_things_service.SHAREDFRAME_SHARED_FRAME_ONE_DAY
+	shared_things_service.Stored = shared_things_service.SharedThing{Name: &name, Frame: &frame}
 	r, schemaResp, root := thingSchema(t)
 	state := thingValue(root, tftypes.NewValue(tftypes.String, "thing-1"), tftypes.NewValue(tftypes.String, "a"))
 	resp := &frameworkresource.ReadResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: state}}

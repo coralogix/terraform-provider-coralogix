@@ -124,23 +124,15 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 			return nil, err
 		}
 	}
-	for _, f := range r.Fields {
-		if requestValue(file, r.Name, f.Name) {
-			continue
-		}
-		a, err := b.resourceAttribute(out, r, f)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", f.Name, err)
-		}
-		out.Attributes = append(out.Attributes, a)
-		root.Fields = append(root.Fields, b.modelField(f.Name, f.Type, f.Behavior, responseOnly(f.Behavior)))
+	groups := &tfGroups{file: file, resource: r.Name, attrs: map[string]*tfAttr{}, models: map[string]*tfModel{}}
+	if err := b.rootAttributes(out, root, r, file, groups); err != nil {
+		return nil, err
 	}
-	for _, g := range r.Groups {
-		var arms []string
-		for _, arm := range g.Arms {
-			arms = append(arms, attrPath{"root", tfName(arm)}.expr())
-		}
-		b.validators = append(b.validators, groupValidator("resourcevalidator", g, true)+"(\n"+strings.Join(arms, ",\n")+",\n)")
+	if err := b.rootOneOfs(r, file, groups); err != nil {
+		return nil, err
+	}
+	if err := groups.check(); err != nil {
+		return nil, err
 	}
 	out.ConfigValidators = b.validators
 	out.Models = b.models
@@ -234,8 +226,8 @@ func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
 
 // resourceAttribute builds the attribute of a top-level field: its type, its server default, a
 // client-set id, and the plan modifiers of its behavior.
-func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *model.ResourceField) (*tfAttr, error) {
-	a, err := b.attribute(attrPath{"root", tfName(f.Name)}, r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), responseOnly(f.Behavior))
+func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *model.ResourceField, group string) (*tfAttr, error) {
+	a, err := b.attribute(rootPath(group, f.Name), r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), responseOnly(f.Behavior))
 	if err != nil {
 		return nil, err
 	}
@@ -389,6 +381,10 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 		}
 		a.Modifiers = append(a.Modifiers, modifier)
 	}
+	if l.UseNonNullStateForUnknown {
+		// A null state value stays unknown, so the server can fill it in. A known one stays.
+		a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseNonNullStateForUnknown()")
+	}
 	if l.Equality != "" {
 		if a.ValueKind != "String" {
 			return fmt.Errorf("equality needs a string attribute, not %s", a.ValueKind)
@@ -494,6 +490,12 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 		return fmt.Sprintf("%s.SizeAtLeast(%d)", pkg, *v.SizeAtLeast), nil
 	case v.LengthAtLeast != nil && a.ValueKind == "String":
 		return fmt.Sprintf("stringvalidator.LengthAtLeast(%d)", *v.LengthAtLeast), nil
+	case len(v.Between) == 2 && slices.Contains([]string{"Float32", "Float64", "Int32", "Int64"}, a.ValueKind):
+		return fmt.Sprintf("%s.Between(%s, %s)", pkg, numberLiteral(a.ValueKind, v.Between[0]), numberLiteral(a.ValueKind, v.Between[1])), nil
+	case len(v.ExactlyOneOf) != 0:
+		return pkg + ".ExactlyOneOf(" + siblingPaths(v.ExactlyOneOf) + ")", nil
+	case len(v.AtLeastOneOf) != 0:
+		return pkg + ".AtLeastOneOf(" + siblingPaths(v.AtLeastOneOf) + ")", nil
 	}
 	return "", fmt.Errorf("the validator does not fit a %s attribute", a.ValueKind)
 }
@@ -512,11 +514,7 @@ func enumValidatorExpr(a *tfAttr, file *overrides.File, exceptZero bool) (string
 		values = append(values, enum.Zero)
 	}
 	for _, v := range enum.Values {
-		if enum.Verbatim {
-			values = append(values, v)
-		} else {
-			values = append(values, strings.ToLower(v))
-		}
+		values = append(values, enum.TFValue(v))
 	}
 	slices.Sort(values)
 	quoted := make([]string, 0, len(values))
@@ -1142,4 +1140,169 @@ func formatInt(f float64) string   { return strconv.FormatInt(int64(f), 10) }
 // tfName is the Terraform name for a property name: "sqlReadOnly" → "sql_read_only".
 func tfName(property string) string {
 	return model.TerraformName(property)
+}
+
+// rootPath is the attribute path of a top-level field: below its group, when a behavior-overrides
+// group holds it.
+func rootPath(group, field string) attrPath {
+	if group == "" {
+		return attrPath{"root", tfName(field)}
+	}
+	return attrPath{"root", group, tfName(field)}
+}
+
+// tfGroups builds the groups of the behavior-overrides file: required objects that hold
+// top-level fields and that the API does not have.
+type tfGroups struct {
+	file     *overrides.File
+	resource string
+	attrs    map[string]*tfAttr
+	models   map[string]*tfModel
+}
+
+// add puts the attribute and the model field of a top-level field in its group. It reports
+// whether the group is new.
+func (g *tfGroups) add(group string, a *tfAttr, field tfModelField) bool {
+	attr, found := g.attrs[group]
+	if !found {
+		attr = &tfAttr{Name: group, Kind: "SingleNested", ValueKind: "Object", Required: true,
+			Description: g.file.Groups[group].MarkdownDescription}
+		g.attrs[group] = attr
+		g.models[group] = &tfModel{Name: groupModelName(g.resource, group)}
+	}
+	attr.Attributes = append(attr.Attributes, a)
+	g.models[group].Fields = append(g.models[group].Fields, field)
+	return !found
+}
+
+// oneOf returns the group that holds every arm of the top-level oneOf g, or "" when no group
+// holds an arm. A group cannot hold some of the arms only.
+func (g *tfGroups) oneOf(o model.OneOfGroup) (string, error) {
+	group := g.file.GroupOf(o.Arms[0])
+	for _, arm := range o.Arms[1:] {
+		if g.file.GroupOf(arm) != group {
+			return "", fmt.Errorf("groups: the oneOf arms %s must all be in one group, or in none", strings.Join(o.Arms, ", "))
+		}
+	}
+	return group, nil
+}
+
+// check reports a group field that is no top-level field of the resource.
+func (g *tfGroups) check() error {
+	for _, name := range g.file.GroupNames() {
+		if g.file.Groups[name].RequireOne && !slices.ContainsFunc(g.attrs[name].attrsOrNil(), func(a *tfAttr) bool { return a.OneOfGroup != "" }) {
+			return fmt.Errorf("groups.%s: requireOne needs the arms of a oneOf of the resource", name)
+		}
+		for _, field := range g.file.Groups[name].Fields {
+			if !slices.ContainsFunc(g.attrs[name].attrsOrNil(), func(a *tfAttr) bool { return a.Property == field }) {
+				return fmt.Errorf("groups.%s: %s is no top-level field of %s that Terraform shows", name, field, g.resource)
+			}
+		}
+	}
+	return nil
+}
+
+func (a *tfAttr) attrsOrNil() []*tfAttr {
+	if a == nil {
+		return nil
+	}
+	return a.Attributes
+}
+
+// groupModelName is the Go type of the model of a group.
+func groupModelName(resource, group string) string {
+	return modelTypeName(resource + camelize(group))
+}
+
+// checkGroupField rejects a top-level field that a group cannot hold. A group holds fields that
+// the user sets and that Update sends; the id names the resource, and an immutable field or a
+// server default needs plan logic at the top level.
+func checkGroupField(r *model.Resource, f *model.ResourceField, group string) error {
+	switch {
+	case group == "":
+		return nil
+	case !r.Replace:
+		return fmt.Errorf("groups.%s: a group needs a full-replace Update (PUT): a PATCH mask names the API fields", group)
+	case f.Name == r.IDParam:
+		return fmt.Errorf("groups.%s: the resource id %s cannot be in a group", group, f.Name)
+	case f.Behavior != model.Normal:
+		return fmt.Errorf("groups.%s: %s is %s; a group holds only fields that the user sets and Update sends", group, f.Name, f.Behavior)
+	case serverDefault(r, f):
+		return fmt.Errorf("groups.%s: %s has a server default; a group cannot hold it", group, f.Name)
+	}
+	return nil
+}
+
+// numberLiteral is the Go literal of a validator bound of a number attribute of the kind.
+func numberLiteral(kind string, v float64) string {
+	if kind == "Int32" || kind == "Int64" {
+		return strconv.FormatInt(int64(v), 10)
+	}
+	s := strconv.FormatFloat(v, 'f', -1, 64)
+	if !strings.Contains(s, ".") {
+		s += ".0"
+	}
+	return s
+}
+
+// siblingPaths are the path expressions of sibling attributes, by their Terraform names.
+func siblingPaths(names []string) string {
+	paths := make([]string, 0, len(names))
+	for _, name := range names {
+		paths = append(paths, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", name))
+	}
+	return strings.Join(paths, ", ")
+}
+
+// rootAttributes adds the attributes and the model fields of the top-level fields: at the top
+// level, or in their group.
+func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Resource, file *overrides.File, groups *tfGroups) error {
+	for _, f := range r.Fields {
+		if requestValue(file, r.Name, f.Name) {
+			continue
+		}
+		group := file.GroupOf(f.Name)
+		if err := checkGroupField(r, f, group); err != nil {
+			return err
+		}
+		a, err := b.resourceAttribute(out, r, f, group)
+		if err != nil {
+			return fmt.Errorf("%s: %w", f.Name, err)
+		}
+		field := b.modelField(f.Name, f.Type, f.Behavior, responseOnly(f.Behavior))
+		if group == "" {
+			out.Attributes = append(out.Attributes, a)
+			root.Fields = append(root.Fields, field)
+			continue
+		}
+		if groups.add(group, a, field) {
+			out.Attributes = append(out.Attributes, groups.attrs[group])
+			root.Fields = append(root.Fields, tfModelField{Name: camelize(group), Type: "*" + groups.models[group].Name, TFName: group})
+			b.models = append(b.models, groups.models[group])
+		}
+	}
+	return nil
+}
+
+// rootOneOfs adds the validators of the top-level oneOf groups: a resource validator, or arm
+// validators when a behavior-overrides group holds the arms.
+func (b *tfBuilder) rootOneOfs(r *model.Resource, file *overrides.File, groups *tfGroups) error {
+	for _, g := range r.Groups {
+		if group, err := groups.oneOf(g); err != nil {
+			return err
+		} else if group != "" {
+			// The arms are in one group, which is an object: they check each other inside it.
+			addGroupValidators(groups.attrs[group].Attributes, []model.OneOfGroup{g})
+			if file.Groups[group].RequireOne {
+				requireOneArm(groups.attrs[group])
+			}
+			continue
+		}
+		var arms []string
+		for _, arm := range g.Arms {
+			arms = append(arms, rootPath(file.GroupOf(arm), arm).expr())
+		}
+		b.validators = append(b.validators, groupValidator("resourcevalidator", g, true)+"(\n"+strings.Join(arms, ",\n")+",\n)")
+	}
+	return nil
 }

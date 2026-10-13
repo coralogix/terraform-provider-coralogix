@@ -117,6 +117,9 @@ func buildCRUDWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*cru
 		Client:         client.Name,
 		Resource:       resource.Name,
 	}
+	if file != nil && file.TypeName != "" {
+		out.TypeName = file.TypeName
+	}
 	if err := resourceIDData(r, ix, out); err != nil {
 		return nil, err
 	}

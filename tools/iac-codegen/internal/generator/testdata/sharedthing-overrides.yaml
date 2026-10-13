@@ -1,5 +1,6 @@
 resource: SharedThing
 mode: existing
+typeName: shared_thing_v2
 
 validators:
   inferred: false
@@ -8,6 +9,15 @@ api:
   updateIDInBody: true
   serverSetID: true
 
+groups:
+  measure:
+    fields: [byCount, byRatio]
+    requireOne: true
+    markdownDescription: "How the thing is measured."
+  window:
+    fields: [frame]
+    markdownDescription: "The time window."
+
 types:
   SharedThing:
     fields:
@@ -15,3 +25,19 @@ types:
         readOnly: true
       name:
         required: true
+      size:
+        validators: [{between: [0, 100]}]
+      frame:
+        required: true
+        validators: [{enumExceptZero: true}]
+  SharedRatio:
+    fields:
+      ratio:
+        computed: true
+        useNonNullStateForUnknown: true
+
+enums:
+  SharedFrame:
+    zero: unspecified
+    trimPrefix: SHARED_FRAME_
+    values: [SHARED_FRAME_ONE_DAY, SHARED_FRAME_SEVEN_DAYS]

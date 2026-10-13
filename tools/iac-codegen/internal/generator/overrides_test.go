@@ -285,7 +285,7 @@ func TestSkippingAOneOfArmIsRejected(t *testing.T) {
 // readEmptyAs is rendered for an object and for a list or set of objects. On another kind it
 // would do nothing, so the generator rejects it.
 func TestReadEmptyAsOnOtherKindsIsRejected(t *testing.T) {
-	for _, field := range []string{"destinations", "labels", "enabled"} {
+	for _, field := range []string{"labels", "enabled"} {
 		t.Run(field, func(t *testing.T) {
 			text := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Thing:\n    fields:\n      " + field + ": {readEmptyAs: \"null\"}\n"
 			_, err := validateOpenAPIWith(thingSpec(t), "Thing", model.OperationIDs{}, "sdk", "provider", mustParse(t, text))
@@ -293,6 +293,27 @@ func TestReadEmptyAsOnOtherKindsIsRejected(t *testing.T) {
 				t.Fatalf("err = %v, want an issue about readEmptyAs", err)
 			}
 		})
+	}
+}
+
+// readEmptyAs: "null" works on a list of strings: the API returns an empty list for a list that
+// the request did not send.
+func TestReadEmptyAsOnAStringList(t *testing.T) {
+	text := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Thing:\n    fields:\n      destinations: {readEmptyAs: \"null\"}\n"
+	validated, err := validateOpenAPIWith(thingSpec(t), "Thing", model.OperationIDs{}, "sdk", "provider", mustParse(t, text))
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := buildConvWith(validated.resource, validated.refs, validated.overrides)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, obj := range data.Objects {
+		for _, f := range obj.Fields {
+			if f.TFName == "destinations" && obj.Flatten && !f.ReadEmptyAsNull {
+				t.Fatalf("%s.destinations does not read an empty list as null", obj.Model)
+			}
+		}
 	}
 }
 
@@ -774,5 +795,37 @@ func TestClientAndServerSetIDAreExclusive(t *testing.T) {
 	_, err := overrides.Parse([]byte("resource: Thing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  clientSetID: true\n  serverSetID: true\n"))
 	if err == nil || !strings.Contains(err.Error(), "serverSetID") {
 		t.Fatalf("err = %v, want an error about clientSetID and serverSetID", err)
+	}
+}
+
+// A group holds top-level fields that the user sets and that a full replace sends. The generator
+// reports any other use, because the renderer has no plan logic for it.
+func TestGroupsRejectFieldsThatTheyCannotHold(t *testing.T) {
+	sharedSpec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "sharedthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const shared = "resource: SharedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  updateIDInBody: true\n  serverSetID: true\ntypes:\n  SharedThing:\n    fields:\n      id: {readOnly: true}\n      name: {required: true}\n      frame: {required: true, validators: [{enum: true}]}\nenums:\n  SharedFrame: {zero: unspecified, values: [SHARED_FRAME_ONE_DAY, SHARED_FRAME_SEVEN_DAYS]}\n"
+	tests := map[string]struct {
+		spec     []byte
+		resource string
+		text     string
+		want     string
+	}{
+		"patch update":            {thingSpec(t), "Thing", "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ngroups:\n  meta: {fields: [description]}\n", "full-replace Update"},
+		"no such field":           {sharedSpec, "SharedThing", shared + "groups:\n  meta: {fields: [missing]}\n", "no top-level field"},
+		"split oneOf":             {sharedSpec, "SharedThing", shared + "groups:\n  a: {fields: [byCount]}\n  b: {fields: [byRatio]}\n", "must all be in one group"},
+		"requireOne without arms": {sharedSpec, "SharedThing", shared + "groups:\n  meta:\n    fields: [name]\n    requireOne: true\n", "requireOne needs the arms"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			validated, err := validateOpenAPIWith(test.spec, test.resource, model.OperationIDs{}, "sdk", "provider", mustParse(t, test.text))
+			if err == nil {
+				_, err = buildTFResourceWith(validated.resource, "generated", validated.overrides)
+			}
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
 	}
 }

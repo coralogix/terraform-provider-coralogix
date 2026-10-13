@@ -2,7 +2,8 @@
 # copy with the title of the component, so the SDK names it SharedThing1. The responses hold the
 # resource in a required field next to the ids of other objects that the call changed. The
 # server sets the id, Get does not require it, and Update finds the resource by the id in the
-# body.
+# body. The released resource holds the oneOf arms and the frame in objects that the API does
+# not have, and is named shared_thing_v2.
 openapi: 3.1.0
 info: {title: shared, version: 1.0.0}
 paths:
@@ -17,9 +18,17 @@ paths:
             schema:
               title: SharedThing
               type: object
+              oneOf:
+                - {required: [byCount], type: object}
+                - {required: [byRatio], type: object}
+                - {type: object, not: {anyOf: [{required: [byCount], type: object}, {required: [byRatio], type: object}]}}
               properties:
                 id: {type: string, x-coralogix-presence: true}
                 name: {type: string}
+                size: {type: number, format: float, x-coralogix-presence: true}
+                frame: {$ref: '#/components/schemas/SharedFrame'}
+                byCount: {$ref: '#/components/schemas/SharedCount'}
+                byRatio: {$ref: '#/components/schemas/SharedRatio'}
       responses:
         '200':
           description: ok
@@ -36,9 +45,17 @@ paths:
             schema:
               title: SharedThing
               type: object
+              oneOf:
+                - {required: [byCount], type: object}
+                - {required: [byRatio], type: object}
+                - {type: object, not: {anyOf: [{required: [byCount], type: object}, {required: [byRatio], type: object}]}}
               properties:
                 id: {type: string, x-coralogix-presence: true}
                 name: {type: string}
+                size: {type: number, format: float, x-coralogix-presence: true}
+                frame: {$ref: '#/components/schemas/SharedFrame'}
+                byCount: {$ref: '#/components/schemas/SharedCount'}
+                byRatio: {$ref: '#/components/schemas/SharedRatio'}
       responses:
         '200':
           description: ok
@@ -91,6 +108,25 @@ components:
     SharedThing:
       title: SharedThing
       type: object
+      oneOf:
+        - {required: [byCount], type: object}
+        - {required: [byRatio], type: object}
+        - {type: object, not: {anyOf: [{required: [byCount], type: object}, {required: [byRatio], type: object}]}}
       properties:
         id: {type: string, x-coralogix-presence: true}
         name: {type: string}
+        size: {type: number, format: float, x-coralogix-presence: true}
+        frame: {$ref: '#/components/schemas/SharedFrame'}
+        byCount: {$ref: '#/components/schemas/SharedCount'}
+        byRatio: {$ref: '#/components/schemas/SharedRatio'}
+    SharedFrame:
+      type: string
+      enum: [SHARED_FRAME_UNSPECIFIED, SHARED_FRAME_ONE_DAY, SHARED_FRAME_SEVEN_DAYS]
+    SharedCount:
+      type: object
+      properties:
+        limit: {type: integer, format: int32, x-coralogix-presence: true}
+    SharedRatio:
+      type: object
+      properties:
+        ratio: {type: number, format: float, x-coralogix-presence: true}
