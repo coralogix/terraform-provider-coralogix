@@ -732,8 +732,9 @@ func TestExistingResourceChecksAnOptionalServerSetID(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := strings.Replace(string(data), "  clientSetID: true\n", "  serverSetID: true\n", 1)
-	if text == string(data) {
-		t.Fatal("testdata/legacy-overrides.yaml has no clientSetID line")
+	text = strings.Replace(text, "      id:\n", "      id:\n        readOnly: true\n", 1)
+	if strings.Count(text, "serverSetID")+strings.Count(text, "readOnly: true") != 2 {
+		t.Fatal("testdata/legacy-overrides.yaml has no clientSetID line or no id line")
 	}
 	overridesPath := filepath.Join(t.TempDir(), "behavior-overrides.yaml")
 	if err := os.WriteFile(overridesPath, []byte(text), 0o644); err != nil {

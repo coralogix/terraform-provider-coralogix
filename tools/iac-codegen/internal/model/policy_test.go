@@ -140,9 +140,15 @@ func TestServerSetIDAcceptsAnOptionalID(t *testing.T) {
 	if got := legacyCodes(t, p); !slices.Contains(got, "RESOURCE_ID_OPTIONAL") {
 		t.Fatalf("codes without serverSetID = %v, want RESOURCE_ID_OPTIONAL", got)
 	}
+	// serverSetID states that only the server sets the id, so a request that lets the user set
+	// it contradicts the line.
 	p.ServerSetID = true
+	if got := legacyCodes(t, p); !slices.Equal(got, []string{"SERVER_SET_ID_IN_REQUEST"}) {
+		t.Fatalf("codes with serverSetID and a settable id = %v, want SERVER_SET_ID_IN_REQUEST", got)
+	}
+	p.ReadOnly = []string{"LegacyThing.id"}
 	if got := legacyCodes(t, p); len(got) != 0 {
-		t.Fatalf("codes with serverSetID = %v, want none", got)
+		t.Fatalf("codes with serverSetID and a read-only id = %v, want none", got)
 	}
 }
 

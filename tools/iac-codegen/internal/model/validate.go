@@ -329,6 +329,7 @@ func validateFieldContracts(p Policy, name string, ops map[verb]foundOp) issue.R
 	}
 	report = append(report, resourceIDIssues(p, name, ops, get)...)
 	report = append(report, bodyIDIssues(p, ops, create, update)...)
+	report = append(report, serverSetIDIssues(p, name, ops, create, update)...)
 	report = append(report, skippedIDIssues(p, name, ops)...)
 	report = append(report, rootGroupContractIssues(name, create, update, get)...)
 	return report
@@ -361,6 +362,44 @@ func bodyIDIssues(p Policy, ops map[verb]foundOp, create, update *base.Schema) i
 		})
 	}
 	return report
+}
+
+// serverSetIDIssues checks that serverSetID describes an id that only the server sets: the
+// Create and Update bodies do not have it, or it is read-only there or by a readOnly line.
+// Otherwise the user could set the id in Terraform, and a body-only Update would send the
+// planned id instead of the state id, so a change could name another resource.
+func serverSetIDIssues(p Policy, name string, ops map[verb]foundOp, create, update *base.Schema) issue.Report {
+	params := pathParams(ops[opGet])
+	if !p.ServerSetID || len(params) != 1 || p.readOnly(name, params[0].Name) {
+		return nil
+	}
+	id := params[0].Name
+	var report issue.Report
+	for _, body := range []struct {
+		op     verb
+		schema *base.Schema
+	}{{opCreate, create}, {opUpdate, update}} {
+		if !userSetsProperty(body.schema, id) {
+			continue
+		}
+		report = append(report, issue.Issue{
+			Code:        "SERVER_SET_ID_IN_REQUEST",
+			Location:    "paths." + strings.ToLower(string(body.op)) + "." + ops[body.op].op.OperationId + ".requestBody",
+			Message:     fmt.Sprintf("The override serverSetID says that only the server sets the id, but the %s body has a %q property that is not read-only.", body.op, id),
+			Remediation: fmt.Sprintf("Add readOnly: true to the %q line of %s, mark the property read-only in the contract, or delete serverSetID.", id, name),
+		})
+	}
+	return report
+}
+
+// userSetsProperty reports whether the request body has the property and does not mark it read-only.
+func userSetsProperty(body *base.Schema, name string) bool {
+	property := propertyOf(body, name)
+	if property == nil {
+		return false
+	}
+	s, err := schemaOf(property)
+	return err != nil || s.ReadOnly == nil || !*s.ReadOnly
 }
 
 // skippedIDIssues reports a skip override on the resource id. Every call after Create names the
