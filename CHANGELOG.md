@@ -12,7 +12,11 @@
 - CHORE: Bump `coralogix-management-sdk` to the SLO contract that marks server-set fields read-only and requires the APM latency `time_window`.
 
 #### tools/iac-codegen
-- CHORE: Bump the generator to `v0.1.0-beta.26`.
+- CHORE: Bump the generator to `v0.1.0-beta.27`.
+- FEAT: `api.idProperty` names the property that holds the id when it is not named like the path parameter, for example `uniqueIdentifier` for `{alert_scheduler_rule_id}`.
+- FEAT: A field line `name` keeps a released Terraform attribute name that is not the Terraform form of the API name.
+- FIX: The SDK check expects a snake_case path parameter in lower camel case, as the Go SDK writes it. Before, it rejected the SDK of any resource with such a parameter.
+- FIX: A skipped field takes part in no Terraform name collision.
 - FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.
 - FEAT: `api.serverSetID: true` accepts a server-set id that the Get response does not require, because the request shares the schema. The generated flatten fails when the id is missing. The id must be read-only, or absent, in the Create and Update bodies, also when a body is `allOf: [$ref]`.
 - FIX: An Update with the id in its body sends a server-set id, in the resource that the body wraps or in the body itself. Before, no Update field sent it, so the update request had no id.

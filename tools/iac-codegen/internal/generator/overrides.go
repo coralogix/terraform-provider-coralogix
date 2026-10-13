@@ -224,6 +224,12 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared bool) *li
 	if problem := equalityProblem(schema, line); problem != nil {
 		return problem
 	}
+	if line.Name != "" && line.Name == model.TerraformName(line.Field) {
+		return &lineIssue{
+			message: fmt.Sprintf("%q is already the Terraform name of %q", line.Name, line.Field),
+			stale:   []string{"name"},
+		}
+	}
 	var stale []string
 	if line.ReadOnly && contractReadOnly(schema, line.Field) {
 		stale = append(stale, "readOnly")

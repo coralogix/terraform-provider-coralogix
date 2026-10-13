@@ -104,7 +104,7 @@ func TestSeparatorTerraformNameCollisionIsIneligible(t *testing.T) {
 	if len(problems) != 0 {
 		t.Fatal(problems)
 	}
-	if codes := reportCodes(nameCollisions("components.schemas.Collision", typeValue)); !slices.Contains(codes, "TERRAFORM_NAME_COLLISION") {
+	if codes := reportCodes(nameCollisions(Policy{}, "components.schemas.Collision", typeValue)); !slices.Contains(codes, "TERRAFORM_NAME_COLLISION") {
 		t.Fatalf("codes %v do not contain TERRAFORM_NAME_COLLISION", codes)
 	}
 }
@@ -121,7 +121,7 @@ func TestAcronymTerraformNameCollisionIsIneligible(t *testing.T) {
 	if len(problems) != 0 {
 		t.Fatal(problems)
 	}
-	if codes := reportCodes(nameCollisions("components.schemas.Collision", typeValue)); !slices.Contains(codes, "TERRAFORM_NAME_COLLISION") {
+	if codes := reportCodes(nameCollisions(Policy{}, "components.schemas.Collision", typeValue)); !slices.Contains(codes, "TERRAFORM_NAME_COLLISION") {
 		t.Fatalf("codes %v do not contain TERRAFORM_NAME_COLLISION", codes)
 	}
 }
@@ -138,7 +138,7 @@ func TestGoNameCollisionIsIneligible(t *testing.T) {
 	if len(problems) != 0 {
 		t.Fatal(problems)
 	}
-	if codes := reportCodes(nameCollisions("components.schemas.Collision", typeValue)); !slices.Contains(codes, "GO_NAME_COLLISION") {
+	if codes := reportCodes(nameCollisions(Policy{}, "components.schemas.Collision", typeValue)); !slices.Contains(codes, "GO_NAME_COLLISION") {
 		t.Fatalf("codes %v do not contain GO_NAME_COLLISION", codes)
 	}
 	if GoName("foo-bar") != "FooBar" || GoName("foo_bar") != "FooBar" {

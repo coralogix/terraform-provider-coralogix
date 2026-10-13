@@ -104,6 +104,10 @@ type API struct {
 	// ServerSetID: the server sets the id and returns it in every response, but the Get
 	// response cannot require it, because the request shares the resource schema.
 	ServerSetID bool `yaml:"serverSetID"`
+	// IDProperty is the property of the resource that holds the id when it does not have the name
+	// of the path parameter, for example uniqueIdentifier for /rules/{rule_id}. "" means the
+	// property named like the path parameter.
+	IDProperty string `yaml:"idProperty"`
 	// CustomMethods: Get, Update, and Delete are not the Create path with an id.
 	// Get and Delete each have the same {id} path parameter on their own paths.
 	// Update has no path parameter, and the id stays in the body. New resources
@@ -166,6 +170,9 @@ type ExtraAttribute struct {
 type Field struct {
 	// Skip: the resource does not manage the field. It is not sent and not stored.
 	Skip bool `yaml:"skip"`
+	// Name is the released Terraform attribute name of the field, when it is not the Terraform
+	// form of the API name, for example operation for scheduleOperation.
+	Name string `yaml:"name"`
 	// Description and MarkdownDescription are the released texts of the docs. An empty
 	// string means that the released field had no description.
 	Description         *string `yaml:"description"`
@@ -385,6 +392,7 @@ func (l Field) keys() []string {
 		}
 	}
 	add(l.Skip, "skip")
+	add(l.Name != "", "name")
 	add(l.Description != nil, "description")
 	add(l.MarkdownDescription != nil, "markdownDescription")
 	add(l.ReadOnly, "readOnly")
@@ -443,7 +451,7 @@ func (l Field) empty() bool {
 }
 
 func (l Field) emptyMode() bool {
-	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
+	return !l.Skip && l.Name == "" && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown
 }
 
@@ -470,8 +478,11 @@ func (l Field) check() error {
 	if l.Description != nil && l.MarkdownDescription != nil {
 		return errors.New("set description or markdownDescription, not both")
 	}
-	if l.Skip && l.hasBehavior() {
+	if l.Skip && (l.hasBehavior() || l.Name != "") {
 		return errors.New("a skipped field has no other behavior")
+	}
+	if l.Name != "" && !model.ValidTerraformName(l.Name) {
+		return fmt.Errorf("name %q must be a Terraform name (lowercase letters, digits, and underscores, starting with a letter)", l.Name)
 	}
 	return checkValidators(l.Validators)
 }
@@ -535,6 +546,7 @@ func (f *File) Policy() model.Policy {
 		UpdateIDInBody:   f.API.UpdateIDInBody,
 		ClientSetID:      f.API.ClientSetID,
 		ServerSetID:      f.API.ServerSetID,
+		IDProperty:       f.API.IDProperty,
 		CustomMethods:    f.API.CustomMethods,
 		UpdateMaskInBody: f.API.UpdateMaskInBody,
 		// Parse checked that the file states validators.inferred.
@@ -565,6 +577,12 @@ func (f *File) Policy() model.Policy {
 			}
 			if t.Fields[field].Skip {
 				p.Skip = append(p.Skip, name+"."+field)
+			}
+			if n := t.Fields[field].Name; n != "" {
+				if p.Names == nil {
+					p.Names = map[string]string{}
+				}
+				p.Names[name+"."+field] = n
 			}
 			if t.Fields[field].RequestValue != "" {
 				p.FixedRequest = append(p.FixedRequest, name+"."+field)
@@ -597,7 +615,7 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Equality: f.Equality, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Equality: f.Equality, Name: f.Name, Keys: f.keys()})
 		}
 	}
 	return out
@@ -624,6 +642,7 @@ type Line struct {
 	ReadOnly     bool     // for a field line: the file says that the server sets the field
 	Equality     string   // for a field line: "yaml" or "json" when the line compares the value as a document
 	Required     bool     // for a field line: the file says that the field is required
+	Name         string   // for a field line: the Terraform attribute name that the file gives the field
 	Keys         []string // for a field line: every key that the line sets
 }
 

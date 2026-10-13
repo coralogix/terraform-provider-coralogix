@@ -23,6 +23,9 @@ type Resource struct {
 	// IDParam is the path parameter of Get, Update, and Delete. The Get
 	// response has a field with the same name. It is "" for a singleton.
 	IDParam string
+	// IDField is the resource field that holds the id: the field named like IDParam, or the
+	// IDProperty of the policy. It is "" for a singleton.
+	IDField string
 	// IDType is the type shared by the path parameter and response ID field.
 	// It is nil for a singleton.
 	IDType *Type
@@ -57,6 +60,15 @@ type Resource struct {
 	// HiddenWrappers are the wrapper components that collapse in every place, so Terraform has
 	// no attribute for their property.
 	HiddenWrappers map[string]bool
+}
+
+// ID returns the resource field that holds the id: IDField, or IDParam for a resource that Build
+// did not make. It is "" for a singleton.
+func (r *Resource) ID() string {
+	if r.IDField != "" {
+		return r.IDField
+	}
+	return r.IDParam
 }
 
 // Operation is one HTTP operation of the resource.

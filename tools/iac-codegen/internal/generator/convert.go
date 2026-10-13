@@ -382,23 +382,23 @@ func oneOfArmPaths(r *model.Resource) []string {
 	var out []string
 	for _, g := range r.Groups {
 		for _, arm := range g.Arms {
-			out = append(out, tfName(arm))
+			out = append(out, attrName(r.Policy, r.Name, arm))
 		}
 	}
 	for _, f := range r.Fields {
-		out = typeArmPaths(out, tfName(f.Name), f.Type, map[*model.Type]bool{})
+		out = typeArmPaths(r.Policy, out, attrName(r.Policy, r.Name, f.Name), f.Type, map[*model.Type]bool{})
 	}
 	return out
 }
 
-func typeArmPaths(out []string, at string, t *model.Type, seen map[*model.Type]bool) []string {
+func typeArmPaths(p model.Policy, out []string, at string, t *model.Type, seen map[*model.Type]bool) []string {
 	if t == nil || seen[t] {
 		return out
 	}
 	seen[t] = true
 	defer delete(seen, t)
 	if t.Elem != nil {
-		return typeArmPaths(out, at, t.Elem, seen)
+		return typeArmPaths(p, out, at, t.Elem, seen)
 	}
 	arms := map[string]bool{}
 	for _, g := range t.Groups {
@@ -407,11 +407,11 @@ func typeArmPaths(out []string, at string, t *model.Type, seen map[*model.Type]b
 		}
 	}
 	for _, f := range t.Fields {
-		child := at + "." + tfName(f.Name)
+		child := at + "." + attrName(p, t.Schema, f.Name)
 		if t.Kind == model.OneOf && f.Name != t.Discriminator || arms[f.Name] {
 			out = append(out, child)
 		}
-		out = typeArmPaths(out, child, f.Type, seen)
+		out = typeArmPaths(p, out, child, f.Type, seen)
 	}
 	return out
 }
@@ -548,7 +548,7 @@ func appendCreateField(out *convData, r *model.Resource, f *model.ResourceField,
 	if fixed || f.Create == nil {
 		return
 	}
-	out.CreateFields = append(out.CreateFields, &maskField{TFName: tfName(f.Name), ServerDefault: serverDefault(r, f)})
+	out.CreateFields = append(out.CreateFields, &maskField{TFName: attrName(r.Policy, r.Name, f.Name), ServerDefault: serverDefault(r, f)})
 }
 
 // replaceFields sets the Update fields of a full replace. The body has all of
@@ -559,7 +559,7 @@ func replaceFields(r *model.Resource, out *convData, fixed func(string) bool) er
 		// requestValue is not a Terraform attribute. The check reads attributes,
 		// so a missing one fails every Update.
 		if f.Update != nil && !fixed(f.Name) {
-			out.UpdateFields = append(out.UpdateFields, &maskField{TFName: tfName(f.Name), ServerDefault: serverDefault(r, f)})
+			out.UpdateFields = append(out.UpdateFields, &maskField{TFName: attrName(r.Policy, r.Name, f.Name), ServerDefault: serverDefault(r, f)})
 		}
 	}
 	if len(out.UpdateFields) == 0 {
@@ -580,9 +580,9 @@ func buildMask(r *model.Resource, out *convData, fixed func(string) bool) error 
 		if f.Update == nil || fixed(f.Name) {
 			continue
 		}
-		mf := &maskField{TFName: tfName(f.Name), API: f.Name}
+		mf := &maskField{TFName: attrName(r.Policy, r.Name, f.Name), API: f.Name}
 		if leaf {
-			mf = maskTree(f.Name, f.Type.UpdateType())
+			mf = maskTree(r.Policy, r.Name, f.Name, f.Type.UpdateType())
 		}
 		mf.ServerDefault = serverDefault(r, f)
 		if err := checkMaskPaths(mf, "", valid); err != nil {
@@ -593,17 +593,17 @@ func buildMask(r *model.Resource, out *convData, fixed func(string) bool) error 
 	if len(out.MaskFields) == 0 {
 		return fmt.Errorf("update.body: no Update fields for the update mask")
 	}
-	out.MaskGroups = groupNames(r.Groups)
+	out.MaskGroups = groupNames(r.Policy, r.Name, r.Groups)
 	return nil
 }
 
 // groupNames returns the arms of each group as Terraform names.
-func groupNames(groups []model.OneOfGroup) [][]string {
+func groupNames(p model.Policy, component string, groups []model.OneOfGroup) [][]string {
 	var out [][]string
 	for _, g := range groups {
 		var arms []string
 		for _, a := range g.Arms {
-			arms = append(arms, tfName(a))
+			arms = append(arms, attrName(p, component, a))
 		}
 		out = append(out, arms)
 	}
@@ -631,21 +631,21 @@ func maskRule(pattern string) (valid func(string) bool, leaf bool, err error) {
 	return model.UpdateMaskRule(pattern)
 }
 
-// maskTree returns the mask node of the Update field name of type t.
-func maskTree(name string, t *model.Type) *maskField {
-	n := &maskField{TFName: tfName(name), API: name, OneOf: t.Kind == model.OneOf}
+// maskTree returns the mask node of the Update field name of component, of type t.
+func maskTree(p model.Policy, component, name string, t *model.Type) *maskField {
+	n := &maskField{TFName: attrName(p, component, name), API: name, OneOf: t.Kind == model.OneOf}
 	if t.Kind != model.Object && t.Kind != model.OneOf {
 		return n
 	}
 	for _, f := range t.Fields {
-		child := maskTree(f.Name, f.Type)
+		child := maskTree(p, t.Schema, f.Name, f.Type)
 		if len(t.Wrappers) != 0 {
 			// Terraform does not show the wrappers, but the mask path names them.
 			child.API = t.WrapperPath() + "." + child.API
 		}
 		n.Children = append(n.Children, child)
 	}
-	n.Groups = groupNames(t.Groups)
+	n.Groups = groupNames(p, t.Schema, t.Groups)
 	return n
 }
 
@@ -819,7 +819,7 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type, comput
 	if err != nil {
 		return nil, err
 	}
-	cf := &convField{TFName: tfName(name), Model: camelize(name), SDK: ref.Name}
+	cf := &convField{TFName: attrName(b.resource.Policy, component, name), Model: modelFieldName(b.resource.Policy, component, name), SDK: ref.Name}
 	b.applyFieldLine(cf, component, name)
 	want, err := b.fieldConv(cf, t, computed)
 	if err != nil {
@@ -1626,5 +1626,5 @@ func idGuard(r *model.Resource) string {
 	if r.Singleton || !r.Policy.ClientSetID && !r.Policy.ServerSetID {
 		return ""
 	}
-	return camelize(r.IDParam)
+	return modelFieldName(r.Policy, r.Name, r.ID())
 }

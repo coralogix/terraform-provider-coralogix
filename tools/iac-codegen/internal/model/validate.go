@@ -58,7 +58,7 @@ func ValidateWithPolicy(doc *v3.Document, name string, ids OperationIDs, p Polic
 		report = append(report, schemaIssue(err))
 	}
 	if t != nil {
-		report = append(report, nameCollisions("components.schemas."+name, t)...)
+		report = append(report, nameCollisions(p, "components.schemas."+name, t)...)
 		report = append(report, componentNameCollisions(t)...)
 		report = append(report, skippedArmIssues(p, t)...)
 	}
@@ -340,11 +340,10 @@ func validateFieldContracts(p Policy, name string, ops map[verb]foundOp) issue.R
 // Without the id property, the generated call sends nothing that names the resource, and the
 // override has no effect. The generator fails closed, so a stale or wrong override is an error.
 func bodyIDIssues(p Policy, ops map[verb]foundOp, create, update *base.Schema) issue.Report {
-	params := pathParams(ops[opGet])
-	if len(params) != 1 {
+	id := p.idProperty(ops)
+	if id == "" {
 		return nil // A singleton has no id, and Build reports an unsupported identity shape.
 	}
-	id := params[0].Name
 	var report issue.Report
 	if p.ClientSetID && bodyProperty(create, id) == nil {
 		report = append(report, issue.Issue{
@@ -370,11 +369,10 @@ func bodyIDIssues(p Policy, ops map[verb]foundOp, create, update *base.Schema) i
 // Otherwise the user could set the id in Terraform, and a body-only Update would send the
 // planned id instead of the state id, so a change could name another resource.
 func serverSetIDIssues(p Policy, name string, ops map[verb]foundOp, create, update *base.Schema) issue.Report {
-	params := pathParams(ops[opGet])
-	if !p.ServerSetID || len(params) != 1 || p.readOnly(name, params[0].Name) {
+	id := p.idProperty(ops)
+	if !p.ServerSetID || id == "" || p.readOnly(name, id) {
 		return nil
 	}
-	id := params[0].Name
 	var report issue.Report
 	for _, body := range []struct {
 		op     verb
@@ -424,14 +422,14 @@ func isReadOnly(s *base.Schema) bool {
 // skippedIDIssues reports a skip override on the resource id. Every call after Create names the
 // resource by its id, so a resource without the id attribute cannot read, update, delete, or import.
 func skippedIDIssues(p Policy, name string, ops map[verb]foundOp) issue.Report {
-	params := pathParams(ops[opGet])
-	if len(params) != 1 || !p.skips(name, params[0].Name) {
+	id := p.idProperty(ops)
+	if id == "" || !p.skips(name, id) {
 		return nil
 	}
 	return issue.Report{{
 		Code:        "RESOURCE_ID_SKIPPED",
-		Location:    "components.schemas." + name + "." + params[0].Name,
-		Message:     fmt.Sprintf("The override skips the resource id field %q. Read, Update, Delete, and import need it.", params[0].Name),
+		Location:    "components.schemas." + name + "." + id,
+		Message:     fmt.Sprintf("The override skips the resource id field %q. Read, Update, Delete, and import need it.", id),
 		Remediation: "Delete the skip line of the resource id from the overrides.",
 	}}
 }
@@ -484,12 +482,25 @@ func oneOfArmNames(t *Type) []string {
 	return slices.Compact(arms)
 }
 
-func resourceIDIssues(p Policy, name string, ops map[verb]foundOp, get *base.Schema) issue.Report {
+// idProperty returns the property of the resource that holds the id: the property that the policy
+// names, or the one named like the single path parameter of Get. It is "" when Get does not have
+// exactly one path parameter.
+func (p Policy) idProperty(ops map[verb]foundOp) string {
 	params := pathParams(ops[opGet])
 	if len(params) != 1 {
+		return ""
+	}
+	if p.IDProperty != "" {
+		return p.IDProperty
+	}
+	return params[0].Name
+}
+
+func resourceIDIssues(p Policy, name string, ops map[verb]foundOp, get *base.Schema) issue.Report {
+	id := p.idProperty(ops)
+	if id == "" {
 		return nil // Build reports an unsupported resource identity shape.
 	}
-	id := params[0].Name
 	property := propertyOf(get, id)
 	if property == nil {
 		return nil
@@ -1506,13 +1517,13 @@ func oneOfMaskPaths(prefix string, t *Type) []string {
 	return paths
 }
 
-func nameCollisions(location string, t *Type) issue.Report {
+func nameCollisions(p Policy, location string, t *Type) issue.Report {
 	var report issue.Report
 	if t == nil {
 		return nil
 	}
 	if t.Kind == List || t.Kind == Set || t.Kind == Map {
-		return nameCollisions(location+"[]", t.Elem)
+		return nameCollisions(p, location+"[]", t.Elem)
 	}
 	if t.Kind != Object && t.Kind != OneOf {
 		return nil
@@ -1520,9 +1531,12 @@ func nameCollisions(location string, t *Type) issue.Report {
 	terraformNames := map[string]string{}
 	goNames := map[string]string{}
 	for _, field := range t.Fields {
-		terraformName := TerraformName(field.Name)
+		if p.skips(t.Schema, field.Name) {
+			continue // a skipped field has no Terraform attribute or Go field
+		}
+		terraformName := p.TerraformName(t.Schema, field.Name)
 		if previous, ok := terraformNames[terraformName]; ok && previous != field.Name {
-			report = append(report, issue.Issue{Code: "TERRAFORM_NAME_COLLISION", Location: location, Message: fmt.Sprintf("Fields %q and %q both normalize to %q.", previous, field.Name, terraformName), Remediation: "Rename a source API field so every Terraform name is unique."})
+			report = append(report, issue.Issue{Code: "TERRAFORM_NAME_COLLISION", Location: location, Message: fmt.Sprintf("Fields %q and %q both normalize to %q.", previous, field.Name, terraformName), Remediation: "Rename a source API field, or give one a name line, so every Terraform name is unique."})
 		} else {
 			terraformNames[terraformName] = field.Name
 		}
@@ -1532,7 +1546,7 @@ func nameCollisions(location string, t *Type) issue.Report {
 		} else {
 			goNames[goName] = field.Name
 		}
-		report = append(report, nameCollisions(location+"."+field.Name, field.Type)...)
+		report = append(report, nameCollisions(p, location+"."+field.Name, field.Type)...)
 	}
 	return report
 }
@@ -1578,6 +1592,20 @@ func componentNameCollisions(root *Type) issue.Report {
 	}
 	walk(root)
 	return report
+}
+
+// ValidTerraformName reports whether name can be a Terraform attribute name: lowercase letters,
+// digits, and underscores, starting with a letter.
+func ValidTerraformName(name string) bool {
+	if name == "" || name[0] < 'a' || name[0] > 'z' {
+		return false
+	}
+	for _, r := range name {
+		if r != '_' && (r < 'a' || r > 'z') && (r < '0' || r > '9') {
+			return false
+		}
+	}
+	return true
 }
 
 // TerraformName converts an OpenAPI name to the exact Terraform name used by

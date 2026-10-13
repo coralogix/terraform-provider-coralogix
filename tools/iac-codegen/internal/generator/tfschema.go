@@ -123,7 +123,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // buildTFResourceWith is buildTFResource for a resource with a behavior-overrides file
 // (nil for a new resource).
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
-	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file}
+	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: r.Name + "Model"}
 	root := &tfModel{Name: out.Model}
 	b.models = append(b.models, root)
@@ -141,12 +141,12 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		out.Attributes = append(out.Attributes, a)
-		root.Fields = append(root.Fields, b.modelField(f.Name, f.Type, f.Behavior, responseOnly(f.Behavior)))
+		root.Fields = append(root.Fields, b.modelField(r.Name, f.Name, f.Type, f.Behavior, responseOnly(f.Behavior)))
 	}
 	for _, g := range r.Groups {
 		var arms []string
 		for _, arm := range g.Arms {
-			arms = append(arms, attrPath{"root", tfName(arm)}.expr())
+			arms = append(arms, attrPath{"root", attrName(r.Policy, r.Name, arm)}.expr())
 		}
 		b.validators = append(b.validators, groupValidator("resourcevalidator", g, true)+"(\n"+strings.Join(arms, ",\n")+",\n)")
 	}
@@ -234,7 +234,7 @@ func defaultPackages(attrs []*tfAttr) []string {
 // addSingletonID adds the fixed id attribute of a singleton (D18).
 func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
 	for _, f := range r.Fields {
-		if tfName(f.Name) == "id" {
+		if attrName(r.Policy, r.Name, f.Name) == "id" {
 			return fmt.Errorf("%s: a singleton with an id field is not supported: the id attribute is fixed", f.Name)
 		}
 	}
@@ -250,7 +250,7 @@ func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
 // resourceAttribute builds the attribute of a top-level field: its type, its server default, a
 // client-set id, and the plan modifiers of its behavior.
 func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *model.ResourceField) (*tfAttr, error) {
-	a, err := b.attribute(attrPath{"root", tfName(f.Name)}, r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), responseOnly(f.Behavior))
+	a, err := b.attribute(attrPath{"root", attrName(r.Policy, r.Name, f.Name)}, r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), responseOnly(f.Behavior))
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +273,7 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 			out.ServerDefaultKinds = append(out.ServerDefaultKinds, a.ValueKind)
 		}
 	}
-	clientSetID := r.Policy.ClientSetID && f.Name == r.IDParam
+	clientSetID := r.Policy.ClientSetID && f.Name == r.ID()
 	if clientSetID {
 		// The user can set the id. Without a value, the server makes one.
 		// The id names the resource, so a new id replaces it: Update cannot
@@ -285,7 +285,7 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 	switch {
 	case f.Behavior == model.Computed:
 		markComputed(a)
-		if f.Name == r.IDParam {
+		if f.Name == r.ID() {
 			a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
 		}
 	case f.Behavior == model.Immutable || clientSetID:
@@ -659,17 +659,17 @@ func serverDefaultValue(t *model.Type, value string) (string, error) {
 // resource validator would also run when the object is null, and then
 // "exactly one" fails.
 func addGroupValidators(attrs []*tfAttr, groups []model.OneOfGroup) {
-	byName := map[string]*tfAttr{}
+	byProperty := map[string]*tfAttr{}
 	for _, a := range attrs {
-		byName[a.Name] = a
+		byProperty[a.Property] = a
 	}
 	for _, g := range groups {
 		for _, arm := range g.Arms {
-			a := byName[tfName(arm)]
+			a := byProperty[arm]
 			var others []string
 			for _, o := range g.Arms {
 				if o != arm {
-					others = append(others, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", tfName(o)))
+					others = append(others, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", byProperty[o].Name))
 				}
 			}
 			pkg := strings.ToLower(a.ValueKind) + "validator"
@@ -713,6 +713,7 @@ type tfBuilder struct {
 	defaultKinds []string        // ServerDefaultKinds of nested attributes
 	defaultPaths []defaultPath   // DefaultPaths
 	file         *overrides.File
+	policy       model.Policy // names the attributes that a name line renames
 }
 
 // requireOneArm turns a oneOf that allows no arm into ExactlyOneOf. The contract
@@ -769,7 +770,7 @@ func (p attrPath) expr() string {
 }
 
 func (b *tfBuilder) attribute(p attrPath, component, name, desc string, t *model.Type, attrs model.Attrs, computed bool) (*tfAttr, error) {
-	a := &tfAttr{Name: tfName(name), Description: desc, Required: attrs.Required, Optional: !attrs.Required, Component: component, Property: name}
+	a := &tfAttr{Name: attrName(b.policy, component, name), Description: desc, Required: attrs.Required, Optional: !attrs.Required, Component: component, Property: name}
 	if err := b.setType(a, p, t, computed); err != nil {
 		return nil, err
 	}
@@ -858,7 +859,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		if requestValue(b.file, t.Schema, f.Name) {
 			continue
 		}
-		child := append(append(attrPath{}, p...), tfName(f.Name))
+		child := append(append(attrPath{}, p...), attrName(b.policy, t.Schema, f.Name))
 		only := b.sent.responseOnly(t.Schema, f)
 		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f), only)
 		if err != nil {
@@ -874,7 +875,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		attrs = append(attrs, a)
-		fields = append(fields, b.modelField(f.Name, f.Type, f.Behavior, only))
+		fields = append(fields, b.modelField(t.Schema, f.Name, f.Type, f.Behavior, only))
 	}
 	groups := t.Groups
 	if t.Kind == model.OneOf {
@@ -1051,7 +1052,7 @@ func nestedAttrs(f *model.Field) model.Attrs {
 
 // modelField returns the model field of a field with behavior. responseOnly is true when no
 // request sends the field.
-func (b *tfBuilder) modelField(name string, t *model.Type, behavior model.Behavior, responseOnly bool) tfModelField {
+func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior model.Behavior, responseOnly bool) tfModelField {
 	var goType string
 	switch t.Kind {
 	case model.String, model.Enum:
@@ -1084,7 +1085,7 @@ func (b *tfBuilder) modelField(name string, t *model.Type, behavior model.Behavi
 			goType = "*" + modelTypeName(t.Schema)
 		}
 	}
-	return tfModelField{Name: camelize(name), Type: goType, TFName: tfName(name)}
+	return tfModelField{Name: modelFieldName(b.policy, component, name), Type: goType, TFName: attrName(b.policy, component, name)}
 }
 
 // modelTypeName is the Terraform model struct of a component schema.
@@ -1244,4 +1245,19 @@ func formatInt(f float64) string   { return strconv.FormatInt(int64(f), 10) }
 // tfName is the Terraform name for a property name: "sqlReadOnly" → "sql_read_only".
 func tfName(property string) string {
 	return model.TerraformName(property)
+}
+
+// attrName is the Terraform attribute name of property of component: the name line of the
+// behavior-overrides file, or tfName.
+func attrName(p model.Policy, component, property string) string {
+	return p.TerraformName(component, property)
+}
+
+// modelFieldName is the Go field of property of component in a Terraform model struct. A field
+// with a name line takes the Go form of that name; any other keeps the Go form of the API name.
+func modelFieldName(p model.Policy, component, property string) string {
+	if n, ok := p.Names[component+"."+property]; ok {
+		return camelize(n)
+	}
+	return camelize(property)
 }

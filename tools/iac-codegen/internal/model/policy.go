@@ -41,6 +41,12 @@ type Policy struct {
 	// ServerSetID means that the server sets the id and returns it in every response, and
 	// the Get response does not require it: the request shares the resource schema.
 	ServerSetID bool
+	// IDProperty is the property of the resource that holds the id when its name is not the name
+	// of the path parameter. "" means the property named like the path parameter.
+	IDProperty string
+	// Names maps "Component.field" to the released Terraform attribute name of the field, when it
+	// is not the Terraform form of the API name.
+	Names map[string]string
 	// Operations names the lifecycle operationIds from behavior-overrides. Flags
 	// still override an empty slot. A flag and the file cannot name different ids.
 	Operations OperationIDs
@@ -183,6 +189,15 @@ func (p Policy) methods(v verb) []string {
 		return []string{"POST"}
 	}
 	return verbMethods[v]
+}
+
+// TerraformName returns the Terraform attribute name of field of component: the name of its
+// field line, or the Terraform form of the API name.
+func (p Policy) TerraformName(component, field string) string {
+	if n, ok := p.Names[component+"."+field]; ok && component != "" {
+		return n
+	}
+	return TerraformName(field)
 }
 
 func (p Policy) skips(component, field string) bool {

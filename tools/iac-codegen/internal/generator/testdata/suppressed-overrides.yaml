@@ -1,0 +1,23 @@
+# The behavior-overrides file of the synthetic resource whose id is a property with another name
+# than the path parameter, and whose released attributes have other names than the API.
+resource: SuppressedThing
+mode: existing
+
+validators:
+  inferred: false
+
+api:
+  requestWrapper: suppressedThing
+  updateIDInBody: true
+  serverSetID: true
+  idProperty: uniqueIdentifier
+
+types:
+  SuppressedThing:
+    fields:
+      uniqueIdentifier: {readOnly: true, name: id}
+      id: {skip: true}
+      window: {name: time_frame}
+  Window:
+    fields:
+      timezone: {name: time_zone}
