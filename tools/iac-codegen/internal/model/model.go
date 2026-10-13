@@ -128,6 +128,8 @@ type Attrs struct {
 	Required bool    // in the parent "required" list
 	Presence bool    // x-coralogix-presence: true
 	Default  *string // YAML text of "default", nil when there is none
+	// ReadOnly: readOnly: true. In a request, the server sets the field, so the request does not send it.
+	ReadOnly bool
 }
 
 // Kind is the kind of value a Type holds.

@@ -95,6 +95,9 @@ type API struct {
 	UpdateIDInBody bool `yaml:"updateIDInBody"`
 	// ClientSetID: the client can send the id on Create.
 	ClientSetID bool `yaml:"clientSetID"`
+	// ServerSetID: the server sets the id and returns it in every response, but the Get
+	// response cannot require it, because the request shares the resource schema.
+	ServerSetID bool `yaml:"serverSetID"`
 	// CustomMethods: Get, Update, and Delete are not the Create path with an id.
 	// Get and Delete each have the same {id} path parameter on their own paths.
 	// Update has no path parameter, and the id stays in the body. New resources
@@ -233,8 +236,13 @@ type Validator struct {
 	// LengthAtLeast is a released stringvalidator.LengthAtLeast.
 	LengthAtLeast *int `yaml:"lengthAtLeast"`
 	// Enum: true accepts the Terraform values of the enum of the field, as the enums line of
-	// the enum states them. The list of values has one source, so it cannot drift.
+	// the enum states them, including the zero value. The list of values has one source, so it
+	// cannot drift.
 	Enum bool `yaml:"enum"`
+	// EnumExceptZero accepts the same values as Enum, except the zero value. The conversion
+	// maps still contain the zero value, so a response that has it still converts. A user
+	// cannot configure it.
+	EnumExceptZero bool `yaml:"enumExceptZero"`
 }
 
 // Enum overrides one enum component.
@@ -326,6 +334,9 @@ func (f *File) checkTypes() error {
 
 // check checks that a Delete override names its operation, and that only one line names it.
 func (a API) check() error {
+	if a.ClientSetID && a.ServerSetID {
+		return errors.New("api.clientSetID and api.serverSetID both describe the id: keep the one that states who sets it")
+	}
 	if a.Delete != nil && a.Delete.Operation == "" {
 		return errors.New("api.delete.operation is required")
 	}
@@ -468,9 +479,16 @@ func (t Type) check(name string) error {
 }
 
 func (l Field) empty() bool {
+	return l.emptyMode() && l.emptyValue()
+}
+
+func (l Field) emptyMode() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
-		l.Computed == nil && !l.UseStateForUnknown && l.Default == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" &&
-		!l.RequireOne && l.RequestValue == "" &&
+		l.Computed == nil && !l.UseStateForUnknown
+}
+
+func (l Field) emptyValue() bool {
+	return l.Default == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && l.RequestValue == "" &&
 		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && !l.RequiresReplace
 }
 
@@ -478,20 +496,8 @@ func (l Field) check() error {
 	if l.empty() {
 		return errors.New("the line sets nothing")
 	}
-	if l.ReadEmptyAs != "" && l.ReadEmptyAs != "null" {
-		return fmt.Errorf("readEmptyAs is %q, want \"null\"", l.ReadEmptyAs)
-	}
-	if l.ReadNullAs != "" && l.ReadNullAs != "empty" {
-		return fmt.Errorf("readNullAs is %q, want \"empty\"", l.ReadNullAs)
-	}
-	if l.ReadEmptyAs != "" && l.ReadNullAs != "" {
-		return errors.New("readEmptyAs and readNullAs cannot both be set")
-	}
-	if l.Skip && l.RequestValue != "" {
-		return errors.New("requestValue sends the field, so skip cannot be set")
-	}
-	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON {
-		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
+	if err := l.checkConflicts(); err != nil {
+		return err
 	}
 	switch l.Default.(type) {
 	case nil, string, bool, int, float64:
@@ -511,6 +517,25 @@ func (l Field) check() error {
 		return errors.New("a skipped field has no other behavior")
 	}
 	return checkValidators(l.Validators)
+}
+
+func (l Field) checkConflicts() error {
+	if l.ReadEmptyAs != "" && l.ReadEmptyAs != "null" {
+		return fmt.Errorf("readEmptyAs is %q, want \"null\"", l.ReadEmptyAs)
+	}
+	if l.ReadNullAs != "" && l.ReadNullAs != "empty" {
+		return fmt.Errorf("readNullAs is %q, want \"empty\"", l.ReadNullAs)
+	}
+	if l.ReadEmptyAs != "" && l.ReadNullAs != "" {
+		return errors.New("readEmptyAs and readNullAs cannot both be set")
+	}
+	if l.Skip && l.RequestValue != "" {
+		return errors.New("requestValue sends the field, so skip cannot be set")
+	}
+	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON {
+		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
+	}
+	return nil
 }
 
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
@@ -535,8 +560,11 @@ func checkValidators(validators []Validator) error {
 		if v.Enum {
 			set++
 		}
+		if v.EnumExceptZero {
+			set++
+		}
 		if set != 1 {
-			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, and enum")
+			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, enum, and enumExceptZero")
 		}
 	}
 	return nil
@@ -549,6 +577,7 @@ func (f *File) Policy() model.Policy {
 		RequestWrapper:            f.API.RequestWrapper,
 		UpdateIDInBody:            f.API.UpdateIDInBody,
 		ClientSetID:               f.API.ClientSetID,
+		ServerSetID:               f.API.ServerSetID,
 		CustomMethods:             f.API.CustomMethods,
 		UpdateMaskInBody:          f.API.UpdateMaskInBody,
 		TopLevelMaskReplacesOneOf: f.API.TopLevelMaskReplacesOneOf,

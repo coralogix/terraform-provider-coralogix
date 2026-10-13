@@ -1,5 +1,32 @@
 # Unreleased
 
+#### resource/coralogix_slo_v2
+- CHORE: Bump `coralogix-management-sdk` to the SLO contract that marks server-set fields read-only and requires the APM latency `time_window`.
+
+#### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.26`.
+- FEAT: `requiresReplace: true` on a top-level field forces a new resource when that field changes, although Update accepts it.
+- FIX: `requiresReplace: true` together with `computed: true` is rejected. That pair is Optional+Computed with RequiresReplace, so omitting the field replaces the resource whenever something else changes.
+- FEAT: `unsupportedArms` keeps a oneOf arm out of the schema and reports it when a response selects it.
+- FIX: `unsupportedArms` renders. Before, generation failed with `no SDK field` for the unsupported arm.
+- FIX: An unsupported arm can be missing from the Create and Update components; only the response needs it. A field line on an unsupported arm is an error, because the arm is not in the schema.
+- FIX: The generator does not read the value of an unsupported arm, so that value can use a shape the generator does not support.
+- FIX: Existing-mode check reads a resource that a response field wraps in `allOf: [$ref]`, as the OpenAPI fork writes a field with a description. Before, every field read as missing from Get.
+- FIX: A client-set id keeps `RequiresReplace`. The check against Optional+Computed with RequiresReplace skips an attribute with `UseStateForUnknown`, which plans an omitted value as its prior state.
+- FEAT: Existing mode accepts an enum whose first value is a business value, such as `PROMPT`, also without an `enums` line, for example the items of a list.
+- FEAT: `api.topLevelMaskReplacesOneOf: true` lets a top-level query-parameter update mask change a nested oneOf when the server replaces the whole value of that path.
+- CHANGE: `api.updateMaskInBody: true` sends no mask, as a released resource that never sent one did. The server updates every field present in the body. An immutable field, also a `requiresReplace` field, stays out of the body. Every field that Update sends must be required or have a static default, because without a mask removing it cannot clear it.
+- CHORE: Bump the generator to `v0.1.0-beta.25`.
+- FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.
+- FEAT: `api.serverSetID: true` accepts a server-set id that the Get response does not require, because the request shares the schema. The generated flatten fails when the id is missing. The id must be read-only, or absent, in the Create and Update bodies, also when a body is `allOf: [$ref]`.
+- FIX: An Update with the id in its body sends a server-set id, in the resource that the body wraps or in the body itself. Before, no Update field sent it, so the update request had no id.
+- FEAT: In existing-resource mode, Create and Update can take one request body type, and a response can hold the resource in a required (value) field.
+- FEAT: In existing-resource mode, a read-only field inside a component that the request shares with the response is computed, and the request does not send it. Before, it was an attribute that the user could set, or generation failed.
+- FIX: A request body, or a `requestWrapper` property, written as `allOf: [$ref]` reads as the referenced schema in validation and in the model. Before, `clientSetID` and `updateIDInBody` reported the id missing, and the model sent none of the fields.
+- FIX: A field line on a component that the user sets in one place gives a read-only copy of that component only its text. Before, `required: true` and `computed: false` failed generation with "required: true needs a field that the user sets", and a `default` or `useStateForUnknown` planned a value the server does not set.
+
+# Release 3.21.0
+
 #### resource/coralogix_configuration_group
 - BREAKING (Beta): `coralogix_fleet_configuration_group` is renamed `coralogix_configuration_group`. Remove the old resource from state and import the group under the new name.
 - BREAKING (Beta): The resource is generated from the API contract. A family is either `raw` (its own `remote_configurations`) or `preset` (generated from a configuration template); `remote_configuration` is renamed `remote_configurations`, `agent_selector` holds an `attributes` map, `priority_order` is an Int32, and `chart_name` values are `chart_name_otel_integration`, `chart_name_otel_ecs_ec2`, and `chart_name_otel_{linux,windows,macos}_standalone`.
@@ -31,17 +58,16 @@
 - FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
 
 #### tools/iac-codegen
-- FEAT: `requiresReplace: true` on a top-level field forces a new resource when that field changes, although Update accepts it.
-- FIX: `requiresReplace: true` together with `computed: true` is rejected. That pair is Optional+Computed with RequiresReplace, so omitting the field replaces the resource whenever something else changes.
-- FEAT: `unsupportedArms` keeps a oneOf arm out of the schema and reports it when a response selects it.
-- FIX: `unsupportedArms` renders. Before, generation failed with `no SDK field` for the unsupported arm.
-- FIX: An unsupported arm can be missing from the Create and Update components; only the response needs it. A field line on an unsupported arm is an error, because the arm is not in the schema.
-- FIX: The generator does not read the value of an unsupported arm, so that value can use a shape the generator does not support.
-- FIX: Existing-mode check reads a resource that a response field wraps in `allOf: [$ref]`, as the OpenAPI fork writes a field with a description. Before, every field read as missing from Get.
-- FIX: A client-set id keeps `RequiresReplace`. The check against Optional+Computed with RequiresReplace skips an attribute with `UseStateForUnknown`, which plans an omitted value as its prior state.
-- FEAT: Existing mode accepts an enum whose first value is a business value, such as `PROMPT`, also without an `enums` line, for example the items of a list.
-- FEAT: `api.topLevelMaskReplacesOneOf: true` lets a top-level query-parameter update mask change a nested oneOf when the server replaces the whole value of that path.
+- CHORE: Bump the generator to `v0.1.0-beta.24`.
+- FIX: A `requestValue` field is not in the Create or Update check lists. Those lists read Terraform attributes. A field that the request schema does not mark read-only stayed in the lists, so every Create and every Update failed.
+- CHORE: Bump the generator to `v0.1.0-beta.23`.
+- FIX: Presence, default, read-only, and schema checks walk a schema that is only `allOf` of one `$ref`. Required fields are the union of the required lists, so a required field inside the ref is not optional.
+- FIX: A field that Create requires needs no `x-coralogix-presence` in Update. Terraform requires it, so Update always sends a value.
+- FIX: The fields inside a skipped field need no `x-coralogix-presence`, because the field is never sent.
+- CHORE: Bump the generator to `v0.1.0-beta.22`.
+- FEAT: `enumExceptZero: true` accepts the enum values and leaves out the zero value. `enum: true` still accepts the zero value. The conversion maps still contain it.
 - CHORE: Bump the generator to `v0.1.0-beta.21`.
+- FIX: A computed-only attribute, and every attribute inside it, has no validators and no document plan modifier. A field line on a component that is also managed no longer copies those checks onto the computed-only place. A computed `id` still keeps `UseStateForUnknown`.
 - FIX: `behavior-overrides.yaml` rejects a Delete operation named in both `api.delete.operation` and `api.operations.delete`. Before, `api.operations` chose the operation id while `api.delete` still turned on POST-action delete checks.
 - FEAT: `readEmptyAs: null` on a string reads an omitted value as null. A configured `""` stays `""`.
 - FIX: `requestValue` on a nested read-only field is sent on create and update.
@@ -57,7 +83,7 @@
 - CHORE: Bump the generator to `v0.1.0-beta.19`.
 - CHORE: Bump the generator to `v0.1.0-beta.18`.
 - FEAT: `unwrap` in `behavior-overrides.yaml` shows a value that the API holds in a one-property wrapper object as the plain value, for example `{"query": {"value": "error"}}` as `query = "error"`. A top-level list names the wrapper components, and an `unwrap: true` or `unwrap: false` field line decides one place. The value can be a scalar, an enum, a list, an object, or a oneOf, a wrapper inside a wrapper, or the items of a list.
-- FEAT: Existing mode accepts `api.updateMaskInBody: true` when PATCH `updateMask` is an optional JSON body property. The generated update sends no mask, as the released resource did, and the body holds every Update field except an immutable one. The schema has no mask attribute. Every field that Update sends must be required or have a static default, because without a mask removing it cannot clear it.
+- FEAT: Existing mode accepts `api.updateMaskInBody: true` when PATCH `updateMask` is an optional JSON body property. The generated update builds the same body and the same changed-field mask as a query-parameter mask, then sets that mask on the body. The schema has no mask attribute. A mask that names only top-level fields still cannot change a nested oneOf.
 - FIX: `api.updateMaskInBody: true` on a full replace (PUT) is an error. Before, generation ignored the key and produced a replace that does not set a mask.
 - CHORE: Bump the generator to `v0.1.0-beta.17`.
 - FEAT: A `date-time` field that Create or Update sends, alone or in a list or set, is supported. It is a `timetypes.RFC3339` attribute that must be in UTC (`Z`). A time that only the response has stays a plain string.

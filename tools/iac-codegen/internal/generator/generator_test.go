@@ -157,6 +157,57 @@ func TestGoldenOutputCustomMethods(t *testing.T) {
 	}
 }
 
+// The golden output of a released resource whose Create and Update take the resource itself as
+// the body, whose responses hold the resource next to other values, and whose server-set id Get
+// does not require.
+func TestGoldenOutputSharedBody(t *testing.T) {
+	out := generateSharedThing(t)
+	golden := filepath.Join("testdata", "golden", "sharedthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputSharedBody -update:\n%s", diff)
+	}
+}
+
+// The generated Create reads the resource next to other response values, Update sends the state
+// id in the body, and a read without an id fails.
+func TestSharedBodyRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateSharedThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "sharedthing_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// generateSharedThing generates the synthetic resource whose Create and Update share one body.
+func generateSharedThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "sharedthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "sharedthing")
+	options := Options{Resource: "SharedThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "sharedthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
 // generateCustomThing generates the synthetic resource with custom-method operations.
 func generateCustomThing(t *testing.T) string {
 	t.Helper()
@@ -1232,6 +1283,44 @@ func TestComputedOneOfUsesUnknownCapableModelType(t *testing.T) {
 	}
 }
 
+// A field line applies to every place of a component. A computed-only place has no
+// configuration, so the validators and the document modifier must not be copied there.
+// The managed place keeps them. A computed id keeps UseStateForUnknown.
+func TestComputedOnlyDropsFieldLineConfig(t *testing.T) {
+	doc := &model.Type{Kind: model.Object, Schema: "Doc", Fields: []*model.Field{{
+		Name: "raw", Type: &model.Type{Kind: model.String, MinLength: int64Pointer(1)},
+		Behavior: model.Normal, Attrs: model.Attrs{Required: true},
+		Create: &model.Attrs{Required: true}, Update: &model.Attrs{Required: true},
+	}}}
+	listType := &model.Type{Kind: model.List, Elem: doc}
+	resource := &model.Resource{Name: "Thing", IDParam: "id", Fields: []*model.ResourceField{
+		{Name: "id", Type: &model.Type{Kind: model.String}, Behavior: model.Computed, Get: &model.Attrs{Required: true}, InGet: true},
+		{Name: "items", Type: listType, Behavior: model.Normal, Create: &model.Attrs{Required: true}, Update: &model.Attrs{Required: true}, Get: &model.Attrs{Required: true}, InGet: true},
+		{Name: "generated", Type: listType, Behavior: model.Computed, Get: &model.Attrs{Required: true}, InGet: true},
+	}}
+	file := mustParse(t, "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Doc:\n    fields:\n      raw:\n        equality: yaml\n        validators:\n          - lengthAtLeast: 1\n")
+	data, err := buildTFResourceWith(resource, "thing", file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	byName := map[string]*tfAttr{}
+	for _, a := range data.Attributes {
+		byName[a.Name] = a
+	}
+	managed := byName["items"].Attributes[0]
+	if !slices.Contains(managed.Validators, "stringvalidator.LengthAtLeast(1)") || !slices.Contains(managed.Modifiers, "equivalentDocument{equal: yamlEqual}") {
+		t.Fatalf("managed raw = validators %v modifiers %v, want LengthAtLeast and equivalentDocument", managed.Validators, managed.Modifiers)
+	}
+	computed := byName["generated"].Attributes[0]
+	if !computedOnly(computed) || len(computed.Validators) != 0 || len(computed.Modifiers) != 0 {
+		t.Fatalf("computed raw flags=(computed-only %t) validators=%v modifiers=%v, want no config checks", computedOnly(computed), computed.Validators, computed.Modifiers)
+	}
+	id := byName["id"]
+	if !computedOnly(id) || !slices.Contains(id.Modifiers, "stringplanmodifier.UseStateForUnknown()") {
+		t.Fatalf("id modifiers = %v, want computed-only with UseStateForUnknown", id.Modifiers)
+	}
+}
+
 func assertComputedTree(t *testing.T, attr *tfAttr) {
 	t.Helper()
 	if attr.Required || attr.Optional || !attr.Computed || len(attr.Validators) != 0 {
@@ -1293,6 +1382,20 @@ func TestDeleteOverrideRuntimeSemantics(t *testing.T) {
 	compileGenerated(t, out, input)
 }
 
+// The generated Update of a resource whose server-set id is in the Update body sends that id.
+func TestCustomMethodsRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateCustomThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "customthing_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
 // The generated resource with document fields compares them as documents in its plan and its
 // flatten, and plans no change when only the format of a document changes.
 func TestDocumentEqualityRuntimeSemantics(t *testing.T) {
@@ -1318,6 +1421,73 @@ func TestWrappedValuesRuntimeSemantics(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// requestValue on a field the request schema does not mark read-only is not a
+// Terraform attribute. Create and Update must not read it. Reading a missing
+// attribute fails every Create and every Update.
+func TestWritableRequestValueIsNotChecked(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "customthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	readonly := "        kind:\n          allOf: [{$ref: '#/components/schemas/ThingKind'}]\n          readOnly: true\n"
+	writable := "        kind:\n          allOf: [{$ref: '#/components/schemas/ThingKind'}]\n"
+	if !strings.Contains(string(spec), readonly) {
+		t.Fatal("the root kind field is not read-only in the fixture")
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = []byte(strings.Replace(string(spec), readonly, writable, 1))
+	out := filepath.Join(t.TempDir(), "customthing")
+	options := Options{Resource: "CustomThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "customthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	convert, err := os.ReadFile(filepath.Join(out, "convert.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(convert, []byte("out.Kind = &fixed")) {
+		t.Fatal("Create no longer sends the fixed kind value")
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(schema, []byte("\t\t\t\"kind\":")) {
+		t.Fatal("kind is a Terraform attribute")
+	}
+	check := []byte(`package customthing
+
+import (
+	"context"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+)
+
+func TestRequestValueDoesNotBlockCreateOrUpdate(t *testing.T) {
+	ctx := context.Background()
+	s := Schema()
+	typ := s.Type().TerraformType(ctx).(tftypes.Object)
+	values := map[string]tftypes.Value{}
+	for name, attrType := range typ.AttributeTypes {
+		values[name] = tftypes.NewValue(attrType, nil)
+	}
+	raw := tftypes.NewValue(typ, values)
+	if diags := validateCreate(ctx, tfsdk.Config{Schema: s, Raw: raw}, tfsdk.Plan{Schema: s, Raw: raw}); diags.HasError() {
+		t.Fatalf("Create: %v", diags)
+	}
+	if _, diags := updateChanged(ctx, tfsdk.Config{Schema: s, Raw: raw}, tfsdk.Plan{Schema: s, Raw: raw}, tfsdk.State{Schema: s, Raw: raw}); diags.HasError() {
+		t.Fatalf("Update: %v", diags)
+	}
+}
+`)
+	if err := os.WriteFile(filepath.Join(out, "request_value_test.go"), check, 0o644); err != nil {
 		t.Fatal(err)
 	}
 	compileGenerated(t, out, input)

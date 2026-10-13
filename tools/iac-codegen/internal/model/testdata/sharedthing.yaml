@@ -1,0 +1,96 @@
+# A released resource whose Create and Update take the resource itself as the body, an inline
+# copy with the title of the component, so the SDK names it SharedThing1. The responses hold the
+# resource in a required field next to the ids of other objects that the call changed. The
+# server sets the id, Get does not require it, and Update finds the resource by the id in the
+# body.
+openapi: 3.1.0
+info: {title: shared, version: 1.0.0}
+paths:
+  /shared/v1/things:
+    post:
+      tags: [Shared Things Service]
+      operationId: SharedThingsService_CreateSharedThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: SharedThing
+              type: object
+              properties:
+                id: {type: string, x-coralogix-presence: true}
+                name: {type: string}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreateSharedThingResponse'}
+    put:
+      tags: [Shared Things Service]
+      operationId: SharedThingsService_ReplaceSharedThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: SharedThing
+              type: object
+              properties:
+                id: {type: string, x-coralogix-presence: true}
+                name: {type: string}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReplaceSharedThingResponse'}
+  /shared/v1/things/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Shared Things Service]
+      operationId: SharedThingsService_GetSharedThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetSharedThingResponse'}
+    delete:
+      tags: [Shared Things Service]
+      operationId: SharedThingsService_DeleteSharedThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteSharedThingResponse'}
+components:
+  schemas:
+    CreateSharedThingResponse:
+      type: object
+      required: [thing]
+      properties:
+        changedIds: {type: array, items: {type: string}}
+        thing: {$ref: '#/components/schemas/SharedThing'}
+    GetSharedThingResponse:
+      type: object
+      required: [thing]
+      properties:
+        thing: {$ref: '#/components/schemas/SharedThing'}
+    ReplaceSharedThingResponse:
+      type: object
+      required: [thing]
+      properties:
+        changedIds: {type: array, items: {type: string}}
+        thing: {$ref: '#/components/schemas/SharedThing'}
+    DeleteSharedThingResponse:
+      type: object
+      required: []
+    SharedThing:
+      title: SharedThing
+      type: object
+      properties:
+        id: {type: string, x-coralogix-presence: true}
+        name: {type: string}

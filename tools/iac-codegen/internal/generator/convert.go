@@ -317,11 +317,7 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 	}
 	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, file: file, resource: r, sent: sentFields(r)}
 	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, Existing: r.Policy.Existing}
-	if r.Policy.ClientSetID && !r.Singleton {
-		// The contract may not require the id in the response (a proto3 optional field), so
-		// flatten checks it. Without the id, Read, Update, and Delete would have no identity.
-		out.IDGuard = camelize(r.IDParam)
-	}
+	out.IDGuard = idGuard(r)
 
 	roots := []convRoot{
 		{&out.Create, "create.body", true, func(f *model.ResourceField) bool { return f.Create != nil }},
@@ -354,14 +350,13 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 		return nil, err
 	}
 	for _, f := range r.Fields {
-		if f.Create != nil {
-			out.CreateFields = append(out.CreateFields, &maskField{TFName: tfName(f.Name), ServerDefault: serverDefault(r, f)})
-		}
+		appendCreateField(out, r, f, b.fixedRequest(r.Name, f.Name))
 	}
+	fixed := func(name string) bool { return b.fixedRequest(r.Name, name) }
 	if r.Replace {
-		return out, replaceFields(r, out)
+		return out, replaceFields(r, out, fixed)
 	}
-	if err := buildMask(r, out); err != nil {
+	if err := buildMask(r, out, fixed); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -491,12 +486,17 @@ func (b *convBuilder) rootObject(out *convData, root convRoot, ref sdkRef) (*con
 		}
 		return obj, "fields", nil
 	}
+	function := camelize(ref.Name)
 	if root.path == "create.body" {
 		out.CreateBody = ref.Name
 	} else {
 		out.UpdateBody = ref.Name
+		if ref.Name == out.CreateBody {
+			// A released API can take one body type for Create and Update. Each expands its own fields.
+			function += "Update"
+		}
 	}
-	return &convObject{Func: camelize(ref.Name), Model: modelTypeName(r.Name), SDK: ref.Name}, root.path, nil
+	return &convObject{Func: function, Model: modelTypeName(r.Name), SDK: ref.Name}, root.path, nil
 }
 
 // checkReadEmptyAs rejects readEmptyAs where the renderer has no such normalization. The flag
@@ -534,12 +534,24 @@ func sentOnUpdate(r *model.Resource, f *model.ResourceField) bool {
 	return f.Update != nil && !(r.MaskInBody && f.Behavior == model.Immutable)
 }
 
+// appendCreateField adds a Create field to the unknown-value check. requestValue
+// is not a Terraform attribute. The check reads attributes, so a missing one fails
+// every Create.
+func appendCreateField(out *convData, r *model.Resource, f *model.ResourceField, fixed bool) {
+	if fixed || f.Create == nil {
+		return
+	}
+	out.CreateFields = append(out.CreateFields, &maskField{TFName: tfName(f.Name), ServerDefault: serverDefault(r, f)})
+}
+
 // replaceFields sets the Update fields of a full replace. The body has all of
 // them, and the server clears a field that the body does not have.
-func replaceFields(r *model.Resource, out *convData) error {
+func replaceFields(r *model.Resource, out *convData, fixed func(string) bool) error {
 	out.Replace = true
 	for _, f := range r.Fields {
-		if f.Update != nil {
+		// requestValue is not a Terraform attribute. The check reads attributes,
+		// so a missing one fails every Update.
+		if f.Update != nil && !fixed(f.Name) {
 			out.UpdateFields = append(out.UpdateFields, &maskField{TFName: tfName(f.Name), ServerDefault: serverDefault(r, f)})
 		}
 	}
@@ -551,7 +563,7 @@ func replaceFields(r *model.Resource, out *convData) error {
 
 // buildMask sets the update mask data. Only the Update fields can be in the
 // mask, so application, subsystem, and target never are (D9).
-func buildMask(r *model.Resource, out *convData) error {
+func buildMask(r *model.Resource, out *convData, fixed func(string) bool) error {
 	pattern := r.UpdateMaskPattern
 	if r.MaskInBody {
 		// No mask is sent. It only tells whether a top-level field changed.
@@ -563,7 +575,7 @@ func buildMask(r *model.Resource, out *convData) error {
 	}
 	out.LeafMask = leaf
 	for _, f := range r.Fields {
-		if f.Update == nil {
+		if f.Update == nil || fixed(f.Name) {
 			continue
 		}
 		mf := &maskField{TFName: tfName(f.Name), API: f.Name}
@@ -759,6 +771,40 @@ func hasPresence(a *model.Attrs) bool {
 	return a != nil && a.Presence
 }
 
+func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
+	if b.file == nil {
+		return
+	}
+	line := b.file.Types[component].Fields[name]
+	cf.ReadEmptyAsNull, cf.KeepPriorOrder = line.ReadEmptyAs == "null", line.KeepPriorOrder
+	cf.ReadNullAsEmpty = line.ReadNullAs == "empty"
+	cf.Equality = line.Equality
+	cf.RequestValue = line.RequestValue
+}
+
+func (b *convBuilder) applyFixedRequest(cf *convField) {
+	if cf.RequestValue == "" {
+		return
+	}
+	if cf.EnumMap != nil {
+		b.releaseEnumMap(cf.EnumMap)
+		cf.EnumMap = nil
+	}
+	cf.Conv = "fixed"
+}
+
+// applyMissingEnum reads a missing business-first enum as the string default.
+// Presence means a missing value was not set, so it stays null. A schema default
+// on an enum that has a zero value stays a schema default.
+func (b *convBuilder) applyMissingEnum(cf *convField, component, name string, presence bool) {
+	if cf.Conv != convEnum || cf.EnumZero != "" || cf.EnumMap == nil || presence || b.file == nil {
+		return
+	}
+	if s, ok := b.file.Types[component].Fields[name].Default.(string); ok {
+		cf.Missing = s
+	}
+}
+
 // fixedRequest reports whether the field is always sent as a fixed API value.
 func (b *convBuilder) fixedRequest(component, name string) bool {
 	return b.file != nil && b.file.Types[component].Fields[name].RequestValue != ""
@@ -772,13 +818,7 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type, comput
 		return nil, err
 	}
 	cf := &convField{TFName: tfName(name), Model: camelize(name), SDK: ref.Name}
-	if b.file != nil {
-		line := b.file.Types[component].Fields[name]
-		cf.ReadEmptyAsNull, cf.KeepPriorOrder = line.ReadEmptyAs == "null", line.KeepPriorOrder
-		cf.ReadNullAsEmpty = line.ReadNullAs == "empty"
-		cf.Equality = line.Equality
-		cf.RequestValue = line.RequestValue
-	}
+	b.applyFieldLine(cf, component, name)
 	want, err := b.fieldConv(cf, t, computed)
 	if err != nil {
 		return nil, err
@@ -786,22 +826,8 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type, comput
 	if cf.Wrap != nil && (cf.KeepPriorOrder || cf.Equality != "") {
 		return nil, fmt.Errorf("%s: %w", cf.TFName, errUnwrapCombination)
 	}
-	if cf.RequestValue != "" {
-		if cf.EnumMap != nil {
-			b.releaseEnumMap(cf.EnumMap)
-			cf.EnumMap = nil
-		}
-		cf.Conv = "fixed"
-	}
-	// A business-first enum has no *_UNSPECIFIED zero. Presence means a missing
-	// value was not set, so it stays null. A string default is that resource's
-	// reading of a missing value, such as AUTO. A schema default on an enum
-	// that has a zero value stays a schema default.
-	if cf.Conv == convEnum && cf.EnumZero == "" && cf.EnumMap != nil && !presence && b.file != nil {
-		if s, ok := b.file.Types[component].Fields[name].Default.(string); ok {
-			cf.Missing = s
-		}
-	}
+	b.applyFixedRequest(cf)
+	b.applyMissingEnum(cf, component, name, presence)
 	if err := checkReadEmptyAs(cf); err != nil {
 		return nil, err
 	}
@@ -1591,3 +1617,13 @@ func (d *convData) UsesEquality(kind ...string) bool {
 
 // HasPrior reports whether flatten takes the prior model of the resource.
 func (d *convData) HasPrior() bool { return d.Resource != nil && d.Resource.NeedsPrior }
+
+// idGuard returns the model field of the id when flatten must check it, else "". The contract
+// may not require the id in the response (a proto3 optional field, or a schema that a released
+// API shares with the request). Without the id, Read, Update, and Delete would have no identity.
+func idGuard(r *model.Resource) string {
+	if r.Singleton || !r.Policy.ClientSetID && !r.Policy.ServerSetID {
+		return ""
+	}
+	return camelize(r.IDParam)
+}

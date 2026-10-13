@@ -287,6 +287,21 @@ var errStaleOverrideKey = errors.New("the generator already applies this key, so
 func applyOverrides(out *tfResource, file *overrides.File) error {
 	out.SchemaVersion = file.Schema.Version
 	out.ResourceMarkdownDescription = file.MarkdownDescription
+	// A component can hold a field that the user sets in one place and that the server owns in
+	// another, for example a read-only copy of the request value. The line states how the user
+	// sets the field. The server-owned copy takes only its text: a mode, a default, a
+	// validator, or a plan modifier there would plan a value that the server does not set.
+	settable := map[string]bool{}
+	var collect func(attrs []*tfAttr)
+	collect = func(attrs []*tfAttr) {
+		for _, a := range attrs {
+			if !serverOwned(a) {
+				settable[a.Component+"."+a.Property] = true
+			}
+			collect(a.Attributes)
+		}
+	}
+	collect(out.Attributes)
 	var walk func(attrs []*tfAttr) error
 	walk = func(attrs []*tfAttr) error {
 		for _, a := range attrs {
@@ -295,6 +310,9 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 				a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return !slices.Contains(a.GroupValidators, v) })
 			}
 			if line, ok := file.Types[a.Component].Fields[a.Property]; ok {
+				if serverOwned(a) && settable[a.Component+"."+a.Property] {
+					line = overrides.Field{Description: line.Description, MarkdownDescription: line.MarkdownDescription, Deprecation: line.Deprecation}
+				}
 				if err := applyField(a, line, file); err != nil {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
 				}
@@ -311,7 +329,34 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 	if err := walk(out.Attributes); err != nil {
 		return err
 	}
+	// Field lines run after markComputed, so they can put validators and document
+	// modifiers back on a computed-only copy of a component. Configuration is
+	// always null there, so those checks never run.
+	stripComputedConfig(out.Attributes)
 	return nil
+}
+
+// stripComputedConfig removes configuration checks from a computed-only attribute
+// and every descendant. UseStateForUnknown stays: a computed id keeps its value.
+func stripComputedConfig(attrs []*tfAttr) {
+	for _, a := range attrs {
+		if computedOnly(a) {
+			stripComputedNode(a)
+			continue
+		}
+		stripComputedConfig(a.Attributes)
+	}
+}
+
+func stripComputedNode(a *tfAttr) {
+	a.Validators = nil
+	a.GroupValidators = nil
+	a.Modifiers = slices.DeleteFunc(a.Modifiers, func(m string) bool {
+		return strings.HasPrefix(m, "equivalentDocument{")
+	})
+	for _, child := range a.Attributes {
+		stripComputedNode(child)
+	}
 }
 
 // requestValue reports whether the field is sent as a fixed API value and is not a Terraform attribute.
@@ -369,6 +414,12 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 		a.Validators = append(a.Validators, expr)
 	}
 	return nil
+}
+
+// serverOwned reports whether only the server sets the attribute: it is computed and the user
+// cannot set it.
+func serverOwned(a *tfAttr) bool {
+	return a.Computed && !a.Required && !a.Optional
 }
 
 // checkAttrMode rejects an attribute that the Framework cannot build: one that is neither required,
@@ -433,7 +484,9 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 	pkg := strings.ToLower(a.ValueKind) + "validator"
 	switch {
 	case v.Enum:
-		return enumValidatorExpr(a, file)
+		return enumValidatorExpr(a, file, false)
+	case v.EnumExceptZero:
+		return enumValidatorExpr(a, file, true)
 	case len(v.OneOf) != 0 && a.ValueKind == "String":
 		quoted := make([]string, 0, len(v.OneOf))
 		for _, one := range v.OneOf {
@@ -451,13 +504,14 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 // enumValidatorExpr is the validator that accepts the Terraform values of the enum of the attribute.
 // The values are the zero value and the Terraform value of each accepted value, in sorted order.
 // They come from the enums line, so the validator and the conversion maps cannot disagree.
-func enumValidatorExpr(a *tfAttr, file *overrides.File) (string, error) {
+// exceptZero leaves the zero value out of the validator. The conversion maps still contain it.
+func enumValidatorExpr(a *tfAttr, file *overrides.File, exceptZero bool) (string, error) {
 	enum, ok := file.Enums[a.EnumSchema]
 	if a.EnumSchema == "" || a.ValueKind != "String" || !ok {
 		return "", errors.New("the enum validator needs a field of an enum type that has a line under enums")
 	}
 	var values []string
-	if enum.Zero != "" {
+	if enum.Zero != "" && !exceptZero {
 		values = append(values, enum.Zero)
 	}
 	for _, v := range enum.Values {

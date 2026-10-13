@@ -226,6 +226,10 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 	if body == nil {
 		v, err = r.get(ctx, id)
 	} else {
+{{- if .UpdateBodyID}}
+		// Only the server sets the id, so no Update field sends it. The body names the resource by it.
+		body.{{.UpdateBodyID}} = {{if not .UpdateBodyIDValue}}&{{end}}id
+{{- end}}
 		v, err = r.update(ctx{{if not .UpdateIDInBody}}, id{{end}}, body{{if and (not .Replace) (not .MaskInBody)}}, mask{{end}})
 	}
 	if {{$cx}}.{{.APICode}}(err) == http.StatusNotFound {
@@ -264,7 +268,7 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBod
 	if out == nil {
 		return nil, nil
 	}
-	return {{if .Create.Response}}out.{{.Create.Response}}{{else}}out{{end}}, nil
+	return {{if .Create.Response}}{{if .Create.ResponseValue}}&{{end}}out.{{.Create.Response}}{{else}}out{{end}}, nil
 }
 
 func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Resource}}, error) {
@@ -275,7 +279,7 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 	if out == nil {
 		return nil, nil
 	}
-	return {{if .Get.Response}}out.{{.Get.Response}}{{else}}out{{end}}, nil
+	return {{if .Get.Response}}{{if .Get.ResponseValue}}&{{end}}out.{{.Get.Response}}{{else}}out{{end}}, nil
 }
 
 func (r *Resource) update(ctx context.Context{{if not .UpdateIDInBody}}, id {{.IDGoType}}{{end}}, body *{{$sdk}}.{{$.Conv.UpdateBody}}{{if and (not .Replace) (not .MaskInBody)}}, mask string{{end}}) (*{{$sdk}}.{{.Resource}}, error) {
@@ -286,7 +290,7 @@ func (r *Resource) update(ctx context.Context{{if not .UpdateIDInBody}}, id {{.I
 	if out == nil {
 		return nil, nil
 	}
-	return {{if .Update.Response}}out.{{.Update.Response}}{{else}}out{{end}}, nil
+	return {{if .Update.Response}}{{if .Update.ResponseValue}}&{{end}}out.{{.Update.Response}}{{else}}out{{end}}, nil
 }
 
 func (r *Resource) delete(ctx context.Context, id {{.IDGoType}}) error {

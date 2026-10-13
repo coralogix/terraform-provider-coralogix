@@ -138,7 +138,7 @@ func TestFlattenApmSLINormalizesDeprecatedFilterValue(t *testing.T) {
 	slo.ApmSli = &slos.ApmSli{
 		Services: []string{"checkout"},
 		LatencyConfig: &slos.ApmLatencySli{
-			TimeWindow: slos.WINDOWSLOWINDOW_WINDOW_SLO_WINDOW_5_MINUTES.Ptr(),
+			TimeWindow: slos.WINDOWSLOWINDOW_WINDOW_SLO_WINDOW_5_MINUTES,
 			Threshold:  ptr(float32(500)),
 			Quantile:   &slos.ApmLatencyQuantile{Percentile: ptr(float32(0.95))},
 		},

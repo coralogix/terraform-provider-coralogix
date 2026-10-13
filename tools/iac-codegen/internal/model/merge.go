@@ -75,6 +75,12 @@ func mergeFields(location string, get, req *Type, op verb) error {
 		get.UpdateSchema = req.Schema
 	}
 	for _, rf := range req.Fields {
+		if rf.Attrs.ReadOnly {
+			// A request component that the response shares holds the server-set field too. The
+			// request does not send it, so the field is computed. Only existing mode gets here:
+			// a new resource needs its own request component.
+			continue
+		}
 		at := location + "." + rf.Name
 		gf := fieldNamed(get.Fields, rf.Name)
 		if gf == nil {

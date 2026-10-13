@@ -6,6 +6,7 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/custom_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/legacy_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/settings_service"
+	"example.com/iac-test-sdk/go/openapi/gen/shared_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/wrap_things_service"
 )
@@ -18,6 +19,7 @@ type ClientSet struct {
 	Config         *config_things_service.ConfigThingsServiceAPIService
 	Wrap           *wrap_things_service.WrapThingsServiceAPIService
 	Custom         *custom_things_service.CustomThingsServiceAPIService
+	Shared         *shared_things_service.SharedThingsServiceAPIService
 }
 
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
@@ -42,4 +44,8 @@ func (c *ClientSet) WrapThings() *wrap_things_service.WrapThingsServiceAPIServic
 
 func (c *ClientSet) CustomThings() *custom_things_service.CustomThingsServiceAPIService {
 	return c.Custom
+}
+
+func (c *ClientSet) SharedThings() *shared_things_service.SharedThingsServiceAPIService {
+	return c.Shared
 }
