@@ -241,7 +241,7 @@ func classifyField(at string, f *Field, create, update bool) error {
 		}
 	}
 	f.Behavior = behavior
-	if inCreate && inUpdate && !f.Create.Required && f.Update.Required {
+	if inCreate && inUpdate && !f.Create.Required && f.Update.Required && !(f.Attrs.Required && f.Attrs.Computed) {
 		return &contractError{
 			code:        "FIELD_REQUIREDNESS_UNSUPPORTED",
 			location:    at,

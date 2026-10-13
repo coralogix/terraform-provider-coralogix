@@ -178,6 +178,15 @@ func (s *resolver) bodyFields(r *model.Resource, resource string) error {
 		return nil
 	}
 	for _, f := range r.Fields {
+		if folds := r.CreateFolds(f); folds != nil {
+			// Create sends the properties of the object as top-level fields.
+			for _, fd := range folds {
+				if err := s.requestField("create.body."+fd.Field, s.bodies["create"], fd.Field, fd.Type, fd.Required); err != nil {
+					return err
+				}
+			}
+			continue
+		}
 		if f.Create != nil {
 			if err := s.requestField("create.body."+f.Name, s.bodies["create"], f.Name, f.Type.CreateType(), f.Create.Required); err != nil {
 				return err

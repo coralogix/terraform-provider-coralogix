@@ -1290,6 +1290,14 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	if m.{{.Model}} != nil {
 		{{.Dst}} = map[string]interface{}{}
 	}
+{{- else if eq .Conv "fold"}}
+	if m := m.{{.Model}}; m != nil {
+		p := {{$p}}
+		_ = p // a scalar conversion does not report a path
+{{- range .Fold}}
+{{- template "expandValue" .}}
+{{- end}}
+	}
 {{- else if eq .Conv "rfc3339"}}
 	{{.Dst}} = {{$l}}expandRFC3339({{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if eq .Conv "times"}}

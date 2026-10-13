@@ -321,3 +321,41 @@ func TestRejectUnknownOfAnUnreleasedResource(t *testing.T) {
 		}
 	}
 }
+
+func TestOptionalAndCreateAsPolicy(t *testing.T) {
+	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: {createAs: {limit: limitValue}}\n  Quota:\n    fields:\n      limit: {computed: true}\n  Item:\n    fields:\n      values: {optional: true}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := f.Policy()
+	if want := map[string]map[string]string{"R.quota": {"limit": "limitValue"}}; !reflect.DeepEqual(p.CreateAs, want) {
+		t.Errorf("createAs = %v, want %v", p.CreateAs, want)
+	}
+	if !reflect.DeepEqual(p.Optional, []string{"Item.values"}) {
+		t.Errorf("optional = %v", p.Optional)
+	}
+	if !reflect.DeepEqual(p.Computed, []string{"Quota.limit"}) {
+		t.Errorf("computed = %v", p.Computed)
+	}
+	for _, line := range f.Lines() {
+		if line.Field == "values" && !line.Optional {
+			t.Errorf("line %s does not say optional", line)
+		}
+	}
+}
+
+func TestOptionalAndCreateAsAreChecked(t *testing.T) {
+	for name, field := range map[string]string{
+		"required and optional":        "{required: true, optional: true}",
+		"skip and optional":            "{skip: true, optional: true}",
+		"skip and createAs":            "{skip: true, createAs: {limit: limitValue}}",
+		"createAs with an empty field": "{createAs: {limit: ''}}",
+		"createAs names a field twice": "{createAs: {limit: limitValue, max: limitValue}}",
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: " + field + "\n")); err == nil {
+				t.Fatalf("%s: want an error", field)
+			}
+		})
+	}
+}

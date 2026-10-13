@@ -3,10 +3,13 @@
 package echothing
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // Schema is the Terraform schema of the resource.
@@ -22,6 +25,56 @@ func Schema() schema.Schema {
 			},
 			"name": schema.StringAttribute{
 				Required:            true,
+				MarkdownDescription: "",
+			},
+			"quota": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"limit": schema.Int32Attribute{
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: "",
+					},
+					"exceeded": schema.BoolAttribute{
+						Computed:            true,
+						MarkdownDescription: "",
+					},
+				},
+				MarkdownDescription: "",
+			},
+			"items": schema.ListNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"key": schema.StringAttribute{
+							Required:            true,
+							MarkdownDescription: "",
+						},
+						"values": schema.ListAttribute{
+							Optional:            true,
+							ElementType:         types.StringType,
+							MarkdownDescription: "",
+						},
+						"enabled": schema.BoolAttribute{
+							Optional:            true,
+							Computed:            true,
+							MarkdownDescription: "",
+						},
+						"detail": schema.SingleNestedAttribute{
+							Optional: true,
+							Validators: []validator.Object{
+								objectvalidator.ConflictsWith(),
+							},
+							Attributes: map[string]schema.Attribute{
+								"text": schema.StringAttribute{
+									Required:            true,
+									MarkdownDescription: "",
+								},
+							},
+							MarkdownDescription: "",
+						},
+					},
+				},
 				MarkdownDescription: "",
 			},
 		},

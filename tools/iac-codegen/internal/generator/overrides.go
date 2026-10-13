@@ -231,6 +231,9 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared bool) *li
 	if line.Required && slices.Contains(schema.Required, line.Field) && !(shared && requiredLineStatesPresence(schema, line.Field)) {
 		stale = append(stale, "required")
 	}
+	if line.Optional && !slices.Contains(schema.Required, line.Field) {
+		stale = append(stale, "optional")
+	}
 	if len(stale) == 0 {
 		return nil
 	}

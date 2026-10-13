@@ -25,6 +25,8 @@ var updateFields = []struct {
 	serverDefault bool
 }{
 	{attr: "name", serverDefault: false},
+	{attr: "quota", serverDefault: false},
+	{attr: "items", serverDefault: false},
 }
 
 // updateChanged reports whether an Update field has a different value in the
@@ -43,6 +45,7 @@ func updateChanged(ctx context.Context, config, plan, state tfData) (bool, diag.
 		if fieldDiags.HasError() {
 			continue
 		}
+		p, s = requestValue(ctx, field.attr, p, &diags), requestValue(ctx, field.attr, s, &diags)
 		validateRequestValue(path.Root(field.attr), c, p, field.serverDefault, &diags)
 		if !p.Equal(s) {
 			changed = true

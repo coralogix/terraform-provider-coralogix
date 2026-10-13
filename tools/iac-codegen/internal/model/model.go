@@ -125,6 +125,9 @@ type Field struct {
 
 // Attrs are the facts about a field in one place (a request body or an object).
 type Attrs struct {
+	// Computed: a computed: true line keeps the value of the field in state. With a Get that
+	// requires the field, state always has a value that Update can send.
+	Computed bool
 	Required bool    // in the parent "required" list
 	Presence bool    // x-coralogix-presence: true
 	Default  *string // YAML text of "default", nil when there is none

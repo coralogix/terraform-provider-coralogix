@@ -14,3 +14,13 @@ types:
       id: {readOnly: true}
       createTime: {skip: true}
       isInternal: {skip: true}
+      quota: {createAs: {limit: limitValue}}
+  Quota:
+    fields:
+      exceeded: {readOnly: true}
+      limit: {computed: true}
+  EchoItem:
+    fields:
+      values: {optional: true}
+      enabled: {computed: true}
+      none: {skip: true}

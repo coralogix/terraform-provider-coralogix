@@ -294,6 +294,13 @@ func requiredParameterIssues(location string, role verb, op foundOp) issue.Repor
 
 func validateFieldContracts(p Policy, name string, ops map[verb]foundOp) issue.Report {
 	create, createErr := schemaOf(p.requestBody(ops[opCreate].op))
+	if createErr == nil {
+		folded, err := p.foldCreateBody(name, create)
+		if err != nil {
+			return issue.Report{{Code: "CREATE_AS_UNSUPPORTED", Location: fieldLocation(name, "createAs"), Message: err.Error(), Remediation: "Name an object field of the resource and the top-level Create fields that hold its properties."}}
+		}
+		create = folded
+	}
 	update, updateErr := schemaOf(p.requestBody(ops[opUpdate].op))
 	getProxy := ops[opGet].op
 	_ = getProxy
@@ -438,6 +445,8 @@ func skippedIDIssues(p Policy, name string, ops map[verb]foundOp) issue.Report {
 
 // skippedArmIssues reports a skip override on an arm of a oneOf group. Skipping an arm changes
 // what the group means: the remaining arm would become required, or the schema could not be built.
+// The one exception is an empty object arm of a group that allows no arm, such as an Empty
+// "none" marker: it holds no value, and Terraform selecting no arm leaves the group as it allows.
 func skippedArmIssues(p Policy, root *Type) issue.Report {
 	var report issue.Report
 	seen := map[*Type]bool{}
@@ -452,7 +461,7 @@ func skippedArmIssues(p Policy, root *Type) issue.Report {
 			return
 		}
 		for _, arm := range oneOfArmNames(t) {
-			if p.skips(t.Schema, arm) {
+			if p.skips(t.Schema, arm) && !skippableArm(t, arm) {
 				report = append(report, issue.Issue{
 					Code:        "ONEOF_ARM_SKIPPED",
 					Location:    "components.schemas." + t.Schema + "." + arm,
@@ -605,6 +614,7 @@ func validateFieldContract(p Policy, name, idParam, field string, create, update
 	if p.skips(name, field) {
 		return skippedFieldIssues(name, field, create, update)
 	}
+	create, update = p.withOptional(name, create), p.withOptional(name, update)
 	cp, up := requestContractProperty(create, field), requestContractProperty(update, field)
 	if p.readOnly(name, field) {
 		cp, up = nil, nil
@@ -615,7 +625,9 @@ func validateFieldContract(p Policy, name, idParam, field string, create, update
 		return issue.Report{{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field locations are Create=%t, Update=%t, Get=%t.", cp != nil, up != nil, gp != nil), Remediation: "Use a managed, immutable, or computed field lifecycle."}}
 	}
 	var report issue.Report
-	if cp != nil && up != nil && !slices.Contains(create.Required, field) && slices.Contains(update.Required, field) {
+	// A computed line on a field that Get requires keeps a value in state, so Update can always send it.
+	kept := p.computed(name, field) && slices.Contains(get.Required, field)
+	if cp != nil && up != nil && !slices.Contains(create.Required, field) && slices.Contains(update.Required, field) && !kept {
 		report = append(report, issue.Issue{
 			Code:        "FIELD_REQUIREDNESS_UNSUPPORTED",
 			Location:    location,
@@ -1335,7 +1347,7 @@ func nestedPresenceIssues(p Policy, location string, proxy, get, create *base.Sc
 		component = ref
 	}
 	parent := *object
-	parent.Required = required
+	parent.Required = p.requiredOf(referencedComponent(component), required)
 	getObject, _, _ := validationObject(getSchema)
 	createObject, _, createRequired := validationObject(createSchema)
 	var report issue.Report
@@ -1726,4 +1738,14 @@ func firstLocation(message string) string {
 		return strings.TrimSpace(before)
 	}
 	return "openapi"
+}
+
+// skippableArm reports whether arm is an empty object arm of a group of t that allows no arm.
+func skippableArm(t *Type, arm string) bool {
+	if t.Kind != Object {
+		return false
+	}
+	group := slices.IndexFunc(t.Groups, func(g OneOfGroup) bool { return slices.Contains(g.Arms, arm) && g.AllowNone })
+	field := slices.IndexFunc(t.Fields, func(f *Field) bool { return f.Name == arm })
+	return group >= 0 && field >= 0 && t.Fields[field].Type.Kind == Object && len(t.Fields[field].Type.Fields) == 0
 }

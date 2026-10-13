@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"regexp"
 	"slices"
 	"sort"
@@ -243,6 +244,15 @@ type Field struct {
 	// require the field. The SDK type of the field does not change. Delete this key when the
 	// contract requires the field.
 	Required bool `yaml:"required"`
+	// Optional: true makes the Terraform attribute optional, although a request of the contract
+	// requires the field. The released resource lets the user leave it out, and the API accepts
+	// that, but the contract cannot say so: the request shares the component with a response
+	// that always has the field.
+	Optional bool `yaml:"optional"`
+	// CreateAs folds top-level Create fields into this object field: Create sends each
+	// property of the object as the top-level Create field it names, for example
+	// {limit: permutationsLimit}. Update and Get have the object itself.
+	CreateAs map[string]string `yaml:"createAs"`
 	// Deprecation is the released deprecation message.
 	Deprecation string `yaml:"deprecation"`
 	// Computed: true makes an optional field Optional+Computed. false makes it Optional.
@@ -491,6 +501,8 @@ func (l Field) keys() []string {
 	add(l.MarkdownDescription != nil, "markdownDescription")
 	add(l.ReadOnly, "readOnly")
 	add(l.Required, "required")
+	add(l.Optional, "optional")
+	add(len(l.CreateAs) != 0, "createAs")
 	add(l.Deprecation != "", "deprecation")
 	add(l.Computed != nil, "computed")
 	add(l.UseStateForUnknown, "useStateForUnknown")
@@ -547,12 +559,12 @@ func (l Field) empty() bool {
 }
 
 func (l Field) emptyMode() bool {
-	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
+	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown
 }
 
 func (l Field) emptyValue() bool {
-	return l.Default == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && l.RequestValue == "" &&
+	return l.Default == nil && len(l.CreateAs) == 0 && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && l.RequestValue == "" &&
 		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil
 }
 
@@ -570,6 +582,12 @@ func (l Field) check() error {
 	}
 	if l.Required && l.Computed != nil && *l.Computed {
 		return errors.New("a required field cannot be computed")
+	}
+	if l.Required && l.Optional {
+		return errors.New("set required or optional, not both")
+	}
+	if err := checkCreateAs(l.CreateAs); err != nil {
+		return err
 	}
 	if l.Description != nil && l.MarkdownDescription != nil {
 		return errors.New("set description or markdownDescription, not both")
@@ -607,7 +625,7 @@ func (l Field) checkConflicts() error {
 
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
 func (l Field) hasBehavior() bool {
-	return l.ReadOnly || l.Computed != nil || l.Required || l.Default != nil || l.KeepPriorOrder ||
+	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || len(l.CreateAs) != 0 || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.RequestValue != "" ||
 		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil
 }
@@ -694,6 +712,18 @@ func (f *File) Policy() model.Policy {
 			if t.Fields[field].ReadOnly {
 				p.ReadOnly = append(p.ReadOnly, name+"."+field)
 			}
+			if t.Fields[field].Optional {
+				p.Optional = append(p.Optional, name+"."+field)
+			}
+			if c := t.Fields[field].Computed; c != nil && *c {
+				p.Computed = append(p.Computed, name+"."+field)
+			}
+			if into := t.Fields[field].CreateAs; len(into) != 0 {
+				if p.CreateAs == nil {
+					p.CreateAs = map[string]map[string]string{}
+				}
+				p.CreateAs[name+"."+field] = maps.Clone(into)
+			}
 			if t.Fields[field].statesPresence() {
 				p.Released = append(p.Released, name+"."+field)
 			}
@@ -719,7 +749,7 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Equality: f.Equality, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Equality: f.Equality, Keys: f.keys()})
 		}
 	}
 	return out
@@ -746,6 +776,7 @@ type Line struct {
 	ReadOnly     bool     // for a field line: the file says that the server sets the field
 	Equality     string   // for a field line: "yaml" or "json" when the line compares the value as a document
 	Required     bool     // for a field line: the file says that the field is required
+	Optional     bool     // for a field line: the file says that the field is optional
 	Keys         []string // for a field line: every key that the line sets
 }
 
@@ -768,4 +799,20 @@ func sortedKeys[V any](m map[string]V) []string {
 	}
 	sort.Strings(keys)
 	return slices.Clip(keys)
+}
+
+// checkCreateAs checks a createAs map: each property names one Create field, and no two
+// properties name the same one.
+func checkCreateAs(into map[string]string) error {
+	seen := map[string]bool{}
+	for nested, flat := range into {
+		if nested == "" || flat == "" {
+			return errors.New("createAs maps a property to a Create field; neither can be empty")
+		}
+		if seen[flat] {
+			return fmt.Errorf("createAs names the Create field %q twice", flat)
+		}
+		seen[flat] = true
+	}
+	return nil
 }

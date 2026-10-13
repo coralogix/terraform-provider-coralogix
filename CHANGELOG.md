@@ -50,6 +50,10 @@
 - FEAT: `sendNullAsEmpty: true` sends `""` for a null string, for an API that keeps a stored value that the request omits. It needs `readEmptyAs: "null"`.
 - FEAT: `Hooks.BeforeFlatten` changes the API value before flatten, for a value that only an older record has.
 - FIX: A component that a request shares with the response keeps its read-only fields in flatten. Before, the read-only field was missing from the shared conversion object, and the apply failed with a value conversion error.
+- FEAT: `createAs` on a field line folds top-level Create fields into an object field that Update and Get hold, for example `quota: {createAs: {limit: limitValue}}`. Create sends each property of the object as its flat field.
+- FEAT: `optional: true` on a field line makes a field optional that a request of the contract requires.
+- FEAT: A `readOnly: true` line works on a field of a nested component. A `computed: true` line on a field that Get requires allows Create to leave it optional while Update requires it.
+- FEAT: `skip` can name an empty object arm of a `oneOf` group that allows no arm, such as an `Empty` marker.
 - FIX: The contract checks read the resource of a response property written as `allOf: [$ref]`. Before, they read the `allOf` schema, found no Get field, and refused every field of the resource.
 - FIX: A skipped top-level field has no lifecycle, so a value that Replace echoes in its body but Create does not have, such as an internal flag, can be skipped. A request that requires a skipped field is an error (`SKIP_REQUIRED_FIELD`).
 - FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.

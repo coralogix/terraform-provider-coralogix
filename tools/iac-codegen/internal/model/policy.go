@@ -61,6 +61,14 @@ type Policy struct {
 	// EmptyRequired lists the object components that declare no required list
 	// and mean "no field is required".
 	EmptyRequired []string
+	// Optional lists "Component.field" of fields that a request of the contract requires and the
+	// released resource treats as optional.
+	Optional []string
+	// Computed lists "Component.field" of fields that a computed: true line makes computed.
+	Computed []string
+	// CreateAs maps "Component.field" of a top-level object field to the flat Create fields that
+	// hold its properties: property name to Create field name.
+	CreateAs map[string]map[string]string
 	// Skip lists "Component.field" of fields that the resource does not manage.
 	// The generator does not send them and does not store them.
 	Skip []string
@@ -244,7 +252,41 @@ func (p Policy) pruneType(t *Type, seen map[*Type]bool) {
 		return
 	}
 	t.Fields = slices.DeleteFunc(t.Fields, func(f *Field) bool { return p.skips(t.Schema, f.Name) })
+	for i := range t.Groups {
+		// A skipped arm is one that skippedArmIssues allows: the group allows no arm.
+		t.Groups[i].Arms = slices.DeleteFunc(slices.Clone(t.Groups[i].Arms), func(arm string) bool { return p.skips(t.Schema, arm) })
+	}
 	for _, f := range t.Fields {
 		p.pruneType(f.Type, seen)
 	}
+}
+
+// requiredOf returns the required list of a component without the fields that the policy
+// makes optional.
+func (p *Policy) requiredOf(component string, required []string) []string {
+	if p == nil || component == "" || len(p.Optional) == 0 {
+		return required
+	}
+	return slices.DeleteFunc(slices.Clone(required), func(field string) bool {
+		return slices.Contains(p.Optional, component+"."+field)
+	})
+}
+
+// withOptional returns s with the required list of the component after the policy, so the
+// contract checks treat the fields that the policy makes optional as optional.
+func (p *Policy) withOptional(component string, s *base.Schema) *base.Schema {
+	if s == nil {
+		return nil
+	}
+	required := p.requiredOf(component, s.Required)
+	if len(required) == len(s.Required) {
+		return s
+	}
+	out := *s
+	out.Required = required
+	return &out
+}
+
+func (p *Policy) computed(component, field string) bool {
+	return p != nil && component != "" && slices.Contains(p.Computed, component+"."+field)
 }

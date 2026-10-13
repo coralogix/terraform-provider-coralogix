@@ -1,7 +1,10 @@
 # A resource that users already have, as an API of its age has it: Create, Get, and Replace
 # answer {"thing": {"allOf": [$ref]}}, Replace takes the whole resource with its required
 # server-set id in the body and on the Create path, and Replace echoes a server time and an
-# internal flag that the resource does not manage.
+# internal flag that the resource does not manage. Create takes the quota limit flat
+# (limitValue), while Replace and Get hold it in quota; the server sets quota.exceeded. Each item
+# requires values, which may be empty, has an enabled flag with no presence, and a oneOf with an
+# empty "none" marker.
 openapi: 3.1.0
 info: {title: echoed, version: 1.0.0}
 paths:
@@ -19,6 +22,10 @@ paths:
               required: [name]
               properties:
                 name: {type: string, minLength: 1}
+                limitValue: {type: integer, format: int32, x-coralogix-presence: true}
+                items:
+                  type: array
+                  items: {$ref: '#/components/schemas/EchoItem'}
       responses:
         '200':
           description: ok
@@ -41,6 +48,10 @@ paths:
                 name: {type: string, minLength: 1}
                 createTime: {type: string}
                 isInternal: {type: boolean}
+                quota: {$ref: '#/components/schemas/Quota'}
+                items:
+                  type: array
+                  items: {$ref: '#/components/schemas/EchoItem'}
       responses:
         '200':
           description: ok
@@ -98,3 +109,34 @@ components:
         name: {type: string, minLength: 1}
         createTime: {type: string}
         isInternal: {type: boolean}
+        quota: {$ref: '#/components/schemas/Quota'}
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/EchoItem'}
+    Quota:
+      type: object
+      required: [limit, exceeded]
+      properties:
+        limit: {type: integer, format: int32}
+        exceeded: {type: boolean}
+    EchoItem:
+      type: object
+      required: [key, values]
+      oneOf:
+        - {required: [none], type: object}
+        - {required: [detail], type: object}
+        - {type: object, not: {anyOf: [{required: [none], type: object}, {required: [detail], type: object}]}}
+      properties:
+        key: {type: string, minLength: 1}
+        values:
+          type: array
+          minItems: 0
+          items: {type: string}
+        enabled: {type: boolean}
+        none: {type: object, description: No detail.}
+        detail: {$ref: '#/components/schemas/Detail'}
+    Detail:
+      type: object
+      required: [text]
+      properties:
+        text: {type: string, minLength: 1}

@@ -192,6 +192,7 @@ const (
 	convScalarMap = "scalarmap" // types.Map ↔ map[string]bool, int32, int64, float32, float64
 	convUint64Map = "uint64map" // types.Map of Int64 ↔ map[string]string (D7)
 	convObjectMap = "objectmap" // types.Map ↔ map[string]<SDK type>
+	convFold      = "fold"      // *<Model> → top-level Create fields (createAs)
 
 	// convGroup is a group of the behavior-overrides file: *<Model> ↔ fields of the SDK struct
 	// of the parent. The API has no object for it.
@@ -252,6 +253,9 @@ type convField struct {
 	// a computed field of an object that the request and the response share. Flatten reads it.
 	// Expand does not send it.
 	FlattenOnly bool
+	// Fold: for the fold conversion, the properties of the object that Create sends as
+	// top-level fields. Each one reads the object model and writes its own SDK field.
+	Fold []*convField
 }
 
 // Dst is the Go expression that expand writes the value to: the SDK field, or the value inside
@@ -452,6 +456,14 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 	for _, f := range b.resource.Fields {
 		fixed := b.fixedRequest(b.resource.Name, f.Name)
 		if !root.has(f) && !(root.expand && fixed) {
+			continue
+		}
+		if folds := b.resource.CreateFolds(f); folds != nil && root.path == "create.body" {
+			cf, err := b.foldField(fieldsPath, f, folds)
+			if err != nil {
+				return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+			}
+			obj.Fields = append(obj.Fields, cf)
 			continue
 		}
 		typ := rootType(root.path, f)
@@ -845,7 +857,31 @@ func (b *convBuilder) fixedRequest(component, name string) bool {
 // field returns the conversion of the property name of the SDK struct at
 // owner (an SDK name path).
 func (b *convBuilder) field(owner, component, name string, t *model.Type, computed, presence bool) (*convField, error) {
-	ref, err := b.ix.fieldRef(owner + "." + name)
+	return b.fieldAt(owner+"."+name, component, name, t, computed, presence)
+}
+
+// foldField is the Create field of an object whose properties Create sends as top-level
+// fields (createAs). Each property keeps the field lines of the object component and writes
+// the SDK field of its top-level Create field.
+func (b *convBuilder) foldField(owner string, f *model.ResourceField, folds []model.CreateFold) (*convField, error) {
+	cf := &convField{TFName: tfName(f.Name), Model: camelize(f.Name), Conv: convFold}
+	for _, fd := range folds {
+		inner, err := b.fieldAt(owner+"."+fd.Field, f.Type.Schema, fd.Property, fd.Type, false, true)
+		if err != nil {
+			return nil, err
+		}
+		if inner.Conv == convObj || inner.Conv == convObjects || inner.Wrap != nil {
+			return nil, fmt.Errorf("createAs: %s.%s is a %s; a folded property must be a scalar, a list of scalars, or an enum", f.Name, fd.Property, inner.Conv)
+		}
+		cf.Fold = append(cf.Fold, inner)
+	}
+	return cf, nil
+}
+
+// fieldAt is field for the SDK field at refPath, which can differ from the place of the
+// Terraform attribute.
+func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, computed, presence bool) (*convField, error) {
+	ref, err := b.ix.fieldRef(refPath)
 	if err != nil {
 		return nil, err
 	}

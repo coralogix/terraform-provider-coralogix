@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"example.com/iac-test-sdk/go/openapi/gen/echo_things_service"
 )
@@ -28,6 +29,8 @@ var createFields = []struct {
 	serverDefault bool
 }{
 	{attr: "name", serverDefault: false},
+	{attr: "quota", serverDefault: false},
+	{attr: "items", serverDefault: false},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -41,9 +44,79 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 		if fieldDiags.HasError() {
 			continue
 		}
+		p = requestValue(ctx, field.attr, p, &diags)
 		validateRequestValue(path.Root(field.attr), c, p, field.serverDefault, &diags)
 	}
 	return diags
+}
+
+// serverAttrs are the paths of the computed attributes inside the values
+// that a request sends, with list and map steps left out. The server sets
+// them.
+var serverAttrs = map[string]bool{
+	"quota.exceeded": true,
+}
+
+// requestValue returns v with a null value for each attribute that the server
+// sets. When the resource changes, Terraform plans these attributes as
+// unknown. A request does not send them, so a change check and an
+// unknown-value check must not see them.
+func requestValue(ctx context.Context, at string, v attr.Value, diags *diag.Diagnostics) attr.Value {
+	if v == nil || v.IsNull() || v.IsUnknown() {
+		return v
+	}
+	switch v := v.(type) {
+	case types.Object:
+		attrTypes := v.AttributeTypes(ctx)
+		out := make(map[string]attr.Value, len(attrTypes))
+		for name, child := range v.Attributes() {
+			if serverAttrs[at+"."+name] {
+				out[name] = nullValue(ctx, attrTypes[name], diags)
+			} else {
+				out[name] = requestValue(ctx, at+"."+name, child, diags)
+			}
+		}
+		value, d := types.ObjectValue(attrTypes, out)
+		diags.Append(d...)
+		return value
+	case types.List:
+		elems := v.Elements()
+		out := make([]attr.Value, len(elems))
+		for i, child := range elems {
+			out[i] = requestValue(ctx, at, child, diags)
+		}
+		value, d := types.ListValue(v.ElementType(ctx), out)
+		diags.Append(d...)
+		return value
+	case types.Set:
+		elems := v.Elements()
+		out := make([]attr.Value, len(elems))
+		for i, child := range elems {
+			out[i] = requestValue(ctx, at, child, diags)
+		}
+		value, d := types.SetValue(v.ElementType(ctx), out)
+		diags.Append(d...)
+		return value
+	case types.Map:
+		elems := v.Elements()
+		out := make(map[string]attr.Value, len(elems))
+		for key, child := range elems {
+			out[key] = requestValue(ctx, at, child, diags)
+		}
+		value, d := types.MapValue(v.ElementType(ctx), out)
+		diags.Append(d...)
+		return value
+	}
+	return v
+}
+
+// nullValue returns the null value of type t.
+func nullValue(ctx context.Context, t attr.Type, diags *diag.Diagnostics) attr.Value {
+	value, err := t.ValueFromTerraform(ctx, tftypes.NewValue(t.TerraformType(ctx), nil))
+	if err != nil {
+		diags.AddError("Invalid value", err.Error())
+	}
+	return value
 }
 
 // expandCreate returns the Create request body. A null value is not sent.
@@ -76,12 +149,17 @@ func flatten(ctx context.Context, v *echo_things_service.EchoThing) (*EchoThingM
 // oneOfArms are the paths of the oneOf arms, with list and map steps left
 // out. An empty arm selects that arm, so it is not the same as a missing arm
 // (contract 2.8).
-var oneOfArms = map[string]bool{}
+var oneOfArms = map[string]bool{
+	"items.detail": true,
+}
 
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
-	"id": true,
+	"id":             true,
+	"quota.limit":    true,
+	"quota.exceeded": true,
+	"items.enabled":  true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -226,7 +304,75 @@ func expandCreateEchoThingRequest(ctx context.Context, p path.Path, m *EchoThing
 	}
 	out := &echo_things_service.CreateEchoThingRequest{}
 	out.Name = valueOf(expandString(m.Name))
+	if m := m.Quota; m != nil {
+		p := p.AtName("quota")
+		_ = p // a scalar conversion does not report a path
+		out.LimitValue = expandInt32(m.Limit)
+	}
+	if items := expandElements[EchoItemModel](ctx, p.AtName("items"), m.Items, diags); items != nil {
+		out.Items = make([]echo_things_service.EchoItem, 0, len(items))
+		for i := range items {
+			out.Items = append(out.Items, *expandEchoItem(ctx, p.AtName("items").AtListIndex(i), &items[i], diags))
+		}
+	}
 	return out
+}
+
+func expandEchoItem(ctx context.Context, p path.Path, m *EchoItemModel, diags *diag.Diagnostics) *echo_things_service.EchoItem {
+	if m == nil {
+		return nil
+	}
+	out := &echo_things_service.EchoItem{}
+	out.Key = valueOf(expandString(m.Key))
+	out.Values = expandStrings[string](ctx, p.AtName("values"), m.Values, diags)
+	out.Enabled = expandBool(m.Enabled)
+	out.Detail = expandDetail(ctx, p.AtName("detail"), m.Detail, diags)
+	return out
+}
+
+func flattenEchoItem(ctx context.Context, p path.Path, v *echo_things_service.EchoItem, diags *diag.Diagnostics) *EchoItemModel {
+	if v == nil {
+		return nil
+	}
+	out := &EchoItemModel{}
+	out.Key = types.StringPointerValue(&v.Key)
+	out.Values = flattenStringsList(ctx, v.Values, diags)
+	out.Enabled = types.BoolPointerValue(v.Enabled)
+	out.Detail = flattenDetail(ctx, p.AtName("detail"), v.Detail, diags)
+	return out
+}
+
+func echoItemAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"key":     types.StringType,
+		"values":  types.ListType{ElemType: types.StringType},
+		"enabled": types.BoolType,
+		"detail":  types.ObjectType{AttrTypes: detailAttrTypes()},
+	}
+}
+
+func expandDetail(ctx context.Context, p path.Path, m *DetailModel, diags *diag.Diagnostics) *echo_things_service.Detail {
+	if m == nil {
+		return nil
+	}
+	out := &echo_things_service.Detail{}
+	out.Text = valueOf(expandString(m.Text))
+	return out
+}
+
+func flattenDetail(ctx context.Context, p path.Path, v *echo_things_service.Detail, diags *diag.Diagnostics) *DetailModel {
+	if v == nil {
+		return nil
+	}
+	out := &DetailModel{}
+	out.Text = types.StringPointerValue(&v.Text)
+	return out
+}
+
+func detailAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"text": types.StringType,
+	}
 }
 
 func expandReplaceEchoThingRequest(ctx context.Context, p path.Path, m *EchoThingModel, diags *diag.Diagnostics) *echo_things_service.ReplaceEchoThingRequest {
@@ -235,6 +381,32 @@ func expandReplaceEchoThingRequest(ctx context.Context, p path.Path, m *EchoThin
 	}
 	out := &echo_things_service.ReplaceEchoThingRequest{}
 	out.Name = valueOf(expandString(m.Name))
+	out.Quota = expandQuota(ctx, p.AtName("quota"), m.Quota, diags)
+	if items := expandElements[EchoItemModel](ctx, p.AtName("items"), m.Items, diags); items != nil {
+		out.Items = make([]echo_things_service.EchoItem, 0, len(items))
+		for i := range items {
+			out.Items = append(out.Items, *expandEchoItem(ctx, p.AtName("items").AtListIndex(i), &items[i], diags))
+		}
+	}
+	return out
+}
+
+func expandQuota(ctx context.Context, p path.Path, m *QuotaModel, diags *diag.Diagnostics) *echo_things_service.Quota {
+	if m == nil {
+		return nil
+	}
+	out := &echo_things_service.Quota{}
+	out.Limit = valueOf(expandInt32(m.Limit))
+	return out
+}
+
+func flattenQuota(ctx context.Context, p path.Path, v *echo_things_service.Quota, diags *diag.Diagnostics) *QuotaModel {
+	if v == nil {
+		return nil
+	}
+	out := &QuotaModel{}
+	out.Limit = types.Int32PointerValue(&v.Limit)
+	out.Exceeded = types.BoolPointerValue(&v.Exceeded)
 	return out
 }
 
@@ -245,6 +417,15 @@ func flattenEchoThing(ctx context.Context, p path.Path, v *echo_things_service.E
 	out := &EchoThingModel{}
 	out.Id = types.StringPointerValue(&v.Id)
 	out.Name = types.StringPointerValue(&v.Name)
+	out.Quota = flattenQuota(ctx, p.AtName("quota"), v.Quota, diags)
+	out.Items = types.ListNull(types.ObjectType{AttrTypes: echoItemAttrTypes()})
+	if v.Items != nil {
+		items := make([]EchoItemModel, 0, len(v.Items))
+		for i := range v.Items {
+			items = append(items, *flattenEchoItem(ctx, p.AtName("items").AtListIndex(i), &v.Items[i], diags))
+		}
+		out.Items = flattenList(ctx, types.ObjectType{AttrTypes: echoItemAttrTypes()}, items, diags)
+	}
 	return out
 }
 
@@ -469,4 +650,12 @@ func flattenList[T any](ctx context.Context, elem attr.Type, items []T, diags *d
 	l, d := types.ListValueFrom(ctx, elem, items)
 	diags.Append(d...)
 	return l
+}
+
+func expandInt32(v types.Int32) *int32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n := v.ValueInt32()
+	return &n
 }

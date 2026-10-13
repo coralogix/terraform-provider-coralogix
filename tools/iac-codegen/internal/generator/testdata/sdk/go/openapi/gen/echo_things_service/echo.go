@@ -10,10 +10,31 @@ type EchoThing struct {
 	Name       string
 	CreateTime *string
 	IsInternal *bool
+	Quota      *Quota
+	Items      []EchoItem
+}
+
+type Quota struct {
+	Limit    int32
+	Exceeded bool
+}
+
+type EchoItem struct {
+	Key     string
+	Values  []string
+	Enabled *bool
+	None    map[string]interface{}
+	Detail  *Detail
+}
+
+type Detail struct {
+	Text string
 }
 
 type CreateEchoThingRequest struct {
-	Name string
+	Name       string
+	LimitValue *int32
+	Items      []EchoItem
 }
 
 type ReplaceEchoThingRequest struct {
@@ -21,6 +42,8 @@ type ReplaceEchoThingRequest struct {
 	Name       string
 	CreateTime *string
 	IsInternal *bool
+	Quota      *Quota
+	Items      []EchoItem
 }
 
 // The Create answer may leave out the resource; Get and Replace always have it.
@@ -39,13 +62,14 @@ type ReplaceEchoThingResponse struct {
 // Replaced lists the Replace bodies that the client sent, and Answer is the resource that
 // every call returns. Tests of the generated resource set and read them.
 var (
+	Created  []CreateEchoThingRequest
 	Replaced []ReplaceEchoThingRequest
 	Answer   EchoThing
 )
 
 type EchoThingsServiceAPIService struct{}
 
-type ApiEchoThingsServiceCreateEchoThingRequest struct{}
+type ApiEchoThingsServiceCreateEchoThingRequest struct{ body CreateEchoThingRequest }
 type ApiEchoThingsServiceGetEchoThingRequest struct{}
 type ApiEchoThingsServiceReplaceEchoThingRequest struct{ body ReplaceEchoThingRequest }
 type ApiEchoThingsServiceDeleteEchoThingRequest struct{}
@@ -71,7 +95,7 @@ func (*EchoThingsServiceAPIService) EchoThingsServiceDeleteEchoThing(ctx context
 }
 
 func (r ApiEchoThingsServiceCreateEchoThingRequest) CreateEchoThingRequest(createEchoThingRequest CreateEchoThingRequest) ApiEchoThingsServiceCreateEchoThingRequest {
-	_ = createEchoThingRequest
+	r.body = createEchoThingRequest
 	return r
 }
 
@@ -80,7 +104,8 @@ func (r ApiEchoThingsServiceReplaceEchoThingRequest) ReplaceEchoThingRequest(rep
 	return r
 }
 
-func (ApiEchoThingsServiceCreateEchoThingRequest) Execute() (*CreateEchoThingResponse, *http.Response, error) {
+func (r ApiEchoThingsServiceCreateEchoThingRequest) Execute() (*CreateEchoThingResponse, *http.Response, error) {
+	Created = append(Created, r.body)
 	answer := Answer
 	return &CreateEchoThingResponse{Thing: &answer}, nil, nil
 }
