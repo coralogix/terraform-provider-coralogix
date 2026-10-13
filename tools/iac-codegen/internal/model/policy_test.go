@@ -226,13 +226,7 @@ func TestLegacyResourceBuildsFromTheUnwrappedBody(t *testing.T) {
 // The OpenAPI fork writes a reference with a description as allOf: [$ref]. A request body in
 // that form still lets the user set the id, so serverSetID is still refused.
 func TestServerSetIDChecksARequestBodyWrittenAsAllOf(t *testing.T) {
-	old := "                thing: {$ref: '#/components/schemas/LegacyThing'}\n"
-	data := string(legacyDoc(t))
-	if strings.Count(data, old) != 2 {
-		t.Fatalf("testdata/legacy.yaml has %d request bodies with a plain $ref, want 2", strings.Count(data, old))
-	}
-	data = strings.ReplaceAll(data, old, "                thing: {allOf: [{$ref: '#/components/schemas/LegacyThing'}], description: The thing.}\n")
-	doc, err := Load([]byte(data))
+	doc, err := Load(legacyDocWithAllOfBodies(t))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -245,5 +239,39 @@ func TestServerSetIDChecksARequestBodyWrittenAsAllOf(t *testing.T) {
 	p.ReadOnly = []string{"LegacyThing.id"}
 	if got := reportCodes(ValidateWithPolicy(doc, "LegacyThing", OperationIDs{}, p)); len(got) != 0 {
 		t.Fatalf("codes with a read-only id = %v, want none", got)
+	}
+}
+
+// legacyDocWithAllOfBodies is testdata/legacy.yaml with the resource in the Create and Replace
+// bodies written as allOf: [$ref], as the OpenAPI fork writes a reference with a description.
+func legacyDocWithAllOfBodies(t *testing.T) []byte {
+	t.Helper()
+	old := "                thing: {$ref: '#/components/schemas/LegacyThing'}\n"
+	data := string(legacyDoc(t))
+	if strings.Count(data, old) != 2 {
+		t.Fatalf("testdata/legacy.yaml has %d request bodies with a plain $ref, want 2", strings.Count(data, old))
+	}
+	return []byte(strings.ReplaceAll(data, old, "                thing: {allOf: [{$ref: '#/components/schemas/LegacyThing'}], description: The thing.}\n"))
+}
+
+// Build reads a request body written as allOf: [$ref] as the referenced schema, as validation
+// does. Otherwise validation passes and every request field is modeled as not sent.
+func TestBuildSendsTheFieldsOfARequestBodyWrittenAsAllOf(t *testing.T) {
+	doc, err := Load(legacyDocWithAllOfBodies(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := reportCodes(ValidateWithPolicy(doc, "LegacyThing", OperationIDs{}, legacyPolicy())); len(got) != 0 {
+		t.Fatalf("codes = %v, want none", got)
+	}
+	r, err := BuildWithPolicy(doc, "LegacyThing", OperationIDs{}, legacyPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"id", "name", "labels", "rules"} {
+		i := slices.IndexFunc(r.Fields, func(f *ResourceField) bool { return f.Name == name })
+		if i < 0 || r.Fields[i].Create == nil || r.Fields[i].Update == nil {
+			t.Errorf("field %s is not sent by Create and Update", name)
+		}
 	}
 }

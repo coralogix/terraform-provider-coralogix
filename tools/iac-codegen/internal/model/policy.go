@@ -107,16 +107,36 @@ func (p Policy) unwraps(owner, field, component string) bool {
 func (p Policy) requestBody(op *v3.Operation) *base.SchemaProxy {
 	proxy := bodyProxy(op)
 	if p.RequestWrapper == "" || proxy == nil {
-		return proxy
+		return referencedSchema(proxy)
 	}
 	s, err := schemaOf(proxy)
 	if err != nil {
 		return proxy
 	}
 	if inner := propertyOf(s, p.RequestWrapper); inner != nil {
-		return inner
+		return referencedSchema(inner)
 	}
 	return proxy // a later check reports the missing wrapper property
+}
+
+// referencedSchema returns the schema that allOf: [$ref] refers to, or proxy itself. The OpenAPI
+// fork writes a reference with a description in that form. Validation and Build both read the
+// request body through requestBody, so both see the fields of the referenced schema.
+func referencedSchema(proxy *base.SchemaProxy) *base.SchemaProxy {
+	seen := map[*base.SchemaProxy]bool{}
+	for proxy != nil && !seen[proxy] {
+		seen[proxy] = true
+		s, err := schemaOf(proxy)
+		if err != nil {
+			return proxy
+		}
+		inner, err := singleAllOf(s, "request body")
+		if err != nil || !inner.IsReference() {
+			return proxy
+		}
+		proxy = inner
+	}
+	return proxy
 }
 
 // operationIDs returns the lifecycle operation IDs. A flag fills a slot the file

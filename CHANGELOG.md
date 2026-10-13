@@ -10,7 +10,7 @@
 - FIX: An Update with the id in its body sends a server-set id, in the resource that the body wraps or in the body itself. Before, no Update field sent it, so the update request had no id.
 - FEAT: In existing-resource mode, Create and Update can take one request body type, and a response can hold the resource in a required (value) field.
 - FEAT: In existing-resource mode, a read-only field inside a component that the request shares with the response is computed, and the request does not send it. Before, it was an attribute that the user could set, or generation failed.
-- FIX: `clientSetID` and `updateIDInBody` find the id in a request body that is `allOf: [$ref]`. Before, they reported it missing.
+- FIX: A request body, or a `requestWrapper` property, written as `allOf: [$ref]` reads as the referenced schema in validation and in the model. Before, `clientSetID` and `updateIDInBody` reported the id missing, and the model sent none of the fields.
 - FIX: A field line on a component that the user sets in one place gives a read-only copy of that component only its text. Before, `required: true` and `computed: false` failed generation with "required: true needs a field that the user sets", and a `default` or `useStateForUnknown` planned a value the server does not set.
 
 # Release 3.21.0
