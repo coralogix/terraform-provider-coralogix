@@ -139,7 +139,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	if err := b.rootOneOfs(r, file, groups); err != nil {
 		return nil, err
 	}
-	if err := groups.check(); err != nil {
+	if err := groups.check(out.Attributes); err != nil {
 		return nil, err
 	}
 	out.ConfigValidators = b.validators
@@ -1292,9 +1292,15 @@ func (g *tfGroups) oneOf(o model.OneOfGroup) (string, error) {
 	return group, nil
 }
 
-// check reports a group field that is no top-level field of the resource.
-func (g *tfGroups) check() error {
+// check reports a group field that is no top-level field of the resource, and a group whose
+// Terraform or Go name is also the name of another top-level attribute.
+func (g *tfGroups) check(root []*tfAttr) error {
 	for _, name := range g.file.GroupNames() {
+		for _, a := range root {
+			if a != g.attrs[name] && (a.Name == name || camelize(a.Name) == camelize(name)) {
+				return fmt.Errorf("groups.%s: the name is also the top-level attribute %s", name, a.Name)
+			}
+		}
 		if g.file.Groups[name].RequireOne && !oneOfArmsOnly(g.attrs[name].attrsOrNil()) {
 			// Flatten checks that the response has one of the fields of the group, so every
 			// field must be an arm of the same oneOf.

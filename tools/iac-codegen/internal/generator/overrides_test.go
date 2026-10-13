@@ -816,6 +816,7 @@ func TestGroupsRejectFieldsThatTheyCannotHold(t *testing.T) {
 		"no such field":                 {sharedSpec, "SharedThing", shared + "groups:\n  meta: {fields: [missing]}\n", "no top-level field"},
 		"split oneOf":                   {sharedSpec, "SharedThing", shared + "groups:\n  a: {fields: [byCount]}\n  b: {fields: [byRatio]}\n", "must all be in one group"},
 		"requireOne without arms":       {sharedSpec, "SharedThing", shared + "groups:\n  meta:\n    fields: [name]\n    requireOne: true\n", "requireOne needs the arms"},
+		"group named as a field":        {sharedSpec, "SharedThing", shared + "groups:\n  name: {fields: [frame]}\n", "also the top-level attribute name"},
 		"requireOne with another field": {sharedSpec, "SharedThing", shared + "groups:\n  measure:\n    fields: [byCount, byRatio, name]\n    requireOne: true\n", "and no other field"},
 	}
 	for name, test := range tests {
