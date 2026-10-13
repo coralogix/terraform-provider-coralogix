@@ -250,7 +250,8 @@ func (f *sloFake) write(in map[string]any, replace bool) (int, any) {
 	if replace {
 		prev := f.slos[id]
 		stored["createTime"], stored["creator"] = prev["createTime"], prev["creator"]
-		revision, _ := prev["revision"].(map[string]any)["revision"].(int)
+		prevRevision, _ := prev["revision"].(map[string]any)
+		revision, _ := prevRevision["revision"].(int)
 		if !reflect.DeepEqual(prev[arm], stored[arm]) {
 			revision++
 		}

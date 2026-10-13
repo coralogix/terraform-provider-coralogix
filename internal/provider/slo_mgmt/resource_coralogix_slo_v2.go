@@ -25,12 +25,26 @@ import (
 )
 
 func NewSLOV2Resource() resource.Resource {
-	return slov2.NewResource(slov2.Hooks{BeforeFlatten: normalizeLegacyFilters})
+	return slov2.NewResource(slov2.Hooks{BeforeFlatten: normalizeLegacySLO})
+}
+
+// normalizeLegacySLO reads the values that an older record does not have as the values that the
+// API stores for them today: an omitted productType is UNSPECIFIED, and an omitted
+// missingDataStrategy is UNCOUNTED. It also reads an APM filter written before values existed,
+// which has only the deprecated singular value, as a filter with that one value, so the next
+// replace keeps the meaning of the filter.
+func normalizeLegacySLO(ctx context.Context, slo *slos.Slo) diag.Diagnostics {
+	if slo.ProductType == nil {
+		slo.ProductType = slos.SLOPRODUCTTYPE_SLO_PRODUCT_TYPE_UNSPECIFIED.Ptr()
+	}
+	if window := slo.WindowBasedMetricSli; window != nil && window.MissingDataStrategy == nil {
+		window.MissingDataStrategy = slos.MISSINGDATASTRATEGY_MISSING_DATA_STRATEGY_UNCOUNTED.Ptr()
+	}
+	return normalizeLegacyFilters(ctx, slo)
 }
 
 // normalizeLegacyFilters reads an APM filter written before values existed, which has only the
-// deprecated singular value, as a filter with that one value. The next replace then keeps the
-// meaning of the filter.
+// deprecated singular value, as a filter with that one value.
 func normalizeLegacyFilters(_ context.Context, slo *slos.Slo) diag.Diagnostics {
 	for _, sli := range []*slos.ApmSli{slo.ApmSli, slo.ApmSliMetadata} {
 		if sli == nil {

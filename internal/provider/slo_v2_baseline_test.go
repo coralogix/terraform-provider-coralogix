@@ -217,6 +217,21 @@ var sloScenarios = map[string]func(h *grHarness){
 		h.Import("import a filter that has only the deprecated value", id)
 	},
 
+	"import-legacy-defaults": func(h *grHarness) {
+		id := h.slos().seedRaw(j{
+			"name": "legacy-defaults", "targetThresholdPercentage": 99.0, "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+			"labels": j{},
+			"windowBasedMetricSli": j{
+				"query": j{"query": "sum(rate(up[1m])) by (job)"}, "window": "WINDOW_SLO_WINDOW_1_MINUTE",
+				"comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN", "threshold": 0.5,
+			},
+		})
+		s := h.Import("import a record without productType and missingDataStrategy", id)
+		h.Apply("plan the matching config with missing_data_strategy set", s, sloConfig("legacy-defaults", sloWindowSLI(j{"missing_data_strategy": "uncounted"}), j{
+			"target_threshold_percentage": 99.0,
+		}))
+	},
+
 	"import-unknown-time-frame": func(h *grHarness) {
 		id := h.slos().seed(j{
 			"name": "one-day", "targetThresholdPercentage": 99, "sloTimeFrame": "SLO_TIME_FRAME_1_DAY",

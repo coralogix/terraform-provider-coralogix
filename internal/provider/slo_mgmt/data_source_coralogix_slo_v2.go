@@ -94,7 +94,7 @@ func (d *SLOV2DataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	resp.Diagnostics.Append(normalizeLegacyFilters(ctx, &result.Slo)...)
+	resp.Diagnostics.Append(normalizeLegacySLO(ctx, &result.Slo)...)
 	state, diags = slov2.Flatten(ctx, &result.Slo)
 	if diags.HasError() {
 		resp.Diagnostics = diags
