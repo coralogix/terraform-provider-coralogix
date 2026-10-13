@@ -3,7 +3,10 @@
 package echothing
 
 import (
+	"regexp"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -24,7 +27,11 @@ func Schema() schema.Schema {
 				MarkdownDescription: "",
 			},
 			"name": schema.StringAttribute{
-				Required:            true,
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+					stringvalidator.RegexMatches(regexp.MustCompile(`^[A-Za-z\d_:-]*$`), "Invalid name, use ASCII letters, digits, underscores, and colons."),
+				},
 				MarkdownDescription: "",
 			},
 			"quota": schema.SingleNestedAttribute{

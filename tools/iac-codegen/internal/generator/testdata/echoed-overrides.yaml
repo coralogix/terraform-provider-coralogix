@@ -12,6 +12,10 @@ types:
   EchoThing:
     fields:
       id: {readOnly: true}
+      name:
+        validators:
+          - lengthAtLeast: 1
+          - regexMatches: {pattern: '^[A-Za-z\d_:-]*$', message: 'Invalid name, use ASCII letters, digits, underscores, and colons.'}
       createTime: {skip: true}
       isInternal: {skip: true}
       quota: {createAs: {limit: limitValue}}

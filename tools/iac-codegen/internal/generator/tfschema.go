@@ -517,6 +517,8 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 		return pkg + ".ExactlyOneOf(" + siblingPaths(v.ExactlyOneOf) + ")", nil
 	case len(v.AtLeastOneOf) != 0:
 		return pkg + ".AtLeastOneOf(" + siblingPaths(v.AtLeastOneOf) + ")", nil
+	case v.RegexMatches != nil && a.ValueKind == "String":
+		return regexValidator(v.RegexMatches.Pattern, v.RegexMatches.Message), nil
 	}
 	return "", fmt.Errorf("the validator does not fit a %s attribute", a.ValueKind)
 }
@@ -1196,11 +1198,16 @@ func (s sentSet) responseOnly(component string, f *model.Field) bool {
 // pattern is a raw string literal when it can be, so it reads as in the API.
 // An empty message makes the validator show the pattern.
 func patternValidator(pattern string) string {
+	return regexValidator(pattern, "")
+}
+
+// regexValidator returns a validator that the value matches pattern, with message.
+func regexValidator(pattern, message string) string {
 	literal := strconv.Quote(pattern)
 	if !strings.Contains(pattern, "`") {
 		literal = "`" + pattern + "`"
 	}
-	return fmt.Sprintf("stringvalidator.RegexMatches(regexp.MustCompile(%s), \"\")", literal)
+	return fmt.Sprintf("stringvalidator.RegexMatches(regexp.MustCompile(%s), %s)", literal, strconv.Quote(message))
 }
 
 func lengthValidator(minLen, maxLen *int64) string {

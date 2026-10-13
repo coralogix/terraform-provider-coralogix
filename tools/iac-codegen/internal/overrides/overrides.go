@@ -323,6 +323,14 @@ type Validator struct {
 	// released ExactlyOneOf or AtLeastOneOf validator.
 	ExactlyOneOf []string `yaml:"exactlyOneOf"`
 	AtLeastOneOf []string `yaml:"atLeastOneOf"`
+	// RegexMatches is a released stringvalidator.RegexMatches with its message.
+	RegexMatches *RegexMatches `yaml:"regexMatches"`
+}
+
+// RegexMatches is a released pattern validator of a string.
+type RegexMatches struct {
+	Pattern string `yaml:"pattern"`
+	Message string `yaml:"message"`
 }
 
 // TFValue is the Terraform value of the API value v of the enum.
@@ -674,8 +682,14 @@ func checkValidators(validators []Validator) error {
 		if len(v.AtLeastOneOf) != 0 {
 			set++
 		}
+		if v.RegexMatches != nil {
+			set++
+			if _, err := regexp.Compile(v.RegexMatches.Pattern); err != nil || v.RegexMatches.Pattern == "" {
+				return fmt.Errorf("regexMatches needs a pattern that Go compiles: %q", v.RegexMatches.Pattern)
+			}
+		}
 		if set != 1 {
-			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, enum, enumExceptZero, between, exactlyOneOf, and atLeastOneOf")
+			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, enum, enumExceptZero, between, exactlyOneOf, atLeastOneOf, and regexMatches")
 		}
 	}
 	return nil
