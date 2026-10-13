@@ -82,8 +82,10 @@ func (u Upgrade) PriorSchemaFunc() (importPath, function string, ok bool) {
 type Validators struct {
 	// Inferred: false means that no limit of the contract (minLength, maxLength,
 	// minItems, ...) becomes a validator. A released provider did not check these
-	// limits, and a new validator would reject configs that work today. Only false is
-	// supported. The validators of the released resource are written as field lines.
+	// limits, and a new validator would reject configs that work today. The validators
+	// of the released resource are written as field lines. true keeps the limits of the
+	// contract as validators: for a resource without a released version, or one whose
+	// released validators are exactly the limits of the contract. The key is required.
 	Inferred *bool `yaml:"inferred"`
 }
 
@@ -212,8 +214,6 @@ type Validator struct {
 	SizeAtLeast *int     `yaml:"sizeAtLeast"`
 	// LengthAtLeast is a released stringvalidator.LengthAtLeast.
 	LengthAtLeast *int `yaml:"lengthAtLeast"`
-	// LengthBetween is a released stringvalidator.LengthBetween: [min, max].
-	LengthBetween []int `yaml:"lengthBetween"`
 	// Enum: true accepts the Terraform values of the enum of the field, as the enums line of
 	// the enum states them. The list of values has one source, so it cannot drift.
 	Enum bool `yaml:"enum"`
@@ -265,8 +265,8 @@ func (f *File) check() error {
 	if err := f.Schema.checkUpgrades(); err != nil {
 		return err
 	}
-	if f.Validators.Inferred == nil || *f.Validators.Inferred {
-		return errors.New("validators.inferred: false is required: a released resource does not turn contract limits into validators")
+	if f.Validators.Inferred == nil {
+		return errors.New("validators.inferred is required: false for a released resource, which does not turn contract limits into validators, and true for a resource without a released version")
 	}
 	if err := f.checkEnums(); err != nil {
 		return err
@@ -485,17 +485,11 @@ func checkValidators(validators []Validator) error {
 		if v.LengthAtLeast != nil {
 			set++
 		}
-		if v.LengthBetween != nil {
-			if len(v.LengthBetween) != 2 || v.LengthBetween[0] < 0 || v.LengthBetween[0] > v.LengthBetween[1] {
-				return errors.New("lengthBetween is [min, max] with 0 <= min <= max")
-			}
-			set++
-		}
 		if v.Enum {
 			set++
 		}
 		if set != 1 {
-			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, lengthBetween, and enum")
+			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, and enum")
 		}
 	}
 	return nil
@@ -510,8 +504,8 @@ func (f *File) Policy() model.Policy {
 		ClientSetID:      f.API.ClientSetID,
 		CustomMethods:    f.API.CustomMethods,
 		UpdateMaskInBody: f.API.UpdateMaskInBody,
-		// The file states validators.inferred: false; Parse checked it.
-		NoInferredValidators: true,
+		// Parse checked that the file states validators.inferred.
+		NoInferredValidators: !*f.Validators.Inferred,
 	}
 	if f.API.Operations != nil {
 		p.Operations = model.OperationIDs{

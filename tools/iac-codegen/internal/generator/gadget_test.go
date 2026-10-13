@@ -4,9 +4,12 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/source"
 )
 
 // Gadget declares server defaults on a top-level enum next to its $ref, on a field that only
@@ -50,5 +53,40 @@ func TestGadgetServerDefaultAttributes(t *testing.T) {
 	}
 	if text := attr(out.Attributes, "search").Attributes; attr(text, "text").Computed {
 		t.Error("search.text has no default, so it is not computed")
+	}
+}
+
+// A nested component that the requests and the response share binds the requests with its
+// required list. A required integer without presence there needs a line: required: true says
+// that Terraform sends it every time, and the line is not stale.
+func TestRequiredLineStatesPresenceOfASharedComponent(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "model", "testdata", "gadget.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec := strings.Replace(string(data), "      required: [text]\n      properties:\n", "      required: [text, count]\n      properties:\n        count: {type: integer, format: int32, minimum: 0}\n", 1)
+	if spec == string(data) {
+		t.Fatal("the fixture changed: update the replaced text")
+	}
+	head := "resource: Gadget\nmode: existing\nvalidators:\n  inferred: true\n"
+	for name, test := range map[string]struct {
+		file string
+		code string
+	}{
+		"no line":       {head, "REQUIRED_SCALAR_PRESENCE_UNKNOWN"},
+		"required line": {head + "types:\n  GadgetSearch:\n    fields:\n      count: {required: true}\n", ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := validateOpenAPIWith([]byte(spec), "Gadget", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, mustParse(t, test.file))
+			if test.code == "" {
+				if err != nil {
+					t.Fatalf("err = %v, want none", err)
+				}
+				return
+			}
+			if !slices.ContainsFunc(reportOf(t, err), func(i issue.Issue) bool { return i.Code == test.code }) {
+				t.Fatalf("err = %v, want %s", err, test.code)
+			}
+		})
 	}
 }

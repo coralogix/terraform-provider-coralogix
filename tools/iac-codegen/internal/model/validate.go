@@ -556,17 +556,15 @@ func validateFieldContract(p Policy, name, idParam, field string, create, update
 	// A field with a line in the behavior-overrides file keeps its released behavior, so
 	// the contract need not say whether omission differs from an empty value.
 	if !p.released(name, field) {
-		// Terraform requires a field that Create requires, and sends it on every
-		// Update too, so the Update request checks it as a required field.
 		createRequired := cp != nil && slices.Contains(create.Required, field)
-		report = append(report, fieldPresenceIssue(location+".create", field, create, cp, false)...)
+		report = append(report, fieldPresenceIssue(location+".create", field, create, cp)...)
 		// A field with a server default resets to it when Update omits it: the generated
 		// Update leaves a removed value out. Omission has that meaning, so it needs no marker
 		// when a configured value cannot look like omission: an enum never sends its zero
 		// value, and a default that is the zero value is what an omitted zero stores anyway.
 		// Any other zero, such as false next to a default of true, still needs presence.
 		if cp == nil || createRequired || !omissionIsDefault(up, schemaDefault(cp)) {
-			report = append(report, fieldPresenceIssue(location+".update", field, update, up, createRequired)...)
+			report = append(report, fieldPresenceIssue(location+".update", field, update, up)...)
 		}
 	}
 	// The response decides which wrappers collapse, as in the generated resource: a request can
@@ -931,7 +929,7 @@ func fieldTypeIssues(p Policy, location string, gp, cp, up *base.SchemaProxy) is
 	return nil
 }
 
-func fieldPresenceIssue(location, field string, parent *base.Schema, proxy *base.SchemaProxy, sent bool) issue.Report {
+func fieldPresenceIssue(location, field string, parent *base.Schema, proxy *base.SchemaProxy) issue.Report {
 	if proxy == nil {
 		return nil
 	}
@@ -940,7 +938,7 @@ func fieldPresenceIssue(location, field string, parent *base.Schema, proxy *base
 		return nil
 	}
 	value := valueSchema(schema)
-	required := sent || slices.Contains(parent.Required, field)
+	required := slices.Contains(parent.Required, field)
 	if required {
 		if report := requiredEmptyIssue(location, value); report != nil {
 			return report
@@ -1094,7 +1092,7 @@ func nestedPresenceIssues(p Policy, location string, proxy, get *base.SchemaProx
 			continue
 		}
 		if !wrapped && !grouped[name] && !p.released(referencedComponent(proxy), name) {
-			report = append(report, fieldPresenceIssue(location+"."+name, name, schema, child, false)...)
+			report = append(report, fieldPresenceIssue(location+"."+name, name, schema, child)...)
 		}
 		getChild := propertyOf(getSchema, name)
 		report = append(report, nestedPresenceIssues(p, location+"."+name, child, getChild, p.unwraps(owner, name, wrapperComponent(getChild)), seen)...)

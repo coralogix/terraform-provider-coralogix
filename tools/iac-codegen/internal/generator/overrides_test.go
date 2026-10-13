@@ -227,18 +227,6 @@ func TestLengthAtLeastOverride(t *testing.T) {
 	}
 }
 
-func TestLengthBetweenOverride(t *testing.T) {
-	a := &tfAttr{Name: "name", Kind: "String", ValueKind: "String", Required: true, Component: "T", Property: "name"}
-	out := &tfResource{Attributes: []*tfAttr{a}}
-	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      name: {validators: [{lengthBetween: [1, 100]}]}\n")
-	if err := applyOverrides(out, file); err != nil {
-		t.Fatal(err)
-	}
-	if got := a.Validators; !slices.Equal(got, []string{"stringvalidator.LengthBetween(1, 100)"}) {
-		t.Fatalf("validators = %v, want LengthBetween(1, 100)", got)
-	}
-}
-
 func thingSpec(t *testing.T) []byte {
 	t.Helper()
 	data, err := os.ReadFile(filepath.Join("testdata", "openapi.yaml"))
