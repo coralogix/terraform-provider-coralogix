@@ -55,8 +55,8 @@ var e2mDefaultAggregations = []map[string]any{
 //   - Create takes the definition itself, Replace takes the full events2metric with its id;
 //     both answer {"e2m": ...}
 //   - every metric field gets all seven aggregations: an omitted one comes from the template
-//     (the defaults on Create, the stored field on Replace), an omitted enabled is true, and
-//     targetMetricName is always the template name (cx_min, ...), never the one sent
+//     (the defaults on Create, the stored field on Replace), an omitted enabled in a sent one
+//     is false, and targetMetricName is always the template name (cx_min, ...), never the one sent
 //   - metric fields and aggregations come back in no particular order; this fake sorts them by name
 //   - permutationsLimit (Create) or permutations (Replace) left out is 30000; a limit below 1
 //     with metric labels is refused; hasExceededLimit is false in write answers
@@ -66,8 +66,9 @@ var e2mDefaultAggregations = []map[string]any{
 //   - names and metric field base names are unique; labels are unique per events2metric, at most six
 //   - Get of a missing id is 404; Replace and Delete of a missing id are 400
 //
-// The fake does not check that a source field is numeric, does not validate lucene,
-// and does not check the company-wide permutations budget.
+// It is checked against answers recorded from a real tenant (events2metric_fidelity_test.go),
+// including the text of every error. It does not check that a source field is numeric, does not
+// validate lucene, and does not check the company-wide permutations budget.
 type e2mFake struct {
 	mu       sync.Mutex
 	e2ms     map[string]map[string]any
@@ -156,12 +157,12 @@ func (f *e2mFake) handle(method, path string, body any) (int, any) {
 	case method == http.MethodGet && id != "":
 		stored, found := f.e2ms[id]
 		if !found {
-			return e2mFail(http.StatusNotFound, "Events2Metrics with id "+id+" not found")
+			return e2mNotFound(id)
 		}
 		return http.StatusOK, map[string]any{"e2m": f.present(stored, f.exceeded[id])}
 	case method == http.MethodDelete && id != "":
 		if _, found := f.e2ms[id]; !found {
-			return e2mFail(http.StatusBadRequest, "L2M does not exist")
+			return e2mBadRequest(e2mMissingID)
 		}
 		delete(f.e2ms, id)
 		return http.StatusOK, map[string]any{"id": id}
@@ -172,6 +173,27 @@ func (f *e2mFake) handle(method, path string, body any) (int, any) {
 func e2mFail(status int, message string) (int, any) {
 	return status, map[string]any{"code": status, "message": message}
 }
+
+// e2mNotFound is the answer of the real API to a Get of a missing id.
+func e2mNotFound(id string) (int, any) {
+	raw, _ := json.Marshal(map[string]any{"message": "NOT_FOUND: Events2Metrics with id " + id + " not found", "status": 5})
+	return e2mFail(http.StatusNotFound, "Not Found: "+string(raw))
+}
+
+// e2mBadRequest is the answer of the real API to a request that its validation refuses. detail
+// is one zod issue, as JSON text, because the real API keeps the key order of each issue kind.
+func e2mBadRequest(detail string) (int, any) {
+	return e2mFail(http.StatusBadRequest, `Bad Request: {"message":"Bad Request","status":400,"details":[`+detail+`]}`)
+}
+
+// e2mCustomIssue is a zod issue that the service validator adds.
+func e2mCustomIssue(message string, path ...string) string {
+	m, _ := json.Marshal(message)
+	p, _ := json.Marshal(path)
+	return `{"code":"custom","message":` + string(m) + `,"path":` + string(p) + `}`
+}
+
+const e2mMissingID = `{"code":"custom","message":"L2M does not exist","path":["id"]}`
 
 func (f *e2mFake) uuidLike() string {
 	f.seq++
@@ -188,7 +210,7 @@ func (f *e2mFake) write(in map[string]any, replace bool) (int, any) {
 		id, _ = in["id"].(string)
 		var found bool
 		if prior, found = f.e2ms[id]; !found {
-			return e2mFail(http.StatusBadRequest, "L2M does not exist")
+			return e2mBadRequest(e2mMissingID)
 		}
 	}
 	if status, resp := f.check(in, id); status != 0 {
@@ -213,30 +235,37 @@ func (f *e2mFake) write(in map[string]any, replace bool) (int, any) {
 func (f *e2mFake) check(in map[string]any, ownID string) (int, any) {
 	name, ok := in["name"].(string)
 	if !ok {
-		return e2mFail(http.StatusBadRequest, "name: Required")
+		return e2mBadRequest(`{"code":"invalid_type","expected":"string","received":"undefined","path":["name"],"message":"Required"}`)
 	}
-	for id, other := range f.e2ms {
-		if id != ownID && other["name"] == name {
-			return e2mFail(http.StatusBadRequest, fmt.Sprintf("Name (%s) is not unique", name))
-		}
-	}
+	// The zod model checks the type and its query first, then the service checks the name.
 	typ, _ := in["type"].(string)
 	switch typ {
 	case "E2M_TYPE_LOGS2METRICS":
 		if in["spansQuery"] != nil {
-			return e2mFail(http.StatusBadRequest, "query does not match type")
+			return e2mQueryMismatch("spansQuery", "logsQuery")
 		}
 	case "E2M_TYPE_SPANS2METRICS":
 		if in["logsQuery"] != nil {
-			return e2mFail(http.StatusBadRequest, "query does not match type")
+			return e2mQueryMismatch("logsQuery", "spansQuery")
 		}
 	default:
-		return e2mFail(http.StatusBadRequest, "type: Invalid discriminator value")
+		return e2mBadRequest(`{"code":"invalid_union_discriminator","options":[1,2],"path":["type"],"message":"Invalid discriminator value. Expected 1 | 2"}`)
+	}
+	for id, other := range f.e2ms {
+		if id != ownID && other["name"] == name {
+			m, _ := json.Marshal(fmt.Sprintf("Name (%s) is not unique", name))
+			return e2mBadRequest(`{"code":"custom","path":["e2m","name"],"message":` + string(m) + `}`)
+		}
 	}
 	if status, resp := f.checkFields(asList(in["metricFields"]), ownID); status != 0 {
 		return status, resp
 	}
 	return checkLabels(asList(in["metricLabels"]))
+}
+
+func e2mQueryMismatch(received, expected string) (int, any) {
+	return e2mBadRequest(`{"received":"` + received + `","code":"invalid_literal","expected":"` + expected +
+		`","path":["query","$case"],"message":"Invalid literal value, expected \"` + expected + `\""}`)
 }
 
 func (f *e2mFake) checkFields(fields []any, ownID string) (int, any) {
@@ -245,10 +274,10 @@ func (f *e2mFake) checkFields(fields []any, ownID string) (int, any) {
 		field, _ := raw.(map[string]any)
 		base, _ := field["targetBaseMetricName"].(string)
 		if !e2mNamePattern.MatchString(base) {
-			return e2mFail(http.StatusBadRequest, "targetBaseMetricName: Invalid")
+			return e2mBadRequest(e2mCustomIssue("Invalid", "metricFields", "targetBaseMetricName"))
 		}
 		if seen[base] || f.baseNameTaken(base, ownID) {
-			return e2mFail(http.StatusBadRequest, "Metric fields are already in use: "+base)
+			return e2mBadRequest(e2mCustomIssue("Metric fields are already in use: "+base, "e2m", "metricFields"))
 		}
 		seen[base] = true
 		for _, rawAgg := range asList(field["aggregations"]) {
@@ -277,7 +306,7 @@ func (f *e2mFake) baseNameTaken(base, ownID string) bool {
 
 func checkAggregation(agg map[string]any) (int, any) {
 	if _, ok := agg["targetMetricName"].(string); !ok {
-		return e2mFail(http.StatusBadRequest, "targetMetricName: Required")
+		return e2mBadRequest(`{"code":"invalid_type","expected":"string","received":"undefined","path":["targetMetricName"],"message":"Required"}`)
 	}
 	if samples, ok := agg["samples"].(map[string]any); ok {
 		if st, _ := samples["sampleType"].(string); st != "SAMPLE_TYPE_MIN" && st != "SAMPLE_TYPE_MAX" {
@@ -285,27 +314,27 @@ func checkAggregation(agg map[string]any) (int, any) {
 		}
 	}
 	if histogram, ok := agg["histogram"].(map[string]any); ok && agg["enabled"] != false && len(asList(histogram["buckets"])) == 0 {
-		return e2mFail(http.StatusBadRequest, "Histogram aggregation must have buckets")
+		return e2mBadRequest(e2mCustomIssue("Histogram aggregation must have buckets", "aggregations", "histogram"))
 	}
 	return 0, nil
 }
 
 func checkLabels(labels []any) (int, any) {
 	if len(labels) > e2mLabelLimit {
-		return e2mFail(http.StatusBadRequest, fmt.Sprintf("Labels limit is %d", e2mLabelLimit))
+		return e2mBadRequest(e2mCustomIssue(fmt.Sprintf("Labels limit is %d", e2mLabelLimit), "e2m", "metricLabels"))
 	}
 	seen := map[string]bool{}
 	for _, raw := range labels {
 		label, _ := raw.(map[string]any)
 		target, _ := label["targetLabel"].(string)
 		if !e2mNamePattern.MatchString(target) {
-			return e2mFail(http.StatusBadRequest, "targetLabel: Invalid")
+			return e2mBadRequest(e2mCustomIssue("Invalid", "metricLabels", "targetLabel"))
 		}
 		if _, ok := label["sourceField"].(string); !ok {
-			return e2mFail(http.StatusBadRequest, "sourceField: Required")
+			return e2mBadRequest(`{"code":"invalid_type","expected":"string","received":"undefined","path":["sourceField"],"message":"Required"}`)
 		}
 		if seen[target] {
-			return e2mFail(http.StatusBadRequest, "Metric labels are not unique: "+target)
+			return e2mBadRequest(e2mCustomIssue("Metric labels are not unique: "+target, "e2m", "metricLabels"))
 		}
 		seen[target] = true
 	}
@@ -322,7 +351,7 @@ func (f *e2mFake) normalize(in, prior map[string]any, replace bool) (map[string]
 	switch {
 	case in["description"] != nil:
 		out["description"] = in["description"]
-	case prior != nil:
+	case prior != nil && prior["description"] != nil:
 		out["description"] = prior["description"]
 	}
 	if in["dataSource"] != nil {
@@ -341,7 +370,8 @@ func (f *e2mFake) normalize(in, prior map[string]any, replace bool) (map[string]
 		limit = v
 	}
 	if limit < 1 && len(asList(out["metricLabels"])) > 0 {
-		return nil, http.StatusBadRequest, map[string]any{"code": 400, "message": "Permutation amount needs to be bigger than 1 when metricLabels are set"}
+		status, body := e2mBadRequest(e2mCustomIssue(`Permutation amount needs to be bigger than 1 when "metricLabels" are set`, "e2m", "permutations", "limit"))
+		return nil, status, body
 	}
 	out["permutations"] = map[string]any{"limit": limit}
 
@@ -377,7 +407,10 @@ func (f *e2mFake) normalize(in, prior map[string]any, replace bool) (map[string]
 			"aggregations":         backfill(asList(field["aggregations"]), template),
 		})
 	}
-	out["metricFields"] = orDefault(fields, []any{})
+	if fields == nil {
+		fields = []any{}
+	}
+	out["metricFields"] = fields
 	return out, 0, nil
 }
 
@@ -407,7 +440,7 @@ func backfill(sent []any, template []map[string]any) []any {
 		agg := map[string]any{"aggType": t["aggType"], "targetMetricName": t["targetMetricName"], "enabled": t["enabled"]}
 		meta := pickMeta(t)
 		if in, ok := byType[t["aggType"]]; ok {
-			agg["enabled"] = orDefault(in["enabled"], true)
+			agg["enabled"] = orDefault(in["enabled"], false)
 			if m := pickMeta(in); m != nil {
 				meta = m
 			}

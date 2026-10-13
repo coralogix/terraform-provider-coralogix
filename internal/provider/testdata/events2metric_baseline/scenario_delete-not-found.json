@@ -64,7 +64,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error Deleting Events2Metric | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"L2M does not exist\"}\noperation - Delete"
+      "error: Error Deleting Events2Metric | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"message\\\":\\\"Bad Request\\\",\\\"status\\\":400,\\\"details\\\":[{\\\"code\\\":\\\"custom\\\",\\\"message\\\":\\\"L2M does not exist\\\",\\\"path\\\":[\\\"id\\\"]}]}\"}\noperation - Delete"
     ],
     "state": {
       "data_source": null,
