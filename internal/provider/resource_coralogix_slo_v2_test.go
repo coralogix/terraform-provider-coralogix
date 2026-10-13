@@ -78,6 +78,36 @@ func TestAccCoralogixResourceSLOV2RequestBased(t *testing.T) {
 	})
 }
 
+// TestAccCoralogixResourceSLOV2TimeFrames creates an SLO with each time frame that the released
+// resource did not accept, reads it back, and plans again with no change.
+func TestAccCoralogixResourceSLOV2TimeFrames(t *testing.T) {
+	for _, frame := range []string{"1_day", "30_days"} {
+		t.Run(frame, func(t *testing.T) {
+			config := testAccCoralogixSLOV2RequestBasedTimeFrame(frame)
+			resource.Test(t, resource.TestCase{
+				PreCheck:                 func() { testAccPreCheck(t) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				CheckDestroy:             testAccSLOV2CheckDestroy,
+				Steps: []resource.TestStep{
+					{
+						Config: config,
+						Check:  resource.TestCheckResourceAttr(sloV2ResourceName, "window.slo_time_frame", frame),
+					},
+					{
+						Config:   config,
+						PlanOnly: true,
+					},
+					{
+						ResourceName:      sloV2ResourceName,
+						ImportState:       true,
+						ImportStateVerify: true,
+					},
+				},
+			})
+		})
+	}
+}
+
 func TestAccCoralogixResourceSLOV2WindowBased(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
@@ -613,6 +643,29 @@ resource "coralogix_slo_v2" "test" {
   }
 }
 `
+}
+
+// testAccCoralogixSLOV2RequestBasedTimeFrame is a request-based SLO with the time frame frame.
+func testAccCoralogixSLOV2RequestBasedTimeFrame(frame string) string {
+	return fmt.Sprintf(`
+resource "coralogix_slo_v2" "test" {
+  name                        = "coralogix_slo_v2_acc_time_frame_%[1]s"
+  target_threshold_percentage = 99.0
+  sli = {
+    request_based_metric_sli = {
+      good_events = {
+        query = "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+      }
+      total_events = {
+        query = "sum(rate(http_requests_total[1m])) by (service)"
+      }
+    }
+  }
+  window = {
+    slo_time_frame = %[1]q
+  }
+}
+`, frame)
 }
 
 // testAccCoralogixSLOV2WindowSLO renders a window-based SLO, splicing extra

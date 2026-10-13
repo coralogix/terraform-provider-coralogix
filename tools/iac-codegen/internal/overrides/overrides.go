@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
@@ -48,6 +49,70 @@ type File struct {
 	// value of that property, for example LuceneQuery in {"luceneQuery": {"value": "error"}}. It
 	// applies in every place that has no unwrap key on its field line.
 	Unwrap []string `yaml:"unwrap"`
+	// TypeName is the released resource type name without the provider prefix, for example
+	// "slo_v2" for coralogix_slo_v2. "" names the resource after its OpenAPI component.
+	TypeName string `yaml:"typeName"`
+	// Groups are required Terraform objects that the API does not have. Each holds top-level
+	// fields of the resource, for example sli = {request_based_metric_sli = ...} for the
+	// requestBasedMetricSli field of the API.
+	Groups map[string]Group `yaml:"groups"`
+}
+
+// Group is a required Terraform object that holds top-level fields of the resource.
+type Group struct {
+	// Fields are the API names of the top-level fields in the object.
+	Fields []string `yaml:"fields"`
+	// MarkdownDescription is the released description of the object.
+	MarkdownDescription string `yaml:"markdownDescription"`
+	// RequireOne: the fields are the arms of a oneOf of the resource, and the user must set one.
+	// The arms then check each other with ExactlyOneOf instead of ConflictsWith.
+	RequireOne bool `yaml:"requireOne"`
+}
+
+var tfNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+
+// GroupOf returns the group that holds the top-level field, or "".
+func (f *File) GroupOf(field string) string {
+	if f == nil {
+		return ""
+	}
+	for name, g := range f.Groups {
+		if slices.Contains(g.Fields, field) {
+			return name
+		}
+	}
+	return ""
+}
+
+// GroupNames returns the group names in order.
+func (f *File) GroupNames() []string {
+	if f == nil {
+		return nil
+	}
+	return sortedKeys(f.Groups)
+}
+
+func (f *File) checkGroups() error {
+	if f.TypeName != "" && !tfNamePattern.MatchString(f.TypeName) {
+		return fmt.Errorf("typeName %q is not a Terraform name: lower case letters, digits, and underscores", f.TypeName)
+	}
+	seen := map[string]string{}
+	for _, name := range sortedKeys(f.Groups) {
+		g := f.Groups[name]
+		if !tfNamePattern.MatchString(name) {
+			return fmt.Errorf("groups.%s: the name is not a Terraform name: lower case letters, digits, and underscores", name)
+		}
+		if len(g.Fields) == 0 {
+			return fmt.Errorf("groups.%s: fields is empty", name)
+		}
+		for _, field := range g.Fields {
+			if other, ok := seen[field]; ok {
+				return fmt.Errorf("groups.%s: field %s is also in groups.%s", name, field, other)
+			}
+			seen[field] = name
+		}
+	}
+	return nil
 }
 
 // Schema is the Terraform schema version of a released resource.
@@ -203,12 +268,19 @@ type Field struct {
 	Computed *bool `yaml:"computed"`
 	// UseStateForUnknown keeps the value in the state when the config has none.
 	UseStateForUnknown bool `yaml:"useStateForUnknown"`
+	// UseNonNullStateForUnknown keeps a non-null value of the state when the config has none.
+	// A null state value stays unknown, so the server can fill it in.
+	UseNonNullStateForUnknown bool `yaml:"useNonNullStateForUnknown"`
 	// Default is a static default in the schema: a string, a bool, or a number.
 	Default any `yaml:"default"`
 	// ReadEmptyAs: "null" reads an empty list or object from the API as null.
 	ReadEmptyAs string `yaml:"readEmptyAs"`
 	// ReadNullAs: "empty" reads a missing list or set as an empty collection.
 	ReadNullAs string `yaml:"readNullAs"`
+	// SendNullAsEmpty sends "" for a null string, for an API that keeps the stored value when a
+	// request omits the field. Removing the value from the configuration then clears it. It needs
+	// readEmptyAs: "null", so that the stored "" reads back as null.
+	SendNullAsEmpty bool `yaml:"sendNullAsEmpty"`
 	// RequireOne makes a oneOf that allows no arm use ExactlyOneOf. The released
 	// resource required one arm even though the contract allows none.
 	RequireOne bool `yaml:"requireOne"`
@@ -253,6 +325,21 @@ type Validator struct {
 	// maps still contain the zero value, so a response that has it still converts. A user
 	// cannot configure it.
 	EnumExceptZero bool `yaml:"enumExceptZero"`
+	// Between is a released numeric Between validator: the minimum and the maximum.
+	Between []float64 `yaml:"between"`
+	// ExactlyOneOf and AtLeastOneOf name sibling attributes, by their Terraform names, for a
+	// released ExactlyOneOf or AtLeastOneOf validator.
+	ExactlyOneOf []string `yaml:"exactlyOneOf"`
+	AtLeastOneOf []string `yaml:"atLeastOneOf"`
+}
+
+// TFValue is the Terraform value of the API value v of the enum.
+func (e Enum) TFValue(v string) string {
+	v = strings.TrimPrefix(v, e.TrimPrefix)
+	if e.Verbatim {
+		return v
+	}
+	return strings.ToLower(v)
 }
 
 // Enum overrides one enum component.
@@ -266,6 +353,9 @@ type Enum struct {
 	// Verbatim keeps the API spelling as the Terraform value. Attachment policies stay
 	// AUTO, ENABLED, and DISABLED.
 	Verbatim bool `yaml:"verbatim"`
+	// TrimPrefix is removed from each value before the Terraform value is made, for example
+	// SLO_TIME_FRAME_ for SLO_TIME_FRAME_7_DAYS, which is 7_days in Terraform.
+	TrimPrefix string `yaml:"trimPrefix"`
 	// Rejected are the values of the contract that the resource does not accept. The generator
 	// reports a value of the contract that is in neither list, so a new API value needs a decision.
 	Rejected []string `yaml:"rejected"`
@@ -311,6 +401,9 @@ func (f *File) check() error {
 		return err
 	}
 	if err := f.checkUnwrap(); err != nil {
+		return err
+	}
+	if err := f.checkGroups(); err != nil {
 		return err
 	}
 	if err := f.API.check(); err != nil {
@@ -385,9 +478,17 @@ func (f *File) checkEnums() error {
 		if e.ReadRejectedLower && (!e.ReadRejected || e.Verbatim) {
 			return fmt.Errorf("enums.%s: readRejectedLower needs readRejected and excludes verbatim", name)
 		}
-		for _, v := range f.Enums[name].Rejected {
-			if slices.Contains(f.Enums[name].Values, v) {
+		for _, v := range e.Rejected {
+			if slices.Contains(e.Values, v) {
 				return fmt.Errorf("enums.%s: %q is in values and in rejected", name, v)
+			}
+		}
+		if e.TrimPrefix == "" {
+			continue
+		}
+		for _, v := range e.Values {
+			if !strings.HasPrefix(v, e.TrimPrefix) || v == e.TrimPrefix {
+				return fmt.Errorf("enums.%s: trimPrefix %q is not a prefix of %q", name, e.TrimPrefix, v)
 			}
 		}
 	}
@@ -423,9 +524,11 @@ func (l Field) keys() []string {
 	add(l.Deprecation != "", "deprecation")
 	add(l.Computed != nil, "computed")
 	add(l.UseStateForUnknown, "useStateForUnknown")
+	add(l.UseNonNullStateForUnknown, "useNonNullStateForUnknown")
 	add(l.Default != nil, "default")
 	add(l.ReadEmptyAs != "", "readEmptyAs")
 	add(l.ReadNullAs != "", "readNullAs")
+	add(l.SendNullAsEmpty, "sendNullAsEmpty")
 	add(l.RequireOne, "requireOne")
 	add(l.RequestValue != "", "requestValue")
 	add(l.KeepPriorOrder, "keepPriorOrder")
@@ -502,7 +605,7 @@ func (l Field) empty() bool {
 
 func (l Field) emptyMode() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
-		l.Computed == nil && !l.UseStateForUnknown
+		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown
 }
 
 func (l Field) emptyValue() bool {
@@ -542,6 +645,9 @@ func (l Field) checkConflicts() error {
 	if l.Collection != "" && l.Collection != "set" {
 		return fmt.Errorf("collection is %q, want \"set\"", l.Collection)
 	}
+	if l.UseStateForUnknown && l.UseNonNullStateForUnknown {
+		return errors.New("useStateForUnknown and useNonNullStateForUnknown cannot both be set")
+	}
 	if l.ReadEmptyAs != "" && l.ReadEmptyAs != "null" {
 		return fmt.Errorf("readEmptyAs is %q, want \"null\"", l.ReadEmptyAs)
 	}
@@ -550,6 +656,9 @@ func (l Field) checkConflicts() error {
 	}
 	if l.ReadEmptyAs != "" && l.ReadNullAs != "" {
 		return errors.New("readEmptyAs and readNullAs cannot both be set")
+	}
+	if l.SendNullAsEmpty && l.ReadEmptyAs != "null" {
+		return errors.New("sendNullAsEmpty needs readEmptyAs: \"null\", or the stored \"\" reads back as \"\"")
 	}
 	if l.Skip && l.RequestValue != "" {
 		return errors.New("requestValue sends the field, so skip cannot be set")
@@ -585,8 +694,20 @@ func checkValidators(validators []Validator) error {
 		if v.EnumExceptZero {
 			set++
 		}
+		if v.Between != nil {
+			if len(v.Between) != 2 || v.Between[0] > v.Between[1] {
+				return errors.New("between needs a minimum and a maximum, in that order")
+			}
+			set++
+		}
+		if len(v.ExactlyOneOf) != 0 {
+			set++
+		}
+		if len(v.AtLeastOneOf) != 0 {
+			set++
+		}
 		if set != 1 {
-			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, enum, and enumExceptZero")
+			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, enum, enumExceptZero, between, exactlyOneOf, and atLeastOneOf")
 		}
 	}
 	return nil

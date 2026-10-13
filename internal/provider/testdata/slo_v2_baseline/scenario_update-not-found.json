@@ -1,0 +1,203 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": "gone",
+      "sli": {
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "plan": {
+      "apm_sli_metadata": "(unknown)",
+      "description": null,
+      "grouping": "(unknown)",
+      "id": "(unknown)",
+      "labels": "(unknown)",
+      "name": "gone",
+      "ownership_tags": null,
+      "product_type": "(unknown)",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        },
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/slo/slos/v1",
+        "body": {
+          "description": "",
+          "name": "gone",
+          "requestBasedMetricSli": {
+            "goodEvents": {
+              "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+            },
+            "totalEvents": {
+              "query": "sum(rate(http_requests_total[1m])) by (service)"
+            }
+          },
+          "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+          "targetThresholdPercentage": 99.5
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": null,
+      "description": null,
+      "grouping": {
+        "labels": [
+          "service"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "gone",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        },
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: SLO was deleted outside Terraform",
+    "config": {
+      "description": "changed",
+      "name": "gone",
+      "sli": {
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "plan": {
+      "apm_sli_metadata": "(unknown)",
+      "description": "changed",
+      "grouping": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": "(unknown)",
+      "name": "gone",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        },
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/slo/slos/v1",
+        "body": {
+          "description": "changed",
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "gone",
+          "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+          "requestBasedMetricSli": {
+            "goodEvents": {
+              "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+            },
+            "totalEvents": {
+              "query": "sum(rate(http_requests_total[1m])) by (service)"
+            }
+          },
+          "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+          "targetThresholdPercentage": 99.5
+        },
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Resource disappeared during update | The API did not find slo_v2 with id 00000000-0000-4000-8000-000000000001. Run Terraform again: the refresh removes it from state and plans to create it."
+    ],
+    "state": {
+      "apm_sli_metadata": null,
+      "description": null,
+      "grouping": {
+        "labels": [
+          "service"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "gone",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "total_events": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        },
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    }
+  }
+]

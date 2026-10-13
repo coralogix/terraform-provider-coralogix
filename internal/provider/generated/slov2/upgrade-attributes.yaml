@@ -1,0 +1,67 @@
+# Written by coralogix-iac-codegen. Do not edit.
+# The attributes that the released provider of the upgrade test has. The upgrade test leaves out
+# every other attribute. The generator takes the list from the schema when upgradeFrom changes.
+from: 3.21.0
+attributes:
+    apm_sli_metadata: {type: SingleNested}
+    apm_sli_metadata.error_config: {type: SingleNested}
+    apm_sli_metadata.filters: {type: ListNested}
+    apm_sli_metadata.filters[].key: {type: String}
+    apm_sli_metadata.filters[].values: {type: List(String)}
+    apm_sli_metadata.grouping_keys: {type: List(String)}
+    apm_sli_metadata.latency_config: {type: SingleNested}
+    apm_sli_metadata.latency_config.average: {type: SingleNested}
+    apm_sli_metadata.latency_config.quantile: {type: SingleNested}
+    apm_sli_metadata.latency_config.quantile.percentile: {type: Float32}
+    apm_sli_metadata.latency_config.threshold: {type: Float32}
+    apm_sli_metadata.latency_config.time_window: {type: String}
+    apm_sli_metadata.services: {type: List(String)}
+    description: {type: String}
+    grouping: {type: SingleNested}
+    grouping.labels: {type: List(String)}
+    id: {type: String}
+    labels: {type: Map(String)}
+    name: {type: String, required: true}
+    ownership_tags: {type: SingleNested}
+    ownership_tags.environment: {type: SingleNested}
+    ownership_tags.environment.label_keys: {type: List(String)}
+    ownership_tags.environment.resolved_values: {type: List(String)}
+    ownership_tags.environment.static_values: {type: List(String)}
+    ownership_tags.service: {type: SingleNested}
+    ownership_tags.service.label_keys: {type: List(String)}
+    ownership_tags.service.resolved_values: {type: List(String)}
+    ownership_tags.service.static_values: {type: List(String)}
+    ownership_tags.team: {type: SingleNested}
+    ownership_tags.team.label_keys: {type: List(String)}
+    ownership_tags.team.resolved_values: {type: List(String)}
+    ownership_tags.team.static_values: {type: List(String)}
+    product_type: {type: String}
+    sli: {type: SingleNested, required: true}
+    sli.apm_sli: {type: SingleNested}
+    sli.apm_sli.error_config: {type: SingleNested}
+    sli.apm_sli.filters: {type: ListNested}
+    sli.apm_sli.filters[].key: {type: String, required: true}
+    sli.apm_sli.filters[].values: {type: List(String), required: true}
+    sli.apm_sli.grouping_keys: {type: List(String)}
+    sli.apm_sli.latency_config: {type: SingleNested}
+    sli.apm_sli.latency_config.average: {type: SingleNested}
+    sli.apm_sli.latency_config.quantile: {type: SingleNested}
+    sli.apm_sli.latency_config.quantile.percentile: {type: Float32}
+    sli.apm_sli.latency_config.threshold: {type: Float32}
+    sli.apm_sli.latency_config.time_window: {type: String, required: true}
+    sli.apm_sli.services: {type: List(String), required: true}
+    sli.request_based_metric_sli: {type: SingleNested}
+    sli.request_based_metric_sli.good_events: {type: SingleNested, required: true}
+    sli.request_based_metric_sli.good_events.query: {type: String, required: true}
+    sli.request_based_metric_sli.total_events: {type: SingleNested, required: true}
+    sli.request_based_metric_sli.total_events.query: {type: String, required: true}
+    sli.window_based_metric_sli: {type: SingleNested}
+    sli.window_based_metric_sli.comparison_operator: {type: String, required: true}
+    sli.window_based_metric_sli.missing_data_strategy: {type: String}
+    sli.window_based_metric_sli.query: {type: SingleNested, required: true}
+    sli.window_based_metric_sli.query.query: {type: String, required: true}
+    sli.window_based_metric_sli.threshold: {type: Float32, required: true}
+    sli.window_based_metric_sli.window: {type: String, required: true}
+    target_threshold_percentage: {type: Float32, required: true}
+    window: {type: SingleNested, required: true}
+    window.slo_time_frame: {type: String, required: true}

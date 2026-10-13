@@ -476,7 +476,17 @@ func defaultValue(at string, child attr.Value) bool {
 }
 {{- end}}
 {{range .Objects}}
-{{- if .Expand}}
+{{- if and .Expand .Group}}
+// expand{{.Func}} writes the fields of a group, which the API holds in the parent object, to out.
+func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, out *{{$sdk}}.{{.SDK}}, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+{{- range .Fields}}
+{{- template "expandField" .}}
+{{- end}}
+}
+{{else if .Expand}}
 func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{$sdk}}.{{.SDK}} {
 	if m == nil {
 		return nil
@@ -512,6 +522,17 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, {{
 {{- end}}
 {{- range .ExtraFlatten}}
 	out.{{.Name}} = {{.Expr}}
+{{- end}}
+{{- if .RequireOne}}
+	arms := 0
+{{- range .Fields}}
+	if v.{{.SDK}} != nil {
+		arms++
+	}
+{{- end}}
+	if arms != 1 {
+		diags.AddAttributeError(p, "Invalid response from server", fmt.Sprintf("The response has %d of {{range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f.TFName}}{{end}}; it must have exactly one.", arms))
+	}
 {{- end}}
 	return out
 }
@@ -1219,7 +1240,8 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- end}}
 
 {{- define "expandField"}}
-{{- if .Wrap}}
+{{- if .FlattenOnly}}
+{{- else if .Wrap}}
 	{
 		var inner {{.Wrap.Inner}}
 {{- template "expandValue" .}}
@@ -1233,7 +1255,14 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- define "expandValue"}}
 {{- $p := printf "p.AtName(%q)" .TFName}}
 {{- $l := ""}}{{$r := ""}}{{if .DirectValue}}{{$l = "valueOf("}}{{$r = ")"}}{{end}}
-{{- if eq .Conv "string"}}
+{{- if and (eq .Conv "string") .SendNullAsEmpty}}
+	if m.{{.Model}}.IsNull() {
+		// The API keeps a stored value that the request omits, so a removed value is sent as "".
+		{{.Dst}} = {{$l}}new(string){{$r}}
+	} else {
+		{{.Dst}} = {{$l}}expandString(m.{{.Model}}){{$r}}
+	}
+{{- else if eq .Conv "string"}}
 	{{.Dst}} = {{$l}}expandString(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "bool"}}
 	{{.Dst}} = {{$l}}expandBool(m.{{.Model}}){{$r}}
@@ -1266,6 +1295,8 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 {{- else if eq .Conv "object"}}
 	{{.Dst}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "group"}}
+	expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, out, diags)
 {{- else if eq .Conv "empty"}}
 	if m.{{.Model}} != nil {
 		{{.Dst}} = map[string]interface{}{}
@@ -1397,6 +1428,16 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 	{{- end}}
 	{{- end}}
+{{- else if eq .Conv "group"}}
+	{{- if .Object.NeedsPrior}}
+	var prior{{.Model}} *{{.Object.Model}}
+	if prior != nil {
+		prior{{.Model}} = prior.{{.Model}}
+	}
+	out.{{.Model}} = flatten{{.Object.Func}}(ctx, {{$p}}, v, prior{{.Model}}, diags)
+	{{- else}}
+	out.{{.Model}} = flatten{{.Object.Func}}(ctx, {{$p}}, v, diags)
+	{{- end}}
 {{- else if eq .Conv "empty"}}
 	{{- if .ObjectValue}}
 	out.{{.Model}} = types.ObjectNull(map[string]attr.Type{})
@@ -1415,6 +1456,12 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.Model}} = flattenEnums{{.Collection}}(ctx, {{$p}}, {{.Src}}, {{printf "%q" .EnumZero}}, diags)
 	{{- else}}
 	out.{{.Model}} = flattenStrings{{.Collection}}(ctx, {{.Src}}, diags)
+	{{- end}}
+	{{- if .ReadEmptyAsNull}}
+	// The API returns an empty list for a list that the request did not send.
+	if len({{.Src}}) == 0 {
+		out.{{.Model}} = types.{{.Collection}}Null(types.StringType)
+	}
 	{{- end}}
 {{- else if eq .Conv "stringmap"}}
 	{{- if .Enum}}

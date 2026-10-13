@@ -2037,19 +2037,26 @@ func TestFollowUpUpdateSendsTheServerSetID(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(spec)
+	// The Replace body gets its own title and an Update-only field with a server default, and
+	// the response component gets the field too.
 	put := strings.Index(text, "    put:")
-	replaceBody := "              title: SharedThing\n              type: object\n              properties:\n                id: {type: string, x-coralogix-presence: true}\n                name: {type: string}\n"
-	i := strings.Index(text[put:], replaceBody)
-	if put < 0 || i < 0 {
+	nameLine := "                name: {type: string}\n"
+	i := strings.Index(text[put:], nameLine)
+	title := strings.Index(text[put:], "              title: SharedThing\n")
+	if put < 0 || i < 0 || title < 0 || title > i {
 		t.Fatal("sharedthing.yaml has no Replace body")
 	}
-	text = text[:put+i] + strings.Replace(replaceBody, "title: SharedThing\n", "title: SharedThingUpdate\n", 1) +
-		"                compact: {type: boolean, default: false, x-coralogix-presence: true}\n" + text[put+i+len(replaceBody):]
-	component := "    SharedThing:\n      title: SharedThing\n      type: object\n      properties:\n        id: {type: string, x-coralogix-presence: true}\n        name: {type: string}\n"
-	if !strings.Contains(text, component) {
+	at := put + i + len(nameLine)
+	text = text[:at] + "                compact: {type: boolean, default: false, x-coralogix-presence: true}\n" + text[at:]
+	text = text[:put+title] + strings.Replace(text[put+title:], "title: SharedThing\n", "title: SharedThingUpdate\n", 1)
+	component := "    SharedThing:\n      title: SharedThing\n"
+	componentName := "        name: {type: string}\n"
+	c := strings.Index(text, component)
+	if c < 0 || !strings.Contains(text[c:], componentName) {
 		t.Fatal("sharedthing.yaml has no SharedThing component")
 	}
-	text = strings.Replace(text, component, component+"        compact: {type: boolean, x-coralogix-presence: true}\n", 1)
+	n := c + strings.Index(text[c:], componentName) + len(componentName)
+	text = text[:n] + "        compact: {type: boolean, x-coralogix-presence: true}\n" + text[n:]
 	input, loadDir := syntheticInput(t)
 	input.OpenAPI = []byte(text)
 	out := filepath.Join(t.TempDir(), "sharedthing")

@@ -1,0 +1,231 @@
+# Where coralogix_slo_v2 differs from the API contract, because users already have it.
+#
+# A field with a line here keeps its released behavior. A field without a line follows the
+# API contract.
+resource: Slo
+mode: existing
+typeName: slo_v2
+
+markdownDescription: "Coralogix New SLO. Read more about limits and details at https://coralogix.com/docs/user-guides/slos/introduction/"
+
+schema:
+  version: 0
+
+validators:
+  inferred: false
+
+api:
+  updateIDInBody: true
+  # The Slo schema is shared with the request, so the contract cannot require the id in Get.
+  # The API returns it in every response.
+  serverSetID: true
+  customMethods: true
+  operations:
+    create: SlosService_CreateSlo
+    get: SlosService_GetSlo
+    update: SlosService_ReplaceSlo
+    delete: SlosService_DeleteSlo
+
+# The released resource holds the SLI arms in sli, and the time frame in window.
+groups:
+  sli:
+    fields: [requestBasedMetricSli, windowBasedMetricSli, apmSli]
+    requireOne: true
+    markdownDescription: "SLI definition: exactly one of request_based_metric_sli, window_based_metric_sli or apm_sli must be provided."
+  window:
+    fields: [sloTimeFrame]
+    markdownDescription: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified."
+
+types:
+  Slo:
+    fields:
+      id:
+        readOnly: true
+        markdownDescription: "SLO ID."
+      name:
+        required: true
+        markdownDescription: "SLO name."
+      description:
+        # The API keeps a stored description that a replace omits, so a removed one is sent as "".
+        readEmptyAs: "null"
+        sendNullAsEmpty: true
+        markdownDescription: "Optional SLO description."
+      labels:
+        computed: true
+        markdownDescription: "Optional map of labels to attach to the SLO. "
+      grouping:
+        markdownDescription: "Grouping configuration for SLO evaluations. Read-only: the backend derives it from the SLI - the `by (...)` clause of a metric query, or `service_name` for an APM SLI - and rejects writes. It is unrelated to the writable `sli.apm_sli.grouping_keys`."
+      productType:
+        computed: true
+        useNonNullStateForUnknown: true
+        markdownDescription: "Product type of the SLO. One of: apm, unspecified. `apm` is only accepted together with `sli.apm_sli`; metric SLIs stay `unspecified`. The backend always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `product_type = \"unspecified\"` to reset it."
+        validators: [{enum: true}]
+      ownershipTags:
+        markdownDescription: "Service, environment and team ownership of the SLO, used by the SLO hub's ownership filters. At least one dimension must be configured - the backend drops an ownership block that holds no values. Removing the block clears the tags on the next apply."
+      apmSliMetadata:
+        markdownDescription: "Read-only copy of `sli.apm_sli` that the backend materializes for APM SLOs. Null for metric SLIs. It is never sent on create or replace."
+      targetThresholdPercentage:
+        required: true
+        markdownDescription: "The target threshold percentage."
+        validators: [{between: [0, 100]}]
+      requestBasedMetricSli:
+        markdownDescription: "SLI based on request metrics."
+      windowBasedMetricSli:
+        markdownDescription: "SLI based on time-window metrics."
+      apmSli:
+        requireOne: true
+        markdownDescription: "SLI generated from an APM Service Catalog service instead of from PromQL. Requires `product_type = \"apm\"`."
+      sloTimeFrame:
+        required: true
+        markdownDescription: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified."
+        validators: [{enum: true}]
+      # The released resource does not show these server values.
+      createTime: {skip: true}
+      creator: {skip: true}
+      revision: {skip: true}
+      sloType: {skip: true}
+      type: {skip: true}
+      updateTime: {skip: true}
+
+  v1.Grouping:
+    fields:
+      labels:
+        markdownDescription: "List of labels to group SLO evaluations by."
+
+  SloOwnershipTags:
+    fields:
+      service:
+        markdownDescription: "Service ownership. `static_values` must name services that exist in the APM Service Catalog. Exactly one of `static_values` or `label_keys` must be configured."
+        validators: [{atLeastOneOf: [environment, team]}]
+      environment:
+        markdownDescription: "Environment ownership. Values are free-form strings. Exactly one of `static_values` or `label_keys` must be configured."
+      team:
+        markdownDescription: "Team ownership. Values are free-form strings. Exactly one of `static_values` or `label_keys` must be configured."
+
+  SloOwnershipTag:
+    fields:
+      staticValues:
+        readEmptyAs: "null"
+        markdownDescription: "Static values that apply to the whole SLO. Conflicts with `label_keys`; an explicit empty list is rejected."
+        validators: [{sizeAtLeast: 1}, {exactlyOneOf: [label_keys]}]
+      labelKeys:
+        readEmptyAs: "null"
+        markdownDescription: "Metric label names whose values identify this dimension at query time. Conflicts with `static_values`; an explicit empty list is rejected."
+        validators: [{sizeAtLeast: 1}, {exactlyOneOf: [static_values]}]
+      resolvedValues:
+        readEmptyAs: "null"
+        markdownDescription: "Read-only union of `static_values` and the values resolved from `label_keys`."
+
+  RequestBasedMetricSli:
+    fields:
+      goodEvents:
+        required: true
+        markdownDescription: "Query defining good events."
+      totalEvents:
+        required: true
+        markdownDescription: "Query defining total events."
+
+  Metric:
+    fields:
+      query:
+        required: true
+        markdownDescription: "Query string for the metric."
+
+  WindowBasedMetricSli:
+    fields:
+      query:
+        required: true
+        markdownDescription: "Query used for evaluating the time-window SLI."
+      window:
+        required: true
+        markdownDescription: "Time window type for evaluation. One of: 1_minute, 5_minutes."
+        validators: [{enumExceptZero: true}]
+      comparisonOperator:
+        required: true
+        markdownDescription: "Comparison operator used to evaluate the threshold. One of: greater_than,greater_than_or_equals,less_than,less_than_or_equals,unspecified"
+        validators: [{enum: true}]
+      threshold:
+        required: true
+        markdownDescription: "Threshold value for the comparison."
+      missingDataStrategy:
+        computed: true
+        useNonNullStateForUnknown: true
+        markdownDescription: "How windows without data are counted. One of: bad, good, uncounted. The backend stores `uncounted` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `missing_data_strategy = \"uncounted\"` to reset it."
+        validators: [{enum: true}]
+
+  ApmSli:
+    fields:
+      services:
+        required: true
+        markdownDescription: "Names of the APM Service Catalog services to monitor. The backend currently accepts exactly one service and rejects unknown service names."
+        validators: [{sizeAtLeast: 1}]
+      errorConfig:
+        markdownDescription: "Measure the service's error rate. Set it to the empty object `{}`; it carries no attributes. Exactly one of `error_config` or `latency_config` is required: the backend rejects an `apm_sli` with neither, and the SDK refuses to encode one with both."
+      latencyConfig:
+        requireOne: true
+        markdownDescription: "Measure the service's latency. Exactly one of `error_config` or `latency_config` is required."
+      filters:
+        readEmptyAs: "null"
+        markdownDescription: "Additional label-based filters applied to the generated metrics. Omit the attribute for no filters; an explicit empty list is rejected."
+        validators: [{sizeAtLeast: 1}]
+      groupingKeys:
+        readEmptyAs: "null"
+        markdownDescription: "Labels to group the SLO results by. Omit the attribute for no extra grouping keys; an explicit empty list is rejected. Distinct from the read-only top-level `grouping`, which the backend fixes to `service_name` for APM SLOs."
+        validators: [{sizeAtLeast: 1}]
+
+  ApmFilter:
+    fields:
+      key:
+        required: true
+        markdownDescription: "Label or tag name to filter on."
+      values:
+        required: true
+        markdownDescription: "Values to match, with OR semantics."
+        validators: [{sizeAtLeast: 1}]
+      # The released resource never sends the deprecated singular value.
+      value: {skip: true}
+
+  ApmLatencySli:
+    fields:
+      timeWindow:
+        markdownDescription: "Time window for latency calculations. One of: 1_minute, 5_minutes."
+        validators: [{enumExceptZero: true}]
+      threshold:
+        computed: true
+        useNonNullStateForUnknown: true
+        markdownDescription: "Latency threshold in milliseconds; a request is good when its latency is at or below it. The backend stores `0` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `threshold = 0` to reset it."
+      quantile:
+        markdownDescription: "Percentile-based latency measurement. Exactly one of `quantile` or `average` is required: the backend rejects a `latency_config` with neither, and the SDK refuses to encode one with both."
+      average:
+        markdownDescription: "Mean-based latency measurement. Set it to the empty object `{}`; it carries no attributes. Exactly one of `quantile` or `average` is required."
+
+  ApmLatencyQuantile:
+    fields:
+      percentile:
+        computed: true
+        useNonNullStateForUnknown: true
+        markdownDescription: "Percentile to measure, as a fraction (`0.95` = P95). The backend stores `0` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `percentile = 0` to reset it."
+
+enums:
+  SloTimeFrame:
+    zero: unspecified
+    trimPrefix: SLO_TIME_FRAME_
+    values: [SLO_TIME_FRAME_1_DAY, SLO_TIME_FRAME_7_DAYS, SLO_TIME_FRAME_14_DAYS, SLO_TIME_FRAME_21_DAYS, SLO_TIME_FRAME_28_DAYS, SLO_TIME_FRAME_30_DAYS]
+  WindowSloWindow:
+    zero: unspecified
+    trimPrefix: WINDOW_SLO_WINDOW_
+    values: [WINDOW_SLO_WINDOW_1_MINUTE, WINDOW_SLO_WINDOW_5_MINUTES]
+  ComparisonOperator:
+    zero: unspecified
+    trimPrefix: COMPARISON_OPERATOR_
+    values: [COMPARISON_OPERATOR_GREATER_THAN, COMPARISON_OPERATOR_GREATER_THAN_OR_EQUALS, COMPARISON_OPERATOR_LESS_THAN, COMPARISON_OPERATOR_LESS_THAN_OR_EQUALS]
+  MissingDataStrategy:
+    trimPrefix: MISSING_DATA_STRATEGY_
+    values: [MISSING_DATA_STRATEGY_UNCOUNTED, MISSING_DATA_STRATEGY_GOOD, MISSING_DATA_STRATEGY_BAD]
+  SloProductType:
+    zero: unspecified
+    trimPrefix: SLO_PRODUCT_TYPE_
+    values: [SLO_PRODUCT_TYPE_APM]
+  # sloType is skipped, but the contract check still reads its enum.
+  SloType:
+    values: [SLO_TYPE_REQUEST, SLO_TYPE_WINDOW]

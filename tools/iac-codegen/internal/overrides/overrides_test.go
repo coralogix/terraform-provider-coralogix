@@ -293,6 +293,39 @@ func TestAnUnsupportedArmHasNoFieldLine(t *testing.T) {
 	}
 }
 
+// The keys that a resource generated in the released shape of a handwritten one needs: its type
+// name, groups of top-level fields, and enum values with their prefix removed.
+func TestReleasedShapeKeys(t *testing.T) {
+	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\n"
+	f, err := Parse([]byte(head + "typeName: r_v2\ngroups:\n  sli:\n    fields: [a, b]\n    requireOne: true\n  window: {fields: [c]}\nenums:\n  E: {trimPrefix: E_, values: [E_ONE_DAY]}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.GroupOf("b") != "sli" || f.GroupOf("c") != "window" || f.GroupOf("d") != "" {
+		t.Fatalf("GroupOf = %q, %q, %q, want sli, window, and none", f.GroupOf("b"), f.GroupOf("c"), f.GroupOf("d"))
+	}
+	if got := f.Enums["E"].TFValue("E_ONE_DAY"); got != "one_day" {
+		t.Fatalf("TFValue = %q, want one_day", got)
+	}
+	tests := map[string]struct{ text, want string }{
+		"type name":           {"typeName: R-v2\n", "not a Terraform name"},
+		"group name":          {"groups:\n  Sli: {fields: [a]}\n", "not a Terraform name"},
+		"empty group":         {"groups:\n  sli: {fields: []}\n", "fields is empty"},
+		"field in two groups": {"groups:\n  sli: {fields: [a]}\n  window: {fields: [a]}\n", "also in groups.sli"},
+		"prefix of no value":  {"enums:\n  E: {trimPrefix: X_, values: [E_ONE]}\n", "not a prefix"},
+		"between order":       {"types:\n  R:\n    fields:\n      f: {validators: [{between: [100, 0]}]}\n", "minimum and a maximum"},
+		"two state modifiers": {"types:\n  R:\n    fields:\n      f: {useStateForUnknown: true, useNonNullStateForUnknown: true}\n", "cannot both be set"},
+		"two validator kinds": {"types:\n  R:\n    fields:\n      f: {validators: [{exactlyOneOf: [g], atLeastOneOf: [h]}]}\n", "exactly one"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte(head + test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}
+
 func TestRejectUnknownOfAnUnreleasedResource(t *testing.T) {
 	for _, reject := range []bool{false, true} {
 		file, err := Parse([]byte(fmt.Sprintf("resource: R\nmode: existing\nvalidators:\n  inferred: true\n  rejectUnknown: %t\n", reject)))

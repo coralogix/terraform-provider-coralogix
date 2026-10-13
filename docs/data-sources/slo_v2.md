@@ -36,18 +36,18 @@ data "coralogix_slo_v2" "data_example" {
 - `product_type` (String) Product type of the SLO. One of: apm, unspecified. `apm` is only accepted together with `sli.apm_sli`; metric SLIs stay `unspecified`. The backend always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `product_type = "unspecified"` to reset it.
 - `sli` (Attributes) SLI definition: exactly one of request_based_metric_sli, window_based_metric_sli or apm_sli must be provided. (see [below for nested schema](#nestedatt--sli))
 - `target_threshold_percentage` (Number) The target threshold percentage.
-- `window` (Attributes) SLO time window. One of: 14_days, 21_days, 28_days, 7_days, unspecified. (see [below for nested schema](#nestedatt--window))
+- `window` (Attributes) SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified. (see [below for nested schema](#nestedatt--window))
 
 <a id="nestedatt--apm_sli_metadata"></a>
 ### Nested Schema for `apm_sli_metadata`
 
 Read-Only:
 
-- `error_config` (Attributes) Set when the SLO measures the service's error rate. (see [below for nested schema](#nestedatt--apm_sli_metadata--error_config))
-- `filters` (Attributes List) Label-based filters applied to the generated metrics. (see [below for nested schema](#nestedatt--apm_sli_metadata--filters))
-- `grouping_keys` (List of String) Labels the SLO results are grouped by.
-- `latency_config` (Attributes) Set when the SLO measures the service's latency. (see [below for nested schema](#nestedatt--apm_sli_metadata--latency_config))
-- `services` (List of String) Monitored APM Service Catalog services.
+- `error_config` (Attributes) Measure the service's error rate. Set it to the empty object `{}`; it carries no attributes. Exactly one of `error_config` or `latency_config` is required: the backend rejects an `apm_sli` with neither, and the SDK refuses to encode one with both. (see [below for nested schema](#nestedatt--apm_sli_metadata--error_config))
+- `filters` (Attributes List) Additional label-based filters applied to the generated metrics. Omit the attribute for no filters; an explicit empty list is rejected. (see [below for nested schema](#nestedatt--apm_sli_metadata--filters))
+- `grouping_keys` (List of String) Labels to group the SLO results by. Omit the attribute for no extra grouping keys; an explicit empty list is rejected. Distinct from the read-only top-level `grouping`, which the backend fixes to `service_name` for APM SLOs.
+- `latency_config` (Attributes) Measure the service's latency. Exactly one of `error_config` or `latency_config` is required. (see [below for nested schema](#nestedatt--apm_sli_metadata--latency_config))
+- `services` (List of String) Names of the APM Service Catalog services to monitor. The backend currently accepts exactly one service and rejects unknown service names.
 
 <a id="nestedatt--apm_sli_metadata--error_config"></a>
 ### Nested Schema for `apm_sli_metadata.error_config`
@@ -58,8 +58,8 @@ Read-Only:
 
 Read-Only:
 
-- `key` (String) Label or tag name the filter matches on.
-- `values` (List of String) Matched values.
+- `key` (String) Label or tag name to filter on.
+- `values` (List of String) Values to match, with OR semantics.
 
 
 <a id="nestedatt--apm_sli_metadata--latency_config"></a>
@@ -67,10 +67,10 @@ Read-Only:
 
 Read-Only:
 
-- `average` (Attributes) Set when the SLO measures mean latency. (see [below for nested schema](#nestedatt--apm_sli_metadata--latency_config--average))
-- `quantile` (Attributes) Percentile-based latency measurement. (see [below for nested schema](#nestedatt--apm_sli_metadata--latency_config--quantile))
-- `threshold` (Number) Latency threshold in milliseconds.
-- `time_window` (String) Time window for latency calculations.
+- `average` (Attributes) Mean-based latency measurement. Set it to the empty object `{}`; it carries no attributes. Exactly one of `quantile` or `average` is required. (see [below for nested schema](#nestedatt--apm_sli_metadata--latency_config--average))
+- `quantile` (Attributes) Percentile-based latency measurement. Exactly one of `quantile` or `average` is required: the backend rejects a `latency_config` with neither, and the SDK refuses to encode one with both. (see [below for nested schema](#nestedatt--apm_sli_metadata--latency_config--quantile))
+- `threshold` (Number) Latency threshold in milliseconds; a request is good when its latency is at or below it. The backend stores `0` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `threshold = 0` to reset it.
+- `time_window` (String) Time window for latency calculations. One of: 1_minute, 5_minutes.
 
 <a id="nestedatt--apm_sli_metadata--latency_config--average"></a>
 ### Nested Schema for `apm_sli_metadata.latency_config.average`
@@ -81,7 +81,7 @@ Read-Only:
 
 Read-Only:
 
-- `percentile` (Number) Measured percentile, as a fraction.
+- `percentile` (Number) Percentile to measure, as a fraction (`0.95` = P95). The backend stores `0` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `percentile = 0` to reset it.
 
 
 
@@ -204,7 +204,7 @@ Read-Only:
 
 Read-Only:
 
-- `query` (String) Query string for good events.
+- `query` (String) Query string for the metric.
 
 
 <a id="nestedatt--sli--request_based_metric_sli--total_events"></a>
@@ -212,7 +212,7 @@ Read-Only:
 
 Read-Only:
 
-- `query` (String) Query string for total events.
+- `query` (String) Query string for the metric.
 
 
 
@@ -242,4 +242,4 @@ Read-Only:
 
 Read-Only:
 
-- `slo_time_frame` (String) SLO time window. One of: 14_days, 21_days, 28_days, 7_days, unspecified.
+- `slo_time_frame` (String) SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified.

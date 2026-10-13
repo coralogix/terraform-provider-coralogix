@@ -9,6 +9,10 @@
 - CHORE: The resource is generated from the API contract. Schema version stays 1. `id` stays computed and keeps its value when the folder is renamed. `name` stays required and must be between 1 and 100 characters.
 
 #### resource/coralogix_slo_v2
+- CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. The schema, the plan, and the state are unchanged; only the wording of some messages and descriptions differs.
+- FEAT: `window.slo_time_frame` accepts `1_day` and `30_days`. Before, they were rejected, and an SLO with such a window read back as `""`.
+- FIX: Removing `description` clears it. Before, the API kept the stored description, because a replace without it leaves the stored value; the provider now sends `""`.
+- CHORE: Add the generated acceptance test, and upgrade tests that create request-based, window-based, and APM SLOs with provider 3.21.0 and plan with this build. Add acceptance tests for the `1_day` and `30_days` time frames.
 - CHORE: Bump `coralogix-management-sdk` to the SLO contract that marks server-set fields read-only and requires the APM latency `time_window`.
 
 #### resource/coralogix_ai_evaluation
@@ -18,8 +22,11 @@
 - FIX: An evaluation whose target is `CONVERSATION` still reads into state as `conversation`, as in the released resource; a configuration still cannot set it.
 - CHORE: Add protocol baseline golden files against an in-memory evaluation API, checked against answers recorded from a real tenant.
 
+#### data-source/coralogix_slo_v2
+- CHORE: Uses the schema and the conversion of the generated resource.
+
 #### tools/iac-codegen
-- CHORE: Bump the generator to `v0.1.0-beta.27`.
+- CHORE: Bump the generator to `v0.1.0-beta.28`.
 - FEAT: `collection: set` on a field line makes a list a Terraform set, although the contract does not mark it. The generator reports it as stale once the contract does.
 - CHORE: The `evalthing` golden fixture covers `collection: set`, `requiresReplace`, `unsupportedArms`, a mask-less `updateMaskInBody`, an enum that starts with a business value, and a Get response written as `allOf: [$ref]`.
 - FEAT: `requiresReplace: true` on a top-level field forces a new resource when that field changes, although Update accepts it.
@@ -28,7 +35,7 @@
 - FIX: `unsupportedArms` renders. Before, generation failed with `no SDK field` for the unsupported arm.
 - FIX: An unsupported arm can be missing from the Create and Update components; only the response needs it. A field line on an unsupported arm is an error, because the arm is not in the schema.
 - FIX: The generator does not read the value of an unsupported arm, so that value can use a shape the generator does not support, and the fields inside it need no `x-coralogix-presence`.
-- FIX: An Update that the API answers with 404 returns the error "Resource disappeared during update" and keeps the prior state. Before, it warned and removed the resource, which Terraform reported as the provider bug "Missing Resource State After Update". This changes `coralogix_connector`, `coralogix_global_router`, `coralogix_preset`, `coralogix_view`, `coralogix_view_folder`, and `coralogix_configuration_group`.
+- FIX: An Update that the API answers with 404 returns the error "Resource disappeared during update" and keeps the prior state. Before, it warned and removed the resource, which Terraform reported as the provider bug "Missing Resource State After Update". This changes `coralogix_connector`, `coralogix_global_router`, `coralogix_preset`, `coralogix_view`, `coralogix_view_folder`, `coralogix_configuration_group`, and `coralogix_slo_v2`.
 - FEAT: `enums.<Enum>.readRejectedLower: true` reads a rejected value in lower case instead of the API spelling that `readRejected` keeps.
 - FIX: `unsupportedArms` that remove every arm of a oneOf group that requires one are an error. An unsupported arm defined inline with fields needs a component `$ref`; an empty inline arm is accepted.
 - FIX: Existing-mode check reads a resource that a response field wraps in `allOf: [$ref]`, as the OpenAPI fork writes a field with a description. Before, every field read as missing from Get.
@@ -37,6 +44,16 @@
 - FEAT: `api.topLevelMaskReplacesOneOf: true` lets a top-level query-parameter update mask change a nested oneOf when the server replaces the whole value of that path.
 - CHANGE: `api.updateMaskInBody: true` sends no mask, as a released resource that never sent one did. The server updates every field present in the body. An immutable field, also a `requiresReplace` field, stays out of the body. Every field that Update sends must be required, have a static default, or keep its state value, because without a mask removing it cannot clear it. A field that replaces the resource and that the Update body requires is an error, because the body would send its zero value.
 - CHORE: Bump the generator to `v0.1.0-beta.26`.
+- CHORE: Bump the generator to `v0.1.0-beta.27`.
+- FEAT: `groups` in `behavior-overrides.yaml` makes required Terraform objects that hold top-level fields of the resource, for a released resource that nests fields the API holds at the top level. The arms of a top-level oneOf in a group check each other like the arms of a nested oneOf; `requireOne: true` makes them ExactlyOneOf, and needs a group that holds the arms of one oneOf and no other field. Flatten fails with "Invalid response from server" unless the response has exactly one of them.
+- FEAT: Generation fails when a `groups` name is also the name of a top-level attribute.
+- FEAT: `typeName` names the released resource type when it is not the OpenAPI component (`slo_v2` for `Slo`).
+- FEAT: `enums.<Enum>.trimPrefix` removes a prefix from each value before the Terraform value is made (`SLO_TIME_FRAME_7_DAYS` is `7_days`).
+- FEAT: Field lines take `useNonNullStateForUnknown`, and the validators `between`, `exactlyOneOf`, and `atLeastOneOf`. A `between` bound of an integer attribute must be a whole number that the validator states exactly.
+- FEAT: `readEmptyAs: "null"` works on a list or set of strings.
+- FEAT: `sendNullAsEmpty: true` sends `""` for a null string, for an API that keeps a stored value that the request omits. It needs `readEmptyAs: "null"`.
+- FEAT: `Hooks.BeforeFlatten` changes the API value before flatten, for a value that only an older record has.
+- FIX: A component that a request shares with the response keeps its read-only fields in flatten. Before, the read-only field was missing from the shared conversion object, and the apply failed with a value conversion error.
 - FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.
 - FEAT: `api.serverSetID: true` accepts a server-set id that the Get response does not require, because the request shares the schema. The generated flatten fails when the id is missing. The id must be read-only, or absent, in the Create and Update bodies, also when a body is `allOf: [$ref]`.
 - FIX: An Update with the id in its body sends a server-set id, in the resource that the body wraps or in the body itself. Before, no Update field sent it, so the update request had no id.
