@@ -279,3 +279,25 @@ func TestViewConfiguredDefaultSurvivesAnOmittedRead(t *testing.T) {
 		t.Fatal("the plan after an omitted read changes the view")
 	}
 }
+
+// The views service stores another seconds than a non-preset value, and drops a false selected
+// value, so the read would disagree with the plan. Validation rejects both before any request.
+func TestViewRejectsValuesThatTheServiceChanges(t *testing.T) {
+	h := newViewHarness(t)
+	for name, test := range map[string]struct {
+		config  j
+		wantErr bool
+	}{
+		"preset seconds":       {viewConfig(), false},
+		"non-preset seconds":   {viewConfig(j{"time_selection": j{"quick_selection": j{"seconds": 3601.0}}}), true},
+		"true selected value":  {viewConfig(j{"filters": j{"filters": []any{j{"name": "severity", "selected_values": j{"ERROR": true}}}}}), false},
+		"false selected value": {viewConfig(j{"filters": j{"filters": []any{j{"name": "severity", "selected_values": j{"ERROR": true, "INFO": false}}}}}), true},
+	} {
+		if got := hasError(h.validate(h.config(test.config))); got != test.wantErr {
+			t.Errorf("%s: validation error %t, want %t", name, got, test.wantErr)
+		}
+	}
+	if got := h.views().takeRequests(); len(got) != 0 {
+		t.Fatalf("requests = %v, want none", methods(got))
+	}
+}

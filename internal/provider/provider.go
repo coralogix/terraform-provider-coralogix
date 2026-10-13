@@ -35,7 +35,6 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/fleet"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/configurationgroup"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/globalrouter"
-	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/view"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/viewfolder"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/integrations"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/logs"
@@ -433,7 +432,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		slo_mgmt.NewSLOV2Resource,
 		dashboards.NewDashboardsFolderResource,
 		func() resource.Resource { return viewfolder.NewResource(viewfolder.Hooks{}) },
-		func() resource.Resource { return view.NewResource(view.Hooks{}) },
+		views.NewViewResource,
 		aaa.NewApiKeyResource,
 		aaa.NewCustomRoleSource,
 		aaa.NewGroupResource,
