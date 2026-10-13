@@ -76,7 +76,7 @@ A third small golden contract, `configthing`, is an existing resource with JSON 
 
 A fourth small golden contract, `wrapthing`, is an existing resource whose API holds values in wrapper objects: a string, an enum, a required number, a list of wrapped items, an object, and a list inside two wrappers. One component collapses in one place and stays an object in another. Its behavior-overrides file has an `unwrap` list and `unwrap` field lines.
 
-A further small golden contract, `suppressedthing`, is an existing resource whose path parameter is `thing_id` while its id is the property `uniqueIdentifier`, next to a version `id` that the file skips. Its behavior-overrides file has `api.idProperty`, `serverSetID`, `name` lines on a top-level and a nested field, an enum whose values have `names` (`mute` and `active`), a set of weekday numbers with `valueNames`, and an empty oneOf arm with `asBool`.
+A further small golden contract, `suppressedthing`, is an existing resource whose path parameter is `thing_id` while its id is the property `uniqueIdentifier`, next to a version `id` that the file skips. Its behavior-overrides file has `api.idProperty`, `serverSetID`, `name` lines on a top-level and a nested field, an enum whose values have `names` (`mute` and `active`), a set of weekday numbers with `valueNames`, an empty oneOf arm with `asBool`, and a filter whose required oneOf has a `defaultArm`.
 
 ## Existing resources
 
@@ -136,6 +136,8 @@ Keys of a field line: `skip`, `name` (the released Terraform attribute name, whe
 `valueNames` on a field line gives the numbers of an integer list or set a released name each, for example `{1: Sunday, 7: Saturday}` for days that the API numbers. The attribute is a list or set of strings with a `OneOf` validator of the names. Expand sends the numbers, and flatten returns the names. A name that is not in the line, or a number that the API returns and the line does not name, is an error, not a zero or an empty name. Names must be unique and not empty. On any other field the key is an error.
 
 `asBool: true` on a field line shows an object without fields as a bool, for example a oneOf arm `alwaysActive: {}`. `true` sends the empty object. `false` is an error at apply, as in the released resources; remove the attribute instead. A response that has the object reads as `true`, and one without it reads as null. A oneOf group validator of the arm is a `boolvalidator`. On an object with fields the key is an error.
+
+`defaultArm: true` on a field line marks the arm of a oneOf group that Create and Update send empty when the configuration sets no arm, for an API that requires an arm and reads an empty one as "all", for example `alertUniqueIds: {}`. The group allows no arm in Terraform (`ConflictsWith`). An arm can be an object, an object without fields, or a value in wrapper objects (`unwrap`), which is sent as an empty wrapper. One arm of a group can have the key, and only in a nested object. The API reads the arm back empty; the state keeps the form of the configuration, as for every empty value.
 
 A component can hold a field that the user sets in one place and that only the server sets in another, for example a read-only copy of the request value. The line states how the user sets the field. The read-only copy stays computed and takes only the text of the line (`description`, `markdownDescription`, `deprecation`): a mode, a default, a validator, or a plan modifier there would plan a value that the server does not set.
 

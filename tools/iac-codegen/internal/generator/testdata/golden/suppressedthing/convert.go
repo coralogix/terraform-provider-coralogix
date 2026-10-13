@@ -44,6 +44,7 @@ var createFields = []struct {
 	{attr: "name", serverDefault: false},
 	{attr: "time_frame", serverDefault: false},
 	{attr: "repeat", serverDefault: false},
+	{attr: "filter", serverDefault: false},
 	{attr: "operation", serverDefault: false},
 }
 
@@ -99,6 +100,8 @@ func flatten(ctx context.Context, v *suppressed_things_service.SuppressedThing) 
 var oneOfArms = map[string]bool{
 	"repeat.always_active": true,
 	"repeat.dynamic":       true,
+	"filter.ids":           true,
+	"filter.labels":        true,
 }
 
 // computedAttrs are the paths of the computed attributes, with list and map
@@ -251,6 +254,7 @@ func expandSuppressedThingCreate(ctx context.Context, p path.Path, m *Suppressed
 	out.Name = valueOf(expandString(m.Name))
 	out.Window = expandWindow(ctx, p.AtName("time_frame"), m.TimeFrame, diags)
 	out.Repeat = expandRepeat(ctx, p.AtName("repeat"), m.Repeat, diags)
+	out.Filter = expandFilter(ctx, p.AtName("filter"), m.Filter, diags)
 	out.ScheduleOperation = valueOf(expandEnumMapped(p.AtName("operation"), m.Operation, thingOperationToAPI, diags))
 	return out
 }
@@ -322,6 +326,55 @@ func flattenDynamic(ctx context.Context, p path.Path, v *suppressed_things_servi
 	return out
 }
 
+func expandFilter(ctx context.Context, p path.Path, m *FilterModel, diags *diag.Diagnostics) *suppressed_things_service.Filter {
+	if m == nil {
+		return nil
+	}
+	out := &suppressed_things_service.Filter{}
+	{
+		var inner []string
+		inner = expandStringsSet[string](ctx, p.AtName("ids"), m.Ids, diags)
+		out.Ids = wrapIds(inner)
+	}
+	out.Labels = expandLabels(ctx, p.AtName("labels"), m.Labels, diags)
+	// No arm is set, so the request sends the empty Ids arm.
+	if out.Ids == nil && out.Labels == nil {
+		out.Ids = wrapIds([]string{})
+	}
+	return out
+}
+
+func flattenFilter(ctx context.Context, p path.Path, v *suppressed_things_service.Filter, diags *diag.Diagnostics) *FilterModel {
+	if v == nil {
+		return nil
+	}
+	out := &FilterModel{}
+	{
+		inner := unwrapIds(v.Ids)
+		out.Ids = flattenStringsSet(ctx, inner, diags)
+	}
+	out.Labels = flattenLabels(ctx, p.AtName("labels"), v.Labels, diags)
+	return out
+}
+
+func expandLabels(ctx context.Context, p path.Path, m *LabelsModel, diags *diag.Diagnostics) *suppressed_things_service.Labels {
+	if m == nil {
+		return nil
+	}
+	out := &suppressed_things_service.Labels{}
+	out.Key = expandString(m.Key)
+	return out
+}
+
+func flattenLabels(ctx context.Context, p path.Path, v *suppressed_things_service.Labels, diags *diag.Diagnostics) *LabelsModel {
+	if v == nil {
+		return nil
+	}
+	out := &LabelsModel{}
+	out.Key = types.StringPointerValue(v.Key)
+	return out
+}
+
 func expandSuppressedThingUpdate(ctx context.Context, p path.Path, m *SuppressedThingModel, diags *diag.Diagnostics) *suppressed_things_service.SuppressedThing {
 	if m == nil {
 		return nil
@@ -330,6 +383,7 @@ func expandSuppressedThingUpdate(ctx context.Context, p path.Path, m *Suppressed
 	out.Name = valueOf(expandString(m.Name))
 	out.Window = expandWindow(ctx, p.AtName("time_frame"), m.TimeFrame, diags)
 	out.Repeat = expandRepeat(ctx, p.AtName("repeat"), m.Repeat, diags)
+	out.Filter = expandFilter(ctx, p.AtName("filter"), m.Filter, diags)
 	out.ScheduleOperation = valueOf(expandEnumMapped(p.AtName("operation"), m.Operation, thingOperationToAPI, diags))
 	return out
 }
@@ -343,6 +397,7 @@ func flattenSuppressedThing(ctx context.Context, p path.Path, v *suppressed_thin
 	out.Name = types.StringPointerValue(&v.Name)
 	out.TimeFrame = flattenWindow(ctx, p.AtName("time_frame"), v.Window, diags)
 	out.Repeat = flattenRepeat(ctx, p.AtName("repeat"), v.Repeat, diags)
+	out.Filter = flattenFilter(ctx, p.AtName("filter"), v.Filter, diags)
 	out.Operation = flattenEnumMapped(p.AtName("operation"), &v.ScheduleOperation, thingOperationFromAPI, diags)
 	return out
 }
@@ -355,6 +410,22 @@ func valueOf[T any](p *T) T {
 		return zero
 	}
 	return *p
+}
+
+// wrapIds puts the value in its API wrapper objects. A nil value sends no wrapper.
+func wrapIds(v []string) *suppressed_things_service.Ids {
+	if v == nil {
+		return nil
+	}
+	return &suppressed_things_service.Ids{Value: v}
+}
+
+// unwrapIds takes the value out of its API wrapper objects. A missing wrapper is nil.
+func unwrapIds(w *suppressed_things_service.Ids) []string {
+	if w == nil {
+		return nil
+	}
+	return w.Value
 }
 
 // elements is a types.Set or a types.List.

@@ -919,7 +919,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		}
 		groups = append(groups, group)
 	}
-	addGroupValidators(attrs, groups)
+	addGroupValidators(attrs, b.policy.WithDefaultArms(t.Schema, groups))
 	name := modelTypeName(t.Schema)
 	if !b.seen[name] {
 		b.seen[name] = true

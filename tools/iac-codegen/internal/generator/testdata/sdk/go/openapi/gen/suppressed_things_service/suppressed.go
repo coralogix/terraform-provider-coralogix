@@ -11,7 +11,21 @@ type SuppressedThing struct {
 	Name              string
 	Window            *Window
 	Repeat            *Repeat
+	Filter            *Filter
 	ScheduleOperation ThingOperation
+}
+
+type Filter struct {
+	Ids    *Ids
+	Labels *Labels
+}
+
+type Ids struct {
+	Value []string
+}
+
+type Labels struct {
+	Key *string
 }
 
 type Repeat struct {

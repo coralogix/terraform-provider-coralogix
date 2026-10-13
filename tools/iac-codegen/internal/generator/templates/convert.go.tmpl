@@ -487,6 +487,12 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 {{- template "expandField" .}}
 {{- end}}
 {{- end}}
+{{- range .DefaultArms}}
+	// No arm is set, so the request sends the empty {{.Field}} arm.
+	if {{range $i, $arm := .Arms}}{{if $i}} && {{end}}out.{{$arm}} == nil{{end}} {
+		out.{{.Field}} = {{.Value}}
+	}
+{{- end}}
 	return out
 }
 {{end}}

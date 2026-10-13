@@ -815,26 +815,7 @@ func TestClientAndServerSetIDAreExclusive(t *testing.T) {
 
 // valueNames names the numbers of an integer list or set. On any other field it is an error.
 func TestValueNamesNeedIntegerCollection(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	text, err := os.ReadFile(filepath.Join("testdata", "suppressed-overrides.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	bad := strings.Replace(string(text), "timezone: {name: time_zone}", "timezone: {name: time_zone, valueNames: {1: UTC}}", 1)
-	if bad == string(text) {
-		t.Fatal("the timezone line is not in suppressed-overrides.yaml")
-	}
-	overridesPath := filepath.Join(t.TempDir(), "overrides.yaml")
-	if err := os.WriteFile(overridesPath, []byte(bad), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	input, loadDir := syntheticInput(t)
-	input.OpenAPI = spec
-	options := Options{Resource: "SuppressedThing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: overridesPath}
-	err = generateFromInput(options, input, loadDir)
+	err := generateSuppressedWith(t, "timezone: {name: time_zone}", "timezone: {name: time_zone, valueNames: {1: UTC}}")
 	if err == nil || !strings.Contains(err.Error(), "valueNames needs a list or set of integers") {
 		t.Fatalf("err = %v, want valueNames needs a list or set of integers", err)
 	}
@@ -851,4 +832,47 @@ func TestAsBoolNeedsAnEmptyObject(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "asBool needs an object without fields") {
 		t.Fatalf("err = %v, want asBool needs an object without fields", err)
 	}
+}
+
+// defaultArm marks one arm of a oneOf group in a nested object.
+func TestDefaultArmErrors(t *testing.T) {
+	tests := map[string]struct{ from, to, want string }{
+		"two arms of one group": {"ids: {defaultArm: true}", "ids: {defaultArm: true}\n      labels: {defaultArm: true}", "ids and labels are arms of one group"},
+		"no arm":                {"timezone: {name: time_zone}", "timezone: {name: time_zone, defaultArm: true}", "timezone is no oneOf arm"},
+		"top level":             {"window: {name: time_frame}", "window: {name: time_frame, defaultArm: true}", "nested object only"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := generateSuppressedWith(t, test.from, test.to)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
+// generateSuppressedWith generates the suppressedthing resource with one change of its
+// behavior-overrides file.
+func generateSuppressedWith(t *testing.T, from, to string) error {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := os.ReadFile(filepath.Join("testdata", "suppressed-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := strings.Replace(string(text), from, to, 1)
+	if changed == string(text) {
+		t.Fatalf("%q is not in suppressed-overrides.yaml", from)
+	}
+	overridesPath := filepath.Join(t.TempDir(), "overrides.yaml")
+	if err := os.WriteFile(overridesPath, []byte(changed), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	options := Options{Resource: "SuppressedThing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: overridesPath}
+	return generateFromInput(options, input, loadDir)
 }

@@ -27,6 +27,7 @@ var updateFields = []struct {
 	{attr: "name", serverDefault: false},
 	{attr: "time_frame", serverDefault: false},
 	{attr: "repeat", serverDefault: false},
+	{attr: "filter", serverDefault: false},
 	{attr: "operation", serverDefault: false},
 }
 

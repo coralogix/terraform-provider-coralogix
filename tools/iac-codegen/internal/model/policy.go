@@ -50,6 +50,9 @@ type Policy struct {
 	// Bools are the "Component.field" objects without fields that a bool attribute shows: true
 	// when the object is present.
 	Bools []string
+	// DefaultArms are the "Component.field" oneOf arms that Create and Update send empty when the
+	// configuration sets no arm of the group.
+	DefaultArms []string
 	// Operations names the lifecycle operationIds from behavior-overrides. Flags
 	// still override an empty slot. A flag and the file cannot name different ids.
 	Operations OperationIDs
@@ -206,6 +209,23 @@ func (p Policy) TerraformName(component, field string) string {
 // AsBool reports whether a bool attribute shows the object field of component.
 func (p Policy) AsBool(component, field string) bool {
 	return component != "" && slices.Contains(p.Bools, component+"."+field)
+}
+
+// DefaultArm reports whether field of component is the arm that a request sends empty when the
+// configuration sets no arm of its oneOf group.
+func (p Policy) DefaultArm(component, field string) bool {
+	return component != "" && slices.Contains(p.DefaultArms, component+"."+field)
+}
+
+// WithDefaultArms returns the groups of component. A group with a default arm allows no arm.
+func (p Policy) WithDefaultArms(component string, groups []OneOfGroup) []OneOfGroup {
+	out := slices.Clone(groups)
+	for i, g := range out {
+		if slices.ContainsFunc(g.Arms, func(arm string) bool { return p.DefaultArm(component, arm) }) {
+			out[i].AllowNone = true
+		}
+	}
+	return out
 }
 
 func (p Policy) skips(component, field string) bool {
