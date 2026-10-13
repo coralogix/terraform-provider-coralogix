@@ -960,7 +960,7 @@ func nestedReadOnlyIssues(p Policy, location string, proxy *base.SchemaProxy, se
 			continue
 		}
 		childLocation := location + "." + name
-		if p.skips(referencedComponent(component), name) {
+		if p.skips(referencedComponent(component), name) || listedUnsupported(&p, referencedComponent(component), name) {
 			continue // the resource does not manage this field, so it is never sent
 		}
 		if childSchema.ReadOnly != nil && *childSchema.ReadOnly {
@@ -1189,9 +1189,9 @@ func asksPresence(p Policy, component *base.SchemaProxy, name string, createRequ
 }
 
 // unsentField reports whether Terraform never sends a nested request field: the field is
-// readOnly, or a line skips it.
+// readOnly, a line skips it, or it is an unsupported oneOf arm.
 func unsentField(p Policy, component *base.SchemaProxy, name string, child *base.SchemaProxy) bool {
-	if p.skips(referencedComponent(component), name) {
+	if p.skips(referencedComponent(component), name) || listedUnsupported(&p, referencedComponent(component), name) {
 		return true
 	}
 	schema, err := schemaOf(child)

@@ -939,3 +939,35 @@ func TestClientAndServerSetIDAreExclusive(t *testing.T) {
 		t.Fatalf("err = %v, want an error about clientSetID and serverSetID", err)
 	}
 }
+
+// Terraform never sends an unsupported arm, so the fields inside it need no
+// presence mark, as for a skipped field.
+func TestUnsupportedArmFieldsNeedNoPresence(t *testing.T) {
+	input, _ := syntheticInput(t)
+	plain := "    QueueThingConfig:\n      type: object\n      required: [topic]\n      properties:\n        topic:\n          type: string\n          minLength: 1\n"
+	spec := string(input.OpenAPI)
+	if !strings.Contains(spec, plain) {
+		t.Fatal("cannot locate QueueThingConfig")
+	}
+	spec = strings.Replace(spec, plain, plain+"        retries:\n          type: integer\n          format: int32\n", 1)
+	lines := func(arms string) *overrides.File {
+		return mustParse(t, `
+resource: Thing
+mode: existing
+validators:
+  inferred: false
+types:
+  ThingConfig:
+    unsupportedArms: [`+arms+`]
+    unsupportedSummary: Unsupported config
+    unsupportedDetail: The config is not supported.
+`)
+	}
+	if _, err := validateOpenAPIWith([]byte(spec), "Thing", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, lines("queue")); err != nil {
+		t.Fatal(reportOf(t, err))
+	}
+	_, err := validateOpenAPIWith([]byte(spec), "Thing", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, lines("http"))
+	if !reportHas(requireReport(t, err), "FIELD_PRESENCE_UNKNOWN", "components.schemas.Thing.config.create.queue.retries") {
+		t.Fatalf("err = %v, want FIELD_PRESENCE_UNKNOWN for a supported arm", err)
+	}
+}
