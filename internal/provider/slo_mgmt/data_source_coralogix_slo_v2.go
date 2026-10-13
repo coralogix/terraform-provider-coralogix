@@ -23,6 +23,7 @@ import (
 
 	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/slov2"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -59,15 +60,14 @@ func (d *SLOV2DataSource) Configure(_ context.Context, req datasource.ConfigureR
 }
 
 func (d *SLOV2DataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r SLOV2Resource
 	var resourceResp resource.SchemaResponse
-	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
+	NewSLOV2Resource().Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *SLOV2DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var state *SLOV2ResourceModel
+	var state *slov2.SloModel
 	diags := req.Config.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -75,7 +75,7 @@ func (d *SLOV2DataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	}
 
 	//Get refreshed SLO value from Coralogix
-	id := state.ID.ValueString()
+	id := state.Id.ValueString()
 	rq := d.client.SlosServiceGetSlo(ctx, id)
 	result, httpResponse, err := rq.Execute()
 
@@ -94,7 +94,8 @@ func (d *SLOV2DataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	state, diags = flattenSLOV2(ctx, &result.Slo)
+	resp.Diagnostics.Append(normalizeLegacyFilters(ctx, &result.Slo)...)
+	state, diags = slov2.Flatten(ctx, &result.Slo)
 	if diags.HasError() {
 		resp.Diagnostics = diags
 		return

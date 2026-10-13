@@ -37,7 +37,7 @@
       },
       "target_threshold_percentage": 99,
       "window": {
-        "slo_time_frame": ""
+        "slo_time_frame": "1_day"
       }
     },
     "drift": [
