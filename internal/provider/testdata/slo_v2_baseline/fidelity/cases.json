@@ -1,0 +1,533 @@
+{
+  "cases": [
+    {
+      "name": "request based: create, read, replace, delete",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tf-fidelity-request",
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "requestBasedMetricSli": {
+              "goodEvents": {
+                "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+              },
+              "totalEvents": {
+                "query": "sum(rate(http_requests_total[1m])) by (service)"
+              }
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-request-2",
+            "targetThresholdPercentage": 99.9,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "id": "{{id}}",
+            "requestBasedMetricSli": {
+              "goodEvents": {
+                "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+              },
+              "totalEvents": {
+                "query": "sum(rate(http_requests_total[1m])) by (service)"
+              }
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "window based: missing data strategy omitted, set, then omitted on replace",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tf-fidelity-window",
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "windowBasedMetricSli": {
+              "query": {
+                "query": "sum(rate(up[1m])) by (job)"
+              },
+              "window": "WINDOW_SLO_WINDOW_1_MINUTE",
+              "comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN",
+              "threshold": 0.5
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-window",
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "id": "{{id}}",
+            "windowBasedMetricSli": {
+              "query": {
+                "query": "sum(rate(up[1m])) by (job)"
+              },
+              "window": "WINDOW_SLO_WINDOW_1_MINUTE",
+              "comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN",
+              "threshold": 0.5,
+              "missingDataStrategy": "MISSING_DATA_STRATEGY_BAD"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-window",
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "id": "{{id}}",
+            "windowBasedMetricSli": {
+              "query": {
+                "query": "sum(rate(up[1m])) by (job)"
+              },
+              "window": "WINDOW_SLO_WINDOW_1_MINUTE",
+              "comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN",
+              "threshold": 0.5
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "labels, description, ownership tags, product type",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tf-fidelity-meta",
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "requestBasedMetricSli": {
+              "goodEvents": {
+                "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+              },
+              "totalEvents": {
+                "query": "sum(rate(http_requests_total[1m])) by (service)"
+              }
+            },
+            "description": "d",
+            "labels": {
+              "team": "payments"
+            },
+            "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+            "ownershipTags": {
+              "service": {
+                "labelKeys": [
+                  "service_name"
+                ]
+              },
+              "team": {
+                "staticValues": [
+                  "payments",
+                  "payments"
+                ]
+              },
+              "environment": {}
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "server-owned fields are rejected or ignored",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tf-fidelity-grouping",
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "requestBasedMetricSli": {
+              "goodEvents": {
+                "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+              },
+              "totalEvents": {
+                "query": "sum(rate(http_requests_total[1m])) by (service)"
+              }
+            },
+            "grouping": {
+              "labels": [
+                "x"
+              ]
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tf-fidelity-type",
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "requestBasedMetricSli": {
+              "goodEvents": {
+                "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+              },
+              "totalEvents": {
+                "query": "sum(rate(http_requests_total[1m])) by (service)"
+              }
+            },
+            "sloType": "SLO_TYPE_WINDOW",
+            "type": "window"
+          }
+        }
+      ]
+    },
+    {
+      "name": "two SLI arms",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tf-fidelity-two",
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "requestBasedMetricSli": {
+              "goodEvents": {
+                "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+              },
+              "totalEvents": {
+                "query": "sum(rate(http_requests_total[1m])) by (service)"
+              }
+            },
+            "windowBasedMetricSli": {
+              "query": {
+                "query": "sum(rate(up[1m])) by (job)"
+              },
+              "window": "WINDOW_SLO_WINDOW_1_MINUTE",
+              "comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN",
+              "threshold": 0.5
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "window unspecified",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tf-fidelity-unspecified",
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "windowBasedMetricSli": {
+              "query": {
+                "query": "sum(rate(up[1m])) by (job)"
+              },
+              "window": "WINDOW_SLO_WINDOW_UNSPECIFIED",
+              "comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN",
+              "threshold": 0.5
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "one day time frame",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tf-fidelity-one-day",
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_1_DAY",
+            "requestBasedMetricSli": {
+              "goodEvents": {
+                "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+              },
+              "totalEvents": {
+                "query": "sum(rate(http_requests_total[1m])) by (service)"
+              }
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "probe: omit name",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "requestBasedMetricSli": {
+              "goodEvents": {
+                "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+              },
+              "totalEvents": {
+                "query": "sum(rate(http_requests_total[1m])) by (service)"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "probe: omit targetThresholdPercentage",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tf-fidelity-probe",
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "requestBasedMetricSli": {
+              "goodEvents": {
+                "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+              },
+              "totalEvents": {
+                "query": "sum(rate(http_requests_total[1m])) by (service)"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "probe: omit sloTimeFrame",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tf-fidelity-probe",
+            "targetThresholdPercentage": 99.5,
+            "requestBasedMetricSli": {
+              "goodEvents": {
+                "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+              },
+              "totalEvents": {
+                "query": "sum(rate(http_requests_total[1m])) by (service)"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "probe: omit goodEvents",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tf-fidelity-probe",
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "requestBasedMetricSli": {
+              "totalEvents": {
+                "query": "sum(rate(http_requests_total[1m])) by (service)"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "probe: omit metric query",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tf-fidelity-probe",
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "requestBasedMetricSli": {
+              "goodEvents": {},
+              "totalEvents": {
+                "query": "sum(rate(http_requests_total[1m])) by (service)"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "probe: omit window comparisonOperator",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tf-fidelity-probe",
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "windowBasedMetricSli": {
+              "query": {
+                "query": "sum(rate(up[1m])) by (job)"
+              },
+              "window": "WINDOW_SLO_WINDOW_1_MINUTE",
+              "threshold": 0.5
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "probe: omit window threshold",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tf-fidelity-probe",
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "windowBasedMetricSli": {
+              "query": {
+                "query": "sum(rate(up[1m])) by (job)"
+              },
+              "window": "WINDOW_SLO_WINDOW_1_MINUTE",
+              "comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "probe: omit window query",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tf-fidelity-probe",
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "windowBasedMetricSli": {
+              "window": "WINDOW_SLO_WINDOW_1_MINUTE",
+              "comparisonOperator": "COMPARISON_OPERATOR_GREATER_THAN",
+              "threshold": 0.5
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "probe: empty name",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "",
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "requestBasedMetricSli": {
+              "goodEvents": {
+                "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+              },
+              "totalEvents": {
+                "query": "sum(rate(http_requests_total[1m])) by (service)"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "not found",
+      "steps": [
+        {
+          "method": "GET",
+          "path": "/00000000-0000-4000-8000-000000000000"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-missing",
+            "targetThresholdPercentage": 99.5,
+            "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+            "id": "00000000-0000-4000-8000-000000000000",
+            "requestBasedMetricSli": {
+              "goodEvents": {
+                "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+              },
+              "totalEvents": {
+                "query": "sum(rate(http_requests_total[1m])) by (service)"
+              }
+            }
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/00000000-0000-4000-8000-000000000000"
+        }
+      ]
+    }
+  ]
+}

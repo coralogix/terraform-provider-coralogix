@@ -1,0 +1,58 @@
+[
+  {
+    "step": "import a time frame that the released schema does not offer",
+    "state": null
+  },
+  {
+    "step": "import a time frame that the released schema does not offer (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/slo/slos/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": null,
+      "description": null,
+      "grouping": {
+        "labels": []
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "one-day",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": {
+          "good_events": {
+            "query": "a"
+          },
+          "total_events": {
+            "query": "b"
+          }
+        },
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99,
+      "window": {
+        "slo_time_frame": "1_day"
+      }
+    },
+    "drift": [
+      "AttributeName(\"grouping\")",
+      "AttributeName(\"grouping\").AttributeName(\"labels\")",
+      "AttributeName(\"labels\")",
+      "AttributeName(\"name\")",
+      "AttributeName(\"product_type\")",
+      "AttributeName(\"sli\")",
+      "AttributeName(\"sli\").AttributeName(\"apm_sli\")",
+      "AttributeName(\"sli\").AttributeName(\"request_based_metric_sli\")",
+      "AttributeName(\"sli\").AttributeName(\"window_based_metric_sli\")",
+      "AttributeName(\"target_threshold_percentage\")",
+      "AttributeName(\"window\")",
+      "AttributeName(\"window\").AttributeName(\"slo_time_frame\")"
+    ]
+  }
+]

@@ -141,6 +141,12 @@ type convObject struct {
 	Fields  []*convField
 	Expand  bool // generate expand<Func>
 	Flatten bool // generate flatten<Func>
+	// Group: the object is a group of the behavior-overrides file. Its fields are fields of the
+	// SDK struct of the parent, so expand writes them to that struct, and flatten reads them from it.
+	Group bool
+	// RequireOne: the group holds the arms of a oneOf that the user must set. Flatten fails when
+	// the response has none of them, because the object would have no arm.
+	RequireOne bool
 	// AttrTypes are the Terraform attribute types, when a list holds the
 	// object. The function AttrTypesFunc returns them.
 	AttrTypes     []convAttrType
@@ -186,6 +192,10 @@ const (
 	convScalarMap = "scalarmap" // types.Map ↔ map[string]bool, int32, int64, float32, float64
 	convUint64Map = "uint64map" // types.Map of Int64 ↔ map[string]string (D7)
 	convObjectMap = "objectmap" // types.Map ↔ map[string]<SDK type>
+
+	// convGroup is a group of the behavior-overrides file: *<Model> ↔ fields of the SDK struct
+	// of the parent. The API has no object for it.
+	convGroup = "group"
 )
 
 // convField is one field of a convObject.
@@ -212,6 +222,8 @@ type convField struct {
 	ReadEmptyAsNull bool
 	// ReadNullAsEmpty: flatten reads a missing list or set as an empty collection.
 	ReadNullAsEmpty bool
+	// SendNullAsEmpty: expand sends "" for a null string, so the API clears the stored value.
+	SendNullAsEmpty bool
 	// RequestValue is an API value expand always sends. The field is not in the Terraform model.
 	RequestValue string
 	// KeepPriorOrder: flatten returns the items in the order of the prior model, when the
@@ -236,8 +248,9 @@ type convField struct {
 	Value bool
 	// Wrap is set when the API holds the value in wrapper objects that Terraform does not show.
 	Wrap *fieldWrap
-	// FlattenOnly is a computed field of an object that the request and the response share.
-	// Flatten reads it. Expand does not send it: the request does not have it.
+	// FlattenOnly is a field that no request sends, of an object that a request holds, such as
+	// a computed field of an object that the request and the response share. Flatten reads it.
+	// Expand does not send it.
 	FlattenOnly bool
 }
 
@@ -357,18 +370,18 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 		return nil, err
 	}
 	out.Objects = b.objects
-	out.OneOfArms = oneOfArmPaths(r)
+	out.OneOfArms = oneOfArmPaths(r, b.file)
 	out.EnumMaps = b.enumMaps
 	out.WrapHelpers = b.wraps
 	if err := markPrior(out); err != nil {
 		return nil, err
 	}
 	for _, f := range r.Fields {
-		appendCreateField(out, r, f, b.fixedRequest(r.Name, f.Name))
+		appendCreateField(out, r, f, b.fixedRequest(r.Name, f.Name), b.file)
 	}
 	fixed := func(name string) bool { return b.fixedRequest(r.Name, name) }
 	if r.Replace {
-		return out, replaceFields(r, out, fixed)
+		return out, replaceFields(r, out, fixed, b.file)
 	}
 	if err := buildMask(r, out, fixed); err != nil {
 		return nil, err
@@ -378,15 +391,15 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 
 // oneOfArmPaths returns the Terraform paths of every oneOf arm of r, in model
 // order. A list, set, or map step adds nothing to the path.
-func oneOfArmPaths(r *model.Resource) []string {
+func oneOfArmPaths(r *model.Resource, file *overrides.File) []string {
 	var out []string
 	for _, g := range r.Groups {
 		for _, arm := range g.Arms {
-			out = append(out, tfName(arm))
+			out = append(out, rootPath(file.GroupOf(arm), arm).dotted())
 		}
 	}
 	for _, f := range r.Fields {
-		out = typeArmPaths(out, tfName(f.Name), f.Type, map[*model.Type]bool{})
+		out = typeArmPaths(out, rootPath(file.GroupOf(f.Name), f.Name).dotted(), f.Type, map[*model.Type]bool{})
 	}
 	return out
 }
@@ -435,6 +448,7 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 		return err
 	}
 	b.objects = append(b.objects, obj)
+	groups := map[string]*convObject{}
 	for _, f := range b.resource.Fields {
 		fixed := b.fixedRequest(b.resource.Name, f.Name)
 		if !root.has(f) && !(root.expand && fixed) {
@@ -453,6 +467,10 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 		b.markComputedObjectValue(cf, f, root.path == "fields")
 		if err := checkReadEmptyAs(cf); err != nil {
 			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+		}
+		if group := b.file.GroupOf(f.Name); group != "" {
+			b.addToGroup(obj, groups, group, cf)
+			continue
 		}
 		obj.Fields = append(obj.Fields, cf)
 	}
@@ -517,13 +535,16 @@ func (b *convBuilder) rootObject(out *convData, root convRoot, ref sdkRef) (*con
 // works for an object that is a pointer, and for a list or set of objects. Elsewhere it would
 // do nothing, and the released normalization that the line states would be missing.
 func checkReadEmptyAs(cf *convField) error {
+	if cf.SendNullAsEmpty && cf.Conv != convString {
+		return fmt.Errorf("sendNullAsEmpty is supported for a string, not for the %s field %s", cf.Conv, cf.TFName)
+	}
 	if !cf.ReadEmptyAsNull {
 		return nil
 	}
-	if cf.Conv == convString || (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects {
+	if cf.Conv == convString || (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects || (cf.Conv == convStrings && cf.Wrap == nil) {
 		return nil
 	}
-	return fmt.Errorf("readEmptyAs: \"null\" is supported for a string, an object, and a list or set of objects, not for the %s field %s", cf.Conv, cf.TFName)
+	return fmt.Errorf("readEmptyAs: \"null\" is supported for a string, an object, and a list or set of strings or objects, not for the %s field %s", cf.Conv, cf.TFName)
 }
 
 // markComputedObjectValue makes a directly nested computed field capable of
@@ -544,22 +565,34 @@ func (b *convBuilder) markComputedObjectValue(cf *convField, f *model.ResourceFi
 // appendCreateField adds a Create field to the unknown-value check. requestValue
 // is not a Terraform attribute. The check reads attributes, so a missing one fails
 // every Create.
-func appendCreateField(out *convData, r *model.Resource, f *model.ResourceField, fixed bool) {
+func appendCreateField(out *convData, r *model.Resource, f *model.ResourceField, fixed bool, file *overrides.File) {
 	if fixed || f.Create == nil {
 		return
 	}
-	out.CreateFields = append(out.CreateFields, &maskField{TFName: tfName(f.Name), ServerDefault: serverDefault(r, f)})
+	out.CreateFields = appendCheckField(out.CreateFields, r, f, file)
+}
+
+// appendCheckField adds the top-level attribute of field f to a request check: the attribute
+// itself, or the group that holds it, once. A group holds no field with a server default.
+func appendCheckField(fields []*maskField, r *model.Resource, f *model.ResourceField, file *overrides.File) []*maskField {
+	if group := file.GroupOf(f.Name); group != "" {
+		if slices.ContainsFunc(fields, func(m *maskField) bool { return m.TFName == group }) {
+			return fields
+		}
+		return append(fields, &maskField{TFName: group})
+	}
+	return append(fields, &maskField{TFName: tfName(f.Name), ServerDefault: serverDefault(r, f)})
 }
 
 // replaceFields sets the Update fields of a full replace. The body has all of
 // them, and the server clears a field that the body does not have.
-func replaceFields(r *model.Resource, out *convData, fixed func(string) bool) error {
+func replaceFields(r *model.Resource, out *convData, fixed func(string) bool, file *overrides.File) error {
 	out.Replace = true
 	for _, f := range r.Fields {
 		// requestValue is not a Terraform attribute. The check reads attributes,
 		// so a missing one fails every Update.
 		if f.Update != nil && !fixed(f.Name) {
-			out.UpdateFields = append(out.UpdateFields, &maskField{TFName: tfName(f.Name), ServerDefault: serverDefault(r, f)})
+			out.UpdateFields = appendCheckField(out.UpdateFields, r, f, file)
 		}
 	}
 	if len(out.UpdateFields) == 0 {
@@ -730,11 +763,7 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 		m.Values = append(m.Values, enumMapValue{TF: over.Zero, API: t.EnumZero})
 	}
 	for _, v := range over.Values {
-		tf := v
-		if !over.Verbatim {
-			tf = strings.ToLower(v)
-		}
-		m.Values = append(m.Values, enumMapValue{TF: tf, API: v})
+		m.Values = append(m.Values, enumMapValue{TF: over.TFValue(v), API: v})
 	}
 	if over.ReadRejected {
 		for _, v := range over.Rejected {
@@ -780,6 +809,7 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	line := b.file.Types[component].Fields[name]
 	cf.ReadEmptyAsNull, cf.KeepPriorOrder = line.ReadEmptyAs == "null", line.KeepPriorOrder
 	cf.ReadNullAsEmpty = line.ReadNullAs == "empty"
+	cf.SendNullAsEmpty = line.SendNullAsEmpty
 	cf.Equality = line.Equality
 	cf.RequestValue = line.RequestValue
 }
@@ -1011,27 +1041,19 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		if obj.Model != modelTypeName(component) {
 			return nil, fmt.Errorf("request component %s holds both %s and %s", t.Schema, obj.Model, modelTypeName(component))
 		}
+		// In existing mode, a request that shares the component leaves out its read-only
+		// fields. The object serves both, so it gets the fields of either walk.
+		if err := b.addMissingFields(obj, ref.Path, component, t); err != nil {
+			return nil, err
+		}
 		return obj, nil
 	}
 	obj := b.object(key, ref)
 	obj.Func, obj.Model = camelize(t.Schema), modelTypeName(component)
 	obj.AttrTypesFunc = lowerFirst(obj.Func) + "AttrTypes"
 	b.objects = append(b.objects, obj)
-	for _, f := range t.Fields {
-		cf, err := b.field(ref.Path, component, f.Name, f.Type, b.sent.responseOnly(component, f), f.Attrs.Presence)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", f.Name, err)
-		}
-		if f.Behavior == model.Computed && (f.Type.Kind == model.Object || f.Type.Kind == model.OneOf) {
-			// The model holds a computed object as a types.Object, which can
-			// be unknown while its parent is known.
-			cf.ObjectValue = true
-			if cf.Conv == convObj && !contains(b.listed, cf.Object) {
-				b.listed = append(b.listed, cf.Object)
-			}
-		}
-		cf.FlattenOnly = cf.Conv != "fixed" && b.sent.responseOnly(component, f)
-		obj.Fields = append(obj.Fields, cf)
+	if err := b.addMissingFields(obj, ref.Path, component, t); err != nil {
+		return nil, err
 	}
 	// A read-only field is absent from the request fields. A requestValue is
 	// still sent, as the root loop sends it, or Create and Update drop the value
@@ -1056,10 +1078,15 @@ func (b *convBuilder) injectReadOnly(obj *convObject, owner string, t *model.Typ
 	for _, f := range t.Fields {
 		present[f.Name] = true
 	}
+	added := map[string]bool{}
+	for _, cf := range obj.Fields {
+		// An earlier use of the shared object can have added the field already.
+		added[cf.TFName] = true
+	}
 	shared := t.Model == t.Schema
 	for _, f := range schemaFields(b.resource, t.Model) {
 		fixed := b.fixedRequest(t.Model, f.Name)
-		if present[f.Name] || !fixed && !shared {
+		if present[f.Name] || added[tfName(f.Name)] || !fixed && !shared {
 			continue
 		}
 		cf, err := b.field(owner, t.Model, f.Name, f.Type, b.sent.responseOnly(t.Model, f), f.Attrs.Presence)
@@ -1120,7 +1147,7 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 		switch {
 		case f.Conv == convTime && expand:
 			return fmt.Errorf("%s: a time that only the response has is in a request", f.TFName)
-		case f.Conv == convObj || f.Conv == convObjects || f.Conv == convObjectMap:
+		case f.Conv == convObj || f.Conv == convObjects || f.Conv == convObjectMap || f.Conv == convGroup:
 			if err := b.mark(f.Object, expand); err != nil {
 				return fmt.Errorf("%s: %w", f.TFName, err)
 			}
@@ -1175,7 +1202,7 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		return "types.MapType{ElemType: types.StringType}", nil
 	case convUint64Map:
 		return "types.MapType{ElemType: types.Int64Type}", nil
-	case convObj, convObjects, convObjectMap:
+	case convObj, convObjects, convObjectMap, convGroup:
 		if err := b.attrTypes(f.Object); err != nil {
 			return "", err
 		}
@@ -1493,7 +1520,7 @@ func propagatePrior(d *convData) {
 		changed = false
 		for _, obj := range d.Objects {
 			for _, f := range obj.Fields {
-				if (f.Conv != convObj && f.Conv != convObjects) || f.Object == nil {
+				if (f.Conv != convObj && f.Conv != convObjects && f.Conv != convGroup) || f.Object == nil {
 					continue
 				}
 				if f.Object.NeedsPrior && !obj.NeedsPrior {
@@ -1627,4 +1654,66 @@ func idGuard(r *model.Resource) string {
 		return ""
 	}
 	return camelize(r.IDParam)
+}
+
+// addToGroup puts the field cf of the root object in its group. The group is an object of its
+// own in Terraform, and its fields are fields of the SDK struct of the root.
+func (b *convBuilder) addToGroup(root *convObject, groups map[string]*convObject, group string, cf *convField) {
+	g, found := groups[group]
+	if !found {
+		g = &convObject{Func: root.Func + camelize(group), Model: groupModelName(b.resource.Name, group), SDK: root.SDK, Group: true, RequireOne: b.file.Groups[group].RequireOne}
+		g.AttrTypesFunc = lowerFirst(g.Func) + "AttrTypes"
+		groups[group] = g
+		b.objects = append(b.objects, g)
+		root.Fields = append(root.Fields, &convField{TFName: group, Model: camelize(group), Conv: convGroup, Object: g})
+	}
+	g.Fields = append(g.Fields, cf)
+}
+
+// addMissingFields adds the fields of t that obj does not have yet. A field that no request
+// sends is FlattenOnly: expand leaves it out, and flatten reads it.
+func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component string, t *model.Type) error {
+	for _, f := range t.Fields {
+		if slices.ContainsFunc(obj.Fields, func(cf *convField) bool { return cf.TFName == tfName(f.Name) }) {
+			// The field is there, but an object inside it can still miss fields.
+			if err := b.mergeNested(f.Type); err != nil {
+				return fmt.Errorf("%s: %w", f.Name, err)
+			}
+			continue
+		}
+		responseOnly := b.sent.responseOnly(component, f)
+		cf, err := b.field(sdkPath, component, f.Name, f.Type, responseOnly, f.Attrs.Presence)
+		if err != nil {
+			return fmt.Errorf("%s: %w", f.Name, err)
+		}
+		cf.FlattenOnly = cf.Conv != "fixed" && responseOnly
+		if f.Behavior == model.Computed && (f.Type.Kind == model.Object || f.Type.Kind == model.OneOf) {
+			// The model holds a computed object as a types.Object, which can
+			// be unknown while its parent is known.
+			cf.ObjectValue = true
+			if cf.Conv == convObj && !contains(b.listed, cf.Object) {
+				b.listed = append(b.listed, cf.Object)
+			}
+		}
+		obj.Fields = append(obj.Fields, cf)
+	}
+	return nil
+}
+
+// mergeNested adds the missing fields of the objects inside t to their shared objects.
+func (b *convBuilder) mergeNested(t *model.Type) error {
+	if t == nil || len(t.Wrappers) != 0 {
+		return nil
+	}
+	switch t.Kind {
+	case model.Object, model.OneOf:
+		if len(t.Fields) == 0 {
+			return nil
+		}
+		_, err := b.nested(t)
+		return err
+	case model.List, model.Set, model.Map:
+		return b.mergeNested(t.Elem)
+	}
+	return nil
 }

@@ -1,0 +1,131 @@
+[
+  {
+    "step": "import a record without productType and missingDataStrategy",
+    "state": null
+  },
+  {
+    "step": "import a record without productType and missingDataStrategy (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/slo/slos/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": null,
+      "description": null,
+      "grouping": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "legacy-defaults",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "missing_data_strategy": "uncounted",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.5,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "drift": [
+      "AttributeName(\"labels\")",
+      "AttributeName(\"name\")",
+      "AttributeName(\"product_type\")",
+      "AttributeName(\"sli\")",
+      "AttributeName(\"sli\").AttributeName(\"apm_sli\")",
+      "AttributeName(\"sli\").AttributeName(\"request_based_metric_sli\")",
+      "AttributeName(\"sli\").AttributeName(\"window_based_metric_sli\")",
+      "AttributeName(\"target_threshold_percentage\")",
+      "AttributeName(\"window\")",
+      "AttributeName(\"window\").AttributeName(\"slo_time_frame\")"
+    ]
+  },
+  {
+    "step": "plan the matching config with missing_data_strategy set",
+    "config": {
+      "name": "legacy-defaults",
+      "sli": {
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "missing_data_strategy": "uncounted",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.5,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "plan": {
+      "apm_sli_metadata": null,
+      "description": null,
+      "grouping": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "legacy-defaults",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "missing_data_strategy": "uncounted",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.5,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "noChange": true,
+    "state": {
+      "apm_sli_metadata": null,
+      "description": null,
+      "grouping": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "legacy-defaults",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": {
+          "comparison_operator": "greater_than",
+          "missing_data_strategy": "uncounted",
+          "query": {
+            "query": "sum(rate(up[1m])) by (job)"
+          },
+          "threshold": 0.5,
+          "window": "1_minute"
+        }
+      },
+      "target_threshold_percentage": 99,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    }
+  }
+]
