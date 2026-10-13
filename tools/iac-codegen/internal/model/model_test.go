@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
+	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
 )
 
@@ -392,7 +393,7 @@ func TestNestedPresenceContract(t *testing.T) {
           type: boolean
 `)
 	proxy := doc.Components.Schemas.GetOrZero("Nested")
-	if codes := reportCodes(nestedPresenceIssues(Policy{}, "request.config", proxy, nil, false, map[presenceVisit]bool{})); !slices.Contains(codes, "FIELD_PRESENCE_UNKNOWN") {
+	if codes := reportCodes(nestedPresenceIssues(Policy{}, "request.config", proxy, nil, nil, false, map[presenceVisit]bool{})); !slices.Contains(codes, "FIELD_PRESENCE_UNKNOWN") {
 		t.Fatalf("codes %v do not contain FIELD_PRESENCE_UNKNOWN", codes)
 	}
 
@@ -405,7 +406,7 @@ func TestNestedPresenceContract(t *testing.T) {
           x-coralogix-presence: true
 `)
 	proxy = doc.Components.Schemas.GetOrZero("Nested")
-	if report := nestedPresenceIssues(Policy{}, "request.config", proxy, nil, false, map[presenceVisit]bool{}); len(report) != 0 {
+	if report := nestedPresenceIssues(Policy{}, "request.config", proxy, nil, nil, false, map[presenceVisit]bool{}); len(report) != 0 {
 		t.Fatal(report)
 	}
 
@@ -420,8 +421,234 @@ func TestNestedPresenceContract(t *testing.T) {
         - required: [b]
 `)
 	proxy = doc.Components.Schemas.GetOrZero("Choice")
-	if report := nestedPresenceIssues(Policy{}, "request.choice", proxy, nil, false, map[presenceVisit]bool{}); len(report) != 0 {
+	if report := nestedPresenceIssues(Policy{}, "request.choice", proxy, nil, nil, false, map[presenceVisit]bool{}); len(report) != 0 {
 		t.Fatalf("oneOf arms use their union presence and need no annotation: %v", report)
+	}
+}
+
+// A field that Create requires is Required in Terraform and never empty, so Update always sends a
+// value. Update needs no presence mark for it, at the top level and nested. A field that Create
+// does not require still needs the mark in Update.
+func TestCreateRequiredFieldNeedsNoUpdatePresence(t *testing.T) {
+	create, update, get := presenceContract(t)
+	if report := validateFieldContract(Policy{}, "Thing", "version", create, update, get); len(report) != 0 {
+		t.Fatalf("top-level field that Create requires: %v", report)
+	}
+	report := validateFieldContract(Policy{}, "Thing", "spec", create, update, get)
+	if len(report) != 1 || report[0].Code != "FIELD_PRESENCE_UNKNOWN" || !strings.HasSuffix(report[0].Location, "spec.update.note") {
+		t.Fatalf("report = %v, want only FIELD_PRESENCE_UNKNOWN on spec.update.note", report)
+	}
+}
+
+// A skipped field is never sent, so the fields inside it need no presence mark. This holds for
+// a skipped top-level field and for a skipped nested field.
+func TestSkippedFieldNeedsNoPresence(t *testing.T) {
+	create, update, get := presenceContract(t)
+	for _, skip := range []string{"Thing.spec", "SpecUpdate.note"} {
+		if report := validateFieldContract(Policy{Skip: []string{skip}}, "Thing", "spec", create, update, get); len(report) != 0 {
+			t.Fatalf("skip %s: %v", skip, report)
+		}
+	}
+}
+
+// presenceContract returns the Create, Update, and Get schemas of Thing. Create requires version
+// and spec.version. spec.note is optional and has no presence mark in Update.
+func presenceContract(t *testing.T) (create, update, get *base.Schema) {
+	t.Helper()
+	doc := loadComponent(t, `
+    SpecCreate:
+      type: object
+      required: [version]
+      properties:
+        version: {type: string, minLength: 1}
+        note: {type: string, x-coralogix-presence: true}
+    SpecUpdate:
+      type: object
+      properties:
+        version: {type: string, minLength: 1}
+        note: {type: string}
+    Spec:
+      type: object
+      required: [version]
+      properties:
+        version: {type: string, minLength: 1}
+        note: {type: string}
+    ThingCreate:
+      type: object
+      required: [version, spec]
+      properties:
+        version: {type: string, minLength: 1}
+        spec:
+          allOf: [{$ref: '#/components/schemas/SpecCreate'}]
+    ThingUpdate:
+      type: object
+      properties:
+        version: {type: string, minLength: 1}
+        spec:
+          allOf: [{$ref: '#/components/schemas/SpecUpdate'}]
+    Thing:
+      type: object
+      required: [version, spec]
+      properties:
+        version: {type: string, minLength: 1}
+        spec:
+          allOf: [{$ref: '#/components/schemas/Spec'}]
+`)
+	schema := func(name string) *base.Schema {
+		t.Helper()
+		s, err := schemaOf(doc.Components.Schemas.GetOrZero(name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	return schema("ThingCreate"), schema("ThingUpdate"), schema("Thing")
+}
+
+// A described message is allOf of one $ref. The checks use the inner properties and the
+// union of the required lists. A required string inside the ref is not an optional field.
+func TestValidationWalksAllOfRef(t *testing.T) {
+	doc := loadComponent(t, `
+    Inner:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        enabled:
+          type: boolean
+    Wrapped:
+      description: a described message
+      allOf:
+        - $ref: '#/components/schemas/Inner'
+`)
+	proxy := doc.Components.Schemas.GetOrZero("Wrapped")
+	report := nestedPresenceIssues(Policy{}, "request.family", proxy, nil, nil, false, map[presenceVisit]bool{})
+	for _, item := range report {
+		if item.Location == "request.family.name" {
+			t.Fatalf("required name looks optional: %v", item)
+		}
+	}
+	if !slices.Contains(reportCodes(report), "FIELD_PRESENCE_UNKNOWN") {
+		t.Fatalf("codes %v do not contain FIELD_PRESENCE_UNKNOWN for enabled", report)
+	}
+
+	doc = loadComponent(t, `
+    Inner:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          x-coralogix-presence: true
+    Wrapped:
+      allOf:
+        - $ref: '#/components/schemas/Inner'
+`)
+	proxy = doc.Components.Schemas.GetOrZero("Wrapped")
+	if report := nestedPresenceIssues(Policy{}, "request.family", proxy, nil, nil, false, map[presenceVisit]bool{}); len(report) != 0 {
+		t.Fatal(report)
+	}
+
+	doc = loadComponent(t, `
+    Inner:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          default: true
+    Wrapped:
+      allOf:
+        - $ref: '#/components/schemas/Inner'
+`)
+	proxy = doc.Components.Schemas.GetOrZero("Wrapped")
+	if codes := reportCodes(nestedDefaultIssues(Policy{}, "request.family", proxy, true, map[*base.Schema]bool{})); !slices.Contains(codes, "NESTED_FIELD_DEFAULT_UNSUPPORTED") {
+		t.Fatalf("codes %v do not contain NESTED_FIELD_DEFAULT_UNSUPPORTED", codes)
+	}
+
+	// The default can sit on the wrapper of a field, next to allOf, not on the ref.
+	doc = loadComponent(t, `
+    Mode:
+      type: string
+      enum: [MODE_UNSPECIFIED, MODE_FAST]
+    Spec:
+      type: object
+      properties:
+        mode:
+          allOf:
+            - $ref: '#/components/schemas/Mode'
+          default: MODE_FAST
+`)
+	proxy = doc.Components.Schemas.GetOrZero("Spec")
+	if codes := reportCodes(nestedDefaultIssues(Policy{}, "request.spec", proxy, true, map[*base.Schema]bool{})); !slices.Contains(codes, "NESTED_FIELD_DEFAULT_UNSUPPORTED") {
+		t.Fatalf("codes %v do not contain NESTED_FIELD_DEFAULT_UNSUPPORTED for a default on the wrapper", codes)
+	}
+
+	doc = loadComponent(t, `
+    Inner:
+      type: object
+      properties:
+        secret:
+          type: string
+          writeOnly: true
+        name:
+          type: string
+          pattern: '^(?!x)[a-z]+$'
+    Wrapped:
+      allOf:
+        - $ref: '#/components/schemas/Inner'
+`)
+	proxy = doc.Components.Schemas.GetOrZero("Wrapped")
+	codes := reportCodes(unsupportedSchemaIssues(Policy{}, "request.family", proxy, true, map[*base.Schema]bool{}))
+	for _, want := range []string{"FIELD_WRITE_ONLY_UNSUPPORTED", "STRING_PATTERN_UNSUPPORTED"} {
+		if !slices.Contains(codes, want) {
+			t.Fatalf("codes %v do not contain %s", codes, want)
+		}
+	}
+
+	doc = loadComponent(t, `
+    Inner:
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+    Wrapped:
+      allOf:
+        - $ref: '#/components/schemas/Inner'
+`)
+	proxy = doc.Components.Schemas.GetOrZero("Wrapped")
+	if codes := reportCodes(nestedReadOnlyIssues(Policy{}, "request.family", proxy, map[*base.Schema]bool{})); !slices.Contains(codes, "FIELD_LIFECYCLE_UNSUPPORTED") {
+		t.Fatalf("codes %v do not contain FIELD_LIFECYCLE_UNSUPPORTED", codes)
+	}
+
+	// The response schema is also allOf of one $ref. The inner component is a wrapper
+	// that collapses, so the property inside it needs no presence mark.
+	doc = loadComponent(t, `
+    Box:
+      type: object
+      required: [value]
+      properties:
+        value:
+          type: string
+    Holder:
+      type: object
+      properties:
+        box:
+          allOf:
+            - $ref: '#/components/schemas/Box'
+    Request:
+      allOf:
+        - $ref: '#/components/schemas/Holder'
+    Response:
+      allOf:
+        - $ref: '#/components/schemas/Holder'
+`)
+	request := doc.Components.Schemas.GetOrZero("Request")
+	response := doc.Components.Schemas.GetOrZero("Response")
+	policy := Policy{Existing: true, Unwrap: []string{"Box"}}
+	if report := nestedPresenceIssues(policy, "request", request, response, nil, false, map[presenceVisit]bool{}); len(report) != 0 {
+		t.Fatalf("collapsed wrapper property needs no presence mark: %v", report)
 	}
 }
 

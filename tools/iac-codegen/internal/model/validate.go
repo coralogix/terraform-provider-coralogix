@@ -556,13 +556,18 @@ func validateFieldContract(p Policy, name, field string, create, update, get *ba
 	// the contract need not say whether omission differs from an empty value.
 	if !p.released(name, field) {
 		report = append(report, fieldPresenceIssue(location+".create", field, create, cp)...)
-		report = append(report, fieldPresenceIssue(location+".update", field, update, up)...)
+		if !createRequires(create, cp, field) {
+			report = append(report, fieldPresenceIssue(location+".update", field, update, up)...)
+		}
 	}
 	// The response decides which wrappers collapse, as in the generated resource: a request can
 	// name its components differently.
 	wrapped := p.unwraps(name, field, wrapperComponent(gp))
-	report = append(report, nestedPresenceIssues(p, location+".create", cp, gp, wrapped, map[presenceVisit]bool{})...)
-	report = append(report, nestedPresenceIssues(p, location+".update", up, gp, wrapped, map[presenceVisit]bool{})...)
+	// A skipped field is never sent, so the fields inside it need no presence.
+	if !p.skips(name, field) {
+		report = append(report, nestedPresenceIssues(p, location+".create", cp, gp, nil, wrapped, map[presenceVisit]bool{})...)
+		report = append(report, nestedPresenceIssues(p, location+".update", up, gp, cp, wrapped, map[presenceVisit]bool{})...)
+	}
 	report = append(report, nestedReadOnlyIssues(p, location+".create", cp, map[*base.Schema]bool{})...)
 	report = append(report, nestedReadOnlyIssues(p, location+".update", up, map[*base.Schema]bool{})...)
 	report = append(report, unsupportedSchemaIssues(p, location+".create", cp, true, map[*base.Schema]bool{})...)
@@ -747,18 +752,20 @@ func nestedDefaultIssues(p Policy, location string, proxy *base.SchemaProxy, roo
 		return nil
 	}
 	seen[schema] = true
+	object, _, _ := validationObject(schema)
 	var report issue.Report
-	if !root && schema.Default != nil && !p.Existing {
+	// The default can sit on the allOf wrapper or on the schema it names.
+	if !root && (schema.Default != nil || object.Default != nil) && !p.Existing {
 		report = append(report, issue.Issue{Code: "NESTED_FIELD_DEFAULT_UNSUPPORTED", Location: location, Message: "A nested request field declares a server default.", Remediation: "Move the defaulted value to a top-level field or wait for nested server-default support."})
 	}
-	for _, name := range propertyNames(schema) {
-		report = append(report, nestedDefaultIssues(p, location+"."+name, propertyOf(schema, name), false, seen)...)
+	for _, name := range propertyNames(object) {
+		report = append(report, nestedDefaultIssues(p, location+"."+name, propertyOf(object, name), false, seen)...)
 	}
-	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, nestedDefaultIssues(p, location+"[]", schema.Items.A, false, seen)...)
+	if object.Items != nil && object.Items.IsA() {
+		report = append(report, nestedDefaultIssues(p, location+"[]", object.Items.A, false, seen)...)
 	}
-	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, nestedDefaultIssues(p, location+"{}", schema.AdditionalProperties.A, false, seen)...)
+	if object.AdditionalProperties != nil && object.AdditionalProperties.IsA() {
+		report = append(report, nestedDefaultIssues(p, location+"{}", object.AdditionalProperties.A, false, seen)...)
 	}
 	return report
 }
@@ -776,21 +783,27 @@ func unsupportedSchemaIssues(p Policy, location string, proxy *base.SchemaProxy,
 		return nil
 	}
 	seen[schema] = true
+	object, _, _ := validationObject(schema)
 	var report issue.Report
-	if schema.WriteOnly != nil && *schema.WriteOnly {
-		report = append(report, issue.Issue{Code: "FIELD_WRITE_ONLY_UNSUPPORTED", Location: location, Message: "The field is writeOnly, but this generator cannot preserve or rotate a value that the API does not return.", Remediation: "Use a handwritten resource until generic write-only state and version handling is supported."})
+	for _, target := range []*base.Schema{schema, object} {
+		if target.WriteOnly != nil && *target.WriteOnly {
+			report = append(report, issue.Issue{Code: "FIELD_WRITE_ONLY_UNSUPPORTED", Location: location, Message: "The field is writeOnly, but this generator cannot preserve or rotate a value that the API does not return.", Remediation: "Use a handwritten resource until generic write-only state and version handling is supported."})
+		}
+		if request && !p.Existing {
+			report = append(report, patternIssues(location, target)...)
+		}
+		if target == object {
+			break
+		}
 	}
-	if request && !p.Existing {
-		report = append(report, patternIssues(location, schema)...)
+	for _, name := range propertyNames(object) {
+		report = append(report, unsupportedSchemaIssues(p, location+"."+name, propertyOf(object, name), request, seen)...)
 	}
-	for _, name := range propertyNames(schema) {
-		report = append(report, unsupportedSchemaIssues(p, location+"."+name, propertyOf(schema, name), request, seen)...)
+	if object.Items != nil && object.Items.IsA() {
+		report = append(report, unsupportedSchemaIssues(p, location+"[]", object.Items.A, request, seen)...)
 	}
-	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, unsupportedSchemaIssues(p, location+"[]", schema.Items.A, request, seen)...)
-	}
-	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, unsupportedSchemaIssues(p, location+"{}", schema.AdditionalProperties.A, request, seen)...)
+	if object.AdditionalProperties != nil && object.AdditionalProperties.IsA() {
+		report = append(report, unsupportedSchemaIssues(p, location+"{}", object.AdditionalProperties.A, request, seen)...)
 	}
 	return report
 }
@@ -865,21 +878,26 @@ func nestedReadOnlyIssues(p Policy, location string, proxy *base.SchemaProxy, se
 		return nil
 	}
 	seen[schema] = true
+	object, ref, _ := validationObject(schema)
+	component := proxy
+	if ref != nil {
+		component = ref
+	}
 	var report issue.Report
-	for _, name := range propertyNames(schema) {
-		child := propertyOf(schema, name)
+	for _, name := range propertyNames(object) {
+		child := propertyOf(object, name)
 		childSchema, childErr := schemaOf(child)
 		if childErr != nil {
 			continue
 		}
 		childLocation := location + "." + name
-		if p.skips(referencedComponent(proxy), name) {
+		if p.skips(referencedComponent(component), name) {
 			continue // the resource does not manage this field, so it is never sent
 		}
 		if childSchema.ReadOnly != nil && *childSchema.ReadOnly {
 			// requestValue sends a fixed value, so the field is not a server-only
 			// property the renderer has to drop.
-			if p.fixedRequest(referencedComponent(proxy), name) {
+			if p.fixedRequest(referencedComponent(component), name) {
 				continue
 			}
 			report = append(report, issue.Issue{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: childLocation, Message: "A nested request field is readOnly and cannot be removed by the current resource renderer.", Remediation: "Use separate request and response schemas so server-only fields are absent from request objects."})
@@ -887,11 +905,11 @@ func nestedReadOnlyIssues(p Policy, location string, proxy *base.SchemaProxy, se
 		}
 		report = append(report, nestedReadOnlyIssues(p, childLocation, child, seen)...)
 	}
-	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, nestedReadOnlyIssues(p, location+"[]", schema.Items.A, seen)...)
+	if object.Items != nil && object.Items.IsA() {
+		report = append(report, nestedReadOnlyIssues(p, location+"[]", object.Items.A, seen)...)
 	}
-	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, nestedReadOnlyIssues(p, location+"{}", schema.AdditionalProperties.A, seen)...)
+	if object.AdditionalProperties != nil && object.AdditionalProperties.IsA() {
+		report = append(report, nestedReadOnlyIssues(p, location+"{}", object.AdditionalProperties.A, seen)...)
 	}
 	return report
 }
@@ -975,6 +993,39 @@ func requiredEmptyIssue(location string, schema *base.Schema) issue.Report {
 	return issue.Report{{Code: "REQUIRED_VALUE_CAN_BE_EMPTY", Location: location, Message: message, Remediation: remediation}}
 }
 
+// validationObject returns the object that a validation walk reads. A schema
+// that is only allOf of one $ref uses the inner properties. required is the
+// union of the required lists on the way. ref is that $ref, so the component
+// name is the inner component. Build still reads schema.Properties: the
+// wrapper required list is empty, and a required inner field would look optional.
+func validationObject(schema *base.Schema) (object *base.Schema, ref *base.SchemaProxy, required []string) {
+	if schema == nil {
+		return nil, nil, nil
+	}
+	required = append([]string{}, schema.Required...)
+	object = schema
+	seen := map[*base.Schema]bool{}
+	for !seen[object] {
+		seen[object] = true
+		inner, err := singleAllOf(object, "schema")
+		if err != nil {
+			break
+		}
+		resolved, err := schemaOf(inner)
+		if err != nil {
+			break
+		}
+		ref = inner
+		for _, name := range resolved.Required {
+			if !slices.Contains(required, name) {
+				required = append(required, name)
+			}
+		}
+		object = resolved
+	}
+	return object, ref, required
+}
+
 // valueSchema returns the schema that an allOf wrapper of one $ref names, or
 // schema itself.
 func valueSchema(schema *base.Schema) *base.Schema {
@@ -1049,20 +1100,45 @@ func stringZeroValueValid(schema *base.Schema) bool {
 	return err == nil && re.MatchString(value)
 }
 
+// createRequires reports whether Create requires the field. Terraform then requires it, and a
+// required value is never empty, so Update always sends a value: omission and an empty value
+// never differ there, and Update needs no presence mark.
+func createRequires(create *base.Schema, cp *base.SchemaProxy, field string) bool {
+	return cp != nil && slices.Contains(create.Required, field)
+}
+
+// asksPresence reports whether a nested field must state presence. A field with a line keeps its
+// released behavior. A field that Create requires in the same place needs no mark in Update, as
+// createRequires says.
+func asksPresence(p Policy, component *base.SchemaProxy, name string, createRequired []string) bool {
+	return !p.released(referencedComponent(component), name) && !slices.Contains(createRequired, name)
+}
+
+// unsentField reports whether Terraform never sends a nested request field: the field is
+// readOnly, or a line skips it.
+func unsentField(p Policy, component *base.SchemaProxy, name string, child *base.SchemaProxy) bool {
+	if p.skips(referencedComponent(component), name) {
+		return true
+	}
+	schema, err := schemaOf(child)
+	return err == nil && schema.ReadOnly != nil && *schema.ReadOnly
+}
+
 // presenceVisit is one request schema that nestedPresenceIssues checked, with the response
 // schema in the same place, as a wrapper that collapses or as an object. A component can be
 // both, in two places.
 type presenceVisit struct {
-	schema, get *base.Schema
-	wrapped     bool
+	schema, get, create *base.Schema
+	wrapped             bool
 }
 
 // nestedPresenceIssues reports the nested request fields that do not state presence. get is the
 // response schema in the same place. wrapped is true when proxy, or the items of the list that
 // proxy is, is a wrapper that collapses: the wrapper states the presence of its property,
 // because Terraform null sends no wrapper. The response components decide which wrappers
-// collapse, as they do in the generated resource.
-func nestedPresenceIssues(p Policy, location string, proxy, get *base.SchemaProxy, wrapped bool, seen map[presenceVisit]bool) issue.Report {
+// collapse, as they do in the generated resource. create is the Create schema in the same
+// place when proxy is an Update schema, and nil otherwise.
+func nestedPresenceIssues(p Policy, location string, proxy, get, create *base.SchemaProxy, wrapped bool, seen map[presenceVisit]bool) issue.Report {
 	if proxy == nil {
 		return nil
 	}
@@ -1071,31 +1147,40 @@ func nestedPresenceIssues(p Policy, location string, proxy, get *base.SchemaProx
 		return nil
 	}
 	getSchema, _ := schemaOf(get)
-	visit := presenceVisit{schema, getSchema, wrapped}
+	createSchema, _ := schemaOf(create)
+	visit := presenceVisit{schema, getSchema, createSchema, wrapped}
 	if seen[visit] {
 		return nil
 	}
 	seen[visit] = true
+	object, ref, required := validationObject(schema)
+	component := proxy
+	if ref != nil {
+		component = ref
+	}
+	parent := *object
+	parent.Required = required
+	getObject, _, _ := validationObject(getSchema)
+	createObject, _, createRequired := validationObject(createSchema)
 	var report issue.Report
 	grouped := groupedFields(schema)
 	owner, _ := componentName(unwrapRef(get))
-	for _, name := range propertyNames(schema) {
-		child := propertyOf(schema, name)
-		childSchema, childErr := schemaOf(child)
-		if childErr == nil && childSchema.ReadOnly != nil && *childSchema.ReadOnly {
+	for _, name := range propertyNames(object) {
+		child := propertyOf(object, name)
+		if unsentField(p, component, name, child) {
 			continue
 		}
-		if !wrapped && !grouped[name] && !p.released(referencedComponent(proxy), name) {
-			report = append(report, fieldPresenceIssue(location+"."+name, name, schema, child)...)
+		if !wrapped && !grouped[name] && asksPresence(p, component, name, createRequired) {
+			report = append(report, fieldPresenceIssue(location+"."+name, name, &parent, child)...)
 		}
-		getChild := propertyOf(getSchema, name)
-		report = append(report, nestedPresenceIssues(p, location+"."+name, child, getChild, p.unwraps(owner, name, wrapperComponent(getChild)), seen)...)
+		getChild := propertyOf(getObject, name)
+		report = append(report, nestedPresenceIssues(p, location+"."+name, child, getChild, propertyOf(createObject, name), p.unwraps(owner, name, wrapperComponent(getChild)), seen)...)
 	}
-	if schema.Items != nil && schema.Items.IsA() {
-		report = append(report, nestedPresenceIssues(p, location+"[]", schema.Items.A, itemsOf(getSchema), wrapped, seen)...)
+	if object.Items != nil && object.Items.IsA() {
+		report = append(report, nestedPresenceIssues(p, location+"[]", object.Items.A, itemsOf(getObject), itemsOf(createObject), wrapped, seen)...)
 	}
-	if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
-		report = append(report, nestedPresenceIssues(p, location+"{}", schema.AdditionalProperties.A, nil, false, seen)...)
+	if object.AdditionalProperties != nil && object.AdditionalProperties.IsA() {
+		report = append(report, nestedPresenceIssues(p, location+"{}", object.AdditionalProperties.A, nil, nil, false, seen)...)
 	}
 	return report
 }
