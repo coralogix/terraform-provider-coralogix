@@ -1,6 +1,7 @@
 package overrides
 
 import (
+	"fmt"
 	"reflect"
 	"slices"
 	"strings"
@@ -85,8 +86,7 @@ func TestParseIsStrict(t *testing.T) {
 		"no resource":     {"mode: existing\n", "resource is required"},
 		"wrong mode":      {"resource: Thing\nmode: new\n", `mode is "new"`},
 		"no mode":         {"resource: Thing\n", `mode is ""`},
-		"no validators":   {"resource: Thing\nmode: existing\n", "validators.inferred: false is required"},
-		"inferred true":   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: true\n", "validators.inferred: false is required"},
+		"no validators":   {"resource: Thing\nmode: existing\n", "validators.inferred is required"},
 		"bad readEmptyAs": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {readEmptyAs: zero}\n", "readEmptyAs"},
 		"bad default":     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {default: [a]}\n", "default is"},
 		"two validators":  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {validators: [{oneOf: [a], sizeAtLeast: 1}]}\n", "exactly one"},
@@ -119,6 +119,19 @@ func TestAValidatorSetsExactlyOneKey(t *testing.T) {
 	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {validators: [{enum: true, oneOf: [a]}]}\n"))
 	if err == nil || !strings.Contains(err.Error(), "exactly one") {
 		t.Fatalf("err = %v, want an error about the validator keys", err)
+	}
+}
+
+// A resource without a released version may keep the limits of the contract as validators.
+func TestInferredValidatorsOfAnUnreleasedResource(t *testing.T) {
+	for _, inferred := range []bool{true, false} {
+		file, err := Parse([]byte(fmt.Sprintf("resource: R\nmode: existing\nvalidators:\n  inferred: %t\n", inferred)))
+		if err != nil {
+			t.Fatalf("inferred %t: %v", inferred, err)
+		}
+		if got := file.Policy().NoInferredValidators; got != !inferred {
+			t.Fatalf("inferred %t: NoInferredValidators = %t", inferred, got)
+		}
 	}
 }
 
@@ -260,6 +273,18 @@ func TestUnwrapPolicy(t *testing.T) {
 	for _, line := range f.Lines() {
 		if !slices.Contains(line.Keys, "unwrap") {
 			t.Errorf("line %s keys = %v, want unwrap", line, line.Keys)
+		}
+	}
+}
+
+func TestRejectUnknownOfAnUnreleasedResource(t *testing.T) {
+	for _, reject := range []bool{false, true} {
+		file, err := Parse([]byte(fmt.Sprintf("resource: R\nmode: existing\nvalidators:\n  inferred: true\n  rejectUnknown: %t\n", reject)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := file.Policy().RejectUnknown; got != reject {
+			t.Fatalf("rejectUnknown %t: Policy().RejectUnknown = %t", reject, got)
 		}
 	}
 }

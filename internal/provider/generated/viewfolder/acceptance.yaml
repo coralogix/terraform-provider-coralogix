@@ -1,0 +1,3 @@
+# Generated acceptance test for coralogix_view_folder.
+resource: ViewFolder
+upgradeFrom: "3.20.0"
