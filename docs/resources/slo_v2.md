@@ -230,7 +230,7 @@ resource "coralogix_alert" "slo_alert_error_budget" {
 - `name` (String) SLO name.
 - `sli` (Attributes) SLI definition: exactly one of request_based_metric_sli, window_based_metric_sli or apm_sli must be provided. (see [below for nested schema](#nestedatt--sli))
 - `target_threshold_percentage` (Number) The target threshold percentage.
-- `window` (Attributes) SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 7_days, unspecified. (see [below for nested schema](#nestedatt--window))
+- `window` (Attributes) SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified. (see [below for nested schema](#nestedatt--window))
 
 ### Optional
 
@@ -362,7 +362,7 @@ Required:
 
 Required:
 
-- `slo_time_frame` (String) SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 7_days, unspecified.
+- `slo_time_frame` (String) SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified.
 
 
 <a id="nestedatt--ownership_tags"></a>

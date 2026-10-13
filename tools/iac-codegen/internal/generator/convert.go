@@ -54,9 +54,9 @@ type convData struct {
 	EnumMaps []*enumMap
 	// WrapHelpers are the functions that put a value in its API wrapper objects and take it out.
 	WrapHelpers []*wrapHelper
-	// Existing: the resource has users. An unknown planned value of a computed attribute is
-	// left out of the request, and the server supplies it, as the released resource did.
-	Existing bool
+	// AcceptUnknown: the resource has users. An unknown planned value of a computed attribute
+	// is left out of the request, and the server supplies it, as the released resource did.
+	AcceptUnknown bool
 	// UpdateMaskField is the SDK field of the JSON-body update mask.
 	// UpdateMaskPointer is true when that field is *string.
 	UpdateMaskField   string
@@ -243,9 +243,10 @@ type convField struct {
 	Value bool
 	// Wrap is set when the API holds the value in wrapper objects that Terraform does not show.
 	Wrap *fieldWrap
-	// NotSent: no request sends the field, although the object that holds it is in a request.
-	// Expand leaves it out.
-	NotSent bool
+	// FlattenOnly is a field that no request sends, of an object that a request holds, such as
+	// a computed field of an object that the request and the response share. Flatten reads it.
+	// Expand does not send it.
+	FlattenOnly bool
 }
 
 // Dst is the Go expression that expand writes the value to: the SDK field, or the value inside
@@ -334,7 +335,7 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 		return nil, err
 	}
 	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, file: file, resource: r, sent: sentFields(r)}
-	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, Existing: r.Policy.Existing}
+	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, AcceptUnknown: r.Policy.Existing && !r.Policy.RejectUnknown}
 	if err := out.setBodyMask(ix, r); err != nil {
 		return nil, err
 	}
@@ -1045,18 +1046,22 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	if err := b.addMissingFields(obj, ref.Path, component, t); err != nil {
 		return nil, err
 	}
-	// A read-only requestValue is absent from the request fields. The root loop
-	// still sends it. A nested object has to do the same, or Create and Update
-	// drop the value the override promised.
-	if err := b.injectFixedRequest(obj, ref.Path, t); err != nil {
+	// A read-only field is absent from the request fields. A requestValue is
+	// still sent, as the root loop sends it, or Create and Update drop the value
+	// the override promised. In a component that the request shares with the
+	// response, the object also flattens the response, so it reads the other
+	// read-only fields and does not send them.
+	if err := b.injectReadOnly(obj, ref.Path, t); err != nil {
 		return nil, err
 	}
 	return obj, nil
 }
 
-// injectFixedRequest adds requestValue fields that the request type omitted
+// injectReadOnly adds the response fields that the request type omitted
 // because the contract marks them read-only. The SDK struct still has them.
-func (b *convBuilder) injectFixedRequest(obj *convObject, owner string, t *model.Type) error {
+// A requestValue field is sent. In a component that the request shares with
+// the response, any other omitted field is flattened and not sent.
+func (b *convBuilder) injectReadOnly(obj *convObject, owner string, t *model.Type) error {
 	if t.Model == "" {
 		return nil
 	}
@@ -1064,14 +1069,22 @@ func (b *convBuilder) injectFixedRequest(obj *convObject, owner string, t *model
 	for _, f := range t.Fields {
 		present[f.Name] = true
 	}
+	added := map[string]bool{}
+	for _, cf := range obj.Fields {
+		// An earlier use of the shared object can have added the field already.
+		added[cf.TFName] = true
+	}
+	shared := t.Model == t.Schema
 	for _, f := range schemaFields(b.resource, t.Model) {
-		if present[f.Name] || !b.fixedRequest(t.Model, f.Name) {
+		fixed := b.fixedRequest(t.Model, f.Name)
+		if present[f.Name] || added[tfName(f.Name)] || !fixed && !shared {
 			continue
 		}
 		cf, err := b.field(owner, t.Model, f.Name, f.Type, b.sent.responseOnly(t.Model, f), f.Attrs.Presence)
 		if err != nil {
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
+		cf.FlattenOnly = !fixed
 		obj.Fields = append(obj.Fields, cf)
 	}
 	return nil
@@ -1649,7 +1662,7 @@ func (b *convBuilder) addToGroup(root *convObject, groups map[string]*convObject
 }
 
 // addMissingFields adds the fields of t that obj does not have yet. A field that no request
-// sends is NotSent: expand leaves it out, and flatten reads it.
+// sends is FlattenOnly: expand leaves it out, and flatten reads it.
 func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component string, t *model.Type) error {
 	for _, f := range t.Fields {
 		if slices.ContainsFunc(obj.Fields, func(cf *convField) bool { return cf.TFName == tfName(f.Name) }) {
@@ -1664,7 +1677,7 @@ func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component strin
 		if err != nil {
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
-		cf.NotSent = responseOnly
+		cf.FlattenOnly = cf.Conv != "fixed" && responseOnly
 		if f.Behavior == model.Computed && (f.Type.Kind == model.Object || f.Type.Kind == model.OneOf) {
 			// The model holds a computed object as a types.Object, which can
 			// be unknown while its parent is known.

@@ -1,15 +1,23 @@
 # Unreleased
 
+#### resource/coralogix_view
+- FEAT: Add `coralogix_view` for a saved Explore view. `name` and `time_selection` are required, and `time_selection` needs exactly one of `quick_selection` or `custom_selection`. `search_query`, `filters`, `folder_id`, `view_type`, and `is_compact_mode` can be set, changed, and removed. An omitted `view_type`, `is_compact_mode`, or `search_query.syntax_type` reads back as the server default (`VIEW_TYPE_LOGS`, `false`, `SYNTAX_TYPE_LUCENE`), and removing one restores that default. A configured `is_compact_mode` is applied with a replace right after create, because create does not take it. `time_selection.quick_selection.caption` is computed. The API stores `time_selection.quick_selection.seconds` as the nearest preset, so set one of the listed presets.
+- CHORE: Bump `coralogix-management-sdk` to the version with the views API contract.
+- FEAT: Validation rejects a `time_selection.quick_selection.seconds` that is not a preset, and a `filters.filters[*].selected_values` entry set to `false`: the API stores the nearest preset and drops false values, so the read would disagree with the plan.
+
+#### resource/coralogix_view_folder
+- CHORE: The resource is generated from the API contract. Schema version stays 1. `id` stays computed and keeps its value when the folder is renamed. `name` stays required and must be between 1 and 100 characters.
+
 #### resource/coralogix_slo_v2
 - CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. The schema, the plan, and the state are unchanged; only the wording of some messages and descriptions differs.
-- FEAT: `window.slo_time_frame` accepts `1_day`. Before, it was rejected, and an SLO with a one-day window read back as `""`.
+- FEAT: `window.slo_time_frame` accepts `1_day` and `30_days`. Before, they were rejected, and an SLO with such a window read back as `""`.
 - CHORE: Bump `coralogix-management-sdk` to the SLO contract that marks server-set fields read-only and requires the APM latency `time_window`.
 
 #### data-source/coralogix_slo_v2
 - CHORE: Uses the schema and the conversion of the generated resource.
 
 #### tools/iac-codegen
-- CHORE: Bump the generator to `v0.1.0-beta.26`.
+- CHORE: Bump the generator to `v0.1.0-beta.27`.
 - FEAT: `groups` in `behavior-overrides.yaml` makes required Terraform objects that hold top-level fields of the resource, for a released resource that nests fields the API holds at the top level. The arms of a top-level oneOf in a group check each other like the arms of a nested oneOf; `requireOne: true` makes them ExactlyOneOf.
 - FEAT: `typeName` names the released resource type when it is not the OpenAPI component (`slo_v2` for `Slo`).
 - FEAT: `enums.<Enum>.trimPrefix` removes a prefix from each value before the Terraform value is made (`SLO_TIME_FRAME_7_DAYS` is `7_days`).
@@ -17,7 +25,6 @@
 - FEAT: `readEmptyAs: "null"` works on a list or set of strings.
 - FEAT: `Hooks.BeforeFlatten` changes the API value before flatten, for a value that only an older record has.
 - FIX: A component that a request shares with the response keeps its read-only fields in flatten. Before, the read-only field was missing from the shared conversion object, and the apply failed with a value conversion error.
-- CHORE: Bump the generator to `v0.1.0-beta.25`.
 - FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.
 - FEAT: `api.serverSetID: true` accepts a server-set id that the Get response does not require, because the request shares the schema. The generated flatten fails when the id is missing. The id must be read-only, or absent, in the Create and Update bodies, also when a body is `allOf: [$ref]`.
 - FIX: An Update with the id in its body sends a server-set id, in the resource that the body wraps or in the body itself. Before, no Update field sent it, so the update request had no id.
@@ -25,6 +32,22 @@
 - FEAT: In existing-resource mode, a read-only field inside a component that the request shares with the response is computed, and the request does not send it. Before, it was an attribute that the user could set, or generation failed.
 - FIX: A request body, or a `requestWrapper` property, written as `allOf: [$ref]` reads as the referenced schema in validation and in the model. Before, `clientSetID` and `updateIDInBody` reported the id missing, and the model sent none of the fields.
 - FIX: A field line on a component that the user sets in one place gives a read-only copy of that component only its text. Before, `required: true` and `computed: false` failed generation with "required: true needs a field that the user sets", and a `default` or `useStateForUnknown` planned a value the server does not set.
+- FEAT: An existing resource whose Update sends the id only in the body (`updateIDInBody`) can have a Create body without the id. The id is computed, and Update sends the value from state.
+- FIX: An inline request body gets the `1` suffix only when a component of the same name is in the same per-tag SDK package, as openapi-generator names it, including components that only a parameter of the tag uses.
+- FIX: Generated Read, Update, and Delete treat only a resource-not-found 404 (`cxsdk.IsNotFound`) as a missing resource. A 404 of a route that does not exist, for example in a region without the service, is now an error and no longer removes the resource from state. This applies to every generated resource: `coralogix_configuration_group`, `coralogix_connector`, `coralogix_global_router`, `coralogix_preset`, `coralogix_view`, and `coralogix_view_folder`.
+- FEAT: A server default can sit next to an enum `$ref`, and Get can state it with the same default instead of `required`. An omitted value then reads as null.
+- FEAT: A field that only Update and Get have, with a declared Update default, is managed. The generated Create follows with an Update when the configuration sets another value. An omitted field that Create stored differently is reset to the default, and an unknown configured value stops Create before the API call.
+- FEAT: A new resource supports a scalar server default on an optional nested field. The attribute is Optional and Computed, a request does not send its unknown value, and an object whose attributes are empty, `""`, or their default reads as the omitted object.
+- FEAT: `validators.inferred: true` keeps the contract limits as validators in existing mode, and a `required: true` line states the presence of a required number in a nested component.
+- FEAT: A nested server default also applies to an existing-mode field without a line.
+- FEAT: `validators.rejectUnknown: true` gives an existing-mode resource without a released version the unknown-value check of a new resource. `coralogix_view` sets it.
+- FIX: A `$ref` with a sibling other than `default`, a descriptive keyword, `x-coralogix-presence`, or a foreign `x-` extension is an error. Before, the type came from the target and the sibling, such as `pattern`, `prefixItems`, or `x-coralogix-collection`, was lost. A default next to a `$ref` is checked against the type and limits of the target.
+- FIX: Only an object that holds an attribute with a server default reads `""` or that default as empty. Before, every object did once the resource had a nested default.
+- FIX: A server default that Get does not require keeps a configured default when a read omits the value, at the top level and in a nested object. Before, the read stored null and the apply was inconsistent.
+- FIX: The Update that follows Create for an Update-only field sends the state id in the body when only the server sets the id, as the normal Update does.
+- FIX: A configured value that is still unknown stops Create and Update, also for a nested field with a server default. Before, the request dropped it as if it were omitted.
+- FIX: A nested server default inside a set is an error. Flatten cannot match a set element that a read returns without the default to the configured element, so it could not keep the configured default.
+- FIX: The unknown-value check and the change check drop server-set values inside a set of objects, as they do in a list or map. Before, an unknown server-set child of a set element blocked Create and Update.
 
 # Release 3.21.0
 

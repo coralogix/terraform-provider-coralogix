@@ -158,7 +158,7 @@ target_threshold_percentage  Float32Attribute required
     markdown: "The target threshold percentage."
     validator: float32validator.betweenValidator value must be between 0.000000 and 100.000000
 window  SingleNestedAttribute required
-    markdown: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 7_days, unspecified."
+    markdown: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified."
 window.slo_time_frame  StringAttribute required
-    markdown: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 7_days, unspecified."
-    validator: stringvalidator.oneOfValidator value must be one of: ["14_days" "1_day" "21_days" "28_days" "7_days" "unspecified"]
+    markdown: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified."
+    validator: stringvalidator.oneOfValidator value must be one of: ["14_days" "1_day" "21_days" "28_days" "30_days" "7_days" "unspecified"]

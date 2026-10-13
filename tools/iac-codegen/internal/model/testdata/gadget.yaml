@@ -1,0 +1,101 @@
+# A new resource whose replace body is the resource itself, as the views API has it.
+# - mode: an enum with a server default next to its $ref in Create. Replace and the response
+#   declare none: an older record reads back without the value, which is not the default.
+# - compact: only replace sets it. Create stores the default.
+# - search.syntax: a nested enum with a server default.
+openapi: 3.1.0
+info: {title: gadget, version: 1.0.0}
+paths:
+  /gadgets:
+    post:
+      tags: [Gadgets Service]
+      operationId: GadgetsService_CreateGadget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CreateGadgetRequest
+              type: object
+              required: [name]
+              properties:
+                name: {type: string, minLength: 1, x-coralogix-presence: true}
+                mode:
+                  $ref: '#/components/schemas/GadgetMode'
+                  default: GADGET_MODE_BASIC
+                search: {$ref: '#/components/schemas/GadgetSearch'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Gadget'}
+  /gadgets/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Gadgets Service]
+      operationId: GadgetsService_GetGadget
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Gadget'}
+    put:
+      tags: [Gadgets Service]
+      operationId: GadgetsService_ReplaceGadget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: ReplaceGadgetRequest
+              type: object
+              required: [name]
+              properties:
+                name: {type: string, minLength: 1, x-coralogix-presence: true}
+                mode: {$ref: '#/components/schemas/GadgetMode'}
+                compact: {type: boolean, default: false, x-coralogix-presence: true}
+                search: {$ref: '#/components/schemas/GadgetSearch'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Gadget'}
+    delete:
+      tags: [Gadgets Service]
+      operationId: GadgetsService_DeleteGadget
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {type: object, required: []}
+components:
+  schemas:
+    Gadget:
+      type: object
+      required: [id, name]
+      properties:
+        id: {type: string, readOnly: true, x-coralogix-presence: true}
+        name: {type: string, minLength: 1, x-coralogix-presence: true}
+        mode: {$ref: '#/components/schemas/GadgetMode'}
+        compact: {type: boolean, default: false, x-coralogix-presence: true}
+        search: {$ref: '#/components/schemas/GadgetSearch'}
+    GadgetSearch:
+      type: object
+      required: [text]
+      properties:
+        text: {type: string, minLength: 1, x-coralogix-presence: true}
+        syntax:
+          $ref: '#/components/schemas/GadgetSyntax'
+          default: GADGET_SYNTAX_PLAIN
+    GadgetMode:
+      type: string
+      description: Gadget mode.
+      enum: [GADGET_MODE_UNSPECIFIED, GADGET_MODE_BASIC, GADGET_MODE_EXPERT]
+    GadgetSyntax:
+      type: string
+      enum: [GADGET_SYNTAX_UNSPECIFIED, GADGET_SYNTAX_PLAIN, GADGET_SYNTAX_REGEX]

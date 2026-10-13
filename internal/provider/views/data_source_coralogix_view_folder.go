@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/viewfolder"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
@@ -29,7 +30,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
@@ -64,12 +64,8 @@ func (d *ViewFolderDataSource) Configure(_ context.Context, req datasource.Confi
 	d.client = clientSet.ViewsFolders()
 }
 
-func (d *ViewFolderDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r ViewFolderResource
-	var resourceResp resource.SchemaResponse
-	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
-
-	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+func (d *ViewFolderDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(viewfolder.Schema())
 
 	if idAttr, ok := resp.Schema.Attributes["id"].(schema.StringAttribute); ok {
 		idAttr.Required = false
@@ -88,7 +84,7 @@ func (d *ViewFolderDataSource) Schema(ctx context.Context, _ datasource.SchemaRe
 }
 
 func (d *ViewFolderDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data ViewFolderResourceModel
+	var data viewfolder.ViewFolderModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -104,12 +100,12 @@ func (d *ViewFolderDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	}
 
 	// Exactly one of id/name is set, so match on the one the caller actually gave.
-	byID := !data.ID.IsNull() && !data.ID.IsUnknown()
+	byID := !data.Id.IsNull() && !data.Id.IsUnknown()
 	folders := listResult.GetFolders()
 	var match *viewsfolders.ViewFolder
 	for i := range folders {
 		if byID {
-			if folders[i].GetId() == data.ID.ValueString() {
+			if folders[i].GetId() == data.Id.ValueString() {
 				match = &folders[i]
 				break
 			}
@@ -124,7 +120,7 @@ func (d *ViewFolderDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		if byID {
 			resp.Diagnostics.AddError(
 				"Error reading coralogix_view_folder",
-				fmt.Sprintf("Could not find view folder with id (%s)", data.ID.ValueString()),
+				fmt.Sprintf("Could not find view folder with id (%s)", data.Id.ValueString()),
 			)
 		} else {
 			resp.Diagnostics.AddError(
@@ -135,6 +131,10 @@ func (d *ViewFolderDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		return
 	}
 
-	data = flattenViewFolder(match)
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	flat, diags := viewfolder.Flatten(ctx, match)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, flat)...)
 }

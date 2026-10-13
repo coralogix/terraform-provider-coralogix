@@ -1,0 +1,19 @@
+# Generated acceptance test for coralogix_view.
+# A view can live in a folder. The folder id has to be one the API already stored.
+resource: View
+prerequisites: |
+  resource "coralogix_view_folder" "dependency" {
+    name = "@{run}-folder"
+  }
+values:
+  folder_id: coralogix_view_folder.dependency.id
+  # 3600 is a preset that the service stores unchanged. A made-up number would be stored as the
+  # nearest preset and read back differently.
+  time_selection.quick_selection.seconds: "3600"
+  # The service keeps only the values set to true, so the update config must not set false.
+  filters.filters[].selected_values: "{ key = true }"
+skip:
+  - time_selection.custom_selection
+  - time_selection.quick_selection.caption
+minimal:
+  - time_selection.quick_selection.seconds

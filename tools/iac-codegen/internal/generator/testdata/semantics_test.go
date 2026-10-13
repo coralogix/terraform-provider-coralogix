@@ -701,3 +701,25 @@ func TestNestedServerValuesDoNotBlockCreate(t *testing.T) {
 		t.Fatal("an unknown configured nested value was accepted")
 	}
 }
+
+// A set of objects can hold a server-set child that the plan has as unknown. requestValue
+// drops it from each element, as for a list, so the unknown-value check does not see it.
+func TestRequestValueDropsServerValuesInSets(t *testing.T) {
+	ctx := context.Background()
+	elemType := types.ObjectType{AttrTypes: map[string]attr.Type{"id": types.StringType, "name": types.StringType}}
+	elem, diags := types.ObjectValue(elemType.AttrTypes, map[string]attr.Value{"id": types.StringUnknown(), "name": types.StringValue("t1")})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	set, diags := types.SetValue(elemType, []attr.Value{elem})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	got := requestValue(ctx, "spec.targets", set, &diags)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if paths := unknownValuePaths(path.Root("targets"), got); len(paths) != 0 {
+		t.Fatalf("unknown paths after requestValue = %v, want none", paths)
+	}
+}

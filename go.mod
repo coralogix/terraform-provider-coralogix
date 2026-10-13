@@ -7,7 +7,7 @@ replace github.com/grpc-ecosystem/grpc-gateway/v2 => github.com/coralogix/grpc-g
 require (
 	github.com/ahmetalpbalkan/go-linq v3.0.0+incompatible
 	github.com/cenkalti/backoff/v5 v5.0.3
-	github.com/coralogix/coralogix-management-sdk v1.9.4-0.20261013050000-c7497bfb2fff
+	github.com/coralogix/coralogix-management-sdk v1.9.4-0.20261013103810-6a12b7b55eba
 	github.com/google/uuid v1.6.0
 	github.com/grafana/grafana-api-golang-client v0.27.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
@@ -15,6 +15,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.24.0
 	github.com/hashicorp/terraform-plugin-docs v0.20.1
 	github.com/hashicorp/terraform-plugin-framework v1.17.0
+	github.com/hashicorp/terraform-plugin-framework-timetypes v0.5.0
 	github.com/hashicorp/terraform-plugin-framework-validators v0.19.0
 	github.com/hashicorp/terraform-plugin-go v0.29.0
 	github.com/hashicorp/terraform-plugin-log v0.10.0

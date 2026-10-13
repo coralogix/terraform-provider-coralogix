@@ -8,6 +8,10 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
 
+// updateOnlyAttr is an attribute that Create cannot send, with the Go expression of its
+// declared server default.
+type updateOnlyAttr struct{ Attr, Default string }
+
 // crudData is the template data for the resource: CRUD, import, and the
 // provider data. Every SDK name comes from the checked sdkRefs.
 type crudData struct {
@@ -33,6 +37,10 @@ type crudData struct {
 	UpdateBodyIDValue bool
 	// Existing: the resource has users. The package exports Flatten for a handwritten data source.
 	Existing bool
+	// UpdateOnly are the attributes that Create cannot send. Create follows with an Update
+	// when the configuration sets another value than the one Create stored, or omits the
+	// attribute and Create stored another value than the declared server default.
+	UpdateOnly []updateOnlyAttr
 	// Upgrades are the state upgraders: one per older schema version.
 	Upgrades []upgradeData
 	// MaskInBody: updateMask is an optional JSON body property. Update sets it
@@ -49,7 +57,7 @@ type crudData struct {
 	ProviderPkg, ProviderName string
 	CXPkg, CXName             string
 	ClientSet, Accessor       string
-	NewAPIError, APICode      string
+	NewAPIError, APINotFound  string
 	Create, Get               crudOp
 	Update, Delete            crudOp
 }
@@ -119,6 +127,9 @@ func buildCRUDWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*cru
 	}
 	if file != nil && file.TypeName != "" {
 		out.TypeName = file.TypeName
+	}
+	if err := updateOnlyAttrs(r, out); err != nil {
+		return nil, err
 	}
 	if err := resourceIDData(r, ix, out); err != nil {
 		return nil, err
@@ -302,11 +313,29 @@ func cxsdkNames(ix *refIndex, out *crudData) error {
 	if err != nil {
 		return err
 	}
-	code, err := ix.funcRef("cxsdk.errors", "Code")
+	// IsNotFound tells a missing resource from a 404 of a route that does not
+	// exist, for example in a region without the service. Only the first one
+	// removes the resource from state.
+	notFound, err := ix.funcRef("cxsdk.errors", "IsNotFound")
 	if err != nil {
 		return err
 	}
 	out.CXPkg, out.CXName = pkg.Pkg, pkg.Name
-	out.NewAPIError, out.APICode = newAPIError.Name, code.Name
+	out.NewAPIError, out.APINotFound = newAPIError.Name, notFound.Name
+	return nil
+}
+
+// updateOnlyAttrs lists the fields that only Update takes, with the server default that create stores.
+func updateOnlyAttrs(r *model.Resource, out *crudData) error {
+	for _, f := range r.Fields {
+		if !updateOnly(f) {
+			continue
+		}
+		value, err := serverDefaultValue(f.Type, *declaredDefault(f))
+		if err != nil {
+			return fmt.Errorf("%s: server default: %w", f.Name, err)
+		}
+		out.UpdateOnly = append(out.UpdateOnly, updateOnlyAttr{Attr: tfName(f.Name), Default: value})
+	}
 	return nil
 }

@@ -37,6 +37,31 @@ func TestClassifyFieldLifecycle(t *testing.T) {
 	}
 }
 
+// With updateIDInBody, the id path parameter of Get is a computed field even when only
+// Update sends it. The rule follows the parameter name, and no other field gets it.
+func TestBodyOnlyUpdateIDIsComputed(t *testing.T) {
+	inBody := Policy{UpdateIDInBody: true}
+	tests := []struct {
+		name    string
+		policy  Policy
+		idParam string
+		field   string
+		want    Behavior
+		valid   bool
+	}{
+		{"id in the body", inBody, "id", "id", Computed, true},
+		{"named id parameter", inBody, "folder_id", "folder_id", Computed, true},
+		{"another field", inBody, "folder_id", "id", "", false},
+		{"id in the path", Policy{}, "id", "id", "", false},
+	}
+	for _, test := range tests {
+		got, err := classifyTopLevel(test.policy, test.idParam, test.field, false, true, true, false)
+		if (err == nil) != test.valid || got != test.want {
+			t.Errorf("%s: classifyTopLevel = %q, %v; want %q, valid=%t", test.name, got, err, test.want, test.valid)
+		}
+	}
+}
+
 func TestResolveResourceName(t *testing.T) {
 	doc, err := Load(validSpec(t))
 	if err != nil {
@@ -431,10 +456,10 @@ func TestNestedPresenceContract(t *testing.T) {
 // does not require still needs the mark in Update.
 func TestCreateRequiredFieldNeedsNoUpdatePresence(t *testing.T) {
 	create, update, get := presenceContract(t)
-	if report := validateFieldContract(Policy{}, "Thing", "version", create, update, get); len(report) != 0 {
+	if report := validateFieldContract(Policy{}, "Thing", "id", "version", create, update, get); len(report) != 0 {
 		t.Fatalf("top-level field that Create requires: %v", report)
 	}
-	report := validateFieldContract(Policy{}, "Thing", "spec", create, update, get)
+	report := validateFieldContract(Policy{}, "Thing", "id", "spec", create, update, get)
 	if len(report) != 1 || report[0].Code != "FIELD_PRESENCE_UNKNOWN" || !strings.HasSuffix(report[0].Location, "spec.update.note") {
 		t.Fatalf("report = %v, want only FIELD_PRESENCE_UNKNOWN on spec.update.note", report)
 	}
@@ -445,7 +470,7 @@ func TestCreateRequiredFieldNeedsNoUpdatePresence(t *testing.T) {
 func TestSkippedFieldNeedsNoPresence(t *testing.T) {
 	create, update, get := presenceContract(t)
 	for _, skip := range []string{"Thing.spec", "SpecUpdate.note"} {
-		if report := validateFieldContract(Policy{Skip: []string{skip}}, "Thing", "spec", create, update, get); len(report) != 0 {
+		if report := validateFieldContract(Policy{Skip: []string{skip}}, "Thing", "id", "spec", create, update, get); len(report) != 0 {
 			t.Fatalf("skip %s: %v", skip, report)
 		}
 	}
@@ -562,7 +587,7 @@ func TestValidationWalksAllOfRef(t *testing.T) {
         - $ref: '#/components/schemas/Inner'
 `)
 	proxy = doc.Components.Schemas.GetOrZero("Wrapped")
-	if codes := reportCodes(nestedDefaultIssues(Policy{}, "request.family", proxy, true, map[*base.Schema]bool{})); !slices.Contains(codes, "NESTED_FIELD_DEFAULT_UNSUPPORTED") {
+	if codes := reportCodes(nestedDefaultIssues(Policy{}, "request.family", proxy, false, map[*base.Schema]bool{})); !slices.Contains(codes, "NESTED_FIELD_DEFAULT_UNSUPPORTED") {
 		t.Fatalf("codes %v do not contain NESTED_FIELD_DEFAULT_UNSUPPORTED", codes)
 	}
 
@@ -580,7 +605,7 @@ func TestValidationWalksAllOfRef(t *testing.T) {
           default: MODE_FAST
 `)
 	proxy = doc.Components.Schemas.GetOrZero("Spec")
-	if codes := reportCodes(nestedDefaultIssues(Policy{}, "request.spec", proxy, true, map[*base.Schema]bool{})); !slices.Contains(codes, "NESTED_FIELD_DEFAULT_UNSUPPORTED") {
+	if codes := reportCodes(nestedDefaultIssues(Policy{}, "request.spec", proxy, false, map[*base.Schema]bool{})); !slices.Contains(codes, "NESTED_FIELD_DEFAULT_UNSUPPORTED") {
 		t.Fatalf("codes %v do not contain NESTED_FIELD_DEFAULT_UNSUPPORTED for a default on the wrapper", codes)
 	}
 
@@ -604,22 +629,6 @@ func TestValidationWalksAllOfRef(t *testing.T) {
 		if !slices.Contains(codes, want) {
 			t.Fatalf("codes %v do not contain %s", codes, want)
 		}
-	}
-
-	doc = loadComponent(t, `
-    Inner:
-      type: object
-      properties:
-        id:
-          type: string
-          readOnly: true
-    Wrapped:
-      allOf:
-        - $ref: '#/components/schemas/Inner'
-`)
-	proxy = doc.Components.Schemas.GetOrZero("Wrapped")
-	if codes := reportCodes(nestedReadOnlyIssues(Policy{}, "request.family", proxy, map[*base.Schema]bool{})); !slices.Contains(codes, "FIELD_LIFECYCLE_UNSUPPORTED") {
-		t.Fatalf("codes %v do not contain FIELD_LIFECYCLE_UNSUPPORTED", codes)
 	}
 
 	// The response schema is also allOf of one $ref. The inner component is a wrapper

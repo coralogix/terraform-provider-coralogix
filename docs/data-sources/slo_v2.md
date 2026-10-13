@@ -36,7 +36,7 @@ data "coralogix_slo_v2" "data_example" {
 - `product_type` (String) Product type of the SLO. One of: apm, unspecified. `apm` is only accepted together with `sli.apm_sli`; metric SLIs stay `unspecified`. The backend always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `product_type = "unspecified"` to reset it.
 - `sli` (Attributes) SLI definition: exactly one of request_based_metric_sli, window_based_metric_sli or apm_sli must be provided. (see [below for nested schema](#nestedatt--sli))
 - `target_threshold_percentage` (Number) The target threshold percentage.
-- `window` (Attributes) SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 7_days, unspecified. (see [below for nested schema](#nestedatt--window))
+- `window` (Attributes) SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified. (see [below for nested schema](#nestedatt--window))
 
 <a id="nestedatt--apm_sli_metadata"></a>
 ### Nested Schema for `apm_sli_metadata`
@@ -242,4 +242,4 @@ Read-Only:
 
 Read-Only:
 
-- `slo_time_frame` (String) SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 7_days, unspecified.
+- `slo_time_frame` (String) SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified.

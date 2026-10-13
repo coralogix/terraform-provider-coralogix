@@ -28,12 +28,24 @@ type SharedThing struct {
 	Frame   *SharedFrame
 	ByCount *SharedCount
 	ByRatio *SharedRatio
+	Compact *bool
 }
 
 // SharedThing1 is the inline Create and Update body. It has the title of the SharedThing component.
 type SharedThing1 struct {
 	Id      *string
 	Name    *string
+	Size    *float32
+	Frame   *SharedFrame
+	ByCount *SharedCount
+	ByRatio *SharedRatio
+}
+
+// SharedThingUpdate is the Update body of the variant whose Update has an Update-only field.
+type SharedThingUpdate struct {
+	Id      *string
+	Name    *string
+	Compact *bool
 	Size    *float32
 	Frame   *SharedFrame
 	ByCount *SharedCount
@@ -63,7 +75,8 @@ type ApiSharedThingsServiceGetSharedThingRequest struct {
 	id string
 }
 type ApiSharedThingsServiceReplaceSharedThingRequest struct {
-	body SharedThing1
+	body       SharedThing1
+	updateBody *SharedThingUpdate
 }
 type ApiSharedThingsServiceDeleteSharedThingRequest struct{}
 
@@ -103,6 +116,11 @@ func (r ApiSharedThingsServiceCreateSharedThingRequest) SharedThing1(sharedThing
 
 func (r ApiSharedThingsServiceReplaceSharedThingRequest) SharedThing1(sharedThing1 SharedThing1) ApiSharedThingsServiceReplaceSharedThingRequest {
 	r.body = sharedThing1
+	return r
+}
+
+func (r ApiSharedThingsServiceReplaceSharedThingRequest) SharedThingUpdate(sharedThingUpdate SharedThingUpdate) ApiSharedThingsServiceReplaceSharedThingRequest {
+	r.updateBody = &sharedThingUpdate
 	return r
 }
 

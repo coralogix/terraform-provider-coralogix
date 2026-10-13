@@ -49,7 +49,7 @@ var {{.Name}}FromAPI = map[{{$type}}]string{
 }
 {{- end}}
 
-{{- if .Existing}}
+{{- if .AcceptUnknown}}
 // validateRequestValue accepts every planned value. An unknown value of a computed attribute is
 // left out of the request, and the server supplies it, as the released resource did.
 func validateRequestValue(_ path.Path, _, _ attr.Value, _ bool, _ *diag.Diagnostics) {}
@@ -58,7 +58,12 @@ func validateRequestValue(_ path.Path, _, _ attr.Value, _ bool, _ *diag.Diagnost
 // omitted API value. The only safe exception is an unknown value created by
 // removal of a field with a declared server default.
 func validateRequestValue(p path.Path, config, plan attr.Value, serverDefault bool, diags *diag.Diagnostics) {
-	unknown := unknownValuePaths(p, plan)
+	// A configured value that is unknown is never one that the server fills, also where the
+	// request drops an unknown plan value of a field with a server default.
+	unknown := unknownValuePaths(p, config)
+	if len(unknown) == 0 {
+		unknown = unknownValuePaths(p, plan)
+	}
 	if len(unknown) == 0 {
 		return
 	}
@@ -91,14 +96,14 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 		if fieldDiags.HasError() {
 			continue
 		}
-{{- if $.ServerPaths}}
+{{- if $.RequestFilter}}
 		p = requestValue(ctx, field.attr, p, &diags)
 {{- end}}
 		validateRequestValue(path.Root(field.attr), c, p, field.serverDefault, &diags)
 	}
 	return diags
 }
-{{- if $.ServerPaths}}
+{{- if $.RequestFilter}}
 
 // serverAttrs are the paths of the computed attributes inside the values
 // that a request sends, with list and map steps left out. The server sets
@@ -108,6 +113,24 @@ var serverAttrs = map[string]bool{
 	{{printf "%q" .}}: true,
 {{- end}}
 }
+
+{{- if $.DefaultPaths}}
+
+// defaultAttrs are the nested attributes with a server default, by path. A
+// request does not send an unknown value of one, so the server stores the default.
+var defaultAttrs = map[string]attr.Value{
+{{- range $.DefaultPaths}}
+	{{printf "%q" .Path}}: {{.Value}},
+{{- end}}
+}
+
+// defaultObjects are the objects that hold an attribute with a server default, by path.
+var defaultObjects = map[string]bool{
+{{- range $.DefaultObjects}}
+	{{printf "%q" .}}: true,
+{{- end}}
+}
+{{- end}}
 
 // requestValue returns v with a null value for each attribute that the server
 // sets. When the resource changes, Terraform plans these attributes as
@@ -122,7 +145,7 @@ func requestValue(ctx context.Context, at string, v attr.Value, diags *diag.Diag
 		attrTypes := v.AttributeTypes(ctx)
 		out := make(map[string]attr.Value, len(attrTypes))
 		for name, child := range v.Attributes() {
-			if serverAttrs[at+"."+name] {
+			if serverAttrs[at+"."+name]{{if $.DefaultPaths}} || defaultAttrs[at+"."+name] != nil && child.IsUnknown(){{end}} {
 				out[name] = nullValue(ctx, attrTypes[name], diags)
 			} else {
 				out[name] = requestValue(ctx, at+"."+name, child, diags)
@@ -138,6 +161,15 @@ func requestValue(ctx context.Context, at string, v attr.Value, diags *diag.Diag
 			out[i] = requestValue(ctx, at, child, diags)
 		}
 		value, d := types.ListValue(v.ElementType(ctx), out)
+		diags.Append(d...)
+		return value
+	case types.Set:
+		elems := v.Elements()
+		out := make([]attr.Value, len(elems))
+		for i, child := range elems {
+			out[i] = requestValue(ctx, at, child, diags)
+		}
+		value, d := types.SetValue(v.ElementType(ctx), out)
 		diags.Append(d...)
 		return value
 	case types.Map:
@@ -163,7 +195,7 @@ func nullValue(ctx context.Context, t attr.Type, diags *diag.Diagnostics) attr.V
 }
 {{- end}}
 
-{{if not .Existing}}func unknownValuePaths(p path.Path, value attr.Value) []path.Path {
+{{if not .AcceptUnknown}}func unknownValuePaths(p path.Path, value attr.Value) []path.Path {
 	if value == nil || value.IsNull() {
 		return nil
 	}
@@ -267,6 +299,16 @@ var computedAttrs = map[string]bool{
 {{- end}}
 }
 
+{{if $.OmittedDefaults -}}
+// omittedDefaults are the top-level attributes with a server default that a read can omit.
+// A read without one keeps a prior value that equals the default.
+var omittedDefaults = map[string]attr.Value{
+{{- range $.OmittedDefaults}}
+	{{printf "%q" .Path}}: {{.Value}},
+{{- end}}
+}
+
+{{end -}}
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
 // prior data and the new state. The API does not tell null from an empty
 // list, set, or map, or a missing object outside a oneOf from an empty one
@@ -287,7 +329,15 @@ func keepPriorEmpty(ctx context.Context, prior tfData, state *tfsdk.State) diag.
 		if diags.HasError() {
 			return diags
 		}
+{{- if $.OmittedDefaults}}
+		kept := priorEmpty(ctx, name, v, p, &diags)
+		if d := omittedDefaults[name]; d != nil && v.IsNull() && p.Equal(d) {
+			kept = p
+		}
+		if !kept.Equal(v) {
+{{- else}}
 		if kept := priorEmpty(ctx, name, v, p, &diags); !kept.Equal(v) {
+{{- end}}
 			diags.Append(state.SetAttribute(ctx, path.Root(name), kept)...)
 		}
 	}
@@ -298,6 +348,12 @@ func keepPriorEmpty(ctx context.Context, prior tfData, state *tfsdk.State) diag.
 // returns v, with the same rule applied to the attributes of an object and to
 // the elements of a list or map.
 func priorEmpty(ctx context.Context, at string, v, p attr.Value, diags *diag.Diagnostics) attr.Value {
+{{- if $.DefaultPaths}}
+	// A read can leave out a nested value that equals its declared server default.
+	if d := defaultAttrs[at]; d != nil && v.IsNull() && p != nil && p.Equal(d) {
+		return p
+	}
+{{- end}}
 	if keepAPIValue(at, v, p) {
 		return v
 	}
@@ -375,6 +431,11 @@ func priorEmptyMap(ctx context.Context, at string, v, prior types.Map, diags *di
 
 // emptyValue reports whether v is null, an empty list, set, or map, or an
 // object outside a oneOf arm whose attributes are all empty.
+{{- if $.DefaultPaths}} The service fills
+// an omitted object that holds an attribute with a server default, so an
+// attribute that is "" or that equals its declared server default is empty
+// inside that object.
+{{- end}}
 func emptyValue(at string, v attr.Value) bool {
 	if v.IsNull() {
 		return true
@@ -394,7 +455,7 @@ func emptyValue(at string, v attr.Value) bool {
 			return false
 		}
 		for name, child := range v.Attributes() {
-			if !emptyValue(at+"."+name, child) {
+			if !emptyValue(at+"."+name, child){{if $.DefaultPaths}} && !(defaultObjects[at] && defaultValue(at+"."+name, child)){{end}} {
 				return false
 			}
 		}
@@ -402,6 +463,18 @@ func emptyValue(at string, v attr.Value) bool {
 	}
 	return false
 }
+{{- if $.DefaultPaths}}
+
+// defaultValue reports whether child, an attribute of an object at path at, is
+// "" or its declared server default.
+func defaultValue(at string, child attr.Value) bool {
+	if d := defaultAttrs[at]; d != nil && child.Equal(d) {
+		return true
+	}
+	s, ok := child.(types.String)
+	return ok && !s.IsNull() && !s.IsUnknown() && s.ValueString() == ""
+}
+{{- end}}
 {{range .Objects}}
 {{- if and .Expand .Group}}
 // expand{{.Func}} writes the fields of a group, which the API holds in the parent object, to out.
@@ -420,7 +493,9 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 	}
 	out := &{{$sdk}}.{{.SDK}}{}
 {{- range .Fields}}
+{{- if not .FlattenOnly}}
 {{- template "expandField" .}}
+{{- end}}
 {{- end}}
 	return out
 }
@@ -1143,7 +1218,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- end}}
 
 {{- define "expandField"}}
-{{- if .NotSent}}
+{{- if .FlattenOnly}}
 {{- else if .Wrap}}
 	{
 		var inner {{.Wrap.Inner}}

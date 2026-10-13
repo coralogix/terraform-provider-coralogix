@@ -67,7 +67,7 @@ func updateMask(ctx context.Context, config, plan, state tfData) ([]string, diag
 		if fieldDiags.HasError() {
 			continue
 		}
-{{- if $.ServerPaths}}
+{{- if $.RequestFilter}}
 		p, s = requestValue(ctx, f.attr, p, &diags), requestValue(ctx, f.attr, s, &diags)
 {{- end}}
 		validateRequestValue(path.Root(f.attr), c, p, f.serverDefault, &diags)
@@ -183,7 +183,7 @@ func updateMask(ctx context.Context, config, plan, state tfData) ([]string, diag
 		if fieldDiags.HasError() {
 			continue
 		}
-{{- if $.ServerPaths}}
+{{- if $.RequestFilter}}
 		p, s = requestValue(ctx, f.attr, p, &diags), requestValue(ctx, f.attr, s, &diags)
 {{- end}}
 		validateRequestValue(path.Root(f.attr), c, p, f.serverDefault, &diags)

@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -1132,7 +1133,7 @@ func TestGeneratedPresenceCollectionAndUpdateContract(t *testing.T) {
 	}
 	for _, fragment := range []string{
 		`req.ProviderData.(*clientset.ClientSet)`,
-		`if cxsdk.Code(err) == http.StatusNotFound {`,
+		`if cxsdk.IsNotFound(err) {`,
 		`resp.Diagnostics.AddWarning("Resource disappeared during read"`,
 		`resp.Diagnostics.AddWarning("Resource disappeared during update"`,
 		`resp.State.RemoveResource(ctx)`,
@@ -1845,4 +1846,119 @@ func TestImmutableValueRejectsOptionalComputedOverride(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "settings: the immutable value holds the optional and computed attribute settings.zone") {
 		t.Fatalf("err = %v, want the optional and computed attribute settings.zone", err)
 	}
+}
+
+// LegacyTarget is one component in the request and the response, and its id is readOnly.
+// Without a skip line, the id is a computed attribute: flatten reads it, expand does not send
+// it, and the output compiles against the SDK struct that has the field.
+func TestSharedComponentReadOnlyFieldIsFlattenedOnly(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "legacy.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overrides, err := os.ReadFile(filepath.Join("testdata", "legacy-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const skip = "      id: {skip: true}\n"
+	if !strings.Contains(string(overrides), skip) {
+		t.Fatal("legacy-overrides.yaml has no skip line for LegacyTarget.id: update the test")
+	}
+	overridesPath := filepath.Join(t.TempDir(), "behavior-overrides.yaml")
+	if err := os.WriteFile(overridesPath, []byte(strings.Replace(string(overrides), skip, "", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "legacything")
+	options := Options{Resource: "LegacyThing", OutputDir: out, OverridesPath: overridesPath}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	convert, err := os.ReadFile(filepath.Join(out, "convert.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	expand := functionBody(t, string(convert), "func expandLegacyTarget(")
+	flatten := functionBody(t, string(convert), "func flattenLegacyTarget(")
+	if strings.Contains(expand, ".Id") {
+		t.Errorf("expandLegacyTarget sends the readOnly id:\n%s", expand)
+	}
+	if !strings.Contains(flatten, "out.Id = ") {
+		t.Errorf("flattenLegacyTarget does not read the id:\n%s", flatten)
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !regexp.MustCompile(`"id": schema\.StringAttribute\{\s*Computed: +true,`).Match(schema) {
+		t.Errorf("schema.go has no computed-only target id")
+	}
+	compileGenerated(t, out, input)
+}
+
+// functionBody returns the text of the Go function that starts with signature.
+func functionBody(t *testing.T, source, signature string) string {
+	t.Helper()
+	start := strings.Index(source, signature)
+	if start < 0 {
+		t.Fatalf("no %s in the output", signature)
+	}
+	end := strings.Index(source[start:], "\n}\n")
+	if end < 0 {
+		t.Fatalf("%s has no end", signature)
+	}
+	return source[start : start+end]
+}
+
+// An Update-only field with a default makes Create follow with an Update. When only the server
+// sets the id and Update finds the resource by the id in the body, that follow-up Update sends
+// the state id as the normal Update does.
+func TestFollowUpUpdateSendsTheServerSetID(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "sharedthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(spec)
+	// The Replace body gets its own title and an Update-only field with a server default, and
+	// the response component gets the field too.
+	put := strings.Index(text, "    put:")
+	nameLine := "                name: {type: string}\n"
+	i := strings.Index(text[put:], nameLine)
+	title := strings.Index(text[put:], "              title: SharedThing\n")
+	if put < 0 || i < 0 || title < 0 || title > i {
+		t.Fatal("sharedthing.yaml has no Replace body")
+	}
+	at := put + i + len(nameLine)
+	text = text[:at] + "                compact: {type: boolean, default: false, x-coralogix-presence: true}\n" + text[at:]
+	text = text[:put+title] + strings.Replace(text[put+title:], "title: SharedThing\n", "title: SharedThingUpdate\n", 1)
+	component := "    SharedThing:\n      title: SharedThing\n"
+	componentName := "        name: {type: string}\n"
+	c := strings.Index(text, component)
+	if c < 0 || !strings.Contains(text[c:], componentName) {
+		t.Fatal("sharedthing.yaml has no SharedThing component")
+	}
+	n := c + strings.Index(text[c:], componentName) + len(componentName)
+	text = text[:n] + "        compact: {type: boolean, x-coralogix-presence: true}\n" + text[n:]
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = []byte(text)
+	out := filepath.Join(t.TempDir(), "sharedthing")
+	options := Options{Resource: "SharedThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "sharedthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := string(resource)
+	start := strings.Index(src, "func (r *Resource) applyUpdateOnly(")
+	if start < 0 {
+		t.Fatal("resource.go has no applyUpdateOnly")
+	}
+	end := strings.Index(src[start:], "\n}\n")
+	if !strings.Contains(src[start:start+end], "body.Id = &id") {
+		t.Fatalf("applyUpdateOnly does not send the state id:\n%s", src[start:start+end])
+	}
+	compileGenerated(t, out, input)
 }

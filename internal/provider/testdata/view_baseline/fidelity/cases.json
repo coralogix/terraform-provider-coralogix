@@ -1,0 +1,113 @@
+{
+  "cases": [
+    {
+      "name": "create omits viewType, syntaxType, and isCompactMode",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tfgen-fidelity-defaults",
+            "timeSelection": {"quickSelection": {"seconds": 3600}},
+            "searchQuery": {"query": "error"}
+          }
+        },
+        {"method": "GET", "path": "/{{id}}"},
+        {"method": "DELETE", "path": "/{{id}}"},
+        {"method": "GET", "path": "/{{id}}"}
+      ]
+    },
+    {
+      "name": "seconds is stored as the nearest preset",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tfgen-fidelity-seconds",
+            "timeSelection": {"quickSelection": {"seconds": 3601}}
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "name": "tfgen-fidelity-seconds",
+            "timeSelection": {"quickSelection": {"seconds": 100}}
+          }
+        },
+        {"method": "GET", "path": "/{{id}}"},
+        {"method": "DELETE", "path": "/{{id}}"}
+      ]
+    },
+    {
+      "name": "selectedValues keeps only true values",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tfgen-fidelity-filters",
+            "timeSelection": {"quickSelection": {"seconds": 900}},
+            "filters": {"filters": [{"name": "severity", "selectedValues": {"ERROR": true, "INFO": false}}]}
+          }
+        },
+        {"method": "GET", "path": "/{{id}}"},
+        {"method": "DELETE", "path": "/{{id}}"}
+      ]
+    },
+    {
+      "name": "replace sets isCompactMode and stores false when it is omitted",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "name": "tfgen-fidelity-compact",
+            "timeSelection": {"quickSelection": {"seconds": 3600}},
+            "searchQuery": {"query": "error", "syntaxType": "SYNTAX_TYPE_DATAPRIME"},
+            "viewType": "VIEW_TYPE_LOGS"
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "name": "tfgen-fidelity-compact",
+            "timeSelection": {"quickSelection": {"seconds": 3600}},
+            "searchQuery": {"query": "error", "syntaxType": "SYNTAX_TYPE_DATAPRIME"},
+            "viewType": "VIEW_TYPE_LOGS",
+            "isCompactMode": true
+          }
+        },
+        {"method": "GET", "path": "/{{id}}"},
+        {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "name": "tfgen-fidelity-compact",
+            "timeSelection": {"quickSelection": {"seconds": 3600}},
+            "searchQuery": {"query": "error"}
+          }
+        },
+        {"method": "GET", "path": "/{{id}}"},
+        {"method": "DELETE", "path": "/{{id}}"}
+      ]
+    },
+    {
+      "name": "a time selection needs an arm",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {"name": "tfgen-fidelity-no-arm", "timeSelection": {}}
+        }
+      ]
+    }
+  ]
+}
