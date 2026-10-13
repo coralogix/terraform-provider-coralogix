@@ -75,6 +75,33 @@ func Schema() schema.Schema {
 				},
 				MarkdownDescription: "",
 			},
+			"filter": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"ids": schema.SetAttribute{
+						Optional:    true,
+						ElementType: types.StringType,
+						Validators: []validator.Set{
+							setvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("labels")),
+						},
+						MarkdownDescription: "",
+					},
+					"labels": schema.SingleNestedAttribute{
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("ids")),
+						},
+						Attributes: map[string]schema.Attribute{
+							"key": schema.StringAttribute{
+								Optional:            true,
+								MarkdownDescription: "",
+							},
+						},
+						MarkdownDescription: "",
+					},
+				},
+				MarkdownDescription: "",
+			},
 			"operation": schema.StringAttribute{
 				Required: true,
 				Validators: []validator.String{

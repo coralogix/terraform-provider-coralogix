@@ -13,6 +13,8 @@ api:
   serverSetID: true
   idProperty: uniqueIdentifier
 
+unwrap: [Ids]
+
 types:
   SuppressedThing:
     fields:
@@ -20,6 +22,9 @@ types:
       id: {skip: true}
       window: {name: time_frame}
       scheduleOperation: {name: operation, validators: [{enum: true}]}
+  Filter:
+    fields:
+      ids: {defaultArm: true}
   Repeat:
     fields:
       alwaysActive: {asBool: true}

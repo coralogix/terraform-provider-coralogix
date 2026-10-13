@@ -11,6 +11,7 @@ type SuppressedThingModel struct {
 	Name              types.String `tfsdk:"name"`
 	Window            *WindowModel `tfsdk:"time_frame"`
 	Repeat            *RepeatModel `tfsdk:"repeat"`
+	Filter            *FilterModel `tfsdk:"filter"`
 	ScheduleOperation types.String `tfsdk:"operation"`
 }
 
@@ -26,4 +27,13 @@ type DynamicModel struct {
 type RepeatModel struct {
 	AlwaysActive types.Bool    `tfsdk:"always_active"`
 	Dynamic      *DynamicModel `tfsdk:"dynamic"`
+}
+
+type LabelsModel struct {
+	Key types.String `tfsdk:"key"`
+}
+
+type FilterModel struct {
+	Ids    types.Set    `tfsdk:"ids"`
+	Labels *LabelsModel `tfsdk:"labels"`
 }

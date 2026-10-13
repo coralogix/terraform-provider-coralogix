@@ -122,6 +122,7 @@
 - FIX: A skipped field takes part in no Terraform name collision.
 - FEAT: A field line `valueNames` keeps released names for the numbers of an integer list or set, for example `Sunday` for day `1`.
 - FEAT: A field line `asBool` keeps a released bool for an object without fields, for example `always_active = true` for the oneOf arm `alwaysActive: {}`.
+- FEAT: A field line `defaultArm` sends an empty arm when the configuration sets no arm of a oneOf that the API requires, for example `alertUniqueIds: {}` for a released filter without a selector.
 
 #### resource/coralogix_global_router
 - CHORE: The acceptance test compares imported `rules[*].targets` without their order, because the API returns them in no fixed order and an import has no prior order to keep.

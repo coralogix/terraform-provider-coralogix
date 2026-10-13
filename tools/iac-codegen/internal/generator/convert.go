@@ -167,6 +167,16 @@ type convObject struct {
 	ExtraFlatten []extraFlatten
 	// Local: SDK is a struct of the generated package, not of the SDK (keyedBy object).
 	Local bool
+	// DefaultArms are the arms that expand sends empty when the configuration sets no arm of
+	// their oneOf group (defaultArm).
+	DefaultArms []defaultArm
+}
+
+// defaultArm is an arm that expand sends empty when no arm of its group is set.
+type defaultArm struct {
+	Field string   // SDK field of the arm
+	Value string   // Go expression of the empty arm
+	Arms  []string // SDK fields of every arm of the group
 }
 
 type convAttrType struct {
@@ -406,6 +416,11 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 		return nil, err
 	}
 	out.IDGuard = idGuard(r)
+	for _, f := range r.Fields {
+		if r.Policy.DefaultArm(r.Name, f.Name) {
+			return nil, fmt.Errorf("%s: defaultArm is supported on an arm of a nested object only", f.Name)
+		}
+	}
 
 	roots := []convRoot{
 		{&out.Create, "create.body", true, func(f *model.ResourceField) bool { return f.Create != nil }},
@@ -1301,7 +1316,87 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	if err := b.injectReadOnly(obj, ref.Path, t); err != nil {
 		return nil, err
 	}
+	arms, err := b.defaultArms(component, t, obj.Fields[:len(t.Fields)])
+	if err != nil {
+		return nil, err
+	}
+	obj.DefaultArms = arms
 	return obj, nil
+}
+
+// defaultArms returns the arms of t that expand sends empty when the configuration sets no arm of
+// their group. fields are the conversions of t.Fields, in order.
+func (b *convBuilder) defaultArms(component string, t *model.Type, fields []*convField) ([]defaultArm, error) {
+	byName := map[string]*convField{}
+	var lines []string
+	for i, f := range t.Fields {
+		byName[f.Name] = fields[i]
+		if b.resource.Policy.DefaultArm(component, f.Name) {
+			lines = append(lines, f.Name)
+		}
+	}
+	if len(lines) == 0 {
+		return nil, nil
+	}
+	groups := t.Groups
+	if t.Kind == model.OneOf {
+		group := model.OneOfGroup{AllowNone: t.AllowNone}
+		for _, f := range t.Fields {
+			if f.Name != t.Discriminator {
+				group.Arms = append(group.Arms, f.Name)
+			}
+		}
+		groups = append(groups, group)
+	}
+	var out []defaultArm
+	for _, g := range groups {
+		var arm string
+		for _, name := range g.Arms {
+			if !slices.Contains(lines, name) {
+				continue
+			}
+			if arm != "" {
+				return nil, fmt.Errorf("defaultArm: %s and %s are arms of one group", arm, name)
+			}
+			arm = name
+		}
+		if arm == "" {
+			continue
+		}
+		lines = slices.DeleteFunc(lines, func(name string) bool { return name == arm })
+		cf := byName[arm]
+		value, err := emptyArm(b.qualify, cf)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cf.TFName, err)
+		}
+		d := defaultArm{Field: cf.SDK, Value: value}
+		for _, name := range g.Arms {
+			d.Arms = append(d.Arms, byName[name].SDK)
+		}
+		out = append(out, d)
+	}
+	if len(lines) != 0 {
+		return nil, fmt.Errorf("defaultArm: %s is no oneOf arm", strings.Join(lines, ", "))
+	}
+	return out, nil
+}
+
+// emptyArm returns the Go expression of an empty value of the arm f: an empty object, or a
+// wrapper that holds an empty value.
+func emptyArm(qualify func(string) string, f *convField) (string, error) {
+	switch {
+	case f.Wrap != nil:
+		inner := f.Wrap.Inner
+		if rest, ok := strings.CutPrefix(inner, "*"); ok {
+			return f.Wrap.ExpandOf("&" + rest + "{}"), nil
+		}
+		return f.Wrap.ExpandOf(inner + "{}"), nil
+	case f.Conv == convObj && !f.Value:
+		return "&" + qualify(f.Object.SDK) + "{}", nil
+	case f.Conv == convEmpty:
+		return "map[string]interface{}{}", nil
+	}
+	return "", errors.New("defaultArm needs an object arm or a value in wrapper objects")
 }
 
 // injectReadOnly adds the response fields that the request type omitted

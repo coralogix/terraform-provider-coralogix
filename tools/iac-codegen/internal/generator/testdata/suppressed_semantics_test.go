@@ -172,3 +172,36 @@ func TestAlwaysActiveIsABool(t *testing.T) {
 		t.Fatalf("always_active read back as %v without the arm, want null", flat.Repeat.AlwaysActive)
 	}
 }
+
+// The API requires an arm of the filter. A filter without one sends the empty ids arm, which
+// the API reads as every alert; a filter with an arm sends only that arm.
+func TestFilterWithoutArmSendsTheDefaultArm(t *testing.T) {
+	ctx := context.Background()
+	m := model(types.StringValue("rule-1"))
+	m.Filter = &FilterModel{Ids: types.SetNull(types.StringType)}
+	body, diags := expandCreate(ctx, m)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if got := body.SuppressedThing.Filter; got == nil || got.Ids == nil || len(got.Ids.Value) != 0 || got.Labels != nil {
+		t.Fatalf("a filter without an arm sent %#v, want the empty ids arm alone", got)
+	}
+
+	m.Filter = &FilterModel{Ids: types.SetNull(types.StringType), Labels: &LabelsModel{Key: types.StringValue("team")}}
+	body, diags = expandCreate(ctx, m)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if got := body.SuppressedThing.Filter; got == nil || got.Ids != nil || got.Labels == nil {
+		t.Fatalf("a filter with labels sent %#v, want the labels arm alone", got)
+	}
+
+	m.Filter = &FilterModel{Ids: types.SetValueMust(types.StringType, []attr.Value{types.StringValue("a")})}
+	body, diags = expandCreate(ctx, m)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if got := body.SuppressedThing.Filter; got == nil || got.Ids == nil || !slices.Equal(got.Ids.Value, []string{"a"}) {
+		t.Fatalf("ids [a] sent %#v, want [a]", got)
+	}
+}

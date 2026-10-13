@@ -95,10 +95,30 @@ components:
         name: {type: string, minLength: 1}
         window: {$ref: '#/components/schemas/Window'}
         repeat: {$ref: '#/components/schemas/Repeat'}
+        filter: {$ref: '#/components/schemas/Filter'}
         scheduleOperation: {$ref: '#/components/schemas/ThingOperation'}
     ThingOperation:
       type: string
       enum: [THING_OPERATION_UNSPECIFIED, THING_OPERATION_MUTE, THING_OPERATION_ACTIVATE]
+    Filter:
+      type: object
+      properties:
+        ids: {$ref: '#/components/schemas/Ids'}
+        labels: {$ref: '#/components/schemas/Labels'}
+      oneOf:
+        - required: [ids]
+        - required: [labels]
+    Ids:
+      type: object
+      properties:
+        value:
+          type: array
+          x-coralogix-collection: set
+          items: {type: string}
+    Labels:
+      type: object
+      properties:
+        key: {type: string, x-coralogix-presence: true}
     Repeat:
       type: object
       properties:
