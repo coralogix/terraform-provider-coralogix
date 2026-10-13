@@ -108,7 +108,7 @@ func TestEchoedContractNeedsEachLine(t *testing.T) {
 	}{
 		"createAs folds the flat Create field":               {"      quota: {createAs: {limit: limitValue}}\n", "FIELD_LIFECYCLE_UNSUPPORTED", "EchoThing.quota", ""},
 		"readOnly on a server flag of a shared component":    {"      exceeded: {readOnly: true, name: has_exceeded}\n", "FIELD_LIFECYCLE_UNSUPPORTED", "quota.exceeded", "      exceeded: {name: has_exceeded}\n"},
-		"computed keeps a value Update requires":             {"      limit: {computed: true}\n", "FIELD_REQUIREDNESS_UNSUPPORTED", "quota.limit", ""},
+		"computed keeps a value Update requires":             {"      limit: {computed: true, validators: [{atLeast: 0}]}\n", "FIELD_REQUIREDNESS_UNSUPPORTED", "quota.limit", "      limit: {validators: [{atLeast: 0}]}\n"},
 		"optional relaxes a required list that may be empty": {"      values: {optional: true, collection: set, name: tags}\n", "REQUIRED_VALUE_CAN_BE_EMPTY", "values", "      values: {collection: set, name: tags}\n"},
 		"computed states the presence of a plain bool":       {"      enabled: {computed: true, name: enable}\n", "FIELD_PRESENCE_UNKNOWN", "enabled", "      enabled: {name: enable}\n"},
 		"skip of an empty oneOf marker":                      {"      none: {skip: true}\n", "RENDERER_SHAPE_UNSUPPORTED", "none", ""},
@@ -158,6 +158,12 @@ func TestEchoedContractRefusesWrongLines(t *testing.T) {
 				return replaceOnce(t, o, "name: enable}", "name: key}")
 			},
 			code: "OVERRIDE_UNUSED", location: "EchoItem",
+		},
+		"atLeast on a string": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "          - lengthAtLeast: 1\n", "          - atLeast: 1\n")
+			},
+			code: "RENDERER_SHAPE_UNSUPPORTED", location: "name",
 		},
 		"collection: set on a field that is not a list": {
 			overrides: func(t *testing.T, o string) string {

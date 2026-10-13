@@ -323,6 +323,8 @@ type Validator struct {
 	// released ExactlyOneOf or AtLeastOneOf validator.
 	ExactlyOneOf []string `yaml:"exactlyOneOf"`
 	AtLeastOneOf []string `yaml:"atLeastOneOf"`
+	// AtLeast is a released AtLeast validator of a number.
+	AtLeast *float64 `yaml:"atLeast"`
 	// RegexMatches is a released stringvalidator.RegexMatches with its message.
 	RegexMatches *RegexMatches `yaml:"regexMatches"`
 }
@@ -682,6 +684,9 @@ func checkValidators(validators []Validator) error {
 		if len(v.AtLeastOneOf) != 0 {
 			set++
 		}
+		if v.AtLeast != nil {
+			set++
+		}
 		if v.RegexMatches != nil {
 			set++
 			if _, err := regexp.Compile(v.RegexMatches.Pattern); err != nil || v.RegexMatches.Pattern == "" {
@@ -689,7 +694,7 @@ func checkValidators(validators []Validator) error {
 			}
 		}
 		if set != 1 {
-			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, enum, enumExceptZero, between, exactlyOneOf, atLeastOneOf, and regexMatches")
+			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, enum, enumExceptZero, between, exactlyOneOf, atLeastOneOf, atLeast, and regexMatches")
 		}
 	}
 	return nil

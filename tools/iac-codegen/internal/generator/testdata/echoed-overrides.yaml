@@ -23,7 +23,7 @@ types:
   Quota:
     fields:
       exceeded: {readOnly: true, name: has_exceeded}
-      limit: {computed: true}
+      limit: {computed: true, validators: [{atLeast: 0}]}
   EchoItem:
     fields:
       values: {optional: true, collection: set, name: tags}

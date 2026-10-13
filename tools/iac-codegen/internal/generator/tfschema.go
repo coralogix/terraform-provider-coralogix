@@ -513,6 +513,13 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 		return pkg + ".ExactlyOneOf(" + siblingPaths(v.ExactlyOneOf) + ")", nil
 	case len(v.AtLeastOneOf) != 0:
 		return pkg + ".AtLeastOneOf(" + siblingPaths(v.AtLeastOneOf) + ")", nil
+	case v.AtLeast != nil && (a.ValueKind == "Int32" || a.ValueKind == "Int64"):
+		if *v.AtLeast != math.Trunc(*v.AtLeast) {
+			return "", fmt.Errorf("atLeast %v is not a whole number", *v.AtLeast)
+		}
+		return fmt.Sprintf("%s.AtLeast(%d)", pkg, int64(*v.AtLeast)), nil
+	case v.AtLeast != nil && a.ValueKind == "Float64":
+		return fmt.Sprintf("float64validator.AtLeast(%s)", formatFloat(*v.AtLeast)), nil
 	case v.RegexMatches != nil && a.ValueKind == "String":
 		return regexValidator(v.RegexMatches.Pattern, v.RegexMatches.Message), nil
 	}

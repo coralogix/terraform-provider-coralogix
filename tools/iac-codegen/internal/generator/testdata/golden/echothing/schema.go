@@ -5,6 +5,7 @@ package echothing
 import (
 	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -38,8 +39,11 @@ func Schema() schema.Schema {
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"limit": schema.Int32Attribute{
-						Optional:            true,
-						Computed:            true,
+						Optional: true,
+						Computed: true,
+						Validators: []validator.Int32{
+							int32validator.AtLeast(0),
+						},
 						MarkdownDescription: "",
 					},
 					"has_exceeded": schema.BoolAttribute{
