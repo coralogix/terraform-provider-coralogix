@@ -1295,8 +1295,10 @@ func (g *tfGroups) oneOf(o model.OneOfGroup) (string, error) {
 // check reports a group field that is no top-level field of the resource.
 func (g *tfGroups) check() error {
 	for _, name := range g.file.GroupNames() {
-		if g.file.Groups[name].RequireOne && !slices.ContainsFunc(g.attrs[name].attrsOrNil(), func(a *tfAttr) bool { return a.OneOfGroup != "" }) {
-			return fmt.Errorf("groups.%s: requireOne needs the arms of a oneOf of the resource", name)
+		if g.file.Groups[name].RequireOne && !oneOfArmsOnly(g.attrs[name].attrsOrNil()) {
+			// Flatten checks that the response has one of the fields of the group, so every
+			// field must be an arm of the same oneOf.
+			return fmt.Errorf("groups.%s: requireOne needs the arms of one oneOf of the resource, and no other field", name)
 		}
 		for _, field := range g.file.Groups[name].Fields {
 			if !slices.ContainsFunc(g.attrs[name].attrsOrNil(), func(a *tfAttr) bool { return a.Property == field }) {
@@ -1305,6 +1307,12 @@ func (g *tfGroups) check() error {
 		}
 	}
 	return nil
+}
+
+// oneOfArmsOnly reports whether attrs are arms of one oneOf, and nothing else.
+func oneOfArmsOnly(attrs []*tfAttr) bool {
+	return len(attrs) != 0 && attrs[0].OneOfGroup != "" &&
+		!slices.ContainsFunc(attrs, func(a *tfAttr) bool { return a.OneOfGroup != attrs[0].OneOfGroup })
 }
 
 func (a *tfAttr) attrsOrNil() []*tfAttr {

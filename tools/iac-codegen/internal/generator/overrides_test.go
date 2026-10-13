@@ -812,10 +812,11 @@ func TestGroupsRejectFieldsThatTheyCannotHold(t *testing.T) {
 		text     string
 		want     string
 	}{
-		"patch update":            {thingSpec(t), "Thing", "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ngroups:\n  meta: {fields: [description]}\n", "full-replace Update"},
-		"no such field":           {sharedSpec, "SharedThing", shared + "groups:\n  meta: {fields: [missing]}\n", "no top-level field"},
-		"split oneOf":             {sharedSpec, "SharedThing", shared + "groups:\n  a: {fields: [byCount]}\n  b: {fields: [byRatio]}\n", "must all be in one group"},
-		"requireOne without arms": {sharedSpec, "SharedThing", shared + "groups:\n  meta:\n    fields: [name]\n    requireOne: true\n", "requireOne needs the arms"},
+		"patch update":                  {thingSpec(t), "Thing", "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ngroups:\n  meta: {fields: [description]}\n", "full-replace Update"},
+		"no such field":                 {sharedSpec, "SharedThing", shared + "groups:\n  meta: {fields: [missing]}\n", "no top-level field"},
+		"split oneOf":                   {sharedSpec, "SharedThing", shared + "groups:\n  a: {fields: [byCount]}\n  b: {fields: [byRatio]}\n", "must all be in one group"},
+		"requireOne without arms":       {sharedSpec, "SharedThing", shared + "groups:\n  meta:\n    fields: [name]\n    requireOne: true\n", "requireOne needs the arms"},
+		"requireOne with another field": {sharedSpec, "SharedThing", shared + "groups:\n  measure:\n    fields: [byCount, byRatio, name]\n    requireOne: true\n", "and no other field"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
