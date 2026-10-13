@@ -1374,6 +1374,15 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{.Dst}} = {{$l}}expandEnumMapped({{$p}}, m.{{.Model}}, {{.EnumMap.Name}}ToAPI, diags){{$r}}
 {{- else if eq .Conv "enum"}}
 	{{.Dst}} = {{$l}}expandEnum[{{.SDKType}}](m.{{.Model}}){{$r}}
+{{- else if and (eq .Conv "fixed") .RequestValueBy}}
+	{{- $f := .}}
+	switch {
+{{- range .RequestValueBy}}
+	case m.{{.Model}} != nil:
+		fixed := {{$f.SDKType}}({{printf "%q" .Value}})
+		{{$f.Dst}} = {{if $f.Value}}fixed{{else}}&fixed{{end}}
+{{- end}}
+	}
 {{- else if eq .Conv "fixed"}}
 	{
 		fixed := {{.SDKType}}({{printf "%q" .RequestValue}})

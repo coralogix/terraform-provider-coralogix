@@ -3,6 +3,7 @@ package generator
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -227,6 +228,9 @@ type convField struct {
 	SendNullAsEmpty bool
 	// RequestValue is an API value expand always sends. The field is not in the Terraform model.
 	RequestValue string
+	// RequestValueBy are the API values expand sends when an object field of the model is set,
+	// in the order of the field names.
+	RequestValueBy []fixedBy
 	// KeepPriorOrder: flatten returns the items in the order of the prior model, when the
 	// API returns the same items in another order.
 	KeepPriorOrder bool
@@ -840,6 +844,11 @@ func hasPresence(a *model.Attrs) bool {
 	return a != nil && a.Presence
 }
 
+// fixedBy is the API value that expand sends when the object field Model is set.
+type fixedBy struct {
+	Model, Value string
+}
+
 func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	if b.file == nil {
 		return
@@ -850,10 +859,14 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	cf.SendNullAsEmpty = line.SendNullAsEmpty
 	cf.Equality = line.Equality
 	cf.RequestValue = line.RequestValue
+	cf.RequestValueBy = nil
+	for _, field := range slices.Sorted(maps.Keys(line.RequestValueBy)) {
+		cf.RequestValueBy = append(cf.RequestValueBy, fixedBy{Model: camelize(field), Value: line.RequestValueBy[field]})
+	}
 }
 
 func (b *convBuilder) applyFixedRequest(cf *convField) {
-	if cf.RequestValue == "" {
+	if cf.RequestValue == "" && len(cf.RequestValueBy) == 0 {
 		return
 	}
 	if cf.EnumMap != nil {
@@ -877,7 +890,7 @@ func (b *convBuilder) applyMissingEnum(cf *convField, component, name string, pr
 
 // fixedRequest reports whether the field is always sent as a fixed API value.
 func (b *convBuilder) fixedRequest(component, name string) bool {
-	return b.file != nil && b.file.Types[component].Fields[name].RequestValue != ""
+	return b.file != nil && b.file.Types[component].Fields[name].Fixed()
 }
 
 // field returns the conversion of the property name of the SDK struct at

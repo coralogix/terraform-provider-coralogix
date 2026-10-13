@@ -54,6 +54,7 @@
 - FEAT: `optional: true` on a field line makes a field optional that a request of the contract requires.
 - FEAT: `collection: set` on a field line makes a list a set, for a released resource whose attribute is a set while the contract has a list.
 - FEAT: An `enums` line applies to a list or set of the enum too: each element is mapped, the zero value included, and `enum: true` validates each element. `names` gives an accepted value its released Terraform spelling, for example `SEVERITY_DEBUG: Debug`.
+- FEAT: `requestValueBy` on a field line sends an API value that the resource derives from the object field that is set, for example the events2metric `type` from `logs_query` or `spans_query`. The field is not a Terraform attribute.
 - FEAT: An `atLeast` validator on a field line keeps a released `AtLeast` of a number.
 - FEAT: A `regexMatches: {pattern, message}` validator on a field line keeps a released `stringvalidator.RegexMatches` with its message.
 - FEAT: `name` on a field line sets the Terraform attribute name of the field, for a released resource whose attribute name differs from the JSON name, for example `applicationnameFilters: {name: applications}`.

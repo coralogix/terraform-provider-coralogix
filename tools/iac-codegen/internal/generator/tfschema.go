@@ -375,7 +375,7 @@ func requestValue(file *overrides.File, component, field string) bool {
 	if file == nil {
 		return false
 	}
-	return file.Types[component].Fields[field].RequestValue != ""
+	return file.Types[component].Fields[field].Fixed()
 }
 
 func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {

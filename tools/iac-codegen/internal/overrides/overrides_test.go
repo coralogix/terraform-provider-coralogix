@@ -367,6 +367,9 @@ func TestCollectionAndNameAreChecked(t *testing.T) {
 		"name with a dash":                          "{name: has-limit}",
 		"skip and name":                             "{skip: true, name: limits}",
 		"atLeast and regexMatches in one validator": "{validators: [{atLeast: 0, regexMatches: {pattern: x}}]}",
+		"requestValue and requestValueBy":           "{requestValue: A, requestValueBy: {b: B}}",
+		"requestValueBy with an empty value":        "{requestValueBy: {b: ''}}",
+		"skip and requestValueBy":                   "{skip: true, requestValueBy: {b: B}}",
 		"regexMatches without a pattern":            "{validators: [{regexMatches: {message: m}}]}",
 		"regexMatches that Go cannot compile":       "{validators: [{regexMatches: {pattern: '(?=x)'}}]}",
 	} {

@@ -318,6 +318,11 @@ func expandCreateEchoThingRequest(ctx context.Context, p path.Path, m *EchoThing
 	}
 	out := &echo_things_service.CreateEchoThingRequest{}
 	out.Name = valueOf(expandString(m.Name))
+	switch {
+	case m.Quota != nil:
+		fixed := echo_things_service.Kind("KIND_LIMITED")
+		out.Kind = fixed
+	}
 	if m := m.Quota; m != nil {
 		p := p.AtName("quota")
 		_ = p // a scalar conversion does not report a path
@@ -404,6 +409,11 @@ func expandReplaceEchoThingRequest(ctx context.Context, p path.Path, m *EchoThin
 	}
 	out := &echo_things_service.ReplaceEchoThingRequest{}
 	out.Name = valueOf(expandString(m.Name))
+	switch {
+	case m.Quota != nil:
+		fixed := echo_things_service.Kind("KIND_LIMITED")
+		out.Kind = fixed
+	}
 	out.Quota = expandQuota(ctx, p.AtName("quota"), m.Quota, diags)
 	if items := expandElements[EchoItemModel](ctx, p.AtName("entries"), m.Items, diags); items != nil {
 		out.Items = make([]echo_things_service.EchoItem, 0, len(items))

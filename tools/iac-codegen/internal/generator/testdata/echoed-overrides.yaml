@@ -20,6 +20,7 @@ types:
       isInternal: {skip: true}
       quota: {createAs: {limit: limitValue}}
       items: {name: entries}
+      kind: {requestValueBy: {quota: KIND_LIMITED}}
   Quota:
     fields:
       exceeded: {readOnly: true, name: has_exceeded}

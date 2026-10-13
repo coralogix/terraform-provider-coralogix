@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -14,6 +15,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // overridesPath returns the file to read: the explicit path, else the file in the
@@ -244,6 +246,11 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared bool) *li
 			return problem
 		}
 	}
+	if len(line.RequestValueBy) != 0 {
+		if problem := requestValueByProblem(schema, line); problem != nil {
+			return problem
+		}
+	}
 	if len(stale) == 0 {
 		return nil
 	}
@@ -367,6 +374,33 @@ func contractReadOnly(schema *base.Schema, field string) bool {
 
 func hasNoRequiredList(schema *base.Schema) bool {
 	return schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()
+}
+
+// requestValueByProblem checks a requestValueBy line. Each key is an object field of the
+// component, and each value is a value of the enum of the field when the field is an enum.
+func requestValueByProblem(schema *base.Schema, line overrides.Line) *lineIssue {
+	built, err := schema.Properties.GetOrZero(line.Field).BuildSchema()
+	if err != nil {
+		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
+	}
+	for _, field := range slices.Sorted(maps.Keys(line.RequestValueBy)) {
+		proxy := schema.Properties.GetOrZero(field)
+		if proxy == nil {
+			return wholeLine(fmt.Errorf("requestValueBy names %q, which component %q does not have", field, line.Component))
+		}
+		s, err := proxy.BuildSchema()
+		if err != nil {
+			return wholeLine(fmt.Errorf("field %q: %w", field, err))
+		}
+		if !proxy.IsReference() && !slices.Equal(s.Type, []string{"object"}) && len(s.AllOf) == 0 {
+			return wholeLine(fmt.Errorf("requestValueBy names %q, which is not an object", field))
+		}
+		value := line.RequestValueBy[field]
+		if len(built.Enum) != 0 && !slices.ContainsFunc(built.Enum, func(n *yaml.Node) bool { return n.Value == value }) {
+			return wholeLine(fmt.Errorf("requestValueBy sends %q, which the enum of %q does not have", value, line.Field))
+		}
+	}
+	return nil
 }
 
 // nameProblem checks a name line. The name must differ from the name that the JSON name

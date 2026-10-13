@@ -79,8 +79,8 @@ func TestEchoedContractIsEligible(t *testing.T) {
 
 // The generated requests never send a skipped field, so a request that requires it is refused.
 func TestSkipOfARequiredRequestFieldIsRefused(t *testing.T) {
-	spec := replaceOnce(t, echoedSpec(t), "              title: Replace Echo Thing Request\n              type: object\n              required: [id, name]\n",
-		"              title: Replace Echo Thing Request\n              type: object\n              required: [id, name, isInternal]\n")
+	spec := replaceOnce(t, echoedSpec(t), "              title: Replace Echo Thing Request\n              type: object\n              required: [id, name, kind]\n",
+		"              title: Replace Echo Thing Request\n              type: object\n              required: [id, name, kind, isInternal]\n")
 	err := echoedErr(t, spec, echoedOverrides(t))
 	if err == nil {
 		t.Fatal("the contract is eligible, want SKIP_REQUIRED_FIELD")
@@ -158,6 +158,24 @@ func TestEchoedContractRefusesWrongLines(t *testing.T) {
 				return replaceOnce(t, o, "name: enable}", "name: key}")
 			},
 			code: "OVERRIDE_UNUSED", location: "EchoItem",
+		},
+		"requestValueBy names a field that the component does not have": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "{requestValueBy: {quota: KIND_LIMITED}}", "{requestValueBy: {limits: KIND_LIMITED}}")
+			},
+			code: "OVERRIDE_UNUSED", location: "limits",
+		},
+		"requestValueBy names a field that is not an object": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "{requestValueBy: {quota: KIND_LIMITED}}", "{requestValueBy: {name: KIND_LIMITED}}")
+			},
+			code: "OVERRIDE_UNUSED", location: "not an object",
+		},
+		"requestValueBy sends a value that the enum does not have": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "{requestValueBy: {quota: KIND_LIMITED}}", "{requestValueBy: {quota: KIND_HUGE}}")
+			},
+			code: "OVERRIDE_UNUSED", location: "KIND_HUGE",
 		},
 		"atLeast on a string": {
 			overrides: func(t *testing.T, o string) string {

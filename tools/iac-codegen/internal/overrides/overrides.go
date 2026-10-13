@@ -285,6 +285,10 @@ type Field struct {
 	// RequestValue is an API value that Create and Update always send. The field
 	// is not a Terraform attribute.
 	RequestValue string `yaml:"requestValue"`
+	// RequestValueBy maps an object field of the same component to the API value that Create
+	// and Update send when that field is set, for a released resource that derives the value
+	// (type: logsQuery → E2M_TYPE_LOGS2METRICS). The field is not a Terraform attribute.
+	RequestValueBy map[string]string `yaml:"requestValueBy"`
 	// KeepPriorOrder returns the list items in the order of the plan or state, because
 	// the API does not keep the order.
 	KeepPriorOrder bool `yaml:"keepPriorOrder"`
@@ -559,6 +563,7 @@ func (l Field) keys() []string {
 	add(l.SendNullAsEmpty, "sendNullAsEmpty")
 	add(l.RequireOne, "requireOne")
 	add(l.RequestValue != "", "requestValue")
+	add(len(l.RequestValueBy) != 0, "requestValueBy")
 	add(l.KeepPriorOrder, "keepPriorOrder")
 	add(len(l.Validators) != 0, "validators")
 	add(l.Equality != "", "equality")
@@ -569,8 +574,12 @@ func (l Field) keys() []string {
 // statesPresence reports whether the line says how an omitted value behaves. A line that only
 // changes a text, a validator, or the order does not: the contract must still state presence.
 func (l Field) statesPresence() bool {
-	return l.Skip || l.ReadOnly || l.Required || l.Computed != nil || l.Default != nil || l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequestValue != ""
+	return l.Skip || l.ReadOnly || l.Required || l.Computed != nil || l.Default != nil || l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.Fixed()
 }
+
+// Fixed reports whether Create and Update send a value that the line states, so the field is
+// not a Terraform attribute.
+func (l Field) Fixed() bool { return l.RequestValue != "" || len(l.RequestValueBy) != 0 }
 
 // replacesServerDefault reports whether the line states a mode that a server default of the
 // contract cannot have: its own default, or no computed value. required: true needs no check:
@@ -610,7 +619,7 @@ func (l Field) emptyMode() bool {
 }
 
 func (l Field) emptyValue() bool {
-	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && l.RequestValue == "" &&
+	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() &&
 		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil
 }
 
@@ -666,8 +675,16 @@ func (l Field) checkConflicts() error {
 	if l.SendNullAsEmpty && l.ReadEmptyAs != "null" {
 		return errors.New("sendNullAsEmpty needs readEmptyAs: \"null\", or the stored \"\" reads back as \"\"")
 	}
-	if l.Skip && l.RequestValue != "" {
+	if l.Skip && l.Fixed() {
 		return errors.New("requestValue sends the field, so skip cannot be set")
+	}
+	if l.RequestValue != "" && len(l.RequestValueBy) != 0 {
+		return errors.New("requestValue and requestValueBy cannot both be set")
+	}
+	for _, field := range sortedKeys(l.RequestValueBy) {
+		if field == "" || l.RequestValueBy[field] == "" {
+			return errors.New("requestValueBy maps a field name to an API value")
+		}
 	}
 	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON {
 		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
@@ -678,7 +695,7 @@ func (l Field) checkConflicts() error {
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
 func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.Default != nil || l.KeepPriorOrder ||
-		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.RequestValue != "" ||
+		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.Fixed() ||
 		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil
 }
 
@@ -767,7 +784,7 @@ func (f *File) Policy() model.Policy {
 			if t.Fields[field].Skip {
 				p.Skip = append(p.Skip, name+"."+field)
 			}
-			if t.Fields[field].RequestValue != "" {
+			if t.Fields[field].Fixed() {
 				p.FixedRequest = append(p.FixedRequest, name+"."+field)
 			}
 			if t.Fields[field].ReadOnly {
@@ -819,7 +836,7 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, Equality: f.Equality, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, RequestValueBy: f.RequestValueBy, Equality: f.Equality, Keys: f.keys()})
 		}
 	}
 	return out
@@ -843,13 +860,15 @@ type Line struct {
 	EnumZero   string   // for an enum line: the Terraform value of the zero value
 	// EnumRejected are the values of the contract that the resource does not accept.
 	EnumRejected []string
-	ReadOnly     bool     // for a field line: the file says that the server sets the field
-	Equality     string   // for a field line: "yaml" or "json" when the line compares the value as a document
-	Required     bool     // for a field line: the file says that the field is required
-	Optional     bool     // for a field line: the file says that the field is optional
-	Collection   string   // for a field line: "set" when the file shows a list as a set
-	Name         string   // for a field line: the Terraform attribute name
-	Keys         []string // for a field line: every key that the line sets
+	ReadOnly     bool   // for a field line: the file says that the server sets the field
+	Equality     string // for a field line: "yaml" or "json" when the line compares the value as a document
+	Required     bool   // for a field line: the file says that the field is required
+	Optional     bool   // for a field line: the file says that the field is optional
+	Collection   string // for a field line: "set" when the file shows a list as a set
+	Name         string // for a field line: the Terraform attribute name
+	// RequestValueBy is, for a field line, the API value sent for each object field that is set.
+	RequestValueBy map[string]string
+	Keys           []string // for a field line: every key that the line sets
 }
 
 // String names the line as it is written in the file.

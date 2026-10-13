@@ -8,6 +8,7 @@ import (
 type EchoThing struct {
 	Id         string
 	Name       string
+	Kind       Kind
 	CreateTime *string
 	IsInternal *bool
 	Quota      *Quota
@@ -18,6 +19,14 @@ type Quota struct {
 	Limit    int32
 	Exceeded bool
 }
+
+type Kind string
+
+const (
+	KIND_KIND_UNSPECIFIED Kind = "KIND_UNSPECIFIED"
+	KIND_KIND_LIMITED     Kind = "KIND_LIMITED"
+	KIND_KIND_PLAIN       Kind = "KIND_PLAIN"
+)
 
 type Level string
 
@@ -44,6 +53,7 @@ type Detail struct {
 
 type CreateEchoThingRequest struct {
 	Name       string
+	Kind       Kind
 	LimitValue *int32
 	Items      []EchoItem
 }
@@ -51,6 +61,7 @@ type CreateEchoThingRequest struct {
 type ReplaceEchoThingRequest struct {
 	Id         string
 	Name       string
+	Kind       Kind
 	CreateTime *string
 	IsInternal *bool
 	Quota      *Quota

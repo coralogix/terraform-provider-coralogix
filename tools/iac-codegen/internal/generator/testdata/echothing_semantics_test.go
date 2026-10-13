@@ -278,3 +278,27 @@ func TestEnumSetMapsEachElement(t *testing.T) {
 		t.Fatalf("Create levels = %v, want [LEVEL_HIGH LEVEL_UNSPECIFIED]", sent)
 	}
 }
+
+// Create and Replace send the kind that the resource derives from quota: KIND_LIMITED when quota
+// is set, and nothing without it.
+func TestKindFollowsQuota(t *testing.T) {
+	_, root := thingSchema(t)
+	if _, ok := root.(tftypes.Object).AttributeTypes["kind"]; ok {
+		t.Fatal("kind is an attribute, want a value that the resource derives")
+	}
+	sent := createThing(t, thingWith(root, map[string]tftypes.Value{
+		"id":    tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+		"name":  tftypes.NewValue(tftypes.String, "name"),
+		"quota": quota(root, 5, false),
+	}))
+	if sent.Kind != echo_things_service.KIND_KIND_LIMITED {
+		t.Fatalf("Create kind = %q, want KIND_LIMITED", sent.Kind)
+	}
+	sent = createThing(t, thingWith(root, map[string]tftypes.Value{
+		"id":   tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+		"name": tftypes.NewValue(tftypes.String, "name"),
+	}))
+	if sent.Kind != "" {
+		t.Fatalf("Create kind = %q, want none without quota", sent.Kind)
+	}
+}
