@@ -602,6 +602,9 @@ func responseWrapperIssues(p Policy, name string, ops map[verb]foundOp) issue.Re
 }
 
 func validateFieldContract(p Policy, name, idParam, field string, create, update, get *base.Schema) issue.Report {
+	if p.skips(name, field) {
+		return skippedFieldIssues(name, field, create, update)
+	}
 	cp, up := requestContractProperty(create, field), requestContractProperty(update, field)
 	if p.readOnly(name, field) {
 		cp, up = nil, nil
@@ -649,6 +652,22 @@ func validateFieldContract(p Policy, name, idParam, field string, create, update
 	report = append(report, unsupportedSchemaIssues(p, location+".update", up, true, map[*base.Schema]bool{})...)
 	report = append(report, unsupportedSchemaIssues(p, location+".get", gp, false, map[*base.Schema]bool{})...)
 	return report
+}
+
+// skippedFieldIssues checks a top-level field that the resource does not manage. The
+// generated requests never send it, so no request may require it.
+func skippedFieldIssues(name, field string, create, update *base.Schema) issue.Report {
+	for _, body := range []*base.Schema{create, update} {
+		if body != nil && slices.Contains(body.Required, field) {
+			return issue.Report{{
+				Code:        "SKIP_REQUIRED_FIELD",
+				Location:    fieldLocation(name, field),
+				Message:     "The field is skipped, but a request requires it.",
+				Remediation: "Delete the skip line: the generated request must send the field.",
+			}}
+		}
+	}
+	return nil
 }
 
 func fieldDefaultContractIssues(p Policy, name, location, field string, create, update, get *base.Schema, cp, up, gp *base.SchemaProxy) issue.Report {
@@ -1435,6 +1454,10 @@ func responseResourceProxy(op *v3.Operation, name string) *base.SchemaProxy {
 	for _, field := range propertyNames(s) {
 		proxy := propertyOf(s, field)
 		if unwrapRef(proxy) == componentPrefix+name {
+			// The property can be "allOf: [$ref: X]". Return the $ref, whose schema has the fields.
+			if !proxy.IsReference() {
+				return proxy.Schema().AllOf[0]
+			}
 			return proxy
 		}
 	}

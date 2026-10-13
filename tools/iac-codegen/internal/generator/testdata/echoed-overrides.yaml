@@ -1,0 +1,16 @@
+# The behavior-overrides file of the synthetic resource whose Replace echoes server values.
+resource: EchoThing
+mode: existing
+
+validators:
+  inferred: false
+
+api:
+  updateIDInBody: true
+
+types:
+  EchoThing:
+    fields:
+      id: {readOnly: true}
+      createTime: {skip: true}
+      isInternal: {skip: true}

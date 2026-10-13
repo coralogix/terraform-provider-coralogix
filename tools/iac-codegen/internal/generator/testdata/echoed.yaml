@@ -1,0 +1,100 @@
+# A resource that users already have, as an API of its age has it: Create, Get, and Replace
+# answer {"thing": {"allOf": [$ref]}}, Replace takes the whole resource with its required
+# server-set id in the body and on the Create path, and Replace echoes a server time and an
+# internal flag that the resource does not manage.
+openapi: 3.1.0
+info: {title: echoed, version: 1.0.0}
+paths:
+  /echo/v1/things:
+    post:
+      tags: [Echo Things Service]
+      operationId: EchoThingsService_CreateEchoThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Create Echo Thing Request
+              type: object
+              required: [name]
+              properties:
+                name: {type: string, minLength: 1}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreateEchoThingResponse'}
+    put:
+      tags: [Echo Things Service]
+      operationId: EchoThingsService_ReplaceEchoThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Replace Echo Thing Request
+              type: object
+              required: [id, name]
+              properties:
+                id: {type: string}
+                name: {type: string, minLength: 1}
+                createTime: {type: string}
+                isInternal: {type: boolean}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReplaceEchoThingResponse'}
+  /echo/v1/things/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Echo Things Service]
+      operationId: EchoThingsService_GetEchoThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetEchoThingResponse'}
+    delete:
+      tags: [Echo Things Service]
+      operationId: EchoThingsService_DeleteEchoThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteEchoThingResponse'}
+components:
+  schemas:
+    CreateEchoThingResponse:
+      type: object
+      properties:
+        thing:
+          allOf: [{$ref: '#/components/schemas/EchoThing'}]
+    GetEchoThingResponse:
+      type: object
+      required: [thing]
+      properties:
+        thing:
+          allOf: [{$ref: '#/components/schemas/EchoThing'}]
+    ReplaceEchoThingResponse:
+      type: object
+      required: [thing]
+      properties:
+        thing:
+          allOf: [{$ref: '#/components/schemas/EchoThing'}]
+    DeleteEchoThingResponse:
+      type: object
+      required: []
+    EchoThing:
+      type: object
+      required: [id, name]
+      properties:
+        id: {type: string}
+        name: {type: string, minLength: 1}
+        createTime: {type: string}
+        isInternal: {type: boolean}

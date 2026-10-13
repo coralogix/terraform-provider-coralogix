@@ -470,7 +470,11 @@ func TestCreateRequiredFieldNeedsNoUpdatePresence(t *testing.T) {
 func TestSkippedFieldNeedsNoPresence(t *testing.T) {
 	create, update, get := presenceContract(t)
 	for _, skip := range []string{"Thing.spec", "SpecUpdate.note"} {
-		if report := validateFieldContract(Policy{Skip: []string{skip}}, "Thing", "id", "spec", create, update, get); len(report) != 0 {
+		report := validateFieldContract(Policy{Skip: []string{skip}}, "Thing", "id", "spec", create, update, get)
+		// Create requires spec, so skipping all of it is also SKIP_REQUIRED_FIELD. This test is
+		// about presence only.
+		report = slices.DeleteFunc(report, func(i issue.Issue) bool { return i.Code == "SKIP_REQUIRED_FIELD" })
+		if len(report) != 0 {
 			t.Fatalf("skip %s: %v", skip, report)
 		}
 	}

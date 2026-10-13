@@ -50,6 +50,8 @@
 - FEAT: `sendNullAsEmpty: true` sends `""` for a null string, for an API that keeps a stored value that the request omits. It needs `readEmptyAs: "null"`.
 - FEAT: `Hooks.BeforeFlatten` changes the API value before flatten, for a value that only an older record has.
 - FIX: A component that a request shares with the response keeps its read-only fields in flatten. Before, the read-only field was missing from the shared conversion object, and the apply failed with a value conversion error.
+- FIX: The contract checks read the resource of a response property written as `allOf: [$ref]`. Before, they read the `allOf` schema, found no Get field, and refused every field of the resource.
+- FIX: A skipped top-level field has no lifecycle, so a value that Replace echoes in its body but Create does not have, such as an internal flag, can be skipped. A request that requires a skipped field is an error (`SKIP_REQUIRED_FIELD`).
 - FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.
 - FEAT: `api.serverSetID: true` accepts a server-set id that the Get response does not require, because the request shares the schema. The generated flatten fails when the id is missing. The id must be read-only, or absent, in the Create and Update bodies, also when a body is `allOf: [$ref]`.
 - FIX: An Update with the id in its body sends a server-set id, in the resource that the body wraps or in the body itself. Before, no Update field sent it, so the update request had no id.

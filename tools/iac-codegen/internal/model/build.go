@@ -740,6 +740,10 @@ func (r *Resource) readFields(doc *v3.Document, ops map[verb]foundOp) error {
 		}
 	}
 	for _, n := range names {
+		if r.Policy.skips(r.Name, n) {
+			// The resource does not manage the field, so its lifecycle does not matter.
+			continue
+		}
 		f, err := r.resourceField(n, createBody, updateBody, getSchema)
 		if err != nil {
 			return fmt.Errorf("%s: %w", r.Name, err)
