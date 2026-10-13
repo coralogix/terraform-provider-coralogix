@@ -885,7 +885,7 @@ func TestBodyUpdateMaskIsOmitted(t *testing.T) {
 	}
 }
 
-func TestBodyUpdateMaskRejectsNestedOneOf(t *testing.T) {
+func TestBodyUpdateMaskAcceptsNestedOneOf(t *testing.T) {
 	dotted := updateBodyMask(t, string(validSpec(t)), true)
 	top := strings.Replace(dotted,
 		"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'",
@@ -893,12 +893,12 @@ func TestBodyUpdateMaskRejectsNestedOneOf(t *testing.T) {
 	if top == dotted {
 		t.Fatal("cannot locate the body mask pattern")
 	}
+	// Update sends no mask with a body mask, so the pattern decides nothing.
 	body := Policy{Existing: true, UpdateMaskInBody: true, NoInferredValidators: true}
-	if codes := maskCodes(t, top, body); !slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
-		t.Fatalf("codes %v do not contain UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED", codes)
-	}
-	if codes := maskCodes(t, dotted, body); slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
-		t.Fatalf("codes %v, a dotted mask can name a oneOf arm", codes)
+	for _, spec := range []string{top, dotted} {
+		if codes := maskCodes(t, spec, body); slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
+			t.Fatalf("codes %v, the body holds the whole oneOf and no mask is sent", codes)
+		}
 	}
 }
 
@@ -1619,18 +1619,23 @@ func TestExistingEnumWithBusinessZero(t *testing.T) {
 }
 
 func TestTopLevelMaskReplacesOneOf(t *testing.T) {
-	dotted := updateBodyMask(t, string(validSpec(t)), true)
+	dotted := string(validSpec(t))
 	top := strings.Replace(dotted,
 		"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'",
-		"pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'", 1)
+		"pattern: '^[a-z][A-Za-z0-9]*(,[a-z][A-Za-z0-9]*)*$'", 1)
 	if top == dotted {
-		t.Fatal("cannot locate the body mask pattern")
+		t.Fatal("cannot locate the query mask pattern")
 	}
-	replaces := Policy{Existing: true, UpdateMaskInBody: true, NoInferredValidators: true, TopLevelMaskReplacesOneOf: true}
+	replaces := Policy{Existing: true, NoInferredValidators: true, TopLevelMaskReplacesOneOf: true}
 	if codes := maskCodes(t, top, replaces); slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") || slices.Contains(codes, "OVERRIDE_UNUSED") {
 		t.Fatalf("codes %v, the server replaces the whole top-level value", codes)
 	}
 	if codes := maskCodes(t, dotted, replaces); !slices.Contains(codes, "OVERRIDE_UNUSED") {
 		t.Fatalf("codes %v do not contain OVERRIDE_UNUSED for a dotted mask", codes)
+	}
+	body := replaces
+	body.UpdateMaskInBody = true
+	if codes := maskCodes(t, updateBodyMask(t, top, true), body); !slices.Contains(codes, "OVERRIDE_UNUSED") {
+		t.Fatalf("codes %v do not contain OVERRIDE_UNUSED for a body mask, which is not sent", codes)
 	}
 }

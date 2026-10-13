@@ -152,6 +152,9 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 		if err := checkImmutableValues(out.Attributes, ""); err != nil {
 			return nil, err
 		}
+		if err := checkBodyMaskClears(r, out.Attributes); err != nil {
+			return nil, err
+		}
 	}
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
 	out.DefaultPkgs = defaultPackages(out.Attributes)
@@ -858,6 +861,27 @@ func checkImmutableValues(attrs []*tfAttr, parent string) error {
 }
 
 // replaces reports whether a change of a replaces the resource.
+// checkBodyMaskClears rejects api.updateMaskInBody when a field that Update
+// sends could be removed from the configuration. Update sends no mask, and the
+// server keeps a field that the body omits, so removing it would not clear it.
+func checkBodyMaskClears(r *model.Resource, attrs []*tfAttr) error {
+	if !r.MaskInBody {
+		return nil
+	}
+	for _, f := range r.Fields {
+		if !sentOnUpdate(r, f) {
+			continue
+		}
+		name := tfName(f.Name)
+		i := slices.IndexFunc(attrs, func(a *tfAttr) bool { return a.Name == name })
+		if i < 0 || attrs[i].Required || attrs[i].Default != "" {
+			continue
+		}
+		return fmt.Errorf("%s: api.updateMaskInBody sends no mask, so removing this optional attribute would not clear it. Make it required or give it a default", name)
+	}
+	return nil
+}
+
 // keepsState reports whether an omitted value is planned as the prior state.
 func keepsState(a *tfAttr) bool {
 	return slices.ContainsFunc(a.Modifiers, func(m string) bool {

@@ -30,8 +30,8 @@ type crudData struct {
 	Existing bool
 	// Upgrades are the state upgraders: one per older schema version.
 	Upgrades []upgradeData
-	// MaskInBody: updateMask is an optional JSON body property. Update sets it
-	// to the same changed-field mask a query parameter would send.
+	// MaskInBody: updateMask is an optional JSON body property. Update sends
+	// no mask, and the server updates every field present in the body.
 	MaskInBody bool
 	// UpdateMask is the SDK request-builder method for the PATCH updateMask
 	// query parameter. It is empty for a full replace and for MaskInBody.

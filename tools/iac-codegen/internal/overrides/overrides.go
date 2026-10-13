@@ -106,14 +106,17 @@ type API struct {
 	Operations *Operations `yaml:"operations"`
 	// Delete names the operation that removes the resource when the API has no DELETE.
 	Delete *Delete `yaml:"delete"`
-	// UpdateMaskInBody: PATCH updateMask is an optional JSON body property.
-	// The generated update sets it to the same changed-field mask a query
-	// parameter would send.
+	// UpdateMaskInBody: PATCH updateMask is an optional JSON body property,
+	// and Update leaves it out, as the released resource did. The server then
+	// updates every field present in the body. Every field Update sends must be
+	// required or have a static default, because without a mask removing it
+	// from the configuration would not clear it.
 	UpdateMaskInBody bool `yaml:"updateMaskInBody"`
 	// TopLevelMaskReplacesOneOf: the server replaces the whole value of a
 	// top-level mask path, including the arm of a oneOf inside it. Update then
-	// sends a changed oneOf under its top-level field, for an API whose mask
-	// pattern rejects dotted paths.
+	// sends a changed oneOf under its top-level field, for an API whose
+	// query-parameter mask pattern rejects dotted paths. UpdateMaskInBody sends
+	// no mask, so the key is an error with it.
 	TopLevelMaskReplacesOneOf bool `yaml:"topLevelMaskReplacesOneOf"`
 }
 

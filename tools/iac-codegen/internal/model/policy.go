@@ -48,9 +48,9 @@ type Policy struct {
 	// the Get path.
 	DeleteOperation string
 	// UpdateMaskInBody: PATCH updateMask is an optional property of the JSON
-	// body, not a query parameter. The generated update sets it to the same
-	// changed-field mask a query parameter would send. A full replace (PUT)
-	// has no mask, so the key is an error there.
+	// body, not a query parameter, and Update sends no mask: the server updates
+	// every field present in the body. A full replace (PUT) has no mask, so
+	// the key is an error there.
 	UpdateMaskInBody bool
 	// TopLevelMaskReplacesOneOf: the server replaces the whole value of a
 	// top-level mask path, so a mask without dotted paths can change a nested

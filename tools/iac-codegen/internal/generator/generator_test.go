@@ -282,12 +282,43 @@ func TestGeneratedUpdateMaskUsesQueryParameter(t *testing.T) {
 
 // A released PATCH that puts updateMask in the JSON body uses the same update
 // as a query-parameter mask, then sets that mask on the body.
-func TestBodyUpdateMaskSetsTheSameMask(t *testing.T) {
+func TestBodyUpdateMaskIsNotSent(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	input.OpenAPI = []byte(moveUpdateMaskIntoBody(t, string(input.OpenAPI)))
-	out := generateBodyMaskResource(t, input, sdkDir)
+	out, err := generateBodyMaskResource(t, input, sdkDir, bodyMaskFieldLines)
+	if err != nil {
+		t.Fatal(err)
+	}
 	assertBodyUpdateMask(t, out)
 	compileGenerated(t, out, input)
+}
+
+// bodyMaskFieldLines make every Thing field that Update sends required or give
+// it a static default, so that a body without a mask can still set each one.
+const bodyMaskFieldLines = `types:
+  Thing:
+    fields:
+      name: {requiresReplace: true}
+      description: {required: true}
+      enabled: {computed: true, default: true}
+      spec: {required: true}
+      destinations: {required: true}
+      tags: {required: true}
+      details: {required: true}
+      labels: {required: true}
+      expireTime: {required: true}
+      windows: {required: true}
+`
+
+// Without a mask, the server keeps a field that the body omits, so an optional
+// field could not be cleared.
+func TestBodyUpdateMaskRejectsAClearableField(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	input.OpenAPI = []byte(moveUpdateMaskIntoBody(t, string(input.OpenAPI)))
+	_, err := generateBodyMaskResource(t, input, sdkDir, "")
+	if err == nil || !strings.Contains(err.Error(), "description: api.updateMaskInBody sends no mask") {
+		t.Fatalf("err = %v, want the clearable description field", err)
+	}
 }
 
 func moveUpdateMaskIntoBody(t *testing.T, text string) string {
@@ -311,7 +342,9 @@ func moveUpdateMaskIntoBody(t *testing.T, text string) string {
 	return text[:start] + tail
 }
 
-func TestTopLevelBodyMaskRejectsNestedOneOf(t *testing.T) {
+// The body holds the whole config, and no mask is sent, so a top-level pattern
+// does not stop a change of the oneOf arm.
+func TestTopLevelBodyMaskAcceptsNestedOneOf(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	spec := moveUpdateMaskIntoBody(t, string(input.OpenAPI))
 	top := "pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'"
@@ -321,54 +354,50 @@ func TestTopLevelBodyMaskRejectsNestedOneOf(t *testing.T) {
 		t.Fatal("cannot replace the body mask pattern")
 	}
 	input.OpenAPI = []byte(spec)
-	dir := t.TempDir()
-	overrides := filepath.Join(dir, "behavior-overrides.yaml")
-	const file = `resource: Thing
-mode: existing
-validators:
-  inferred: false
-api:
-  updateMaskInBody: true
-`
-	if err := os.WriteFile(overrides, []byte(file), 0o644); err != nil {
+	if _, err := generateBodyMaskResource(t, input, sdkDir, bodyMaskFieldLines); err != nil {
 		t.Fatal(err)
-	}
-	err := generateFromInput(Options{Resource: "Thing", OutputDir: filepath.Join(dir, "thing"), OverridesPath: overrides}, input, sdkDir)
-	if err == nil || !strings.Contains(err.Error(), "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
-		t.Fatalf("err = %v, want UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED", err)
 	}
 }
 
-func generateBodyMaskResource(t *testing.T, input source.Input, sdkDir string) string {
+func generateBodyMaskResource(t *testing.T, input source.Input, sdkDir, lines string) (string, error) {
 	t.Helper()
 	dir := t.TempDir()
 	overrides := filepath.Join(dir, "behavior-overrides.yaml")
-	const file = `resource: Thing
+	file := `resource: Thing
 mode: existing
 validators:
   inferred: false
 api:
   updateMaskInBody: true
-`
+` + lines
 	if err := os.WriteFile(overrides, []byte(file), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	out := filepath.Join(dir, "thing")
-	if err := generateFromInput(Options{Resource: "Thing", OutputDir: out, OverridesPath: overrides}, input, sdkDir); err != nil {
-		t.Fatal(err)
-	}
-	return out
+	return out, generateFromInput(Options{Resource: "Thing", OutputDir: out, OverridesPath: overrides}, input, sdkDir)
 }
 
 func assertBodyUpdateMask(t *testing.T, out string) {
 	t.Helper()
 	resource := mustRead(t, filepath.Join(out, "resource.go"))
-	if bytes.Contains(resource, []byte("UpdateMask(")) || !bytes.Contains(resource, []byte("body.UpdateMask = &mask")) {
-		t.Fatalf("resource.go does not set the mask on the body:\n%s", resource)
+	if bytes.Contains(resource, []byte("UpdateMask")) || !bytes.Contains(resource, []byte("body, _, diags := updateRequest(")) {
+		t.Fatalf("resource.go sends a mask:\n%s", resource)
 	}
 	mask := mustRead(t, filepath.Join(out, "mask.go"))
 	if bytes.Contains(mask, []byte("keepChanged")) || bytes.Contains(mask, []byte("body.UpdateMask")) {
 		t.Fatalf("mask.go does not reuse the query-parameter update:\n%s", mask)
+	}
+	// A requiresReplace field stays out of the body: a change of it replaces
+	// the resource, and the server would update every field in the body.
+	convert := string(mustRead(t, filepath.Join(out, "convert.go")))
+	start := strings.Index(convert, "func expandUpdateThingRequest(")
+	if start < 0 {
+		t.Fatalf("convert.go has no Update body expand:\n%s", convert)
+	}
+	update := convert[start:]
+	update = update[:strings.Index(update, "\n}\n")]
+	if strings.Contains(update, "out.Name =") || !strings.Contains(update, "out.Description =") {
+		t.Fatalf("the Update body sends the replacing name, or misses description:\n%s", update)
 	}
 	schema := mustRead(t, filepath.Join(out, "schema.go"))
 	if bytes.Contains(schema, []byte("update_mask")) || bytes.Contains(schema, []byte("updateMask")) {

@@ -722,8 +722,7 @@ func checkNoUpdateMask(bodyMask string, params []*v3.Parameter) error {
 }
 
 // readBodyUpdateMask accepts an optional updateMask string on the JSON body.
-// The generated update sets it to the same changed-field mask a query
-// parameter would send.
+// The generated update leaves it out.
 func (r *Resource) readBodyUpdateMask(body *base.Schema, name string, params []*v3.Parameter) error {
 	if !r.Policy.Existing {
 		return errors.New("api.updateMaskInBody is only for a released resource")

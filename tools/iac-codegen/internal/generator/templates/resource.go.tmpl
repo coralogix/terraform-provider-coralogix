@@ -202,6 +202,10 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 	}
 {{- if .Replace}}
 	body, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
+{{- else if .MaskInBody}}
+	// The released API call sends no updateMask. The server updates every
+	// field present in the body.
+	body, _, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
 {{- else}}
 	body, mask, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
 {{- end}}
@@ -222,13 +226,6 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 	if body == nil {
 		v, err = r.get(ctx, id)
 	} else {
-{{- if .MaskInBody}}
-		{{- if $.Conv.UpdateMaskPointer}}
-		body.{{$.Conv.UpdateMaskField}} = &mask
-		{{- else}}
-		body.{{$.Conv.UpdateMaskField}} = mask
-		{{- end}}
-{{- end}}
 		v, err = r.update(ctx{{if not .UpdateIDInBody}}, id{{end}}, body{{if and (not .Replace) (not .MaskInBody)}}, mask{{end}})
 	}
 	if {{$cx}}.{{.APICode}}(err) == http.StatusNotFound {

@@ -1208,6 +1208,11 @@ func validateBuiltResource(r *Resource) issue.Report {
 	if r.Replace {
 		return topLevelMaskUnused(r, "Update is a full replace, which has no mask.")
 	}
+	if r.MaskInBody {
+		// No mask is sent. The body holds every Update field, and the server
+		// replaces each field present in it, a nested oneOf too.
+		return topLevelMaskUnused(r, "api.updateMaskInBody sends no mask.")
+	}
 	if r.UpdateMaskPattern == "" {
 		return issue.Report{{Code: "UPDATE_MASK_CONTRACT_MISSING", Location: "paths.update." + r.Update.OperationID, Message: "The PATCH update mask has no pattern that defines accepted mask paths.", Remediation: "Add the authoritative update-mask path pattern to the source API contract."}}
 	}
