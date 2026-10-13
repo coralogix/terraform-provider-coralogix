@@ -3,8 +3,17 @@
 #### resource/coralogix_slo_v2
 - CHORE: Bump `coralogix-management-sdk` to the SLO contract that marks server-set fields read-only and requires the APM latency `time_window`.
 
+#### resource/coralogix_ai_evaluation
+- CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Update still sends `config`, `is_enabled`, and `threshold` without an update mask, and changing `application`, `subsystem`, or `target` still recreates the evaluation.
+- CHANGE: Plan-time checks for upper limits are gone: 256 characters for `application`, `subsystem`, and list items, 1024 list items, 65536 characters for `additional_context`, `threshold` between 0 and 1, and the PII category values. The API still rejects those values on apply.
+- CHANGE: A config with no variant, or with two, reports the error on each variant instead of once. Error messages of failed API calls changed wording.
+- CHORE: Add protocol baseline golden files against an in-memory evaluation API, checked against answers recorded from a real tenant.
+
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.26`.
+- FEAT: `collection: set` on a field line makes a list a Terraform set, although the contract does not mark it. The generator reports it as stale once the contract does.
+- FEAT: `readNullAs: empty` on a string reads a missing value as `""`.
+- CHORE: The `evalthing` golden fixture covers the keys above, `requiresReplace`, `unsupportedArms`, a mask-less `updateMaskInBody`, an enum that starts with a business value, and a Get response written as `allOf: [$ref]`.
 - FEAT: `requiresReplace: true` on a top-level field forces a new resource when that field changes, although Update accepts it.
 - FIX: `requiresReplace: true` together with `computed: true` is rejected. That pair is Optional+Computed with RequiresReplace, so omitting the field replaces the resource whenever something else changes.
 - FEAT: `unsupportedArms` keeps a oneOf arm out of the schema and reports it when a response selects it.

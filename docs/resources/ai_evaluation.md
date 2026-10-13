@@ -258,7 +258,7 @@ resource "coralogix_ai_evaluation" "example" {
 - `application` (String) Name of the AI application this evaluation belongs to.
 - `config` (Attributes) AI evaluation configuration. (see [below for nested schema](#nestedatt--config))
 - `subsystem` (String) Subsystem within the application.
-- `target` (String) Target span content the evaluation runs against. Can be one of ["prompt" "response"].
+- `target` (String) Target span content the evaluation runs against.
 - `threshold` (Number) Score threshold. Must be between 0.0 and 1.0 inclusive.
 
 ### Optional
@@ -274,23 +274,23 @@ resource "coralogix_ai_evaluation" "example" {
 
 Optional:
 
-- `allowed_topics` (Attributes) Configuration for Allowed Topics evaluation. (see [below for nested schema](#nestedatt--config--allowed_topics))
-- `competition` (Attributes) Configuration for Competition evaluation. (see [below for nested schema](#nestedatt--config--competition))
-- `hallucination_completeness` (Attributes) Configuration for Hallucination Completeness evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--hallucination_completeness))
-- `hallucination_context_adherence` (Attributes) Configuration for Hallucination Context Adherence evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--hallucination_context_adherence))
-- `hallucination_context_relevance` (Attributes) Configuration for Hallucination Context Relevance evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--hallucination_context_relevance))
-- `hallucination_correctness` (Attributes) Configuration for Hallucination Correctness evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--hallucination_correctness))
-- `hallucination_task_adherence` (Attributes) Configuration for Hallucination Task Adherence evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--hallucination_task_adherence))
-- `language_mismatch` (Attributes) Configuration for Language Mismatch evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--language_mismatch))
-- `pii` (Attributes) Configuration for PII evaluation. (see [below for nested schema](#nestedatt--config--pii))
-- `prompt_injection` (Attributes) Configuration for Prompt Injection evaluation. (see [below for nested schema](#nestedatt--config--prompt_injection))
-- `restricted_topics` (Attributes) Configuration for Restricted Topics evaluation. (see [below for nested schema](#nestedatt--config--restricted_topics))
-- `sexism` (Attributes) Configuration for Sexism evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--sexism))
-- `sql_allowed_tables` (Attributes) Configuration for SQL Allowed Tables evaluation. (see [below for nested schema](#nestedatt--config--sql_allowed_tables))
-- `sql_hallucination` (Attributes) Configuration for SQL Hallucination evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--sql_hallucination))
-- `sql_read_only` (Attributes) Configuration for SQL Read Only evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--sql_read_only))
-- `sql_restricted_tables` (Attributes) Configuration for SQL Restricted Tables evaluation. (see [below for nested schema](#nestedatt--config--sql_restricted_tables))
-- `toxicity` (Attributes) Configuration for Toxicity evaluation. This evaluation type has no fields. (see [below for nested schema](#nestedatt--config--toxicity))
+- `allowed_topics` (Attributes) Configuration for the AllowedTopics evaluation. (see [below for nested schema](#nestedatt--config--allowed_topics))
+- `competition` (Attributes) Configuration for the Competition evaluation. (see [below for nested schema](#nestedatt--config--competition))
+- `hallucination_completeness` (Attributes) Configuration for the HallucinationCompleteness evaluation (no fields). (see [below for nested schema](#nestedatt--config--hallucination_completeness))
+- `hallucination_context_adherence` (Attributes) Configuration for the HallucinationContextAdherence evaluation (no fields). (see [below for nested schema](#nestedatt--config--hallucination_context_adherence))
+- `hallucination_context_relevance` (Attributes) Configuration for the HallucinationContextRelevance evaluation (no fields). (see [below for nested schema](#nestedatt--config--hallucination_context_relevance))
+- `hallucination_correctness` (Attributes) Configuration for the HallucinationCorrectness evaluation (no fields). (see [below for nested schema](#nestedatt--config--hallucination_correctness))
+- `hallucination_task_adherence` (Attributes) Configuration for the HallucinationTaskAdherence evaluation (no fields). (see [below for nested schema](#nestedatt--config--hallucination_task_adherence))
+- `language_mismatch` (Attributes) Configuration for the LanguageMismatch evaluation (no fields). (see [below for nested schema](#nestedatt--config--language_mismatch))
+- `pii` (Attributes) Configuration for the PII evaluation. (see [below for nested schema](#nestedatt--config--pii))
+- `prompt_injection` (Attributes) Configuration for the PromptInjection evaluation. (see [below for nested schema](#nestedatt--config--prompt_injection))
+- `restricted_topics` (Attributes) Configuration for the RestrictedTopics evaluation. (see [below for nested schema](#nestedatt--config--restricted_topics))
+- `sexism` (Attributes) Configuration for the Sexism evaluation (no fields). (see [below for nested schema](#nestedatt--config--sexism))
+- `sql_allowed_tables` (Attributes) Configuration for the SqlAllowedTables evaluation. (see [below for nested schema](#nestedatt--config--sql_allowed_tables))
+- `sql_hallucination` (Attributes) Configuration for the SqlHallucination evaluation (no fields). (see [below for nested schema](#nestedatt--config--sql_hallucination))
+- `sql_read_only` (Attributes) Configuration for the SqlReadOnly evaluation (no fields). (see [below for nested schema](#nestedatt--config--sql_read_only))
+- `sql_restricted_tables` (Attributes) Configuration for the SqlRestrictedTables evaluation. (see [below for nested schema](#nestedatt--config--sql_restricted_tables))
+- `toxicity` (Attributes) Configuration for the Toxicity evaluation (no fields). (see [below for nested schema](#nestedatt--config--toxicity))
 
 <a id="nestedatt--config--allowed_topics"></a>
 ### Nested Schema for `config.allowed_topics`
@@ -337,7 +337,7 @@ Required:
 
 Required:
 
-- `categories` (Set of String) PII categories to detect. Can include ["CREDIT_CARD" "EMAIL_ADDRESS" "IBAN_CODE" "PHONE_NUMBER" "US_SSN"].
+- `categories` (Set of String) PII categories to detect.
 
 
 <a id="nestedatt--config--prompt_injection"></a>

@@ -33,6 +33,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/enrichment_rules"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/events2metrics"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/fleet"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/aievaluation"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/configurationgroup"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/globalrouter"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/integrations"
@@ -414,7 +415,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 	return []func() resource.Resource{
 		events2metrics.NewEvents2MetricResource,
 		actions.NewActionResource,
-		ai.NewAIEvaluationResource,
+		func() resource.Resource { return aievaluation.NewResource(aievaluation.Hooks{}) },
 		ai.NewAICustomEvaluationResource,
 		dataplans.NewTCOPoliciesLogsResource,
 		dataplans.NewTCOPoliciesTracesResource,

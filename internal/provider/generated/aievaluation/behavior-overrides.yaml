@@ -1,0 +1,80 @@
+resource: AiEvaluation
+mode: existing
+
+markdownDescription: "Coralogix AI evaluation."
+
+validators:
+  inferred: false
+
+api:
+  # Update sends no updateMask, as the released resource did: the server
+  # updates every field present in the body.
+  updateMaskInBody: true
+  serverSetID: true # PINNED-SDK: cx-management-apis#644 requires id in the response
+
+types:
+  AiEvaluation:
+    fields:
+      id:
+        markdownDescription: "AI evaluation ID."
+      application:
+        required: true # PINNED-SDK: cx-management-apis#644 requires it on create
+        requiresReplace: true
+        validators: [{lengthAtLeast: 1}]
+      subsystem:
+        required: true # PINNED-SDK: cx-management-apis#644 requires it on create
+        requiresReplace: true
+        validators: [{lengthAtLeast: 1}]
+      target:
+        markdownDescription: "Target span content the evaluation runs against."
+        required: true # PINNED-SDK: cx-management-apis#644 requires it on create
+        requiresReplace: true
+        validators: [{enum: true}]
+      threshold:
+        required: true
+      isEnabled:
+        markdownDescription: "Whether the evaluation is active."
+        computed: true
+        default: true
+      config:
+        markdownDescription: "AI evaluation configuration."
+        required: true # PINNED-SDK: cx-management-apis#644 requires it on create
+        requireOne: true # PINNED-SDK: cx-management-apis#644 requires one variant
+      companyId: {skip: true}
+      createdBy: {skip: true}
+      createdAt: {skip: true}
+      updatedAt: {skip: true}
+  EvaluationConfig:
+    unsupportedArms: [sqlLoad, customEvaluation]
+    unsupportedSummary: "Unsupported AI evaluation config"
+    unsupportedDetail: "This AI evaluation type is not supported by coralogix_ai_evaluation."
+  AllowedTopicsConfig:
+    fields:
+      topics: {required: true, collection: set, validators: [{sizeAtLeast: 1}]} # required and collection are PINNED-SDK: cx-management-apis#644 requires the list and marks it UNORDERED_LIST
+  RestrictedTopicsConfig:
+    fields:
+      topics: {required: true, collection: set, validators: [{sizeAtLeast: 1}]} # required and collection are PINNED-SDK: cx-management-apis#644 requires the list and marks it UNORDERED_LIST
+  CompetitionConfig:
+    fields:
+      competitors: {required: true, collection: set, validators: [{sizeAtLeast: 1}]} # required and collection are PINNED-SDK: cx-management-apis#644 requires the list and marks it UNORDERED_LIST
+  PiiConfig:
+    fields:
+      categories: {required: true, collection: set, validators: [{sizeAtLeast: 1}]} # required and collection are PINNED-SDK: cx-management-apis#644 requires the list and marks it UNORDERED_LIST
+  SqlAllowedTablesConfig:
+    fields:
+      tables: {required: true, collection: set, validators: [{sizeAtLeast: 1}]} # required and collection are PINNED-SDK: cx-management-apis#644 requires the list and marks it UNORDERED_LIST
+  SqlRestrictedTablesConfig:
+    fields:
+      tables: {required: true, collection: set, validators: [{sizeAtLeast: 1}]} # required and collection are PINNED-SDK: cx-management-apis#644 requires the list and marks it UNORDERED_LIST
+  PromptInjectionConfig:
+    fields:
+      additionalContext:
+        markdownDescription: "Additional context passed to the LLM evaluator."
+        computed: true
+        default: ""
+        readNullAs: empty # the API leaves out "", and the released resource read it as ""
+
+enums:
+  EvaluationTarget:
+    values: [PROMPT, RESPONSE]
+    rejected: [CONVERSATION]

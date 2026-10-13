@@ -136,7 +136,8 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating coralogix_ai_evaluation | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Evaluation not found\"}\noperation - Update"
+      "warning: Resource disappeared during update | The API did not find ai_evaluation with id 00000000-0000-4000-8000-000000000001. Terraform removed it from state.",
+      "error: Missing Resource State After Update | The Terraform Provider unexpectedly returned no resource state after having no errors in the resource update. This is always an issue in the Terraform Provider and should be reported to the provider developers."
     ],
     "state": {
       "application": "tf-baseline-app",
