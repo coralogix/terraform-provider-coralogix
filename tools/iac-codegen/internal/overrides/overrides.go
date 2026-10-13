@@ -269,10 +269,12 @@ type Enum struct {
 	// Rejected are the values of the contract that the resource does not accept. The generator
 	// reports a value of the contract that is in neither list, so a new API value needs a decision.
 	Rejected []string `yaml:"rejected"`
-	// ReadRejected: a rejected value still reads back, spelled as the accepted values are (lower
-	// case unless Verbatim). The write map and the schema validator do not accept it. Without
-	// this key, a rejected value fails the read.
+	// ReadRejected: a rejected value still reads back as the API spelling. The write map and the
+	// schema validator do not accept it. Without this key, a rejected value fails the read.
 	ReadRejected bool `yaml:"readRejected"`
+	// ReadRejectedLower reads a rejected value back in lower case instead, as a released resource
+	// that lowercased an unknown API value did. It needs ReadRejected and excludes Verbatim.
+	ReadRejectedLower bool `yaml:"readRejectedLower"`
 }
 
 // Parse reads the file. An unknown key or a wrong value is an error.
@@ -379,6 +381,10 @@ func (s Schema) checkUpgrades() error {
 // checkEnums checks that no value is accepted and rejected at the same time.
 func (f *File) checkEnums() error {
 	for _, name := range sortedKeys(f.Enums) {
+		e := f.Enums[name]
+		if e.ReadRejectedLower && (!e.ReadRejected || e.Verbatim) {
+			return fmt.Errorf("enums.%s: readRejectedLower needs readRejected and excludes verbatim", name)
+		}
 		for _, v := range f.Enums[name].Rejected {
 			if slices.Contains(f.Enums[name].Values, v) {
 				return fmt.Errorf("enums.%s: %q is in values and in rejected", name, v)

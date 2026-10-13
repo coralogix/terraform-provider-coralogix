@@ -79,3 +79,4 @@ enums:
     rejected: [CONVERSATION]
     # The released resource read CONVERSATION into state as "conversation" but did not accept it in a configuration.
     readRejected: true
+    readRejectedLower: true

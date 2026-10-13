@@ -37,7 +37,7 @@ var {{.Name}}ToAPI = map[string]{{$type}}{
 
 // {{.Name}}FromAPI maps the API values of the enum to its Terraform values.
 {{- if .Read}}
-// A rejected value still reads back. The write map does not have it.
+// A rejected value reads back as the API spelling. The write map does not have it.
 {{- end}}
 var {{.Name}}FromAPI = map[{{$type}}]string{
 {{- range .Values}}

@@ -28,7 +28,7 @@
 - FIX: `unsupportedArms` renders. Before, generation failed with `no SDK field` for the unsupported arm.
 - FIX: An unsupported arm can be missing from the Create and Update components; only the response needs it. A field line on an unsupported arm is an error, because the arm is not in the schema.
 - FIX: The generator does not read the value of an unsupported arm, so that value can use a shape the generator does not support, and the fields inside it need no `x-coralogix-presence`.
-- CHANGE: `enums.<Enum>.readRejected: true` reads a rejected value spelled as the accepted values are: lower case, or the API spelling with `verbatim: true`. Before, it was always the API spelling.
+- FEAT: `enums.<Enum>.readRejectedLower: true` reads a rejected value in lower case instead of the API spelling that `readRejected` keeps.
 - FIX: `unsupportedArms` that remove every arm of a oneOf group that requires one are an error. An unsupported arm defined inline with fields needs a component `$ref`; an empty inline arm is accepted.
 - FIX: Existing-mode check reads a resource that a response field wraps in `allOf: [$ref]`, as the OpenAPI fork writes a field with a description. Before, every field read as missing from Get.
 - FIX: A client-set id keeps `RequiresReplace`. The check against Optional+Computed with RequiresReplace skips an attribute with `UseStateForUnknown`, which plans an omitted value as its prior state.

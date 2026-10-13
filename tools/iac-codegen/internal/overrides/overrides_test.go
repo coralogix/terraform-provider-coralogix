@@ -304,3 +304,15 @@ func TestRejectUnknownOfAnUnreleasedResource(t *testing.T) {
 		}
 	}
 }
+
+func TestReadRejectedLowerNeedsReadRejected(t *testing.T) {
+	base := "resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    values: [A]\n    rejected: [B]\n"
+	for _, extra := range []string{"    readRejectedLower: true\n", "    verbatim: true\n    readRejected: true\n    readRejectedLower: true\n"} {
+		if _, err := Parse([]byte(base + extra)); err == nil || !strings.Contains(err.Error(), "readRejectedLower needs readRejected and excludes verbatim") {
+			t.Fatalf("%q: err = %v, want the readRejectedLower error", extra, err)
+		}
+	}
+	if _, err := Parse([]byte(base + "    readRejected: true\n    readRejectedLower: true\n")); err != nil {
+		t.Fatal(err)
+	}
+}

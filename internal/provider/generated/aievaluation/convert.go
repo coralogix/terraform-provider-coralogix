@@ -26,7 +26,7 @@ var evaluationTargetToAPI = map[string]ai_evaluations_service.EvaluationTarget{
 }
 
 // evaluationTargetFromAPI maps the API values of the enum to its Terraform values.
-// A rejected value still reads back. The write map does not have it.
+// A rejected value reads back as the API spelling. The write map does not have it.
 var evaluationTargetFromAPI = map[ai_evaluations_service.EvaluationTarget]string{
 	ai_evaluations_service.EvaluationTarget("PROMPT"):       "prompt",
 	ai_evaluations_service.EvaluationTarget("RESPONSE"):     "response",
