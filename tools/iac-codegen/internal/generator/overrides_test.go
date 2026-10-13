@@ -340,15 +340,35 @@ func TestEnumValidatorFollowsTheEnumsLine(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\n"+test.file)
-			got, err := enumValidatorExpr(attr, file)
+			got, err := enumValidatorExpr(attr, file, false)
 			if err != nil || got != test.want {
 				t.Fatalf("got %q, %v, want %q", got, err, test.want)
 			}
 		})
 	}
 	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\n")
-	if _, err := enumValidatorExpr(&tfAttr{Name: "name", Kind: "String", ValueKind: "String"}, file); err == nil {
+	if _, err := enumValidatorExpr(&tfAttr{Name: "name", Kind: "String", ValueKind: "String"}, file, false); err == nil {
 		t.Fatal("want an error for a field that is not an enum")
+	}
+}
+
+// enumExceptZero leaves the zero value out of the validator. The conversion map still has it,
+// so a response that contains the zero value still converts.
+func TestEnumExceptZeroKeepsTheZeroValueInTheMap(t *testing.T) {
+	attr := &tfAttr{Name: "chart_name", Kind: "String", ValueKind: "String", EnumSchema: "ChartName"}
+	file := mustParse(t, "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  ChartName: {zero: CHART_NAME_UNSPECIFIED, values: [CHART_NAME_OTEL_INTEGRATION, CHART_NAME_OTEL_ECS_EC2]}\n")
+	got, err := enumValidatorExpr(attr, file, true)
+	want := `stringvalidator.OneOf("chart_name_otel_ecs_ec2", "chart_name_otel_integration")`
+	if err != nil || got != want {
+		t.Fatalf("validator = %q, %v, want %q", got, err, want)
+	}
+	b := &convBuilder{file: file}
+	m, err := b.enumMapFor("ChartName", "ChartName", &model.Type{EnumZero: "CHART_NAME_UNSPECIFIED"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(m.Values) == 0 || m.Values[0].TF != "CHART_NAME_UNSPECIFIED" || m.Values[0].API != "CHART_NAME_UNSPECIFIED" {
+		t.Fatalf("map values = %+v, want the zero value first", m.Values)
 	}
 }
 

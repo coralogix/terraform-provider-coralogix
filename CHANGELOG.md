@@ -2,6 +2,7 @@
 
 #### resource/coralogix_view
 - FEAT: Add `coralogix_view` for a saved Explore view. `name` and `time_selection` are required, and `time_selection` needs exactly one of `quick_selection` or `custom_selection`. `search_query`, `filters`, `folder_id`, `view_type`, and `is_compact_mode` can be set, changed, and removed. An omitted `view_type`, `is_compact_mode`, or `search_query.syntax_type` reads back as the server default (`VIEW_TYPE_LOGS`, `false`, `SYNTAX_TYPE_LUCENE`), and removing one restores that default. A configured `is_compact_mode` is applied with a replace right after create, because create does not take it. `time_selection.quick_selection.caption` is computed. The API stores `time_selection.quick_selection.seconds` as the nearest preset, so set one of the listed presets.
+- CHORE: Bump `coralogix-management-sdk` to the version with the views API contract.
 
 #### resource/coralogix_view_folder
 - CHORE: The resource is generated from the API contract. Schema version stays 1. `id` stays computed and keeps its value when the folder is renamed. `name` stays required and must be between 1 and 100 characters.
@@ -16,6 +17,8 @@
 - FEAT: A new resource supports a scalar server default on an optional nested field. The attribute is Optional and Computed, a request does not send its unknown value, and an object whose attributes are empty, `""`, or their default reads as the omitted object.
 - FEAT: `validators.inferred: true` keeps the contract limits as validators in existing mode, and a `required: true` line states the presence of a required number in a nested component.
 - FEAT: A nested server default also applies to an existing-mode field without a line.
+
+# Release 3.21.0
 
 #### resource/coralogix_configuration_group
 - BREAKING (Beta): `coralogix_fleet_configuration_group` is renamed `coralogix_configuration_group`. Remove the old resource from state and import the group under the new name.
@@ -48,6 +51,16 @@
 - FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.24`.
+- FIX: A `requestValue` field is not in the Create or Update check lists. Those lists read Terraform attributes. A field that the request schema does not mark read-only stayed in the lists, so every Create and every Update failed.
+- CHORE: Bump the generator to `v0.1.0-beta.23`.
+- FIX: Presence, default, read-only, and schema checks walk a schema that is only `allOf` of one `$ref`. Required fields are the union of the required lists, so a required field inside the ref is not optional.
+- FIX: A field that Create requires needs no `x-coralogix-presence` in Update. Terraform requires it, so Update always sends a value.
+- FIX: The fields inside a skipped field need no `x-coralogix-presence`, because the field is never sent.
+- CHORE: Bump the generator to `v0.1.0-beta.22`.
+- FEAT: `enumExceptZero: true` accepts the enum values and leaves out the zero value. `enum: true` still accepts the zero value. The conversion maps still contain it.
+- CHORE: Bump the generator to `v0.1.0-beta.21`.
+- FIX: A computed-only attribute, and every attribute inside it, has no validators and no document plan modifier. A field line on a component that is also managed no longer copies those checks onto the computed-only place. A computed `id` still keeps `UseStateForUnknown`.
 - FIX: `behavior-overrides.yaml` rejects a Delete operation named in both `api.delete.operation` and `api.operations.delete`. Before, `api.operations` chose the operation id while `api.delete` still turned on POST-action delete checks.
 - FEAT: `readEmptyAs: null` on a string reads an omitted value as null. A configured `""` stays `""`.
 - FIX: `requestValue` on a nested read-only field is sent on create and update.
