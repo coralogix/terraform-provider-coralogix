@@ -70,9 +70,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "is_enabled"
-    ],
     "state": {
       "application": "tf-baseline-app",
       "config": {
@@ -100,15 +97,12 @@
         "toxicity": null
       },
       "id": "00000000-0000-4000-8000-000000000001",
-      "is_enabled": null,
+      "is_enabled": false,
       "subsystem": "tf-baseline-subsystem",
       "target": "response",
       "threshold": 0.5
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"is_enabled\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -146,7 +140,7 @@
         "toxicity": null
       },
       "id": "00000000-0000-4000-8000-000000000001",
-      "is_enabled": null,
+      "is_enabled": false,
       "subsystem": "tf-baseline-subsystem",
       "target": "response",
       "threshold": 0.5

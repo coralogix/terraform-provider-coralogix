@@ -771,10 +771,10 @@
         "language_mismatch": null,
         "pii": {
           "categories": [
-            "CREDIT_CARD",
-            "EMAIL_ADDRESS",
-            "IBAN_CODE",
             "PHONE_NUMBER",
+            "EMAIL_ADDRESS",
+            "CREDIT_CARD",
+            "IBAN_CODE",
             "US_SSN"
           ]
         },

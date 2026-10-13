@@ -6,7 +6,7 @@
   {
     "step": "import an id that is not a uuid (refresh)",
     "applyDiagnostics": [
-      "error: Unable to read ai_evaluation | id does-not-exist: id must have at least 36 elements"
+      "error: Error reading coralogix_ai_evaluation | error - id must have at least 36 elements\noperation - Read"
     ],
     "state": {
       "application": null,

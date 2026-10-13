@@ -13,7 +13,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Unsupported AI evaluation config | This AI evaluation type is not supported by coralogix_ai_evaluation."
+      "error: Unsupported AI evaluation config | Only Allowed Topics, Competition, Hallucination Completeness, Hallucination Context Adherence, Hallucination Context Relevance, Hallucination Correctness, Hallucination Task Adherence, Language Mismatch, PII, Prompt Injection, Restricted Topics, Sexism, SQL Allowed Tables, SQL Hallucination, SQL Read Only, SQL Restricted Tables, and Toxicity AI evaluation configs are currently supported by this resource."
     ],
     "state": {
       "application": null,

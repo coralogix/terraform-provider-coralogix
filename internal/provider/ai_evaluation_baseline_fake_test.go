@@ -130,7 +130,7 @@ func (f *aiEvalFake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func aiEvalFail(status int, message string) (int, any) {
 	prefix := map[int]string{
-		http.StatusBadRequest: "Bad Request", http.StatusNotFound: "Not Found", http.StatusConflict: "Conflict",
+		http.StatusBadRequest: "Bad Request", http.StatusNotFound: "Not Found", http.StatusConflict: "Already Exists",
 	}[status]
 	return status, map[string]any{"code": status, "message": prefix + ": " + message}
 }
@@ -218,7 +218,7 @@ func (f *aiEvalFake) create(in map[string]any) (int, any) {
 		"target":      target,
 		"config":      config,
 		"isEnabled":   in["isEnabled"] == true,
-		"createdBy":   "",
+		"createdBy":   "00000000-0000-4000-8000-0000000000aa",
 		"createdAt":   now,
 		"updatedAt":   now,
 	}
@@ -486,40 +486,12 @@ func aiEvalNormalizeConfig(config map[string]any) map[string]any {
 	return map[string]any{variant: stored}
 }
 
-// present writes a stored evaluation as protobuf JSON: false and "" are left out.
+// present writes a stored evaluation as the REST facade does: zero values such
+// as false and "" are written, and a threshold that was never set is left out.
 func present(stored map[string]any) map[string]any {
 	out := map[string]any{}
 	for k, v := range stored {
-		switch x := v.(type) {
-		case bool:
-			if !x {
-				continue
-			}
-		case string:
-			if x == "" {
-				continue
-			}
-		case map[string]any:
-			out[k] = presentConfig(x)
-			continue
-		}
 		out[k] = v
-	}
-	return out
-}
-
-func presentConfig(config map[string]any) map[string]any {
-	out := map[string]any{}
-	for variant, value := range config {
-		fields, _ := value.(map[string]any)
-		kept := map[string]any{}
-		for k, v := range fields {
-			if s, ok := v.(string); ok && s == "" {
-				continue
-			}
-			kept[k] = v
-		}
-		out[variant] = kept
 	}
 	return out
 }

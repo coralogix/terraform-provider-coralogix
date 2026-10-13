@@ -55,7 +55,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Unable to create ai_evaluation | 404 Not Found — {\"code\":404,\"message\":\"Not Found: AI application not found\"}"
+      "error: Error creating coralogix_ai_evaluation | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: AI application not found\"}\noperation - Create"
     ],
     "state": null
   }

@@ -39,7 +39,7 @@
         "toxicity": null
       },
       "id": "00000000-0000-4000-8000-000000000001",
-      "is_enabled": null,
+      "is_enabled": false,
       "subsystem": "tf-baseline-subsystem",
       "target": "prompt",
       "threshold": 0.3
@@ -64,6 +64,7 @@
       "AttributeName(\"config\").AttributeName(\"sql_read_only\")",
       "AttributeName(\"config\").AttributeName(\"sql_restricted_tables\")",
       "AttributeName(\"config\").AttributeName(\"toxicity\")",
+      "AttributeName(\"is_enabled\")",
       "AttributeName(\"subsystem\")",
       "AttributeName(\"target\")",
       "AttributeName(\"threshold\")"
@@ -118,28 +119,7 @@
       "target": "prompt",
       "threshold": 0.3
     },
-    "requests": [
-      {
-        "method": "PATCH",
-        "path": "/mgmt/openapi/5/ai/evaluations/v3/00000000-0000-4000-8000-000000000001",
-        "body": {
-          "config": {
-            "restrictedTopics": {
-              "topics": [
-                "religion",
-                "politics"
-              ]
-            }
-          },
-          "isEnabled": false,
-          "threshold": 0.3
-        },
-        "status": 200
-      }
-    ],
-    "inconsistentResult": [
-      "is_enabled"
-    ],
+    "noChange": true,
     "state": {
       "application": "tf-baseline-app",
       "config": {
@@ -155,8 +135,8 @@
         "prompt_injection": null,
         "restricted_topics": {
           "topics": [
-            "religion",
-            "politics"
+            "politics",
+            "religion"
           ]
         },
         "sexism": null,
@@ -167,14 +147,10 @@
         "toxicity": null
       },
       "id": "00000000-0000-4000-8000-000000000001",
-      "is_enabled": null,
+      "is_enabled": false,
       "subsystem": "tf-baseline-subsystem",
       "target": "prompt",
       "threshold": 0.3
-    },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"is_enabled\")"
-    ]
+    }
   }
 ]
