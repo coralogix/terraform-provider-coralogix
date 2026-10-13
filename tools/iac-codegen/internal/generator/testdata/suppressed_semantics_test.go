@@ -15,7 +15,7 @@ import (
 func ptr[T any](v T) *T { return &v }
 
 func model(id types.String) *SuppressedThingModel {
-	return &SuppressedThingModel{Id: id, Name: types.StringValue("rule"), TimeFrame: &WindowModel{TimeZone: types.StringValue("UTC+2")}}
+	return &SuppressedThingModel{Id: id, Name: types.StringValue("rule"), TimeFrame: &WindowModel{TimeZone: types.StringValue("UTC+2")}, Operation: types.StringValue("active")}
 }
 
 // The server sets the id: Create sends no id, also when the plan has one.
@@ -35,7 +35,7 @@ func TestCreateSendsNoID(t *testing.T) {
 // id is not sent.
 func TestUpdateSendsTheIDProperty(t *testing.T) {
 	ctx := context.Background()
-	suppressed_things_service.Stored = &suppressed_things_service.SuppressedThing{UniqueIdentifier: ptr("rule-1"), Name: "renamed"}
+	suppressed_things_service.Stored = &suppressed_things_service.SuppressedThing{UniqueIdentifier: ptr("rule-1"), Name: "renamed", ScheduleOperation: suppressed_things_service.THINGOPERATION_THING_OPERATION_ACTIVATE}
 	suppressed_things_service.Sent = nil
 	r := &Resource{client: &suppressed_things_service.SuppressedThingsServiceAPIService{}}
 	var schemaResp frameworkresource.SchemaResponse
@@ -47,6 +47,7 @@ func TestUpdateSendsTheIDProperty(t *testing.T) {
 			"id":         tftypes.NewValue(tftypes.String, id),
 			"name":       tftypes.NewValue(tftypes.String, name),
 			"time_frame": tftypes.NewValue(window, nil),
+			"operation":  tftypes.NewValue(tftypes.String, "active"),
 		})
 	}
 	state := tfsdk.State{Schema: schemaResp.Schema, Raw: value("rule-1", "rule")}
@@ -61,20 +62,23 @@ func TestUpdateSendsTheIDProperty(t *testing.T) {
 	if got == nil || got.UniqueIdentifier == nil || *got.UniqueIdentifier != "rule-1" || got.Id != nil || got.Name != "renamed" {
 		t.Fatalf("Update sent %+v, want uniqueIdentifier rule-1, no version id, and name renamed", got)
 	}
+	if got.ScheduleOperation != suppressed_things_service.THINGOPERATION_THING_OPERATION_ACTIVATE {
+		t.Fatalf("operation active was sent as %q, want THING_OPERATION_ACTIVATE", got.ScheduleOperation)
+	}
 }
 
 // The id attribute is the id property. The version id, which every Update replaces, is not
 // stored, and a response without the id property is an error.
 func TestFlattenReadsTheIDProperty(t *testing.T) {
 	m, diags := flatten(context.Background(), &suppressed_things_service.SuppressedThing{
-		UniqueIdentifier: ptr("rule-1"), Id: ptr("version-7"), Name: "rule",
+		UniqueIdentifier: ptr("rule-1"), Id: ptr("version-7"), Name: "rule", ScheduleOperation: suppressed_things_service.THINGOPERATION_THING_OPERATION_MUTE,
 		Window: &suppressed_things_service.Window{Timezone: "UTC+2"},
 	})
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
-	if m.Id.ValueString() != "rule-1" || m.TimeFrame.TimeZone.ValueString() != "UTC+2" {
-		t.Fatalf("flatten = id %v, time_zone %v; want rule-1 and UTC+2", m.Id, m.TimeFrame.TimeZone)
+	if m.Id.ValueString() != "rule-1" || m.TimeFrame.TimeZone.ValueString() != "UTC+2" || m.Operation.ValueString() != "mute" {
+		t.Fatalf("flatten = id %v, time_zone %v, operation %v; want rule-1, UTC+2, and mute", m.Id, m.TimeFrame.TimeZone, m.Operation)
 	}
 	if _, diags := flatten(context.Background(), &suppressed_things_service.SuppressedThing{Id: ptr("version-7"), Name: "rule"}); !diags.HasError() {
 		t.Fatal("a response without uniqueIdentifier must be an error: Read, Update, and Delete need the id")

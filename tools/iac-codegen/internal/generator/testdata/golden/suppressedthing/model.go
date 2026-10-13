@@ -10,6 +10,7 @@ type SuppressedThingModel struct {
 	Id        types.String `tfsdk:"id"`
 	Name      types.String `tfsdk:"name"`
 	TimeFrame *WindowModel `tfsdk:"time_frame"`
+	Operation types.String `tfsdk:"operation"`
 }
 
 type WindowModel struct {

@@ -249,6 +249,9 @@ type Enum struct {
 	// Verbatim keeps the API spelling as the Terraform value. Attachment policies stay
 	// AUTO, ENABLED, and DISABLED.
 	Verbatim bool `yaml:"verbatim"`
+	// Names gives an accepted value its released Terraform spelling when that is not the lower
+	// case of the API value, for example SCHEDULE_OPERATION_ACTIVATE: active.
+	Names map[string]string `yaml:"names"`
 	// Rejected are the values of the contract that the resource does not accept. The generator
 	// reports a value of the contract that is in neither list, so a new API value needs a decision.
 	Rejected []string `yaml:"rejected"`
@@ -361,11 +364,52 @@ func (s Schema) checkUpgrades() error {
 // checkEnums checks that no value is accepted and rejected at the same time.
 func (f *File) checkEnums() error {
 	for _, name := range sortedKeys(f.Enums) {
-		for _, v := range f.Enums[name].Rejected {
-			if slices.Contains(f.Enums[name].Values, v) {
+		e := f.Enums[name]
+		for _, v := range e.Rejected {
+			if slices.Contains(e.Values, v) {
 				return fmt.Errorf("enums.%s: %q is in values and in rejected", name, v)
 			}
 		}
+		if err := e.checkNames(); err != nil {
+			return fmt.Errorf("enums.%s: %w", name, err)
+		}
+	}
+	return nil
+}
+
+// TerraformValue is the Terraform spelling of an accepted API value: its names entry, the API
+// spelling with verbatim, or the lower case of the API value.
+func (e Enum) TerraformValue(api string) string {
+	if n, ok := e.Names[api]; ok {
+		return n
+	}
+	if e.Verbatim {
+		return api
+	}
+	return strings.ToLower(api)
+}
+
+// checkNames checks that each names entry renames an accepted value, and that no two values of
+// the enum, the zero value included, have one Terraform spelling.
+func (e Enum) checkNames() error {
+	for _, api := range sortedKeys(e.Names) {
+		if !slices.Contains(e.Values, api) {
+			return fmt.Errorf("names: %q is not in values", api)
+		}
+		if e.Names[api] == "" {
+			return fmt.Errorf("names: %q has an empty Terraform value", api)
+		}
+	}
+	seen := map[string]string{}
+	if e.Zero != "" {
+		seen[e.Zero] = "zero"
+	}
+	for _, api := range e.Values {
+		tf := e.TerraformValue(api)
+		if other, ok := seen[tf]; ok {
+			return fmt.Errorf("%s and %s both have the Terraform value %q", other, api, tf)
+		}
+		seen[tf] = api
 	}
 	return nil
 }

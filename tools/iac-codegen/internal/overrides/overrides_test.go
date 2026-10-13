@@ -136,6 +136,37 @@ func TestNameAndIDPropertyPolicy(t *testing.T) {
 	}
 }
 
+// A names entry gives an accepted value its released Terraform spelling. The conversion maps and
+// the validator read it through TerraformValue, so they cannot disagree.
+func TestEnumNames(t *testing.T) {
+	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  Op:\n    zero: unspecified\n    values: [OP_MUTE, OP_ACTIVATE]\n    names: {OP_ACTIVATE: active}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	e := f.Enums["Op"]
+	if got := e.TerraformValue("OP_ACTIVATE"); got != "active" {
+		t.Fatalf("TerraformValue(OP_ACTIVATE) = %q, want active", got)
+	}
+	if got := e.TerraformValue("OP_MUTE"); got != "op_mute" {
+		t.Fatalf("TerraformValue(OP_MUTE) = %q, want the lower case op_mute", got)
+	}
+	tests := map[string]struct{ line, want string }{
+		"not accepted":    {"values: [OP_MUTE]\n    rejected: [OP_ACTIVATE]\n    names: {OP_ACTIVATE: active}", `"OP_ACTIVATE" is not in values`},
+		"empty name":      {"values: [OP_MUTE]\n    names: {OP_MUTE: \"\"}", "empty Terraform value"},
+		"same spelling":   {"values: [OP_MUTE, OP_ACTIVATE]\n    names: {OP_MUTE: on, OP_ACTIVATE: on}", `both have the Terraform value "on"`},
+		"zero collision":  {"zero: unspecified\n    values: [OP_MUTE]\n    names: {OP_MUTE: unspecified}", `zero and OP_MUTE both have the Terraform value "unspecified"`},
+		"lower collision": {"values: [OP_MUTE, OP_ACTIVATE]\n    names: {OP_ACTIVATE: op_mute}", `both have the Terraform value "op_mute"`},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  Op:\n    " + test.line + "\n"))
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}
+
 func TestAValueIsAcceptedOrRejectedNotBoth(t *testing.T) {
 	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  e.Kind: {values: [A, B], rejected: [B]}\n"))
 	if err == nil || !strings.Contains(err.Error(), "values and in rejected") {

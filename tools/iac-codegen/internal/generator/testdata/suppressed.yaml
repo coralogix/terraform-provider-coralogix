@@ -1,7 +1,8 @@
 # A resource that users already have, modeled on alert suppression rules. The path parameter is
 # thing_id, but the resource holds its id in uniqueIdentifier, and id is a version id that every
 # Update replaces. Update sends uniqueIdentifier in its body. The released Terraform names differ
-# from the API names: id, time_frame, and time_zone.
+# from the API names: id, time_frame, time_zone, and operation, whose values are mute and active
+# where the API says THING_OPERATION_MUTE and THING_OPERATION_ACTIVATE.
 openapi: 3.1.0
 info: {title: suppressed, version: 1.0.0}
 paths:
@@ -86,12 +87,16 @@ components:
         suppressedThing: {$ref: '#/components/schemas/SuppressedThing'}
     SuppressedThing:
       type: object
-      required: [name]
+      required: [name, scheduleOperation]
       properties:
         uniqueIdentifier: {type: string, x-coralogix-presence: true, description: The id of the thing.}
         id: {type: string, x-coralogix-presence: true, description: The version id of the thing.}
         name: {type: string, minLength: 1}
         window: {$ref: '#/components/schemas/Window'}
+        scheduleOperation: {$ref: '#/components/schemas/ThingOperation'}
+    ThingOperation:
+      type: string
+      enum: [THING_OPERATION_UNSPECIFIED, THING_OPERATION_MUTE, THING_OPERATION_ACTIVATE]
     Window:
       type: object
       required: [timezone]

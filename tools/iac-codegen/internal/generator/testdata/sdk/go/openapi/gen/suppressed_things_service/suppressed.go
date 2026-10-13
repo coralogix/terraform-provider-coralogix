@@ -6,11 +6,20 @@ import (
 )
 
 type SuppressedThing struct {
-	UniqueIdentifier *string
-	Id               *string
-	Name             string
-	Window           *Window
+	UniqueIdentifier  *string
+	Id                *string
+	Name              string
+	Window            *Window
+	ScheduleOperation ThingOperation
 }
+
+type ThingOperation string
+
+const (
+	THINGOPERATION_THING_OPERATION_UNSPECIFIED ThingOperation = "THING_OPERATION_UNSPECIFIED"
+	THINGOPERATION_THING_OPERATION_MUTE        ThingOperation = "THING_OPERATION_MUTE"
+	THINGOPERATION_THING_OPERATION_ACTIVATE    ThingOperation = "THING_OPERATION_ACTIVATE"
+)
 
 type Window struct {
 	Timezone string

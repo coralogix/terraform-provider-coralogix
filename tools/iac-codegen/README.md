@@ -76,7 +76,7 @@ A third small golden contract, `configthing`, is an existing resource with JSON 
 
 A fourth small golden contract, `wrapthing`, is an existing resource whose API holds values in wrapper objects: a string, an enum, a required number, a list of wrapped items, an object, and a list inside two wrappers. One component collapses in one place and stays an object in another. Its behavior-overrides file has an `unwrap` list and `unwrap` field lines.
 
-A further small golden contract, `suppressedthing`, is an existing resource whose path parameter is `thing_id` while its id is the property `uniqueIdentifier`, next to a version `id` that the file skips. Its behavior-overrides file has `api.idProperty`, `serverSetID`, and `name` lines on a top-level and a nested field.
+A further small golden contract, `suppressedthing`, is an existing resource whose path parameter is `thing_id` while its id is the property `uniqueIdentifier`, next to a version `id` that the file skips. Its behavior-overrides file has `api.idProperty`, `serverSetID`, `name` lines on a top-level and a nested field, and an enum whose values have `names` (`mute` and `active`).
 
 ## Existing resources
 
@@ -138,6 +138,8 @@ A component can hold a field that the user sets in one place and that only the s
 `api.customMethods: true` is existing-mode only. Get and Delete may use different paths when each path has the same `{id}` parameter. Update has no path parameter, and the id stays in the body. New resources keep the rule that Get is Create plus `/{id}`, Update is the Create path, and Delete is the Get path. `api.operations` names the four operationIds, so `tfgen generate` needs no operation flags.
 
 `enums.<Enum>.readRejected: true` reads a rejected value back as the API spelling. Without it, that value fails the read. A missing enum reads as null. `x-coralogix-presence` means the same thing: the value was not set. A string `default` on the field is the reading of a missing value for that resource, including a missing unwrapped value.
+
+`enums.<Enum>.names` gives an accepted value its released Terraform spelling when that is not the lower case of the API value, for example `SCHEDULE_OPERATION_ACTIVATE: active` or `DURATION_FREQUENCY_MINUTE: minutes`. The conversion maps and the `enum: true` validator read the same spelling, so they cannot disagree. A name for a value that is not in `values`, an empty name, and two values (the zero value included) with one Terraform spelling are errors.
 
 `unwrap` removes wrapper objects that the API has and the released resource does not show. A wrapper is an object component with exactly one property, for example `LuceneQuery` in `{"query": {"value": "error"}}`. Terraform shows `query = "error"`.
 
