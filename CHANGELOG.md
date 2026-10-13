@@ -17,6 +17,7 @@
 - FEAT: A field line `name` keeps a released Terraform attribute name that is not the Terraform form of the API name.
 - FEAT: `enums.<Enum>.names` keeps a released Terraform spelling of an enum value, for example `active` for `SCHEDULE_OPERATION_ACTIVATE` or `minutes` for `DURATION_FREQUENCY_MINUTE`.
 - FEAT: A field line `valueNames` keeps released names for the numbers of an integer list or set, for example `Sunday` for day `1`.
+- FEAT: A field line `asBool` keeps a released bool for an object without fields, for example `always_active = true` for the oneOf arm `alwaysActive: {}`.
 - FIX: The SDK check expects a snake_case path parameter in lower camel case, as the Go SDK writes it. Before, it rejected the SDK of any resource with such a parameter.
 - FIX: A skipped field takes part in no Terraform name collision.
 - FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.

@@ -20,6 +20,9 @@ types:
       id: {skip: true}
       window: {name: time_frame}
       scheduleOperation: {name: operation, validators: [{enum: true}]}
+  Repeat:
+    fields:
+      alwaysActive: {asBool: true}
   Window:
     fields:
       timezone: {name: time_zone}

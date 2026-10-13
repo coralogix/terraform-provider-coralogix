@@ -100,6 +100,7 @@ func TestParseIsStrict(t *testing.T) {
 		"skip and name":    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, name: g}\n", "skipped field"},
 		"bad name":         {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {name: Time-Frame}\n", "must be a Terraform name"},
 		"empty value name": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {valueNames: {1: Sunday, 2: \"\"}}\n", "2 has an empty name"},
+		"skip and asBool":  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, asBool: true}\n", "skipped field"},
 		"same value name":  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {valueNames: {1: Sunday, 7: Sunday}}\n", "1 and 7 both have the name"},
 	}
 	for name, test := range tests {

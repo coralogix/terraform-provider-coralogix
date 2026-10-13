@@ -10,10 +10,20 @@ type SuppressedThingModel struct {
 	Id        types.String `tfsdk:"id"`
 	Name      types.String `tfsdk:"name"`
 	TimeFrame *WindowModel `tfsdk:"time_frame"`
+	Repeat    *RepeatModel `tfsdk:"repeat"`
 	Operation types.String `tfsdk:"operation"`
 }
 
 type WindowModel struct {
 	TimeZone types.String `tfsdk:"time_zone"`
 	Days     types.Set    `tfsdk:"days"`
+}
+
+type DynamicModel struct {
+	Every types.String `tfsdk:"every"`
+}
+
+type RepeatModel struct {
+	AlwaysActive types.Bool    `tfsdk:"always_active"`
+	Dynamic      *DynamicModel `tfsdk:"dynamic"`
 }

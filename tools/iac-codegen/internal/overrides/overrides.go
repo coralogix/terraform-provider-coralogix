@@ -176,6 +176,10 @@ type Field struct {
 	// ValueNames shows a list or set of integers as the names of its values, for example the
 	// weekdays 1 to 7 as Sunday to Saturday. Terraform holds strings; the API holds the numbers.
 	ValueNames map[int64]string `yaml:"valueNames"`
+	// AsBool shows an object without fields as a bool, for example a oneOf arm alwaysActive: {}.
+	// true sends the empty object, false is an error, and a response that has the object reads
+	// as true; one without it reads as null.
+	AsBool bool `yaml:"asBool"`
 	// Description and MarkdownDescription are the released texts of the docs. An empty
 	// string means that the released field had no description.
 	Description         *string `yaml:"description"`
@@ -441,6 +445,7 @@ func (l Field) keys() []string {
 	add(l.Skip, "skip")
 	add(l.Name != "", "name")
 	add(len(l.ValueNames) != 0, "valueNames")
+	add(l.AsBool, "asBool")
 	add(l.Description != nil, "description")
 	add(l.MarkdownDescription != nil, "markdownDescription")
 	add(l.ReadOnly, "readOnly")
@@ -499,7 +504,7 @@ func (l Field) empty() bool {
 }
 
 func (l Field) emptyMode() bool {
-	return !l.Skip && l.Name == "" && len(l.ValueNames) == 0 && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
+	return !l.Skip && l.Name == "" && len(l.ValueNames) == 0 && !l.AsBool && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown
 }
 
@@ -601,7 +606,7 @@ func sortedIntKeys[V any](m map[int64]V) []int64 {
 func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.RequestValue != "" ||
-		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0
+		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.AsBool
 }
 
 func checkValidators(validators []Validator) error {
@@ -674,6 +679,9 @@ func (f *File) Policy() model.Policy {
 					p.Names = map[string]string{}
 				}
 				p.Names[name+"."+field] = n
+			}
+			if t.Fields[field].AsBool {
+				p.Bools = append(p.Bools, name+"."+field)
 			}
 			if t.Fields[field].RequestValue != "" {
 				p.FixedRequest = append(p.FixedRequest, name+"."+field)

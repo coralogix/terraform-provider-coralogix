@@ -3,8 +3,11 @@
 package suppressedthing
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -40,6 +43,32 @@ func Schema() schema.Schema {
 						ElementType: types.StringType,
 						Validators: []validator.Set{
 							setvalidator.ValueStringsAre(stringvalidator.OneOf("Friday", "Monday", "Saturday", "Sunday", "Thursday", "Tuesday", "Wednesday")),
+						},
+						MarkdownDescription: "",
+					},
+				},
+				MarkdownDescription: "",
+			},
+			"repeat": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"always_active": schema.BoolAttribute{
+						Optional: true,
+						Validators: []validator.Bool{
+							boolvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("dynamic")),
+						},
+						MarkdownDescription: "",
+					},
+					"dynamic": schema.SingleNestedAttribute{
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("always_active")),
+						},
+						Attributes: map[string]schema.Attribute{
+							"every": schema.StringAttribute{
+								Required:            true,
+								MarkdownDescription: "",
+							},
 						},
 						MarkdownDescription: "",
 					},

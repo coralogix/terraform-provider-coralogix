@@ -1314,6 +1314,14 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	if m.{{.Model}} != nil {
 		{{.Dst}} = map[string]interface{}{}
 	}
+{{- else if eq .Conv "emptybool"}}
+	if !m.{{.Model}}.IsNull() && !m.{{.Model}}.IsUnknown() {
+		if m.{{.Model}}.ValueBool() {
+			{{.Dst}} = map[string]interface{}{}
+		} else {
+			diags.AddAttributeError({{$p}}, "Invalid value", "Only true is a valid value. Remove the attribute instead of setting false.")
+		}
+	}
 {{- else if eq .Conv "rfc3339"}}
 	{{.Dst}} = {{$l}}expandRFC3339({{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if eq .Conv "times"}}
@@ -1456,6 +1464,11 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		out.{{.Model}} = &{{.Object.Model}}{}
 	}
 	{{- end}}
+{{- else if eq .Conv "emptybool"}}
+	out.{{.Model}} = types.BoolNull()
+	if {{.Src}} != nil {
+		out.{{.Model}} = types.BoolValue(true)
+	}
 {{- else if eq .Conv "strings"}}
 	{{- if .Enum}}
 	out.{{.Model}} = flattenEnums{{.Collection}}(ctx, {{$p}}, {{.Src}}, {{printf "%q" .EnumZero}}, diags)

@@ -43,14 +43,16 @@ func TestUpdateSendsTheIDProperty(t *testing.T) {
 	var schemaResp frameworkresource.SchemaResponse
 	r.Schema(ctx, frameworkresource.SchemaRequest{}, &schemaResp)
 	root := schemaResp.Schema.Type().TerraformType(ctx)
-	window := root.(tftypes.Object).AttributeTypes["time_frame"]
 	value := func(id any, name string) tftypes.Value {
-		return tftypes.NewValue(root, map[string]tftypes.Value{
-			"id":         tftypes.NewValue(tftypes.String, id),
-			"name":       tftypes.NewValue(tftypes.String, name),
-			"time_frame": tftypes.NewValue(window, nil),
-			"operation":  tftypes.NewValue(tftypes.String, "active"),
-		})
+		// Every other attribute is null.
+		attrs := map[string]tftypes.Value{}
+		for attr, typ := range root.(tftypes.Object).AttributeTypes {
+			attrs[attr] = tftypes.NewValue(typ, nil)
+		}
+		attrs["id"] = tftypes.NewValue(tftypes.String, id)
+		attrs["name"] = tftypes.NewValue(tftypes.String, name)
+		attrs["operation"] = tftypes.NewValue(tftypes.String, "active")
+		return tftypes.NewValue(root, attrs)
 	}
 	state := tfsdk.State{Schema: schemaResp.Schema, Raw: value("rule-1", "rule")}
 	plan := tfsdk.Plan{Schema: schemaResp.Schema, Raw: value("rule-1", "renamed")}
@@ -127,5 +129,46 @@ func TestUnknownDaysAreErrors(t *testing.T) {
 	})
 	if !diags.HasError() {
 		t.Fatal("the API value 9 must be an error")
+	}
+}
+
+// always_active shows the empty arm alwaysActive as a bool: true sends the empty object, and a
+// response that has it reads as true; one without it reads as null.
+func TestAlwaysActiveIsABool(t *testing.T) {
+	ctx := context.Background()
+	m := model(types.StringValue("rule-1"))
+	m.Repeat = &RepeatModel{AlwaysActive: types.BoolValue(true)}
+	body, diags := expandCreate(ctx, m)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if got := body.SuppressedThing.Repeat; got == nil || got.AlwaysActive == nil || len(got.AlwaysActive) != 0 || got.Dynamic != nil {
+		t.Fatalf("always_active = true sent %#v, want the empty alwaysActive arm alone", got)
+	}
+
+	m.Repeat = &RepeatModel{AlwaysActive: types.BoolValue(false)}
+	if _, diags := expandCreate(ctx, m); !diags.HasError() {
+		t.Fatal("always_active = false must be an error, as in the released resource")
+	}
+
+	thing := &suppressed_things_service.SuppressedThing{
+		UniqueIdentifier: ptr("rule-1"), Name: "rule", ScheduleOperation: suppressed_things_service.THINGOPERATION_THING_OPERATION_MUTE,
+		Repeat: &suppressed_things_service.Repeat{AlwaysActive: map[string]interface{}{}},
+	}
+	flat, diags := flatten(ctx, thing)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if !flat.Repeat.AlwaysActive.Equal(types.BoolValue(true)) || flat.Repeat.Dynamic != nil {
+		t.Fatalf("the alwaysActive arm read back as %v, want always_active = true", flat.Repeat)
+	}
+
+	thing.Repeat = &suppressed_things_service.Repeat{Dynamic: &suppressed_things_service.Dynamic{Every: "day"}}
+	flat, diags = flatten(ctx, thing)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if !flat.Repeat.AlwaysActive.IsNull() {
+		t.Fatalf("always_active read back as %v without the arm, want null", flat.Repeat.AlwaysActive)
 	}
 }

@@ -43,6 +43,7 @@ var createFields = []struct {
 }{
 	{attr: "name", serverDefault: false},
 	{attr: "time_frame", serverDefault: false},
+	{attr: "repeat", serverDefault: false},
 	{attr: "operation", serverDefault: false},
 }
 
@@ -95,7 +96,10 @@ func flatten(ctx context.Context, v *suppressed_things_service.SuppressedThing) 
 // oneOfArms are the paths of the oneOf arms, with list and map steps left
 // out. An empty arm selects that arm, so it is not the same as a missing arm
 // (contract 2.8).
-var oneOfArms = map[string]bool{}
+var oneOfArms = map[string]bool{
+	"repeat.always_active": true,
+	"repeat.dynamic":       true,
+}
 
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
@@ -246,6 +250,7 @@ func expandSuppressedThingCreate(ctx context.Context, p path.Path, m *Suppressed
 	out := &suppressed_things_service.SuppressedThing{}
 	out.Name = valueOf(expandString(m.Name))
 	out.Window = expandWindow(ctx, p.AtName("time_frame"), m.TimeFrame, diags)
+	out.Repeat = expandRepeat(ctx, p.AtName("repeat"), m.Repeat, diags)
 	out.ScheduleOperation = valueOf(expandEnumMapped(p.AtName("operation"), m.Operation, thingOperationToAPI, diags))
 	return out
 }
@@ -270,6 +275,53 @@ func flattenWindow(ctx context.Context, p path.Path, v *suppressed_things_servic
 	return out
 }
 
+func expandRepeat(ctx context.Context, p path.Path, m *RepeatModel, diags *diag.Diagnostics) *suppressed_things_service.Repeat {
+	if m == nil {
+		return nil
+	}
+	out := &suppressed_things_service.Repeat{}
+	if !m.AlwaysActive.IsNull() && !m.AlwaysActive.IsUnknown() {
+		if m.AlwaysActive.ValueBool() {
+			out.AlwaysActive = map[string]interface{}{}
+		} else {
+			diags.AddAttributeError(p.AtName("always_active"), "Invalid value", "Only true is a valid value. Remove the attribute instead of setting false.")
+		}
+	}
+	out.Dynamic = expandDynamic(ctx, p.AtName("dynamic"), m.Dynamic, diags)
+	return out
+}
+
+func flattenRepeat(ctx context.Context, p path.Path, v *suppressed_things_service.Repeat, diags *diag.Diagnostics) *RepeatModel {
+	if v == nil {
+		return nil
+	}
+	out := &RepeatModel{}
+	out.AlwaysActive = types.BoolNull()
+	if v.AlwaysActive != nil {
+		out.AlwaysActive = types.BoolValue(true)
+	}
+	out.Dynamic = flattenDynamic(ctx, p.AtName("dynamic"), v.Dynamic, diags)
+	return out
+}
+
+func expandDynamic(ctx context.Context, p path.Path, m *DynamicModel, diags *diag.Diagnostics) *suppressed_things_service.Dynamic {
+	if m == nil {
+		return nil
+	}
+	out := &suppressed_things_service.Dynamic{}
+	out.Every = valueOf(expandString(m.Every))
+	return out
+}
+
+func flattenDynamic(ctx context.Context, p path.Path, v *suppressed_things_service.Dynamic, diags *diag.Diagnostics) *DynamicModel {
+	if v == nil {
+		return nil
+	}
+	out := &DynamicModel{}
+	out.Every = types.StringPointerValue(&v.Every)
+	return out
+}
+
 func expandSuppressedThingUpdate(ctx context.Context, p path.Path, m *SuppressedThingModel, diags *diag.Diagnostics) *suppressed_things_service.SuppressedThing {
 	if m == nil {
 		return nil
@@ -277,6 +329,7 @@ func expandSuppressedThingUpdate(ctx context.Context, p path.Path, m *Suppressed
 	out := &suppressed_things_service.SuppressedThing{}
 	out.Name = valueOf(expandString(m.Name))
 	out.Window = expandWindow(ctx, p.AtName("time_frame"), m.TimeFrame, diags)
+	out.Repeat = expandRepeat(ctx, p.AtName("repeat"), m.Repeat, diags)
 	out.ScheduleOperation = valueOf(expandEnumMapped(p.AtName("operation"), m.Operation, thingOperationToAPI, diags))
 	return out
 }
@@ -289,6 +342,7 @@ func flattenSuppressedThing(ctx context.Context, p path.Path, v *suppressed_thin
 	out.Id = types.StringPointerValue(v.UniqueIdentifier)
 	out.Name = types.StringPointerValue(&v.Name)
 	out.TimeFrame = flattenWindow(ctx, p.AtName("time_frame"), v.Window, diags)
+	out.Repeat = flattenRepeat(ctx, p.AtName("repeat"), v.Repeat, diags)
 	out.Operation = flattenEnumMapped(p.AtName("operation"), &v.ScheduleOperation, thingOperationFromAPI, diags)
 	return out
 }

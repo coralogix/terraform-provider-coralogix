@@ -47,6 +47,9 @@ type Policy struct {
 	// Names maps "Component.field" to the released Terraform attribute name of the field, when it
 	// is not the Terraform form of the API name.
 	Names map[string]string
+	// Bools are the "Component.field" objects without fields that a bool attribute shows: true
+	// when the object is present.
+	Bools []string
 	// Operations names the lifecycle operationIds from behavior-overrides. Flags
 	// still override an empty slot. A flag and the file cannot name different ids.
 	Operations OperationIDs
@@ -198,6 +201,11 @@ func (p Policy) TerraformName(component, field string) string {
 		return n
 	}
 	return TerraformName(field)
+}
+
+// AsBool reports whether a bool attribute shows the object field of component.
+func (p Policy) AsBool(component, field string) bool {
+	return component != "" && slices.Contains(p.Bools, component+"."+field)
 }
 
 func (p Policy) skips(component, field string) bool {
