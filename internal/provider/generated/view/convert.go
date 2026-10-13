@@ -25,7 +25,12 @@ import (
 // omitted API value. The only safe exception is an unknown value created by
 // removal of a field with a declared server default.
 func validateRequestValue(p path.Path, config, plan attr.Value, serverDefault bool, diags *diag.Diagnostics) {
-	unknown := unknownValuePaths(p, plan)
+	// A configured value that is unknown is never one that the server fills, also where the
+	// request drops an unknown plan value of a field with a server default.
+	unknown := unknownValuePaths(p, config)
+	if len(unknown) == 0 {
+		unknown = unknownValuePaths(p, plan)
+	}
 	if len(unknown) == 0 {
 		return
 	}

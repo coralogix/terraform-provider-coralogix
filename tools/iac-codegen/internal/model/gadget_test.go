@@ -152,3 +152,25 @@ func TestGadgetRefSiblingConstraintIsAnError(t *testing.T) {
 		t.Fatal("validation passed, want an issue for the sibling pattern")
 	}
 }
+
+// A keyword outside the allowlist is an error even when the generator has no other check for it.
+func TestGadgetUnknownRefSiblingIsAnError(t *testing.T) {
+	for _, sibling := range []string{"prefixItems: [{type: string}]", "patternProperties: {'^a': {type: string}}"} {
+		doc, err := Load(gadgetSpec(t, "                  default: GADGET_MODE_BASIC\n", "                  default: GADGET_MODE_BASIC\n                  "+sibling+"\n"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		keyword := strings.SplitN(sibling, ":", 2)[0]
+		if _, err := Build(doc, "Gadget"); err == nil || !strings.Contains(err.Error(), "the sibling "+keyword) {
+			t.Fatalf("%s: err = %v, want the sibling error", keyword, err)
+		}
+	}
+	// Descriptive siblings and extensions keep working.
+	doc, err := Load(gadgetSpec(t, "                  default: GADGET_MODE_BASIC\n", "                  default: GADGET_MODE_BASIC\n                  description: The mode.\n                  x-note: kept\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Build(doc, "Gadget"); err != nil {
+		t.Fatal(err)
+	}
+}

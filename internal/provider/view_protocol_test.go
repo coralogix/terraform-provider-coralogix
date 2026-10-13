@@ -219,36 +219,44 @@ func TestViewFollowUpUpdateRunsBeforeWrite(t *testing.T) {
 }
 
 // coralogix_view has no released version, so a request value that is still unknown stops
-// Create before the API call instead of being left out.
+// Create before the API call instead of being left out. That holds for a configured nested
+// value with a server default too: the request drops only an unknown that omission caused.
 func TestViewCreateRejectsAnUnknownRequestValue(t *testing.T) {
-	h := newViewHarness(t)
-	known := h.config(viewConfig(j{"folder_id": "folder"}))
-	unknown, err := tftypes.Transform(known, func(p *tftypes.AttributePath, v tftypes.Value) (tftypes.Value, error) {
-		if p.Equal(tftypes.NewAttributePath().WithAttributeName("folder_id")) {
-			return tftypes.NewValue(v.Type(), tftypes.UnknownValue), nil
-		}
-		return v, nil
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	r := view.NewResourceWithClient(views_service.NewAPIClient(views_service.NewConfiguration()).ViewsServiceAPI, view.Hooks{})
-	var schemaResp frameworkresource.SchemaResponse
-	r.Schema(h.ctx, frameworkresource.SchemaRequest{}, &schemaResp)
-	planned, _, diags := h.plan(h.null(), unknown)
-	if hasError(diags) {
-		t.Fatal(diagStrings(diags))
-	}
-	resp := &frameworkresource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: h.null()}}
-	r.Create(h.ctx, frameworkresource.CreateRequest{
-		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: unknown},
-		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: planned},
-	}, resp)
-	if !resp.Diagnostics.HasError() {
-		t.Fatal("Create with an unknown folder_id succeeded, want an error")
-	}
-	if got := h.views().takeRequests(); len(got) != 0 {
-		t.Fatalf("requests = %v, want none", methods(got))
+	for name, unknownPath := range map[string]*tftypes.AttributePath{
+		"folder_id":                tftypes.NewAttributePath().WithAttributeName("folder_id"),
+		"search_query.syntax_type": tftypes.NewAttributePath().WithAttributeName("search_query").WithAttributeName("syntax_type"),
+	} {
+		t.Run(name, func(t *testing.T) {
+			h := newViewHarness(t)
+			known := h.config(viewConfig(j{"folder_id": "folder", "search_query": j{"query": "error", "syntax_type": "SYNTAX_TYPE_DATAPRIME"}}))
+			unknown, err := tftypes.Transform(known, func(p *tftypes.AttributePath, v tftypes.Value) (tftypes.Value, error) {
+				if p.Equal(unknownPath) {
+					return tftypes.NewValue(v.Type(), tftypes.UnknownValue), nil
+				}
+				return v, nil
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			r := view.NewResourceWithClient(views_service.NewAPIClient(views_service.NewConfiguration()).ViewsServiceAPI, view.Hooks{})
+			var schemaResp frameworkresource.SchemaResponse
+			r.Schema(h.ctx, frameworkresource.SchemaRequest{}, &schemaResp)
+			planned, _, diags := h.plan(h.null(), unknown)
+			if hasError(diags) {
+				t.Fatal(diagStrings(diags))
+			}
+			resp := &frameworkresource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: h.null()}}
+			r.Create(h.ctx, frameworkresource.CreateRequest{
+				Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: unknown},
+				Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: planned},
+			}, resp)
+			if !resp.Diagnostics.HasError() {
+				t.Fatalf("Create with an unknown %s succeeded, want an error", name)
+			}
+			if got := h.views().takeRequests(); len(got) != 0 {
+				t.Fatalf("requests = %v, want none", methods(got))
+			}
+		})
 	}
 }
 

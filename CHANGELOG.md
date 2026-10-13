@@ -28,10 +28,11 @@
 - FEAT: `validators.inferred: true` keeps the contract limits as validators in existing mode, and a `required: true` line states the presence of a required number in a nested component.
 - FEAT: A nested server default also applies to an existing-mode field without a line.
 - FEAT: `validators.rejectUnknown: true` gives an existing-mode resource without a released version the unknown-value check of a new resource. `coralogix_view` sets it.
-- FIX: A `$ref` with a sibling constraint such as `pattern` is an error. Before, the type came from the target and the constraint was lost.
+- FIX: A `$ref` with a sibling other than `default`, a descriptive keyword, or an `x-` extension is an error. Before, the type came from the target and the sibling, such as `pattern` or `prefixItems`, was lost.
 - FIX: Only an object that holds an attribute with a server default reads `""` or that default as empty. Before, every object did once the resource had a nested default.
 - FIX: A server default that Get does not require keeps a configured default when a read omits the value, at the top level and in a nested object. Before, the read stored null and the apply was inconsistent.
 - FIX: The Update that follows Create for an Update-only field sends the state id in the body when only the server sets the id, as the normal Update does.
+- FIX: A configured value that is still unknown stops Create and Update, also for a nested field with a server default. Before, the request dropped it as if it were omitted.
 - FIX: The unknown-value check and the change check drop server-set values inside a set of objects, as they do in a list or map. Before, an unknown server-set child of a set element blocked Create and Update.
 
 # Release 3.21.0

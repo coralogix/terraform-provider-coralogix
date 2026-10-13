@@ -655,37 +655,31 @@ func refSiblingTarget(proxy *base.SchemaProxy, sibling *base.Schema) *base.Schem
 	return target
 }
 
-// refSiblingConstraints returns the keywords next to a $ref that constrain or shape the value.
-// The type comes from the target, so these keywords would be lost.
-func refSiblingConstraints(s *base.Schema) []string {
+// refSiblingAllowed are the keywords that can sit next to a $ref: the type comes from the
+// target, so only a default and text that describes the value keep their meaning.
+var refSiblingAllowed = map[string]bool{
+	"$ref": true, "default": true, "description": true, "title": true, "readOnly": true,
+	"deprecated": true, "example": true, "examples": true, "$comment": true,
+}
+
+// refSiblingConstraints returns the keywords next to a $ref outside refSiblingAllowed and the
+// x- extensions. The type comes from the target, so these keywords would be lost.
+func refSiblingConstraints(proxy *base.SchemaProxy) []string {
+	node := proxy.GetValueNode()
+	if node == nil || node.Kind != yaml.MappingNode {
+		return nil
+	}
+	// libopenapi writes a $ref with siblings as allOf: [siblings, $ref].
+	if len(node.Content) == 2 && node.Content[0].Value == "allOf" && len(node.Content[1].Content) == 2 {
+		node = node.Content[1].Content[0]
+	}
 	var out []string
-	add := func(set bool, name string) {
-		if set {
-			out = append(out, name)
+	for i := 0; i+1 < len(node.Content); i += 2 {
+		key := node.Content[i].Value
+		if !refSiblingAllowed[key] && !strings.HasPrefix(key, "x-") {
+			out = append(out, key)
 		}
 	}
-	add(s.Format != "", "format")
-	add(s.Pattern != "", "pattern")
-	add(s.MinLength != nil, "minLength")
-	add(s.MaxLength != nil, "maxLength")
-	add(s.Minimum != nil, "minimum")
-	add(s.Maximum != nil, "maximum")
-	add(s.ExclusiveMinimum != nil, "exclusiveMinimum")
-	add(s.ExclusiveMaximum != nil, "exclusiveMaximum")
-	add(s.MultipleOf != nil, "multipleOf")
-	add(s.MinItems != nil, "minItems")
-	add(s.MaxItems != nil, "maxItems")
-	add(s.UniqueItems != nil, "uniqueItems")
-	add(s.MinProperties != nil, "minProperties")
-	add(s.MaxProperties != nil, "maxProperties")
-	add(len(s.Enum) != 0, "enum")
-	add(s.Const != nil, "const")
-	add(s.Items != nil, "items")
-	add(s.Properties != nil && s.Properties.Len() != 0, "properties")
-	add(len(s.Required) != 0, "required")
-	add(s.AdditionalProperties != nil, "additionalProperties")
-	add(len(s.AllOf) != 0 || len(s.OneOf) != 0 || len(s.AnyOf) != 0 || s.Not != nil, "a composition")
-	add(s.Nullable != nil, "nullable")
 	return out
 }
 
@@ -1110,7 +1104,7 @@ func typeOf(proxy *base.SchemaProxy, path string, w walk) (*Type, error) {
 		// OpenAPI 3.1 keeps a sibling such as default next to $ref. Schema()
 		// returns only the siblings, so the type is the one of the target. A
 		// sibling constraint would be lost, so it is an error.
-		if keywords := refSiblingConstraints(s); len(keywords) != 0 {
+		if keywords := refSiblingConstraints(proxy); len(keywords) != 0 {
 			return nil, fmt.Errorf("%s: $ref has the sibling %s; only default and descriptive keywords can sit next to $ref", path, strings.Join(keywords, ", "))
 		}
 		s = target
