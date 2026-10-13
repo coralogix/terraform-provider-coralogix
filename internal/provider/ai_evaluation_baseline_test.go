@@ -178,6 +178,17 @@ var aiEvaluationScenarios = map[string]func(h *grHarness){
 		h.Import("import a sqlLoad evaluation", id)
 	},
 
+	// A CONVERSATION target reads into state as "conversation", although a
+	// configuration cannot set it.
+	"import-conversation-target": func(h *grHarness) {
+		id := h.aiEvals().seed(j{
+			"application": aiEvalFakeApplication, "subsystem": aiEvalFakeSubsystem, "target": "CONVERSATION",
+			"isEnabled": true, "threshold": 0.5, "config": j{"toxicity": j{}},
+		})
+		s := h.Import("import", id)
+		h.Refresh("refresh", s)
+	},
+
 	"import-not-a-uuid": func(h *grHarness) {
 		h.Import("import an id that is not a uuid", "does-not-exist")
 	},

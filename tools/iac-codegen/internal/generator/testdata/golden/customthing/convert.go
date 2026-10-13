@@ -27,12 +27,12 @@ var thingKindToAPI = map[string]custom_things_service.ThingKind{
 }
 
 // thingKindFromAPI maps the API values of the enum to its Terraform values.
-// A rejected value reads back as the API spelling. The write map does not have it.
+// A rejected value still reads back. The write map does not have it.
 var thingKindFromAPI = map[custom_things_service.ThingKind]string{
 	custom_things_service.ThingKind("THING_KIND_UNSPECIFIED"): "unspecified",
 	custom_things_service.ThingKind("SYSTEM"):                 "system",
 	custom_things_service.ThingKind("CUSTOM"):                 "custom",
-	custom_things_service.ThingKind("LEGACY"):                 "LEGACY",
+	custom_things_service.ThingKind("LEGACY"):                 "legacy",
 }
 
 // attachmentPolicyToAPI maps the Terraform values of the enum to its API values.

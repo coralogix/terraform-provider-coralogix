@@ -131,7 +131,7 @@ A component can hold a field that the user sets in one place and that only the s
 
 `api.customMethods: true` is existing-mode only. Get and Delete may use different paths when each path has the same `{id}` parameter. Update has no path parameter, and the id stays in the body. New resources keep the rule that Get is Create plus `/{id}`, Update is the Create path, and Delete is the Get path. `api.operations` names the four operationIds, so `tfgen generate` needs no operation flags.
 
-`enums.<Enum>.readRejected: true` reads a rejected value back as the API spelling. Without it, that value fails the read. A missing enum reads as null. `x-coralogix-presence` means the same thing: the value was not set. A string `default` on the field is the reading of a missing value for that resource, including a missing unwrapped value.
+`enums.<Enum>.readRejected: true` reads a rejected value back, spelled as the accepted values are: lower case, or the API spelling with `verbatim: true`. A released resource that read an unsupported value into state keeps doing so, and the validator still rejects it in a configuration. Without the key, that value fails the read. A missing enum reads as null. `x-coralogix-presence` means the same thing: the value was not set. A string `default` on the field is the reading of a missing value for that resource, including a missing unwrapped value.
 
 `unwrap` removes wrapper objects that the API has and the released resource does not show. A wrapper is an object component with exactly one property, for example `LuceneQuery` in `{"query": {"value": "error"}}`. Terraform shows `query = "error"`.
 

@@ -15,6 +15,7 @@
 - CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Update still sends `config`, `is_enabled`, and `threshold` without an update mask, and changing `application`, `subsystem`, or `target` still recreates the evaluation.
 - CHANGE: Plan-time checks for upper limits are gone: 256 characters for `application`, `subsystem`, and list items, 1024 list items, 65536 characters for `additional_context`, `threshold` between 0 and 1, and the PII category values. The API still rejects those values on apply.
 - CHANGE: A config with no variant, or with two, reports the error on each variant instead of once. Error messages of failed API calls changed wording.
+- FIX: An evaluation whose target is `CONVERSATION` still reads into state as `conversation`, as in the released resource; a configuration still cannot set it.
 - CHORE: Add protocol baseline golden files against an in-memory evaluation API, checked against answers recorded from a real tenant.
 
 #### tools/iac-codegen
@@ -27,6 +28,8 @@
 - FIX: `unsupportedArms` renders. Before, generation failed with `no SDK field` for the unsupported arm.
 - FIX: An unsupported arm can be missing from the Create and Update components; only the response needs it. A field line on an unsupported arm is an error, because the arm is not in the schema.
 - FIX: The generator does not read the value of an unsupported arm, so that value can use a shape the generator does not support, and the fields inside it need no `x-coralogix-presence`.
+- CHANGE: `enums.<Enum>.readRejected: true` reads a rejected value spelled as the accepted values are: lower case, or the API spelling with `verbatim: true`. Before, it was always the API spelling.
+- FIX: `unsupportedArms` that remove every arm of a oneOf group that requires one are an error. An unsupported arm defined inline with fields needs a component `$ref`; an empty inline arm is accepted.
 - FIX: Existing-mode check reads a resource that a response field wraps in `allOf: [$ref]`, as the OpenAPI fork writes a field with a description. Before, every field read as missing from Get.
 - FIX: A client-set id keeps `RequiresReplace`. The check against Optional+Computed with RequiresReplace skips an attribute with `UseStateForUnknown`, which plans an omitted value as its prior state.
 - FEAT: Existing mode accepts an enum whose first value is a business value, such as `PROMPT`, also without an `enums` line, for example the items of a list.

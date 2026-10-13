@@ -77,3 +77,5 @@ enums:
   EvaluationTarget:
     values: [PROMPT, RESPONSE]
     rejected: [CONVERSATION]
+    # The released resource read CONVERSATION into state as "conversation" but did not accept it in a configuration.
+    readRejected: true

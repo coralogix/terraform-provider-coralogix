@@ -739,7 +739,11 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 	}
 	if over.ReadRejected {
 		for _, v := range over.Rejected {
-			m.Read = append(m.Read, enumMapValue{TF: v, API: v})
+			tf := v
+			if !over.Verbatim {
+				tf = strings.ToLower(v)
+			}
+			m.Read = append(m.Read, enumMapValue{TF: tf, API: v})
 		}
 	}
 	b.enumMaps = append(b.enumMaps, m)
