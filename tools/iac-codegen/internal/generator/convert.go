@@ -54,9 +54,9 @@ type convData struct {
 	EnumMaps []*enumMap
 	// WrapHelpers are the functions that put a value in its API wrapper objects and take it out.
 	WrapHelpers []*wrapHelper
-	// Existing: the resource has users. An unknown planned value of a computed attribute is
-	// left out of the request, and the server supplies it, as the released resource did.
-	Existing bool
+	// AcceptUnknown: the resource has users. An unknown planned value of a computed attribute
+	// is left out of the request, and the server supplies it, as the released resource did.
+	AcceptUnknown bool
 	// UpdateMaskField is the SDK field of the JSON-body update mask.
 	// UpdateMaskPointer is true when that field is *string.
 	UpdateMaskField   string
@@ -327,7 +327,7 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 		return nil, err
 	}
 	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, file: file, resource: r, sent: sentFields(r)}
-	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, Existing: r.Policy.Existing}
+	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, AcceptUnknown: r.Policy.Existing && !r.Policy.RejectUnknown}
 	if err := out.setBodyMask(ix, r); err != nil {
 		return nil, err
 	}

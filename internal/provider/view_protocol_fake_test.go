@@ -52,10 +52,13 @@ var viewPresets = map[int]string{
 type viewFake struct {
 	// createCompact is what create stores for isCompactMode. The service stores false.
 	createCompact bool
-	mu            sync.Mutex
-	views         map[string]map[string]any
-	seq           int
-	requests      []grRequest
+	// omitDefaults leaves viewType and isCompactMode out of a response when they hold the
+	// default, as an API may for a value that equals its default.
+	omitDefaults bool
+	mu           sync.Mutex
+	views        map[string]map[string]any
+	seq          int
+	requests     []grRequest
 }
 
 func newViewFake(t *testing.T) *viewFake {
@@ -147,7 +150,7 @@ func (f *viewFake) handle(method, path string, body any) (int, any) {
 		return f.store(id, n, in, true)
 	case method == http.MethodGet && id != "":
 		if v, found := f.views[id]; found {
-			return http.StatusOK, v
+			return http.StatusOK, f.response(v)
 		}
 		return grFail(http.StatusNotFound, "view not found")
 	case method == http.MethodDelete && id != "":
@@ -226,5 +229,23 @@ func (f *viewFake) store(id string, n int, in map[string]any, replace bool) (int
 		stored["folderId"] = folder
 	}
 	f.views[id] = stored
-	return http.StatusOK, stored
+	return http.StatusOK, f.response(stored)
+}
+
+// response is what the service returns for a stored view.
+func (f *viewFake) response(stored map[string]any) map[string]any {
+	if !f.omitDefaults {
+		return stored
+	}
+	out := map[string]any{}
+	for k, v := range stored {
+		out[k] = v
+	}
+	if out["viewType"] == "VIEW_TYPE_LOGS" {
+		delete(out, "viewType")
+	}
+	if out["isCompactMode"] == false {
+		delete(out, "isCompactMode")
+	}
+	return out
 }

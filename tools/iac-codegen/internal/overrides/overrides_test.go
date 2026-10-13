@@ -276,3 +276,15 @@ func TestUnwrapPolicy(t *testing.T) {
 		}
 	}
 }
+
+func TestRejectUnknownOfAnUnreleasedResource(t *testing.T) {
+	for _, reject := range []bool{false, true} {
+		file, err := Parse([]byte(fmt.Sprintf("resource: R\nmode: existing\nvalidators:\n  inferred: true\n  rejectUnknown: %t\n", reject)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := file.Policy().RejectUnknown; got != reject {
+			t.Fatalf("rejectUnknown %t: Policy().RejectUnknown = %t", reject, got)
+		}
+	}
+}

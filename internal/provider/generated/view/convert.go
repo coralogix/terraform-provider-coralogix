@@ -21,9 +21,21 @@ import (
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/views_service"
 )
 
-// validateRequestValue accepts every planned value. An unknown value of a computed attribute is
-// left out of the request, and the server supplies it, as the released resource did.
-func validateRequestValue(_ path.Path, _, _ attr.Value, _ bool, _ *diag.Diagnostics) {}
+// validateRequestValue prevents an unknown planned value from becoming an
+// omitted API value. The only safe exception is an unknown value created by
+// removal of a field with a declared server default.
+func validateRequestValue(p path.Path, config, plan attr.Value, serverDefault bool, diags *diag.Diagnostics) {
+	unknown := unknownValuePaths(p, plan)
+	if len(unknown) == 0 {
+		return
+	}
+	if serverDefault && config != nil && config.IsNull() && plan.IsUnknown() {
+		return
+	}
+	for _, at := range unknown {
+		diags.AddAttributeError(at, "Unknown value before API call", "Terraform could not determine this value before the API call. Apply again after its dependencies are known.")
+	}
+}
 
 var createFields = []struct {
 	attr          string
@@ -65,6 +77,11 @@ var serverAttrs = map[string]bool{
 // request does not send an unknown value of one, so the server stores the default.
 var defaultAttrs = map[string]attr.Value{
 	"search_query.syntax_type": types.StringValue("SYNTAX_TYPE_LUCENE"),
+}
+
+// defaultObjects are the objects that hold an attribute with a server default, by path.
+var defaultObjects = map[string]bool{
+	"search_query": true,
 }
 
 // requestValue returns v with a null value for each attribute that the server
@@ -120,6 +137,48 @@ func nullValue(ctx context.Context, t attr.Type, diags *diag.Diagnostics) attr.V
 	return value
 }
 
+func unknownValuePaths(p path.Path, value attr.Value) []path.Path {
+	if value == nil || value.IsNull() {
+		return nil
+	}
+	if value.IsUnknown() {
+		return []path.Path{p}
+	}
+	var out []path.Path
+	switch value := value.(type) {
+	case types.Object:
+		children := value.Attributes()
+		for _, name := range sortedValueKeys(children) {
+			out = append(out, unknownValuePaths(p.AtName(name), children[name])...)
+		}
+	case types.List:
+		for index, child := range value.Elements() {
+			out = append(out, unknownValuePaths(p.AtListIndex(index), child)...)
+		}
+	case types.Map:
+		children := value.Elements()
+		for _, key := range sortedValueKeys(children) {
+			out = append(out, unknownValuePaths(p.AtMapKey(key), children[key])...)
+		}
+	case types.Set:
+		for _, child := range value.Elements() {
+			if len(unknownValuePaths(p, child)) != 0 {
+				return []path.Path{p}
+			}
+		}
+	}
+	return out
+}
+
+func sortedValueKeys(values map[string]attr.Value) []string {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
 // expandCreate returns the Create request body. A null value is not sent.
 func expandCreate(ctx context.Context, m *ViewModel) (*views_service.ViewFolder, diag.Diagnostics) {
 	var diags diag.Diagnostics
@@ -165,6 +224,13 @@ var computedAttrs = map[string]bool{
 	"view_type":                              true,
 }
 
+// omittedDefaults are the top-level attributes with a server default that a read can omit.
+// A read without one keeps a prior value that equals the default.
+var omittedDefaults = map[string]attr.Value{
+	"is_compact_mode": types.BoolValue(false),
+	"view_type":       types.StringValue("VIEW_TYPE_LOGS"),
+}
+
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
 // prior data and the new state. The API does not tell null from an empty
 // list, set, or map, or a missing object outside a oneOf from an empty one
@@ -185,7 +251,11 @@ func keepPriorEmpty(ctx context.Context, prior tfData, state *tfsdk.State) diag.
 		if diags.HasError() {
 			return diags
 		}
-		if kept := priorEmpty(ctx, name, v, p, &diags); !kept.Equal(v) {
+		kept := priorEmpty(ctx, name, v, p, &diags)
+		if d := omittedDefaults[name]; d != nil && v.IsNull() && p.Equal(d) {
+			kept = p
+		}
+		if !kept.Equal(v) {
 			diags.Append(state.SetAttribute(ctx, path.Root(name), kept)...)
 		}
 	}
@@ -273,8 +343,9 @@ func priorEmptyMap(ctx context.Context, at string, v, prior types.Map, diags *di
 
 // emptyValue reports whether v is null, an empty list, set, or map, or an
 // object outside a oneOf arm whose attributes are all empty. The service fills
-// an omitted object with its server defaults, so an attribute that is "" or
-// that equals its declared server default is empty inside an object.
+// an omitted object that holds an attribute with a server default, so an
+// attribute that is "" or that equals its declared server default is empty
+// inside that object.
 func emptyValue(at string, v attr.Value) bool {
 	if v.IsNull() {
 		return true
@@ -294,7 +365,7 @@ func emptyValue(at string, v attr.Value) bool {
 			return false
 		}
 		for name, child := range v.Attributes() {
-			if !emptyValue(at+"."+name, child) && !defaultValue(at+"."+name, child) {
+			if !emptyValue(at+"."+name, child) && !(defaultObjects[at] && defaultValue(at+"."+name, child)) {
 				return false
 			}
 		}

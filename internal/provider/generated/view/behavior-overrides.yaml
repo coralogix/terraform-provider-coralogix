@@ -3,6 +3,8 @@ mode: existing
 # coralogix_view has no released version, so the limits of the contract stay validators.
 validators:
   inferred: true
+  # No released resource left unknown values out of a request, so an unknown one stops the call.
+  rejectUnknown: true
 types:
   QuickTimeSelection:
     fields:

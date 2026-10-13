@@ -43,6 +43,10 @@ type tfResource struct {
 	// of ComputedPaths. A request does not send an unknown value of one: the server stores
 	// the default.
 	DefaultPaths []defaultPath
+	// OmittedDefaults are the top-level attributes with a server default that Get does not
+	// require, with that default. A read that omits one keeps a prior value equal to the
+	// default: the API can leave out a value that equals its default.
+	OmittedDefaults []defaultPath
 	// SchemaVersion and ResourceMarkdownDescription are the released schema version and the
 	// released description of the resource. Both come from the behavior-overrides file.
 	SchemaVersion               int64
@@ -262,6 +266,9 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 		a.Computed = true
 		a.Modifiers = append(a.Modifiers, "serverDefaultModifier{value: "+value+"}")
 		out.HasServerDefaults = true
+		if !f.Get.Required {
+			out.OmittedDefaults = append(out.OmittedDefaults, defaultPath{Path: tfName(f.Name), Value: value})
+		}
 		if !containsString(out.ServerDefaultKinds, a.ValueKind) {
 			out.ServerDefaultKinds = append(out.ServerDefaultKinds, a.ValueKind)
 		}
@@ -925,6 +932,19 @@ func (b *tfBuilder) nestedServerDefault(a *tfAttr, p attrPath, component string,
 // defaultPath is a nested attribute with a server default: its path in the form of
 // ComputedPaths, and the Go expression of the default.
 type defaultPath struct{ Path, Value string }
+
+// DefaultObjects are the paths of the objects that hold a nested attribute with a server
+// default, sorted. Only these objects read "" or a declared default as empty.
+func (r *tfResource) DefaultObjects() []string {
+	var out []string
+	for _, d := range r.DefaultPaths {
+		if i := strings.LastIndex(d.Path, "."); i > 0 && !slices.Contains(out, d.Path[:i]) {
+			out = append(out, d.Path[:i])
+		}
+	}
+	slices.Sort(out)
+	return out
+}
 
 // RequestFilter reports whether requestValue has attributes to drop from a request value.
 func (r *tfResource) RequestFilter() bool { return len(r.ServerPaths) != 0 || len(r.DefaultPaths) != 0 }

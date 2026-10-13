@@ -51,6 +51,10 @@ func TestGadgetServerDefaultAttributes(t *testing.T) {
 	if want := []defaultPath{{Path: "search.syntax", Value: `types.StringValue("GADGET_SYNTAX_PLAIN")`}}; !slices.Equal(out.DefaultPaths, want) {
 		t.Errorf("DefaultPaths = %v, want %v", out.DefaultPaths, want)
 	}
+	// Only the object that holds the default reads "" as empty.
+	if want := []string{"search"}; !slices.Equal(out.DefaultObjects(), want) {
+		t.Errorf("DefaultObjects = %v, want %v", out.DefaultObjects(), want)
+	}
 	if text := attr(out.Attributes, "search").Attributes; attr(text, "text").Computed {
 		t.Error("search.text has no default, so it is not computed")
 	}

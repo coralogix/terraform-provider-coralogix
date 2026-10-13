@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/views_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/view"
@@ -214,5 +215,56 @@ func TestViewFollowUpUpdateRunsBeforeWrite(t *testing.T) {
 	}
 	if len(writes) != 2 {
 		t.Fatalf("BeforeWrite ran for %v, want the Create and the follow-up Update bodies", writes)
+	}
+}
+
+// coralogix_view has no released version, so a request value that is still unknown stops
+// Create before the API call instead of being left out.
+func TestViewCreateRejectsAnUnknownRequestValue(t *testing.T) {
+	h := newViewHarness(t)
+	known := h.config(viewConfig(j{"folder_id": "folder"}))
+	unknown, err := tftypes.Transform(known, func(p *tftypes.AttributePath, v tftypes.Value) (tftypes.Value, error) {
+		if p.Equal(tftypes.NewAttributePath().WithAttributeName("folder_id")) {
+			return tftypes.NewValue(v.Type(), tftypes.UnknownValue), nil
+		}
+		return v, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := view.NewResourceWithClient(views_service.NewAPIClient(views_service.NewConfiguration()).ViewsServiceAPI, view.Hooks{})
+	var schemaResp frameworkresource.SchemaResponse
+	r.Schema(h.ctx, frameworkresource.SchemaRequest{}, &schemaResp)
+	planned, _, diags := h.plan(h.null(), unknown)
+	if hasError(diags) {
+		t.Fatal(diagStrings(diags))
+	}
+	resp := &frameworkresource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: h.null()}}
+	r.Create(h.ctx, frameworkresource.CreateRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: unknown},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: planned},
+	}, resp)
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("Create with an unknown folder_id succeeded, want an error")
+	}
+	if got := h.views().takeRequests(); len(got) != 0 {
+		t.Fatalf("requests = %v, want none", methods(got))
+	}
+}
+
+// A read can leave out a value that equals its declared default. A configured default then
+// keeps its value: the apply matches the plan, and the next plan is empty.
+func TestViewConfiguredDefaultSurvivesAnOmittedRead(t *testing.T) {
+	h := newViewHarness(t)
+	h.views().omitDefaults = true
+	state := h.Apply("create", h.null(), viewConfig(j{"view_type": "VIEW_TYPE_LOGS", "is_compact_mode": false}))
+	step := lastStep(t, h)
+	if got := attrOf(t, step.State, "view_type"); got != "VIEW_TYPE_LOGS" {
+		t.Fatalf("view_type = %v, want VIEW_TYPE_LOGS", got)
+	}
+	h.Refresh("refresh", state)
+	h.Apply("plan", state, viewConfig(j{"view_type": "VIEW_TYPE_LOGS", "is_compact_mode": false}))
+	if step := h.steps[len(h.steps)-1]; !step.NoChange {
+		t.Fatal("the plan after an omitted read changes the view")
 	}
 }

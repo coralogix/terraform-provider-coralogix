@@ -87,6 +87,10 @@ type Validators struct {
 	// contract as validators: for a resource without a released version, or one whose
 	// released validators are exactly the limits of the contract. The key is required.
 	Inferred *bool `yaml:"inferred"`
+	// RejectUnknown: true stops Create and Update before the API call when a request value is
+	// still unknown, as a new resource does. A released resource left an unknown computed
+	// value out of the request, so only a resource without a released version sets it.
+	RejectUnknown bool `yaml:"rejectUnknown"`
 }
 
 // API is the HTTP contract of a released resource.
@@ -535,6 +539,7 @@ func (f *File) Policy() model.Policy {
 		UpdateMaskInBody: f.API.UpdateMaskInBody,
 		// Parse checked that the file states validators.inferred.
 		NoInferredValidators: !*f.Validators.Inferred,
+		RejectUnknown:        f.Validators.RejectUnknown,
 	}
 	if f.API.Operations != nil {
 		p.Operations = model.OperationIDs{

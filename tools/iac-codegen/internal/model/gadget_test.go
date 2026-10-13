@@ -137,3 +137,18 @@ func TestGadgetServerDefaultContract(t *testing.T) {
 		})
 	}
 }
+
+// The type of a $ref with siblings comes from the target, so a sibling constraint would be
+// dropped. It is an error instead.
+func TestGadgetRefSiblingConstraintIsAnError(t *testing.T) {
+	doc, err := Load(gadgetSpec(t, "                  default: GADGET_MODE_BASIC\n", "                  default: GADGET_MODE_BASIC\n                  pattern: '^GADGET_MODE_B'\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Build(doc, "Gadget"); err == nil || !strings.Contains(err.Error(), "the sibling pattern") {
+		t.Fatalf("err = %v, want the sibling pattern error", err)
+	}
+	if codes := slices.Compact(reportCodes(ValidateWithPolicy(doc, "Gadget", OperationIDs{}, Policy{}))); len(codes) == 0 {
+		t.Fatal("validation passed, want an issue for the sibling pattern")
+	}
+}

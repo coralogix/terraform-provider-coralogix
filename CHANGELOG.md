@@ -27,6 +27,10 @@
 - FEAT: A new resource supports a scalar server default on an optional nested field. The attribute is Optional and Computed, a request does not send its unknown value, and an object whose attributes are empty, `""`, or their default reads as the omitted object.
 - FEAT: `validators.inferred: true` keeps the contract limits as validators in existing mode, and a `required: true` line states the presence of a required number in a nested component.
 - FEAT: A nested server default also applies to an existing-mode field without a line.
+- FEAT: `validators.rejectUnknown: true` gives an existing-mode resource without a released version the unknown-value check of a new resource. `coralogix_view` sets it.
+- FIX: A `$ref` with a sibling constraint such as `pattern` is an error. Before, the type came from the target and the constraint was lost.
+- FIX: Only an object that holds an attribute with a server default reads `""` or that default as empty. Before, every object did once the resource had a nested default.
+- FIX: A top-level server default that Get does not require keeps a configured default when a read omits the value. Before, the read stored null and the apply was inconsistent.
 
 # Release 3.21.0
 
