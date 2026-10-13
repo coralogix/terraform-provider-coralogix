@@ -33,7 +33,6 @@ types:
       context:
         computed: true
         default: ""
-        readNullAs: empty
 
 enums:
   EvalTarget:

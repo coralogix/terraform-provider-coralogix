@@ -193,9 +193,8 @@ func TestSharedBodyRuntimeSemantics(t *testing.T) {
 }
 
 // The golden output of a released resource like the AI evaluation API: Update sends no mask,
-// a field line forces replace, an unsupported oneOf arm, a list that is a set by a line, a
-// missing string read as "", an enum that starts with a business value, and a Get response
-// that wraps the resource in allOf.
+// a field line forces replace, an unsupported oneOf arm, a list that is a set by a line, an
+// enum that starts with a business value, and a Get response that wraps the resource in allOf.
 func TestGoldenOutputEvalThing(t *testing.T) {
 	out := generateEvalThing(t)
 	golden := filepath.Join("testdata", "golden", "evalthing")

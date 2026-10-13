@@ -441,10 +441,6 @@ func flattenPromptInjectionConfig(ctx context.Context, p path.Path, v *ai_evalua
 	}
 	out := &PromptInjectionConfigModel{}
 	out.AdditionalContext = types.StringPointerValue(v.AdditionalContext)
-	if out.AdditionalContext.IsNull() {
-		// The API leaves out an empty string. The released resource read it as "".
-		out.AdditionalContext = types.StringValue("")
-	}
 	return out
 }
 

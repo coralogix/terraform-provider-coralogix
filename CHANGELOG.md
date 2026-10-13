@@ -20,8 +20,7 @@
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.27`.
 - FEAT: `collection: set` on a field line makes a list a Terraform set, although the contract does not mark it. The generator reports it as stale once the contract does.
-- FEAT: `readNullAs: empty` on a string reads a missing value as `""`.
-- CHORE: The `evalthing` golden fixture covers the keys above, `requiresReplace`, `unsupportedArms`, a mask-less `updateMaskInBody`, an enum that starts with a business value, and a Get response written as `allOf: [$ref]`.
+- CHORE: The `evalthing` golden fixture covers `collection: set`, `requiresReplace`, `unsupportedArms`, a mask-less `updateMaskInBody`, an enum that starts with a business value, and a Get response written as `allOf: [$ref]`.
 - FEAT: `requiresReplace: true` on a top-level field forces a new resource when that field changes, although Update accepts it.
 - FIX: `requiresReplace: true` together with `computed: true` is rejected. That pair is Optional+Computed with RequiresReplace, so omitting the field replaces the resource whenever something else changes.
 - FEAT: `unsupportedArms` keeps a oneOf arm out of the schema and reports it when a response selects it.

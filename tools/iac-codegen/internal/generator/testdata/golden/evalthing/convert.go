@@ -297,10 +297,6 @@ func flattenTopicsEvalConfig(ctx context.Context, p path.Path, v *eval_things_se
 	out := &TopicsEvalConfigModel{}
 	out.Topics = flattenStringsSet(ctx, v.Topics, diags)
 	out.Context = types.StringPointerValue(v.Context)
-	if out.Context.IsNull() {
-		// The API leaves out an empty string. The released resource read it as "".
-		out.Context = types.StringValue("")
-	}
 	return out
 }
 

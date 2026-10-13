@@ -1329,12 +1329,6 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		out.{{.Model}} = keepEquivalentText(prior.{{.Model}}, out.{{.Model}}, {{.Equality}}Equal)
 	}
 	{{- end}}
-	{{- if .ReadNullAsEmpty}}
-	if out.{{.Model}}.IsNull() {
-		// The API leaves out an empty string. The released resource read it as "".
-		out.{{.Model}} = types.StringValue("")
-	}
-	{{- end}}
 	{{- if .ReadEmptyAsNull}}
 	if out.{{.Model}}.ValueString() == "" {
 		out.{{.Model}} = types.StringNull()

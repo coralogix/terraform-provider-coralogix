@@ -72,7 +72,6 @@ types:
         markdownDescription: "Additional context passed to the LLM evaluator."
         computed: true
         default: ""
-        readNullAs: empty # the API leaves out "", and the released resource read it as ""
 
 enums:
   EvaluationTarget:

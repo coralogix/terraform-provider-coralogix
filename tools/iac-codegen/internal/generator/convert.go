@@ -216,8 +216,7 @@ type convField struct {
 	// ReadEmptyAsNull: flatten reads an empty string, an empty list, or an object
 	// with no value, as null.
 	ReadEmptyAsNull bool
-	// ReadNullAsEmpty: flatten reads a missing string as "", and a missing list
-	// or set as an empty collection.
+	// ReadNullAsEmpty: flatten reads a missing list or set as an empty collection.
 	ReadNullAsEmpty bool
 	// RequestValue is an API value expand always sends. The field is not in the Terraform model.
 	RequestValue string
@@ -835,8 +834,8 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type, comput
 	if err := checkReadEmptyAs(cf); err != nil {
 		return nil, err
 	}
-	if cf.ReadNullAsEmpty && cf.Conv != convObjects && cf.Conv != convString {
-		return nil, fmt.Errorf("%s: readNullAs: empty needs a string, or a list or set of objects", cf.TFName)
+	if cf.ReadNullAsEmpty && cf.Conv != convObjects {
+		return nil, fmt.Errorf("%s: readNullAs: empty needs a list or set of objects", cf.TFName)
 	}
 	return checkFieldType(cf, ref, want)
 }
