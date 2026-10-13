@@ -251,6 +251,11 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared bool) *li
 			return problem
 		}
 	}
+	if line.KeyedBy != nil {
+		if problem := keyedByProblem(schema, line); problem != nil {
+			return problem
+		}
+	}
 	if len(stale) == 0 {
 		return nil
 	}
@@ -399,6 +404,42 @@ func requestValueByProblem(schema *base.Schema, line overrides.Line) *lineIssue 
 		if len(built.Enum) != 0 && !slices.ContainsFunc(built.Enum, func(n *yaml.Node) bool { return n.Value == value }) {
 			return wholeLine(fmt.Errorf("requestValueBy sends %q, which the enum of %q does not have", value, line.Field))
 		}
+	}
+	return nil
+}
+
+// keyedByProblem checks a keyedBy line. The field is a list of objects. The key is a required
+// string property of the object. The value, when the line names one, is a string property, and
+// the object has no other property.
+func keyedByProblem(schema *base.Schema, line overrides.Line) *lineIssue {
+	built, err := schema.Properties.GetOrZero(line.Field).BuildSchema()
+	if err != nil {
+		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
+	}
+	if !slices.Equal(built.Type, []string{"array"}) || built.Items == nil || built.Items.A == nil {
+		return wholeLine(fmt.Errorf("keyedBy needs a list of objects, but %q is %v", line.Field, built.Type))
+	}
+	item, err := built.Items.A.BuildSchema()
+	if err != nil {
+		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
+	}
+	if item.Properties == nil {
+		return wholeLine(fmt.Errorf("keyedBy needs a list of objects, but the items of %q have no properties", line.Field))
+	}
+	isString := func(name string) bool {
+		proxy := item.Properties.GetOrZero(name)
+		if proxy == nil {
+			return false
+		}
+		s, err := proxy.BuildSchema()
+		return err == nil && slices.Equal(s.Type, []string{"string"}) && len(s.Enum) == 0
+	}
+	key, value := line.KeyedBy.Key, line.KeyedBy.Value
+	if !isString(key) || !slices.Contains(item.Required, key) {
+		return wholeLine(fmt.Errorf("keyedBy: the key %q is not a required string property of the items of %q", key, line.Field))
+	}
+	if value != "" && (!isString(value) || item.Properties.Len() != 2) {
+		return wholeLine(fmt.Errorf("keyedBy: the value %q must be a string property, and the items of %q must have only the key and the value", value, line.Field))
 	}
 	return nil
 }

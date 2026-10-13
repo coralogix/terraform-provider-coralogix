@@ -370,6 +370,9 @@ func TestCollectionAndNameAreChecked(t *testing.T) {
 		"requestValue and requestValueBy":           "{requestValue: A, requestValueBy: {b: B}}",
 		"requestValueBy with an empty value":        "{requestValueBy: {b: ''}}",
 		"skip and requestValueBy":                   "{skip: true, requestValueBy: {b: B}}",
+		"keyedBy without a key":                     "{keyedBy: {value: v}}",
+		"keyedBy with the key as value":             "{keyedBy: {key: k, value: k}}",
+		"keyedBy and collection":                    "{keyedBy: {key: k}, collection: set}",
 		"regexMatches without a pattern":            "{validators: [{regexMatches: {message: m}}]}",
 		"regexMatches that Go cannot compile":       "{validators: [{regexMatches: {pattern: '(?=x)'}}]}",
 	} {

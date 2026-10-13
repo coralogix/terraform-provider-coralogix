@@ -13,6 +13,7 @@ type EchoThing struct {
 	IsInternal *bool
 	Quota      *Quota
 	Items      []EchoItem
+	Labels     []Label
 }
 
 type Quota struct {
@@ -27,6 +28,11 @@ const (
 	KIND_KIND_LIMITED     Kind = "KIND_LIMITED"
 	KIND_KIND_PLAIN       Kind = "KIND_PLAIN"
 )
+
+type Label struct {
+	Name  string
+	Value string
+}
 
 type Level string
 
@@ -56,6 +62,7 @@ type CreateEchoThingRequest struct {
 	Kind       Kind
 	LimitValue *int32
 	Items      []EchoItem
+	Labels     []Label
 }
 
 type ReplaceEchoThingRequest struct {
@@ -66,6 +73,7 @@ type ReplaceEchoThingRequest struct {
 	IsInternal *bool
 	Quota      *Quota
 	Items      []EchoItem
+	Labels     []Label
 }
 
 // The Create answer may leave out the resource; Get and Replace always have it.

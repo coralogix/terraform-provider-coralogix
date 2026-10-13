@@ -198,6 +198,9 @@ const (
 	// convGroup is a group of the behavior-overrides file: *<Model> ↔ fields of the SDK struct
 	// of the parent. The API has no object for it.
 	convGroup = "group"
+
+	convKeyedObjects = "keyedobjects" // types.Map of objects ↔ []<SDK type> keyed by a property (keyedBy)
+	convKeyedValues  = "keyedvalues"  // types.Map of String ↔ []<SDK type> of a key and a value (keyedBy)
 )
 
 // convField is one field of a convObject.
@@ -231,6 +234,8 @@ type convField struct {
 	// RequestValueBy are the API values expand sends when an object field of the model is set,
 	// in the order of the field names.
 	RequestValueBy []fixedBy
+	// Keyed is the key and the value of the API items of a keyedobjects or keyedvalues field.
+	Keyed *keyedFields
 	// KeepPriorOrder: flatten returns the items in the order of the prior model, when the
 	// API returns the same items in another order.
 	KeepPriorOrder bool
@@ -844,6 +849,13 @@ func hasPresence(a *model.Attrs) bool {
 	return a != nil && a.Presence
 }
 
+// keyedFields are the SDK fields of the key and the value of an API item. KeyValue and
+// ValueValue are true when the SDK field is a value, not a pointer.
+type keyedFields struct {
+	Key, Value           string
+	KeyValue, ValueValue bool
+}
+
 // fixedBy is the API value that expand sends when the object field Model is set.
 type fixedBy struct {
 	Model, Value string
@@ -1007,9 +1019,52 @@ func (b *convBuilder) fieldConv(cf *convField, t *model.Type, computed bool) (st
 	case model.Set, model.List:
 		return b.collectionConv(cf, t)
 	case model.Map:
+		if t.Keyed != nil {
+			return b.keyedConv(cf, t)
+		}
 		return b.mapConv(cf, t)
 	}
 	return "", fmt.Errorf("kind %s is not supported", t.Kind)
+}
+
+// keyedConv sets the conversion of a map that the API holds as a list of items keyed by a
+// property (keyedBy). The value is the rest of the item, or one string property of it.
+func (b *convBuilder) keyedConv(cf *convField, t *model.Type) (string, error) {
+	cf.Collection = "Map"
+	item, err := b.ix.schemaRef(t.Keyed.Item.Schema)
+	if err != nil {
+		return "", err
+	}
+	key, err := b.ix.fieldRef(item.Path + "." + t.Keyed.Key)
+	if err != nil {
+		return "", err
+	}
+	if key.Want != "string" && key.Want != "*string" {
+		return "", fmt.Errorf("keyedBy: the key %s has type %s, want a string", key.sdkName(), key.Want)
+	}
+	cf.Keyed = &keyedFields{Key: key.Name, KeyValue: key.Want == "string"}
+	cf.SDKType = b.qualify(item.Name)
+	if t.Keyed.Value != "" {
+		value, err := b.ix.fieldRef(item.Path + "." + t.Keyed.Value)
+		if err != nil {
+			return "", err
+		}
+		if t.Elem.Kind != model.String || value.Want != "string" && value.Want != "*string" {
+			return "", fmt.Errorf("keyedBy: the value %s has type %s, want a string", value.sdkName(), value.Want)
+		}
+		cf.Keyed.Value, cf.Keyed.ValueValue = value.Name, value.Want == "string"
+		cf.Conv = convKeyedValues
+		return "[]" + item.Name, nil
+	}
+	obj, err := b.nested(t.Elem)
+	if err != nil {
+		return "", err
+	}
+	if !contains(b.listed, obj) {
+		b.listed = append(b.listed, obj)
+	}
+	cf.Conv, cf.Object = convKeyedObjects, obj
+	return "[]" + item.Name, nil
 }
 
 // scalarConv sets the conversion of cf for a string, bool, number, or
@@ -1225,7 +1280,7 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 		switch {
 		case f.Conv == convTime && expand:
 			return fmt.Errorf("%s: a time that only the response has is in a request", f.TFName)
-		case f.Conv == convObj || f.Conv == convObjects || f.Conv == convObjectMap || f.Conv == convGroup:
+		case f.Conv == convObj || f.Conv == convObjects || f.Conv == convObjectMap || f.Conv == convGroup || f.Conv == convKeyedObjects:
 			if err := b.mark(f.Object, expand); err != nil {
 				return fmt.Errorf("%s: %w", f.TFName, err)
 			}
@@ -1280,7 +1335,9 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		return "types.MapType{ElemType: types.StringType}", nil
 	case convUint64Map:
 		return "types.MapType{ElemType: types.Int64Type}", nil
-	case convObj, convObjects, convObjectMap, convGroup:
+	case convKeyedValues:
+		return "types.MapType{ElemType: types.StringType}", nil
+	case convObj, convObjects, convObjectMap, convGroup, convKeyedObjects:
 		if err := b.attrTypes(f.Object); err != nil {
 			return "", err
 		}
@@ -1288,7 +1345,7 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		switch f.Conv {
 		case convObjects:
 			expr = "types." + f.Collection + "Type{ElemType: " + expr + "}"
-		case convObjectMap:
+		case convObjectMap, convKeyedObjects:
 			expr = "types.MapType{ElemType: " + expr + "}"
 		}
 		return expr, nil
@@ -1599,7 +1656,7 @@ func propagatePrior(d *convData) {
 		changed = false
 		for _, obj := range d.Objects {
 			for _, f := range obj.Fields {
-				if (f.Conv != convObj && f.Conv != convObjects && f.Conv != convGroup) || f.Object == nil {
+				if (f.Conv != convObj && f.Conv != convObjects && f.Conv != convGroup && f.Conv != convKeyedObjects) || f.Object == nil {
 					continue
 				}
 				if f.Object.NeedsPrior && !obj.NeedsPrior {

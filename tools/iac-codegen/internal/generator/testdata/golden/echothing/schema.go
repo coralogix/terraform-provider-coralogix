@@ -54,14 +54,10 @@ func Schema() schema.Schema {
 				},
 				MarkdownDescription: "",
 			},
-			"entries": schema.ListNestedAttribute{
+			"entries": schema.MapNestedAttribute{
 				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"key": schema.StringAttribute{
-							Required:            true,
-							MarkdownDescription: "",
-						},
 						"tags": schema.SetAttribute{
 							Optional:            true,
 							ElementType:         types.StringType,
@@ -104,6 +100,11 @@ func Schema() schema.Schema {
 						},
 					},
 				},
+				MarkdownDescription: "",
+			},
+			"labels": schema.MapAttribute{
+				Optional:            true,
+				ElementType:         types.StringType,
 				MarkdownDescription: "",
 			},
 		},

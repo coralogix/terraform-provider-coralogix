@@ -177,6 +177,24 @@ func TestEchoedContractRefusesWrongLines(t *testing.T) {
 			},
 			code: "OVERRIDE_UNUSED", location: "KIND_HUGE",
 		},
+		"keyedBy on a field that is not a list": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "{requestValueBy: {quota: KIND_LIMITED}}", "{requestValueBy: {quota: KIND_LIMITED}, keyedBy: {key: key}}")
+			},
+			code: "OVERRIDE_UNUSED", location: "list of objects",
+		},
+		"keyedBy with a key that is not a required string": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "keyedBy: {key: key}", "keyedBy: {key: enabled}")
+			},
+			code: "OVERRIDE_UNUSED", location: "required string",
+		},
+		"keyedBy with a value next to other properties": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "keyedBy: {key: key}", "keyedBy: {key: key, value: values}")
+			},
+			code: "OVERRIDE_UNUSED", location: "only the key and the value",
+		},
 		"atLeast on a string": {
 			overrides: func(t *testing.T, o string) string {
 				return replaceOnce(t, o, "          - lengthAtLeast: 1\n", "          - atLeast: 1\n")

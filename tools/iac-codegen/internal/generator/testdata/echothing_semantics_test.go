@@ -82,22 +82,25 @@ func TestCreateSendsTheFoldedLimitFlat(t *testing.T) {
 	}
 }
 
-// Create sends the renamed attributes under their API names, and the tags set as a list.
+// Create sends the renamed attributes under their API names, the tags set as a list, and the
+// key of each entry of the map as the key of an item.
 func TestCreateSendsRenamedAttributesUnderTheirAPINames(t *testing.T) {
 	_, root := thingSchema(t)
-	entries := root.(tftypes.Object).AttributeTypes["entries"].(tftypes.List)
+	entries := root.(tftypes.Object).AttributeTypes["entries"].(tftypes.Map)
 	entry := entries.ElementType.(tftypes.Object)
+	if _, ok := entry.AttributeTypes["key"]; ok {
+		t.Fatal("an entry has a key attribute, want the key only as the map key")
+	}
 	item := map[string]tftypes.Value{}
 	for name, typ := range entry.AttributeTypes {
 		item[name] = tftypes.NewValue(typ, nil)
 	}
-	item["key"] = tftypes.NewValue(tftypes.String, "k")
 	item["tags"] = tftypes.NewValue(entry.AttributeTypes["tags"], []tftypes.Value{tftypes.NewValue(tftypes.String, "a")})
 	item["enable"] = tftypes.NewValue(tftypes.Bool, true)
 	sent := createThing(t, thingWith(root, map[string]tftypes.Value{
 		"id":      tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
 		"name":    tftypes.NewValue(tftypes.String, "name"),
-		"entries": tftypes.NewValue(entries, []tftypes.Value{tftypes.NewValue(entry, item)}),
+		"entries": tftypes.NewValue(entries, map[string]tftypes.Value{"k": tftypes.NewValue(entry, item)}),
 	}))
 	if len(sent.Items) != 1 || sent.Items[0].Key != "k" || len(sent.Items[0].Values) != 1 || sent.Items[0].Values[0] != "a" ||
 		sent.Items[0].Enabled == nil || !*sent.Items[0].Enabled {
@@ -215,7 +218,7 @@ func TestFloat32ReadsBackAsItsShortestDecimal(t *testing.T) {
 	if resp.Diagnostics.HasError() {
 		t.Fatal(resp.Diagnostics)
 	}
-	detail := path.Root("entries").AtListIndex(0).AtName("detail")
+	detail := path.Root("entries").AtMapKey("k").AtName("detail")
 	var ratio float64
 	var buckets []float64
 	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, detail.AtName("ratio"), &ratio)...)
@@ -256,7 +259,7 @@ func TestEnumSetMapsEachElement(t *testing.T) {
 		t.Fatal(resp.Diagnostics)
 	}
 	var levels []string
-	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("entries").AtListIndex(0).AtName("levels"), &levels)...)
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("entries").AtMapKey("k").AtName("levels"), &levels)...)
 	if resp.Diagnostics.HasError() {
 		t.Fatal(resp.Diagnostics)
 	}
@@ -300,5 +303,42 @@ func TestKindFollowsQuota(t *testing.T) {
 	}))
 	if sent.Kind != "" {
 		t.Fatalf("Create kind = %q, want none without quota", sent.Kind)
+	}
+}
+
+// The labels are a map from name to value, and the API holds a list of name and value pairs. Read
+// builds the map from any order, and Create sends the pairs in the order of the names.
+func TestLabelsAreAMapOfPairs(t *testing.T) {
+	ctx := context.Background()
+	schemaResp, root := thingSchema(t)
+	echo_things_service.Answer = echo_things_service.EchoThing{Id: "thing-1", Name: "name", Labels: []echo_things_service.Label{
+		{Name: "team", Value: "core"}, {Name: "env", Value: "prod"},
+	}}
+	r := &Resource{client: &echo_things_service.EchoThingsServiceAPIService{}}
+	state := tfsdk.State{Schema: schemaResp.Schema, Raw: thingValue(root, "thing-1", "name")}
+	resp := &frameworkresource.ReadResponse{State: state}
+	r.Read(ctx, frameworkresource.ReadRequest{State: state}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	var labels map[string]string
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("labels"), &labels)...)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	if len(labels) != 2 || labels["team"] != "core" || labels["env"] != "prod" {
+		t.Fatalf("labels = %v, want team core and env prod", labels)
+	}
+
+	echo_things_service.Created = nil
+	plan := resp.State.Raw.Copy()
+	r.Create(ctx, frameworkresource.CreateRequest{Plan: tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan}, Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: plan}},
+		&frameworkresource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema}})
+	if len(echo_things_service.Created) != 1 {
+		t.Fatalf("Create calls = %d, want 1", len(echo_things_service.Created))
+	}
+	want := []echo_things_service.Label{{Name: "env", Value: "prod"}, {Name: "team", Value: "core"}}
+	if got := echo_things_service.Created[0].Labels; !slices.Equal(got, want) {
+		t.Fatalf("Create labels = %v, want %v", got, want)
 	}
 }

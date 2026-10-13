@@ -7,10 +7,11 @@ import (
 )
 
 type EchoThingModel struct {
-	Id    types.String `tfsdk:"id"`
-	Name  types.String `tfsdk:"name"`
-	Quota *QuotaModel  `tfsdk:"quota"`
-	Items types.List   `tfsdk:"entries"`
+	Id     types.String `tfsdk:"id"`
+	Name   types.String `tfsdk:"name"`
+	Quota  *QuotaModel  `tfsdk:"quota"`
+	Items  types.Map    `tfsdk:"entries"`
+	Labels types.Map    `tfsdk:"labels"`
 }
 
 type QuotaModel struct {
@@ -25,7 +26,6 @@ type DetailModel struct {
 }
 
 type EchoItemModel struct {
-	Key     types.String `tfsdk:"key"`
 	Values  types.Set    `tfsdk:"tags"`
 	Enabled types.Bool   `tfsdk:"enable"`
 	Levels  types.Set    `tfsdk:"levels"`

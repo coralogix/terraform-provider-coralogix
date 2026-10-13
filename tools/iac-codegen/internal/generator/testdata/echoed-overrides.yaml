@@ -19,7 +19,8 @@ types:
       createTime: {skip: true}
       isInternal: {skip: true}
       quota: {createAs: {limit: limitValue}}
-      items: {name: entries}
+      items: {name: entries, keyedBy: {key: key}}
+      labels: {keyedBy: {key: name, value: value}}
       kind: {requestValueBy: {quota: KIND_LIMITED}}
   Quota:
     fields:

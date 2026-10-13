@@ -1135,7 +1135,7 @@ func flattenList[T any](ctx context.Context, elem attr.Type, items []T, diags *d
 	return l
 }
 
-{{- if or (.Conv.Uses "stringmap") (.Conv.Uses "uint64map") (.Conv.Uses "objectmap") (.Conv.Uses "scalarmap")}}
+{{- if or (.Conv.Uses "stringmap") (.Conv.Uses "uint64map") (.Conv.Uses "objectmap") (.Conv.Uses "scalarmap") (.Conv.Uses "keyedobjects") (.Conv.Uses "keyedvalues")}}
 
 // expandMap returns the values of v. It returns nil for a null value, and a
 // non-nil map for an empty value.
@@ -1428,6 +1428,24 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 			{{.Dst}}[k] = *expand{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &item, diags)
 		}
 	}
+{{- else if eq .Conv "keyedobjects"}}
+	if items := expandMap[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags); items != nil {
+		{{.Dst}} = make([]{{.SDKType}}, 0, len(items))
+		for _, k := range slices.Sorted(maps.Keys(items)) {
+			item := items[k]
+			v := *expand{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &item, diags)
+			v.{{.Keyed.Key}} = {{if .Keyed.KeyValue}}k{{else}}&k{{end}}
+			{{.Dst}} = append({{.Dst}}, v)
+		}
+	}
+{{- else if eq .Conv "keyedvalues"}}
+	if items := expandMap[string](ctx, {{$p}}, m.{{.Model}}, diags); items != nil {
+		{{.Dst}} = make([]{{.SDKType}}, 0, len(items))
+		for _, k := range slices.Sorted(maps.Keys(items)) {
+			v := items[k]
+			{{.Dst}} = append({{.Dst}}, {{.SDKType}}{ {{- .Keyed.Key}}: {{if .Keyed.KeyValue}}k{{else}}&k{{end}}, {{.Keyed.Value}}: {{if .Keyed.ValueValue}}v{{else}}&v{{end -}} })
+		}
+	}
 {{- else if eq .Conv "objects"}}
 	if items := expandElements[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags); items != nil {
 		{{.Dst}} = make([]{{.SDKType}}, 0, len(items))
@@ -1587,6 +1605,41 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 			items[k] = *flatten{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &item, diags)
 		}
 		out.{{.Model}} = flattenMap(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
+	}
+{{- else if eq .Conv "keyedobjects"}}
+	out.{{.Model}} = types.MapNull(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()})
+	if {{.Src}} != nil {
+		{{- if .Object.NeedsPrior}}
+		var prior{{.Model}} map[string]{{.Object.Model}}
+		if prior != nil {
+			var scratch diag.Diagnostics
+			prior{{.Model}} = expandMap[{{.Object.Model}}](ctx, path.Empty(), prior.{{.Model}}, &scratch)
+		}
+		{{- end}}
+		items := make(map[string]{{.Object.Model}}, len({{.Src}}))
+		for i := range {{.Src}} {
+			k := {{if not .Keyed.KeyValue}}*{{end}}{{.Src}}[i].{{.Keyed.Key}}
+			{{- if .Object.NeedsPrior}}
+			// The prior item with the same key keeps the order of its own lists and the text of its documents.
+			var priorItem *{{.Object.Model}}
+			if p, ok := prior{{.Model}}[k]; ok {
+				priorItem = &p
+			}
+			items[k] = *flatten{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &{{.Src}}[i], priorItem, diags)
+			{{- else}}
+			items[k] = *flatten{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &{{.Src}}[i], diags)
+			{{- end}}
+		}
+		out.{{.Model}} = flattenMap(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
+	}
+{{- else if eq .Conv "keyedvalues"}}
+	out.{{.Model}} = types.MapNull(types.StringType)
+	if {{.Src}} != nil {
+		items := make(map[string]string, len({{.Src}}))
+		for _, item := range {{.Src}} {
+			items[{{if not .Keyed.KeyValue}}*{{end}}item.{{.Keyed.Key}}] = {{if not .Keyed.ValueValue}}*{{end}}item.{{.Keyed.Value}}
+		}
+		out.{{.Model}} = flattenMap(ctx, types.StringType, items, diags)
 	}
 {{- else if eq .Conv "objects"}}
 	{{- $src := .Src}}{{if .KeepPriorOrder}}{{$src = printf "src%s" .Model}}{{end}}

@@ -70,6 +70,9 @@ type Policy struct {
 	Sets []string
 	// Names maps "Component.field" to the Terraform attribute name of the field.
 	Names map[string]string
+	// KeyedBy maps "Component.field" of a list of objects to the property that keys the
+	// Terraform map, and the property that is its value ("" for the rest of the object).
+	KeyedBy map[string][2]string
 	// CreateAs maps "Component.field" of a top-level object field to the flat Create fields that
 	// hold its properties: property name to Create field name.
 	CreateAs map[string]map[string]string
@@ -295,11 +298,43 @@ func (p *Policy) computed(component, field string) bool {
 	return p != nil && component != "" && slices.Contains(p.Computed, component+"."+field)
 }
 
-// asSet makes t, the type of component.field, a set when a collection: set line says so.
+// asSet makes t, the type of component.field, a set when a collection: set line says so, and a
+// map when a keyedBy line says so.
 func (p *Policy) asSet(component, field string, t *Type) {
 	if p != nil && t != nil && t.Kind == List && component != "" && slices.Contains(p.Sets, component+"."+field) {
 		t.Kind = Set
 	}
+	p.asMap(component, field, t)
+}
+
+// asMap makes t, a list of objects, a map keyed by a string property of the object when a
+// keyedBy line says so. The map value is the rest of the object, or one property of it. A line
+// that does not fit leaves t a list: the generator reports the line.
+func (p *Policy) asMap(component, field string, t *Type) {
+	if p == nil || t == nil || component == "" || t.Kind != List || t.Elem == nil || t.Elem.Kind != Object {
+		return
+	}
+	keyed, ok := p.KeyedBy[component+"."+field]
+	if !ok {
+		return
+	}
+	item := t.Elem
+	key := slices.IndexFunc(item.Fields, func(f *Field) bool { return f.Name == keyed[0] })
+	if key < 0 || item.Fields[key].Type.Kind != String {
+		return
+	}
+	elem := *item
+	elem.Fields = slices.Delete(slices.Clone(item.Fields), key, key+1)
+	t.Elem = &elem
+	if keyed[1] != "" {
+		value := slices.IndexFunc(item.Fields, func(f *Field) bool { return f.Name == keyed[1] })
+		if value < 0 || len(item.Fields) != 2 {
+			t.Elem = item
+			return
+		}
+		t.Elem = item.Fields[value].Type
+	}
+	t.Kind, t.Keyed = Map, &Keyed{Key: keyed[0], Value: keyed[1], Item: item}
 }
 
 // TerraformName returns the Terraform attribute name of field of component: the name of a

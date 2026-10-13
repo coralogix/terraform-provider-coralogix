@@ -338,6 +338,10 @@ func (s *resolver) nested(path string, t *model.Type) error {
 	if len(t.Wrappers) != 0 {
 		return s.wrappers(path, t)
 	}
+	if t.Keyed != nil {
+		// The SDK holds the list of whole items, the key and the value too.
+		return s.nested(path, t.Keyed.Item)
+	}
 	switch t.Kind {
 	case model.List, model.Set, model.Map:
 		return s.nested(path, t.Elem)
@@ -403,6 +407,9 @@ func fieldType(t *model.Type) (string, rule, error) {
 	}
 	if (t.Kind == model.Object || t.Kind == model.OneOf) && len(t.Fields) == 0 {
 		return "map[string]interface{}", ruleEmptyObject, nil
+	}
+	if t.Keyed != nil {
+		return "[]" + goTypeName(t.Keyed.Item.Schema), ruleProperty, nil
 	}
 	if t.Kind == model.List || t.Kind == model.Set || t.Kind == model.Map {
 		elem, _, err := fieldType(t.Elem)

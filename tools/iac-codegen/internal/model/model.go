@@ -198,6 +198,19 @@ type Type struct {
 	// rest of the type is the value inside them, which Terraform shows. They are set only by
 	// the unwrap lines of a behavior-overrides file.
 	Wrappers []Wrapper
+	// Keyed is set on a Map that the API sends as a list of objects, keyed by a property of the
+	// object (a keyedBy line). Elem is the object without the key, or the value property.
+	Keyed *Keyed
+}
+
+// Keyed is the list of objects that the API holds for a Terraform map.
+type Keyed struct {
+	// Key is the string property of Item that is the map key.
+	Key string
+	// Value is the property of Item that is the map value, "" when the value is the rest of Item.
+	Value string
+	// Item is the object of the API list, with every property.
+	Item *Type
 }
 
 // Wrapper is one object with one property that holds a value in the API, for example

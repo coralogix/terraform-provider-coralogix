@@ -5,7 +5,9 @@ package echothing
 import (
 	"context"
 	"fmt"
+	"maps"
 	"math"
+	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -45,6 +47,7 @@ var createFields = []struct {
 	{attr: "name", serverDefault: false},
 	{attr: "quota", serverDefault: false},
 	{attr: "entries", serverDefault: false},
+	{attr: "labels", serverDefault: false},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -328,10 +331,20 @@ func expandCreateEchoThingRequest(ctx context.Context, p path.Path, m *EchoThing
 		_ = p // a scalar conversion does not report a path
 		out.LimitValue = expandInt32(m.Limit)
 	}
-	if items := expandElements[EchoItemModel](ctx, p.AtName("entries"), m.Items, diags); items != nil {
+	if items := expandMap[EchoItemModel](ctx, p.AtName("entries"), m.Items, diags); items != nil {
 		out.Items = make([]echo_things_service.EchoItem, 0, len(items))
-		for i := range items {
-			out.Items = append(out.Items, *expandEchoItem(ctx, p.AtName("entries").AtListIndex(i), &items[i], diags))
+		for _, k := range slices.Sorted(maps.Keys(items)) {
+			item := items[k]
+			v := *expandEchoItem(ctx, p.AtName("entries").AtMapKey(k), &item, diags)
+			v.Key = k
+			out.Items = append(out.Items, v)
+		}
+	}
+	if items := expandMap[string](ctx, p.AtName("labels"), m.Labels, diags); items != nil {
+		out.Labels = make([]echo_things_service.Label, 0, len(items))
+		for _, k := range slices.Sorted(maps.Keys(items)) {
+			v := items[k]
+			out.Labels = append(out.Labels, echo_things_service.Label{Name: k, Value: v})
 		}
 	}
 	return out
@@ -342,7 +355,6 @@ func expandEchoItem(ctx context.Context, p path.Path, m *EchoItemModel, diags *d
 		return nil
 	}
 	out := &echo_things_service.EchoItem{}
-	out.Key = valueOf(expandString(m.Key))
 	out.Values = expandStringsSet[string](ctx, p.AtName("tags"), m.Values, diags)
 	out.Enabled = expandBool(m.Enabled)
 	out.Levels = expandEnumsMapped(ctx, p.AtName("levels"), m.Levels, levelToAPI, true, diags)
@@ -355,7 +367,6 @@ func flattenEchoItem(ctx context.Context, p path.Path, v *echo_things_service.Ec
 		return nil
 	}
 	out := &EchoItemModel{}
-	out.Key = types.StringPointerValue(&v.Key)
 	out.Values = flattenStringsSet(ctx, v.Values, diags)
 	out.Enabled = types.BoolPointerValue(v.Enabled)
 	out.Levels = flattenEnumsMappedSet(ctx, p.AtName("levels"), v.Levels, levelFromAPI, diags)
@@ -365,7 +376,6 @@ func flattenEchoItem(ctx context.Context, p path.Path, v *echo_things_service.Ec
 
 func echoItemAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"key":    types.StringType,
 		"tags":   types.SetType{ElemType: types.StringType},
 		"enable": types.BoolType,
 		"levels": types.SetType{ElemType: types.StringType},
@@ -415,10 +425,20 @@ func expandReplaceEchoThingRequest(ctx context.Context, p path.Path, m *EchoThin
 		out.Kind = fixed
 	}
 	out.Quota = expandQuota(ctx, p.AtName("quota"), m.Quota, diags)
-	if items := expandElements[EchoItemModel](ctx, p.AtName("entries"), m.Items, diags); items != nil {
+	if items := expandMap[EchoItemModel](ctx, p.AtName("entries"), m.Items, diags); items != nil {
 		out.Items = make([]echo_things_service.EchoItem, 0, len(items))
-		for i := range items {
-			out.Items = append(out.Items, *expandEchoItem(ctx, p.AtName("entries").AtListIndex(i), &items[i], diags))
+		for _, k := range slices.Sorted(maps.Keys(items)) {
+			item := items[k]
+			v := *expandEchoItem(ctx, p.AtName("entries").AtMapKey(k), &item, diags)
+			v.Key = k
+			out.Items = append(out.Items, v)
+		}
+	}
+	if items := expandMap[string](ctx, p.AtName("labels"), m.Labels, diags); items != nil {
+		out.Labels = make([]echo_things_service.Label, 0, len(items))
+		for _, k := range slices.Sorted(maps.Keys(items)) {
+			v := items[k]
+			out.Labels = append(out.Labels, echo_things_service.Label{Name: k, Value: v})
 		}
 	}
 	return out
@@ -451,13 +471,22 @@ func flattenEchoThing(ctx context.Context, p path.Path, v *echo_things_service.E
 	out.Id = types.StringPointerValue(&v.Id)
 	out.Name = types.StringPointerValue(&v.Name)
 	out.Quota = flattenQuota(ctx, p.AtName("quota"), v.Quota, diags)
-	out.Items = types.ListNull(types.ObjectType{AttrTypes: echoItemAttrTypes()})
+	out.Items = types.MapNull(types.ObjectType{AttrTypes: echoItemAttrTypes()})
 	if v.Items != nil {
-		items := make([]EchoItemModel, 0, len(v.Items))
+		items := make(map[string]EchoItemModel, len(v.Items))
 		for i := range v.Items {
-			items = append(items, *flattenEchoItem(ctx, p.AtName("entries").AtListIndex(i), &v.Items[i], diags))
+			k := v.Items[i].Key
+			items[k] = *flattenEchoItem(ctx, p.AtName("entries").AtMapKey(k), &v.Items[i], diags)
 		}
-		out.Items = flattenList(ctx, types.ObjectType{AttrTypes: echoItemAttrTypes()}, items, diags)
+		out.Items = flattenMap(ctx, types.ObjectType{AttrTypes: echoItemAttrTypes()}, items, diags)
+	}
+	out.Labels = types.MapNull(types.StringType)
+	if v.Labels != nil {
+		items := make(map[string]string, len(v.Labels))
+		for _, item := range v.Labels {
+			items[item.Name] = item.Value
+		}
+		out.Labels = flattenMap(ctx, types.StringType, items, diags)
 	}
 	return out
 }
@@ -765,6 +794,28 @@ func flattenList[T any](ctx context.Context, elem attr.Type, items []T, diags *d
 	l, d := types.ListValueFrom(ctx, elem, items)
 	diags.Append(d...)
 	return l
+}
+
+// expandMap returns the values of v. It returns nil for a null value, and a
+// non-nil map for an empty value.
+func expandMap[T any](ctx context.Context, p path.Path, v types.Map, diags *diag.Diagnostics) map[string]T {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	out := map[string]T{}
+	for _, d := range v.ElementsAs(ctx, &out, false) {
+		diags.Append(diag.WithPath(p, d))
+	}
+	if out == nil {
+		out = map[string]T{}
+	}
+	return out
+}
+
+func flattenMap[T any](ctx context.Context, elem attr.Type, items map[string]T, diags *diag.Diagnostics) types.Map {
+	m, d := types.MapValueFrom(ctx, elem, items)
+	diags.Append(d...)
+	return m
 }
 
 func expandInt32(v types.Int32) *int32 {

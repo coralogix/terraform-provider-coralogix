@@ -289,6 +289,10 @@ type Field struct {
 	// and Update send when that field is set, for a released resource that derives the value
 	// (type: logsQuery → E2M_TYPE_LOGS2METRICS). The field is not a Terraform attribute.
 	RequestValueBy map[string]string `yaml:"requestValueBy"`
+	// KeyedBy shows a list of objects as a map keyed by a string property of the object, for a
+	// released resource that has the map. With Value, the map value is that one property, and
+	// the object must have only the two.
+	KeyedBy *KeyedBy `yaml:"keyedBy"`
 	// KeepPriorOrder returns the list items in the order of the plan or state, because
 	// the API does not keep the order.
 	KeepPriorOrder bool `yaml:"keepPriorOrder"`
@@ -332,6 +336,13 @@ type Validator struct {
 	AtLeast *float64 `yaml:"atLeast"`
 	// RegexMatches is a released stringvalidator.RegexMatches with its message.
 	RegexMatches *RegexMatches `yaml:"regexMatches"`
+}
+
+// KeyedBy names the key property, and the value property, of a list of objects that a released
+// resource shows as a map.
+type KeyedBy struct {
+	Key   string `yaml:"key"`
+	Value string `yaml:"value"`
 }
 
 // RegexMatches is a released pattern validator of a string.
@@ -564,6 +575,7 @@ func (l Field) keys() []string {
 	add(l.RequireOne, "requireOne")
 	add(l.RequestValue != "", "requestValue")
 	add(len(l.RequestValueBy) != 0, "requestValueBy")
+	add(l.KeyedBy != nil, "keyedBy")
 	add(l.KeepPriorOrder, "keepPriorOrder")
 	add(len(l.Validators) != 0, "validators")
 	add(l.Equality != "", "equality")
@@ -619,7 +631,7 @@ func (l Field) emptyMode() bool {
 }
 
 func (l Field) emptyValue() bool {
-	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() &&
+	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.KeyedBy == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() &&
 		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil
 }
 
@@ -678,6 +690,12 @@ func (l Field) checkConflicts() error {
 	if l.Skip && l.Fixed() {
 		return errors.New("requestValue sends the field, so skip cannot be set")
 	}
+	if l.KeyedBy != nil && (l.KeyedBy.Key == "" || l.KeyedBy.Key == l.KeyedBy.Value) {
+		return errors.New("keyedBy needs a key, and a value other than the key")
+	}
+	if l.KeyedBy != nil && l.Collection != "" {
+		return errors.New("keyedBy makes a map, so collection cannot be set")
+	}
 	if l.RequestValue != "" && len(l.RequestValueBy) != 0 {
 		return errors.New("requestValue and requestValueBy cannot both be set")
 	}
@@ -694,7 +712,7 @@ func (l Field) checkConflicts() error {
 
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
 func (l Field) hasBehavior() bool {
-	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.Default != nil || l.KeepPriorOrder ||
+	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.Fixed() ||
 		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil
 }
@@ -799,6 +817,12 @@ func (f *File) Policy() model.Policy {
 			if t.Fields[field].Collection == "set" {
 				p.Sets = append(p.Sets, name+"."+field)
 			}
+			if k := t.Fields[field].KeyedBy; k != nil {
+				if p.KeyedBy == nil {
+					p.KeyedBy = map[string][2]string{}
+				}
+				p.KeyedBy[name+"."+field] = [2]string{k.Key, k.Value}
+			}
 			if n := t.Fields[field].Name; n != "" {
 				if p.Names == nil {
 					p.Names = map[string]string{}
@@ -836,7 +860,7 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, RequestValueBy: f.RequestValueBy, Equality: f.Equality, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Equality: f.Equality, Keys: f.keys()})
 		}
 	}
 	return out
@@ -868,7 +892,9 @@ type Line struct {
 	Name         string // for a field line: the Terraform attribute name
 	// RequestValueBy is, for a field line, the API value sent for each object field that is set.
 	RequestValueBy map[string]string
-	Keys           []string // for a field line: every key that the line sets
+	// KeyedBy is, for a field line, the key and value properties of a list shown as a map.
+	KeyedBy *KeyedBy
+	Keys    []string // for a field line: every key that the line sets
 }
 
 // String names the line as it is written in the file.
