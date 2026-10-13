@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"{{.Conv.SDKPkg}}"
@@ -1378,7 +1379,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{- $f := .}}
 	switch {
 {{- range .RequestValueBy}}
-	case m.{{.Model}} != nil:
+	case {{if .ObjectValue}}!m.{{.Model}}.IsNull() && !m.{{.Model}}.IsUnknown(){{else}}m.{{.Model}} != nil{{end}}:
 		fixed := {{$f.SDKType}}({{printf "%q" .Value}})
 		{{$f.Dst}} = {{if $f.Value}}fixed{{else}}&fixed{{end}}
 {{- end}}
@@ -1387,6 +1388,12 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{
 		fixed := {{.SDKType}}({{printf "%q" .RequestValue}})
 		{{.Dst}} = {{if .Value}}fixed{{else}}&fixed{{end}}
+	}
+{{- else if and (eq .Conv "object") .ObjectValue}}
+	if v := m.{{.Model}}; !v.IsNull() && !v.IsUnknown() {
+		var nested {{.Object.Model}}
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		{{.Dst}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, &nested, diags){{$r}}
 	}
 {{- else if eq .Conv "object"}}
 	{{.Dst}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags){{$r}}
@@ -1397,7 +1404,14 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		{{.Dst}} = map[string]interface{}{}
 	}
 {{- else if eq .Conv "fold"}}
+	{{- if .ObjectValue}}
+	if v := m.{{.Model}}; !v.IsNull() && !v.IsUnknown() {
+		var nested {{.FoldModel}}
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		m := &nested
+	{{- else}}
 	if m := m.{{.Model}}; m != nil {
+	{{- end}}
 		p := {{$p}}
 		_ = p // a scalar conversion does not report a path
 {{- range .Fold}}

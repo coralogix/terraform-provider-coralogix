@@ -1091,7 +1091,7 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 	case model.Map:
 		goType = "types.Map"
 	case model.Object, model.OneOf:
-		if behavior == model.Computed {
+		if behavior == model.Computed || b.policy.ComputedLine(component, name) {
 			goType = "types.Object"
 		} else {
 			goType = "*" + modelTypeName(t.Schema)

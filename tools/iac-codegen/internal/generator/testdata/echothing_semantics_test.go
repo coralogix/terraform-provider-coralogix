@@ -342,3 +342,35 @@ func TestLabelsAreAMapOfPairs(t *testing.T) {
 		t.Fatalf("Create labels = %v, want %v", got, want)
 	}
 }
+
+// Without quota in the configuration, the plan has an unknown quota, and Create sends no limit.
+// The state holds the quota that the API returned.
+func TestCreateWithAnUnknownQuota(t *testing.T) {
+	ctx := context.Background()
+	schemaResp, root := thingSchema(t)
+	quotaType := root.(tftypes.Object).AttributeTypes["quota"]
+	plan := thingWith(root, map[string]tftypes.Value{
+		"id":    tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+		"name":  tftypes.NewValue(tftypes.String, "name"),
+		"quota": tftypes.NewValue(quotaType, tftypes.UnknownValue),
+	})
+	config := thingWith(root, map[string]tftypes.Value{
+		"name": tftypes.NewValue(tftypes.String, "name"),
+	})
+	echo_things_service.Created = nil
+	echo_things_service.Answer = echo_things_service.EchoThing{Id: "thing-1", Name: "name", Quota: &echo_things_service.Quota{Limit: 30000}}
+	r := &Resource{client: &echo_things_service.EchoThingsServiceAPIService{}}
+	resp := &frameworkresource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema}}
+	r.Create(ctx, frameworkresource.CreateRequest{Plan: tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan}, Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: config}}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	if len(echo_things_service.Created) != 1 || echo_things_service.Created[0].LimitValue != nil {
+		t.Fatalf("Create = %+v, want one call without a limit", echo_things_service.Created)
+	}
+	var limit int64
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("quota").AtName("limit"), &limit)...)
+	if resp.Diagnostics.HasError() || limit != 30000 {
+		t.Fatalf("state quota.limit = %d (%v), want 30000", limit, resp.Diagnostics)
+	}
+}

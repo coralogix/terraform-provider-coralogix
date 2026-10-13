@@ -9,7 +9,7 @@ import (
 type EchoThingModel struct {
 	Id     types.String `tfsdk:"id"`
 	Name   types.String `tfsdk:"name"`
-	Quota  *QuotaModel  `tfsdk:"quota"`
+	Quota  types.Object `tfsdk:"quota"`
 	Items  types.Map    `tfsdk:"entries"`
 	Labels types.Map    `tfsdk:"labels"`
 }

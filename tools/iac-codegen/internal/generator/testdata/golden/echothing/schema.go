@@ -38,6 +38,7 @@ func Schema() schema.Schema {
 			},
 			"quota": schema.SingleNestedAttribute{
 				Optional: true,
+				Computed: true,
 				Attributes: map[string]schema.Attribute{
 					"limit": schema.Int32Attribute{
 						Optional: true,

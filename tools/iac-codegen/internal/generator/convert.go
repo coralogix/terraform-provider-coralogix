@@ -234,6 +234,8 @@ type convField struct {
 	// RequestValueBy are the API values expand sends when an object field of the model is set,
 	// in the order of the field names.
 	RequestValueBy []fixedBy
+	// FoldModel is the model of a fold field that the model holds as a types.Object.
+	FoldModel string
 	// Keyed is the key and the value of the API items of a keyedobjects or keyedvalues field.
 	Keyed *keyedFields
 	// KeepPriorOrder: flatten returns the items in the order of the prior model, when the
@@ -597,7 +599,9 @@ func checkReadEmptyAs(cf *convField) error {
 // markComputedObjectValue makes a directly nested computed field capable of
 // holding the unknown value that Terraform plans before Create.
 func (b *convBuilder) markComputedObjectValue(cf *convField, f *model.ResourceField, response bool) {
-	if !response || f.Behavior != model.Computed {
+	// An object of a computed line is optional and computed: every root holds it as a value.
+	line := b.resource.Policy.ComputedLine(b.resource.Name, f.Name)
+	if !line && (!response || f.Behavior != model.Computed) {
 		return
 	}
 	if f.Type.Kind != model.Object && f.Type.Kind != model.OneOf {
@@ -859,6 +863,8 @@ type keyedFields struct {
 // fixedBy is the API value that expand sends when the object field Model is set.
 type fixedBy struct {
 	Model, Value string
+	// ObjectValue is true when the model holds the object as a types.Object.
+	ObjectValue bool
 }
 
 func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
@@ -873,7 +879,8 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	cf.RequestValue = line.RequestValue
 	cf.RequestValueBy = nil
 	for _, field := range slices.Sorted(maps.Keys(line.RequestValueBy)) {
-		cf.RequestValueBy = append(cf.RequestValueBy, fixedBy{Model: camelize(field), Value: line.RequestValueBy[field]})
+		cf.RequestValueBy = append(cf.RequestValueBy, fixedBy{Model: camelize(field), Value: line.RequestValueBy[field],
+			ObjectValue: b.resource.Policy.ComputedLine(component, field)})
 	}
 }
 
@@ -916,6 +923,11 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type, comput
 // the SDK field of its top-level Create field.
 func (b *convBuilder) foldField(owner string, f *model.ResourceField, folds []model.CreateFold) (*convField, error) {
 	cf := &convField{TFName: b.resource.Policy.TerraformName(b.resource.Name, f.Name), Model: camelize(f.Name), Conv: convFold}
+	if b.resource.Policy.ComputedLine(b.resource.Name, f.Name) {
+		// The model holds the object as a types.Object, which is unknown when Create
+		// leaves the value to the server.
+		cf.ObjectValue, cf.FoldModel = true, modelTypeName(f.Type.Schema)
+	}
 	for _, fd := range folds {
 		inner, err := b.fieldAt(owner+"."+fd.Field, f.Type.Schema, fd.Property, fd.Type, false, true)
 		if err != nil {
@@ -1823,7 +1835,7 @@ func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component strin
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
 		cf.FlattenOnly = cf.Conv != "fixed" && responseOnly
-		if f.Behavior == model.Computed && (f.Type.Kind == model.Object || f.Type.Kind == model.OneOf) {
+		if (f.Behavior == model.Computed || b.resource.Policy.ComputedLine(component, f.Name)) && (f.Type.Kind == model.Object || f.Type.Kind == model.OneOf) {
 			// The model holds a computed object as a types.Object, which can
 			// be unknown while its parent is known.
 			cf.ObjectValue = true

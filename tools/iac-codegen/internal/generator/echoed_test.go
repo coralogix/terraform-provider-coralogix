@@ -106,7 +106,7 @@ func TestEchoedContractNeedsEachLine(t *testing.T) {
 		line, code, location string
 		without              string // the line without the key, when the line has other keys
 	}{
-		"createAs folds the flat Create field":               {"      quota: {createAs: {limit: limitValue}}\n", "FIELD_LIFECYCLE_UNSUPPORTED", "EchoThing.quota", ""},
+		"createAs folds the flat Create field":               {"      quota: {createAs: {limit: limitValue}, computed: true}\n", "FIELD_LIFECYCLE_UNSUPPORTED", "EchoThing.quota", "      quota: {computed: true}\n"},
 		"readOnly on a server flag of a shared component":    {"      exceeded: {readOnly: true, name: has_exceeded}\n", "FIELD_LIFECYCLE_UNSUPPORTED", "quota.exceeded", "      exceeded: {name: has_exceeded}\n"},
 		"computed keeps a value Update requires":             {"      limit: {computed: true, validators: [{atLeast: 0}]}\n", "FIELD_REQUIREDNESS_UNSUPPORTED", "quota.limit", "      limit: {validators: [{atLeast: 0}]}\n"},
 		"optional relaxes a required list that may be empty": {"      values: {optional: true, collection: set, name: tags}\n", "REQUIRED_VALUE_CAN_BE_EMPTY", "values", "      values: {collection: set, name: tags}\n"},
@@ -137,7 +137,7 @@ func TestEchoedContractRefusesWrongLines(t *testing.T) {
 	}{
 		"createAs names a field that Create does not have": {
 			overrides: func(t *testing.T, o string) string {
-				return replaceOnce(t, o, "{createAs: {limit: limitValue}}", "{createAs: {limit: maxValue}}")
+				return replaceOnce(t, o, "{createAs: {limit: limitValue}, computed: true}", "{createAs: {limit: maxValue}, computed: true}")
 			},
 			code: "CREATE_AS_UNSUPPORTED", location: "maxValue",
 		},

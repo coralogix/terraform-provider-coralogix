@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"example.com/iac-test-sdk/go/openapi/gen/echo_things_service"
@@ -174,6 +175,7 @@ var oneOfArms = map[string]bool{
 // steps left out.
 var computedAttrs = map[string]bool{
 	"id":                 true,
+	"quota":              true,
 	"quota.limit":        true,
 	"quota.has_exceeded": true,
 	"entries.enable":     true,
@@ -322,11 +324,14 @@ func expandCreateEchoThingRequest(ctx context.Context, p path.Path, m *EchoThing
 	out := &echo_things_service.CreateEchoThingRequest{}
 	out.Name = valueOf(expandString(m.Name))
 	switch {
-	case m.Quota != nil:
+	case !m.Quota.IsNull() && !m.Quota.IsUnknown():
 		fixed := echo_things_service.Kind("KIND_LIMITED")
 		out.Kind = fixed
 	}
-	if m := m.Quota; m != nil {
+	if v := m.Quota; !v.IsNull() && !v.IsUnknown() {
+		var nested QuotaModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		m := &nested
 		p := p.AtName("quota")
 		_ = p // a scalar conversion does not report a path
 		out.LimitValue = expandInt32(m.Limit)
@@ -420,11 +425,15 @@ func expandReplaceEchoThingRequest(ctx context.Context, p path.Path, m *EchoThin
 	out := &echo_things_service.ReplaceEchoThingRequest{}
 	out.Name = valueOf(expandString(m.Name))
 	switch {
-	case m.Quota != nil:
+	case !m.Quota.IsNull() && !m.Quota.IsUnknown():
 		fixed := echo_things_service.Kind("KIND_LIMITED")
 		out.Kind = fixed
 	}
-	out.Quota = expandQuota(ctx, p.AtName("quota"), m.Quota, diags)
+	if v := m.Quota; !v.IsNull() && !v.IsUnknown() {
+		var nested QuotaModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		out.Quota = expandQuota(ctx, p.AtName("quota"), &nested, diags)
+	}
 	if items := expandMap[EchoItemModel](ctx, p.AtName("entries"), m.Items, diags); items != nil {
 		out.Items = make([]echo_things_service.EchoItem, 0, len(items))
 		for _, k := range slices.Sorted(maps.Keys(items)) {
@@ -463,6 +472,13 @@ func flattenQuota(ctx context.Context, p path.Path, v *echo_things_service.Quota
 	return out
 }
 
+func quotaAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"limit":        types.Int32Type,
+		"has_exceeded": types.BoolType,
+	}
+}
+
 func flattenEchoThing(ctx context.Context, p path.Path, v *echo_things_service.EchoThing, diags *diag.Diagnostics) *EchoThingModel {
 	if v == nil {
 		return nil
@@ -470,7 +486,12 @@ func flattenEchoThing(ctx context.Context, p path.Path, v *echo_things_service.E
 	out := &EchoThingModel{}
 	out.Id = types.StringPointerValue(&v.Id)
 	out.Name = types.StringPointerValue(&v.Name)
-	out.Quota = flattenQuota(ctx, p.AtName("quota"), v.Quota, diags)
+	out.Quota = types.ObjectNull(quotaAttrTypes())
+	if nested := flattenQuota(ctx, p.AtName("quota"), v.Quota, diags); nested != nil {
+		value, valueDiags := types.ObjectValueFrom(ctx, quotaAttrTypes(), *nested)
+		diags.Append(valueDiags...)
+		out.Quota = value
+	}
 	out.Items = types.MapNull(types.ObjectType{AttrTypes: echoItemAttrTypes()})
 	if v.Items != nil {
 		items := make(map[string]EchoItemModel, len(v.Items))

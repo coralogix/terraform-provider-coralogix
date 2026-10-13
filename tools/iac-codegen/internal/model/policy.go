@@ -294,6 +294,10 @@ func (p *Policy) withOptional(component string, s *base.Schema) *base.Schema {
 	return &out
 }
 
+// ComputedLine reports whether a computed: true line makes component.field computed. The
+// model holds such an object as a types.Object, which can be unknown in a plan.
+func (p Policy) ComputedLine(component, field string) bool { return p.computed(component, field) }
+
 func (p *Policy) computed(component, field string) bool {
 	return p != nil && component != "" && slices.Contains(p.Computed, component+"."+field)
 }
