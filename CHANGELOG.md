@@ -19,7 +19,7 @@
 
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.27`.
-- FEAT: `groups` in `behavior-overrides.yaml` makes required Terraform objects that hold top-level fields of the resource, for a released resource that nests fields the API holds at the top level. The arms of a top-level oneOf in a group check each other like the arms of a nested oneOf; `requireOne: true` makes them ExactlyOneOf, and needs a group that holds the arms of one oneOf and no other field. Flatten fails with "Invalid response from server" when the response has none of them.
+- FEAT: `groups` in `behavior-overrides.yaml` makes required Terraform objects that hold top-level fields of the resource, for a released resource that nests fields the API holds at the top level. The arms of a top-level oneOf in a group check each other like the arms of a nested oneOf; `requireOne: true` makes them ExactlyOneOf, and needs a group that holds the arms of one oneOf and no other field. Flatten fails with "Invalid response from server" unless the response has exactly one of them.
 - FEAT: `typeName` names the released resource type when it is not the OpenAPI component (`slo_v2` for `Slo`).
 - FEAT: `enums.<Enum>.trimPrefix` removes a prefix from each value before the Terraform value is made (`SLO_TIME_FRAME_7_DAYS` is `7_days`).
 - FEAT: Field lines take `useNonNullStateForUnknown`, and the validators `between`, `exactlyOneOf`, and `atLeastOneOf`. A `between` bound of an integer attribute must be a whole number that the validator states exactly.

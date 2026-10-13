@@ -129,8 +129,8 @@ func TestReadWithoutAnIDFails(t *testing.T) {
 	}
 }
 
-// A response with none of the arms of a group that needs one fails the read: the state would
-// hold the group with no arm.
+// A response with none, or more than one, of the arms of a group that needs one fails the read:
+// the state would break the ExactlyOneOf of the arms.
 func TestReadWithoutAnArmFails(t *testing.T) {
 	ctx := context.Background()
 	id, name, frame := "thing-1", "a", shared_things_service.SHAREDFRAME_SHARED_FRAME_ONE_DAY
@@ -152,5 +152,12 @@ func TestReadWithoutAnArmFails(t *testing.T) {
 	r.Read(ctx, frameworkresource.ReadRequest{State: tfsdk.State{Schema: schemaResp.Schema, Raw: state}}, resp)
 	if resp.Diagnostics.HasError() {
 		t.Fatalf("read of a response with an arm: %v", resp.Diagnostics)
+	}
+	limit := int32(3)
+	shared_things_service.Stored.ByCount = &shared_things_service.SharedCount{Limit: &limit}
+	resp = &frameworkresource.ReadResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: state}}
+	r.Read(ctx, frameworkresource.ReadRequest{State: tfsdk.State{Schema: schemaResp.Schema, Raw: state}}, resp)
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("read of a response with two arms: want an error")
 	}
 }

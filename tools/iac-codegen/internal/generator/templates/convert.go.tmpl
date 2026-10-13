@@ -513,8 +513,14 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, {{
 	out.{{.Name}} = {{.Expr}}
 {{- end}}
 {{- if .RequireOne}}
-	if {{range $i, $f := .Fields}}{{if $i}} && {{end}}v.{{$f.SDK}} == nil{{end}} {
-		diags.AddAttributeError(p, "Invalid response from server", "The response has none of {{range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f.TFName}}{{end}}.")
+	arms := 0
+{{- range .Fields}}
+	if v.{{.SDK}} != nil {
+		arms++
+	}
+{{- end}}
+	if arms != 1 {
+		diags.AddAttributeError(p, "Invalid response from server", fmt.Sprintf("The response has %d of {{range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f.TFName}}{{end}}; it must have exactly one.", arms))
 	}
 {{- end}}
 	return out
