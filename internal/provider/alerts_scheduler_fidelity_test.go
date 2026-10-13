@@ -38,7 +38,7 @@ var asRuleTokens = []string{"R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9"
 // answers. This test skips when recorded.json does not exist.
 func TestAlertsSchedulerFakeMatchesRecordedBackend(t *testing.T) {
 	cases, recorded := loadFidelityAt(t, asGoldenDir)
-	fake := &asFake{rules: map[string]map[string]any{}}
+	fake := &asFake{rules: map[string]map[string]any{}, alerts: asKnownAlerts}
 	for ci, c := range cases.Cases {
 		t.Run(c.Name, func(t *testing.T) {
 			rc := recorded.Cases[ci]
@@ -269,7 +269,7 @@ func cleanupRecordedASRules(base, apiKey string, vars map[string]string) {
 // tenant, and checks the recording against the fake. It keeps the recorder, the cases, and the
 // comparison working without credentials.
 func TestAlertsSchedulerRecorderDryRun(t *testing.T) {
-	srv := httptest.NewServer(&asFake{rules: map[string]map[string]any{}})
+	srv := httptest.NewServer(&asFake{rules: map[string]map[string]any{}, alerts: asKnownAlerts})
 	t.Cleanup(srv.Close)
 	out := filepath.Join(t.TempDir(), "recorded.json")
 	recordAlertsSchedulerFidelity(t, srv.URL, "dry-run-key", out)
@@ -290,7 +290,7 @@ func TestAlertsSchedulerRecorderDryRun(t *testing.T) {
 	if err := json.Unmarshal(rawCases, &cases); err != nil {
 		t.Fatal(err)
 	}
-	fake := &asFake{rules: map[string]map[string]any{}}
+	fake := &asFake{rules: map[string]map[string]any{}, alerts: asKnownAlerts}
 	for ci, c := range cases.Cases {
 		vars := asFidelityVars("fidelity")
 		for si, s := range c.Steps {
