@@ -2042,3 +2042,17 @@ func TestFollowUpUpdateSendsTheServerSetID(t *testing.T) {
 	}
 	compileGenerated(t, out, input)
 }
+
+// openapi-generator puts "_" between a digit and the letter after it in the constant of an enum
+// value, and keeps the type name as one word.
+func TestEnumConstName(t *testing.T) {
+	for _, test := range []struct{ typ, value, want string }{
+		{"E2MType", "E2M_TYPE_LOGS2METRICS", "E2MTYPE_E2_M_TYPE_LOGS2_METRICS"},
+		{"Logs2metricsV2Severity", "SEVERITY_DEBUG", "LOGS2METRICSV2SEVERITY_SEVERITY_DEBUG"},
+		{"ThingKind", "THING_KIND_P5_OR_UNSPECIFIED", "THINGKIND_THING_KIND_P5_OR_UNSPECIFIED"},
+	} {
+		if got := enumConstName(test.typ, test.value); got != test.want {
+			t.Errorf("enumConstName(%q, %q) = %q, want %q", test.typ, test.value, got, test.want)
+		}
+	}
+}
