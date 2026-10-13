@@ -20,6 +20,20 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/echo_things_service"
 )
 
+// levelToAPI maps the Terraform values of the enum to its API values.
+var levelToAPI = map[string]echo_things_service.Level{
+	"Unspecified": echo_things_service.Level("LEVEL_UNSPECIFIED"),
+	"Low":         echo_things_service.Level("LEVEL_LOW"),
+	"High":        echo_things_service.Level("LEVEL_HIGH"),
+}
+
+// levelFromAPI maps the API values of the enum to its Terraform values.
+var levelFromAPI = map[echo_things_service.Level]string{
+	echo_things_service.Level("LEVEL_UNSPECIFIED"): "Unspecified",
+	echo_things_service.Level("LEVEL_LOW"):         "Low",
+	echo_things_service.Level("LEVEL_HIGH"):        "High",
+}
+
 // validateRequestValue accepts every planned value. An unknown value of a computed attribute is
 // left out of the request, and the server supplies it, as the released resource did.
 func validateRequestValue(_ path.Path, _, _ attr.Value, _ bool, _ *diag.Diagnostics) {}
@@ -326,6 +340,7 @@ func expandEchoItem(ctx context.Context, p path.Path, m *EchoItemModel, diags *d
 	out.Key = valueOf(expandString(m.Key))
 	out.Values = expandStringsSet[string](ctx, p.AtName("tags"), m.Values, diags)
 	out.Enabled = expandBool(m.Enabled)
+	out.Levels = expandEnumsMapped(ctx, p.AtName("levels"), m.Levels, levelToAPI, true, diags)
 	out.Detail = expandDetail(ctx, p.AtName("detail"), m.Detail, diags)
 	return out
 }
@@ -338,6 +353,7 @@ func flattenEchoItem(ctx context.Context, p path.Path, v *echo_things_service.Ec
 	out.Key = types.StringPointerValue(&v.Key)
 	out.Values = flattenStringsSet(ctx, v.Values, diags)
 	out.Enabled = types.BoolPointerValue(v.Enabled)
+	out.Levels = flattenEnumsMappedSet(ctx, p.AtName("levels"), v.Levels, levelFromAPI, diags)
 	out.Detail = flattenDetail(ctx, p.AtName("detail"), v.Detail, diags)
 	return out
 }
@@ -347,6 +363,7 @@ func echoItemAttrTypes() map[string]attr.Type {
 		"key":    types.StringType,
 		"tags":   types.SetType{ElemType: types.StringType},
 		"enable": types.BoolType,
+		"levels": types.SetType{ElemType: types.StringType},
 		"detail": types.ObjectType{AttrTypes: detailAttrTypes()},
 	}
 }
@@ -579,6 +596,88 @@ func flattenUint64(p path.Path, v *string, diags *diag.Diagnostics) types.Int64 
 		return types.Int64Null()
 	}
 	return types.Int64Value(int64(n))
+}
+
+// expandEnumMapped returns the API value of a Terraform value. A value that the map lacks is an error.
+func expandEnumMapped[T ~string](p path.Path, v types.String, toAPI map[string]T, diags *diag.Diagnostics) *T {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	e, ok := toAPI[v.ValueString()]
+	if !ok {
+		diags.AddAttributeError(p, "Unsupported value", fmt.Sprintf("The value %q is not supported.", v.ValueString()))
+		return nil
+	}
+	return &e
+}
+
+// flattenEnumMapped returns the Terraform value of an API value. A value that the map lacks is an error.
+func flattenEnumMapped[T ~string](p path.Path, v *T, fromAPI map[T]string, diags *diag.Diagnostics) types.String {
+	if v == nil {
+		return types.StringNull()
+	}
+	s, ok := fromAPI[*v]
+	if !ok {
+		diags.AddAttributeError(p, "Unsupported API value", fmt.Sprintf("The API returned %q, which this resource does not support.", string(*v)))
+		return types.StringNull()
+	}
+	return types.StringValue(s)
+}
+
+// expandEnumsMapped returns the API values of a list or set of Terraform values. A value that
+// the map lacks is an error. A set sends each value once.
+func expandEnumsMapped[T ~string](ctx context.Context, p path.Path, v elements, toAPI map[string]T, set bool, diags *diag.Diagnostics) []T {
+	items := expandStrings[string](ctx, p, v, diags)
+	if items == nil {
+		return nil
+	}
+	out := make([]T, 0, len(items))
+	seen := make(map[T]struct{}, len(items))
+	for i, item := range items {
+		e, ok := toAPI[item]
+		if !ok {
+			at := p.AtListIndex(i)
+			if set {
+				at = p.AtSetValue(types.StringValue(item))
+			}
+			diags.AddAttributeError(at, "Unsupported value", fmt.Sprintf("The value %q is not supported.", item))
+			continue
+		}
+		if _, dup := seen[e]; set && dup {
+			continue
+		}
+		seen[e] = struct{}{}
+		out = append(out, e)
+	}
+	return out
+}
+
+// flattenEnumsMappedTF returns the Terraform values of API values. A value that the map lacks is an error.
+func flattenEnumsMappedTF[T ~string](p path.Path, v []T, fromAPI map[T]string, diags *diag.Diagnostics) []string {
+	out := make([]string, 0, len(v))
+	for i, e := range v {
+		s, ok := fromAPI[e]
+		if !ok {
+			diags.AddAttributeError(p.AtListIndex(i), "Unsupported API value", fmt.Sprintf("The API returned %q, which this resource does not support.", string(e)))
+			continue
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+func flattenEnumsMappedList[T ~string](ctx context.Context, p path.Path, v []T, fromAPI map[T]string, diags *diag.Diagnostics) types.List {
+	if v == nil {
+		return types.ListNull(types.StringType)
+	}
+	return flattenList(ctx, types.StringType, flattenEnumsMappedTF(p, v, fromAPI, diags), diags)
+}
+
+func flattenEnumsMappedSet[T ~string](ctx context.Context, p path.Path, v []T, fromAPI map[T]string, diags *diag.Diagnostics) types.Set {
+	if v == nil {
+		return types.SetNull(types.StringType)
+	}
+	return flattenSet(ctx, types.StringType, flattenEnumsMappedTF(p, v, fromAPI, diags), diags)
 }
 
 func flattenEnum[T ~string](v *T, zero string) types.String {

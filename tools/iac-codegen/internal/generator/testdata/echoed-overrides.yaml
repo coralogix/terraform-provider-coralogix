@@ -29,3 +29,9 @@ types:
       values: {optional: true, collection: set, name: tags}
       enabled: {computed: true, name: enable}
       none: {skip: true}
+      levels: {collection: set, validators: [{enum: true}]}
+enums:
+  Level:
+    zero: Unspecified
+    values: [LEVEL_LOW, LEVEL_HIGH]
+    names: {LEVEL_LOW: Low, LEVEL_HIGH: High}

@@ -768,6 +768,64 @@ func flattenEnumMapped[T ~string](p path.Path, v *T, fromAPI map[T]string, diags
 	return types.StringValue(s)
 }
 {{- end}}
+{{- if .Conv.UsesEnumsMapped}}
+
+// expandEnumsMapped returns the API values of a list or set of Terraform values. A value that
+// the map lacks is an error. A set sends each value once.
+func expandEnumsMapped[T ~string](ctx context.Context, p path.Path, v elements, toAPI map[string]T, set bool, diags *diag.Diagnostics) []T {
+	items := expandStrings[string](ctx, p, v, diags)
+	if items == nil {
+		return nil
+	}
+	out := make([]T, 0, len(items))
+	seen := make(map[T]struct{}, len(items))
+	for i, item := range items {
+		e, ok := toAPI[item]
+		if !ok {
+			at := p.AtListIndex(i)
+			if set {
+				at = p.AtSetValue(types.StringValue(item))
+			}
+			diags.AddAttributeError(at, "Unsupported value", fmt.Sprintf("The value %q is not supported.", item))
+			continue
+		}
+		if _, dup := seen[e]; set && dup {
+			continue
+		}
+		seen[e] = struct{}{}
+		out = append(out, e)
+	}
+	return out
+}
+
+// flattenEnumsMappedTF returns the Terraform values of API values. A value that the map lacks is an error.
+func flattenEnumsMappedTF[T ~string](p path.Path, v []T, fromAPI map[T]string, diags *diag.Diagnostics) []string {
+	out := make([]string, 0, len(v))
+	for i, e := range v {
+		s, ok := fromAPI[e]
+		if !ok {
+			diags.AddAttributeError(p.AtListIndex(i), "Unsupported API value", fmt.Sprintf("The API returned %q, which this resource does not support.", string(e)))
+			continue
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+func flattenEnumsMappedList[T ~string](ctx context.Context, p path.Path, v []T, fromAPI map[T]string, diags *diag.Diagnostics) types.List {
+	if v == nil {
+		return types.ListNull(types.StringType)
+	}
+	return flattenList(ctx, types.StringType, flattenEnumsMappedTF(p, v, fromAPI, diags), diags)
+}
+
+func flattenEnumsMappedSet[T ~string](ctx context.Context, p path.Path, v []T, fromAPI map[T]string, diags *diag.Diagnostics) types.Set {
+	if v == nil {
+		return types.SetNull(types.StringType)
+	}
+	return flattenSet(ctx, types.StringType, flattenEnumsMappedTF(p, v, fromAPI, diags), diags)
+}
+{{- end}}
 
 func flattenEnum[T ~string](v *T, zero string) types.String {
 	if v == nil || string(*v) == zero {
@@ -1341,6 +1399,8 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{.Dst}} = {{$l}}expandRFC3339({{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if eq .Conv "times"}}
 	{{.Dst}} = expandTimes(ctx, {{$p}}, m.{{.Model}}, diags)
+{{- else if and (eq .Conv "strings") .EnumMap}}
+	{{.Dst}} = expandEnumsMapped(ctx, {{$p}}, m.{{.Model}}, {{.EnumMap.Name}}ToAPI, {{if eq .Collection "Set"}}true{{else}}false{{end}}, diags)
 {{- else if eq .Conv "strings"}}
 	{{- if eq .Collection "Set"}}
 	{{.Dst}} = expandStringsSet[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
@@ -1487,6 +1547,8 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		out.{{.Model}} = &{{.Object.Model}}{}
 	}
 	{{- end}}
+{{- else if and (eq .Conv "strings") .EnumMap}}
+	out.{{.Model}} = flattenEnumsMapped{{.Collection}}(ctx, {{$p}}, {{.Src}}, {{.EnumMap.Name}}FromAPI, diags)
 {{- else if eq .Conv "strings"}}
 	{{- if .Enum}}
 	out.{{.Model}} = flattenEnums{{.Collection}}(ctx, {{$p}}, {{.Src}}, {{printf "%q" .EnumZero}}, diags)

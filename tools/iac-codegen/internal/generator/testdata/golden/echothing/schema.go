@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -69,6 +70,14 @@ func Schema() schema.Schema {
 						"enable": schema.BoolAttribute{
 							Optional:            true,
 							Computed:            true,
+							MarkdownDescription: "",
+						},
+						"levels": schema.SetAttribute{
+							Optional:    true,
+							ElementType: types.StringType,
+							Validators: []validator.Set{
+								setvalidator.ValueStringsAre(stringvalidator.OneOf("High", "Low", "Unspecified")),
+							},
 							MarkdownDescription: "",
 						},
 						"detail": schema.SingleNestedAttribute{

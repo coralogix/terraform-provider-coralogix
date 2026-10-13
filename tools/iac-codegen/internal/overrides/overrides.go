@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
@@ -335,8 +336,12 @@ type RegexMatches struct {
 	Message string `yaml:"message"`
 }
 
-// TFValue is the Terraform value of the API value v of the enum.
+// TFValue is the Terraform value of the API value v of the enum: its names entry, or the value
+// without trimPrefix, in lower case unless the line is verbatim.
 func (e Enum) TFValue(v string) string {
+	if tf, ok := e.Names[v]; ok {
+		return tf
+	}
 	v = strings.TrimPrefix(v, e.TrimPrefix)
 	if e.Verbatim {
 		return v
@@ -358,6 +363,10 @@ type Enum struct {
 	// TrimPrefix is removed from each value before the Terraform value is made, for example
 	// SLO_TIME_FRAME_ for SLO_TIME_FRAME_7_DAYS, which is 7_days in Terraform.
 	TrimPrefix string `yaml:"trimPrefix"`
+	// Names gives an accepted API value its Terraform value, for a released resource that
+	// spells it in another way (SEVERITY_DEBUG is Debug). It overrides the lower case and
+	// Verbatim.
+	Names map[string]string `yaml:"names"`
 	// Rejected are the values of the contract that the resource does not accept. The generator
 	// reports a value of the contract that is in neither list, so a new API value needs a decision.
 	Rejected []string `yaml:"rejected"`
@@ -470,7 +479,8 @@ func (s Schema) checkUpgrades() error {
 	return nil
 }
 
-// checkEnums checks that no value is accepted and rejected at the same time.
+// checkEnums checks that no value is accepted and rejected at the same time, and that names
+// gives accepted values distinct Terraform values.
 func (f *File) checkEnums() error {
 	for _, name := range sortedKeys(f.Enums) {
 		e := f.Enums[name]
@@ -479,13 +489,31 @@ func (f *File) checkEnums() error {
 				return fmt.Errorf("enums.%s: %q is in values and in rejected", name, v)
 			}
 		}
-		if e.TrimPrefix == "" {
-			continue
+		if e.TrimPrefix != "" {
+			for _, v := range e.Values {
+				if !strings.HasPrefix(v, e.TrimPrefix) || v == e.TrimPrefix {
+					return fmt.Errorf("enums.%s: trimPrefix %q is not a prefix of %q", name, e.TrimPrefix, v)
+				}
+			}
+		}
+		for _, v := range sortedKeys(e.Names) {
+			if !slices.Contains(e.Values, v) {
+				return fmt.Errorf("enums.%s.names: %q is not in values", name, v)
+			}
+			if e.Names[v] == "" {
+				return fmt.Errorf("enums.%s.names: %q has an empty name", name, v)
+			}
+		}
+		seen := map[string]string{}
+		if e.Zero != "" {
+			seen[e.Zero] = "zero"
 		}
 		for _, v := range e.Values {
-			if !strings.HasPrefix(v, e.TrimPrefix) || v == e.TrimPrefix {
-				return fmt.Errorf("enums.%s: trimPrefix %q is not a prefix of %q", name, e.TrimPrefix, v)
+			tf := e.TFValue(v)
+			if previous, ok := seen[tf]; ok {
+				return fmt.Errorf("enums.%s: %q and %s have the same Terraform value %q", name, v, previous, tf)
 			}
+			seen[tf] = strconv.Quote(v)
 		}
 	}
 	return nil

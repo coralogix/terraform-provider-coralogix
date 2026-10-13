@@ -78,7 +78,8 @@ type tfAttr struct {
 	OneOfGroup string
 	// OneOfRequired says that the group needs one arm (ExactlyOneOf), so every config sets one.
 	OneOfRequired bool
-	// EnumSchema is the OpenAPI component of the enum of a scalar attribute, or "".
+	// EnumSchema is the OpenAPI component of the enum of a scalar attribute, or of the elements
+	// of a list or set, or "".
 	EnumSchema string
 	Modifiers  []string // plan modifiers, Go expressions
 	Attributes []*tfAttr
@@ -532,8 +533,9 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 // exceptZero leaves the zero value out of the validator. The conversion maps still contain it.
 func enumValidatorExpr(a *tfAttr, file *overrides.File, exceptZero bool) (string, error) {
 	enum, ok := file.Enums[a.EnumSchema]
-	if a.EnumSchema == "" || a.ValueKind != "String" || !ok {
-		return "", errors.New("the enum validator needs a field of an enum type that has a line under enums")
+	collection := a.ValueKind == "List" || a.ValueKind == "Set"
+	if a.EnumSchema == "" || !ok || a.ValueKind != "String" && !collection {
+		return "", errors.New("the enum validator needs a field of an enum type, or a list or set of one, that has a line under enums")
 	}
 	var values []string
 	if enum.Zero != "" && !exceptZero {
@@ -547,7 +549,11 @@ func enumValidatorExpr(a *tfAttr, file *overrides.File, exceptZero bool) (string
 	for _, v := range values {
 		quoted = append(quoted, strconv.Quote(v))
 	}
-	return "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")", nil
+	oneOf := "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")"
+	if collection {
+		return strings.ToLower(a.ValueKind) + "validator.ValueStringsAre(" + oneOf + ")", nil
+	}
+	return oneOf, nil
 }
 
 // markComputed makes a server-owned attribute and every nested attribute
@@ -840,6 +846,9 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 			return err
 		}
 		a.Kind, a.ElementType, a.ElemValidators = kind, "types."+elem+"Type", vals
+		if t.Elem.Kind == model.Enum {
+			a.EnumSchema = t.Elem.Schema
+		}
 		if isTime(t.Elem) {
 			a.ElementType, a.ElemValidators = rfc3339Type, append(vals, utcValidator)
 			vals = a.ElemValidators

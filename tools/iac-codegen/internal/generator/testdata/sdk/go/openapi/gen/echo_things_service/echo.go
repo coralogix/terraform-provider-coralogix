@@ -19,9 +19,18 @@ type Quota struct {
 	Exceeded bool
 }
 
+type Level string
+
+const (
+	LEVEL_LEVEL_UNSPECIFIED Level = "LEVEL_UNSPECIFIED"
+	LEVEL_LEVEL_LOW         Level = "LEVEL_LOW"
+	LEVEL_LEVEL_HIGH        Level = "LEVEL_HIGH"
+)
+
 type EchoItem struct {
 	Key     string
 	Values  []string
+	Levels  []Level
 	Enabled *bool
 	None    map[string]interface{}
 	Detail  *Detail

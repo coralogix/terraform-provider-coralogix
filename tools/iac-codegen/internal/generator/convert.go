@@ -299,6 +299,19 @@ func (d *convData) Uses(conv string) bool {
 	return false
 }
 
+// UsesEnumsMapped reports whether a list or set of an enum has an enums line. The template then
+// emits the helpers that map its elements.
+func (d *convData) UsesEnumsMapped() bool {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.Conv == convStrings && f.EnumMap != nil {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // UsesFloat32 reports whether a field holds float32 values, alone or in a list, set, or map.
 // The template then emits the helpers that widen them.
 func (d *convData) UsesFloat32() bool {
@@ -1038,14 +1051,17 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		cf.Conv, cf.SDKType = convStrings, "string"
 		return "[]string", nil
 	case model.Enum:
-		if err := b.rejectEnumLine(t.Elem.Schema); err != nil {
-			return "", err
-		}
 		enum, err := b.ix.schemaRef(t.Elem.Schema)
 		if err != nil {
 			return "", err
 		}
 		cf.Conv, cf.SDKType, cf.Enum, cf.EnumZero = convStrings, b.qualify(enum.Name), true, t.Elem.EnumZero
+		// An enums line maps each element, the zero value too when the line names it.
+		m, err := b.enumMapFor(t.Elem.Schema, cf.SDKType, t.Elem)
+		if err != nil {
+			return "", err
+		}
+		cf.EnumMap = m
 		return "[]" + enum.Name, nil
 	case model.Bool, model.Number, model.Integer:
 		goType, elem, ok := scalarElem(t.Elem)
@@ -1312,7 +1328,7 @@ func (b *convBuilder) mapConv(cf *convField, t *model.Type) (string, error) {
 // Terraform values that the line states would reach the API unchanged and drift on refresh.
 func (b *convBuilder) rejectEnumLine(schema string) error {
 	if b.resource.Policy.EnumOverride(schema) {
-		return fmt.Errorf("the enums line of %s applies to a single enum field, not to a list, set, or map of it", schema)
+		return fmt.Errorf("the enums line of %s applies to a single enum field or a list or set of it, not to a map of it", schema)
 	}
 	return nil
 }

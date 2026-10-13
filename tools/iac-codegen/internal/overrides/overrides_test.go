@@ -377,3 +377,18 @@ func TestCollectionAndNameAreChecked(t *testing.T) {
 		})
 	}
 }
+
+func TestEnumNamesAreChecked(t *testing.T) {
+	for name, enum := range map[string]string{
+		"a name for a value that is not accepted": "{values: [A_ONE], names: {A_TWO: Two}}",
+		"an empty name":                  "{values: [A_ONE], names: {A_ONE: ''}}",
+		"two values with one name":       "{values: [A_ONE, A_TWO], names: {A_ONE: Same, A_TWO: Same}}",
+		"a name equal to the zero value": "{zero: Unspecified, values: [A_ONE], names: {A_ONE: Unspecified}}",
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  A: " + enum + "\n")); err == nil {
+				t.Fatalf("%s: want an error", enum)
+			}
+		})
+	}
+}

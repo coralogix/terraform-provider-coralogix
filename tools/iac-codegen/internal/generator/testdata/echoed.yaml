@@ -4,7 +4,9 @@
 # internal flag that the resource does not manage. Create takes the quota limit flat
 # (limitValue), while Replace and Get hold it in quota; the server sets quota.exceeded. Each item
 # requires values, which may be empty, has an enabled flag with no presence, and a oneOf with an
-# empty "none" marker. The detail of an item holds float32 numbers.
+# empty "none" marker. The detail of an item holds float32 numbers. The levels
+# of an item are a set of an enum whose released spelling is Low and High, and which accepts the
+# zero value.
 openapi: 3.1.0
 info: {title: echoed, version: 1.0.0}
 paths:
@@ -133,8 +135,14 @@ components:
           minItems: 0
           items: {type: string}
         enabled: {type: boolean}
+        levels:
+          type: array
+          items: {$ref: '#/components/schemas/Level'}
         none: {type: object, description: No detail.}
         detail: {$ref: '#/components/schemas/Detail'}
+    Level:
+      type: string
+      enum: [LEVEL_UNSPECIFIED, LEVEL_LOW, LEVEL_HIGH]
     Detail:
       type: object
       required: [text]

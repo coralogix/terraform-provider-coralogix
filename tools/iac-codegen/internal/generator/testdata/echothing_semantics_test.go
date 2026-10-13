@@ -2,6 +2,7 @@ package echothing
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -236,5 +237,44 @@ func TestFloat32ReadsBackAsItsShortestDecimal(t *testing.T) {
 	sent := echo_things_service.Created[0].Items[0].Detail
 	if sent == nil || sent.Ratio == nil || *sent.Ratio != float32(0.1) || len(sent.Buckets) != 2 || sent.Buckets[0] != float32(0.1) {
 		t.Fatalf("Create detail = %+v, want ratio 0.1 and buckets [0.1 2.5] as float32", sent)
+	}
+}
+
+// A set of an enum maps each element through the enums line, the zero value too: the API value
+// LEVEL_UNSPECIFIED reads back as Unspecified, and Create sends the API values.
+func TestEnumSetMapsEachElement(t *testing.T) {
+	ctx := context.Background()
+	schemaResp, root := thingSchema(t)
+	echo_things_service.Answer = echo_things_service.EchoThing{Id: "thing-1", Name: "name", Items: []echo_things_service.EchoItem{{
+		Key: "k", Levels: []echo_things_service.Level{"LEVEL_UNSPECIFIED", "LEVEL_HIGH"},
+	}}}
+	r := &Resource{client: &echo_things_service.EchoThingsServiceAPIService{}}
+	state := tfsdk.State{Schema: schemaResp.Schema, Raw: thingValue(root, "thing-1", "name")}
+	resp := &frameworkresource.ReadResponse{State: state}
+	r.Read(ctx, frameworkresource.ReadRequest{State: state}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	var levels []string
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("entries").AtListIndex(0).AtName("levels"), &levels)...)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	slices.Sort(levels)
+	if !slices.Equal(levels, []string{"High", "Unspecified"}) {
+		t.Fatalf("levels = %v, want [High Unspecified]", levels)
+	}
+
+	echo_things_service.Created = nil
+	plan := resp.State.Raw.Copy()
+	r.Create(ctx, frameworkresource.CreateRequest{Plan: tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan}, Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: plan}},
+		&frameworkresource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema}})
+	if len(echo_things_service.Created) != 1 {
+		t.Fatalf("Create calls = %d, want 1", len(echo_things_service.Created))
+	}
+	sent := echo_things_service.Created[0].Items[0].Levels
+	slices.Sort(sent)
+	if !slices.Equal(sent, []echo_things_service.Level{"LEVEL_HIGH", "LEVEL_UNSPECIFIED"}) {
+		t.Fatalf("Create levels = %v, want [LEVEL_HIGH LEVEL_UNSPECIFIED]", sent)
 	}
 }
