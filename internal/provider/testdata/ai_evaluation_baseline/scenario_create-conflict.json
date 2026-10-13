@@ -1,0 +1,62 @@
+[
+  {
+    "step": "create: the same type and target exist",
+    "config": {
+      "application": "tf-baseline-app",
+      "config": {
+        "toxicity": {}
+      },
+      "subsystem": "tf-baseline-subsystem",
+      "target": "response",
+      "threshold": 0.5
+    },
+    "plan": {
+      "application": "tf-baseline-app",
+      "config": {
+        "allowed_topics": null,
+        "competition": null,
+        "hallucination_completeness": null,
+        "hallucination_context_adherence": null,
+        "hallucination_context_relevance": null,
+        "hallucination_correctness": null,
+        "hallucination_task_adherence": null,
+        "language_mismatch": null,
+        "pii": null,
+        "prompt_injection": null,
+        "restricted_topics": null,
+        "sexism": null,
+        "sql_allowed_tables": null,
+        "sql_hallucination": null,
+        "sql_read_only": null,
+        "sql_restricted_tables": null,
+        "toxicity": {}
+      },
+      "id": "(unknown)",
+      "is_enabled": true,
+      "subsystem": "tf-baseline-subsystem",
+      "target": "response",
+      "threshold": 0.5
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/ai/evaluations/v3",
+        "body": {
+          "application": "tf-baseline-app",
+          "config": {
+            "toxicity": {}
+          },
+          "isEnabled": true,
+          "subsystem": "tf-baseline-subsystem",
+          "target": "RESPONSE",
+          "threshold": 0.5
+        },
+        "status": 409
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_ai_evaluation | error - 409 Conflict — {\"code\":409,\"message\":\"Conflict: An evaluation with these parameters already exists\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

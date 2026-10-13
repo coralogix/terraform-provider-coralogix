@@ -88,6 +88,19 @@ func newPresetHarness(t *testing.T) *grHarness {
 	return newProtocolHarness(t, presetTypeName, newPresetFake(t))
 }
 
+func newAIEvalHarness(t *testing.T) *grHarness {
+	return newProtocolHarness(t, aiEvalTypeName, newAIEvalFake(t))
+}
+
+func (h *grHarness) aiEvals() *aiEvalFake {
+	h.t.Helper()
+	f, ok := h.api.(*aiEvalFake)
+	if !ok {
+		h.t.Fatal("expected *aiEvalFake")
+	}
+	return f
+}
+
 func (h *grHarness) routers() *grFake {
 	h.t.Helper()
 	f, ok := h.api.(*grFake)
