@@ -94,3 +94,32 @@ func TestRequiredLineStatesPresenceOfASharedComponent(t *testing.T) {
 		})
 	}
 }
+
+// Flatten cannot match a set element that the API returns without a nested default to the
+// configured element, so a nested server default inside a set is an error. In a list it works.
+func TestNestedServerDefaultInsideASetIsAnError(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "model", "testdata", "gadget.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for collection, wantErr := range map[string]bool{"set": true, "list": false} {
+		extra := ""
+		if collection == "set" {
+			extra = ", x-coralogix-collection: set"
+		}
+		spec := strings.ReplaceAll(string(data), "search: {$ref: '#/components/schemas/GadgetSearch'}",
+			"search: {type: array"+extra+", items: {$ref: '#/components/schemas/GadgetSearch'}}")
+		doc, err := model.Load([]byte(spec))
+		if err != nil {
+			t.Fatal(err)
+		}
+		r, err := model.Build(doc, "Gadget")
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = buildTFResource(r, "gadget")
+		if got := err != nil && strings.Contains(err.Error(), "inside a set is unsupported"); got != wantErr {
+			t.Errorf("%s: err = %v, want the set error %t", collection, err, wantErr)
+		}
+	}
+}

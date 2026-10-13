@@ -736,6 +736,8 @@ type attrPath []string
 const (
 	anyListItem = "[]"
 	anyMapValue = "{}"
+	// anySetItem is any element of a set. Paths render it as a list step.
+	anySetItem = "[set]"
 )
 
 // dotted is the path in the form of tfResource.ComputedPaths: the names,
@@ -743,7 +745,7 @@ const (
 func (p attrPath) dotted() string {
 	var names []string
 	for _, n := range p[1:] {
-		if n != anyListItem && n != anyMapValue {
+		if n != anyListItem && n != anyMapValue && n != anySetItem {
 			names = append(names, n)
 		}
 	}
@@ -754,7 +756,7 @@ func (p attrPath) expr() string {
 	s := fmt.Sprintf("path.MatchRoot(%q)", p[1])
 	for _, n := range p[2:] {
 		switch n {
-		case anyListItem:
+		case anyListItem, anySetItem:
 			s += ".AtAnyListIndex()"
 			continue
 		case anyMapValue:
@@ -807,10 +809,10 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type, computed bool)
 }
 
 func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
-	kind, step := "Set", anyListItem
+	kind, step := "Set", anySetItem
 	switch t.Kind {
 	case model.List:
-		kind = "List"
+		kind, step = "List", anyListItem
 	case model.Map:
 		kind, step = "Map", anyMapValue
 	}
@@ -915,6 +917,11 @@ func (b *tfBuilder) nestedServerDefault(a *tfAttr, p attrPath, component string,
 	d := *f.Create.Default
 	if !f.Attrs.Required && (f.Attrs.Default == nil || *f.Attrs.Default != d) {
 		return nil
+	}
+	if slices.Contains(p, anySetItem) {
+		// Flatten cannot match a set element that the API returns without the default to the
+		// configured element, so it could not keep the configured default.
+		return fmt.Errorf("%s: a nested server default inside a set is unsupported", p.dotted())
 	}
 	value, err := serverDefaultValue(f.Type, d)
 	if err != nil {

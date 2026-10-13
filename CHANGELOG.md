@@ -33,6 +33,7 @@
 - FIX: A server default that Get does not require keeps a configured default when a read omits the value, at the top level and in a nested object. Before, the read stored null and the apply was inconsistent.
 - FIX: The Update that follows Create for an Update-only field sends the state id in the body when only the server sets the id, as the normal Update does.
 - FIX: A configured value that is still unknown stops Create and Update, also for a nested field with a server default. Before, the request dropped it as if it were omitted.
+- FIX: A nested server default inside a set is an error. Flatten cannot match a set element that a read returns without the default to the configured element, so it could not keep the configured default.
 - FIX: The unknown-value check and the change check drop server-set values inside a set of objects, as they do in a list or map. Before, an unknown server-set child of a set element blocked Create and Update.
 
 # Release 3.21.0
