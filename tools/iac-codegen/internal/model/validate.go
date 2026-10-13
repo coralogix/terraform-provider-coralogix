@@ -312,10 +312,11 @@ func validateFieldContracts(p Policy, name string, ops map[verb]foundOp) issue.R
 	slices.Sort(names)
 	names = slices.Compact(names)
 	var report issue.Report
-	bodyOnlyID := ""
-	if len(pathParams(ops[opUpdate])) == 0 && !p.UpdateIDInBody {
-		if params := pathParams(ops[opGet]); len(params) == 1 {
-			bodyOnlyID = params[0].Name
+	idParam, bodyOnlyID := "", ""
+	if params := pathParams(ops[opGet]); len(params) == 1 {
+		idParam = params[0].Name
+		if len(pathParams(ops[opUpdate])) == 0 && !p.UpdateIDInBody {
+			bodyOnlyID = idParam
 		}
 	}
 	for _, field := range names {
@@ -325,7 +326,7 @@ func validateFieldContracts(p Policy, name string, ops map[verb]foundOp) issue.R
 		if p.UpdateMaskInBody && isUpdateMaskName(field) {
 			continue // The mask stays in the JSON body and is not a Terraform field.
 		}
-		report = append(report, validateFieldContract(p, name, field, create, update, get)...)
+		report = append(report, validateFieldContract(p, name, idParam, field, create, update, get)...)
 	}
 	report = append(report, resourceIDIssues(p, name, ops, get)...)
 	report = append(report, bodyIDIssues(p, ops, create, update)...)
@@ -600,14 +601,14 @@ func responseWrapperIssues(p Policy, name string, ops map[verb]foundOp) issue.Re
 	return report
 }
 
-func validateFieldContract(p Policy, name, field string, create, update, get *base.Schema) issue.Report {
+func validateFieldContract(p Policy, name, idParam, field string, create, update, get *base.Schema) issue.Report {
 	cp, up := requestContractProperty(create, field), requestContractProperty(update, field)
 	if p.readOnly(name, field) {
 		cp, up = nil, nil
 	}
 	gp := propertyOf(get, field)
 	location := fieldLocation(name, field)
-	if _, err := Classify(cp != nil, up != nil, gp != nil); err != nil {
+	if _, err := classifyTopLevel(p, idParam, field, cp != nil, up != nil, gp != nil, schemaDefault(up) != nil); err != nil {
 		return issue.Report{{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: location, Message: fmt.Sprintf("The field locations are Create=%t, Update=%t, Get=%t.", cp != nil, up != nil, gp != nil), Remediation: "Use a managed, immutable, or computed field lifecycle."}}
 	}
 	var report issue.Report
@@ -625,7 +626,12 @@ func validateFieldContract(p Policy, name, field string, create, update, get *ba
 	// the contract need not say whether omission differs from an empty value.
 	if !p.released(name, field) {
 		report = append(report, fieldPresenceIssue(location+".create", field, create, cp)...)
-		if !createRequires(create, cp, field) {
+		// A field with a server default resets to it when Update omits it: the generated
+		// Update leaves a removed value out. Omission has that meaning, so it needs no marker
+		// when a configured value cannot look like omission: an enum never sends its zero
+		// value, and a default that is the zero value is what an omitted zero stores anyway.
+		// Any other zero, such as false next to a default of true, still needs presence.
+		if !createRequires(create, cp, field) && (cp == nil || !omissionIsDefault(up, schemaDefault(cp))) {
 			report = append(report, fieldPresenceIssue(location+".update", field, update, up)...)
 		}
 	}
@@ -661,19 +667,31 @@ func fieldDefaultContractIssues(p Policy, name, location, field string, create, 
 	if createOptional && getRequired && createDefault == nil && !p.released(name, field) {
 		report = append(report, issue.Issue{Code: "FIELD_SERVER_DEFAULT_UNDECLARED", Location: location, Message: "The field is optional in Create but required in Get, so the server supplies a value without a declared default.", Remediation: "Declare the exact OpenAPI default, or separate the client-owned request field from the server-owned response field."})
 	}
+	// A field that only Update has declares its server default there: Create stores it.
+	updateOnly := cp == nil && up != nil
+	if updateOnly {
+		createDefault = updateDefault
+	}
+	// The response may state the default with required or with the same default. Without
+	// either, an omitted value reads as null: the response can omit a value that is not the
+	// default, for example a record that the request enum cannot express.
+	getDefault := schemaDefault(gp)
+	if createDefault != nil && getDefault != nil && *getDefault != *createDefault {
+		report = append(report, issue.Issue{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The Get field declares a different default than the request.", Remediation: "Declare the same default in every schema of the field."})
+	}
 	updateRequired := up != nil && slices.Contains(update.Required, field)
-	report = append(report, declaredDefaultIssues(location, createDefault, updateDefault, createOptional && getRequired, updateRequired)...)
+	report = append(report, declaredDefaultIssues(location, createDefault, updateDefault, (createOptional || updateOnly) && gp != nil, updateRequired)...)
 	for _, candidate := range []struct {
 		name  string
 		proxy *base.SchemaProxy
 	}{{"create", cp}, {"update", up}} {
-		report = append(report, nestedDefaultIssues(p, location+"."+candidate.name, candidate.proxy, true, map[*base.Schema]bool{})...)
+		report = append(report, nestedDefaultIssues(p, location+"."+candidate.name, candidate.proxy, false, map[*base.Schema]bool{})...)
 	}
 	return report
 }
 
 // declaredDefaultIssues checks that a declared server default fits the field: optional in Create
-// and Update, required in Get, and the same default in Create and Update.
+// and Update, returned by Get, and the same default in Create and Update.
 func declaredDefaultIssues(location string, createDefault, updateDefault *string, serverOwned, updateRequired bool) issue.Report {
 	switch {
 	case createDefault == nil && updateDefault != nil:
@@ -681,7 +699,7 @@ func declaredDefaultIssues(location string, createDefault, updateDefault *string
 	case createDefault == nil:
 		return nil
 	case !serverOwned:
-		return issue.Report{{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "A declared server default needs an optional Create field and a required Get field.", Remediation: "Make the field optional in Create, required in Get, and let the server return the declared default."}}
+		return issue.Report{{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "A declared server default needs an optional Create field that Get returns.", Remediation: "Make the field optional in Create, and return it in Get."}}
 	case updateRequired || updateDefault != nil && *updateDefault != *createDefault:
 		// Update may omit the default: generation reads only the Create default.
 		return issue.Report{{Code: "FIELD_DEFAULT_CONTRACT_INCONSISTENT", Location: location, Message: "The mutable field is required in Update, or Update declares a different default than Create.", Remediation: "Make the field optional in Update. Omit its default there, or declare the Create default."}}
@@ -694,7 +712,16 @@ func defaultValueIssues(location string, proxy *base.SchemaProxy) issue.Report {
 		return nil
 	}
 	schema, err := schemaOf(proxy)
-	if err != nil || schema.Default == nil || len(schema.Type) != 1 {
+	if err != nil || schema.Default == nil {
+		return nil
+	}
+	if target := refSiblingTarget(proxy, schema); target != nil {
+		// A default next to a $ref has the type and the limits of the target, as typeOf reads them.
+		merged := *target
+		merged.Default = schema.Default
+		schema = &merged
+	}
+	if len(schema.Type) != 1 {
 		return nil
 	}
 	if err := validateScalarDefault(schema); err != nil {
@@ -800,6 +827,29 @@ func goPattern(pattern string) bool {
 	return err == nil
 }
 
+// omissionIsDefault reports whether omitting an Update field with server default d stores the
+// same value as sending the value that the generated SDK leaves out: the zero value.
+func omissionIsDefault(proxy *base.SchemaProxy, d *string) bool {
+	if d == nil || proxy == nil {
+		return false
+	}
+	schema, err := schemaOf(proxy)
+	if err != nil {
+		return false
+	}
+	if target := refSiblingTarget(proxy, schema); target != nil {
+		schema = target
+	}
+	if !scalarZeroValueValid(valueSchema(schema)) {
+		return true // the zero value is not a value that Terraform sends
+	}
+	switch *d {
+	case "false", "0", "0.0", "":
+		return true
+	}
+	return false
+}
+
 func schemaDefault(proxy *base.SchemaProxy) *string {
 	if proxy == nil {
 		return nil
@@ -812,7 +862,9 @@ func schemaDefault(proxy *base.SchemaProxy) *string {
 	return &value
 }
 
-func nestedDefaultIssues(p Policy, location string, proxy *base.SchemaProxy, root bool, seen map[*base.Schema]bool) issue.Report {
+// nestedDefaultIssues reports the nested request fields whose server default the generated resource
+// cannot honor. viaAllOf is true below an allOf wrapper.
+func nestedDefaultIssues(p Policy, location string, proxy *base.SchemaProxy, viaAllOf bool, seen map[*base.Schema]bool) issue.Report {
 	if proxy == nil {
 		return nil
 	}
@@ -821,22 +873,53 @@ func nestedDefaultIssues(p Policy, location string, proxy *base.SchemaProxy, roo
 		return nil
 	}
 	seen[schema] = true
-	object, _, _ := validationObject(schema)
+	object, ref, required := validationObject(schema)
 	var report issue.Report
-	// The default can sit on the allOf wrapper or on the schema it names.
-	if !root && (schema.Default != nil || object.Default != nil) && !p.Existing {
-		report = append(report, issue.Issue{Code: "NESTED_FIELD_DEFAULT_UNSUPPORTED", Location: location, Message: "A nested request field declares a server default.", Remediation: "Move the defaulted value to a top-level field or wait for nested server-default support."})
-	}
+	viaAllOf = viaAllOf || ref != nil
 	for _, name := range propertyNames(object) {
-		report = append(report, nestedDefaultIssues(p, location+"."+name, propertyOf(object, name), false, seen)...)
+		child := propertyOf(object, name)
+		if !p.Existing && nestedDefault(child) {
+			// A new resource plans an omitted nested field with a server default as unknown,
+			// and the response returns the default: merge requires the same default there. The
+			// resource model does not read through allOf, so a default there is unsupported. A
+			// required field is never omitted, so its default says nothing.
+			switch {
+			case viaAllOf || allOfDefault(child):
+				report = append(report, issue.Issue{Code: "NESTED_FIELD_DEFAULT_UNSUPPORTED", Location: location + "." + name, Message: "A nested request field declares a server default through allOf.", Remediation: "Use a $ref with a sibling default, or remove the default."})
+			case slices.Contains(required, name):
+				report = append(report, issue.Issue{Code: "NESTED_FIELD_DEFAULT_UNSUPPORTED", Location: location + "." + name, Message: "A required nested request field declares a server default.", Remediation: "Make the field optional, or remove its default."})
+			}
+		}
+		report = append(report, nestedDefaultIssues(p, location+"."+name, child, viaAllOf, seen)...)
 	}
 	if object.Items != nil && object.Items.IsA() {
-		report = append(report, nestedDefaultIssues(p, location+"[]", object.Items.A, false, seen)...)
+		report = append(report, nestedDefaultIssues(p, location+"[]", object.Items.A, viaAllOf, seen)...)
 	}
 	if object.AdditionalProperties != nil && object.AdditionalProperties.IsA() {
-		report = append(report, nestedDefaultIssues(p, location+"{}", object.AdditionalProperties.A, false, seen)...)
+		report = append(report, nestedDefaultIssues(p, location+"{}", object.AdditionalProperties.A, viaAllOf, seen)...)
 	}
 	return report
+}
+
+// nestedDefault reports whether a nested field declares a server default, on the field or on
+// the schema that its allOf wrapper names.
+func nestedDefault(proxy *base.SchemaProxy) bool {
+	schema, err := schemaOf(proxy)
+	if err != nil {
+		return false
+	}
+	object, _, _ := validationObject(schema)
+	return schema.Default != nil || object.Default != nil
+}
+
+// allOfDefault reports whether the field is an allOf wrapper of one $ref.
+func allOfDefault(proxy *base.SchemaProxy) bool {
+	schema, err := schemaOf(proxy)
+	if err != nil {
+		return false
+	}
+	_, ref, _ := validationObject(schema)
+	return ref != nil
 }
 
 // unsupportedSchemaIssues reports the keywords below proxy that the generator

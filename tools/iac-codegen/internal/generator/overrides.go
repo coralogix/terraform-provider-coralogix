@@ -93,7 +93,7 @@ func overrideIssues(doc *v3.Document, component string, file *overrides.File) is
 		})
 	}
 	for _, line := range file.Lines() {
-		if problem := lineProblem(doc, line); problem != nil {
+		if problem := lineProblem(doc, line, component); problem != nil {
 			report = append(report, issue.Issue{
 				Code:        cmp.Or(problem.code, "OVERRIDE_UNUSED"),
 				Location:    overrides.FileName + ":" + line.String(),
@@ -137,7 +137,8 @@ func (i *lineIssue) remediation(line overrides.Line) string {
 	return fmt.Sprintf("Delete only the key %s. Keep %s: the contract does not state it.", strings.Join(i.stale, ", "), strings.Join(keep, ", "))
 }
 
-func lineProblem(doc *v3.Document, line overrides.Line) *lineIssue {
+// lineProblem checks one line. resource is the component of the resource response.
+func lineProblem(doc *v3.Document, line overrides.Line, resource string) *lineIssue {
 	if doc.Components == nil || doc.Components.Schemas == nil {
 		return wholeLine(errors.New("the API contract has no component schemas"))
 	}
@@ -156,7 +157,7 @@ func lineProblem(doc *v3.Document, line overrides.Line) *lineIssue {
 		// A missing required list means that no field is required.
 		return wholeLine(fmt.Errorf("component %q: a missing required list already means that no field is required, so no override is needed", line.Component))
 	case overrides.KindField:
-		return fieldLineProblem(schema, line)
+		return fieldLineProblem(schema, line, line.Component != resource)
 	}
 	return nil
 }
@@ -214,7 +215,9 @@ func hasZeroValue(contract []string) bool {
 
 // fieldLineProblem checks a field line. The field must exist. A readOnly or required key is
 // stale when the contract states the same fact.
-func fieldLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
+// shared is true for a nested component, which the requests and the response share, so its
+// required list binds the requests too.
+func fieldLineProblem(schema *base.Schema, line overrides.Line, shared bool) *lineIssue {
 	if schema.Properties == nil || schema.Properties.GetOrZero(line.Field) == nil {
 		return wholeLine(fmt.Errorf("component %q has no field %q", line.Component, line.Field))
 	}
@@ -225,7 +228,7 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	if line.ReadOnly && contractReadOnly(schema, line.Field) {
 		stale = append(stale, "readOnly")
 	}
-	if line.Required && slices.Contains(schema.Required, line.Field) {
+	if line.Required && slices.Contains(schema.Required, line.Field) && !(shared && requiredLineStatesPresence(schema, line.Field)) {
 		stale = append(stale, "required")
 	}
 	if line.Collection != "" {
@@ -330,6 +333,27 @@ func hiddenKeys(r *model.Resource, line overrides.Line) []string {
 		return nil
 	}
 	return slices.DeleteFunc(slices.Clone(line.Keys), func(key string) bool { return key == "unwrap" })
+}
+
+// requiredLineStatesPresence reports whether a required key on a field that the contract already
+// requires is what states its presence: a bool or number whose zero value is valid and that has
+// no presence marker and no server default. Terraform requires the attribute and sends it every time, so omission
+// never happens, but the contract cannot say so without a presence-tracking scalar.
+func requiredLineStatesPresence(schema *base.Schema, field string) bool {
+	built, err := schema.Properties.GetOrZero(field).BuildSchema()
+	if err != nil || len(built.Type) != 1 || len(built.Enum) != 0 || built.Default != nil {
+		return false
+	}
+	if presence := built.Extensions.GetOrZero("x-coralogix-presence"); presence != nil && presence.Value == "true" {
+		return false
+	}
+	switch built.Type[0] {
+	case "boolean":
+		return true
+	case "integer", "number":
+		return (built.Minimum == nil || *built.Minimum <= 0) && (built.Maximum == nil || *built.Maximum >= 0)
+	}
+	return false
 }
 
 func contractReadOnly(schema *base.Schema, field string) bool {

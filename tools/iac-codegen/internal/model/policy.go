@@ -100,6 +100,9 @@ type Policy struct {
 	Defaults []string
 	// NoInferredValidators means that no limit of the contract becomes a validator.
 	NoInferredValidators bool
+	// RejectUnknown: an existing resource stops before the API call when a request value is
+	// unknown, as a new resource does.
+	RejectUnknown bool
 	// ReadOnly lists "Component.field" of top-level fields that the server sets, although
 	// the contract does not mark them readOnly yet. They are in Get only.
 	ReadOnly []string

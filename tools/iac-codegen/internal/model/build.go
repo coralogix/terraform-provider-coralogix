@@ -344,18 +344,119 @@ func (r *Resource) readTargets(ops map[verb]foundOp) error {
 	return nil
 }
 
-// readBodyTitles reads the title of each inline request body, and whether a
-// component schema has the same name.
+// readBodyTitles reads the title of each inline request body. openapi-generator
+// adds "1" when a component schema in the same generated package has that name.
+// The Go SDK is one package per tag, and unused components are dropped, so a
+// component that only another tag references does not collide.
 func (r *Resource) readBodyTitles(doc *v3.Document, ops map[verb]foundOp) {
+	referenced := schemasReferencedByTags(doc, operationTags(ops))
 	for v, o := range map[verb]*Operation{opCreate: &r.Create, opUpdate: &r.Update} {
 		proxy := bodyProxy(ops[v].op)
 		if o.Body != "inline" || proxy == nil || proxy.Schema() == nil {
 			continue
 		}
 		o.BodyTitle = proxy.Schema().Title
-		o.BodyTitleIsComponent = o.BodyTitle != "" && doc.Components != nil && doc.Components.Schemas != nil &&
-			doc.Components.Schemas.GetOrZero(o.BodyTitle) != nil
+		o.BodyTitleIsComponent = o.BodyTitle != "" && referenced[o.BodyTitle]
 	}
+}
+
+func operationTags(ops map[verb]foundOp) map[string]bool {
+	tags := map[string]bool{}
+	for _, f := range ops {
+		if f.op == nil {
+			continue
+		}
+		for _, tag := range f.op.Tags {
+			tags[tag] = true
+		}
+	}
+	return tags
+}
+
+// schemasReferencedByTags is the set of component names reachable from
+// operations that carry one of tags. That is the set that remains in the
+// per-tag Go package after unused components are removed.
+func schemasReferencedByTags(doc *v3.Document, tags map[string]bool) map[string]bool {
+	out := map[string]bool{}
+	if doc == nil || doc.Paths == nil || doc.Paths.PathItems == nil || len(tags) == 0 {
+		return out
+	}
+	seen := map[*base.SchemaProxy]bool{}
+	var walk func(*base.SchemaProxy)
+	walk = func(proxy *base.SchemaProxy) {
+		if proxy == nil || seen[proxy] {
+			return
+		}
+		seen[proxy] = true
+		if ref := proxy.GetReference(); ref != "" {
+			name, err := componentName(ref)
+			if err != nil || out[name] {
+				return
+			}
+			out[name] = true
+			if doc.Components != nil && doc.Components.Schemas != nil {
+				walk(doc.Components.Schemas.GetOrZero(name))
+			}
+			return
+		}
+		s := proxy.Schema()
+		if s == nil {
+			return
+		}
+		if s.Properties != nil {
+			for _, p := range s.Properties.FromOldest() {
+				walk(p)
+			}
+		}
+		if s.Items != nil && s.Items.IsA() {
+			walk(s.Items.A)
+		}
+		if s.AdditionalProperties != nil && s.AdditionalProperties.IsA() {
+			walk(s.AdditionalProperties.A)
+		}
+		for _, p := range slices.Concat(s.AllOf, s.OneOf, s.AnyOf) {
+			walk(p)
+		}
+		walk(s.Not)
+	}
+	for _, item := range doc.Paths.PathItems.FromOldest() {
+		if item == nil {
+			continue
+		}
+		for _, op := range item.GetOperations().FromOldest() {
+			if op == nil || !sharesTag(op.Tags, tags) {
+				continue
+			}
+			walk(bodyProxy(op))
+			// openapi-generator also keeps the components that parameters use.
+			for _, param := range slices.Concat(item.Parameters, op.Parameters) {
+				if param != nil {
+					walk(param.Schema)
+				}
+			}
+			if op.Responses == nil || op.Responses.Codes == nil {
+				continue
+			}
+			for _, resp := range op.Responses.Codes.FromOldest() {
+				if resp == nil || resp.Content == nil {
+					continue
+				}
+				if media := resp.Content.GetOrZero(jsonMedia); media != nil {
+					walk(media.Schema)
+				}
+			}
+		}
+	}
+	return out
+}
+
+func sharesTag(opTags []string, tags map[string]bool) bool {
+	for _, tag := range opTags {
+		if tags[tag] {
+			return true
+		}
+	}
+	return false
 }
 
 func pathParams(f foundOp) []*v3.Parameter {
@@ -540,6 +641,54 @@ func componentName(ref string) (string, error) {
 		return "", fmt.Errorf("$ref %q is not a local component schema", ref)
 	}
 	return name, nil
+}
+
+// refSiblingTarget returns the target of a $ref that has sibling keywords, such
+// as a default next to an enum $ref, and nil for any other schema. sibling is
+// the schema of proxy, which holds only the sibling keywords.
+func refSiblingTarget(proxy *base.SchemaProxy, sibling *base.Schema) *base.Schema {
+	if proxy == nil || len(sibling.Type) != 0 || !proxy.IsTransformedRefWithSiblings() {
+		return nil
+	}
+	semantic, err := proxy.BuildTransformedRefSemanticSchema(sibling)
+	if err != nil || semantic == nil || len(semantic.AllOf) != 2 || semantic.AllOf[1] == nil {
+		return nil
+	}
+	target, err := schemaOf(semantic.AllOf[1])
+	if err != nil {
+		return nil
+	}
+	return target
+}
+
+// refSiblingAllowed are the keywords that can sit next to a $ref: the type comes from the
+// target, so only a default and text that describes the value keep their meaning.
+var refSiblingAllowed = map[string]bool{
+	"$ref": true, "default": true, "description": true, "title": true, "readOnly": true,
+	"deprecated": true, "example": true, "examples": true, "$comment": true,
+}
+
+// refSiblingConstraints returns the keywords next to a $ref outside refSiblingAllowed, foreign x-
+// extensions, and x-coralogix-presence. The type comes from the target, so these would be lost.
+func refSiblingConstraints(proxy *base.SchemaProxy) []string {
+	node := proxy.GetValueNode()
+	if node == nil || node.Kind != yaml.MappingNode {
+		return nil
+	}
+	// libopenapi writes a $ref with siblings as allOf: [siblings, $ref].
+	if len(node.Content) == 2 && node.Content[0].Value == "allOf" && len(node.Content[1].Content) == 2 {
+		node = node.Content[1].Content[0]
+	}
+	var out []string
+	for i := 0; i+1 < len(node.Content); i += 2 {
+		key := node.Content[i].Value
+		// A foreign x- extension is never read. Of the Coralogix extensions, only presence
+		// describes the field itself; the others describe the type, which comes from the target.
+		if !refSiblingAllowed[key] && (!strings.HasPrefix(key, "x-") || strings.HasPrefix(key, "x-coralogix-") && key != extPresence) {
+			out = append(out, key)
+		}
+	}
+	return out
 }
 
 func schemaOf(proxy *base.SchemaProxy) (*base.Schema, error) {
@@ -847,7 +996,7 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		return nil, fmt.Errorf("update body: %w", err)
 	}
 	gp := propertyOf(getSchema, name)
-	behavior, err := Classify(cp != nil, up != nil, gp != nil)
+	behavior, err := classifyTopLevel(r.Policy, r.IDParam, name, cp != nil, up != nil, gp != nil, schemaDefault(up) != nil)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", name, err)
 	}
@@ -904,6 +1053,10 @@ func description(proxy *base.SchemaProxy) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if target := refSiblingTarget(proxy, s); s.Description == "" && target != nil {
+		// A $ref with a sibling default keeps the description of its target.
+		return target.Description, nil
+	}
 	return s.Description, nil
 }
 
@@ -953,6 +1106,15 @@ func typeOf(proxy *base.SchemaProxy, path string, w walk) (*Type, error) {
 	s, err := schemaOf(proxy)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
+	}
+	if target := refSiblingTarget(proxy, s); target != nil {
+		// OpenAPI 3.1 keeps a sibling such as default next to $ref. Schema()
+		// returns only the siblings, so the type is the one of the target. A
+		// sibling constraint would be lost, so it is an error.
+		if keywords := refSiblingConstraints(proxy); len(keywords) != 0 {
+			return nil, fmt.Errorf("%s: $ref has the sibling %s; only default and descriptive keywords can sit next to $ref", path, strings.Join(keywords, ", "))
+		}
+		s = target
 	}
 	if err := checkSupported(s); err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)

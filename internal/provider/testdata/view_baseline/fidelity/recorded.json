@@ -1,0 +1,337 @@
+{
+  "cases": [
+    {
+      "name": "create omits viewType, syntaxType, and isCompactMode",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "filters": {
+              "filters": []
+            },
+            "id": "{{id}}",
+            "isCompactMode": false,
+            "name": "tfgen-fidelity-defaults",
+            "searchQuery": {
+              "query": "error",
+              "syntaxType": "SYNTAX_TYPE_LUCENE"
+            },
+            "timeSelection": {
+              "quickSelection": {
+                "caption": "Last 1 hour",
+                "seconds": 3600
+              }
+            },
+            "viewType": "VIEW_TYPE_LOGS"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "filters": {
+              "filters": []
+            },
+            "id": "{{id}}",
+            "isCompactMode": false,
+            "name": "tfgen-fidelity-defaults",
+            "searchQuery": {
+              "query": "error",
+              "syntaxType": "SYNTAX_TYPE_LUCENE"
+            },
+            "timeSelection": {
+              "quickSelection": {
+                "caption": "Last 1 hour",
+                "seconds": 3600
+              }
+            },
+            "viewType": "VIEW_TYPE_LOGS"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: {\"message\":\"NOT_FOUND: view not found\",\"status\":5,\"details\":{\"viewId\":185666}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "seconds is stored as the nearest preset",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "filters": {
+              "filters": []
+            },
+            "id": "{{id}}",
+            "isCompactMode": false,
+            "name": "tfgen-fidelity-seconds",
+            "searchQuery": {
+              "query": "",
+              "syntaxType": "SYNTAX_TYPE_LUCENE"
+            },
+            "timeSelection": {
+              "quickSelection": {
+                "caption": "Last 1 hour",
+                "seconds": 3600
+              }
+            },
+            "viewType": "VIEW_TYPE_LOGS"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "filters": {
+              "filters": []
+            },
+            "id": "{{id}}",
+            "isCompactMode": false,
+            "name": "tfgen-fidelity-seconds",
+            "searchQuery": {
+              "query": "",
+              "syntaxType": "SYNTAX_TYPE_LUCENE"
+            },
+            "timeSelection": {
+              "quickSelection": {
+                "caption": "Last 2 minutes",
+                "seconds": 120
+              }
+            },
+            "viewType": "VIEW_TYPE_LOGS"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "filters": {
+              "filters": []
+            },
+            "id": "{{id}}",
+            "isCompactMode": false,
+            "name": "tfgen-fidelity-seconds",
+            "searchQuery": {
+              "query": "",
+              "syntaxType": "SYNTAX_TYPE_LUCENE"
+            },
+            "timeSelection": {
+              "quickSelection": {
+                "caption": "Last 2 minutes",
+                "seconds": 120
+              }
+            },
+            "viewType": "VIEW_TYPE_LOGS"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "selectedValues keeps only true values",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "filters": {
+              "filters": [
+                {
+                  "name": "severity",
+                  "selectedValues": {
+                    "ERROR": true
+                  }
+                }
+              ]
+            },
+            "id": "{{id}}",
+            "isCompactMode": false,
+            "name": "tfgen-fidelity-filters",
+            "searchQuery": {
+              "query": "",
+              "syntaxType": "SYNTAX_TYPE_LUCENE"
+            },
+            "timeSelection": {
+              "quickSelection": {
+                "caption": "Last 15 minutes",
+                "seconds": 900
+              }
+            },
+            "viewType": "VIEW_TYPE_LOGS"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "filters": {
+              "filters": [
+                {
+                  "name": "severity",
+                  "selectedValues": {
+                    "ERROR": true
+                  }
+                }
+              ]
+            },
+            "id": "{{id}}",
+            "isCompactMode": false,
+            "name": "tfgen-fidelity-filters",
+            "searchQuery": {
+              "query": "",
+              "syntaxType": "SYNTAX_TYPE_LUCENE"
+            },
+            "timeSelection": {
+              "quickSelection": {
+                "caption": "Last 15 minutes",
+                "seconds": 900
+              }
+            },
+            "viewType": "VIEW_TYPE_LOGS"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "replace sets isCompactMode and stores false when it is omitted",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "filters": {
+              "filters": []
+            },
+            "id": "{{id}}",
+            "isCompactMode": false,
+            "name": "tfgen-fidelity-compact",
+            "searchQuery": {
+              "query": "error",
+              "syntaxType": "SYNTAX_TYPE_DATAPRIME"
+            },
+            "timeSelection": {
+              "quickSelection": {
+                "caption": "Last 1 hour",
+                "seconds": 3600
+              }
+            },
+            "viewType": "VIEW_TYPE_LOGS"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "filters": {
+              "filters": []
+            },
+            "id": "{{id}}",
+            "isCompactMode": true,
+            "name": "tfgen-fidelity-compact",
+            "searchQuery": {
+              "query": "error",
+              "syntaxType": "SYNTAX_TYPE_DATAPRIME"
+            },
+            "timeSelection": {
+              "quickSelection": {
+                "caption": "Last 1 hour",
+                "seconds": 3600
+              }
+            },
+            "viewType": "VIEW_TYPE_LOGS"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "filters": {
+              "filters": []
+            },
+            "id": "{{id}}",
+            "isCompactMode": true,
+            "name": "tfgen-fidelity-compact",
+            "searchQuery": {
+              "query": "error",
+              "syntaxType": "SYNTAX_TYPE_DATAPRIME"
+            },
+            "timeSelection": {
+              "quickSelection": {
+                "caption": "Last 1 hour",
+                "seconds": 3600
+              }
+            },
+            "viewType": "VIEW_TYPE_LOGS"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "filters": {
+              "filters": []
+            },
+            "id": "{{id}}",
+            "isCompactMode": false,
+            "name": "tfgen-fidelity-compact",
+            "searchQuery": {
+              "query": "error",
+              "syntaxType": "SYNTAX_TYPE_LUCENE"
+            },
+            "timeSelection": {
+              "quickSelection": {
+                "caption": "Last 1 hour",
+                "seconds": 3600
+              }
+            },
+            "viewType": "VIEW_TYPE_LOGS"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "filters": {
+              "filters": []
+            },
+            "id": "{{id}}",
+            "isCompactMode": false,
+            "name": "tfgen-fidelity-compact",
+            "searchQuery": {
+              "query": "error",
+              "syntaxType": "SYNTAX_TYPE_LUCENE"
+            },
+            "timeSelection": {
+              "quickSelection": {
+                "caption": "Last 1 hour",
+                "seconds": 3600
+              }
+            },
+            "viewType": "VIEW_TYPE_LOGS"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "a time selection needs an arm",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"message\":\"INVALID_ARGUMENT: Invalid time selection\",\"status\":3}"
+          }
+        }
+      ]
+    }
+  ]
+}

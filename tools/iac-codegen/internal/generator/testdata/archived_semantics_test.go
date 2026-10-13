@@ -18,6 +18,14 @@ type statusError int
 func (e statusError) Error() string   { return http.StatusText(int(e)) }
 func (e statusError) StatusCode() int { return int(e) }
 
+// routeNotFound is the 404 of a route that does not exist, for example in a region
+// without the service.
+type routeNotFound struct{}
+
+func (routeNotFound) Error() string   { return "Not Found: Not Found" }
+func (routeNotFound) StatusCode() int { return http.StatusNotFound }
+func (routeNotFound) Body() []byte    { return []byte("Not Found: Not Found") }
+
 // deleteThing runs the generated Delete on a state with the id, with an archive call that
 // returns err.
 func deleteThing(t *testing.T, id string, err error) (*frameworkresource.DeleteResponse, []string) {
@@ -56,6 +64,13 @@ func TestDeleteTreatsNotFoundAsDeleted(t *testing.T) {
 	}
 	if !slices.Equal(archived, []string{"gone"}) {
 		t.Fatalf("archived ids = %v, want [gone]", archived)
+	}
+}
+
+func TestDeleteReportsARouteNotFound(t *testing.T) {
+	resp, _ := deleteThing(t, "thing-1", routeNotFound{})
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("a 404 of a missing route must not delete the resource from state")
 	}
 }
 

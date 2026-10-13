@@ -82,9 +82,15 @@ func (u Upgrade) PriorSchemaFunc() (importPath, function string, ok bool) {
 type Validators struct {
 	// Inferred: false means that no limit of the contract (minLength, maxLength,
 	// minItems, ...) becomes a validator. A released provider did not check these
-	// limits, and a new validator would reject configs that work today. Only false is
-	// supported. The validators of the released resource are written as field lines.
+	// limits, and a new validator would reject configs that work today. The validators
+	// of the released resource are written as field lines. true keeps the limits of the
+	// contract as validators: for a resource without a released version, or one whose
+	// released validators are exactly the limits of the contract. The key is required.
 	Inferred *bool `yaml:"inferred"`
+	// RejectUnknown: true stops Create and Update before the API call when a request value is
+	// still unknown, as a new resource does. A released resource left an unknown computed
+	// value out of the request, so only a resource without a released version sets it.
+	RejectUnknown bool `yaml:"rejectUnknown"`
 }
 
 // API is the HTTP contract of a released resource.
@@ -295,8 +301,8 @@ func (f *File) check() error {
 	if err := f.Schema.checkUpgrades(); err != nil {
 		return err
 	}
-	if f.Validators.Inferred == nil || *f.Validators.Inferred {
-		return errors.New("validators.inferred: false is required: a released resource does not turn contract limits into validators")
+	if f.Validators.Inferred == nil {
+		return errors.New("validators.inferred is required: false for a released resource, which does not turn contract limits into validators, and true for a resource without a released version")
 	}
 	if err := f.checkEnums(); err != nil {
 		return err
@@ -590,8 +596,9 @@ func (f *File) Policy() model.Policy {
 		CustomMethods:             f.API.CustomMethods,
 		UpdateMaskInBody:          f.API.UpdateMaskInBody,
 		TopLevelMaskReplacesOneOf: f.API.TopLevelMaskReplacesOneOf,
-		// The file states validators.inferred: false; Parse checked it.
-		NoInferredValidators: true,
+		// Parse checked that the file states validators.inferred.
+		NoInferredValidators: !*f.Validators.Inferred,
+		RejectUnknown:        f.Validators.RejectUnknown,
 	}
 	if f.API.Operations != nil {
 		p.Operations = model.OperationIDs{
