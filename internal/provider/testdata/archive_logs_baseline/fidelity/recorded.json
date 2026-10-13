@@ -1,0 +1,334 @@
+{
+  "cases": [
+    {
+      "name": "inactive-target",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "target": {
+              "archiveSpec": {
+                "archivingFormatId": "cx_data_v1",
+                "enableTags": true,
+                "format": "TARGET_FORMAT_CX_DATA_V1",
+                "isActive": false
+              },
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "externalId": "{{EXTERNAL_ID}}",
+                "region": "{{REGION}}"
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "target": {
+              "archiveSpec": {
+                "archivingFormatId": "cx_data_v1",
+                "enableTags": true,
+                "format": "TARGET_FORMAT_CX_DATA_V1",
+                "isActive": false
+              },
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "externalId": "{{EXTERNAL_ID}}",
+                "region": "{{REGION}}"
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "target": {
+              "archiveSpec": {
+                "archivingFormatId": "cx_data_v1",
+                "enableTags": true,
+                "format": "TARGET_FORMAT_CX_DATA_V1",
+                "isActive": false
+              },
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "externalId": "{{EXTERNAL_ID}}",
+                "region": "{{REGION}}"
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "target": {
+              "archiveSpec": {
+                "archivingFormatId": "cx_data_v1",
+                "enableTags": true,
+                "format": "TARGET_FORMAT_CX_DATA_V1",
+                "isActive": false
+              },
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "externalId": "{{EXTERNAL_ID}}",
+                "region": "{{REGION}}"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "role-set-and-removed",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "target": {
+              "archiveSpec": {
+                "archivingFormatId": "cx_data_v1",
+                "enableTags": true,
+                "format": "TARGET_FORMAT_CX_DATA_V1",
+                "isActive": false
+              },
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "externalId": "{{EXTERNAL_ID}}",
+                "region": "{{REGION}}",
+                "roleArn": "arn:aws:iam::123456789012:role/{{BUCKET}}"
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "target": {
+              "archiveSpec": {
+                "archivingFormatId": "cx_data_v1",
+                "enableTags": true,
+                "format": "TARGET_FORMAT_CX_DATA_V1",
+                "isActive": false
+              },
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "externalId": "{{EXTERNAL_ID}}",
+                "region": "{{REGION}}",
+                "roleArn": "arn:aws:iam::123456789012:role/{{BUCKET}}"
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "target": {
+              "archiveSpec": {
+                "archivingFormatId": "cx_data_v1",
+                "enableTags": true,
+                "format": "TARGET_FORMAT_CX_DATA_V1",
+                "isActive": false
+              },
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "externalId": "{{EXTERNAL_ID}}",
+                "region": "{{REGION}}"
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "target": {
+              "archiveSpec": {
+                "archivingFormatId": "cx_data_v1",
+                "enableTags": true,
+                "format": "TARGET_FORMAT_CX_DATA_V1",
+                "isActive": false
+              },
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "externalId": "{{EXTERNAL_ID}}",
+                "region": "{{REGION}}"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "client-external-id-is-ignored",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "target": {
+              "archiveSpec": {
+                "archivingFormatId": "cx_data_v1",
+                "enableTags": true,
+                "format": "TARGET_FORMAT_CX_DATA_V1",
+                "isActive": false
+              },
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "externalId": "{{EXTERNAL_ID}}",
+                "region": "{{REGION}}"
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "target": {
+              "archiveSpec": {
+                "archivingFormatId": "cx_data_v1",
+                "enableTags": true,
+                "format": "TARGET_FORMAT_CX_DATA_V1",
+                "isActive": false
+              },
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "externalId": "{{EXTERNAL_ID}}",
+                "region": "{{REGION}}"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "format",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "target": {
+              "archiveSpec": {
+                "archivingFormatId": "cx_data_v1",
+                "enableTags": true,
+                "format": "TARGET_FORMAT_CX_DATA_V1",
+                "isActive": false
+              },
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "externalId": "{{EXTERNAL_ID}}",
+                "region": "{{REGION}}"
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "target": {
+              "archiveSpec": {
+                "archivingFormatId": "cx_data_v1",
+                "enableTags": true,
+                "format": "TARGET_FORMAT_CX_DATA_V1",
+                "isActive": false
+              },
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "externalId": "{{EXTERNAL_ID}}",
+                "region": "{{REGION}}"
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "target": {
+              "archiveSpec": {
+                "archivingFormatId": "cx_data_v1",
+                "enableTags": true,
+                "format": "TARGET_FORMAT_CX_DATA_V1",
+                "isActive": false
+              },
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "externalId": "{{EXTERNAL_ID}}",
+                "region": "{{REGION}}"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "invalid-bucket",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: \"targetSpec\" does not match any of the allowed types"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: \"targetSpec\" does not match any of the allowed types"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: \"targetSpec\" does not match any of the allowed types"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "target": {
+              "archiveSpec": {
+                "archivingFormatId": "cx_data_v1",
+                "enableTags": true,
+                "format": "TARGET_FORMAT_CX_DATA_V1",
+                "isActive": false
+              },
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "externalId": "{{EXTERNAL_ID}}",
+                "region": "{{REGION}}"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "other-region",
+      "steps": [
+        {
+          "status": 408,
+          "response": {
+            "code": 408,
+            "message": "Deadline Exceeded: Region ap-southeast-2 is not supported, must use {{REGION}}."
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "target": {
+              "archiveSpec": {
+                "archivingFormatId": "cx_data_v1",
+                "enableTags": true,
+                "format": "TARGET_FORMAT_CX_DATA_V1",
+                "isActive": false
+              },
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "externalId": "{{EXTERNAL_ID}}",
+                "region": "{{REGION}}"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
