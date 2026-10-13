@@ -971,3 +971,40 @@ types:
 		t.Fatalf("err = %v, want FIELD_PRESENCE_UNKNOWN for a supported arm", err)
 	}
 }
+
+// An unsupported arm whose component root is itself a union keeps the SDK's
+// named type, not the map of an empty object.
+func TestUnsupportedArmWithAUnionRoot(t *testing.T) {
+	input, _ := syntheticInput(t)
+	plain := "    QueueThingConfig:\n      type: object\n      required: [topic]\n      properties:\n        topic:\n          type: string\n          minLength: 1\n"
+	union := "    QueueThingConfig:\n      anyOf: [{type: object, properties: {topic: {type: string}}}, {type: object, properties: {stream: {type: string}}}]\n"
+	spec := string(input.OpenAPI)
+	if !strings.Contains(spec, plain) {
+		t.Fatal("cannot locate QueueThingConfig")
+	}
+	spec = strings.Replace(spec, plain, union, 1)
+	file := mustParse(t, `
+resource: Thing
+mode: existing
+validators:
+  inferred: false
+types:
+  ThingConfig:
+    unsupportedArms: [queue]
+    unsupportedSummary: Unsupported config
+    unsupportedDetail: The queue config is not supported.
+`)
+	validated, err := validateOpenAPIWith([]byte(spec), "Thing", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, file)
+	if err != nil {
+		t.Fatal(reportOf(t, err))
+	}
+	for _, ref := range validated.refs {
+		if ref.Kind == kindField && ref.Owner == "ThingConfig" && ref.Name == "Queue" {
+			if ref.Want != "*QueueThingConfig" {
+				t.Fatalf("the SDK check wants ThingConfig.Queue as %s, want *QueueThingConfig", ref.Want)
+			}
+			return
+		}
+	}
+	t.Fatal("the SDK check does not want ThingConfig.Queue")
+}

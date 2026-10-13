@@ -1025,12 +1025,19 @@ func checkBodyMaskClears(r *model.Resource, attrs []*tfAttr) error {
 		return nil
 	}
 	for _, f := range r.Fields {
+		if f.Update != nil && f.Update.Required && f.Behavior == model.Immutable {
+			// The SDK holds a field that Update requires as a value, so leaving
+			// it out of the body would still send its zero value.
+			return fmt.Errorf("%s: api.updateMaskInBody leaves a field that replaces the resource out of the Update body, but the Update body requires it", tfName(f.Name))
+		}
 		if !sentOnUpdate(r, f) {
 			continue
 		}
 		name := tfName(f.Name)
 		i := slices.IndexFunc(attrs, func(a *tfAttr) bool { return a.Name == name })
-		if i < 0 || attrs[i].Required || attrs[i].Default != "" {
+		// UseStateForUnknown plans the prior value, so the body sends it, and
+		// removing the field from the configuration does not clear it by design.
+		if i < 0 || attrs[i].Required || attrs[i].Default != "" || keepsState(attrs[i]) {
 			continue
 		}
 		return fmt.Errorf("%s: api.updateMaskInBody sends no mask, so removing this optional attribute would not clear it. Make it required or give it a default", name)

@@ -2066,3 +2066,35 @@ func TestFollowUpUpdateSendsTheServerSetID(t *testing.T) {
 	}
 	compileGenerated(t, out, input)
 }
+
+// A field that keeps its state value is sent with that value, so the body
+// mask guard accepts it.
+func TestBodyUpdateMaskAcceptsAStateKeptField(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	input.OpenAPI = []byte(moveUpdateMaskIntoBody(t, string(input.OpenAPI)))
+	lines := strings.Replace(bodyMaskFieldLines, "      description: {required: true}\n", "      description: {computed: true, useStateForUnknown: true}\n", 1)
+	if lines == bodyMaskFieldLines {
+		t.Fatal("cannot change the description line")
+	}
+	if _, err := generateBodyMaskResource(t, input, sdkDir, lines); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// A field that Update requires is a value in the SDK, so leaving a
+// requiresReplace field out of a mask-less body would still send its zero
+// value. The generator rejects it.
+func TestBodyUpdateMaskRejectsARequiredReplacedField(t *testing.T) {
+	input, sdkDir := syntheticInput(t)
+	spec := moveUpdateMaskIntoBody(t, string(input.OpenAPI))
+	required := strings.Replace(spec, "              title: UpdateThingRequest\n              type: object\n              required: []\n",
+		"              title: UpdateThingRequest\n              type: object\n              required: [name]\n", 1)
+	if required == spec {
+		t.Fatal("cannot require name in the Update body")
+	}
+	input.OpenAPI = []byte(required)
+	_, err := generateBodyMaskResource(t, input, sdkDir, bodyMaskFieldLines)
+	if err == nil || !strings.Contains(err.Error(), "name: api.updateMaskInBody leaves a field that replaces the resource out of the Update body") {
+		t.Fatalf("err = %v, want the required replaced field", err)
+	}
+}

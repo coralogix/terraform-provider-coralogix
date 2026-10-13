@@ -1875,3 +1875,55 @@ func TestTopLevelMaskReplacesOneOf(t *testing.T) {
 		t.Fatalf("codes %v do not contain OVERRIDE_UNUSED for a body mask, which is not sent", codes)
 	}
 }
+
+// A requiresReplace field is replaced, not updated, so a top-level mask that
+// cannot name its oneOf arm does not matter.
+func TestRequiresReplaceSkipsTheNestedOneOfMaskCheck(t *testing.T) {
+	spec := strings.Replace(string(validSpec(t)),
+		"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'",
+		"pattern: '^[a-z][A-Za-z0-9]*(,[a-z][A-Za-z0-9]*)*$'", 1)
+	replaced := Policy{Existing: true, NoInferredValidators: true, RequiresReplace: []string{"Thing.config"}}
+	if codes := maskCodes(t, spec, replaced); slices.Contains(codes, "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED") {
+		t.Fatalf("codes %v, a replaced config needs no arm path", codes)
+	}
+}
+
+// An unsupported arm can sit in a oneOf group of an object that also has
+// normal fields.
+func TestUnsupportedArmInAGroupedObject(t *testing.T) {
+	spec := strings.Replace(string(validSpec(t)),
+		"        queue:\n          $ref: '#/components/schemas/QueueThingConfig'\n      oneOf:",
+		"        queue:\n          $ref: '#/components/schemas/QueueThingConfig'\n        label:\n          type: string\n          x-coralogix-presence: true\n      oneOf:", 1)
+	if spec == string(validSpec(t)) {
+		t.Fatal("cannot add a normal field to ThingConfig")
+	}
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resource, err := BuildWithPolicy(doc, "Thing", OperationIDs{}, Policy{
+		Existing: true, NoInferredValidators: true,
+		Unsupported:        []string{"ThingConfig.queue"},
+		UnsupportedSummary: map[string]string{"ThingConfig": "Unsupported config"},
+		UnsupportedDetail:  map[string]string{"ThingConfig": "queue is not supported"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range resource.Fields {
+		if f.Name != "config" {
+			continue
+		}
+		c := f.Type
+		if c.Kind != Object || len(c.Unsupported) != 1 || c.Unsupported[0].Name != "queue" {
+			t.Fatalf("kind %v, unsupported %v; want an object with queue unsupported", c.Kind, c.Unsupported)
+		}
+		for _, g := range c.Groups {
+			if slices.Contains(g.Arms, "queue") {
+				t.Fatalf("group %v still has queue", g.Arms)
+			}
+		}
+		return
+	}
+	t.Fatal("no config field")
+}

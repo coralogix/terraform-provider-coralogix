@@ -23,7 +23,7 @@
 - CHORE: The `evalthing` golden fixture covers `collection: set`, `requiresReplace`, `unsupportedArms`, a mask-less `updateMaskInBody`, an enum that starts with a business value, and a Get response written as `allOf: [$ref]`.
 - FEAT: `requiresReplace: true` on a top-level field forces a new resource when that field changes, although Update accepts it.
 - FIX: `requiresReplace: true` together with `computed: true` is rejected. That pair is Optional+Computed with RequiresReplace, so omitting the field replaces the resource whenever something else changes.
-- FEAT: `unsupportedArms` keeps a oneOf arm out of the schema and reports it when a response selects it.
+- FEAT: `unsupportedArms` keeps a oneOf arm out of the schema and reports it when a response selects it, also for a oneOf group of an object that has other fields.
 - FIX: `unsupportedArms` renders. Before, generation failed with `no SDK field` for the unsupported arm.
 - FIX: An unsupported arm can be missing from the Create and Update components; only the response needs it. A field line on an unsupported arm is an error, because the arm is not in the schema.
 - FIX: The generator does not read the value of an unsupported arm, so that value can use a shape the generator does not support, and the fields inside it need no `x-coralogix-presence`.
@@ -31,7 +31,7 @@
 - FIX: A client-set id keeps `RequiresReplace`. The check against Optional+Computed with RequiresReplace skips an attribute with `UseStateForUnknown`, which plans an omitted value as its prior state.
 - FEAT: Existing mode accepts an enum whose first value is a business value, such as `PROMPT`, also without an `enums` line, for example the items of a list.
 - FEAT: `api.topLevelMaskReplacesOneOf: true` lets a top-level query-parameter update mask change a nested oneOf when the server replaces the whole value of that path.
-- CHANGE: `api.updateMaskInBody: true` sends no mask, as a released resource that never sent one did. The server updates every field present in the body. An immutable field, also a `requiresReplace` field, stays out of the body. Every field that Update sends must be required or have a static default, because without a mask removing it cannot clear it.
+- CHANGE: `api.updateMaskInBody: true` sends no mask, as a released resource that never sent one did. The server updates every field present in the body. An immutable field, also a `requiresReplace` field, stays out of the body. Every field that Update sends must be required, have a static default, or keep its state value, because without a mask removing it cannot clear it. A field that replaces the resource and that the Update body requires is an error, because the body would send its zero value.
 - CHORE: Bump the generator to `v0.1.0-beta.26`.
 - FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.
 - FEAT: `api.serverSetID: true` accepts a server-set id that the Get response does not require, because the request shares the schema. The generated flatten fails when the id is missing. The id must be read-only, or absent, in the Create and Update bodies, also when a body is `allOf: [$ref]`.

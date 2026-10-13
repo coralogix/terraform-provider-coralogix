@@ -1493,7 +1493,9 @@ func topLevelMaskUnused(r *Resource, why string) issue.Report {
 func nestedOneOfMaskIssues(r *Resource) issue.Report {
 	var report issue.Report
 	for _, field := range r.Fields {
-		if field.Update == nil {
+		// A change of an immutable field, also a requiresReplace one, replaces
+		// the resource, so Update never names it in a mask.
+		if field.Update == nil || field.Behavior == Immutable {
 			continue
 		}
 		paths := oneOfMaskPaths(field.Name, field.Type.UpdateType())

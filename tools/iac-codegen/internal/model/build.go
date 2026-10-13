@@ -1311,6 +1311,45 @@ func objectType(t *Type, s *base.Schema, path string, w walk) error {
 		return splitUnsupported(t, w.policy)
 	}
 	t.Kind, t.Groups = Object, groups
+	return splitUnsupportedGroups(t, w.policy)
+}
+
+// splitUnsupportedGroups removes unsupported arms from an object that has
+// oneOf groups beside its normal fields, or several groups. Only an arm can be
+// unsupported, so a listed normal field is an error.
+func splitUnsupportedGroups(t *Type, p *Policy) error {
+	listed := unsupportedArms(t, p)
+	if len(listed) == 0 {
+		return nil
+	}
+	arms := map[string]bool{}
+	for _, g := range t.Groups {
+		for _, a := range g.Arms {
+			arms[a] = true
+		}
+	}
+	for _, name := range listed {
+		if !arms[name] {
+			return fmt.Errorf("%s: unsupported arm %q is not an arm of a oneOf group", t.Schema, name)
+		}
+	}
+	if err := splitUnsupported(t, p); err != nil {
+		return err
+	}
+	var groups []OneOfGroup
+	for _, g := range t.Groups {
+		var kept []string
+		for _, a := range g.Arms {
+			if !slices.Contains(listed, a) {
+				kept = append(kept, a)
+			}
+		}
+		if len(kept) != 0 {
+			g.Arms = kept
+			groups = append(groups, g)
+		}
+	}
+	t.Groups = groups
 	return nil
 }
 
@@ -1545,7 +1584,12 @@ func opaqueType(proxy *base.SchemaProxy) *Type {
 			return nil
 		}
 	}
-	if s.Properties == nil || s.Properties.Len() == 0 {
+	// Only a plain object without fields is an empty object, which the SDK
+	// holds as a map. Any other component, also one whose root is a union, is
+	// the SDK's named type.
+	empty := (s.Properties == nil || s.Properties.Len() == 0) && len(s.AnyOf) == 0 &&
+		len(s.OneOf) == 0 && len(s.AllOf) == 0 && s.AdditionalProperties == nil
+	if empty {
 		return &Type{Kind: Object, Schema: name}
 	}
 	return &Type{Kind: Object, Schema: name, Opaque: true}
