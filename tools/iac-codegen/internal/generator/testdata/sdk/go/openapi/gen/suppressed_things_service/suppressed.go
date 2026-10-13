@@ -22,7 +22,8 @@ const (
 )
 
 type Window struct {
-	Timezone string
+	Timezone   string
+	DaysOfWeek []int32
 }
 
 type CreateSuppressedThingRequest struct {

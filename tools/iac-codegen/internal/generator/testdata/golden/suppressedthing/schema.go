@@ -3,12 +3,14 @@
 package suppressedthing
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // Schema is the Terraform schema of the resource.
@@ -31,6 +33,14 @@ func Schema() schema.Schema {
 				Attributes: map[string]schema.Attribute{
 					"time_zone": schema.StringAttribute{
 						Required:            true,
+						MarkdownDescription: "",
+					},
+					"days": schema.SetAttribute{
+						Optional:    true,
+						ElementType: types.StringType,
+						Validators: []validator.Set{
+							setvalidator.ValueStringsAre(stringvalidator.OneOf("Friday", "Monday", "Saturday", "Sunday", "Thursday", "Tuesday", "Wednesday")),
+						},
 						MarkdownDescription: "",
 					},
 				},

@@ -23,6 +23,9 @@ types:
   Window:
     fields:
       timezone: {name: time_zone}
+      daysOfWeek:
+        name: days
+        valueNames: {1: Sunday, 2: Monday, 3: Tuesday, 4: Wednesday, 5: Thursday, 6: Friday, 7: Saturday}
 
 enums:
   ThingOperation:

@@ -181,6 +181,8 @@ const (
 	convInt64   = "int64"   // types.Int64 ↔ *int64 (signed, a JSON number)
 	convFloat32 = "float32" // types.Float32 ↔ *float32
 	convScalars = "scalars" // types.List/Set ↔ []bool, []int32, []int64, []float32, []float64
+	// convNamedInts is a list or set of integers that Terraform shows as names (valueNames).
+	convNamedInts = "namedints" // types.List/Set of types.String ↔ []int32, []int64
 
 	convStringMap = "stringmap" // types.Map ↔ map[string]string or map[string]<enum type>
 	convScalarMap = "scalarmap" // types.Map ↔ map[string]bool, int32, int64, float32, float64
@@ -202,6 +204,8 @@ type convField struct {
 	// ElemType is the Terraform element type of scalars and scalarmap, for
 	// example "types.Int32Type".
 	ElemType string
+	// ValueNames are the numbers of a namedints field and their Terraform names, in ascending order.
+	ValueNames []overrides.ValueName
 	// Enum is true for a collection or map whose string values are enum
 	// values. Response conversion then rejects protobuf zero sentinels.
 	Enum     bool
@@ -780,6 +784,22 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	cf.RequestValue = line.RequestValue
 }
 
+// applyValueNames converts a list or set of integers to the names of its values and back.
+func (b *convBuilder) applyValueNames(cf *convField, component, name string) error {
+	if b.file == nil {
+		return nil
+	}
+	line := b.file.Types[component].Fields[name]
+	if len(line.ValueNames) == 0 {
+		return nil
+	}
+	if cf.Conv != convScalars || cf.SDKType != "int32" && cf.SDKType != "int64" {
+		return fmt.Errorf("%s: valueNames needs a list or set of integers", cf.TFName)
+	}
+	cf.Conv, cf.ElemType, cf.ValueNames = convNamedInts, "types.StringType", line.SortedValueNames()
+	return nil
+}
+
 func (b *convBuilder) applyFixedRequest(cf *convField) {
 	if cf.RequestValue == "" {
 		return
@@ -823,6 +843,9 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type, comput
 	}
 	if cf.Wrap != nil && (cf.KeepPriorOrder || cf.Equality != "") {
 		return nil, fmt.Errorf("%s: %w", cf.TFName, errUnwrapCombination)
+	}
+	if err := b.applyValueNames(cf, component, name); err != nil {
+		return nil, err
 	}
 	b.applyFixedRequest(cf)
 	b.applyMissingEnum(cf, component, name, presence)
@@ -1163,7 +1186,7 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		return "types." + f.Collection + "Type{ElemType: types.StringType}", nil
 	case convTimes:
 		return "types." + f.Collection + "Type{ElemType: " + rfc3339Type + "}", nil
-	case convScalars:
+	case convScalars, convNamedInts:
 		return "types." + f.Collection + "Type{ElemType: " + f.ElemType + "}", nil
 	case convScalarMap:
 		return "types.MapType{ElemType: " + f.ElemType + "}", nil
@@ -1530,7 +1553,7 @@ func sameCheck(f *convField) (string, error) {
 		return a + " == " + b, nil
 	case convStringMap, convScalarMap, convUint64Map:
 		return "maps.Equal(" + a + ", " + b + ")", nil
-	case convStrings, convScalars:
+	case convStrings, convScalars, convNamedInts:
 		if f.Collection == "Set" {
 			break
 		}

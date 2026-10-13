@@ -256,6 +256,7 @@ func expandWindow(ctx context.Context, p path.Path, m *WindowModel, diags *diag.
 	}
 	out := &suppressed_things_service.Window{}
 	out.Timezone = valueOf(expandString(m.TimeZone))
+	out.DaysOfWeek = expandNamedInts(ctx, p.AtName("days"), m.Days, map[string]int32{"Sunday": 1, "Monday": 2, "Tuesday": 3, "Wednesday": 4, "Thursday": 5, "Friday": 6, "Saturday": 7}, diags)
 	return out
 }
 
@@ -265,6 +266,7 @@ func flattenWindow(ctx context.Context, p path.Path, v *suppressed_things_servic
 	}
 	out := &WindowModel{}
 	out.TimeZone = types.StringPointerValue(&v.Timezone)
+	out.Days = flattenNamedIntsSet(ctx, p.AtName("days"), v.DaysOfWeek, map[int32]string{1: "Sunday", 2: "Monday", 3: "Tuesday", 4: "Wednesday", 5: "Thursday", 6: "Friday", 7: "Saturday"}, diags)
 	return out
 }
 
@@ -538,4 +540,55 @@ func flattenList[T any](ctx context.Context, elem attr.Type, items []T, diags *d
 	l, d := types.ListValueFrom(ctx, elem, items)
 	diags.Append(d...)
 	return l
+}
+
+// expandNamedInts returns the numbers of the names in v. A name that the map lacks is an error.
+func expandNamedInts[T int32 | int64](ctx context.Context, p path.Path, v elements, numbers map[string]T, diags *diag.Diagnostics) []T {
+	names := expandElements[string](ctx, p, v, diags)
+	if names == nil {
+		return nil
+	}
+	out := make([]T, 0, len(names))
+	for _, name := range names {
+		n, ok := numbers[name]
+		if !ok {
+			diags.AddAttributeError(p, "Unsupported value", fmt.Sprintf("%q is not a supported value.", name))
+			continue
+		}
+		out = append(out, n)
+	}
+	return out
+}
+
+// flattenNamedInts returns the names of the numbers in v. A number that the map lacks is an error.
+func flattenNamedInts[T int32 | int64](p path.Path, v []T, names map[T]string, diags *diag.Diagnostics) ([]string, bool) {
+	if v == nil {
+		return nil, false
+	}
+	out := make([]string, 0, len(v))
+	for _, n := range v {
+		name, ok := names[n]
+		if !ok {
+			diags.AddAttributeError(p, "Unsupported API value", fmt.Sprintf("The API returned %d, which this resource does not support.", n))
+			continue
+		}
+		out = append(out, name)
+	}
+	return out, true
+}
+
+func flattenNamedIntsSet[T int32 | int64](ctx context.Context, p path.Path, v []T, names map[T]string, diags *diag.Diagnostics) types.Set {
+	out, ok := flattenNamedInts(p, v, names, diags)
+	if !ok {
+		return types.SetNull(types.StringType)
+	}
+	return flattenSet(ctx, types.StringType, out, diags)
+}
+
+func flattenNamedIntsList[T int32 | int64](ctx context.Context, p path.Path, v []T, names map[T]string, diags *diag.Diagnostics) types.List {
+	out, ok := flattenNamedInts(p, v, names, diags)
+	if !ok {
+		return types.ListNull(types.StringType)
+	}
+	return flattenList(ctx, types.StringType, out, diags)
 }

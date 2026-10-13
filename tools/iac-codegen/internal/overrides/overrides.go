@@ -173,6 +173,9 @@ type Field struct {
 	// Name is the released Terraform attribute name of the field, when it is not the Terraform
 	// form of the API name, for example operation for scheduleOperation.
 	Name string `yaml:"name"`
+	// ValueNames shows a list or set of integers as the names of its values, for example the
+	// weekdays 1 to 7 as Sunday to Saturday. Terraform holds strings; the API holds the numbers.
+	ValueNames map[int64]string `yaml:"valueNames"`
 	// Description and MarkdownDescription are the released texts of the docs. An empty
 	// string means that the released field had no description.
 	Description         *string `yaml:"description"`
@@ -437,6 +440,7 @@ func (l Field) keys() []string {
 	}
 	add(l.Skip, "skip")
 	add(l.Name != "", "name")
+	add(len(l.ValueNames) != 0, "valueNames")
 	add(l.Description != nil, "description")
 	add(l.MarkdownDescription != nil, "markdownDescription")
 	add(l.ReadOnly, "readOnly")
@@ -495,7 +499,7 @@ func (l Field) empty() bool {
 }
 
 func (l Field) emptyMode() bool {
-	return !l.Skip && l.Name == "" && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
+	return !l.Skip && l.Name == "" && len(l.ValueNames) == 0 && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown
 }
 
@@ -528,6 +532,9 @@ func (l Field) check() error {
 	if l.Name != "" && !model.ValidTerraformName(l.Name) {
 		return fmt.Errorf("name %q must be a Terraform name (lowercase letters, digits, and underscores, starting with a letter)", l.Name)
 	}
+	if err := checkValueNames(l.ValueNames); err != nil {
+		return err
+	}
 	return checkValidators(l.Validators)
 }
 
@@ -550,11 +557,51 @@ func (l Field) checkConflicts() error {
 	return nil
 }
 
+// checkValueNames checks that every number has a name, and that no two numbers have one name.
+func checkValueNames(names map[int64]string) error {
+	seen := map[string]int64{}
+	for _, n := range sortedIntKeys(names) {
+		name := names[n]
+		if name == "" {
+			return fmt.Errorf("valueNames: %d has an empty name", n)
+		}
+		if other, ok := seen[name]; ok {
+			return fmt.Errorf("valueNames: %d and %d both have the name %q", other, n, name)
+		}
+		seen[name] = n
+	}
+	return nil
+}
+
+// SortedValueNames returns the numbers of a valueNames line in ascending order with their names.
+func (l Field) SortedValueNames() []ValueName {
+	out := make([]ValueName, 0, len(l.ValueNames))
+	for _, n := range sortedIntKeys(l.ValueNames) {
+		out = append(out, ValueName{Number: n, Name: l.ValueNames[n]})
+	}
+	return out
+}
+
+// ValueName is one number of a valueNames line and its Terraform name.
+type ValueName struct {
+	Number int64
+	Name   string
+}
+
+func sortedIntKeys[V any](m map[int64]V) []int64 {
+	keys := make([]int64, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	return keys
+}
+
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
 func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.RequestValue != "" ||
-		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil
+		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0
 }
 
 func checkValidators(validators []Validator) error {

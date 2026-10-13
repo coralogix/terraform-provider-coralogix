@@ -812,3 +812,30 @@ func TestClientAndServerSetIDAreExclusive(t *testing.T) {
 		t.Fatalf("err = %v, want an error about clientSetID and serverSetID", err)
 	}
 }
+
+// valueNames names the numbers of an integer list or set. On any other field it is an error.
+func TestValueNamesNeedIntegerCollection(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := os.ReadFile(filepath.Join("testdata", "suppressed-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	bad := strings.Replace(string(text), "timezone: {name: time_zone}", "timezone: {name: time_zone, valueNames: {1: UTC}}", 1)
+	if bad == string(text) {
+		t.Fatal("the timezone line is not in suppressed-overrides.yaml")
+	}
+	overridesPath := filepath.Join(t.TempDir(), "overrides.yaml")
+	if err := os.WriteFile(overridesPath, []byte(bad), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	options := Options{Resource: "SuppressedThing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: overridesPath}
+	err = generateFromInput(options, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "valueNames needs a list or set of integers") {
+		t.Fatalf("err = %v, want valueNames needs a list or set of integers", err)
+	}
+}

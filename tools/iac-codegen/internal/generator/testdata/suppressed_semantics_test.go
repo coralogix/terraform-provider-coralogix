@@ -2,8 +2,10 @@ package suppressedthing
 
 import (
 	"context"
+	"slices"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -15,7 +17,7 @@ import (
 func ptr[T any](v T) *T { return &v }
 
 func model(id types.String) *SuppressedThingModel {
-	return &SuppressedThingModel{Id: id, Name: types.StringValue("rule"), TimeFrame: &WindowModel{TimeZone: types.StringValue("UTC+2")}, Operation: types.StringValue("active")}
+	return &SuppressedThingModel{Id: id, Name: types.StringValue("rule"), TimeFrame: &WindowModel{TimeZone: types.StringValue("UTC+2"), Days: types.SetNull(types.StringType)}, Operation: types.StringValue("active")}
 }
 
 // The server sets the id: Create sends no id, also when the plan has one.
@@ -82,5 +84,48 @@ func TestFlattenReadsTheIDProperty(t *testing.T) {
 	}
 	if _, diags := flatten(context.Background(), &suppressed_things_service.SuppressedThing{Id: ptr("version-7"), Name: "rule"}); !diags.HasError() {
 		t.Fatal("a response without uniqueIdentifier must be an error: Read, Update, and Delete need the id")
+	}
+}
+
+// days shows the weekday numbers 1 to 7 of the API as Sunday to Saturday.
+func TestDaysAreNamed(t *testing.T) {
+	ctx := context.Background()
+	m := model(types.StringValue("rule-1"))
+	m.TimeFrame.Days = types.SetValueMust(types.StringType, []attr.Value{types.StringValue("Sunday"), types.StringValue("Saturday")})
+	body, diags := expandCreate(ctx, m)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	got := slices.Sorted(slices.Values(body.SuppressedThing.Window.DaysOfWeek))
+	if !slices.Equal(got, []int32{1, 7}) {
+		t.Fatalf("days Sunday and Saturday were sent as %v, want [1 7]", got)
+	}
+
+	flat, diags := flatten(ctx, &suppressed_things_service.SuppressedThing{
+		UniqueIdentifier: ptr("rule-1"), Name: "rule", ScheduleOperation: suppressed_things_service.THINGOPERATION_THING_OPERATION_MUTE,
+		Window: &suppressed_things_service.Window{Timezone: "UTC", DaysOfWeek: []int32{2}},
+	})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if want := types.SetValueMust(types.StringType, []attr.Value{types.StringValue("Monday")}); !flat.TimeFrame.Days.Equal(want) {
+		t.Fatalf("days [2] read back as %v, want [Monday]", flat.TimeFrame.Days)
+	}
+}
+
+// A name or a number outside the valueNames line is an error, not a silent zero or an empty name.
+func TestUnknownDaysAreErrors(t *testing.T) {
+	ctx := context.Background()
+	m := model(types.StringValue("rule-1"))
+	m.TimeFrame.Days = types.SetValueMust(types.StringType, []attr.Value{types.StringValue("Funday")})
+	if _, diags := expandCreate(ctx, m); !diags.HasError() {
+		t.Fatal("the name Funday must be an error")
+	}
+	_, diags := flatten(ctx, &suppressed_things_service.SuppressedThing{
+		UniqueIdentifier: ptr("rule-1"), Name: "rule", ScheduleOperation: suppressed_things_service.THINGOPERATION_THING_OPERATION_MUTE,
+		Window: &suppressed_things_service.Window{Timezone: "UTC", DaysOfWeek: []int32{9}},
+	})
+	if !diags.HasError() {
+		t.Fatal("the API value 9 must be an error")
 	}
 }
