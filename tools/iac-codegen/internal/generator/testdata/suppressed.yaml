@@ -2,7 +2,8 @@
 # thing_id, but the resource holds its id in uniqueIdentifier, and id is a version id that every
 # Update replaces. Update sends uniqueIdentifier in its body. The released Terraform names differ
 # from the API names: id, time_frame, time_zone, and operation, whose values are mute and active
-# where the API says THING_OPERATION_MUTE and THING_OPERATION_ACTIVATE.
+# where the API says THING_OPERATION_MUTE and THING_OPERATION_ACTIVATE, and days, the names Sunday to
+# Saturday of the weekdays that the API numbers 1 to 7.
 openapi: 3.1.0
 info: {title: suppressed, version: 1.0.0}
 paths:
@@ -102,3 +103,7 @@ components:
       required: [timezone]
       properties:
         timezone: {type: string, minLength: 1}
+        daysOfWeek:
+          type: array
+          x-coralogix-collection: set
+          items: {type: integer, format: int32}

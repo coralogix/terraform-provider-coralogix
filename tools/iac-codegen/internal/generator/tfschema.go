@@ -395,6 +395,9 @@ func requestValue(file *overrides.File, component, field string) bool {
 }
 
 func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
+	if err := applyValueNames(a, l); err != nil {
+		return err
+	}
 	if l.RequireOne {
 		// On an arm of a top-level oneOf, the resource validator becomes ExactlyOneOf. Elsewhere,
 		// the line names the field that holds the oneOf.
@@ -887,6 +890,32 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 	default:
 		return fmt.Errorf("%s of %s is not supported", t.Kind, t.Elem.Kind)
 	}
+	return nil
+}
+
+// applyValueNames makes a list or set of integers a list or set of the names of its values. Only
+// the names are valid, so the line also brings their OneOf validator.
+func applyValueNames(a *tfAttr, l overrides.Field) error {
+	if len(l.ValueNames) == 0 {
+		return nil
+	}
+	if a.Kind != "Set" && a.Kind != "List" || a.ElementType != "types.Int32Type" && a.ElementType != "types.Int64Type" {
+		return fmt.Errorf("valueNames needs a list or set of integers, not a %s of %s", a.Kind, a.ElementType)
+	}
+	names := make([]string, 0, len(l.ValueNames))
+	for _, v := range l.SortedValueNames() {
+		names = append(names, v.Name)
+	}
+	slices.Sort(names)
+	quoted := make([]string, 0, len(names))
+	for _, n := range names {
+		quoted = append(quoted, strconv.Quote(n))
+	}
+	oneOf := "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")"
+	pkg := strings.ToLower(a.Kind) + "validator"
+	a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return strings.Contains(v, ".ValueInt") })
+	a.ElementType, a.ElemValidators = "types.StringType", []string{oneOf}
+	a.Validators = append(a.Validators, pkg+".ValueStringsAre("+oneOf+")")
 	return nil
 }
 

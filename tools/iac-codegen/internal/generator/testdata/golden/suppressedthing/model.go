@@ -14,5 +14,6 @@ type SuppressedThingModel struct {
 }
 
 type WindowModel struct {
-	Timezone types.String `tfsdk:"time_zone"`
+	Timezone   types.String `tfsdk:"time_zone"`
+	DaysOfWeek types.Set    `tfsdk:"days"`
 }
