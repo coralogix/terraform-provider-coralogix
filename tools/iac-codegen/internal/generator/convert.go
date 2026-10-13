@@ -186,8 +186,10 @@ const (
 	convEnum    = "enum"    // types.String ↔ *<enum type> (D12)
 	convObj     = "object"  // *<Model> ↔ *<SDK type>
 	convEmpty   = "empty"   // *<Model> ↔ map[string]interface{} (F16)
-	convStrings = "strings" // types.Set/List ↔ []string or []<enum type>
-	convObjects = "objects" // types.List ↔ []<SDK type>
+	// convEmptyBool shows an object without fields as a bool (asBool): true ↔ a non-nil empty map.
+	convEmptyBool = "emptybool"
+	convStrings   = "strings" // types.Set/List ↔ []string or []<enum type>
+	convObjects   = "objects" // types.List ↔ []<SDK type>
 
 	convInt32   = "int32"   // types.Int32 ↔ *int32
 	convInt64   = "int64"   // types.Int64 ↔ *int64 (signed, a JSON number)
@@ -1037,6 +1039,12 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	if err := b.applyValueNames(cf, component, name); err != nil {
 		return nil, err
 	}
+	if b.resource.Policy.AsBool(component, name) {
+		if cf.Conv != convEmpty {
+			return nil, fmt.Errorf("%s: asBool needs an object without fields", cf.TFName)
+		}
+		cf.Conv, cf.Object = convEmptyBool, nil
+	}
 	b.applyFixedRequest(cf)
 	b.applyMissingEnum(cf, component, name, presence)
 	if err := checkReadEmptyAs(cf); err != nil {
@@ -1411,7 +1419,7 @@ var scalarAttrTypes = map[string]string{
 	convString: "types.StringType", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
 	convBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
 	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type",
-	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}",
+	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
 }
 
 // attrType returns the Terraform attribute type expression of field f.

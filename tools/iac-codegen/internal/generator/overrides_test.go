@@ -966,3 +966,16 @@ func TestValueNamesNeedIntegerCollection(t *testing.T) {
 		t.Fatalf("err = %v, want valueNames needs a list or set of integers", err)
 	}
 }
+
+// asBool shows an object without fields. An object with fields is an error.
+func TestAsBoolNeedsAnEmptyObject(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := mustParse(t, "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  serverSetID: true\n  idProperty: uniqueIdentifier\ntypes:\n  SuppressedThing:\n    fields:\n      uniqueIdentifier: {readOnly: true, name: id}\n      id: {skip: true}\n  Repeat:\n    fields:\n      dynamic: {asBool: true}\n")
+	_, err = validateOpenAPIWith(spec, "SuppressedThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err == nil || !strings.Contains(err.Error(), "asBool needs an object without fields") {
+		t.Fatalf("err = %v, want asBool needs an object without fields", err)
+	}
+}

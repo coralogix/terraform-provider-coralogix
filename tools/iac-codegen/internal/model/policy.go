@@ -44,6 +44,9 @@ type Policy struct {
 	// IDProperty is the property of the resource that holds the id when its name is not the name
 	// of the path parameter. "" means the property named like the path parameter.
 	IDProperty string
+	// Bools are the "Component.field" objects without fields that a bool attribute shows: true
+	// when the object is present.
+	Bools []string
 	// Operations names the lifecycle operationIds from behavior-overrides. Flags
 	// still override an empty slot. A flag and the file cannot name different ids.
 	Operations OperationIDs
@@ -206,6 +209,11 @@ func (p Policy) methods(v verb) []string {
 		return []string{"POST"}
 	}
 	return verbMethods[v]
+}
+
+// AsBool reports whether a bool attribute shows the object field of component.
+func (p Policy) AsBool(component, field string) bool {
+	return component != "" && slices.Contains(p.Bools, component+"."+field)
 }
 
 func (p Policy) skips(component, field string) bool {

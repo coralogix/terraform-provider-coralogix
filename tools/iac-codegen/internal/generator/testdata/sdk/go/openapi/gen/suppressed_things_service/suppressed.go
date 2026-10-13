@@ -10,7 +10,17 @@ type SuppressedThing struct {
 	Id                *string
 	Name              string
 	Window            *Window
+	Repeat            *Repeat
 	ScheduleOperation ThingOperation
+}
+
+type Repeat struct {
+	AlwaysActive map[string]interface{}
+	Dynamic      *Dynamic
+}
+
+type Dynamic struct {
+	Every string
 }
 
 type ThingOperation string

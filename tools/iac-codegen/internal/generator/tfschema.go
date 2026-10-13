@@ -97,6 +97,8 @@ type tfAttr struct {
 	Default            string // Go expression of a static default, or ""
 	// WriteOnly: Terraform sends the value and does not store it. Only extraAttributes set this.
 	WriteOnly bool
+	// TrueOnly: a bool that shows an object without fields (asBool). Only true is a valid value.
+	TrueOnly bool
 	// Extra: the attribute is from types.<Type>.extraAttributes, not the API. The generated
 	// acceptance test leaves it out unless values or an upgrade case supplies the map: a made-up
 	// map key is not a valid API field.
@@ -813,6 +815,13 @@ func (p attrPath) expr() string {
 
 func (b *tfBuilder) attribute(p attrPath, component, name, desc string, t *model.Type, attrs model.Attrs, computed bool) (*tfAttr, error) {
 	a := &tfAttr{Name: b.policy.TerraformName(component, name), Description: desc, Required: attrs.Required, Optional: !attrs.Required, Component: component, Property: name}
+	if b.policy.AsBool(component, name) {
+		if !emptyObject(t) {
+			return nil, fmt.Errorf("%s.%s: asBool needs an object without fields", component, name)
+		}
+		a.Kind, a.ValueKind, a.TrueOnly = "Bool", "Bool", true
+		return a, nil
+	}
 	if err := b.setType(a, p, t, computed); err != nil {
 		return nil, err
 	}
@@ -1163,13 +1172,20 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 	case model.Map:
 		goType = "types.Map"
 	case model.Object, model.OneOf:
-		if behavior == model.Computed || computed {
+		if b.policy.AsBool(component, name) {
+			goType = "types.Bool"
+		} else if behavior == model.Computed || computed {
 			goType = "types.Object"
 		} else {
 			goType = "*" + typeModelName(t)
 		}
 	}
 	return tfModelField{Name: camelize(name), Type: goType, TFName: b.policy.TerraformName(component, name)}
+}
+
+// emptyObject reports whether t is an object without fields, which the SDK holds as a map.
+func emptyObject(t *model.Type) bool {
+	return (t.Kind == model.Object || t.Kind == model.OneOf) && len(t.Fields) == 0
 }
 
 // modelTypeName is the Terraform model struct of a component schema.
