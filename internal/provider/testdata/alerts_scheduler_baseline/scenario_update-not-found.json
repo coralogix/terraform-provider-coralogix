@@ -132,7 +132,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating alerts-scheduler | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: {\\\"reason\\\":\\\"alert scheduler rule 00000000-0000-4000-8000-000000000001 not found\\\"}\"}\noperation - Update"
+      "error: Error updating alerts-scheduler | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: No result found\"}\noperation - Update"
     ],
     "state": {
       "description": "",

@@ -178,12 +178,12 @@
       "id": "00000000-0000-4000-8000-000000000001",
       "meta_labels": [
         {
-          "key": "env",
-          "value": null
-        },
-        {
           "key": "team",
           "value": "a"
+        },
+        {
+          "key": "env",
+          "value": null
         }
       ],
       "name": "full",
@@ -245,12 +245,12 @@
       "id": "00000000-0000-4000-8000-000000000001",
       "meta_labels": [
         {
-          "key": "env",
-          "value": null
-        },
-        {
           "key": "team",
           "value": "a"
+        },
+        {
+          "key": "env",
+          "value": null
         }
       ],
       "name": "full",
