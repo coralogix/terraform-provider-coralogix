@@ -90,7 +90,7 @@ jobs:
           PD_INTEGRATION_ID: ${{ secrets.PD_INTEGRATION_ID }}
           CORALOGIX_SLO_V2_APM_SERVICE: ${{ secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
         run: |
-          make testacc TESTARGS="-run '${{ matrix.pattern }}'"
+          bash .github/scripts/run-tests-with-summary.sh make testacc "TESTARGS=-run '${{ matrix.pattern }}'"
 
   test-unsharded:
     name: Non-dashboard acceptance tests (unsharded catch-all)
@@ -131,7 +131,7 @@ jobs:
           for pattern in "${shard_patterns[@]}"; do
             skip_pattern+="|($pattern)"
           done
-          ACC_SKIP_PATTERN="$skip_pattern" make testacc
+          ACC_SKIP_PATTERN="$skip_pattern" bash .github/scripts/run-tests-with-summary.sh make testacc
 
   dashboard:
     name: Dashboard acceptance tests (${{ matrix.shard }})
@@ -183,7 +183,7 @@ jobs:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
         run: |
-          TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run '${{ matrix.pattern }}' -timeout 120m -parallel=4
+          bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run '${{ matrix.pattern }}' -timeout 120m -parallel=4
 
   dashboard-unsharded:
     name: Dashboard acceptance tests (unsharded catch-all)
@@ -227,7 +227,7 @@ jobs:
             # a parent test pattern and a subtest pattern.
             skip_pattern+="|$pattern"
           done
-          TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run "$DASHBOARD_ACC_PATTERN" -skip "$skip_pattern" -timeout 120m -parallel=4
+          bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run "$DASHBOARD_ACC_PATTERN" -skip "$skip_pattern" -timeout 120m -parallel=4
 
   provider-migration:
     name: Provider migration (${{ matrix.shard }})
@@ -267,7 +267,7 @@ jobs:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
         run: |
-          CORALOGIX_DASHBOARD_MIGRATION_ACC=1 CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 CORALOGIX_USER_MIGRATION_ACC=1 CORALOGIX_GLOBAL_ROUTER_MIGRATION_ACC=1 CORALOGIX_GENERATED_UPGRADE_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -run '${{ matrix.pattern }}' -v -count=1 -timeout 120m -parallel=3
+          bash .github/scripts/run-tests-with-summary.sh env CORALOGIX_DASHBOARD_MIGRATION_ACC=1 CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 CORALOGIX_USER_MIGRATION_ACC=1 CORALOGIX_GLOBAL_ROUTER_MIGRATION_ACC=1 CORALOGIX_GENERATED_UPGRADE_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -run '${{ matrix.pattern }}' -v -count=1 -timeout 120m -parallel=3
 
   notify-failure:
     name: Notify Slack on failure
