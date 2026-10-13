@@ -922,7 +922,7 @@ func attrsOf(parent *base.Schema, name string, proxy *base.SchemaProxy) (Attrs, 
 	if err != nil {
 		return Attrs{}, err
 	}
-	a := Attrs{Required: slices.Contains(parent.Required, name)}
+	a := Attrs{Required: slices.Contains(parent.Required, name), ReadOnly: s.ReadOnly != nil && *s.ReadOnly}
 	if n := s.Extensions.GetOrZero(extPresence); n != nil {
 		switch n.Value {
 		case "true":

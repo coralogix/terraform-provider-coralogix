@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.21.0
+
 #### resource/coralogix_configuration_group
 - BREAKING (Beta): `coralogix_fleet_configuration_group` is renamed `coralogix_configuration_group`. Remove the old resource from state and import the group under the new name.
 - BREAKING (Beta): The resource is generated from the API contract. A family is either `raw` (its own `remote_configurations`) or `preset` (generated from a configuration template); `remote_configuration` is renamed `remote_configurations`, `agent_selector` holds an `attributes` map, `priority_order` is an Int32, and `chart_name` values are `chart_name_otel_integration`, `chart_name_otel_ecs_ec2`, and `chart_name_otel_{linux,windows,macos}_standalone`.
@@ -30,7 +32,27 @@
 #### resource/coralogix_global_router
 - FIX: A change of `id` replaces the router. Before, the plan showed an in-place update, and the apply failed with `Missing Resource State After Update`.
 
+#### resource/coralogix_slo_v2
+- CHORE: Bump `coralogix-management-sdk` to the SLO contract that marks server-set fields read-only and requires the APM latency `time_window`.
+
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.25`.
+- FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.
+- FEAT: In existing-resource mode, the Get response may leave the server-set id optional, as a schema that the request shares cannot require it. The generated flatten fails when the id is missing.
+- FIX: An Update with the id in its body sends a server-set id, in the resource that the body wraps or in the body itself. Before, no Update field sent it, so the update request had no id.
+- FEAT: In existing-resource mode, Create and Update can take one request body type, and a response can hold the resource in a required (value) field.
+- FEAT: In existing-resource mode, a read-only field inside a component that the request shares with the response is computed, and the request does not send it. Before, it was an attribute that the user could set, or generation failed.
+- FIX: `required: true` and `computed: false` on a field also apply to a read-only copy of its component, which stays computed. Before, generation failed with "required: true needs a field that the user sets".
+- CHORE: Bump the generator to `v0.1.0-beta.24`.
+- FIX: A `requestValue` field is not in the Create or Update check lists. Those lists read Terraform attributes. A field that the request schema does not mark read-only stayed in the lists, so every Create and every Update failed.
+- CHORE: Bump the generator to `v0.1.0-beta.23`.
+- FIX: Presence, default, read-only, and schema checks walk a schema that is only `allOf` of one `$ref`. Required fields are the union of the required lists, so a required field inside the ref is not optional.
+- FIX: A field that Create requires needs no `x-coralogix-presence` in Update. Terraform requires it, so Update always sends a value.
+- FIX: The fields inside a skipped field need no `x-coralogix-presence`, because the field is never sent.
+- CHORE: Bump the generator to `v0.1.0-beta.22`.
+- FEAT: `enumExceptZero: true` accepts the enum values and leaves out the zero value. `enum: true` still accepts the zero value. The conversion maps still contain it.
+- CHORE: Bump the generator to `v0.1.0-beta.21`.
+- FIX: A computed-only attribute, and every attribute inside it, has no validators and no document plan modifier. A field line on a component that is also managed no longer copies those checks onto the computed-only place. A computed `id` still keeps `UseStateForUnknown`.
 - FIX: `behavior-overrides.yaml` rejects a Delete operation named in both `api.delete.operation` and `api.operations.delete`. Before, `api.operations` chose the operation id while `api.delete` still turned on POST-action delete checks.
 - FEAT: `readEmptyAs: null` on a string reads an omitted value as null. A configured `""` stays `""`.
 - FIX: `requestValue` on a nested read-only field is sent on create and update.
@@ -42,12 +64,6 @@
 - FIX: Remove `promote`. `unwrap` shows a one-property wrapper as the plain attribute. A missing enum stays null, including one marked with presence. A string `default` is what that resource reads a missing value as.
 - FIX: A `date-time` field of a component has one type in every place of the component: `timetypes.RFC3339` when a request sends it in some place, otherwise a plain string. Before, a field inside a computed value always became `timetypes.RFC3339`, so a response-only time in a component that is also managed elsewhere failed generation with "has a computed object field in one place and a managed one in another".
 - FIX: The error for a component that needs another model struct in each place names the field and its Go type in each place.
-- FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.
-- FEAT: In existing-resource mode, the Get response may leave the server-set id optional, as a schema that the request shares cannot require it. The generated flatten fails when the id is missing.
-- FIX: An Update with the id in its body sends a server-set id, in the resource that the body wraps or in the body itself. Before, no Update field sent it, so the update request had no id.
-- FEAT: In existing-resource mode, Create and Update can take one request body type, and a response can hold the resource in a required (value) field.
-- FIX: `required: true` and `computed: false` on a field also apply to a read-only copy of its component, which stays computed. Before, generation failed with "required: true needs a field that the user sets".
-- CHORE: Bump the generator to `v0.1.0-beta.21`.
 - CHORE: Bump the generator to `v0.1.0-beta.20`.
 - CHORE: Bump the generator to `v0.1.0-beta.19`.
 - CHORE: Bump the generator to `v0.1.0-beta.18`.

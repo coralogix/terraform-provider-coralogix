@@ -77,7 +77,6 @@ func TestEachPolicyFieldRelaxesOneRule(t *testing.T) {
 		"request wrapper":   {func(p *Policy) { p.RequestWrapper = "" }, "FIELD_LIFECYCLE_UNSUPPORTED"},
 		"update id in body": {func(p *Policy) { p.UpdateIDInBody = false }, "UPDATE_ID_IN_BODY_UNSUPPORTED"},
 		"enum prefix":       {func(p *Policy) { p.EnumAnyPrefix = nil }, "ENUM_ZERO_INVALID"},
-		"skip":              {func(p *Policy) { p.Skip = nil }, "FIELD_LIFECYCLE_UNSUPPORTED"},
 		"released":          {func(p *Policy) { p.Released = nil }, "FIELD_PRESENCE_UNKNOWN"},
 		"existing":          {func(p *Policy) { p.Existing = false }, "RESPONSE_WRAPPER_UNSUPPORTED"},
 	}
@@ -89,6 +88,45 @@ func TestEachPolicyFieldRelaxesOneRule(t *testing.T) {
 				t.Fatalf("codes = %v, want %s", got, test.code)
 			}
 		})
+	}
+}
+
+// A released API can share a nested component between the request and the response, so the
+// request component holds a read-only field. Existing mode does not send it: the field is
+// computed. A new resource needs its own request component.
+func TestExistingResourceComputesANestedReadOnlyRequestField(t *testing.T) {
+	p := legacyPolicy()
+	p.Skip = nil
+	if got := legacyCodes(t, p); len(got) != 0 {
+		t.Fatalf("codes = %v, want none", got)
+	}
+	p.Existing = false
+	if got := legacyCodes(t, p); !slices.Contains(got, "FIELD_LIFECYCLE_UNSUPPORTED") {
+		t.Fatalf("new resource codes = %v, want FIELD_LIFECYCLE_UNSUPPORTED", got)
+	}
+	doc, err := Load(legacyDoc(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p = legacyPolicy()
+	p.Skip = nil
+	r, err := BuildWithPolicy(doc, "LegacyThing", OperationIDs{}, p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var target *Type
+	for _, f := range r.Fields {
+		if f.Name == "rules" {
+			target = fieldNamed(f.Type.Elem.Fields, "targets").Type.Elem
+		}
+	}
+	id := fieldNamed(target.Fields, "id")
+	if id == nil || id.Create != nil || id.Update != nil || id.Behavior != Computed {
+		t.Fatalf("targets[].id = %+v, want a computed field that no request sends", id)
+	}
+	connector := fieldNamed(target.Fields, "connectorId")
+	if connector.Create == nil || connector.Update == nil {
+		t.Fatalf("targets[].connectorId = %+v, want a field that both requests send", connector)
 	}
 }
 
