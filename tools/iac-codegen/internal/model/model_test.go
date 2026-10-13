@@ -1927,3 +1927,57 @@ func TestUnsupportedArmInAGroupedObject(t *testing.T) {
 	}
 	t.Fatal("no config field")
 }
+
+// A oneOf group that requires an arm cannot lose every arm: no config could
+// then satisfy it.
+func TestUnsupportedArmsCannotEmptyARequiredGroup(t *testing.T) {
+	spec := strings.Replace(string(validSpec(t)),
+		"        queue:\n          $ref: '#/components/schemas/QueueThingConfig'\n      oneOf:",
+		"        queue:\n          $ref: '#/components/schemas/QueueThingConfig'\n        label:\n          type: string\n          x-coralogix-presence: true\n      oneOf:", 1)
+	doc, err := Load([]byte(spec))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = BuildWithPolicy(doc, "Thing", OperationIDs{}, Policy{
+		Existing: true, NoInferredValidators: true,
+		Unsupported:        []string{"ThingConfig.http", "ThingConfig.queue"},
+		UnsupportedSummary: map[string]string{"ThingConfig": "Unsupported config"},
+		UnsupportedDetail:  map[string]string{"ThingConfig": "no arm is supported"},
+	})
+	if err == nil || !strings.Contains(err.Error(), "remove every arm of a oneOf group that requires one") {
+		t.Fatalf("err = %v, want an error for an emptied required group", err)
+	}
+}
+
+// An unsupported arm defined inline is not read. An empty one is the SDK's
+// map; one with fields needs a component, because the generator cannot name
+// the SDK type of an inline object.
+func TestUnsupportedInlineArm(t *testing.T) {
+	ref := "        queue:\n          $ref: '#/components/schemas/QueueThingConfig'\n      oneOf:"
+	policy := Policy{
+		Existing: true, NoInferredValidators: true,
+		Unsupported:        []string{"ThingConfig.queue"},
+		UnsupportedSummary: map[string]string{"ThingConfig": "Unsupported config"},
+		UnsupportedDetail:  map[string]string{"ThingConfig": "queue is not supported"},
+	}
+	build := func(inline string) error {
+		t.Helper()
+		spec := strings.Replace(string(validSpec(t)), ref, "        queue:\n"+inline+"      oneOf:", 1)
+		if spec == string(validSpec(t)) {
+			t.Fatal("cannot locate the queue arm")
+		}
+		doc, err := Load([]byte(spec))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = BuildWithPolicy(doc, "Thing", OperationIDs{}, policy)
+		return err
+	}
+	if err := build("          type: object\n"); err != nil {
+		t.Fatalf("an empty inline arm: %v", err)
+	}
+	union := "          anyOf: [{type: object, properties: {topic: {type: string}}}, {type: object, properties: {stream: {type: string}}}]\n"
+	if err := build(union); err == nil || !strings.Contains(err.Error(), "needs a component $ref") {
+		t.Fatalf("err = %v, want an error that asks for a component", err)
+	}
+}

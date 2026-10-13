@@ -1344,6 +1344,9 @@ func splitUnsupportedGroups(t *Type, p *Policy) error {
 				kept = append(kept, a)
 			}
 		}
+		if len(kept) == 0 && !g.AllowNone {
+			return fmt.Errorf("%s: unsupported arms remove every arm of a oneOf group that requires one", t.Schema)
+		}
 		if len(kept) != 0 {
 			g.Arms = kept
 			groups = append(groups, g)
@@ -1531,7 +1534,10 @@ func objectFields(s *base.Schema, path string, w walk, component string) ([]*Fie
 		if listedUnsupported(w.policy, component, name) {
 			// The resource never configures this arm, so its value need not be a
 			// shape the generator supports.
-			ft = opaqueType(proxy)
+			if ft, err = opaqueType(proxy); err != nil {
+				// Reported below with the other errors of this field.
+				ft, err = &Type{Kind: Object}, fmt.Errorf("%s.%s: %w", path, name, err)
+			}
 		}
 		if ft == nil {
 			ft, err = typeOf(proxy, path+"."+name, w)
@@ -1568,20 +1574,24 @@ func listedUnsupported(p *Policy, component, field string) bool {
 }
 
 // opaqueType is the value of an unsupported arm without reading it: an empty
-// object, or the component that the arm references. It returns nil for an
-// inline value, which the caller then reads.
-func opaqueType(proxy *base.SchemaProxy) *Type {
+// object, or the component that the arm references. An inline arm with fields
+// is an error: the SDK names its type after the parent, which the generator
+// cannot resolve, so the arm needs a component.
+func opaqueType(proxy *base.SchemaProxy) (*Type, error) {
+	if emptyInlineObject(proxy) {
+		return &Type{Kind: Object}, nil
+	}
 	name, err := componentName(unwrapRef(proxy))
 	if err != nil {
-		return nil
+		return nil, errors.New("an unsupported arm defined inline needs a component $ref, so that the generator can name its SDK type")
 	}
 	s, err := schemaOf(proxy)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	if inner, err := singleAllOf(s, ""); err == nil {
 		if s, err = schemaOf(inner); err != nil {
-			return nil
+			return nil, err
 		}
 	}
 	// Only a plain object without fields is an empty object, which the SDK
@@ -1590,9 +1600,9 @@ func opaqueType(proxy *base.SchemaProxy) *Type {
 	empty := (s.Properties == nil || s.Properties.Len() == 0) && len(s.AnyOf) == 0 &&
 		len(s.OneOf) == 0 && len(s.AllOf) == 0 && s.AdditionalProperties == nil
 	if empty {
-		return &Type{Kind: Object, Schema: name}
+		return &Type{Kind: Object, Schema: name}, nil
 	}
-	return &Type{Kind: Object, Schema: name, Opaque: true}
+	return &Type{Kind: Object, Schema: name, Opaque: true}, nil
 }
 
 // oneOfArms reads the oneOf of s: one {required: [arm]} entry for each arm,
