@@ -195,6 +195,24 @@ func TestEchoedContractRefusesWrongLines(t *testing.T) {
 			},
 			code: "OVERRIDE_UNUSED", location: "only the key and the value",
 		},
+		"keyedBy object with a key that is not an enum": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "keyedBy: {key: kind, object: true", "keyedBy: {key: name, object: true")
+			},
+			code: "OVERRIDE_UNUSED", location: "required enum",
+		},
+		"keyedBy object with an arm of a value that the enum does not have": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "arms: {MEASURE_KIND_SAMPLES: samples}", "arms: {MEASURE_KIND_MAX: samples}")
+			},
+			code: "OVERRIDE_UNUSED", location: "MEASURE_KIND_MAX",
+		},
+		"keyedBy object with keyAs that is not a string": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "keyAs: name}", "keyAs: enabled}")
+			},
+			code: "OVERRIDE_UNUSED", location: "keyAs",
+		},
 		"atLeast on a string": {
 			overrides: func(t *testing.T, o string) string {
 				return replaceOnce(t, o, "          - lengthAtLeast: 1\n", "          - atLeast: 1\n")

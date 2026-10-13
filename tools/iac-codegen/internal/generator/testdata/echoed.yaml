@@ -8,7 +8,9 @@
 # of an item are a set of an enum whose released spelling is Low and High, and which accepts the
 # zero value. The kind is required, and the resource derives it from quota.
 # The released resource shows the items as a map keyed by their key, and the labels as a map
-# from name to value.
+# from name to value. The measures are a list of items keyed by an enum kind; the released
+# resource shows them as an object with an attribute per kind, which holds only the oneOf arm of
+# its kind, and names each item after its attribute.
 openapi: 3.1.0
 info: {title: echoed, version: 1.0.0}
 paths:
@@ -34,6 +36,9 @@ paths:
                 labels:
                   type: array
                   items: {$ref: '#/components/schemas/Label'}
+                measures:
+                  type: array
+                  items: {$ref: '#/components/schemas/Measure'}
       responses:
         '200':
           description: ok
@@ -64,6 +69,9 @@ paths:
                 labels:
                   type: array
                   items: {$ref: '#/components/schemas/Label'}
+                measures:
+                  type: array
+                  items: {$ref: '#/components/schemas/Measure'}
       responses:
         '200':
           description: ok
@@ -129,6 +137,28 @@ components:
         labels:
           type: array
           items: {$ref: '#/components/schemas/Label'}
+        measures:
+          type: array
+          items: {$ref: '#/components/schemas/Measure'}
+    Measure:
+      type: object
+      required: [kind, name]
+      oneOf:
+        - {required: [samples], type: object}
+        - {type: object, not: {anyOf: [{required: [samples], type: object}]}}
+      properties:
+        kind: {$ref: '#/components/schemas/MeasureKind'}
+        name: {type: string, minLength: 1}
+        enabled: {type: boolean}
+        samples: {$ref: '#/components/schemas/Samples'}
+    Samples:
+      type: object
+      required: [count]
+      properties:
+        count: {type: integer, format: int32, minimum: 1}
+    MeasureKind:
+      type: string
+      enum: [MEASURE_KIND_UNSPECIFIED, MEASURE_KIND_MIN, MEASURE_KIND_SAMPLES]
     Label:
       type: object
       required: [name, value]

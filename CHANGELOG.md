@@ -55,6 +55,8 @@
 - FEAT: `collection: set` on a field line makes a list a set, for a released resource whose attribute is a set while the contract has a list.
 - FEAT: An `enums` line applies to a list or set of the enum too: each element is mapped, the zero value included, and `enum: true` validates each element. `names` gives an accepted value its released Terraform spelling, for example `SEVERITY_DEBUG: Debug`.
 - FEAT: `keyedBy: {key, value}` on a field line shows a list of objects as a map keyed by a string property, for example the events2metric `metric_fields` keyed by `target_base_metric_name`. With `value`, the map holds that one string property, as `metric_labels` does. The API order of the items does not show as a change.
+- FEAT: `keyedBy` with `object: true` shows a list of objects keyed by an enum as an object with an attribute per enum value, such as the events2metric `aggregations` (`min`, `max`, `samples`, ...). `arms` keeps in each attribute only the oneOf arm of its value, and `keyAs` sends the attribute name as a property of the item.
+- FEAT: An object of a keyedBy object, and a nested attribute of a `computed: true` line, are optional and computed.
 - FEAT: `requestValueBy` on a field line sends an API value that the resource derives from the object field that is set, for example the events2metric `type` from `logs_query` or `spans_query`. The field is not a Terraform attribute.
 - FEAT: An `atLeast` validator on a field line keeps a released `AtLeast` of a number.
 - FEAT: A `regexMatches: {pattern, message}` validator on a field line keeps a released `stringvalidator.RegexMatches` with its message.

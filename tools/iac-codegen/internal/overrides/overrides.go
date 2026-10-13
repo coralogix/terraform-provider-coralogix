@@ -343,6 +343,14 @@ type Validator struct {
 type KeyedBy struct {
 	Key   string `yaml:"key"`
 	Value string `yaml:"value"`
+	// Object shows the list as an object with one attribute per accepted value of the key, an
+	// enum with an enums line. The attribute name is the Terraform value of the enum value.
+	Object bool `yaml:"object"`
+	// Arms gives an enum value of the key the oneOf arm of the item that it holds. The other
+	// arms are not in its attribute, and the arm is required in it.
+	Arms map[string]string `yaml:"arms"`
+	// KeyAs is a string property of the item that expand sets to the attribute name.
+	KeyAs string `yaml:"keyAs"`
 }
 
 // RegexMatches is a released pattern validator of a string.
@@ -693,6 +701,12 @@ func (l Field) checkConflicts() error {
 	if l.KeyedBy != nil && (l.KeyedBy.Key == "" || l.KeyedBy.Key == l.KeyedBy.Value) {
 		return errors.New("keyedBy needs a key, and a value other than the key")
 	}
+	if k := l.KeyedBy; k != nil && k.Object && k.Value != "" {
+		return errors.New("keyedBy: object holds the whole item, so value cannot be set")
+	}
+	if k := l.KeyedBy; k != nil && !k.Object && (len(k.Arms) != 0 || k.KeyAs != "") {
+		return errors.New("keyedBy: arms and keyAs need object: true")
+	}
 	if l.KeyedBy != nil && l.Collection != "" {
 		return errors.New("keyedBy makes a map, so collection cannot be set")
 	}
@@ -819,9 +833,9 @@ func (f *File) Policy() model.Policy {
 			}
 			if k := t.Fields[field].KeyedBy; k != nil {
 				if p.KeyedBy == nil {
-					p.KeyedBy = map[string][2]string{}
+					p.KeyedBy = map[string]model.KeyedLine{}
 				}
-				p.KeyedBy[name+"."+field] = [2]string{k.Key, k.Value}
+				p.KeyedBy[name+"."+field] = model.KeyedLine{Key: k.Key, Value: k.Value, Object: k.Object, Arms: maps.Clone(k.Arms), KeyAs: k.KeyAs}
 			}
 			if n := t.Fields[field].Name; n != "" {
 				if p.Names == nil {
@@ -841,6 +855,15 @@ func (f *File) Policy() model.Policy {
 			if t.Fields[field].replacesServerDefault() {
 				p.Defaults = append(p.Defaults, name+"."+field)
 			}
+		}
+	}
+	for _, name := range sortedKeys(f.Enums) {
+		e := f.Enums[name]
+		for _, v := range e.Values {
+			if p.EnumValues == nil {
+				p.EnumValues = map[string][]model.EnumValue{}
+			}
+			p.EnumValues[name] = append(p.EnumValues[name], model.EnumValue{API: v, TF: e.TFValue(v)})
 		}
 	}
 	return p

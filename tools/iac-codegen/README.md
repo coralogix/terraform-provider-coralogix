@@ -131,6 +131,23 @@ Keys of a field line: `skip`, `readOnly`, `required`, `optional`, `createAs`, `c
 
 `keyedBy: {key, value}` shows a list of objects as a map keyed by a required string property of the object, for a released resource that has the map (`metricFields: {keyedBy: {key: targetBaseMetricName}}`). The map value is the rest of the object. With `value`, it is that one string property, and the object must have only the key and the value (`metricLabels: {keyedBy: {key: targetLabel, value: sourceField}}` is a map of strings). Create and Update send the items in the order of the keys. Read builds the map from the items in any order, so the order of the API does not show as a change. The generator reports a field that is not a list of objects, a key that is not a required string, and a value next to other properties (`OVERRIDE_UNUSED`).
 
+`keyedBy: {key, object: true, arms, keyAs}` shows a list of objects keyed by a required enum property as an object with one attribute per accepted value of the enum, named by its `enums` line (`names` gives the released spelling). Each attribute is the item without the key, optional and computed, because the API can return an item that the configuration does not have. `arms` gives an enum value the oneOf arm of the item that it holds: that attribute has the arm, required, and the others have no arm. `keyAs` names a string property that Create and Update set to the attribute name. The lines of the item component apply to each attribute, so `unwrap` and `name` can show the arm as one attribute:
+
+```yaml
+types:
+  v2.MetricField:
+    fields:
+      aggregations:
+        keyedBy: {key: aggType, object: true, arms: {AGG_TYPE_SAMPLES: samples, AGG_TYPE_HISTOGRAM: histogram}, keyAs: targetMetricName}
+  v2.Aggregation:
+    fields:
+      targetMetricName: {readOnly: true}
+      samples: {unwrap: true, name: type}      # aggregations.samples.type
+      histogram: {unwrap: true, name: buckets} # aggregations.histogram.buckets
+```
+
+Read puts each API item in the attribute of its key, in any order, and leaves out an item of another value. The generator reports a key that is not a required enum, an arm of a value that the enum does not have or of a property that the item does not have, and a `keyAs` that is not a string (`OVERRIDE_UNUSED`).
+
 `name` sets the Terraform attribute name of a field, for a released resource whose attribute name differs from the name that the JSON name gives (`applicationnameFilters: {name: applications}`). The requests and the responses keep the JSON name, and issues name the contract field. The name is lower case letters, digits, and `_`. The generator reports a name that the JSON name already gives, and a name that another field of the component has (`OVERRIDE_UNUSED`).
 
 `createAs` folds top-level Create fields into an object field: `quota: {createAs: {limit: limitValue}}` says that Create sends `quota.limit` as the Create field `limitValue`, while Update and Get hold the `quota` object. Validation and the model read the Create body with the flat fields moved into the object, so the object has the normal lifecycle. The generated Create writes each flat field from the object, and sends nothing for a null object. A folded property is a scalar, a list of scalars, or an enum. The generator reports a Create field that does not exist (`CREATE_AS_UNSUPPORTED`). A property of the object that only Update and Get have must be read-only, by the contract or a `readOnly: true` line.

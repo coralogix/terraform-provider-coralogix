@@ -373,6 +373,9 @@ func TestCollectionAndNameAreChecked(t *testing.T) {
 		"keyedBy without a key":                     "{keyedBy: {value: v}}",
 		"keyedBy with the key as value":             "{keyedBy: {key: k, value: k}}",
 		"keyedBy and collection":                    "{keyedBy: {key: k}, collection: set}",
+		"keyedBy object with a value":               "{keyedBy: {key: k, value: v, object: true}}",
+		"keyedBy arms without object":               "{keyedBy: {key: k, arms: {A: a}}}",
+		"keyedBy keyAs without object":              "{keyedBy: {key: k, keyAs: n}}",
 		"regexMatches without a pattern":            "{validators: [{regexMatches: {message: m}}]}",
 		"regexMatches that Go cannot compile":       "{validators: [{regexMatches: {pattern: '(?=x)'}}]}",
 	} {

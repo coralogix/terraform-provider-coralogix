@@ -7,11 +7,12 @@ import (
 )
 
 type EchoThingModel struct {
-	Id     types.String `tfsdk:"id"`
-	Name   types.String `tfsdk:"name"`
-	Quota  types.Object `tfsdk:"quota"`
-	Items  types.Map    `tfsdk:"entries"`
-	Labels types.Map    `tfsdk:"labels"`
+	Id       types.String `tfsdk:"id"`
+	Name     types.String `tfsdk:"name"`
+	Quota    types.Object `tfsdk:"quota"`
+	Items    types.Map    `tfsdk:"entries"`
+	Labels   types.Map    `tfsdk:"labels"`
+	Measures types.Object `tfsdk:"measures"`
 }
 
 type QuotaModel struct {
@@ -30,4 +31,20 @@ type EchoItemModel struct {
 	Enabled types.Bool   `tfsdk:"enable"`
 	Levels  types.Set    `tfsdk:"levels"`
 	Detail  *DetailModel `tfsdk:"detail"`
+}
+
+type MeasureMinModel struct {
+	Name    types.String `tfsdk:"name"`
+	Enabled types.Bool   `tfsdk:"enable"`
+}
+
+type MeasureSamplesModel struct {
+	Name    types.String `tfsdk:"name"`
+	Enabled types.Bool   `tfsdk:"enable"`
+	Samples types.Int32  `tfsdk:"count"`
+}
+
+type MeasureKeyedModel struct {
+	Min     types.Object `tfsdk:"min"`
+	Samples types.Object `tfsdk:"samples"`
 }

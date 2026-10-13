@@ -55,6 +55,9 @@ type convData struct {
 	EnumMaps []*enumMap
 	// WrapHelpers are the functions that put a value in its API wrapper objects and take it out.
 	WrapHelpers []*wrapHelper
+	// KeyedObjects are the local structs of keyedBy objects, with the functions that turn them
+	// into the API list and back.
+	KeyedObjects []*keyedObject
 	// AcceptUnknown: the resource has users. An unknown planned value of a computed attribute
 	// is left out of the request, and the server supplies it, as the released resource did.
 	AcceptUnknown bool
@@ -162,6 +165,8 @@ type convObject struct {
 	SameChecks []string
 	// ExtraFlatten writes typed nulls for extraAttributes of the behavior-overrides file.
 	ExtraFlatten []extraFlatten
+	// Local: SDK is a struct of the generated package, not of the SDK (keyedBy object).
+	Local bool
 }
 
 type convAttrType struct {
@@ -414,6 +419,7 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 	out.OneOfArms = oneOfArmPaths(r, b.file)
 	out.EnumMaps = b.enumMaps
 	out.WrapHelpers = b.wraps
+	out.KeyedObjects = b.keyedObjects
 	if err := markPrior(out); err != nil {
 		return nil, err
 	}
@@ -752,15 +758,16 @@ func checkMaskPaths(n *maskField, prefix string, valid func(string) bool) error 
 }
 
 type convBuilder struct {
-	ix       *refIndex
-	objects  []*convObject
-	bySchema map[string]*convObject
-	listed   []*convObject // objects that a list holds
-	file     *overrides.File
-	resource *model.Resource
-	sent     sentSet // component fields that a request sends in some place
-	enumMaps []*enumMap
-	wraps    []*wrapHelper
+	ix           *refIndex
+	objects      []*convObject
+	bySchema     map[string]*convObject
+	listed       []*convObject // objects that a list holds
+	file         *overrides.File
+	resource     *model.Resource
+	sent         sentSet // component fields that a request sends in some place
+	enumMaps     []*enumMap
+	wraps        []*wrapHelper
+	keyedObjects []*keyedObject
 }
 
 // serverDefault reports whether removing the field resets it to a declared server default.
@@ -1002,6 +1009,9 @@ func (b *convBuilder) fieldConv(cf *convField, t *model.Type, computed bool) (st
 	if (t.Kind == model.List || t.Kind == model.Set) && len(t.Elem.Wrappers) != 0 {
 		return b.wrappedItemsConv(cf, t)
 	}
+	if t.Keyed != nil && t.Keyed.Object {
+		return b.keyedObjectConv(cf, t)
+	}
 	switch t.Kind {
 	case model.String, model.Bool, model.Number, model.Integer:
 		return scalarConv(cf, t, computed)
@@ -1182,9 +1192,11 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	if t.Model != "" && t.Model != t.Schema {
 		key, component = "request:"+t.Schema, t.Model
 	}
+	key += t.Variant
+	modelName := model.GoName(component) + t.Variant + "Model"
 	if obj, ok := b.bySchema[key]; ok {
-		if obj.Model != modelTypeName(component) {
-			return nil, fmt.Errorf("request component %s holds both %s and %s", t.Schema, obj.Model, modelTypeName(component))
+		if obj.Model != modelName {
+			return nil, fmt.Errorf("request component %s holds both %s and %s", t.Schema, obj.Model, modelName)
 		}
 		// In existing mode, a request that shares the component leaves out its read-only
 		// fields. The object serves both, so it gets the fields of either walk.
@@ -1194,7 +1206,7 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		return obj, nil
 	}
 	obj := b.object(key, ref)
-	obj.Func, obj.Model = camelize(t.Schema), modelTypeName(component)
+	obj.Func, obj.Model = camelize(t.Schema)+t.Variant, modelName
 	obj.AttrTypesFunc = lowerFirst(obj.Func) + "AttrTypes"
 	b.objects = append(b.objects, obj)
 	if err := b.addMissingFields(obj, ref.Path, component, t); err != nil {
@@ -1231,7 +1243,7 @@ func (b *convBuilder) injectReadOnly(obj *convObject, owner string, t *model.Typ
 	shared := t.Model == t.Schema
 	for _, f := range schemaFields(b.resource, t.Model) {
 		fixed := b.fixedRequest(t.Model, f.Name)
-		if present[f.Name] || added[tfName(f.Name)] || !fixed && !shared {
+		if present[f.Name] || added[b.resource.Policy.TerraformName(t.Model, f.Name)] || !fixed && !shared {
 			continue
 		}
 		cf, err := b.field(owner, t.Model, f.Name, f.Type, b.sent.responseOnly(t.Model, f), f.Attrs.Presence)
@@ -1822,7 +1834,7 @@ func (b *convBuilder) addToGroup(root *convObject, groups map[string]*convObject
 // sends is FlattenOnly: expand leaves it out, and flatten reads it.
 func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component string, t *model.Type) error {
 	for _, f := range t.Fields {
-		if slices.ContainsFunc(obj.Fields, func(cf *convField) bool { return cf.TFName == tfName(f.Name) }) {
+		if slices.ContainsFunc(obj.Fields, func(cf *convField) bool { return cf.TFName == b.resource.Policy.TerraformName(component, f.Name) }) {
 			// The field is there, but an object inside it can still miss fields.
 			if err := b.mergeNested(f.Type); err != nil {
 				return fmt.Errorf("%s: %w", f.Name, err)
@@ -1835,7 +1847,7 @@ func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component strin
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
 		cf.FlattenOnly = cf.Conv != "fixed" && responseOnly
-		if (f.Behavior == model.Computed || b.resource.Policy.ComputedLine(component, f.Name)) && (f.Type.Kind == model.Object || f.Type.Kind == model.OneOf) {
+		if (f.Behavior == model.Computed || f.Attrs.Computed) && (f.Type.Kind == model.Object || f.Type.Kind == model.OneOf) {
 			// The model holds a computed object as a types.Object, which can
 			// be unknown while its parent is known.
 			cf.ObjectValue = true
@@ -1864,4 +1876,83 @@ func (b *convBuilder) mergeNested(t *model.Type) error {
 		return b.mergeNested(t.Elem)
 	}
 	return nil
+}
+
+// keyedObject is the local struct of a keyedBy object: a pointer to the API item of each value
+// of the key. wrap<Func> turns it into the API list, and unwrap<Func> back.
+type keyedObject struct {
+	Func, Local string
+	Item        string // qualified SDK type of an item
+	// Key is the SDK field of the key, KeyType its qualified enum type, and KeyValue is true when
+	// the field is a value. KeyAs is the string field that wrap sets to the attribute name.
+	Key, KeyType string
+	KeyValue     bool
+	KeyAs        string
+	KeyAsValue   bool
+	Values       []keyedObjectValue
+}
+
+// keyedObjectValue is one value of the key: its API value, the field of the local struct, and the
+// Terraform attribute name.
+type keyedObjectValue struct {
+	API, Field, TFName string
+}
+
+// keyedObjectConv sets the conversion of a list that the resource shows as an object with an
+// attribute per value of an enum key (keyedBy object). The object converts to a local struct with
+// a field per value, and wrap and unwrap helpers turn that struct into the API list and back.
+func (b *convBuilder) keyedObjectConv(cf *convField, t *model.Type) (string, error) {
+	item, err := b.ix.schemaRef(t.Keyed.Item.Schema)
+	if err != nil {
+		return "", err
+	}
+	key, err := b.ix.fieldRef(item.Path + "." + t.Keyed.Key)
+	if err != nil {
+		return "", err
+	}
+	keyType := key.Want
+	ko := &keyedObject{Func: camelize(t.Schema) + t.Variant, Item: b.qualify(item.Name), Key: key.Name, KeyValue: !strings.HasPrefix(keyType, "*")}
+	ko.Local = lowerFirst(ko.Func)
+	ko.KeyType = b.qualify(strings.TrimPrefix(keyType, "*"))
+	if t.Keyed.KeyAs != "" {
+		as, err := b.ix.fieldRef(item.Path + "." + t.Keyed.KeyAs)
+		if err != nil {
+			return "", err
+		}
+		if as.Want != "string" && as.Want != "*string" {
+			return "", fmt.Errorf("keyedBy: keyAs %s has type %s, want a string", as.sdkName(), as.Want)
+		}
+		ko.KeyAs, ko.KeyAsValue = as.Name, as.Want == "string"
+	}
+	cf.Wrap = &fieldWrap{Inner: "*" + ko.Local, Funcs: []string{ko.Func}}
+	cf.Conv = convObj
+	// Create, Update, and the response share the object.
+	if obj, ok := b.bySchema["keyed:"+ko.Func]; ok {
+		cf.Object = obj
+		return "[]" + item.Name, nil
+	}
+	obj := &convObject{Func: ko.Func, Model: typeModelName(t), SDK: ko.Local, Local: true}
+	obj.AttrTypesFunc = lowerFirst(obj.Func) + "AttrTypes"
+	b.objects = append(b.objects, obj)
+	b.bySchema["keyed:"+ko.Func] = obj
+	for i, f := range t.Fields {
+		v := t.Keyed.Values[i]
+		vobj, err := b.nested(f.Type)
+		if err != nil {
+			return "", fmt.Errorf("%s: %w", f.Name, err)
+		}
+		field := camelize(f.Name)
+		fc := &convField{TFName: b.resource.Policy.TerraformName(t.Schema, f.Name), Model: field, SDK: field, Conv: convObj, Object: vobj}
+		if f.Attrs.Computed {
+			fc.ObjectValue = true
+			if !contains(b.listed, vobj) {
+				b.listed = append(b.listed, vobj)
+			}
+		}
+		obj.Fields = append(obj.Fields, fc)
+		ko.Values = append(ko.Values, keyedObjectValue{API: v.API, Field: field, TFName: fc.TFName})
+	}
+	b.keyedObjects = append(b.keyedObjects, ko)
+	cf.Object = obj
+	return "[]" + item.Name, nil
 }

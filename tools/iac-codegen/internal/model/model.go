@@ -199,8 +199,12 @@ type Type struct {
 	// the unwrap lines of a behavior-overrides file.
 	Wrappers []Wrapper
 	// Keyed is set on a Map that the API sends as a list of objects, keyed by a property of the
-	// object (a keyedBy line). Elem is the object without the key, or the value property.
+	// object (a keyedBy line). Elem is the object without the key, or the value property. On an
+	// Object (keyedBy object: true), each field is the item of one value of the enum key.
 	Keyed *Keyed
+	// Variant tells apart the items that one component makes for a keyedBy object: the Go name
+	// of the attribute that holds the item of each value.
+	Variant string
 }
 
 // Keyed is the list of objects that the API holds for a Terraform map.
@@ -211,6 +215,16 @@ type Keyed struct {
 	Value string
 	// Item is the object of the API list, with every property.
 	Item *Type
+	// Object: the Terraform value is an object with an attribute per value of the enum key.
+	// Values are those values. KeyAs is the string property that expand sets to the attribute.
+	Object bool
+	Values []KeyedValue
+	KeyAs  string
+}
+
+// KeyedValue is an API value of the key of a keyedBy object and the field that holds its item.
+type KeyedValue struct {
+	API, Field string
 }
 
 // Wrapper is one object with one property that holds a value in the API, for example

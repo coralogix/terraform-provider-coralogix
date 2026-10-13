@@ -70,9 +70,11 @@ type Policy struct {
 	Sets []string
 	// Names maps "Component.field" to the Terraform attribute name of the field.
 	Names map[string]string
-	// KeyedBy maps "Component.field" of a list of objects to the property that keys the
-	// Terraform map, and the property that is its value ("" for the rest of the object).
-	KeyedBy map[string][2]string
+	// KeyedBy maps "Component.field" of a list of objects to the keyedBy line of the field.
+	KeyedBy map[string]KeyedLine
+	// EnumValues are the accepted values of each enum that has an enums line, with their
+	// Terraform values, in the order of the line.
+	EnumValues map[string][]EnumValue
 	// CreateAs maps "Component.field" of a top-level object field to the flat Create fields that
 	// hold its properties: property name to Create field name.
 	CreateAs map[string]map[string]string
@@ -311,6 +313,22 @@ func (p *Policy) asSet(component, field string, t *Type) {
 	p.asMap(component, field, t)
 }
 
+// KeyedLine is a keyedBy line: the property that keys the list, and the property that is the
+// value ("" for the rest of the item). Object shows the list as an object with an attribute per
+// value of an enum key. Arms gives a value the oneOf arm that its item holds. KeyAs is the string
+// property that expand sets to the attribute name.
+type KeyedLine struct {
+	Key, Value string
+	Object     bool
+	Arms       map[string]string
+	KeyAs      string
+}
+
+// EnumValue is an accepted API value of an enum and its Terraform value.
+type EnumValue struct {
+	API, TF string
+}
+
 // asMap makes t, a list of objects, a map keyed by a string property of the object when a
 // keyedBy line says so. The map value is the rest of the object, or one property of it. A line
 // that does not fit leaves t a list: the generator reports the line.
@@ -318,10 +336,15 @@ func (p *Policy) asMap(component, field string, t *Type) {
 	if p == nil || t == nil || component == "" || t.Kind != List || t.Elem == nil || t.Elem.Kind != Object {
 		return
 	}
-	keyed, ok := p.KeyedBy[component+"."+field]
+	line, ok := p.KeyedBy[component+"."+field]
 	if !ok {
 		return
 	}
+	if line.Object {
+		p.asKeyedObject(line, t)
+		return
+	}
+	keyed := [2]string{line.Key, line.Value}
 	item := t.Elem
 	key := slices.IndexFunc(item.Fields, func(f *Field) bool { return f.Name == keyed[0] })
 	if key < 0 || item.Fields[key].Type.Kind != String {
@@ -357,4 +380,60 @@ func ComponentOf(t *Type) string {
 		return t.Model
 	}
 	return t.Schema
+}
+
+// asKeyedObject makes t, a list of objects keyed by an enum property, an object with one
+// attribute per accepted value of the enum. Each attribute is the item without the key, and with
+// only the oneOf arm that the line gives the value, which is required there. The attributes are
+// optional and computed: the API can return an item that the configuration does not have.
+func (p *Policy) asKeyedObject(line KeyedLine, t *Type) {
+	item := t.Elem
+	key := slices.IndexFunc(item.Fields, func(f *Field) bool { return f.Name == line.Key })
+	if key < 0 || item.Fields[key].Type.Kind != Enum {
+		return
+	}
+	values := p.EnumValues[item.Fields[key].Type.Schema]
+	if len(values) == 0 {
+		return
+	}
+	arms := map[string]bool{}
+	for _, arm := range line.Arms {
+		arms[arm] = true
+	}
+	// The object has its own component name: its attributes are named after the enum values, and
+	// must not meet the lines of the item fields.
+	container := Type{Kind: Object, Schema: item.Schema + ".keyed"}
+	keyed := &Keyed{Key: line.Key, Item: item, Object: true, KeyAs: line.KeyAs}
+	for _, v := range values {
+		variant := *item
+		variant.Variant, variant.Groups, variant.AllowNone, variant.Fields = GoName(v.TF), nil, false, nil
+		for i, f := range item.Fields {
+			switch {
+			case i == key:
+				continue
+			case f.Name == line.Arms[v.API]:
+				own := *f
+				own.Attrs.Required = true
+				variant.Fields = append(variant.Fields, &own)
+			case arms[f.Name] || inGroup(item.Groups, f.Name):
+				continue
+			default:
+				variant.Fields = append(variant.Fields, f)
+			}
+		}
+		container.Fields = append(container.Fields, &Field{Name: v.TF, Type: &variant, Attrs: Attrs{Computed: true}})
+		keyed.Values = append(keyed.Values, KeyedValue{API: v.API, Field: v.TF})
+	}
+	container.Keyed = keyed
+	*t = container
+}
+
+// inGroup reports whether name is an arm of a oneOf group.
+func inGroup(groups []OneOfGroup, name string) bool {
+	for _, g := range groups {
+		if slices.Contains(g.Arms, name) {
+			return true
+		}
+	}
+	return false
 }

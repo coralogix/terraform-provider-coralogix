@@ -488,11 +488,11 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, out *{{$sd
 {{- end}}
 }
 {{else if .Expand}}
-func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{$sdk}}.{{.SDK}} {
+func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{if not .Local}}{{$sdk}}.{{end}}{{.SDK}} {
 	if m == nil {
 		return nil
 	}
-	out := &{{$sdk}}.{{.SDK}}{}
+	out := &{{if not .Local}}{{$sdk}}.{{end}}{{.SDK}}{}
 {{- range .Fields}}
 {{- if not .FlattenOnly}}
 {{- template "expandField" .}}
@@ -502,7 +502,7 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 }
 {{end}}
 {{- if .Flatten}}
-func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, {{if .NeedsPrior}}prior *{{.Model}}, {{end}}diags *diag.Diagnostics) *{{.Model}} {
+func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$sdk}}.{{end}}{{.SDK}}, {{if .NeedsPrior}}prior *{{.Model}}, {{end}}diags *diag.Diagnostics) *{{.Model}} {
 	if v == nil {
 		return nil
 	}
@@ -557,6 +557,63 @@ func valueOf[T any](p *T) T {
 	return *p
 }
 {{end}}
+{{- range .Conv.KeyedObjects}}
+{{- $ko := .}}
+
+// {{.Local}} holds the API item of each value of {{.Key}} that the configuration or the API has.
+type {{.Local}} struct {
+{{- range .Values}}
+	{{.Field}} *{{$ko.Item}}
+{{- end}}
+}
+
+// wrap{{.Func}} returns the API items, each with its {{.Key}}{{if .KeyAs}} and its {{.KeyAs}}, the attribute name{{end}}.
+func wrap{{.Func}}(v *{{.Local}}) []{{.Item}} {
+	if v == nil {
+		return nil
+	}
+	out := []{{.Item}}{}
+{{- range .Values}}
+	if v.{{.Field}} != nil {
+		item := *v.{{.Field}}
+		key := {{$ko.KeyType}}({{printf "%q" .API}})
+		item.{{$ko.Key}} = {{if $ko.KeyValue}}key{{else}}&key{{end}}
+		{{- if $ko.KeyAs}}
+		name := {{printf "%q" .TFName}}
+		item.{{$ko.KeyAs}} = {{if $ko.KeyAsValue}}name{{else}}&name{{end}}
+		{{- end}}
+		out = append(out, item)
+	}
+{{- end}}
+	return out
+}
+
+// unwrap{{.Func}} returns the API items by their {{.Key}}. An item of another value is not in the
+// resource.
+func unwrap{{.Func}}(w []{{.Item}}) *{{.Local}} {
+	if w == nil {
+		return nil
+	}
+	out := &{{.Local}}{}
+	for i := range w {
+		item := w[i]
+		{{- if .KeyValue}}
+		switch string(item.{{.Key}}) {
+		{{- else}}
+		if item.{{.Key}} == nil {
+			continue
+		}
+		switch string(*item.{{.Key}}) {
+		{{- end}}
+{{- range .Values}}
+		case {{printf "%q" .API}}:
+			out.{{.Field}} = &item
+{{- end}}
+		}
+	}
+	return out
+}
+{{- end}}
 {{- range .Conv.WrapHelpers}}
 {{- if .Item}}
 // wrap{{.Func}} puts each item in its API wrapper objects.

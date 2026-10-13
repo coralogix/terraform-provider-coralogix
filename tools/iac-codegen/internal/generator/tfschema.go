@@ -880,6 +880,10 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
+		if f.Attrs.Computed && !a.Required {
+			// A computed line, or an attribute of a keyedBy object, which the API can fill.
+			a.Computed = true
+		}
 		switch f.Behavior {
 		case model.Computed:
 			markComputed(a)
@@ -890,7 +894,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		attrs = append(attrs, a)
-		fields = append(fields, b.modelField(t.Schema, f.Name, f.Type, f.Behavior, only))
+		fields = append(fields, b.modelField(t.Schema, f.Name, f.Type, f.Behavior, only, f.Attrs.Computed))
 	}
 	groups := t.Groups
 	if t.Kind == model.OneOf {
@@ -901,7 +905,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		groups = append(groups, group)
 	}
 	addGroupValidators(attrs, groups, func(arm string) string { return b.policy.TerraformName(t.Schema, arm) })
-	name := modelTypeName(t.Schema)
+	name := typeModelName(t)
 	if !b.seen[name] {
 		b.seen[name] = true
 		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
@@ -1067,7 +1071,7 @@ func nestedAttrs(f *model.Field) model.Attrs {
 
 // modelField returns the model field of a field with behavior. responseOnly is true when no
 // request sends the field.
-func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior model.Behavior, responseOnly bool) tfModelField {
+func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior model.Behavior, responseOnly, computed bool) tfModelField {
 	var goType string
 	switch t.Kind {
 	case model.String, model.Enum:
@@ -1091,10 +1095,10 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 	case model.Map:
 		goType = "types.Map"
 	case model.Object, model.OneOf:
-		if behavior == model.Computed || b.policy.ComputedLine(component, name) {
+		if behavior == model.Computed || computed {
 			goType = "types.Object"
 		} else {
-			goType = "*" + modelTypeName(t.Schema)
+			goType = "*" + typeModelName(t)
 		}
 	}
 	return tfModelField{Name: camelize(name), Type: goType, TFName: b.policy.TerraformName(component, name)}
@@ -1102,6 +1106,10 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 
 // modelTypeName is the Terraform model struct of a component schema.
 func modelTypeName(schema string) string { return model.GoName(schema) + "Model" }
+
+// typeModelName is the Terraform model struct of an object type. A keyedBy object makes several
+// objects of one component, which the variant tells apart.
+func typeModelName(t *model.Type) string { return model.GoName(t.Schema) + t.Variant + "Model" }
 
 // scalar returns the attribute kind and the validators of a scalar type.
 func scalar(t *model.Type) (string, []string, error) {
@@ -1450,7 +1458,7 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 		if err != nil {
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
-		field := b.modelField(r.Name, f.Name, f.Type, f.Behavior, responseOnly(f.Behavior))
+		field := b.modelField(r.Name, f.Name, f.Type, f.Behavior, responseOnly(f.Behavior), r.Policy.ComputedLine(r.Name, f.Name))
 		if group == "" {
 			out.Attributes = append(out.Attributes, a)
 			root.Fields = append(root.Fields, field)

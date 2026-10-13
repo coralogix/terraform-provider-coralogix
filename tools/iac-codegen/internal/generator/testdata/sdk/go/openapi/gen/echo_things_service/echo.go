@@ -14,6 +14,7 @@ type EchoThing struct {
 	Quota      *Quota
 	Items      []EchoItem
 	Labels     []Label
+	Measures   []Measure
 }
 
 type Quota struct {
@@ -28,6 +29,25 @@ const (
 	KIND_KIND_LIMITED     Kind = "KIND_LIMITED"
 	KIND_KIND_PLAIN       Kind = "KIND_PLAIN"
 )
+
+type MeasureKind string
+
+const (
+	MEASUREKIND_MEASURE_KIND_UNSPECIFIED MeasureKind = "MEASURE_KIND_UNSPECIFIED"
+	MEASUREKIND_MEASURE_KIND_MIN         MeasureKind = "MEASURE_KIND_MIN"
+	MEASUREKIND_MEASURE_KIND_SAMPLES     MeasureKind = "MEASURE_KIND_SAMPLES"
+)
+
+type Measure struct {
+	Kind    MeasureKind
+	Name    string
+	Enabled *bool
+	Samples *Samples
+}
+
+type Samples struct {
+	Count int32
+}
 
 type Label struct {
 	Name  string
@@ -63,6 +83,7 @@ type CreateEchoThingRequest struct {
 	LimitValue *int32
 	Items      []EchoItem
 	Labels     []Label
+	Measures   []Measure
 }
 
 type ReplaceEchoThingRequest struct {
@@ -74,6 +95,7 @@ type ReplaceEchoThingRequest struct {
 	Quota      *Quota
 	Items      []EchoItem
 	Labels     []Label
+	Measures   []Measure
 }
 
 // The Create answer may leave out the resource; Get and Replace always have it.

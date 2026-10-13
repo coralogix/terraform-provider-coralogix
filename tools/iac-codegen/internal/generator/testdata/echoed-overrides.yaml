@@ -21,6 +21,9 @@ types:
       quota: {createAs: {limit: limitValue}, computed: true}
       items: {name: entries, keyedBy: {key: key}}
       labels: {keyedBy: {key: name, value: value}}
+      measures:
+        computed: true
+        keyedBy: {key: kind, object: true, arms: {MEASURE_KIND_SAMPLES: samples}, keyAs: name}
       kind: {requestValueBy: {quota: KIND_LIMITED}}
   Quota:
     fields:
@@ -32,7 +35,16 @@ types:
       enabled: {computed: true, name: enable}
       none: {skip: true}
       levels: {collection: set, validators: [{enum: true}]}
+  Measure:
+    fields:
+      name: {readOnly: true}
+      enabled: {computed: true, name: enable}
+      samples: {unwrap: true, name: count}
 enums:
+  MeasureKind:
+    zero: unspecified
+    values: [MEASURE_KIND_MIN, MEASURE_KIND_SAMPLES]
+    names: {MEASURE_KIND_MIN: min, MEASURE_KIND_SAMPLES: samples}
   Level:
     zero: Unspecified
     values: [LEVEL_LOW, LEVEL_HIGH]

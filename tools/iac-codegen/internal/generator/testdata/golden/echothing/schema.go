@@ -108,6 +108,49 @@ func Schema() schema.Schema {
 				ElementType:         types.StringType,
 				MarkdownDescription: "",
 			},
+			"measures": schema.SingleNestedAttribute{
+				Optional: true,
+				Computed: true,
+				Attributes: map[string]schema.Attribute{
+					"min": schema.SingleNestedAttribute{
+						Optional: true,
+						Computed: true,
+						Attributes: map[string]schema.Attribute{
+							"name": schema.StringAttribute{
+								Computed:            true,
+								MarkdownDescription: "",
+							},
+							"enable": schema.BoolAttribute{
+								Optional:            true,
+								Computed:            true,
+								MarkdownDescription: "",
+							},
+						},
+						MarkdownDescription: "",
+					},
+					"samples": schema.SingleNestedAttribute{
+						Optional: true,
+						Computed: true,
+						Attributes: map[string]schema.Attribute{
+							"name": schema.StringAttribute{
+								Computed:            true,
+								MarkdownDescription: "",
+							},
+							"enable": schema.BoolAttribute{
+								Optional:            true,
+								Computed:            true,
+								MarkdownDescription: "",
+							},
+							"count": schema.Int32Attribute{
+								Required:            true,
+								MarkdownDescription: "",
+							},
+						},
+						MarkdownDescription: "",
+					},
+				},
+				MarkdownDescription: "",
+			},
 		},
 	}
 }

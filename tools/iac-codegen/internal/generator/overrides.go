@@ -435,11 +435,44 @@ func keyedByProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 		return err == nil && slices.Equal(s.Type, []string{"string"}) && len(s.Enum) == 0
 	}
 	key, value := line.KeyedBy.Key, line.KeyedBy.Value
+	if line.KeyedBy.Object {
+		return keyedObjectProblem(item, line, isString)
+	}
 	if !isString(key) || !slices.Contains(item.Required, key) {
 		return wholeLine(fmt.Errorf("keyedBy: the key %q is not a required string property of the items of %q", key, line.Field))
 	}
 	if value != "" && (!isString(value) || item.Properties.Len() != 2) {
 		return wholeLine(fmt.Errorf("keyedBy: the value %q must be a string property, and the items of %q must have only the key and the value", value, line.Field))
+	}
+	return nil
+}
+
+// keyedObjectProblem checks a keyedBy object line. The key is a required enum property of the
+// item. Each arm names an enum value and a property of the item. keyAs is a string property.
+func keyedObjectProblem(item *base.Schema, line overrides.Line, isString func(string) bool) *lineIssue {
+	k := line.KeyedBy
+	proxy := item.Properties.GetOrZero(k.Key)
+	var values []string
+	if proxy != nil {
+		if s, err := proxy.BuildSchema(); err == nil {
+			for _, n := range s.Enum {
+				values = append(values, n.Value)
+			}
+		}
+	}
+	if len(values) == 0 || !slices.Contains(item.Required, k.Key) {
+		return wholeLine(fmt.Errorf("keyedBy: the key %q is not a required enum property of the items of %q", k.Key, line.Field))
+	}
+	for _, v := range slices.Sorted(maps.Keys(k.Arms)) {
+		if !slices.Contains(values, v) {
+			return wholeLine(fmt.Errorf("keyedBy: arms names %q, which the enum of %q does not have", v, k.Key))
+		}
+		if item.Properties.GetOrZero(k.Arms[v]) == nil {
+			return wholeLine(fmt.Errorf("keyedBy: arms names %q, which the items of %q do not have", k.Arms[v], line.Field))
+		}
+	}
+	if k.KeyAs != "" && !isString(k.KeyAs) {
+		return wholeLine(fmt.Errorf("keyedBy: keyAs %q is not a string property of the items of %q", k.KeyAs, line.Field))
 	}
 	return nil
 }

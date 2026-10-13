@@ -49,6 +49,7 @@ var createFields = []struct {
 	{attr: "quota", serverDefault: false},
 	{attr: "entries", serverDefault: false},
 	{attr: "labels", serverDefault: false},
+	{attr: "measures", serverDefault: false},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -72,7 +73,9 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 // that a request sends, with list and map steps left out. The server sets
 // them.
 var serverAttrs = map[string]bool{
-	"quota.has_exceeded": true,
+	"quota.has_exceeded":    true,
+	"measures.min.name":     true,
+	"measures.samples.name": true,
 }
 
 // requestValue returns v with a null value for each attribute that the server
@@ -174,11 +177,18 @@ var oneOfArms = map[string]bool{
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
-	"id":                 true,
-	"quota":              true,
-	"quota.limit":        true,
-	"quota.has_exceeded": true,
-	"entries.enable":     true,
+	"id":                      true,
+	"quota":                   true,
+	"quota.limit":             true,
+	"quota.has_exceeded":      true,
+	"entries.enable":          true,
+	"measures":                true,
+	"measures.min":            true,
+	"measures.min.name":       true,
+	"measures.min.enable":     true,
+	"measures.samples":        true,
+	"measures.samples.name":   true,
+	"measures.samples.enable": true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -352,6 +362,15 @@ func expandCreateEchoThingRequest(ctx context.Context, p path.Path, m *EchoThing
 			out.Labels = append(out.Labels, echo_things_service.Label{Name: k, Value: v})
 		}
 	}
+	{
+		var inner *measureKeyed
+		if v := m.Measures; !v.IsNull() && !v.IsUnknown() {
+			var nested MeasureKeyedModel
+			diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+			inner = expandMeasureKeyed(ctx, p.AtName("measures"), &nested, diags)
+		}
+		out.Measures = wrapMeasureKeyed(inner)
+	}
 	return out
 }
 
@@ -418,6 +437,113 @@ func detailAttrTypes() map[string]attr.Type {
 	}
 }
 
+func expandMeasureKeyed(ctx context.Context, p path.Path, m *MeasureKeyedModel, diags *diag.Diagnostics) *measureKeyed {
+	if m == nil {
+		return nil
+	}
+	out := &measureKeyed{}
+	if v := m.Min; !v.IsNull() && !v.IsUnknown() {
+		var nested MeasureMinModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		out.Min = expandMeasureMin(ctx, p.AtName("min"), &nested, diags)
+	}
+	if v := m.Samples; !v.IsNull() && !v.IsUnknown() {
+		var nested MeasureSamplesModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		out.Samples = expandMeasureSamples(ctx, p.AtName("samples"), &nested, diags)
+	}
+	return out
+}
+
+func flattenMeasureKeyed(ctx context.Context, p path.Path, v *measureKeyed, diags *diag.Diagnostics) *MeasureKeyedModel {
+	if v == nil {
+		return nil
+	}
+	out := &MeasureKeyedModel{}
+	out.Min = types.ObjectNull(measureMinAttrTypes())
+	if nested := flattenMeasureMin(ctx, p.AtName("min"), v.Min, diags); nested != nil {
+		value, valueDiags := types.ObjectValueFrom(ctx, measureMinAttrTypes(), *nested)
+		diags.Append(valueDiags...)
+		out.Min = value
+	}
+	out.Samples = types.ObjectNull(measureSamplesAttrTypes())
+	if nested := flattenMeasureSamples(ctx, p.AtName("samples"), v.Samples, diags); nested != nil {
+		value, valueDiags := types.ObjectValueFrom(ctx, measureSamplesAttrTypes(), *nested)
+		diags.Append(valueDiags...)
+		out.Samples = value
+	}
+	return out
+}
+
+func measureKeyedAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"min":     types.ObjectType{AttrTypes: measureMinAttrTypes()},
+		"samples": types.ObjectType{AttrTypes: measureSamplesAttrTypes()},
+	}
+}
+
+func expandMeasureMin(ctx context.Context, p path.Path, m *MeasureMinModel, diags *diag.Diagnostics) *echo_things_service.Measure {
+	if m == nil {
+		return nil
+	}
+	out := &echo_things_service.Measure{}
+	out.Enabled = expandBool(m.Enabled)
+	return out
+}
+
+func flattenMeasureMin(ctx context.Context, p path.Path, v *echo_things_service.Measure, diags *diag.Diagnostics) *MeasureMinModel {
+	if v == nil {
+		return nil
+	}
+	out := &MeasureMinModel{}
+	out.Enabled = types.BoolPointerValue(v.Enabled)
+	out.Name = types.StringPointerValue(&v.Name)
+	return out
+}
+
+func measureMinAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"enable": types.BoolType,
+		"name":   types.StringType,
+	}
+}
+
+func expandMeasureSamples(ctx context.Context, p path.Path, m *MeasureSamplesModel, diags *diag.Diagnostics) *echo_things_service.Measure {
+	if m == nil {
+		return nil
+	}
+	out := &echo_things_service.Measure{}
+	out.Enabled = expandBool(m.Enabled)
+	{
+		var inner *int32
+		inner = expandInt32(m.Samples)
+		out.Samples = wrapSamples(inner)
+	}
+	return out
+}
+
+func flattenMeasureSamples(ctx context.Context, p path.Path, v *echo_things_service.Measure, diags *diag.Diagnostics) *MeasureSamplesModel {
+	if v == nil {
+		return nil
+	}
+	out := &MeasureSamplesModel{}
+	out.Enabled = types.BoolPointerValue(v.Enabled)
+	{
+		inner := unwrapSamples(v.Samples)
+		out.Samples = types.Int32PointerValue(inner)
+	}
+	out.Name = types.StringPointerValue(&v.Name)
+	return out
+}
+
+func measureSamplesAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"enable": types.BoolType,
+		"count":  types.Int32Type,
+		"name":   types.StringType,
+	}
+}
+
 func expandReplaceEchoThingRequest(ctx context.Context, p path.Path, m *EchoThingModel, diags *diag.Diagnostics) *echo_things_service.ReplaceEchoThingRequest {
 	if m == nil {
 		return nil
@@ -449,6 +575,15 @@ func expandReplaceEchoThingRequest(ctx context.Context, p path.Path, m *EchoThin
 			v := items[k]
 			out.Labels = append(out.Labels, echo_things_service.Label{Name: k, Value: v})
 		}
+	}
+	{
+		var inner *measureKeyed
+		if v := m.Measures; !v.IsNull() && !v.IsUnknown() {
+			var nested MeasureKeyedModel
+			diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+			inner = expandMeasureKeyed(ctx, p.AtName("measures"), &nested, diags)
+		}
+		out.Measures = wrapMeasureKeyed(inner)
 	}
 	return out
 }
@@ -509,6 +644,15 @@ func flattenEchoThing(ctx context.Context, p path.Path, v *echo_things_service.E
 		}
 		out.Labels = flattenMap(ctx, types.StringType, items, diags)
 	}
+	{
+		inner := unwrapMeasureKeyed(v.Measures)
+		out.Measures = types.ObjectNull(measureKeyedAttrTypes())
+		if nested := flattenMeasureKeyed(ctx, p.AtName("measures"), inner, diags); nested != nil {
+			value, valueDiags := types.ObjectValueFrom(ctx, measureKeyedAttrTypes(), *nested)
+			diags.Append(valueDiags...)
+			out.Measures = value
+		}
+	}
 	return out
 }
 
@@ -520,6 +664,72 @@ func valueOf[T any](p *T) T {
 		return zero
 	}
 	return *p
+}
+
+// measureKeyed holds the API item of each value of Kind that the configuration or the API has.
+type measureKeyed struct {
+	Min     *echo_things_service.Measure
+	Samples *echo_things_service.Measure
+}
+
+// wrapMeasureKeyed returns the API items, each with its Kind and its Name, the attribute name.
+func wrapMeasureKeyed(v *measureKeyed) []echo_things_service.Measure {
+	if v == nil {
+		return nil
+	}
+	out := []echo_things_service.Measure{}
+	if v.Min != nil {
+		item := *v.Min
+		key := echo_things_service.MeasureKind("MEASURE_KIND_MIN")
+		item.Kind = key
+		name := "min"
+		item.Name = name
+		out = append(out, item)
+	}
+	if v.Samples != nil {
+		item := *v.Samples
+		key := echo_things_service.MeasureKind("MEASURE_KIND_SAMPLES")
+		item.Kind = key
+		name := "samples"
+		item.Name = name
+		out = append(out, item)
+	}
+	return out
+}
+
+// unwrapMeasureKeyed returns the API items by their Kind. An item of another value is not in the
+// resource.
+func unwrapMeasureKeyed(w []echo_things_service.Measure) *measureKeyed {
+	if w == nil {
+		return nil
+	}
+	out := &measureKeyed{}
+	for i := range w {
+		item := w[i]
+		switch string(item.Kind) {
+		case "MEASURE_KIND_MIN":
+			out.Min = &item
+		case "MEASURE_KIND_SAMPLES":
+			out.Samples = &item
+		}
+	}
+	return out
+}
+
+// wrapSamples puts the value in its API wrapper objects. A nil value sends no wrapper.
+func wrapSamples(v *int32) *echo_things_service.Samples {
+	if v == nil {
+		return nil
+	}
+	return &echo_things_service.Samples{Count: *v}
+}
+
+// unwrapSamples takes the value out of its API wrapper objects. A missing wrapper is nil.
+func unwrapSamples(w *echo_things_service.Samples) *int32 {
+	if w == nil {
+		return nil
+	}
+	return &w.Count
 }
 
 // elements is a types.Set or a types.List.

@@ -374,3 +374,64 @@ func TestCreateWithAnUnknownQuota(t *testing.T) {
 		t.Fatalf("state quota.limit = %d (%v), want 30000", limit, resp.Diagnostics)
 	}
 }
+
+// The measures are an object with an attribute per kind. Read puts each API item in the attribute
+// of its kind, in any order. Create sends an item for each attribute that the plan has, with its
+// kind and its name, the attribute name, and the arm of its kind.
+func TestMeasuresAreAnObjectByKind(t *testing.T) {
+	ctx := context.Background()
+	schemaResp, root := thingSchema(t)
+	echo_things_service.Answer = echo_things_service.EchoThing{Id: "thing-1", Name: "name", Measures: []echo_things_service.Measure{
+		{Kind: "MEASURE_KIND_SAMPLES", Name: "samples", Enabled: ptr(true), Samples: &echo_things_service.Samples{Count: 3}},
+		{Kind: "MEASURE_KIND_MIN", Name: "min", Enabled: ptr(false)},
+	}}
+	r := &Resource{client: &echo_things_service.EchoThingsServiceAPIService{}}
+	state := tfsdk.State{Schema: schemaResp.Schema, Raw: thingValue(root, "thing-1", "name")}
+	resp := &frameworkresource.ReadResponse{State: state}
+	r.Read(ctx, frameworkresource.ReadRequest{State: state}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	var minEnable bool
+	var count int32
+	var name string
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("measures").AtName("min").AtName("enable"), &minEnable)...)
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("measures").AtName("samples").AtName("count"), &count)...)
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("measures").AtName("samples").AtName("name"), &name)...)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	if minEnable || count != 3 || name != "samples" {
+		t.Fatalf("min.enable %v, samples.count %d, samples.name %q, want false, 3, samples", minEnable, count, name)
+	}
+
+	measures := root.(tftypes.Object).AttributeTypes["measures"].(tftypes.Object)
+	samples := measures.AttributeTypes["samples"].(tftypes.Object)
+	plan := thingWith(root, map[string]tftypes.Value{
+		"id":   tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+		"name": tftypes.NewValue(tftypes.String, "name"),
+		"measures": tftypes.NewValue(measures, map[string]tftypes.Value{
+			"min": tftypes.NewValue(measures.AttributeTypes["min"], nil),
+			"samples": tftypes.NewValue(samples, map[string]tftypes.Value{
+				"name":   tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+				"enable": tftypes.NewValue(tftypes.Bool, true),
+				"count":  tftypes.NewValue(tftypes.Number, 5),
+			}),
+		}),
+	})
+	sent := createThing(t, plan)
+	want := []echo_things_service.Measure{{Kind: "MEASURE_KIND_SAMPLES", Name: "samples", Enabled: ptr(true), Samples: &echo_things_service.Samples{Count: 5}}}
+	if len(sent.Measures) != 1 || sent.Measures[0].Kind != want[0].Kind || sent.Measures[0].Name != want[0].Name ||
+		sent.Measures[0].Enabled == nil || !*sent.Measures[0].Enabled || sent.Measures[0].Samples == nil || sent.Measures[0].Samples.Count != 5 {
+		t.Fatalf("Create measures = %+v, want %+v", sent.Measures, want)
+	}
+
+	sent = createThing(t, thingWith(root, map[string]tftypes.Value{
+		"id":       tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+		"name":     tftypes.NewValue(tftypes.String, "name"),
+		"measures": tftypes.NewValue(measures, tftypes.UnknownValue),
+	}))
+	if sent.Measures != nil {
+		t.Fatalf("Create measures = %+v, want none when the plan leaves them to the server", sent.Measures)
+	}
+}
