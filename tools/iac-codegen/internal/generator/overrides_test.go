@@ -860,3 +860,26 @@ func TestBetweenOnIntegersNeedsExactBounds(t *testing.T) {
 		}
 	}
 }
+
+// An exactlyOneOf or atLeastOneOf name must be another attribute of the same object. The
+// validator renders it into a path, so a typo compiles and fails only on a configuration.
+func TestSiblingValidatorTargetsMustExist(t *testing.T) {
+	a := &tfAttr{Name: "static_values"}
+	siblings := []*tfAttr{a, {Name: "label_keys"}}
+	tests := []struct {
+		v    overrides.Validator
+		fail bool
+	}{
+		{overrides.Validator{ExactlyOneOf: []string{"label_keys"}}, false},
+		{overrides.Validator{AtLeastOneOf: []string{"label_keys"}}, false},
+		{overrides.Validator{ExactlyOneOf: []string{"labelKeys"}}, true},
+		{overrides.Validator{AtLeastOneOf: []string{"missing"}}, true},
+		{overrides.Validator{ExactlyOneOf: []string{"static_values"}}, true},
+	}
+	for _, test := range tests {
+		err := checkSiblingTargets(a, siblings, []overrides.Validator{test.v})
+		if (err != nil) != test.fail {
+			t.Errorf("checkSiblingTargets(%+v) = %v, want error %v", test.v, err, test.fail)
+		}
+	}
+}

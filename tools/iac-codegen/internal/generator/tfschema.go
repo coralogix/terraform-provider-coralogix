@@ -302,6 +302,9 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 				if serverOwned(a) && settable[a.Component+"."+a.Property] {
 					line = overrides.Field{Description: line.Description, MarkdownDescription: line.MarkdownDescription, Deprecation: line.Deprecation}
 				}
+				if err := checkSiblingTargets(a, attrs, line.Validators); err != nil {
+					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
+				}
 				if err := applyField(a, line, file); err != nil {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
 				}
@@ -1277,6 +1280,21 @@ func numberLiteral(kind string, v float64) string {
 }
 
 // siblingPaths are the path expressions of sibling attributes, by their Terraform names.
+// checkSiblingTargets rejects an exactlyOneOf or atLeastOneOf name that is not another attribute
+// of the same object. The validator renders the name into a path, so a typo would still compile
+// and fail only when a configuration reaches it.
+func checkSiblingTargets(a *tfAttr, siblings []*tfAttr, validators []overrides.Validator) error {
+	for _, v := range validators {
+		for _, name := range slices.Concat(v.ExactlyOneOf, v.AtLeastOneOf) {
+			found := name != a.Name && slices.ContainsFunc(siblings, func(s *tfAttr) bool { return s.Name == name })
+			if !found {
+				return fmt.Errorf("validator target %q is not another attribute of the same object", name)
+			}
+		}
+	}
+	return nil
+}
+
 func siblingPaths(names []string) string {
 	paths := make([]string, 0, len(names))
 	for _, name := range names {
