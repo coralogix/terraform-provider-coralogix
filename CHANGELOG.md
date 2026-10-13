@@ -14,7 +14,7 @@
 - FIX: A field line on a component that the user sets in one place gives a read-only copy of that component only its text. Before, `required: true` and `computed: false` failed generation with "required: true needs a field that the user sets", and a `default` or `useStateForUnknown` planned a value the server does not set.
 
 #### resource/coralogix_events2metric
-- CHORE: Add protocol baseline golden files against an in-memory events2metrics API.
+- CHORE: Add protocol baseline golden files against an in-memory events2metrics API, checked against answers recorded from a real tenant.
 
 # Release 3.21.0
 

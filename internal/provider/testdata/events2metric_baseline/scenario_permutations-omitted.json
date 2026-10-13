@@ -100,7 +100,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating Events2Metric | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Permutation amount needs to be bigger than 1 when metricLabels are set\"}\noperation - Create"
+      "error: Error creating Events2Metric | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"message\\\":\\\"Bad Request\\\",\\\"status\\\":400,\\\"details\\\":[{\\\"code\\\":\\\"custom\\\",\\\"message\\\":\\\"Permutation amount needs to be bigger than 1 when \\\\\\\"metricLabels\\\\\\\" are set\\\",\\\"path\\\":[\\\"e2m\\\",\\\"permutations\\\",\\\"limit\\\"]}]}\"}\noperation - Create"
     ],
     "state": null
   }
