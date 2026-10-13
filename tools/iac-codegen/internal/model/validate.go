@@ -345,7 +345,7 @@ func bodyIDIssues(p Policy, ops map[verb]foundOp, create, update *base.Schema) i
 	}
 	id := params[0].Name
 	var report issue.Report
-	if p.ClientSetID && propertyOf(create, id) == nil {
+	if p.ClientSetID && bodyProperty(create, id) == nil {
 		report = append(report, issue.Issue{
 			Code:        "CLIENT_SET_ID_NOT_IN_CREATE",
 			Location:    "paths.create." + ops[opCreate].op.OperationId + ".requestBody",
@@ -353,7 +353,7 @@ func bodyIDIssues(p Policy, ops map[verb]foundOp, create, update *base.Schema) i
 			Remediation: "Delete clientSetID from the overrides, or add the id property to the Create body.",
 		})
 	}
-	if p.UpdateIDInBody && propertyOf(update, id) == nil {
+	if p.UpdateIDInBody && bodyProperty(update, id) == nil {
 		report = append(report, issue.Issue{
 			Code:        "UPDATE_ID_NOT_IN_BODY",
 			Location:    "paths.update." + ops[opUpdate].op.OperationId + ".requestBody",
@@ -392,14 +392,32 @@ func serverSetIDIssues(p Policy, name string, ops map[verb]foundOp, create, upda
 	return report
 }
 
-// userSetsProperty reports whether the request body has the property and does not mark it read-only.
+// bodyProperty returns the property of a request body. The body can be allOf: [$ref], as the
+// OpenAPI fork writes a reference with a description: the property is then on the referenced
+// schema.
+func bodyProperty(body *base.Schema, name string) *base.SchemaProxy {
+	object, _, _ := validationObject(body)
+	return propertyOf(object, name)
+}
+
+// userSetsProperty reports whether the request body has the property and does not mark it
+// read-only. The property can be allOf: [$ref] too, with readOnly on the wrapper or on the
+// referenced schema.
 func userSetsProperty(body *base.Schema, name string) bool {
-	property := propertyOf(body, name)
+	property := bodyProperty(body, name)
 	if property == nil {
 		return false
 	}
 	s, err := schemaOf(property)
-	return err != nil || s.ReadOnly == nil || !*s.ReadOnly
+	if err != nil {
+		return true
+	}
+	inner, _, _ := validationObject(s)
+	return !isReadOnly(s) && !isReadOnly(inner)
+}
+
+func isReadOnly(s *base.Schema) bool {
+	return s != nil && s.ReadOnly != nil && *s.ReadOnly
 }
 
 // skippedIDIssues reports a skip override on the resource id. Every call after Create names the

@@ -222,3 +222,28 @@ func TestLegacyResourceBuildsFromTheUnwrappedBody(t *testing.T) {
 		t.Errorf("fields = %v", behaviors)
 	}
 }
+
+// The OpenAPI fork writes a reference with a description as allOf: [$ref]. A request body in
+// that form still lets the user set the id, so serverSetID is still refused.
+func TestServerSetIDChecksARequestBodyWrittenAsAllOf(t *testing.T) {
+	old := "                thing: {$ref: '#/components/schemas/LegacyThing'}\n"
+	data := string(legacyDoc(t))
+	if strings.Count(data, old) != 2 {
+		t.Fatalf("testdata/legacy.yaml has %d request bodies with a plain $ref, want 2", strings.Count(data, old))
+	}
+	data = strings.ReplaceAll(data, old, "                thing: {allOf: [{$ref: '#/components/schemas/LegacyThing'}], description: The thing.}\n")
+	doc, err := Load([]byte(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := legacyPolicy()
+	p.ClientSetID, p.ServerSetID = false, true
+	got := slices.Compact(reportCodes(ValidateWithPolicy(doc, "LegacyThing", OperationIDs{}, p)))
+	if !slices.Contains(got, "SERVER_SET_ID_IN_REQUEST") {
+		t.Fatalf("codes = %v, want SERVER_SET_ID_IN_REQUEST", got)
+	}
+	p.ReadOnly = []string{"LegacyThing.id"}
+	if got := reportCodes(ValidateWithPolicy(doc, "LegacyThing", OperationIDs{}, p)); len(got) != 0 {
+		t.Fatalf("codes with a read-only id = %v, want none", got)
+	}
+}
