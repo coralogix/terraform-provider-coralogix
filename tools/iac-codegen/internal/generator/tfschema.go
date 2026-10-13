@@ -822,7 +822,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		case model.Immutable:
 			b.requiresReplace(a, child.dotted())
 		}
-		if err := b.nestedServerDefault(a, child, f); err != nil {
+		if err := b.nestedServerDefault(a, child, t.Schema, f); err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		attrs = append(attrs, a)
@@ -854,11 +854,16 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 }
 
 // nestedServerDefault makes a an Optional and Computed attribute with the server-default plan
-// modifier, when f is a nested field of a new resource that the requests may omit and whose
-// server default the response states. An existing resource keeps the released behavior, which
-// its behavior-overrides file states.
-func (b *tfBuilder) nestedServerDefault(a *tfAttr, p attrPath, f *model.Field) error {
-	if b.file != nil || f.Behavior != model.Normal || f.Create == nil || f.Create.Required || f.Create.Default == nil {
+// modifier, when f is a nested field of component that the requests may omit and whose server
+// default the response states. A field with a line in the behavior-overrides file keeps the
+// released behavior that the line states.
+func (b *tfBuilder) nestedServerDefault(a *tfAttr, p attrPath, component string, f *model.Field) error {
+	if b.file != nil {
+		if _, line := b.file.Types[component].Fields[f.Name]; line {
+			return nil
+		}
+	}
+	if f.Behavior != model.Normal || f.Create == nil || f.Create.Required || f.Create.Default == nil {
 		return nil
 	}
 	d := *f.Create.Default
