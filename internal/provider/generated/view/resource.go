@@ -206,6 +206,13 @@ func (r *Resource) applyUpdateOnly(ctx context.Context, config tfsdk.Config, pla
 	if diags.HasError() || body == nil {
 		return diags
 	}
+	if r.hooks.BeforeWrite != nil {
+		// The follow-up Update is a write like any other: the overlay completes its body.
+		diags.Append(r.hooks.BeforeWrite(ctx, config, body)...)
+		if diags.HasError() {
+			return diags
+		}
+	}
 	v, err := r.update(ctx, id, body)
 	if err != nil {
 		diags.AddError("Unable to update "+TypeName+" after create", err.Error())

@@ -15,8 +15,17 @@
 package provider
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+
+	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/views_service"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/view"
 )
 
 // These tests drive the generated coralogix_view through the plugin protocol against
@@ -171,5 +180,39 @@ func TestViewCreateConvergesAnOmittedUpdateOnlyValue(t *testing.T) {
 	}
 	if got := attrOf(t, step.State, "is_compact_mode"); got != false {
 		t.Fatalf("is_compact_mode = %v, want false", got)
+	}
+}
+
+// The follow-up Update after Create is a write like the others, so it runs the BeforeWrite
+// overlay: once for the Create body, and once for the Update body.
+func TestViewFollowUpUpdateRunsBeforeWrite(t *testing.T) {
+	h := newViewHarness(t)
+	cfg := h.config(viewConfig(j{"is_compact_mode": true}))
+	planned, _, diags := h.plan(h.null(), cfg)
+	if hasError(diags) {
+		t.Fatal(diagStrings(diags))
+	}
+	var writes []string
+	r := view.NewResourceWithClient(views_service.NewAPIClient(views_service.NewConfiguration()).ViewsServiceAPI, view.Hooks{
+		BeforeWrite: func(_ context.Context, _ tfsdk.Config, body any) diag.Diagnostics {
+			writes = append(writes, fmt.Sprintf("%T", body))
+			return nil
+		},
+	})
+	var schemaResp frameworkresource.SchemaResponse
+	r.Schema(h.ctx, frameworkresource.SchemaRequest{}, &schemaResp)
+	resp := &frameworkresource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: h.null()}}
+	r.Create(h.ctx, frameworkresource.CreateRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: cfg},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: planned},
+	}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	if got := methods(h.views().takeRequests()); len(got) != 2 || got[1] != http.MethodPut {
+		t.Fatalf("requests = %v, want POST then PUT", got)
+	}
+	if len(writes) != 2 {
+		t.Fatalf("BeforeWrite ran for %v, want the Create and the follow-up Update bodies", writes)
 	}
 }
