@@ -128,3 +128,29 @@ func TestReadWithoutAnIDFails(t *testing.T) {
 		t.Fatal("read of a response without an id: want an error")
 	}
 }
+
+// A response with none of the arms of a group that needs one fails the read: the state would
+// hold the group with no arm.
+func TestReadWithoutAnArmFails(t *testing.T) {
+	ctx := context.Background()
+	id, name, frame := "thing-1", "a", shared_things_service.SHAREDFRAME_SHARED_FRAME_ONE_DAY
+	shared_things_service.Stored = shared_things_service.SharedThing{Id: &id, Name: &name, Frame: &frame}
+	r, schemaResp, root := thingSchema(t)
+	state := thingValue(root, tftypes.NewValue(tftypes.String, "thing-1"), tftypes.NewValue(tftypes.String, "a"))
+	resp := &frameworkresource.ReadResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: state}}
+	r.Read(ctx, frameworkresource.ReadRequest{State: tfsdk.State{Schema: schemaResp.Schema, Raw: state}}, resp)
+	found := false
+	for _, d := range resp.Diagnostics.Errors() {
+		found = found || d.Summary() == "Invalid response from server"
+	}
+	if !found {
+		t.Fatalf("read of a response without an arm: want Invalid response from server, got %v", resp.Diagnostics)
+	}
+	ratio := float32(0.5)
+	shared_things_service.Stored.ByRatio = &shared_things_service.SharedRatio{Ratio: &ratio}
+	resp = &frameworkresource.ReadResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: state}}
+	r.Read(ctx, frameworkresource.ReadRequest{State: tfsdk.State{Schema: schemaResp.Schema, Raw: state}}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatalf("read of a response with an arm: %v", resp.Diagnostics)
+	}
+}

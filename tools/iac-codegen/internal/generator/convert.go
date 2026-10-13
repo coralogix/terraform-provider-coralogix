@@ -144,6 +144,9 @@ type convObject struct {
 	// Group: the object is a group of the behavior-overrides file. Its fields are fields of the
 	// SDK struct of the parent, so expand writes them to that struct, and flatten reads them from it.
 	Group bool
+	// RequireOne: the group holds the arms of a oneOf that the user must set. Flatten fails when
+	// the response has none of them, because the object would have no arm.
+	RequireOne bool
 	// AttrTypes are the Terraform attribute types, when a list holds the
 	// object. The function AttrTypesFunc returns them.
 	AttrTypes     []convAttrType
@@ -1652,7 +1655,7 @@ func idGuard(r *model.Resource) string {
 func (b *convBuilder) addToGroup(root *convObject, groups map[string]*convObject, group string, cf *convField) {
 	g, found := groups[group]
 	if !found {
-		g = &convObject{Func: root.Func + camelize(group), Model: groupModelName(b.resource.Name, group), SDK: root.SDK, Group: true}
+		g = &convObject{Func: root.Func + camelize(group), Model: groupModelName(b.resource.Name, group), SDK: root.SDK, Group: true, RequireOne: b.file.Groups[group].RequireOne}
 		g.AttrTypesFunc = lowerFirst(g.Func) + "AttrTypes"
 		groups[group] = g
 		b.objects = append(b.objects, g)

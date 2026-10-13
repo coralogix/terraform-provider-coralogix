@@ -512,6 +512,11 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, {{
 {{- range .ExtraFlatten}}
 	out.{{.Name}} = {{.Expr}}
 {{- end}}
+{{- if .RequireOne}}
+	if {{range $i, $f := .Fields}}{{if $i}} && {{end}}v.{{$f.SDK}} == nil{{end}} {
+		diags.AddAttributeError(p, "Invalid response from server", "The response has none of {{range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f.TFName}}{{end}}.")
+	}
+{{- end}}
 	return out
 }
 {{end}}

@@ -367,6 +367,9 @@ func flattenSharedThingMeasure(ctx context.Context, p path.Path, v *shared_thing
 	out := &SharedThingMeasureModel{}
 	out.ByCount = flattenSharedCount(ctx, p.AtName("by_count"), v.ByCount, diags)
 	out.ByRatio = flattenSharedRatio(ctx, p.AtName("by_ratio"), v.ByRatio, diags)
+	if v.ByCount == nil && v.ByRatio == nil {
+		diags.AddAttributeError(p, "Invalid response from server", "The response has none of by_count, by_ratio.")
+	}
 	return out
 }
 

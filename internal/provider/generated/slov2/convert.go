@@ -786,6 +786,9 @@ func flattenSloSli(ctx context.Context, p path.Path, v *slos_service.Slo, diags 
 	out.ApmSli = flattenApmSli(ctx, p.AtName("apm_sli"), v.ApmSli, diags)
 	out.RequestBasedMetricSli = flattenRequestBasedMetricSli(ctx, p.AtName("request_based_metric_sli"), v.RequestBasedMetricSli, diags)
 	out.WindowBasedMetricSli = flattenWindowBasedMetricSli(ctx, p.AtName("window_based_metric_sli"), v.WindowBasedMetricSli, diags)
+	if v.ApmSli == nil && v.RequestBasedMetricSli == nil && v.WindowBasedMetricSli == nil {
+		diags.AddAttributeError(p, "Invalid response from server", "The response has none of apm_sli, request_based_metric_sli, window_based_metric_sli.")
+	}
 	return out
 }
 
