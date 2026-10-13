@@ -157,6 +157,57 @@ func TestGoldenOutputCustomMethods(t *testing.T) {
 	}
 }
 
+// The golden output of a released resource whose Create and Update take the resource itself as
+// the body, whose responses hold the resource next to other values, and whose server-set id Get
+// does not require.
+func TestGoldenOutputSharedBody(t *testing.T) {
+	out := generateSharedThing(t)
+	golden := filepath.Join("testdata", "golden", "sharedthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputSharedBody -update:\n%s", diff)
+	}
+}
+
+// The generated Create reads the resource next to other response values, Update sends the state
+// id in the body, and a read without an id fails.
+func TestSharedBodyRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateSharedThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "sharedthing_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// generateSharedThing generates the synthetic resource whose Create and Update share one body.
+func generateSharedThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "sharedthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "sharedthing")
+	options := Options{Resource: "SharedThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "sharedthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
 // generateCustomThing generates the synthetic resource with custom-method operations.
 func generateCustomThing(t *testing.T) string {
 	t.Helper()
@@ -1271,6 +1322,20 @@ func TestDeleteOverrideRuntimeSemantics(t *testing.T) {
 	input, _ := syntheticInput(t)
 	out := generateArchivedThing(t)
 	semantics, err := os.ReadFile(filepath.Join("testdata", "archived_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// The generated Update of a resource whose server-set id is in the Update body sends that id.
+func TestCustomMethodsRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateCustomThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "customthing_semantics_test.go"))
 	if err != nil {
 		t.Fatal(err)
 	}

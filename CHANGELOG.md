@@ -1,5 +1,18 @@
 # Unreleased
 
+#### resource/coralogix_slo_v2
+- CHORE: Bump `coralogix-management-sdk` to the SLO contract that marks server-set fields read-only and requires the APM latency `time_window`.
+
+#### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.25`.
+- FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.
+- FEAT: `api.serverSetID: true` accepts a server-set id that the Get response does not require, because the request shares the schema. The generated flatten fails when the id is missing. The id must be read-only, or absent, in the Create and Update bodies, also when a body is `allOf: [$ref]`.
+- FIX: An Update with the id in its body sends a server-set id, in the resource that the body wraps or in the body itself. Before, no Update field sent it, so the update request had no id.
+- FEAT: In existing-resource mode, Create and Update can take one request body type, and a response can hold the resource in a required (value) field.
+- FEAT: In existing-resource mode, a read-only field inside a component that the request shares with the response is computed, and the request does not send it. Before, it was an attribute that the user could set, or generation failed.
+- FIX: A request body, or a `requestWrapper` property, written as `allOf: [$ref]` reads as the referenced schema in validation and in the model. Before, `clientSetID` and `updateIDInBody` reported the id missing, and the model sent none of the fields.
+- FIX: A field line on a component that the user sets in one place gives a read-only copy of that component only its text. Before, `required: true` and `computed: false` failed generation with "required: true needs a field that the user sets", and a `default` or `useStateForUnknown` planned a value the server does not set.
+
 # Release 3.21.0
 
 #### resource/coralogix_configuration_group

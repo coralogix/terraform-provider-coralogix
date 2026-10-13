@@ -1015,7 +1015,7 @@ func extractApmLatencySLI(ctx context.Context, latency types.Object) (*slos.ApmL
 	}
 
 	sli := &slos.ApmLatencySli{
-		TimeWindow: schemaToProtoSLOWindow[latencyModel.TimeWindow.ValueString()].Ptr(),
+		TimeWindow: schemaToProtoSLOWindow[latencyModel.TimeWindow.ValueString()],
 	}
 
 	if threshold := latencyModel.Threshold; !(threshold.IsNull() || threshold.IsUnknown()) {
