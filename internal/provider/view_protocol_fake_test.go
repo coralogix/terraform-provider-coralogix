@@ -16,6 +16,7 @@ package provider
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"math"
 	"net/http"
@@ -32,12 +33,27 @@ const (
 	viewBasePath = "/data-exploration/views/v1/views"
 )
 
-// viewPresets are the quick time ranges that the service stores, with their captions.
+// viewPresets are the quick time ranges that the service stores, with their captions
+// (captionSecondsMap in eng-svc-views).
 var viewPresets = map[int]string{
-	60: "Last minute", 120: "Last 2 minutes", 300: "Last 5 minutes", 900: "Last 15 minutes",
-	1800: "Last 30 minutes", 3600: "Last hour", 7200: "Last 2 hours", 21600: "Last 6 hours",
-	43200: "Last 12 hours", 86400: "Last 24 hours", 172800: "Last 2 days", 259200: "Last 3 days",
-	432000: "Last 5 days", 604800: "Last 7 days",
+	60: "Last 1 minute", 120: "Last 2 minutes", 300: "Last 5 minutes", 900: "Last 15 minutes",
+	1800: "Last 30 minutes", 3600: "Last 1 hour", 7200: "Last 2 hours", 21600: "Last 6 hours",
+	43200: "Last 12 hours", 86400: "Last 24 hours", 172800: "Last 2 Days", 259200: "Last 3 Days",
+	432000: "Last 5 Days", 604800: "Last 7 Days",
+}
+
+// viewFail is an error answer of the service as the gateway writes it: the HTTP status
+// text, then the gRPC error as JSON.
+func viewFail(status int, grpcCode int, grpcName, message string, details string) (int, any) {
+	inner := fmt.Sprintf(`{"message":"%s: %s","status":%d`, grpcName, message, grpcCode)
+	if details != "" {
+		inner += `,"details":` + details
+	}
+	return status, map[string]any{"code": status, "message": http.StatusText(status) + ": " + inner + "}"}
+}
+
+func viewNotFound(id string) (int, any) {
+	return viewFail(http.StatusNotFound, 5, "NOT_FOUND", "view not found", `{"viewId":`+id+`}`)
 }
 
 // viewFake is an in-memory backend for views. It follows the request handling of the
@@ -101,7 +117,7 @@ func (f *viewFake) seedLegacy(name string) string {
 		"isCompactMode": false,
 		"timeSelection": map[string]any{"quickSelection": map[string]any{"seconds": 3600, "caption": viewPresets[3600]}},
 		"searchQuery":   map[string]any{"query": "", "syntaxType": "SYNTAX_TYPE_LUCENE"},
-		"filters":       map[string]any{},
+		"filters":       map[string]any{"filters": []any{}},
 	}
 	return id
 }
@@ -144,7 +160,7 @@ func (f *viewFake) handle(method, path string, body any) (int, any) {
 		return f.store(id, f.seq, in, false)
 	case method == http.MethodPut && id != "":
 		if _, found := f.views[id]; !found {
-			return grFail(http.StatusNotFound, "view not found")
+			return viewNotFound(id)
 		}
 		n, _ := strconv.Atoi(id)
 		return f.store(id, n, in, true)
@@ -152,10 +168,10 @@ func (f *viewFake) handle(method, path string, body any) (int, any) {
 		if v, found := f.views[id]; found {
 			return http.StatusOK, f.response(v)
 		}
-		return grFail(http.StatusNotFound, "view not found")
+		return viewNotFound(id)
 	case method == http.MethodDelete && id != "":
 		if _, found := f.views[id]; !found {
-			return grFail(http.StatusNotFound, "view not found")
+			return viewNotFound(id)
 		}
 		delete(f.views, id)
 		return http.StatusOK, map[string]any{}
@@ -166,12 +182,12 @@ func (f *viewFake) handle(method, path string, body any) (int, any) {
 func (f *viewFake) store(id string, n int, in map[string]any, replace bool) (int, any) {
 	name, _ := in["name"].(string)
 	if name == "" {
-		return grFail(http.StatusBadRequest, "view name is required")
+		return viewFail(http.StatusBadRequest, 3, "INVALID_ARGUMENT", "view name is required", "")
 	}
 	ts, _ := in["timeSelection"].(map[string]any)
 	quick, _ := ts["quickSelection"].(map[string]any)
 	if quick == nil {
-		return grFail(http.StatusBadRequest, "Invalid time selection")
+		return viewFail(http.StatusBadRequest, 3, "INVALID_ARGUMENT", "Invalid time selection", "")
 	}
 	seconds, _ := quick["seconds"].(float64)
 	nearest := 60
@@ -194,7 +210,7 @@ func (f *viewFake) store(id string, n int, in map[string]any, replace bool) (int
 	if replace {
 		compact, _ = in["isCompactMode"].(bool)
 	}
-	var filters []any
+	filters := []any{}
 	if fs, _ := in["filters"].(map[string]any); fs != nil {
 		items, _ := fs["filters"].([]any)
 		for _, item := range items {
@@ -220,10 +236,7 @@ func (f *viewFake) store(id string, n int, in map[string]any, replace bool) (int
 		"viewType":      viewType,
 		"timeSelection": map[string]any{"quickSelection": map[string]any{"seconds": nearest, "caption": viewPresets[nearest]}},
 		"searchQuery":   map[string]any{"query": query, "syntaxType": syntax},
-		"filters":       map[string]any{},
-	}
-	if len(filters) > 0 {
-		stored["filters"] = map[string]any{"filters": filters}
+		"filters":       map[string]any{"filters": filters},
 	}
 	if folder, _ := in["folderId"].(string); folder != "" {
 		stored["folderId"] = folder

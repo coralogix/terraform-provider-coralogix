@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -53,7 +54,7 @@ func TestViewFakeMatchesRecordedBackend(t *testing.T) {
 				status, resp := fake.handle(s.Method, viewBasePath+substString(s.Path, vars), body)
 				fake.mu.Unlock()
 				got := viewFidelityResponse(roundTrip(t, resp), s, status, vars, nil)
-				compareFidelityStep(t, label, status, got, rc.Steps[si].Status, rc.Steps[si].Response)
+				compareFidelityStep(t, label, status, viewFidelityMessage(got), rc.Steps[si].Status, viewFidelityMessage(rc.Steps[si].Response))
 			}
 		})
 	}
@@ -76,6 +77,21 @@ func viewFidelityResponse(got any, s fidelityStep, status int, vars map[string]s
 		view["id"] = "{{id}}"
 	}
 	return view
+}
+
+var viewIDInMessage = regexp.MustCompile(`"viewId":\d+`)
+
+// viewFidelityMessage writes "<id>" for the view id in an error message: each tenant assigns
+// its own.
+func viewFidelityMessage(v any) any {
+	m, ok := v.(map[string]any)
+	if !ok {
+		return v
+	}
+	if msg, ok := m["message"].(string); ok {
+		m["message"] = viewIDInMessage.ReplaceAllString(msg, `"viewId":"<id>"`)
+	}
+	return m
 }
 
 // TestRecordViewFidelity sends fidelity/cases.json to a real tenant and writes
