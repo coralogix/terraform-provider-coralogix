@@ -330,6 +330,7 @@ func validateFieldContracts(p Policy, name string, ops map[verb]foundOp) issue.R
 	}
 	report = append(report, resourceIDIssues(p, name, ops, get)...)
 	report = append(report, bodyIDIssues(p, ops, create, update)...)
+	report = append(report, serverSetIDIssues(p, name, ops, create, update)...)
 	report = append(report, skippedIDIssues(p, name, ops)...)
 	report = append(report, rootGroupContractIssues(name, create, update, get)...)
 	return report
@@ -345,7 +346,7 @@ func bodyIDIssues(p Policy, ops map[verb]foundOp, create, update *base.Schema) i
 	}
 	id := params[0].Name
 	var report issue.Report
-	if p.ClientSetID && propertyOf(create, id) == nil {
+	if p.ClientSetID && bodyProperty(create, id) == nil {
 		report = append(report, issue.Issue{
 			Code:        "CLIENT_SET_ID_NOT_IN_CREATE",
 			Location:    "paths.create." + ops[opCreate].op.OperationId + ".requestBody",
@@ -353,7 +354,7 @@ func bodyIDIssues(p Policy, ops map[verb]foundOp, create, update *base.Schema) i
 			Remediation: "Delete clientSetID from the overrides, or add the id property to the Create body.",
 		})
 	}
-	if p.UpdateIDInBody && propertyOf(update, id) == nil {
+	if p.UpdateIDInBody && bodyProperty(update, id) == nil {
 		report = append(report, issue.Issue{
 			Code:        "UPDATE_ID_NOT_IN_BODY",
 			Location:    "paths.update." + ops[opUpdate].op.OperationId + ".requestBody",
@@ -362,6 +363,62 @@ func bodyIDIssues(p Policy, ops map[verb]foundOp, create, update *base.Schema) i
 		})
 	}
 	return report
+}
+
+// serverSetIDIssues checks that serverSetID describes an id that only the server sets: the
+// Create and Update bodies do not have it, or it is read-only there or by a readOnly line.
+// Otherwise the user could set the id in Terraform, and a body-only Update would send the
+// planned id instead of the state id, so a change could name another resource.
+func serverSetIDIssues(p Policy, name string, ops map[verb]foundOp, create, update *base.Schema) issue.Report {
+	params := pathParams(ops[opGet])
+	if !p.ServerSetID || len(params) != 1 || p.readOnly(name, params[0].Name) {
+		return nil
+	}
+	id := params[0].Name
+	var report issue.Report
+	for _, body := range []struct {
+		op     verb
+		schema *base.Schema
+	}{{opCreate, create}, {opUpdate, update}} {
+		if !userSetsProperty(body.schema, id) {
+			continue
+		}
+		report = append(report, issue.Issue{
+			Code:        "SERVER_SET_ID_IN_REQUEST",
+			Location:    "paths." + strings.ToLower(string(body.op)) + "." + ops[body.op].op.OperationId + ".requestBody",
+			Message:     fmt.Sprintf("The override serverSetID says that only the server sets the id, but the %s body has a %q property that is not read-only.", body.op, id),
+			Remediation: fmt.Sprintf("Add readOnly: true to the %q line of %s, mark the property read-only in the contract, or delete serverSetID.", id, name),
+		})
+	}
+	return report
+}
+
+// bodyProperty returns the property of a request body. The body can be allOf: [$ref], as the
+// OpenAPI fork writes a reference with a description: the property is then on the referenced
+// schema.
+func bodyProperty(body *base.Schema, name string) *base.SchemaProxy {
+	object, _, _ := validationObject(body)
+	return propertyOf(object, name)
+}
+
+// userSetsProperty reports whether the request body has the property and does not mark it
+// read-only. The property can be allOf: [$ref] too, with readOnly on the wrapper or on the
+// referenced schema.
+func userSetsProperty(body *base.Schema, name string) bool {
+	property := bodyProperty(body, name)
+	if property == nil {
+		return false
+	}
+	s, err := schemaOf(property)
+	if err != nil {
+		return true
+	}
+	inner, _, _ := validationObject(s)
+	return !isReadOnly(s) && !isReadOnly(inner)
+}
+
+func isReadOnly(s *base.Schema) bool {
+	return s != nil && s.ReadOnly != nil && *s.ReadOnly
 }
 
 // skippedIDIssues reports a skip override on the resource id. Every call after Create names the
@@ -439,7 +496,19 @@ func resourceIDIssues(p Policy, name string, ops map[verb]foundOp, get *base.Sch
 	}
 	location := "components.schemas." + name + "." + id
 	var report issue.Report
-	if !slices.Contains(get.Required, id) && !p.ClientSetID {
+	// A released resource can share its schema between the request and the response, so the
+	// contract cannot require the id that only the server sets. serverSetID states that the
+	// API returns it anyway, and flatten checks it.
+	required := slices.Contains(get.Required, id)
+	if required && p.ServerSetID {
+		report = append(report, issue.Issue{
+			Code:        "SERVER_SET_ID_UNNEEDED",
+			Location:    location,
+			Message:     fmt.Sprintf("The override serverSetID says that the Get response cannot require %q, but it does.", id),
+			Remediation: "Delete serverSetID from the overrides.",
+		})
+	}
+	if !required && !p.ClientSetID && !p.ServerSetID {
 		report = append(report, issue.Issue{
 			Code:        "RESOURCE_ID_OPTIONAL",
 			Location:    location,
@@ -574,6 +643,8 @@ func validateFieldContract(p Policy, name, idParam, field string, create, update
 		report = append(report, nestedPresenceIssues(p, location+".create", cp, gp, nil, wrapped, map[presenceVisit]bool{})...)
 		report = append(report, nestedPresenceIssues(p, location+".update", up, gp, cp, wrapped, map[presenceVisit]bool{})...)
 	}
+	report = append(report, nestedReadOnlyIssues(p, location+".create", cp, map[*base.Schema]bool{})...)
+	report = append(report, nestedReadOnlyIssues(p, location+".update", up, map[*base.Schema]bool{})...)
 	report = append(report, unsupportedSchemaIssues(p, location+".create", cp, true, map[*base.Schema]bool{})...)
 	report = append(report, unsupportedSchemaIssues(p, location+".update", up, true, map[*base.Schema]bool{})...)
 	report = append(report, unsupportedSchemaIssues(p, location+".get", gp, false, map[*base.Schema]bool{})...)
@@ -939,6 +1010,56 @@ func rootContractGroups(schema *base.Schema) ([]OneOfGroup, error) {
 		return strings.Compare(strings.Join(a.Arms, "\x00"), strings.Join(b.Arms, "\x00"))
 	})
 	return groups, nil
+}
+
+func nestedReadOnlyIssues(p Policy, location string, proxy *base.SchemaProxy, seen map[*base.Schema]bool) issue.Report {
+	if proxy == nil {
+		return nil
+	}
+	schema, err := schemaOf(proxy)
+	if err != nil || seen[schema] {
+		return nil
+	}
+	seen[schema] = true
+	object, ref, _ := validationObject(schema)
+	component := proxy
+	if ref != nil {
+		component = ref
+	}
+	var report issue.Report
+	for _, name := range propertyNames(object) {
+		child := propertyOf(object, name)
+		childSchema, childErr := schemaOf(child)
+		if childErr != nil {
+			continue
+		}
+		childLocation := location + "." + name
+		if p.skips(referencedComponent(component), name) {
+			continue // the resource does not manage this field, so it is never sent
+		}
+		if childSchema.ReadOnly != nil && *childSchema.ReadOnly {
+			// requestValue sends a fixed value, so the field is not a server-only
+			// property the renderer has to drop.
+			if p.fixedRequest(referencedComponent(component), name) {
+				continue
+			}
+			if p.Existing {
+				// A released API can share the component with the response. The request does
+				// not send the field, so it is computed.
+				continue
+			}
+			report = append(report, issue.Issue{Code: "FIELD_LIFECYCLE_UNSUPPORTED", Location: childLocation, Message: "A nested request field is readOnly and cannot be removed by the current resource renderer.", Remediation: "Use separate request and response schemas so server-only fields are absent from request objects."})
+			continue
+		}
+		report = append(report, nestedReadOnlyIssues(p, childLocation, child, seen)...)
+	}
+	if object.Items != nil && object.Items.IsA() {
+		report = append(report, nestedReadOnlyIssues(p, location+"[]", object.Items.A, seen)...)
+	}
+	if object.AdditionalProperties != nil && object.AdditionalProperties.IsA() {
+		report = append(report, nestedReadOnlyIssues(p, location+"{}", object.AdditionalProperties.A, seen)...)
+	}
+	return report
 }
 
 // fieldTypeIssues merges the Create and Update types of a field into its type

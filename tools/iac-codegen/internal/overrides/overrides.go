@@ -97,6 +97,9 @@ type API struct {
 	UpdateIDInBody bool `yaml:"updateIDInBody"`
 	// ClientSetID: the client can send the id on Create.
 	ClientSetID bool `yaml:"clientSetID"`
+	// ServerSetID: the server sets the id and returns it in every response, but the Get
+	// response cannot require it, because the request shares the resource schema.
+	ServerSetID bool `yaml:"serverSetID"`
 	// CustomMethods: Get, Update, and Delete are not the Create path with an id.
 	// Get and Delete each have the same {id} path parameter on their own paths.
 	// Update has no path parameter, and the id stays in the body. New resources
@@ -313,6 +316,9 @@ func (f *File) checkTypes() error {
 
 // check checks that a Delete override names its operation, and that only one line names it.
 func (a API) check() error {
+	if a.ClientSetID && a.ServerSetID {
+		return errors.New("api.clientSetID and api.serverSetID both describe the id: keep the one that states who sets it")
+	}
 	if a.Delete != nil && a.Delete.Operation == "" {
 		return errors.New("api.delete.operation is required")
 	}
@@ -524,6 +530,7 @@ func (f *File) Policy() model.Policy {
 		RequestWrapper:   f.API.RequestWrapper,
 		UpdateIDInBody:   f.API.UpdateIDInBody,
 		ClientSetID:      f.API.ClientSetID,
+		ServerSetID:      f.API.ServerSetID,
 		CustomMethods:    f.API.CustomMethods,
 		UpdateMaskInBody: f.API.UpdateMaskInBody,
 		// Parse checked that the file states validators.inferred.
@@ -553,6 +560,9 @@ func (f *File) Policy() model.Policy {
 			}
 			if t.Fields[field].Skip {
 				p.Skip = append(p.Skip, name+"."+field)
+			}
+			if t.Fields[field].RequestValue != "" {
+				p.FixedRequest = append(p.FixedRequest, name+"."+field)
 			}
 			if t.Fields[field].ReadOnly {
 				p.ReadOnly = append(p.ReadOnly, name+"."+field)

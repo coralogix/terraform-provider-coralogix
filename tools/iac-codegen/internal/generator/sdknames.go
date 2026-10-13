@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
@@ -163,6 +164,12 @@ func (s *resolver) bodyFields(r *model.Resource, resource string) error {
 		s.add(sdkRef{Path: "update.body." + r.UpdateMask, Kind: kindField, Owner: s.bodies["update"], Name: goFieldName(r.UpdateMask),
 			Want: "*string", WantValue: "string", Rule: ruleProperty})
 	}
+	if id := serverSetBodyID(r); id != nil && r.Policy.RequestWrapper == "" {
+		// No Update field sends a server-set id, so Update sets this field of the body itself.
+		if err := s.field("update.body."+id.Name, s.bodies["update"], id.Name, id.Type, true); err != nil {
+			return err
+		}
+	}
 	if wrapper := r.Policy.RequestWrapper; wrapper != "" {
 		for _, name := range []string{"create", "update"} {
 			s.add(sdkRef{Path: name + ".body." + wrapper, Kind: kindField, Owner: s.bodies[name], Name: goFieldName(wrapper),
@@ -281,7 +288,7 @@ func (s *resolver) operation(r *model.Resource, name string, op model.Operation,
 		Want: "func() (*" + resp + ", *http.Response, error)", Rule: ruleOperationID})
 	if op.Response.Field != "" {
 		s.add(sdkRef{Path: path + ".response." + op.Response.Field, Kind: kindField, Owner: resp,
-			Name: goFieldName(op.Response.Field), Want: "*" + goTypeName(r.Name), Rule: ruleProperty})
+			Name: goFieldName(op.Response.Field), Want: "*" + goTypeName(r.Name), WantValue: goTypeName(r.Name), Rule: ruleProperty})
 	}
 	return nil
 }
@@ -457,3 +464,16 @@ func camelize(s string) string {
 }
 
 func lowerFirst(s string) string { return strings.ToLower(s[:1]) + s[1:] }
+
+// serverSetBodyID returns the id field when Update carries the id in its body and no Update field
+// sends it, because only the server sets it. It returns nil otherwise.
+func serverSetBodyID(r *model.Resource) *model.ResourceField {
+	if r.Singleton || !r.Policy.UpdateIDInBody {
+		return nil
+	}
+	i := slices.IndexFunc(r.Fields, func(f *model.ResourceField) bool { return f.Name == r.IDParam })
+	if i < 0 || r.Fields[i].Update != nil {
+		return nil
+	}
+	return r.Fields[i]
+}

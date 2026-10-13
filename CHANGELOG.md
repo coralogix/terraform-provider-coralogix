@@ -7,9 +7,19 @@
 #### resource/coralogix_view_folder
 - CHORE: The resource is generated from the API contract. Schema version stays 1. `id` stays computed and keeps its value when the folder is renamed. `name` stays required and must be between 1 and 100 characters.
 
+#### resource/coralogix_slo_v2
+- CHORE: Bump `coralogix-management-sdk` to the SLO contract that marks server-set fields read-only and requires the APM latency `time_window`.
+
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.26`.
+- FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.
+- FEAT: `api.serverSetID: true` accepts a server-set id that the Get response does not require, because the request shares the schema. The generated flatten fails when the id is missing. The id must be read-only, or absent, in the Create and Update bodies, also when a body is `allOf: [$ref]`.
+- FIX: An Update with the id in its body sends a server-set id, in the resource that the body wraps or in the body itself. Before, no Update field sent it, so the update request had no id.
+- FEAT: In existing-resource mode, Create and Update can take one request body type, and a response can hold the resource in a required (value) field.
+- FEAT: In existing-resource mode, a read-only field inside a component that the request shares with the response is computed, and the request does not send it. Before, it was an attribute that the user could set, or generation failed.
+- FIX: A request body, or a `requestWrapper` property, written as `allOf: [$ref]` reads as the referenced schema in validation and in the model. Before, `clientSetID` and `updateIDInBody` reported the id missing, and the model sent none of the fields.
+- FIX: A field line on a component that the user sets in one place gives a read-only copy of that component only its text. Before, `required: true` and `computed: false` failed generation with "required: true needs a field that the user sets", and a `default` or `useStateForUnknown` planned a value the server does not set.
 - FEAT: An existing resource whose Update sends the id only in the body (`updateIDInBody`) can have a Create body without the id. The id is computed, and Update sends the value from state.
-- FEAT: A `readOnly` field inside a component that the request shares with the response is computed: flatten reads it, and expand does not send it.
 - FIX: An inline request body gets the `1` suffix only when a component of the same name is in the same per-tag SDK package, as openapi-generator names it, including components that only a parameter of the tag uses.
 - FIX: Generated Read, Update, and Delete treat only a resource-not-found 404 (`cxsdk.IsNotFound`) as a missing resource. A 404 of a route that does not exist, for example in a region without the service, is now an error and no longer removes the resource from state. This applies to every generated resource: `coralogix_configuration_group`, `coralogix_connector`, `coralogix_global_router`, `coralogix_preset`, `coralogix_view`, and `coralogix_view_folder`.
 - FEAT: A server default can sit next to an enum `$ref`, and Get can state it with the same default instead of `required`. An omitted value then reads as null.

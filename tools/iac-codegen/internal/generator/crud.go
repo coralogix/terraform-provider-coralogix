@@ -30,6 +30,11 @@ type crudData struct {
 	Replace bool
 	// UpdateIDInBody: the Update call takes no id. The id is a field of the body.
 	UpdateIDInBody bool
+	// UpdateBodyID is the SDK path of the body id, for example "Thing.Id", when only the server
+	// sets the id, so no Update field sends it. Update copies the state id there. "" otherwise.
+	UpdateBodyID string
+	// UpdateBodyIDValue: that body field is a value, not a pointer.
+	UpdateBodyIDValue bool
 	// Existing: the resource has users. The package exports Flatten for a handwritten data source.
 	Existing bool
 	// UpdateOnly are the attributes that Create cannot send. Create follows with an Update
@@ -82,6 +87,9 @@ type crudOp struct {
 	Method   string
 	Body     string // request builder method that sets the body; "" when there is no body
 	Response string // response field that holds the resource; "" when there is none, or the response is the resource
+	// ResponseValue: the response field is a value, not a pointer. openapi-generator uses a value
+	// for a required field.
+	ResponseValue bool
 }
 
 // buildCRUD maps the operations and their SDK names to the template data.
@@ -128,6 +136,9 @@ func buildCRUDWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*cru
 		out.UpdateOnly = append(out.UpdateOnly, updateOnlyAttr{Attr: tfName(f.Name), Default: value})
 	}
 	if err := resourceIDData(r, ix, out); err != nil {
+		return nil, err
+	}
+	if err := updateIDFromState(r, ix, out); err != nil {
 		return nil, err
 	}
 	if file != nil {
@@ -190,6 +201,26 @@ func resourceIDData(r *model.Resource, ix *refIndex, out *crudData) error {
 	return nil
 }
 
+// updateIDFromState decides how an Update with the id in its body sends the id. A client-set
+// id is an Update field. A server-set id is not, so Update copies the state id into the body:
+// into the resource that the body wraps, whose id field resourceIDData checked, or into the
+// id field of the body itself.
+func updateIDFromState(r *model.Resource, ix *refIndex, out *crudData) error {
+	if serverSetBodyID(r) == nil {
+		return nil
+	}
+	if wrapper := r.Policy.RequestWrapper; wrapper != "" {
+		out.UpdateBodyID, out.UpdateBodyIDValue = goFieldName(wrapper)+"."+out.IDField, out.IDValue
+		return nil
+	}
+	id, err := ix.fieldRef("update.body." + r.IDParam)
+	if err != nil {
+		return err
+	}
+	out.UpdateBodyID, out.UpdateBodyIDValue = id.Name, id.Want == out.IDGoType
+	return nil
+}
+
 func updateExtras(ix *refIndex, r *model.Resource, out *crudData) error {
 	if r.Replace || r.MaskInBody {
 		return nil
@@ -246,10 +277,10 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string) (crudOp, err
 		if err != nil {
 			return out, err
 		}
-		if field.Want != "*"+resource {
+		if field.Want != "*"+resource && field.Want != resource {
 			return out, fmt.Errorf("SDK field %s has type %s, want *%s", field.sdkName(), field.Want, resource)
 		}
-		out.Response = field.Name
+		out.Response, out.ResponseValue = field.Name, field.Want == resource
 	}
 	return out, nil
 }

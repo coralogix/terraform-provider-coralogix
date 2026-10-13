@@ -78,7 +78,13 @@ type CustomThingsServiceAPIService struct{}
 
 type ApiCustomThingsServiceCreateCustomThingRequest struct{}
 type ApiCustomThingsServiceGetThingRequest struct{}
-type ApiCustomThingsServiceReplaceCustomThingRequest struct{}
+type ApiCustomThingsServiceReplaceCustomThingRequest struct {
+	body ReplaceCustomThingRequest
+}
+
+// Replaced lists the bodies that the replace call received. The call returns the thing it received.
+var Replaced []ReplaceCustomThingRequest
+
 type ApiCustomThingsServiceDeleteCustomThingRequest struct{}
 
 func (*CustomThingsServiceAPIService) CustomThingsServiceCreateCustomThing(ctx context.Context) ApiCustomThingsServiceCreateCustomThingRequest {
@@ -107,7 +113,7 @@ func (r ApiCustomThingsServiceCreateCustomThingRequest) CreateCustomThingRequest
 }
 
 func (r ApiCustomThingsServiceReplaceCustomThingRequest) ReplaceCustomThingRequest(replaceCustomThingRequest ReplaceCustomThingRequest) ApiCustomThingsServiceReplaceCustomThingRequest {
-	_ = replaceCustomThingRequest
+	r.body = replaceCustomThingRequest
 	return r
 }
 
@@ -119,8 +125,9 @@ func (ApiCustomThingsServiceGetThingRequest) Execute() (*GetCustomThingResponse,
 	return nil, nil, nil
 }
 
-func (ApiCustomThingsServiceReplaceCustomThingRequest) Execute() (*ReplaceCustomThingResponse, *http.Response, error) {
-	return nil, nil, nil
+func (r ApiCustomThingsServiceReplaceCustomThingRequest) Execute() (*ReplaceCustomThingResponse, *http.Response, error) {
+	Replaced = append(Replaced, r.body)
+	return &ReplaceCustomThingResponse{Thing: r.body.Thing}, nil, nil
 }
 
 func (ApiCustomThingsServiceDeleteCustomThingRequest) Execute() (map[string]interface{}, *http.Response, error) {

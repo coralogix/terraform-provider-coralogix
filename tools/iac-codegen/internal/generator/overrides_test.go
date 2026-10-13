@@ -652,3 +652,127 @@ func TestModeLinesReplaceTheContractDefault(t *testing.T) {
 		t.Fatalf("required line: err = %v, want OVERRIDE_UNUSED", err)
 	}
 }
+
+// legacySpecWithReadOnlyCopy adds a read-only field to the legacy resource that holds the
+// component of a field that the user sets, as an API returns a server copy of a request value.
+func legacySpecWithReadOnlyCopy(t *testing.T, component string) []byte {
+	t.Helper()
+	old := "        createTime: {type: string, format: date-time, readOnly: true}\n"
+	spec := string(legacySpec(t))
+	if !strings.Contains(spec, old) {
+		t.Fatal("testdata/legacy.yaml has no createTime")
+	}
+	return []byte(strings.Replace(spec, old, old+"        lastRule: {allOf: [{$ref: '#/components/schemas/"+component+"'}], readOnly: true}\n", 1))
+}
+
+// required: true states the mode of the field that the user sets. The read-only copy of the
+// same component stays computed.
+func TestRequiredLineKeepsAReadOnlyCopyComputed(t *testing.T) {
+	spec := legacySpecWithReadOnlyCopy(t, "LegacyRule")
+	validated, err := validateOpenAPIWith(spec, "LegacyThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, legacyOverrides))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := buildTFResourceWith(validated.resource, "generated", validated.overrides)
+	if err != nil {
+		t.Fatal(err)
+	}
+	managed := attrAt(t, out.Attributes, "rules", "name")
+	copied := attrAt(t, out.Attributes, "last_rule", "name")
+	if !managed.Required || managed.Computed {
+		t.Errorf("rules.name required=%t computed=%t, want required", managed.Required, managed.Computed)
+	}
+	if copied.Required || copied.Optional || !copied.Computed || copied.Description != "The rule name." {
+		t.Errorf("last_rule.name required=%t optional=%t computed=%t description=%q, want computed with the line's text", copied.Required, copied.Optional, copied.Computed, copied.Description)
+	}
+	// kind: {computed: true, default: alpha}. A default on the read-only copy would plan a value
+	// that the server does not set.
+	if kind := attrAt(t, out.Attributes, "rules", "kind"); kind.Default == "" {
+		t.Errorf("rules.kind has no default, want the line's default")
+	}
+	if kind := attrAt(t, out.Attributes, "last_rule", "kind"); kind.Default != "" || len(kind.Modifiers) != 0 {
+		t.Errorf("last_rule.kind default=%q modifiers=%v, want neither", kind.Default, kind.Modifiers)
+	}
+}
+
+// A component that only a read-only field holds has no field that the user sets, so
+// required: true on it is still an error.
+func TestRequiredLineOnlyOnAReadOnlyCopyIsAnError(t *testing.T) {
+	spec := legacySpecWithReadOnlyCopy(t, "LegacyLabels")
+	spec = []byte(strings.Replace(string(spec), "        labels: {$ref: '#/components/schemas/LegacyLabels'}\n", "", 1))
+	file := mustParse(t, strings.Replace(legacyOverrides, "      labels: {readEmptyAs: \"null\"}\n", "", 1))
+	file.Types["LegacyLabels"].Fields["env"] = overrides.Field{Required: true}
+	_, err := validateOpenAPIWith(spec, "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err == nil || !strings.Contains(err.Error(), "required: true needs a field that the user sets") {
+		t.Fatalf("err = %v, want an error about a required and computed field", err)
+	}
+}
+
+// attrAt returns the attribute at the Terraform path names.
+func attrAt(t *testing.T, attrs []*tfAttr, names ...string) *tfAttr {
+	t.Helper()
+	var a *tfAttr
+	for _, name := range names {
+		i := slices.IndexFunc(attrs, func(a *tfAttr) bool { return a.Name == name })
+		if i < 0 {
+			t.Fatalf("no attribute %q in %v", name, names)
+		}
+		a = attrs[i]
+		attrs = a.Attributes
+	}
+	return a
+}
+
+// serverSetID: a released API returns a server-set id that its contract does not require. The
+// generated flatten then checks the id, as it does for a client-set one. An id that Get requires
+// needs no check, and serverSetID on it is an error.
+func TestExistingResourceChecksAnOptionalServerSetID(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "legacy-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := strings.Replace(string(data), "  clientSetID: true\n", "  serverSetID: true\n", 1)
+	text = strings.Replace(text, "      id:\n", "      id:\n        readOnly: true\n", 1)
+	if strings.Count(text, "serverSetID")+strings.Count(text, "readOnly: true") != 2 {
+		t.Fatal("testdata/legacy-overrides.yaml has no clientSetID line or no id line")
+	}
+	overridesPath := filepath.Join(t.TempDir(), "behavior-overrides.yaml")
+	if err := os.WriteFile(overridesPath, []byte(text), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = legacySpec(t)
+	out := filepath.Join(t.TempDir(), "legacything")
+	if err := generateFromInput(Options{Resource: "LegacyThing", OutputDir: out, OverridesPath: overridesPath}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	if convert, err := os.ReadFile(filepath.Join(out, "convert.go")); err != nil || !strings.Contains(string(convert), `"Missing id"`) {
+		t.Fatalf("convert.go has no id check (err %v)", err)
+	}
+	if convert, err := os.ReadFile(filepath.Join(generateCustomThing(t), "convert.go")); err != nil || strings.Contains(string(convert), `"Missing id"`) {
+		t.Fatalf("customthing convert.go checks an id that Get requires (err %v)", err)
+	}
+}
+
+func TestServerSetIDOnARequiredIDIsAnError(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "customthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "customthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := strings.Replace(string(data), "  updateIDInBody: true\n", "  updateIDInBody: true\n  serverSetID: true\n", 1)
+	_, err = validateOpenAPIWith(spec, "CustomThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, text))
+	if got := eligibilityCodes(t, err); !slices.Contains(got, "SERVER_SET_ID_UNNEEDED") {
+		t.Fatalf("codes = %v, want SERVER_SET_ID_UNNEEDED", got)
+	}
+}
+
+func TestClientAndServerSetIDAreExclusive(t *testing.T) {
+	_, err := overrides.Parse([]byte("resource: Thing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  clientSetID: true\n  serverSetID: true\n"))
+	if err == nil || !strings.Contains(err.Error(), "serverSetID") {
+		t.Fatalf("err = %v, want an error about clientSetID and serverSetID", err)
+	}
+}
