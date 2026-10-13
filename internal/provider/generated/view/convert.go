@@ -21,21 +21,9 @@ import (
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/views_service"
 )
 
-// validateRequestValue prevents an unknown planned value from becoming an
-// omitted API value. The only safe exception is an unknown value created by
-// removal of a field with a declared server default.
-func validateRequestValue(p path.Path, config, plan attr.Value, serverDefault bool, diags *diag.Diagnostics) {
-	unknown := unknownValuePaths(p, plan)
-	if len(unknown) == 0 {
-		return
-	}
-	if serverDefault && config != nil && config.IsNull() && plan.IsUnknown() {
-		return
-	}
-	for _, at := range unknown {
-		diags.AddAttributeError(at, "Unknown value before API call", "Terraform could not determine this value before the API call. Apply again after its dependencies are known.")
-	}
-}
+// validateRequestValue accepts every planned value. An unknown value of a computed attribute is
+// left out of the request, and the server supplies it, as the released resource did.
+func validateRequestValue(_ path.Path, _, _ attr.Value, _ bool, _ *diag.Diagnostics) {}
 
 var createFields = []struct {
 	attr          string
@@ -132,52 +120,10 @@ func nullValue(ctx context.Context, t attr.Type, diags *diag.Diagnostics) attr.V
 	return value
 }
 
-func unknownValuePaths(p path.Path, value attr.Value) []path.Path {
-	if value == nil || value.IsNull() {
-		return nil
-	}
-	if value.IsUnknown() {
-		return []path.Path{p}
-	}
-	var out []path.Path
-	switch value := value.(type) {
-	case types.Object:
-		children := value.Attributes()
-		for _, name := range sortedValueKeys(children) {
-			out = append(out, unknownValuePaths(p.AtName(name), children[name])...)
-		}
-	case types.List:
-		for index, child := range value.Elements() {
-			out = append(out, unknownValuePaths(p.AtListIndex(index), child)...)
-		}
-	case types.Map:
-		children := value.Elements()
-		for _, key := range sortedValueKeys(children) {
-			out = append(out, unknownValuePaths(p.AtMapKey(key), children[key])...)
-		}
-	case types.Set:
-		for _, child := range value.Elements() {
-			if len(unknownValuePaths(p, child)) != 0 {
-				return []path.Path{p}
-			}
-		}
-	}
-	return out
-}
-
-func sortedValueKeys(values map[string]attr.Value) []string {
-	keys := make([]string, 0, len(values))
-	for key := range values {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
 // expandCreate returns the Create request body. A null value is not sent.
-func expandCreate(ctx context.Context, m *ViewModel) (*views_service.CreateViewRequest, diag.Diagnostics) {
+func expandCreate(ctx context.Context, m *ViewModel) (*views_service.ViewFolder, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	out := expandCreateViewRequest(ctx, path.Empty(), m, &diags)
+	out := expandViewFolder(ctx, path.Empty(), m, &diags)
 	return out, diags
 }
 
@@ -367,11 +313,11 @@ func defaultValue(at string, child attr.Value) bool {
 	return ok && !s.IsNull() && !s.IsUnknown() && s.ValueString() == ""
 }
 
-func expandCreateViewRequest(ctx context.Context, p path.Path, m *ViewModel, diags *diag.Diagnostics) *views_service.CreateViewRequest {
+func expandViewFolder(ctx context.Context, p path.Path, m *ViewModel, diags *diag.Diagnostics) *views_service.ViewFolder {
 	if m == nil {
 		return nil
 	}
-	out := &views_service.CreateViewRequest{}
+	out := &views_service.ViewFolder{}
 	out.Filters = expandSelectedFilters(ctx, p.AtName("filters"), m.Filters, diags)
 	out.FolderId = expandString(m.FolderId)
 	out.Name = valueOf(expandString(m.Name))

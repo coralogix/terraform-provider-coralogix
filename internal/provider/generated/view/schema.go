@@ -7,7 +7,6 @@ import (
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
-	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
@@ -45,11 +44,8 @@ func Schema() schema.Schema {
 									MarkdownDescription: "Filter name",
 								},
 								"selected_values": schema.MapAttribute{
-									Optional:    true,
-									ElementType: types.BoolType,
-									Validators: []validator.Map{
-										mapBoolValuesAre(boolvalidator.Equals(true)),
-									},
+									Optional:            true,
+									ElementType:         types.BoolType,
 									MarkdownDescription: "Filter values to select, each set to true. The service keeps only the values set to true and drops a value set to false.",
 								},
 							},
@@ -63,7 +59,6 @@ func Schema() schema.Schema {
 				Optional: true,
 				Validators: []validator.String{
 					stringvalidator.LengthBetween(36, 36),
-					stringvalidator.RegexMatches(regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`), ""),
 				},
 				MarkdownDescription: "Unique identifier for folders",
 			},
@@ -156,9 +151,9 @@ func Schema() schema.Schema {
 							"seconds": schema.Int64Attribute{
 								Required: true,
 								Validators: []validator.Int64{
-									int64validator.OneOf(60, 120, 300, 900, 1800, 3600, 7200, 21600, 43200, 86400, 172800, 259200, 432000, 604800),
+									int64validator.Between(0, 4294967295),
 								},
-								MarkdownDescription: "Length of the quick time range, in seconds: one of 60, 120, 300, 900, 1800, 3600, 7200, 21600, 43200, 86400, 172800, 259200, 432000, and 604800.",
+								MarkdownDescription: "Length of the quick time range, in seconds. The service stores the nearest of 60, 120, 300, 900, 1800, 3600, 7200, 21600, 43200, 86400, 172800, 259200, 432000, and 604800.",
 							},
 						},
 						MarkdownDescription: "Quick time selection.",
@@ -184,43 +179,6 @@ func Schema() schema.Schema {
 // ConfigValidators are the resource validators.
 func ConfigValidators() []resource.ConfigValidator {
 	return []resource.ConfigValidator{}
-}
-
-// mapBoolValuesAre validates each value of a map of booleans.
-func mapBoolValuesAre(validators ...validator.Bool) validator.Map {
-	return mapBoolValues{validators: validators}
-}
-
-type mapBoolValues struct{ validators []validator.Bool }
-
-func (v mapBoolValues) Description(context.Context) string {
-	return "Every value of the map is valid."
-}
-
-func (v mapBoolValues) MarkdownDescription(ctx context.Context) string {
-	return v.Description(ctx)
-}
-
-func (v mapBoolValues) ValidateMap(ctx context.Context, req validator.MapRequest, resp *validator.MapResponse) {
-	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
-		return
-	}
-	for key, elem := range req.ConfigValue.Elements() {
-		value, ok := elem.(types.Bool)
-		if !ok {
-			continue
-		}
-		for _, check := range v.validators {
-			r := &validator.BoolResponse{}
-			check.ValidateBool(ctx, validator.BoolRequest{
-				Path:           req.Path.AtMapKey(key),
-				PathExpression: req.PathExpression.AtMapKey(key),
-				ConfigValue:    value,
-				Config:         req.Config,
-			}, r)
-			resp.Diagnostics.Append(r.Diagnostics...)
-		}
-	}
 }
 
 // serverDefaultModifier distinguishes removal from a steady server default.

@@ -433,7 +433,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		slo_mgmt.NewSLOV2Resource,
 		dashboards.NewDashboardsFolderResource,
 		func() resource.Resource { return viewfolder.NewResource(viewfolder.Hooks{}) },
-		view.NewResource,
+		func() resource.Resource { return view.NewResource(view.Hooks{}) },
 		aaa.NewApiKeyResource,
 		aaa.NewCustomRoleSource,
 		aaa.NewGroupResource,

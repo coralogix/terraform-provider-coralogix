@@ -1,0 +1,13 @@
+resource: View
+mode: existing
+# coralogix_view has no released version, so the limits of the contract stay validators.
+validators:
+  inferred: true
+types:
+  QuickTimeSelection:
+    fields:
+      # seconds is a plain uint32, so the contract cannot state presence, and its published range
+      # starts at 0. Terraform requires the attribute and sends it every time, so omission never
+      # happens. The service stores the nearest preset, from 60 up, for any value.
+      seconds:
+        required: true

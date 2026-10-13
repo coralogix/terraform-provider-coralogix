@@ -34,14 +34,27 @@ var (
 // *clientset.ClientSet.
 type Resource struct {
 	client *views_service.ViewsServiceAPIService
+	hooks  Hooks
+}
+
+// Hooks are handwritten steps around generated CRUD. Pass them to NewResource
+// so a resource that is used without the overlay package does not silently skip them.
+type Hooks struct {
+	// BeforeWrite mutates the expanded request body before the API call.
+	BeforeWrite func(context.Context, tfsdk.Config, any) diag.Diagnostics
+	// AfterRead mutates state after flatten. prior is the plan after Create or
+	// Update, or the state before Read.
+	AfterRead func(context.Context, *tfsdk.State, any) diag.Diagnostics
 }
 
 // NewResource returns the resource. Use it in provider.Resources.
-func NewResource() resource.Resource { return &Resource{} }
+func NewResource(hooks Hooks) resource.Resource {
+	return &Resource{hooks: hooks}
+}
 
 // NewResourceWithClient returns the resource with an injected API client.
-func NewResourceWithClient(client *views_service.ViewsServiceAPIService) resource.Resource {
-	return &Resource{client: client}
+func NewResourceWithClient(client *views_service.ViewsServiceAPIService, hooks Hooks) resource.Resource {
+	return &Resource{client: client, hooks: hooks}
 }
 
 func (r *Resource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -93,6 +106,12 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+	if r.hooks.BeforeWrite != nil {
+		resp.Diagnostics.Append(r.hooks.BeforeWrite(ctx, req.Config, body)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 	resp.Diagnostics.Append(validateUpdateOnly(ctx, req.Config, req.Plan)...)
 	if resp.Diagnostics.HasError() {
@@ -231,6 +250,12 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if body != nil && r.hooks.BeforeWrite != nil {
+		resp.Diagnostics.Append(r.hooks.BeforeWrite(ctx, req.Config, body)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
 	var v *views_service.View
 	var err error
 	if body == nil {
@@ -267,8 +292,8 @@ func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp 
 
 // The API calls. Each returns the error with its HTTP status and body.
 
-func (r *Resource) create(ctx context.Context, body *views_service.CreateViewRequest) (*views_service.View, error) {
-	out, httpResp, err := r.client.ViewsServiceCreateView(ctx).CreateViewRequest(*body).Execute()
+func (r *Resource) create(ctx context.Context, body *views_service.ViewFolder) (*views_service.View, error) {
+	out, httpResp, err := r.client.ViewsServiceCreateView(ctx).ViewFolder(*body).Execute()
 	if err != nil {
 		return nil, cxsdk.NewAPIError(httpResp, err)
 	}
@@ -305,10 +330,11 @@ func (r *Resource) delete(ctx context.Context, id int32) error {
 	return cxsdk.NewAPIError(httpResp, err)
 }
 
-// setState writes the resource in an API response to the state. A value that
-// is empty in both the response and prior keeps its form from prior: the plan
-// after Create or Update, or the state before Read. flatten
-// returns an error when the response has no resource.
+// setState writes the resource in an API response to the state. A value that is empty in both
+// the response and prior keeps its form from prior: the plan after Create or Update, or the
+// state before Read. A state upgrade has no prior of this schema version, so it passes nil and
+// the state takes the value of the API. flatten returns an error when the response has no
+// resource.
 func (r *Resource) setState(ctx context.Context, v *views_service.View, prior tfData, state *tfsdk.State) diag.Diagnostics {
 	m, diags := flatten(ctx, v)
 	if diags.HasError() {
@@ -318,8 +344,19 @@ func (r *Resource) setState(ctx context.Context, v *views_service.View, prior tf
 	if diags.HasError() {
 		return diags
 	}
-	diags.Append(keepPriorEmpty(ctx, prior, state)...)
+	if prior != nil {
+		diags.Append(keepPriorEmpty(ctx, prior, state)...)
+	}
+	if r.hooks.AfterRead != nil && !diags.HasError() {
+		diags.Append(r.hooks.AfterRead(ctx, state, prior)...)
+	}
 	return diags
+}
+
+// Flatten returns the Terraform model of a resource in an API response, for a data source that
+// uses the schema and the model of this resource. It has no prior model.
+func Flatten(ctx context.Context, v *views_service.View) (*ViewModel, diag.Diagnostics) {
+	return flatten(ctx, v)
 }
 
 // stateID returns the id in the state.
