@@ -548,7 +548,6 @@ func TestNumericOverrideDefault(t *testing.T) {
 		{"Float64", 0.5, "float64default.StaticFloat64(0.5)"},
 		{"Float64", 3, "float64default.StaticFloat64(3)"},
 		{"Float64", 1e6, "float64default.StaticFloat64(1000000)"},
-		{"Float32", 0.1, "float32default.StaticFloat32(0.1)"},
 	}
 	for _, test := range tests {
 		t.Run(test.want, func(t *testing.T) {
@@ -578,7 +577,6 @@ func TestNumericOverrideDefaultMustFit(t *testing.T) {
 		{"Int64", 0.5},
 		{"String", 0},
 		{"Bool", 1},
-		{"Float32", 1e39},
 		{"Float64", math.Inf(1)},
 		{"Float64", math.NaN()},
 	}

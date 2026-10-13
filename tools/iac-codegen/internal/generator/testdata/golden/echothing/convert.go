@@ -357,6 +357,8 @@ func expandDetail(ctx context.Context, p path.Path, m *DetailModel, diags *diag.
 	}
 	out := &echo_things_service.Detail{}
 	out.Text = valueOf(expandString(m.Text))
+	out.Ratio = expandFloat32(m.Ratio)
+	out.Buckets = expandElements[float32](ctx, p.AtName("buckets"), m.Buckets, diags)
 	return out
 }
 
@@ -366,12 +368,16 @@ func flattenDetail(ctx context.Context, p path.Path, v *echo_things_service.Deta
 	}
 	out := &DetailModel{}
 	out.Text = types.StringPointerValue(&v.Text)
+	out.Ratio = flattenFloat32(v.Ratio)
+	out.Buckets = flattenScalarsList(ctx, types.Float64Type, widenFloat32s(v.Buckets), diags)
 	return out
 }
 
 func detailAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"text": types.StringType,
+		"text":    types.StringType,
+		"ratio":   types.Float64Type,
+		"buckets": types.ListType{ElemType: types.Float64Type},
 	}
 }
 
@@ -658,4 +664,63 @@ func expandInt32(v types.Int32) *int32 {
 	}
 	n := v.ValueInt32()
 	return &n
+}
+
+func expandFloat32(v types.Float64) *float32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	f := float32(v.ValueFloat64())
+	return &f
+}
+
+func flattenFloat32(v *float32) types.Float64 {
+	if v == nil {
+		return types.Float64Null()
+	}
+	return types.Float64Value(widenFloat32(*v))
+}
+
+// widenFloat32 returns the float64 of the shortest decimal that reads back as v. A plain
+// float64(v) shows the rounding of float32 (0.1 → 0.10000000149011612), which would never
+// equal the configured value.
+func widenFloat32(v float32) float64 {
+	f, _ := strconv.ParseFloat(strconv.FormatFloat(float64(v), 'g', -1, 32), 64)
+	return f
+}
+
+func widenFloat32s(v []float32) []float64 {
+	if v == nil {
+		return nil
+	}
+	out := make([]float64, len(v))
+	for i, f := range v {
+		out[i] = widenFloat32(f)
+	}
+	return out
+}
+
+func widenFloat32Map(v map[string]float32) map[string]float64 {
+	if v == nil {
+		return nil
+	}
+	out := make(map[string]float64, len(v))
+	for k, f := range v {
+		out[k] = widenFloat32(f)
+	}
+	return out
+}
+
+func flattenScalarsList[T any](ctx context.Context, elem attr.Type, v []T, diags *diag.Diagnostics) types.List {
+	if v == nil {
+		return types.ListNull(elem)
+	}
+	return flattenList(ctx, elem, v, diags)
+}
+
+func flattenScalarsSet[T any](ctx context.Context, elem attr.Type, v []T, diags *diag.Diagnostics) types.Set {
+	if v == nil {
+		return types.SetNull(elem)
+	}
+	return flattenSet(ctx, elem, v, diags)
 }

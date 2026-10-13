@@ -19,7 +19,9 @@ type QuotaModel struct {
 }
 
 type DetailModel struct {
-	Text types.String `tfsdk:"text"`
+	Text    types.String  `tfsdk:"text"`
+	Ratio   types.Float64 `tfsdk:"ratio"`
+	Buckets types.List    `tfsdk:"buckets"`
 }
 
 type EchoItemModel struct {

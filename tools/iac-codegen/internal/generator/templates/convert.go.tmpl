@@ -1194,12 +1194,51 @@ func expandInt64(v types.Int64) *int64 {
 {{- end}}
 {{- if .Conv.Uses "float32"}}
 
-func expandFloat32(v types.Float32) *float32 {
+func expandFloat32(v types.Float64) *float32 {
 	if v.IsNull() || v.IsUnknown() {
 		return nil
 	}
-	f := v.ValueFloat32()
+	f := float32(v.ValueFloat64())
 	return &f
+}
+
+func flattenFloat32(v *float32) types.Float64 {
+	if v == nil {
+		return types.Float64Null()
+	}
+	return types.Float64Value(widenFloat32(*v))
+}
+{{- end}}
+{{- if .Conv.UsesFloat32}}
+
+// widenFloat32 returns the float64 of the shortest decimal that reads back as v. A plain
+// float64(v) shows the rounding of float32 (0.1 → 0.10000000149011612), which would never
+// equal the configured value.
+func widenFloat32(v float32) float64 {
+	f, _ := strconv.ParseFloat(strconv.FormatFloat(float64(v), 'g', -1, 32), 64)
+	return f
+}
+
+func widenFloat32s(v []float32) []float64 {
+	if v == nil {
+		return nil
+	}
+	out := make([]float64, len(v))
+	for i, f := range v {
+		out[i] = widenFloat32(f)
+	}
+	return out
+}
+
+func widenFloat32Map(v map[string]float32) map[string]float64 {
+	if v == nil {
+		return nil
+	}
+	out := make(map[string]float64, len(v))
+	for k, f := range v {
+		out[k] = widenFloat32(f)
+	}
+	return out
 }
 {{- end}}
 {{- if .Conv.Uses "scalars"}}
@@ -1376,11 +1415,11 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- else if eq .Conv "int64"}}
 	out.{{.Model}} = types.Int64PointerValue({{$v}})
 {{- else if eq .Conv "float32"}}
-	out.{{.Model}} = types.Float32PointerValue({{$v}})
+	out.{{.Model}} = flattenFloat32({{$v}})
 {{- else if eq .Conv "scalars"}}
-	out.{{.Model}} = flattenScalars{{.Collection}}(ctx, {{.ElemType}}, {{.Src}}, diags)
+	out.{{.Model}} = flattenScalars{{.Collection}}(ctx, {{.ElemType}}, {{if eq .SDKType "float32"}}widenFloat32s({{.Src}}){{else}}{{.Src}}{{end}}, diags)
 {{- else if eq .Conv "scalarmap"}}
-	out.{{.Model}} = flattenScalarMap(ctx, {{.ElemType}}, {{.Src}}, diags)
+	out.{{.Model}} = flattenScalarMap(ctx, {{.ElemType}}, {{if eq .SDKType "float32"}}widenFloat32Map({{.Src}}){{else}}{{.Src}}{{end}}, diags)
 {{- else if eq .Conv "uint64"}}
 	out.{{.Model}} = flattenUint64({{$p}}, {{$v}}, diags)
 {{- else if eq .Conv "time"}}

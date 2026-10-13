@@ -185,7 +185,7 @@ const (
 
 	convInt32   = "int32"   // types.Int32 ↔ *int32
 	convInt64   = "int64"   // types.Int64 ↔ *int64 (signed, a JSON number)
-	convFloat32 = "float32" // types.Float32 ↔ *float32
+	convFloat32 = "float32" // types.Float64 ↔ *float32, widened through the shortest decimal
 	convScalars = "scalars" // types.List/Set ↔ []bool, []int32, []int64, []float32, []float64
 
 	convStringMap = "stringmap" // types.Map ↔ map[string]string or map[string]<enum type>
@@ -292,6 +292,19 @@ func (d *convData) Uses(conv string) bool {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
 			if f.Conv == conv {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// UsesFloat32 reports whether a field holds float32 values, alone or in a list, set, or map.
+// The template then emits the helpers that widen them.
+func (d *convData) UsesFloat32() bool {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.Conv == convFloat32 || (f.Conv == convScalars || f.Conv == convScalarMap) && f.SDKType == "float32" {
 				return true
 			}
 		}
@@ -1215,7 +1228,7 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 // scalarAttrTypes are the Terraform attribute types of the scalar kinds.
 var scalarAttrTypes = map[string]string{
 	convString: "types.StringType", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
-	convBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
+	convBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float64Type",
 	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type",
 	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}",
 }
@@ -1313,7 +1326,8 @@ func scalarElem(t *model.Type) (goType, elem string, ok bool) {
 	case t.Kind == model.Number && t.Format == "double":
 		return "float64", "types.Float64Type", true
 	case t.Kind == model.Number && t.Format == "float":
-		return "float32", "types.Float32Type", true
+		// A float32 is a Float64 attribute, as for a single value (see floatKind).
+		return "float32", "types.Float64Type", true
 	case t.Kind == model.Integer && !t.WireString && t.Format == "int64":
 		return "int64", "types.Int64Type", true
 	case t.Kind == model.Integer && !t.WireString && t.Format == "int32":

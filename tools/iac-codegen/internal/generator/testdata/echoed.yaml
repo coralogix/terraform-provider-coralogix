@@ -4,7 +4,7 @@
 # internal flag that the resource does not manage. Create takes the quota limit flat
 # (limitValue), while Replace and Get hold it in quota; the server sets quota.exceeded. Each item
 # requires values, which may be empty, has an enabled flag with no presence, and a oneOf with an
-# empty "none" marker.
+# empty "none" marker. The detail of an item holds float32 numbers.
 openapi: 3.1.0
 info: {title: echoed, version: 1.0.0}
 paths:
@@ -140,3 +140,7 @@ components:
       required: [text]
       properties:
         text: {type: string, minLength: 1}
+        ratio: {type: number, format: float, x-coralogix-presence: true}
+        buckets:
+          type: array
+          items: {type: number, format: float}

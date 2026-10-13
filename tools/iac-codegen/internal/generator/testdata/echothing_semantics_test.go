@@ -198,3 +198,43 @@ func TestReadTakesTheResourceFromAValueField(t *testing.T) {
 		t.Fatalf("name = %q, want name", name)
 	}
 }
+
+// Read shows a float32 as the shortest decimal that it holds: 0.1, not 0.10000000149011612,
+// which would never equal the configured value. Create sends the configured value as a float32.
+func TestFloat32ReadsBackAsItsShortestDecimal(t *testing.T) {
+	ctx := context.Background()
+	schemaResp, root := thingSchema(t)
+	echo_things_service.Answer = echo_things_service.EchoThing{Id: "thing-1", Name: "name", Items: []echo_things_service.EchoItem{{
+		Key: "k", Detail: &echo_things_service.Detail{Text: "t", Ratio: ptr(float32(0.1)), Buckets: []float32{0.1, 2.5}},
+	}}}
+	r := &Resource{client: &echo_things_service.EchoThingsServiceAPIService{}}
+	state := tfsdk.State{Schema: schemaResp.Schema, Raw: thingValue(root, "thing-1", "name")}
+	resp := &frameworkresource.ReadResponse{State: state}
+	r.Read(ctx, frameworkresource.ReadRequest{State: state}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	detail := path.Root("entries").AtListIndex(0).AtName("detail")
+	var ratio float64
+	var buckets []float64
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, detail.AtName("ratio"), &ratio)...)
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, detail.AtName("buckets"), &buckets)...)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	if ratio != 0.1 || len(buckets) != 2 || buckets[0] != 0.1 || buckets[1] != 2.5 {
+		t.Fatalf("ratio %v, buckets %v, want 0.1 and [0.1 2.5]", ratio, buckets)
+	}
+
+	echo_things_service.Created = nil
+	plan := resp.State.Raw.Copy()
+	r.Create(ctx, frameworkresource.CreateRequest{Plan: tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan}, Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: plan}},
+		&frameworkresource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema}})
+	if len(echo_things_service.Created) != 1 {
+		t.Fatalf("Create calls = %d, want 1", len(echo_things_service.Created))
+	}
+	sent := echo_things_service.Created[0].Items[0].Detail
+	if sent == nil || sent.Ratio == nil || *sent.Ratio != float32(0.1) || len(sent.Buckets) != 2 || sent.Buckets[0] != float32(0.1) {
+		t.Fatalf("Create detail = %+v, want ratio 0.1 and buckets [0.1 2.5] as float32", sent)
+	}
+}

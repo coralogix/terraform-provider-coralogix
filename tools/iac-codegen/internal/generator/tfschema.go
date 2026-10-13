@@ -469,28 +469,24 @@ func defaultExpr(a *tfAttr, value any) (string, error) {
 				return "", fmt.Errorf("the default %d does not fit an Int32 attribute", v)
 			}
 			return fmt.Sprintf("int32default.StaticInt32(%d)", v), nil
-		case "Float64", "Float32":
-			return floatDefaultExpr(a.Kind, float64(v))
+		case "Float64":
+			return floatDefaultExpr(float64(v))
 		}
 	case float64:
-		if a.Kind == "Float64" || a.Kind == "Float32" {
-			return floatDefaultExpr(a.Kind, v)
+		if a.Kind == "Float64" {
+			return floatDefaultExpr(v)
 		}
 	}
 	return "", fmt.Errorf("a default of type %T does not fit a %s attribute", value, a.Kind)
 }
 
-// floatDefaultExpr is the Go expression of a static default of a Float64 or Float32 attribute.
-func floatDefaultExpr(kind string, v float64) (string, error) {
-	bits := 64
-	if kind == "Float32" {
-		bits = 32
-	}
-	if math.IsNaN(v) || math.IsInf(v, 0) || bits == 32 && math.Abs(v) > math.MaxFloat32 {
-		return "", fmt.Errorf("the default %v does not fit a %s attribute", v, kind)
+// floatDefaultExpr is the Go expression of a static default of a Float64 attribute.
+func floatDefaultExpr(v float64) (string, error) {
+	if math.IsNaN(v) || math.IsInf(v, 0) {
+		return "", fmt.Errorf("the default %v does not fit a Float64 attribute", v)
 	}
 	// 'f' writes a Go literal, and the state text of the value, that the acceptance test compares.
-	return fmt.Sprintf("%sdefault.Static%s(%s)", strings.ToLower(kind), kind, strconv.FormatFloat(v, 'f', -1, bits)), nil
+	return fmt.Sprintf("float64default.StaticFloat64(%s)", strconv.FormatFloat(v, 'f', -1, 64)), nil
 }
 
 // validatorExpr is the Go expression of a released validator.
@@ -631,15 +627,15 @@ func serverDefaultValue(t *model.Type, value string) (string, error) {
 		return fmt.Sprintf("types.BoolValue(%t)", parsed), nil
 	case model.Number:
 		bits := 64
-		kind := "Float64"
 		if t.Format == "float" {
-			bits, kind = 32, "Float32"
+			bits = 32
 		}
 		parsed, err := strconv.ParseFloat(value, bits)
 		if err != nil {
 			return "", fmt.Errorf("%q is not a %s", value, t.Format)
 		}
-		return fmt.Sprintf("types.%sValue(%s)", kind, strconv.FormatFloat(parsed, 'g', -1, bits)), nil
+		// The shortest decimal of a float32 is the value that flatten widens it to.
+		return fmt.Sprintf("types.Float64Value(%s)", strconv.FormatFloat(parsed, 'g', -1, bits)), nil
 	case model.Integer:
 		bits := 64
 		kind := "Int64"
@@ -1067,9 +1063,6 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 		goType = "types.Bool"
 	case model.Number:
 		goType = "types.Float64"
-		if t.Format == "float" {
-			goType = "types.Float32"
-		}
 	case model.Integer:
 		goType = "types.Int64"
 		if t.Format == "int32" {
@@ -1115,13 +1108,12 @@ func scalar(t *model.Type) (string, []string, error) {
 	case model.Bool:
 		return "Bool", nil, nil
 	case model.Number:
-		// float is a Float32 attribute. In a Float64 attribute, a float32
-		// value would read back with other digits (0.1 → 0.10000000149).
+		// float is a Float64 attribute too. Flatten widens a float32 through its shortest
+		// decimal, so 0.1 reads back as 0.1. A Float32 attribute keeps float64(float32(0.1)),
+		// 0.10000000149, which never equals the configured value.
 		switch t.Format {
-		case "double":
+		case "double", "float":
 			return "Float64", rangeValidator("float64validator", t.Minimum, t.Maximum, formatFloat), nil
-		case "float":
-			return "Float32", rangeValidator("float32validator", t.Minimum, t.Maximum, formatFloat), nil
 		}
 		return "", nil, fmt.Errorf("number format %q is not supported", t.Format)
 	case model.Integer:

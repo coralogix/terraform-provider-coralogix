@@ -28,7 +28,9 @@ type EchoItem struct {
 }
 
 type Detail struct {
-	Text string
+	Text    string
+	Ratio   *float32
+	Buckets []float32
 }
 
 type CreateEchoThingRequest struct {

@@ -77,6 +77,15 @@ func Schema() schema.Schema {
 									Required:            true,
 									MarkdownDescription: "",
 								},
+								"ratio": schema.Float64Attribute{
+									Optional:            true,
+									MarkdownDescription: "",
+								},
+								"buckets": schema.ListAttribute{
+									Optional:            true,
+									ElementType:         types.Float64Type,
+									MarkdownDescription: "",
+								},
 							},
 							MarkdownDescription: "",
 						},
