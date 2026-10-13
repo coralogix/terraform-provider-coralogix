@@ -697,18 +697,8 @@ func scalarValue(a *tfAttr, mode accMode) (hcl, state string, err error) {
 	switch a.Kind {
 	case "Bool":
 		v := !updated
-		if only, ok := onlyBool(a); ok {
-			v = only // the API keeps one value: the update config keeps it too
-		}
 		return strconv.FormatBool(v), strconv.FormatBool(v), nil
 	case "Int64", "Int32":
-		if values := oneOfIntegers(a); len(values) != 0 {
-			v := values[0]
-			if updated && len(values) > 1 {
-				v = values[1]
-			}
-			return v, v, nil
-		}
 		full, next := numberValues(a, 1)
 		if updated {
 			full = next
@@ -754,38 +744,6 @@ func checkOneElement(a *tfAttr) error {
 			m[1] == "SizeBetween" && len(bounds) == 2 && bounds[0] <= 1 && bounds[1] >= 1
 		if !fits {
 			return fmt.Errorf("one made-up element does not pass %s: set the value in %s", v, acceptance.FileName)
-		}
-	}
-	return nil
-}
-
-// boolEquals matches the validator of a boolean that accepts one value, such as
-// boolvalidator.Equals(true).
-var boolEquals = regexp.MustCompile(`^boolvalidator\.Equals\((true|false)\)$`)
-
-// onlyBool returns the one value that a boolean attribute accepts.
-func onlyBool(a *tfAttr) (bool, bool) {
-	for _, v := range a.Validators {
-		if m := boolEquals.FindStringSubmatch(v); m != nil {
-			return m[1] == "true", true
-		}
-	}
-	return false, false
-}
-
-// oneOfCall matches the validator of an integer that accepts listed values, such as
-// int64validator.OneOf(60, 120).
-var oneOfCall = regexp.MustCompile(`^int(?:32|64)validator\.OneOf\((.*)\)$`)
-
-// oneOfIntegers returns the values that an integer attribute accepts, in order, or nil.
-func oneOfIntegers(a *tfAttr) []string {
-	for _, v := range a.Validators {
-		if m := oneOfCall.FindStringSubmatch(v); m != nil {
-			var out []string
-			for _, arg := range strings.Split(m[1], ",") {
-				out = append(out, strings.TrimSpace(arg))
-			}
-			return out
 		}
 	}
 	return nil

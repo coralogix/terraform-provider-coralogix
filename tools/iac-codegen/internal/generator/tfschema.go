@@ -43,9 +43,6 @@ type tfResource struct {
 	// of ComputedPaths. A request does not send an unknown value of one: the server stores
 	// the default.
 	DefaultPaths []defaultPath
-	// MapBoolValues is true when a map of booleans validates its values. The schema file then
-	// defines mapBoolValuesAre.
-	MapBoolValues bool
 	// SchemaVersion and ResourceMarkdownDescription are the released schema version and the
 	// released description of the resource. Both come from the behavior-overrides file.
 	SchemaVersion               int64
@@ -153,7 +150,6 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	out.Models = b.models
 	out.RequestReplaceKinds = b.replaceKinds
 	out.DefaultPaths = b.defaultPaths
-	out.MapBoolValues = b.mapBoolValues
 	for _, kind := range b.defaultKinds {
 		out.HasServerDefaults = true
 		if !containsString(out.ServerDefaultKinds, kind) {
@@ -650,15 +646,14 @@ func fieldAttrs(f *model.ResourceField) model.Attrs {
 }
 
 type tfBuilder struct {
-	models        []*tfModel
-	seen          map[string]bool // model structs already added
-	sent          sentSet         // component fields that a request sends in some place
-	validators    []string        // resource config validators
-	replaceKinds  []string        // RequestReplaceKinds
-	defaultKinds  []string        // ServerDefaultKinds of nested attributes
-	defaultPaths  []defaultPath   // DefaultPaths
-	mapBoolValues bool            // MapBoolValues
-	file          *overrides.File
+	models       []*tfModel
+	seen         map[string]bool // model structs already added
+	sent         sentSet         // component fields that a request sends in some place
+	validators   []string        // resource config validators
+	replaceKinds []string        // RequestReplaceKinds
+	defaultKinds []string        // ServerDefaultKinds of nested attributes
+	defaultPaths []defaultPath   // DefaultPaths
+	file         *overrides.File
 }
 
 // requireOneArm turns a oneOf that allows no arm into ExactlyOneOf. The contract
@@ -781,15 +776,7 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 			a.ElementType, a.ElemValidators = rfc3339Type, append(vals, utcValidator)
 			vals = a.ElemValidators
 		}
-		switch {
-		case len(vals) == 0:
-		case elem == "Bool" && kind == "Map":
-			// The validators package has no ValueBoolsAre. The schema file defines it.
-			a.Validators = append(a.Validators, "mapBoolValuesAre("+strings.Join(vals, ", ")+")")
-			b.mapBoolValues = true
-		case elem == "Bool":
-			return fmt.Errorf("%s of a boolean enum is not supported", t.Kind)
-		default:
+		if len(vals) > 0 {
 			a.Validators = append(a.Validators, fmt.Sprintf("%s.Value%ssAre(%s)", pkg, elem, strings.Join(vals, ", ")))
 		}
 	default:
@@ -1043,10 +1030,6 @@ func scalar(t *model.Type) (string, []string, error) {
 		}
 		return "String", []string{"stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")"}, nil
 	case model.Bool:
-		// An enum of one boolean is the only value the API keeps.
-		if len(t.Allowed) == 1 {
-			return "Bool", []string{"boolvalidator.Equals(" + t.Allowed[0] + ")"}, nil
-		}
 		return "Bool", nil, nil
 	case model.Number:
 		// float is a Float32 attribute. In a Float64 attribute, a float32
@@ -1065,14 +1048,8 @@ func scalar(t *model.Type) (string, []string, error) {
 			// it is not a range. Only the sign is known (F19).
 			return "Int64", []string{"int64validator.AtLeast(0)"}, nil
 		case "int64":
-			if len(t.Allowed) != 0 {
-				return "Int64", []string{"int64validator.OneOf(" + strings.Join(t.Allowed, ", ") + ")"}, nil
-			}
 			return "Int64", rangeValidator("int64validator", t.Minimum, t.Maximum, formatInt), nil
 		case "int32":
-			if len(t.Allowed) != 0 {
-				return "Int32", []string{"int32validator.OneOf(" + strings.Join(t.Allowed, ", ") + ")"}, nil
-			}
 			return "Int32", rangeValidator("int32validator", t.Minimum, t.Maximum, formatInt), nil
 		}
 		return "", nil, fmt.Errorf("integer format %q is not supported", t.Format)

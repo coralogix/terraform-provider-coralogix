@@ -74,7 +74,7 @@ func TestGadgetServerDefaults(t *testing.T) {
 // Omitting an Update field resets it to its server default. That needs no presence marker only
 // when a configured value cannot look like omission: false next to a default of true would.
 func TestServerDefaultUpdatePresence(t *testing.T) {
-	createActive := "                name: {type: string, minLength: 1, x-coralogix-presence: true}\n                level"
+	createActive := "                name: {type: string, minLength: 1, x-coralogix-presence: true}\n                mode:\n"
 	tests := map[string]struct {
 		def  string
 		want bool
@@ -86,7 +86,7 @@ func TestServerDefaultUpdatePresence(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			active := "                active: {type: boolean, default: " + test.def
 			spec := gadgetSpec(t,
-				createActive, strings.Replace(createActive, "\n                level", "\n"+active+", x-coralogix-presence: true}\n                level", 1),
+				createActive, strings.Replace(createActive, "\n                mode:\n", "\n"+active+", x-coralogix-presence: true}\n                mode:\n", 1),
 				"                mode: {$ref: '#/components/schemas/GadgetMode'}\n", "                mode: {$ref: '#/components/schemas/GadgetMode'}\n"+active+"}\n",
 				"\n        mode: {$ref: '#/components/schemas/GadgetMode'}\n", "\n        mode: {$ref: '#/components/schemas/GadgetMode'}\n        active: {type: boolean, default: "+test.def+", x-coralogix-presence: true}\n",
 			)
@@ -123,10 +123,6 @@ func TestGadgetServerDefaultContract(t *testing.T) {
 		"replace declares another default": {
 			[]string{"                mode: {$ref: '#/components/schemas/GadgetMode'}\n", "                mode:\n                  $ref: '#/components/schemas/GadgetMode'\n                  default: GADGET_MODE_EXPERT\n"},
 			"FIELD_DEFAULT_CONTRACT_INCONSISTENT",
-		},
-		"replace lists other integer values": {
-			[]string{"                level: {type: integer, format: int32, enum: [1, 5], x-coralogix-presence: true}\n                mode: {$ref", "                level: {type: integer, format: int32, enum: [1, 6], x-coralogix-presence: true}\n                mode: {$ref"},
-			"FIELD_TYPE_INCONSISTENT",
 		},
 		"required nested field with a default": {
 			[]string{"required: [text]", "required: [text, syntax]"},

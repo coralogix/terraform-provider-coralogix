@@ -132,8 +132,7 @@ func typeDifference(get, req *Type, op verb) string {
 func sameLimits(a, b *Type) bool {
 	return samePointer(a.MinLength, b.MinLength) && samePointer(a.MaxLength, b.MaxLength) && a.Pattern == b.Pattern &&
 		samePointer(a.Minimum, b.Minimum) && samePointer(a.Maximum, b.Maximum) &&
-		samePointer(a.MinItems, b.MinItems) && samePointer(a.MaxItems, b.MaxItems) &&
-		slices.Equal(a.Allowed, b.Allowed)
+		samePointer(a.MinItems, b.MinItems) && samePointer(a.MaxItems, b.MaxItems)
 }
 
 // oneOfDifference returns how the oneOf arms of req differ from get, or "".

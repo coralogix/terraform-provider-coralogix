@@ -1156,14 +1156,12 @@ func fillType(t *Type, s *base.Schema, path string, w walk) error {
 		err = stringType(t, s, w)
 	case "boolean":
 		t.Kind = Bool
-		t.Allowed = allowedValues(s)
 	case "number":
 		t.Kind = Number
 		t.Minimum, t.Maximum = s.Minimum, s.Maximum
 	case "integer":
 		t.Kind = Integer
 		t.Minimum, t.Maximum = s.Minimum, s.Maximum
-		t.Allowed = allowedValues(s)
 	default:
 		err = fmt.Errorf("type %q is not supported", s.Type[0])
 	}
@@ -1171,17 +1169,6 @@ func fillType(t *Type, s *base.Schema, path string, w walk) error {
 		return fmt.Errorf("%s: %w", path, err)
 	}
 	return nil
-}
-
-// allowedValues returns the enum of an integer or a boolean as JSON text.
-func allowedValues(s *base.Schema) []string {
-	var out []string
-	for _, n := range s.Enum {
-		if n != nil {
-			out = append(out, n.Value)
-		}
-	}
-	return out
 }
 
 // checkSupported rejects keywords that the model cannot express.
