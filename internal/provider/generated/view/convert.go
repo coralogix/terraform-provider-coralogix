@@ -115,6 +115,15 @@ func requestValue(ctx context.Context, at string, v attr.Value, diags *diag.Diag
 		value, d := types.ListValue(v.ElementType(ctx), out)
 		diags.Append(d...)
 		return value
+	case types.Set:
+		elems := v.Elements()
+		out := make([]attr.Value, len(elems))
+		for i, child := range elems {
+			out[i] = requestValue(ctx, at, child, diags)
+		}
+		value, d := types.SetValue(v.ElementType(ctx), out)
+		diags.Append(d...)
+		return value
 	case types.Map:
 		elems := v.Elements()
 		out := make(map[string]attr.Value, len(elems))
