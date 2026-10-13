@@ -223,13 +223,13 @@ func expandUpdate(ctx context.Context, m *SloModel) (*slos_service.Slo1, diag.Di
 
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
-func flatten(ctx context.Context, v *slos_service.Slo) (*SloModel, diag.Diagnostics) {
+func flatten(ctx context.Context, v *slos_service.Slo, prior *SloModel) (*SloModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if v == nil {
 		diags.AddError("Missing resource", "The API response has no Slo.")
 		return nil, diags
 	}
-	out := flattenSlo(ctx, path.Empty(), v, &diags)
+	out := flattenSlo(ctx, path.Empty(), v, prior, &diags)
 	if out.Id.IsNull() {
 		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
 	}
@@ -424,7 +424,12 @@ func expandSlo1(ctx context.Context, p path.Path, m *SloModel, diags *diag.Diagn
 	}
 	out := &slos_service.Slo1{}
 	expandSlo1Sli(ctx, p.AtName("sli"), m.Sli, out, diags)
-	out.Description = expandString(m.Description)
+	if m.Description.IsNull() {
+		// The API keeps a stored value that the request omits, so a removed value is sent as "".
+		out.Description = new(string)
+	} else {
+		out.Description = expandString(m.Description)
+	}
 	out.Labels = expandStringMap[string](ctx, p.AtName("labels"), m.Labels, diags)
 	out.Name = expandString(m.Name)
 	out.OwnershipTags = expandSloOwnershipTags(ctx, p.AtName("ownership_tags"), m.OwnershipTags, diags)
@@ -721,7 +726,12 @@ func expandSlo1Update(ctx context.Context, p path.Path, m *SloModel, diags *diag
 	}
 	out := &slos_service.Slo1{}
 	expandSlo1UpdateSli(ctx, p.AtName("sli"), m.Sli, out, diags)
-	out.Description = expandString(m.Description)
+	if m.Description.IsNull() {
+		// The API keeps a stored value that the request omits, so a removed value is sent as "".
+		out.Description = new(string)
+	} else {
+		out.Description = expandString(m.Description)
+	}
 	out.Labels = expandStringMap[string](ctx, p.AtName("labels"), m.Labels, diags)
 	out.Name = expandString(m.Name)
 	out.OwnershipTags = expandSloOwnershipTags(ctx, p.AtName("ownership_tags"), m.OwnershipTags, diags)
@@ -749,7 +759,7 @@ func expandSlo1UpdateWindow(ctx context.Context, p path.Path, m *SloWindowModel,
 	out.SloTimeFrame = expandEnumMapped(p.AtName("slo_time_frame"), m.SloTimeFrame, sloTimeFrameToAPI, diags)
 }
 
-func flattenSlo(ctx context.Context, p path.Path, v *slos_service.Slo, diags *diag.Diagnostics) *SloModel {
+func flattenSlo(ctx context.Context, p path.Path, v *slos_service.Slo, prior *SloModel, diags *diag.Diagnostics) *SloModel {
 	if v == nil {
 		return nil
 	}
@@ -762,6 +772,14 @@ func flattenSlo(ctx context.Context, p path.Path, v *slos_service.Slo, diags *di
 		out.ApmSliMetadata = value
 	}
 	out.Description = types.StringPointerValue(v.Description)
+	if out.Description.ValueString() == "" {
+		out.Description = types.StringNull()
+		// A configured "" and an omitted value both read back as "". The prior
+		// is the plan or the state, so a configured empty string stays "".
+		if prior != nil && !prior.Description.IsNull() && !prior.Description.IsUnknown() && prior.Description.ValueString() == "" {
+			out.Description = types.StringValue("")
+		}
+	}
 	out.Grouping = types.ObjectNull(v1GroupingAttrTypes())
 	if nested := flattenV1Grouping(ctx, p.AtName("grouping"), v.Grouping, diags); nested != nil {
 		value, valueDiags := types.ObjectValueFrom(ctx, v1GroupingAttrTypes(), *nested)

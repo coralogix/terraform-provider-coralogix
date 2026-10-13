@@ -25,6 +25,9 @@ types:
         readOnly: true
       name:
         required: true
+      note:
+        readEmptyAs: "null"
+        sendNullAsEmpty: true
       size:
         validators: [{between: [0, 100]}]
       frame:

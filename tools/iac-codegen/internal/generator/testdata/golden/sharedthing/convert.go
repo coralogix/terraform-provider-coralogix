@@ -42,6 +42,7 @@ var createFields = []struct {
 	serverDefault bool
 }{
 	{attr: "name", serverDefault: false},
+	{attr: "note", serverDefault: false},
 	{attr: "size", serverDefault: false},
 	{attr: "window", serverDefault: false},
 	{attr: "measure", serverDefault: false},
@@ -80,13 +81,13 @@ func expandUpdate(ctx context.Context, m *SharedThingModel) (*shared_things_serv
 
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
-func flatten(ctx context.Context, v *shared_things_service.SharedThing) (*SharedThingModel, diag.Diagnostics) {
+func flatten(ctx context.Context, v *shared_things_service.SharedThing, prior *SharedThingModel) (*SharedThingModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if v == nil {
 		diags.AddError("Missing resource", "The API response has no SharedThing.")
 		return nil, diags
 	}
-	out := flattenSharedThing(ctx, path.Empty(), v, &diags)
+	out := flattenSharedThing(ctx, path.Empty(), v, prior, &diags)
 	if out.Id.IsNull() {
 		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
 	}
@@ -250,6 +251,12 @@ func expandSharedThing1(ctx context.Context, p path.Path, m *SharedThingModel, d
 	}
 	out := &shared_things_service.SharedThing1{}
 	out.Name = expandString(m.Name)
+	if m.Note.IsNull() {
+		// The API keeps a stored value that the request omits, so a removed value is sent as "".
+		out.Note = new(string)
+	} else {
+		out.Note = expandString(m.Note)
+	}
 	out.Size = expandFloat32(m.Size)
 	expandSharedThing1Window(ctx, p.AtName("window"), m.Window, out, diags)
 	expandSharedThing1Measure(ctx, p.AtName("measure"), m.Measure, out, diags)
@@ -315,6 +322,12 @@ func expandSharedThing1Update(ctx context.Context, p path.Path, m *SharedThingMo
 	}
 	out := &shared_things_service.SharedThing1{}
 	out.Name = expandString(m.Name)
+	if m.Note.IsNull() {
+		// The API keeps a stored value that the request omits, so a removed value is sent as "".
+		out.Note = new(string)
+	} else {
+		out.Note = expandString(m.Note)
+	}
 	out.Size = expandFloat32(m.Size)
 	expandSharedThing1UpdateWindow(ctx, p.AtName("window"), m.Window, out, diags)
 	expandSharedThing1UpdateMeasure(ctx, p.AtName("measure"), m.Measure, out, diags)
@@ -338,13 +351,22 @@ func expandSharedThing1UpdateMeasure(ctx context.Context, p path.Path, m *Shared
 	out.ByRatio = expandSharedRatio(ctx, p.AtName("by_ratio"), m.ByRatio, diags)
 }
 
-func flattenSharedThing(ctx context.Context, p path.Path, v *shared_things_service.SharedThing, diags *diag.Diagnostics) *SharedThingModel {
+func flattenSharedThing(ctx context.Context, p path.Path, v *shared_things_service.SharedThing, prior *SharedThingModel, diags *diag.Diagnostics) *SharedThingModel {
 	if v == nil {
 		return nil
 	}
 	out := &SharedThingModel{}
 	out.Id = types.StringPointerValue(v.Id)
 	out.Name = types.StringPointerValue(v.Name)
+	out.Note = types.StringPointerValue(v.Note)
+	if out.Note.ValueString() == "" {
+		out.Note = types.StringNull()
+		// A configured "" and an omitted value both read back as "". The prior
+		// is the plan or the state, so a configured empty string stays "".
+		if prior != nil && !prior.Note.IsNull() && !prior.Note.IsUnknown() && prior.Note.ValueString() == "" {
+			out.Note = types.StringValue("")
+		}
+	}
 	out.Size = types.Float32PointerValue(v.Size)
 	out.Window = flattenSharedThingWindow(ctx, p.AtName("window"), v, diags)
 	out.Measure = flattenSharedThingMeasure(ctx, p.AtName("measure"), v, diags)

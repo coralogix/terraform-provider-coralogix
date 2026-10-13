@@ -30,6 +30,10 @@ func Schema() schema.Schema {
 				Required:            true,
 				MarkdownDescription: "",
 			},
+			"note": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "",
+			},
 			"size": schema.Float32Attribute{
 				Optional: true,
 				Validators: []validator.Float32{

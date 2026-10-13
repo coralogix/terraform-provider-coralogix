@@ -49,6 +49,7 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/slo/slos/v1",
         "body": {
+          "description": "",
           "name": "request",
           "requestBasedMetricSli": {
             "goodEvents": {

@@ -25,6 +25,7 @@ var updateFields = []struct {
 	serverDefault bool
 }{
 	{attr: "name", serverDefault: false},
+	{attr: "note", serverDefault: false},
 	{attr: "size", serverDefault: false},
 	{attr: "window", serverDefault: false},
 	{attr: "measure", serverDefault: false},

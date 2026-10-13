@@ -54,6 +54,7 @@
               "checkout"
             ]
           },
+          "description": "",
           "name": "apm-error",
           "productType": "SLO_PRODUCT_TYPE_APM",
           "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",

@@ -46,6 +46,9 @@ types:
         required: true
         markdownDescription: "SLO name."
       description:
+        # The API keeps a stored description that a replace omits, so a removed one is sent as "".
+        readEmptyAs: "null"
+        sendNullAsEmpty: true
         markdownDescription: "Optional SLO description."
       labels:
         computed: true

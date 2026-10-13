@@ -9,6 +9,7 @@ import (
 type SharedThingModel struct {
 	Id      types.String             `tfsdk:"id"`
 	Name    types.String             `tfsdk:"name"`
+	Note    types.String             `tfsdk:"note"`
 	Size    types.Float32            `tfsdk:"size"`
 	Window  *SharedThingWindowModel  `tfsdk:"window"`
 	Measure *SharedThingMeasureModel `tfsdk:"measure"`

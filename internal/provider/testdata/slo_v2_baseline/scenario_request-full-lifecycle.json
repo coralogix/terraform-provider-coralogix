@@ -452,6 +452,7 @@
         "method": "PUT",
         "path": "/mgmt/openapi/5/slo/slos/v1",
         "body": {
+          "description": "",
           "id": "00000000-0000-4000-8000-000000000001",
           "name": "request-renamed",
           "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",

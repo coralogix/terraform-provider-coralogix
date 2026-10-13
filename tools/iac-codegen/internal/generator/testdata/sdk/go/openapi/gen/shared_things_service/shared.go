@@ -24,6 +24,7 @@ type SharedRatio struct {
 type SharedThing struct {
 	Id      *string
 	Name    *string
+	Note    *string
 	Size    *float32
 	Frame   *SharedFrame
 	ByCount *SharedCount
@@ -35,6 +36,7 @@ type SharedThing struct {
 type SharedThing1 struct {
 	Id      *string
 	Name    *string
+	Note    *string
 	Size    *float32
 	Frame   *SharedFrame
 	ByCount *SharedCount
@@ -45,6 +47,7 @@ type SharedThing1 struct {
 type SharedThingUpdate struct {
 	Id      *string
 	Name    *string
+	Note    *string
 	Compact *bool
 	Size    *float32
 	Frame   *SharedFrame
@@ -127,7 +130,7 @@ func (r ApiSharedThingsServiceReplaceSharedThingRequest) SharedThingUpdate(share
 func (r ApiSharedThingsServiceCreateSharedThingRequest) Execute() (*CreateSharedThingResponse, *http.Response, error) {
 	Created = append(Created, r.body)
 	id := CreatedID
-	return &CreateSharedThingResponse{ChangedIds: []string{"other"}, Thing: SharedThing{Id: &id, Name: r.body.Name, Size: r.body.Size, Frame: r.body.Frame, ByCount: r.body.ByCount, ByRatio: r.body.ByRatio}}, nil, nil
+	return &CreateSharedThingResponse{ChangedIds: []string{"other"}, Thing: SharedThing{Id: &id, Name: r.body.Name, Note: r.body.Note, Size: r.body.Size, Frame: r.body.Frame, ByCount: r.body.ByCount, ByRatio: r.body.ByRatio}}, nil, nil
 }
 
 func (r ApiSharedThingsServiceGetSharedThingRequest) Execute() (*GetSharedThingResponse, *http.Response, error) {
@@ -137,7 +140,7 @@ func (r ApiSharedThingsServiceGetSharedThingRequest) Execute() (*GetSharedThingR
 
 func (r ApiSharedThingsServiceReplaceSharedThingRequest) Execute() (*ReplaceSharedThingResponse, *http.Response, error) {
 	Replaced = append(Replaced, r.body)
-	return &ReplaceSharedThingResponse{Thing: SharedThing{Id: r.body.Id, Name: r.body.Name, Size: r.body.Size, Frame: r.body.Frame, ByCount: r.body.ByCount, ByRatio: r.body.ByRatio}}, nil, nil
+	return &ReplaceSharedThingResponse{Thing: SharedThing{Id: r.body.Id, Name: r.body.Name, Note: r.body.Note, Size: r.body.Size, Frame: r.body.Frame, ByCount: r.body.ByCount, ByRatio: r.body.ByRatio}}, nil, nil
 }
 
 func (ApiSharedThingsServiceDeleteSharedThingRequest) Execute() (map[string]interface{}, *http.Response, error) {

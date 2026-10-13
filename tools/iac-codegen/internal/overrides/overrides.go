@@ -258,6 +258,10 @@ type Field struct {
 	ReadEmptyAs string `yaml:"readEmptyAs"`
 	// ReadNullAs: "empty" reads a missing list or set as an empty collection.
 	ReadNullAs string `yaml:"readNullAs"`
+	// SendNullAsEmpty sends "" for a null string, for an API that keeps the stored value when a
+	// request omits the field. Removing the value from the configuration then clears it. It needs
+	// readEmptyAs: "null", so that the stored "" reads back as null.
+	SendNullAsEmpty bool `yaml:"sendNullAsEmpty"`
 	// RequireOne makes a oneOf that allows no arm use ExactlyOneOf. The released
 	// resource required one arm even though the contract allows none.
 	RequireOne bool `yaml:"requireOne"`
@@ -494,6 +498,7 @@ func (l Field) keys() []string {
 	add(l.Default != nil, "default")
 	add(l.ReadEmptyAs != "", "readEmptyAs")
 	add(l.ReadNullAs != "", "readNullAs")
+	add(l.SendNullAsEmpty, "sendNullAsEmpty")
 	add(l.RequireOne, "requireOne")
 	add(l.RequestValue != "", "requestValue")
 	add(l.KeepPriorOrder, "keepPriorOrder")
@@ -587,6 +592,9 @@ func (l Field) checkConflicts() error {
 	}
 	if l.ReadEmptyAs != "" && l.ReadNullAs != "" {
 		return errors.New("readEmptyAs and readNullAs cannot both be set")
+	}
+	if l.SendNullAsEmpty && l.ReadEmptyAs != "null" {
+		return errors.New("sendNullAsEmpty needs readEmptyAs: \"null\", or the stored \"\" reads back as \"\"")
 	}
 	if l.Skip && l.RequestValue != "" {
 		return errors.New("requestValue sends the field, so skip cannot be set")

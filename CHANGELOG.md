@@ -11,6 +11,7 @@
 #### resource/coralogix_slo_v2
 - CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. The schema, the plan, and the state are unchanged; only the wording of some messages and descriptions differs.
 - FEAT: `window.slo_time_frame` accepts `1_day` and `30_days`. Before, they were rejected, and an SLO with such a window read back as `""`.
+- FIX: Removing `description` clears it. Before, the API kept the stored description, because a replace without it leaves the stored value; the provider now sends `""`.
 - CHORE: Add the generated acceptance test, and an upgrade test that creates the SLO with provider 3.21.0 and plans with this build.
 - CHORE: Bump `coralogix-management-sdk` to the SLO contract that marks server-set fields read-only and requires the APM latency `time_window`.
 
@@ -24,6 +25,7 @@
 - FEAT: `enums.<Enum>.trimPrefix` removes a prefix from each value before the Terraform value is made (`SLO_TIME_FRAME_7_DAYS` is `7_days`).
 - FEAT: Field lines take `useNonNullStateForUnknown`, and the validators `between`, `exactlyOneOf`, and `atLeastOneOf`. A `between` bound of an integer attribute must be a whole number that the validator states exactly.
 - FEAT: `readEmptyAs: "null"` works on a list or set of strings.
+- FEAT: `sendNullAsEmpty: true` sends `""` for a null string, for an API that keeps a stored value that the request omits. It needs `readEmptyAs: "null"`.
 - FEAT: `Hooks.BeforeFlatten` changes the API value before flatten, for a value that only an older record has.
 - FIX: A component that a request shares with the response keeps its read-only fields in flatten. Before, the read-only field was missing from the shared conversion object, and the apply failed with a value conversion error.
 - FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.

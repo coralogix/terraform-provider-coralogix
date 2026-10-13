@@ -247,8 +247,10 @@ func (f *sloFake) write(in map[string]any, replace bool) (int, any) {
 	f.clock++
 	now := fmt.Sprintf("2026-01-01T00:00:%02dZ", f.clock)
 	id, _ := in["id"].(string)
+	var prevDesc any
 	if replace {
 		prev := f.slos[id]
+		prevDesc = prev["description"]
 		stored["createTime"], stored["creator"] = prev["createTime"], prev["creator"]
 		prevRevision, _ := prev["revision"].(map[string]any)
 		revision, _ := prevRevision["revision"].(int)
@@ -265,6 +267,15 @@ func (f *sloFake) write(in map[string]any, replace bool) (int, any) {
 	stored["id"] = id
 	stored["updateTime"] = now
 	f.slos[id] = stored
+	if _, sent := in["description"]; replace && !sent {
+		// The store skips a column that the request leaves out, so a replace without a
+		// description keeps the stored one. The response still shows the request.
+		if prevDesc != nil {
+			kept := cloneMap(stored)
+			kept["description"] = prevDesc
+			f.slos[id] = kept
+		}
+	}
 	if replace {
 		return http.StatusOK, map[string]any{"slo": stored, "effectedSloAlertIds": []any{}, "exclusionWindowIds": []any{}}
 	}

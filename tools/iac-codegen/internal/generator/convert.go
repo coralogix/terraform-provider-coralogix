@@ -222,6 +222,8 @@ type convField struct {
 	ReadEmptyAsNull bool
 	// ReadNullAsEmpty: flatten reads a missing list or set as an empty collection.
 	ReadNullAsEmpty bool
+	// SendNullAsEmpty: expand sends "" for a null string, so the API clears the stored value.
+	SendNullAsEmpty bool
 	// RequestValue is an API value expand always sends. The field is not in the Terraform model.
 	RequestValue string
 	// KeepPriorOrder: flatten returns the items in the order of the prior model, when the
@@ -533,6 +535,9 @@ func (b *convBuilder) rootObject(out *convData, root convRoot, ref sdkRef) (*con
 // works for an object that is a pointer, and for a list or set of objects. Elsewhere it would
 // do nothing, and the released normalization that the line states would be missing.
 func checkReadEmptyAs(cf *convField) error {
+	if cf.SendNullAsEmpty && cf.Conv != convString {
+		return fmt.Errorf("sendNullAsEmpty is supported for a string, not for the %s field %s", cf.Conv, cf.TFName)
+	}
 	if !cf.ReadEmptyAsNull {
 		return nil
 	}
@@ -804,6 +809,7 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	line := b.file.Types[component].Fields[name]
 	cf.ReadEmptyAsNull, cf.KeepPriorOrder = line.ReadEmptyAs == "null", line.KeepPriorOrder
 	cf.ReadNullAsEmpty = line.ReadNullAs == "empty"
+	cf.SendNullAsEmpty = line.SendNullAsEmpty
 	cf.Equality = line.Equality
 	cf.RequestValue = line.RequestValue
 }

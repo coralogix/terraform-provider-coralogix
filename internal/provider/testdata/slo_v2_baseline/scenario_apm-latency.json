@@ -108,6 +108,7 @@
               "checkout"
             ]
           },
+          "description": "",
           "name": "apm-latency",
           "productType": "SLO_PRODUCT_TYPE_APM",
           "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
@@ -348,6 +349,7 @@
               "checkout"
             ]
           },
+          "description": "",
           "id": "00000000-0000-4000-8000-000000000001",
           "name": "apm-latency",
           "productType": "SLO_PRODUCT_TYPE_APM",
@@ -479,6 +481,7 @@
               "checkout"
             ]
           },
+          "description": "",
           "id": "00000000-0000-4000-8000-000000000001",
           "name": "apm-latency",
           "productType": "SLO_PRODUCT_TYPE_APM",

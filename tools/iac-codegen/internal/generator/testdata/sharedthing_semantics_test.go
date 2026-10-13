@@ -112,6 +112,16 @@ func TestUpdateSendsTheStateIDInTheBody(t *testing.T) {
 	if body.Id == nil || *body.Id != "thing-1" || body.Name == nil || *body.Name != "new" {
 		t.Fatalf("replace body = %+v, want id thing-1 and name new", body)
 	}
+	// The API keeps a stored note that the request omits, so a null note is sent as "", and the
+	// stored "" reads back as null.
+	if body.Note == nil || *body.Note != "" {
+		t.Fatalf("replace body note = %v, want \"\"", body.Note)
+	}
+	var note types.String
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("note"), &note)...)
+	if resp.Diagnostics.HasError() || !note.IsNull() {
+		t.Fatalf("state note = %v, %v, want null", note, resp.Diagnostics)
+	}
 }
 
 // Get does not require the id. A response without one fails the read: without the id,

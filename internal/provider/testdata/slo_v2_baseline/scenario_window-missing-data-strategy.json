@@ -50,6 +50,7 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/slo/slos/v1",
         "body": {
+          "description": "",
           "name": "window",
           "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
           "targetThresholdPercentage": 99.5,
@@ -150,6 +151,7 @@
         "method": "PUT",
         "path": "/mgmt/openapi/5/slo/slos/v1",
         "body": {
+          "description": "",
           "id": "00000000-0000-4000-8000-000000000001",
           "name": "window",
           "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
@@ -335,6 +337,7 @@
         "method": "PUT",
         "path": "/mgmt/openapi/5/slo/slos/v1",
         "body": {
+          "description": "",
           "id": "00000000-0000-4000-8000-000000000001",
           "name": "window",
           "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",

@@ -1244,7 +1244,14 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- define "expandValue"}}
 {{- $p := printf "p.AtName(%q)" .TFName}}
 {{- $l := ""}}{{$r := ""}}{{if .DirectValue}}{{$l = "valueOf("}}{{$r = ")"}}{{end}}
-{{- if eq .Conv "string"}}
+{{- if and (eq .Conv "string") .SendNullAsEmpty}}
+	if m.{{.Model}}.IsNull() {
+		// The API keeps a stored value that the request omits, so a removed value is sent as "".
+		{{.Dst}} = {{$l}}new(string){{$r}}
+	} else {
+		{{.Dst}} = {{$l}}expandString(m.{{.Model}}){{$r}}
+	}
+{{- else if eq .Conv "string"}}
 	{{.Dst}} = {{$l}}expandString(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "bool"}}
 	{{.Dst}} = {{$l}}expandBool(m.{{.Model}}){{$r}}
