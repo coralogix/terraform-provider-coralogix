@@ -829,3 +829,34 @@ func TestGroupsRejectFieldsThatTheyCannotHold(t *testing.T) {
 		})
 	}
 }
+
+// A between bound of an integer attribute must be one the validator states exactly. A fraction
+// would be cut, so [0.5, 10] would accept 0, and a number past 2^53 has lost its last digits.
+func TestBetweenOnIntegersNeedsExactBounds(t *testing.T) {
+	tests := []struct {
+		kind    string
+		between []float64
+		want    string
+	}{
+		{"Int32", []float64{0.5, 10}, ""},
+		{"Int32", []float64{0, 2147483648}, ""},
+		{"Int64", []float64{0, 1 << 54}, ""},
+		{"Int64", []float64{-1.5, 3}, ""},
+		{"Int64", []float64{-(1 << 53), 1 << 53}, "int64validator.Between(-9007199254740992, 9007199254740992)"},
+		{"Int32", []float64{1, 10}, "int32validator.Between(1, 10)"},
+		{"Float32", []float64{0, 0.5}, "float32validator.Between(0.0, 0.5)"},
+	}
+	for _, test := range tests {
+		a := &tfAttr{Name: "n", Kind: test.kind, ValueKind: test.kind, Optional: true}
+		got, err := validatorExpr(a, overrides.Validator{Between: test.between}, nil)
+		if test.want == "" {
+			if err == nil {
+				t.Errorf("%s between %v = %q, want an error", test.kind, test.between, got)
+			}
+			continue
+		}
+		if err != nil || got != test.want {
+			t.Errorf("%s between %v = %q, %v, want %q", test.kind, test.between, got, err, test.want)
+		}
+	}
+}

@@ -13,7 +13,7 @@
 - FEAT: `groups` in `behavior-overrides.yaml` makes required Terraform objects that hold top-level fields of the resource, for a released resource that nests fields the API holds at the top level. The arms of a top-level oneOf in a group check each other like the arms of a nested oneOf; `requireOne: true` makes them ExactlyOneOf.
 - FEAT: `typeName` names the released resource type when it is not the OpenAPI component (`slo_v2` for `Slo`).
 - FEAT: `enums.<Enum>.trimPrefix` removes a prefix from each value before the Terraform value is made (`SLO_TIME_FRAME_7_DAYS` is `7_days`).
-- FEAT: Field lines take `useNonNullStateForUnknown`, and the validators `between`, `exactlyOneOf`, and `atLeastOneOf`.
+- FEAT: Field lines take `useNonNullStateForUnknown`, and the validators `between`, `exactlyOneOf`, and `atLeastOneOf`. A `between` bound of an integer attribute must be a whole number that the validator states exactly.
 - FEAT: `readEmptyAs: "null"` works on a list or set of strings.
 - FEAT: `Hooks.BeforeFlatten` changes the API value before flatten, for a value that only an older record has.
 - FIX: A component that a request shares with the response keeps its read-only fields in flatten. Before, the read-only field was missing from the shared conversion object, and the apply failed with a value conversion error.

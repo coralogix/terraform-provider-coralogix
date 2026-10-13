@@ -491,7 +491,7 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 	case v.LengthAtLeast != nil && a.ValueKind == "String":
 		return fmt.Sprintf("stringvalidator.LengthAtLeast(%d)", *v.LengthAtLeast), nil
 	case len(v.Between) == 2 && slices.Contains([]string{"Float32", "Float64", "Int32", "Int64"}, a.ValueKind):
-		return fmt.Sprintf("%s.Between(%s, %s)", pkg, numberLiteral(a.ValueKind, v.Between[0]), numberLiteral(a.ValueKind, v.Between[1])), nil
+		return betweenExpr(a, v.Between)
 	case len(v.ExactlyOneOf) != 0:
 		return pkg + ".ExactlyOneOf(" + siblingPaths(v.ExactlyOneOf) + ")", nil
 	case len(v.AtLeastOneOf) != 0:
@@ -1229,6 +1229,37 @@ func checkGroupField(r *model.Resource, f *model.ResourceField, group string) er
 		return fmt.Errorf("groups.%s: %s is %s; a group holds only fields that the user sets and Update sends", group, f.Name, f.Behavior)
 	case serverDefault(r, f):
 		return fmt.Errorf("groups.%s: %s has a server default; a group cannot hold it", group, f.Name)
+	}
+	return nil
+}
+
+// betweenExpr is the Between validator of a number attribute.
+func betweenExpr(a *tfAttr, bounds []float64) (string, error) {
+	for _, bound := range bounds {
+		if err := checkIntegerBound(a.ValueKind, bound); err != nil {
+			return "", err
+		}
+	}
+	pkg := strings.ToLower(a.ValueKind) + "validator"
+	return fmt.Sprintf("%s.Between(%s, %s)", pkg, numberLiteral(a.ValueKind, bounds[0]), numberLiteral(a.ValueKind, bounds[1])), nil
+}
+
+// maxExactInteger is the largest integer that a float64, which holds a YAML number of the
+// behavior-overrides file, stores exactly.
+const maxExactInteger = 1 << 53
+
+// checkIntegerBound rejects a between bound of an integer attribute that the validator would not
+// state exactly: a fraction would be cut, and a number past 2^53 has already lost its last digits.
+func checkIntegerBound(kind string, v float64) error {
+	switch kind {
+	case "Int32":
+		if v != math.Trunc(v) || v < math.MinInt32 || v > math.MaxInt32 {
+			return fmt.Errorf("between bound %v is not an int32", v)
+		}
+	case "Int64":
+		if v != math.Trunc(v) || math.Abs(v) > maxExactInteger {
+			return fmt.Errorf("between bound %v is not an integer of at most 2^53, which the file can state exactly", v)
+		}
 	}
 	return nil
 }
