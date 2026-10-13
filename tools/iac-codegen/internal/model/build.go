@@ -662,8 +662,8 @@ var refSiblingAllowed = map[string]bool{
 	"deprecated": true, "example": true, "examples": true, "$comment": true,
 }
 
-// refSiblingConstraints returns the keywords next to a $ref outside refSiblingAllowed and the
-// x- extensions. The type comes from the target, so these keywords would be lost.
+// refSiblingConstraints returns the keywords next to a $ref outside refSiblingAllowed, foreign x-
+// extensions, and x-coralogix-presence. The type comes from the target, so these would be lost.
 func refSiblingConstraints(proxy *base.SchemaProxy) []string {
 	node := proxy.GetValueNode()
 	if node == nil || node.Kind != yaml.MappingNode {
@@ -676,7 +676,9 @@ func refSiblingConstraints(proxy *base.SchemaProxy) []string {
 	var out []string
 	for i := 0; i+1 < len(node.Content); i += 2 {
 		key := node.Content[i].Value
-		if !refSiblingAllowed[key] && !strings.HasPrefix(key, "x-") {
+		// A foreign x- extension is never read. Of the Coralogix extensions, only presence
+		// describes the field itself; the others describe the type, which comes from the target.
+		if !refSiblingAllowed[key] && (!strings.HasPrefix(key, "x-") || strings.HasPrefix(key, "x-coralogix-") && key != extPresence) {
 			out = append(out, key)
 		}
 	}

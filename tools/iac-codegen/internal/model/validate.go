@@ -712,7 +712,16 @@ func defaultValueIssues(location string, proxy *base.SchemaProxy) issue.Report {
 		return nil
 	}
 	schema, err := schemaOf(proxy)
-	if err != nil || schema.Default == nil || len(schema.Type) != 1 {
+	if err != nil || schema.Default == nil {
+		return nil
+	}
+	if target := refSiblingTarget(proxy, schema); target != nil {
+		// A default next to a $ref has the type and the limits of the target, as typeOf reads them.
+		merged := *target
+		merged.Default = schema.Default
+		schema = &merged
+	}
+	if len(schema.Type) != 1 {
 		return nil
 	}
 	if err := validateScalarDefault(schema); err != nil {

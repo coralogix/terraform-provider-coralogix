@@ -174,3 +174,26 @@ func TestGadgetUnknownRefSiblingIsAnError(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// x-coralogix-presence describes the field, so it can sit next to a $ref. Another Coralogix
+// extension, such as x-coralogix-collection, describes the type, which comes from the target.
+func TestGadgetCoralogixRefSiblings(t *testing.T) {
+	for sibling, wantErr := range map[string]bool{"x-coralogix-presence: true": false, "x-coralogix-collection: set": true} {
+		doc, err := Load(gadgetSpec(t, "                  default: GADGET_MODE_BASIC\n", "                  default: GADGET_MODE_BASIC\n                  "+sibling+"\n"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = Build(doc, "Gadget")
+		if got := err != nil && strings.Contains(err.Error(), "the sibling x-coralogix-"); got != wantErr {
+			t.Errorf("%s: err = %v, want the sibling error %t", sibling, err, wantErr)
+		}
+	}
+}
+
+// A default next to a $ref is checked against the type and the limits of the target.
+func TestGadgetRefSiblingDefaultMustFitTheTarget(t *testing.T) {
+	codes := gadgetCodes(t, gadgetSpec(t, "                  default: GADGET_MODE_BASIC\n", "                  default: GADGET_MODE_MISSING\n"))
+	if !slices.Contains(codes, "FIELD_DEFAULT_INVALID") {
+		t.Fatalf("codes = %v, want FIELD_DEFAULT_INVALID", codes)
+	}
+}
