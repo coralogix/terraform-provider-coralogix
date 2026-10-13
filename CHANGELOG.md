@@ -11,6 +11,7 @@
 #### resource/coralogix_slo_v2
 - CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. The schema, the plan, and the state are unchanged; only the wording of some messages and descriptions differs.
 - FEAT: `window.slo_time_frame` accepts `1_day` and `30_days`. Before, they were rejected, and an SLO with such a window read back as `""`.
+- CHORE: Add the generated acceptance test, and an upgrade test that creates the SLO with provider 3.21.0 and plans with this build.
 - CHORE: Bump `coralogix-management-sdk` to the SLO contract that marks server-set fields read-only and requires the APM latency `time_window`.
 
 #### data-source/coralogix_slo_v2

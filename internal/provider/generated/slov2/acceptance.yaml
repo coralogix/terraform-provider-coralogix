@@ -1,0 +1,24 @@
+# Generated acceptance test for coralogix_slo_v2. Every config uses the request-based SLI: an
+# APM SLI needs a service that exists in the APM Service Catalog of the test account.
+resource: Slo
+
+values:
+  name: '"@{run}-slo"'
+  target_threshold_percentage: "99.5"
+  sli.request_based_metric_sli.good_events.query: '"sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"'
+  sli.request_based_metric_sli.total_events.query: '"sum(rate(http_requests_total[1m])) by (service)"'
+  window.slo_time_frame: '"7_days"'
+  product_type: '"unspecified"'
+  labels: '{ team = "payments" }'
+  ownership_tags.service.label_keys: '["service_name"]'
+  ownership_tags.environment.static_values: '["production"]'
+  ownership_tags.team.static_values: '["payments"]'
+
+skip:
+  - sli.apm_sli
+  - sli.window_based_metric_sli
+  - ownership_tags.service.static_values
+  - ownership_tags.environment.label_keys
+  - ownership_tags.team.label_keys
+
+upgradeFrom: "3.21.0"
