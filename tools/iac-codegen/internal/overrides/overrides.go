@@ -253,6 +253,12 @@ type Field struct {
 	// property of the object as the top-level Create field it names, for example
 	// {limit: permutationsLimit}. Update and Get have the object itself.
 	CreateAs map[string]string `yaml:"createAs"`
+	// Collection: set shows an ordered list of the contract as a set, as the released resource
+	// does. The API keeps the order, but the order has no meaning.
+	Collection string `yaml:"collection"`
+	// Name is the Terraform attribute name of the field, when the released resource does not
+	// use the name derived from the JSON name (applications for applicationnameFilters).
+	Name string `yaml:"name"`
 	// Deprecation is the released deprecation message.
 	Deprecation string `yaml:"deprecation"`
 	// Computed: true makes an optional field Optional+Computed. false makes it Optional.
@@ -503,6 +509,8 @@ func (l Field) keys() []string {
 	add(l.Required, "required")
 	add(l.Optional, "optional")
 	add(len(l.CreateAs) != 0, "createAs")
+	add(l.Collection != "", "collection")
+	add(l.Name != "", "name")
 	add(l.Deprecation != "", "deprecation")
 	add(l.Computed != nil, "computed")
 	add(l.UseStateForUnknown, "useStateForUnknown")
@@ -559,12 +567,12 @@ func (l Field) empty() bool {
 }
 
 func (l Field) emptyMode() bool {
-	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && l.Deprecation == "" &&
+	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && l.Name == "" && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown
 }
 
 func (l Field) emptyValue() bool {
-	return l.Default == nil && len(l.CreateAs) == 0 && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && l.RequestValue == "" &&
+	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && l.RequestValue == "" &&
 		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil
 }
 
@@ -588,6 +596,12 @@ func (l Field) check() error {
 	}
 	if err := checkCreateAs(l.CreateAs); err != nil {
 		return err
+	}
+	if l.Collection != "" && l.Collection != "set" {
+		return fmt.Errorf("collection is %q, want set", l.Collection)
+	}
+	if l.Name != "" && !validAttrName.MatchString(l.Name) {
+		return fmt.Errorf("name %q is not a Terraform attribute name: lower case letters, digits, and _", l.Name)
 	}
 	if l.Description != nil && l.MarkdownDescription != nil {
 		return errors.New("set description or markdownDescription, not both")
@@ -625,7 +639,7 @@ func (l Field) checkConflicts() error {
 
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
 func (l Field) hasBehavior() bool {
-	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || len(l.CreateAs) != 0 || l.Default != nil || l.KeepPriorOrder ||
+	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.RequestValue != "" ||
 		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil
 }
@@ -718,6 +732,15 @@ func (f *File) Policy() model.Policy {
 			if c := t.Fields[field].Computed; c != nil && *c {
 				p.Computed = append(p.Computed, name+"."+field)
 			}
+			if t.Fields[field].Collection == "set" {
+				p.Sets = append(p.Sets, name+"."+field)
+			}
+			if n := t.Fields[field].Name; n != "" {
+				if p.Names == nil {
+					p.Names = map[string]string{}
+				}
+				p.Names[name+"."+field] = n
+			}
 			if into := t.Fields[field].CreateAs; len(into) != 0 {
 				if p.CreateAs == nil {
 					p.CreateAs = map[string]map[string]string{}
@@ -749,7 +772,7 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Equality: f.Equality, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, Equality: f.Equality, Keys: f.keys()})
 		}
 	}
 	return out
@@ -777,6 +800,8 @@ type Line struct {
 	Equality     string   // for a field line: "yaml" or "json" when the line compares the value as a document
 	Required     bool     // for a field line: the file says that the field is required
 	Optional     bool     // for a field line: the file says that the field is optional
+	Collection   string   // for a field line: "set" when the file shows a list as a set
+	Name         string   // for a field line: the Terraform attribute name
 	Keys         []string // for a field line: every key that the line sets
 }
 
@@ -800,6 +825,8 @@ func sortedKeys[V any](m map[string]V) []string {
 	sort.Strings(keys)
 	return slices.Clip(keys)
 }
+
+var validAttrName = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
 // checkCreateAs checks a createAs map: each property names one Create field, and no two
 // properties name the same one.

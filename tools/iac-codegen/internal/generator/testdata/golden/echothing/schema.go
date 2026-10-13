@@ -35,14 +35,14 @@ func Schema() schema.Schema {
 						Computed:            true,
 						MarkdownDescription: "",
 					},
-					"exceeded": schema.BoolAttribute{
+					"has_exceeded": schema.BoolAttribute{
 						Computed:            true,
 						MarkdownDescription: "",
 					},
 				},
 				MarkdownDescription: "",
 			},
-			"items": schema.ListNestedAttribute{
+			"entries": schema.ListNestedAttribute{
 				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -50,12 +50,12 @@ func Schema() schema.Schema {
 							Required:            true,
 							MarkdownDescription: "",
 						},
-						"values": schema.ListAttribute{
+						"tags": schema.SetAttribute{
 							Optional:            true,
 							ElementType:         types.StringType,
 							MarkdownDescription: "",
 						},
-						"enabled": schema.BoolAttribute{
+						"enable": schema.BoolAttribute{
 							Optional:            true,
 							Computed:            true,
 							MarkdownDescription: "",

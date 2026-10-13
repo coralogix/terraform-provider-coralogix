@@ -15,12 +15,13 @@ types:
       createTime: {skip: true}
       isInternal: {skip: true}
       quota: {createAs: {limit: limitValue}}
+      items: {name: entries}
   Quota:
     fields:
-      exceeded: {readOnly: true}
+      exceeded: {readOnly: true, name: has_exceeded}
       limit: {computed: true}
   EchoItem:
     fields:
-      values: {optional: true}
-      enabled: {computed: true}
+      values: {optional: true, collection: set, name: tags}
+      enabled: {computed: true, name: enable}
       none: {skip: true}

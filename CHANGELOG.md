@@ -52,6 +52,8 @@
 - FIX: A component that a request shares with the response keeps its read-only fields in flatten. Before, the read-only field was missing from the shared conversion object, and the apply failed with a value conversion error.
 - FEAT: `createAs` on a field line folds top-level Create fields into an object field that Update and Get hold, for example `quota: {createAs: {limit: limitValue}}`. Create sends each property of the object as its flat field.
 - FEAT: `optional: true` on a field line makes a field optional that a request of the contract requires.
+- FEAT: `collection: set` on a field line makes a list a set, for a released resource whose attribute is a set while the contract has a list.
+- FEAT: `name` on a field line sets the Terraform attribute name of the field, for a released resource whose attribute name differs from the JSON name, for example `applicationnameFilters: {name: applications}`.
 - FEAT: A `readOnly: true` line works on a field of a nested component. A `computed: true` line on a field that Get requires allows Create to leave it optional while Update requires it.
 - FEAT: `skip` can name an empty object arm of a `oneOf` group that allows no arm, such as an `Empty` marker.
 - FIX: The contract checks read the resource of a response property written as `allOf: [$ref]`. Before, they read the `allOf` schema, found no Get field, and refused every field of the resource.

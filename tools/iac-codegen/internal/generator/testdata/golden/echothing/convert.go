@@ -30,7 +30,7 @@ var createFields = []struct {
 }{
 	{attr: "name", serverDefault: false},
 	{attr: "quota", serverDefault: false},
-	{attr: "items", serverDefault: false},
+	{attr: "entries", serverDefault: false},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -54,7 +54,7 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 // that a request sends, with list and map steps left out. The server sets
 // them.
 var serverAttrs = map[string]bool{
-	"quota.exceeded": true,
+	"quota.has_exceeded": true,
 }
 
 // requestValue returns v with a null value for each attribute that the server
@@ -150,16 +150,16 @@ func flatten(ctx context.Context, v *echo_things_service.EchoThing) (*EchoThingM
 // out. An empty arm selects that arm, so it is not the same as a missing arm
 // (contract 2.8).
 var oneOfArms = map[string]bool{
-	"items.detail": true,
+	"entries.detail": true,
 }
 
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
-	"id":             true,
-	"quota.limit":    true,
-	"quota.exceeded": true,
-	"items.enabled":  true,
+	"id":                 true,
+	"quota.limit":        true,
+	"quota.has_exceeded": true,
+	"entries.enable":     true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -309,10 +309,10 @@ func expandCreateEchoThingRequest(ctx context.Context, p path.Path, m *EchoThing
 		_ = p // a scalar conversion does not report a path
 		out.LimitValue = expandInt32(m.Limit)
 	}
-	if items := expandElements[EchoItemModel](ctx, p.AtName("items"), m.Items, diags); items != nil {
+	if items := expandElements[EchoItemModel](ctx, p.AtName("entries"), m.Items, diags); items != nil {
 		out.Items = make([]echo_things_service.EchoItem, 0, len(items))
 		for i := range items {
-			out.Items = append(out.Items, *expandEchoItem(ctx, p.AtName("items").AtListIndex(i), &items[i], diags))
+			out.Items = append(out.Items, *expandEchoItem(ctx, p.AtName("entries").AtListIndex(i), &items[i], diags))
 		}
 	}
 	return out
@@ -324,7 +324,7 @@ func expandEchoItem(ctx context.Context, p path.Path, m *EchoItemModel, diags *d
 	}
 	out := &echo_things_service.EchoItem{}
 	out.Key = valueOf(expandString(m.Key))
-	out.Values = expandStrings[string](ctx, p.AtName("values"), m.Values, diags)
+	out.Values = expandStringsSet[string](ctx, p.AtName("tags"), m.Values, diags)
 	out.Enabled = expandBool(m.Enabled)
 	out.Detail = expandDetail(ctx, p.AtName("detail"), m.Detail, diags)
 	return out
@@ -336,7 +336,7 @@ func flattenEchoItem(ctx context.Context, p path.Path, v *echo_things_service.Ec
 	}
 	out := &EchoItemModel{}
 	out.Key = types.StringPointerValue(&v.Key)
-	out.Values = flattenStringsList(ctx, v.Values, diags)
+	out.Values = flattenStringsSet(ctx, v.Values, diags)
 	out.Enabled = types.BoolPointerValue(v.Enabled)
 	out.Detail = flattenDetail(ctx, p.AtName("detail"), v.Detail, diags)
 	return out
@@ -344,10 +344,10 @@ func flattenEchoItem(ctx context.Context, p path.Path, v *echo_things_service.Ec
 
 func echoItemAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"key":     types.StringType,
-		"values":  types.ListType{ElemType: types.StringType},
-		"enabled": types.BoolType,
-		"detail":  types.ObjectType{AttrTypes: detailAttrTypes()},
+		"key":    types.StringType,
+		"tags":   types.SetType{ElemType: types.StringType},
+		"enable": types.BoolType,
+		"detail": types.ObjectType{AttrTypes: detailAttrTypes()},
 	}
 }
 
@@ -382,10 +382,10 @@ func expandReplaceEchoThingRequest(ctx context.Context, p path.Path, m *EchoThin
 	out := &echo_things_service.ReplaceEchoThingRequest{}
 	out.Name = valueOf(expandString(m.Name))
 	out.Quota = expandQuota(ctx, p.AtName("quota"), m.Quota, diags)
-	if items := expandElements[EchoItemModel](ctx, p.AtName("items"), m.Items, diags); items != nil {
+	if items := expandElements[EchoItemModel](ctx, p.AtName("entries"), m.Items, diags); items != nil {
 		out.Items = make([]echo_things_service.EchoItem, 0, len(items))
 		for i := range items {
-			out.Items = append(out.Items, *expandEchoItem(ctx, p.AtName("items").AtListIndex(i), &items[i], diags))
+			out.Items = append(out.Items, *expandEchoItem(ctx, p.AtName("entries").AtListIndex(i), &items[i], diags))
 		}
 	}
 	return out
@@ -422,7 +422,7 @@ func flattenEchoThing(ctx context.Context, p path.Path, v *echo_things_service.E
 	if v.Items != nil {
 		items := make([]EchoItemModel, 0, len(v.Items))
 		for i := range v.Items {
-			items = append(items, *flattenEchoItem(ctx, p.AtName("items").AtListIndex(i), &v.Items[i], diags))
+			items = append(items, *flattenEchoItem(ctx, p.AtName("entries").AtListIndex(i), &v.Items[i], diags))
 		}
 		out.Items = flattenList(ctx, types.ObjectType{AttrTypes: echoItemAttrTypes()}, items, diags)
 	}

@@ -635,7 +635,7 @@ func validateFieldContract(p Policy, name, idParam, field string, create, update
 			Remediation: "Make the field optional in Update, or require it in Create so Terraform always has a value to send.",
 		})
 	}
-	report = append(report, fieldTypeIssues(p, location, gp, cp, up)...)
+	report = append(report, fieldTypeIssues(p, name, field, location, gp, cp, up)...)
 	report = append(report, fieldDefaultContractIssues(p, name, location, field, create, update, get, cp, up, gp)...)
 	// A field with a line in the behavior-overrides file keeps its released behavior, so
 	// the contract need not say whether omission differs from an empty value.
@@ -1105,11 +1105,12 @@ func nestedReadOnlyIssues(p Policy, location string, proxy *base.SchemaProxy, se
 // fieldTypeIssues merges the Create and Update types of a field into its type
 // in the resource response, as Build does. A schema that is not supported is
 // left out: unsupportedSchemaIssues reports it.
-func fieldTypeIssues(p Policy, location string, gp, cp, up *base.SchemaProxy) issue.Report {
+func fieldTypeIssues(p Policy, name, field, location string, gp, cp, up *base.SchemaProxy) issue.Report {
 	if gp == nil {
 		return nil
 	}
 	get, err := typeOf(gp, location, walk{policy: &p})
+	p.asSet(name, field, get)
 	if err != nil {
 		return nil
 	}
@@ -1121,6 +1122,7 @@ func fieldTypeIssues(p Policy, location string, gp, cp, up *base.SchemaProxy) is
 		if requests[i], err = typeOf(proxy, location, walk{policy: &p}); err != nil {
 			return nil
 		}
+		p.asSet(name, field, requests[i])
 	}
 	var contract *contractError
 	if err := mergeRequests(location, get, requests[0], requests[1]); errors.As(err, &contract) {

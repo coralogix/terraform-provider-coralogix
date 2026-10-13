@@ -1007,7 +1007,10 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		return nil, fmt.Errorf("%s: %w", name, err)
 	}
 	// The Get type comes first: Classify ensures that the field is in Get.
-	if f.Type, err = typeOf(gp, name, walk{policy: &r.Policy}); err != nil {
+	if f.Type, err = typeOf(gp, name, walk{policy: &r.Policy}); err == nil {
+		r.Policy.asSet(r.Name, name, f.Type)
+	}
+	if err != nil {
 		return nil, err
 	}
 	getAttrs, err := attrsOf(getSchema, name, gp)
@@ -1028,7 +1031,10 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		if loc.proxy == nil {
 			continue
 		}
-		if requests[i], err = typeOf(loc.proxy, name, walk{policy: &r.Policy}); err != nil {
+		if requests[i], err = typeOf(loc.proxy, name, walk{policy: &r.Policy}); err == nil {
+			r.Policy.asSet(r.Name, name, requests[i])
+		}
+		if err != nil {
 			return nil, fmt.Errorf("%s: %w", loc.name, err)
 		}
 		a, err := attrsOf(loc.body, name, loc.proxy)
@@ -1381,6 +1387,7 @@ func objectFields(s *base.Schema, path string, w walk, component string) ([]*Fie
 	for _, name := range propertyNames(s) {
 		proxy := propertyOf(s, name)
 		ft, err := typeOf(proxy, path+"."+name, w)
+		w.policy.asSet(component, name, ft)
 		if err != nil {
 			if !w.keep(err) {
 				return nil, err

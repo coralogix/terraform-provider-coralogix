@@ -399,23 +399,23 @@ func oneOfArmPaths(r *model.Resource, file *overrides.File) []string {
 	var out []string
 	for _, g := range r.Groups {
 		for _, arm := range g.Arms {
-			out = append(out, rootPath(file.GroupOf(arm), arm).dotted())
+			out = append(out, rootPath(file.GroupOf(arm), r.Policy.TerraformName(r.Name, arm)).dotted())
 		}
 	}
 	for _, f := range r.Fields {
-		out = typeArmPaths(out, rootPath(file.GroupOf(f.Name), f.Name).dotted(), f.Type, map[*model.Type]bool{})
+		out = typeArmPaths(r.Policy, out, rootPath(file.GroupOf(f.Name), r.Policy.TerraformName(r.Name, f.Name)).dotted(), f.Type, map[*model.Type]bool{})
 	}
 	return out
 }
 
-func typeArmPaths(out []string, at string, t *model.Type, seen map[*model.Type]bool) []string {
+func typeArmPaths(p model.Policy, out []string, at string, t *model.Type, seen map[*model.Type]bool) []string {
 	if t == nil || seen[t] {
 		return out
 	}
 	seen[t] = true
 	defer delete(seen, t)
 	if t.Elem != nil {
-		return typeArmPaths(out, at, t.Elem, seen)
+		return typeArmPaths(p, out, at, t.Elem, seen)
 	}
 	arms := map[string]bool{}
 	for _, g := range t.Groups {
@@ -424,11 +424,11 @@ func typeArmPaths(out []string, at string, t *model.Type, seen map[*model.Type]b
 		}
 	}
 	for _, f := range t.Fields {
-		child := at + "." + tfName(f.Name)
+		child := at + "." + p.TerraformName(model.ComponentOf(t), f.Name)
 		if t.Kind == model.OneOf && f.Name != t.Discriminator || arms[f.Name] {
 			out = append(out, child)
 		}
-		out = typeArmPaths(out, child, f.Type, seen)
+		out = typeArmPaths(p, out, child, f.Type, seen)
 	}
 	return out
 }
@@ -593,7 +593,7 @@ func appendCheckField(fields []*maskField, r *model.Resource, f *model.ResourceF
 		}
 		return append(fields, &maskField{TFName: group})
 	}
-	return append(fields, &maskField{TFName: tfName(f.Name), ServerDefault: serverDefault(r, f)})
+	return append(fields, &maskField{TFName: r.Policy.TerraformName(r.Name, f.Name), ServerDefault: serverDefault(r, f)})
 }
 
 // replaceFields sets the Update fields of a full replace. The body has all of
@@ -625,9 +625,9 @@ func buildMask(r *model.Resource, out *convData, fixed func(string) bool) error 
 		if f.Update == nil || fixed(f.Name) {
 			continue
 		}
-		mf := &maskField{TFName: tfName(f.Name), API: f.Name}
+		mf := &maskField{TFName: r.Policy.TerraformName(r.Name, f.Name), API: f.Name}
 		if leaf {
-			mf = maskTree(f.Name, f.Type.UpdateType())
+			mf = maskTree(r.Policy, r.Name, f.Name, f.Type.UpdateType())
 		}
 		mf.ServerDefault = serverDefault(r, f)
 		if err := checkMaskPaths(mf, "", valid); err != nil {
@@ -638,17 +638,17 @@ func buildMask(r *model.Resource, out *convData, fixed func(string) bool) error 
 	if len(out.MaskFields) == 0 {
 		return fmt.Errorf("update.body: no Update fields for the update mask")
 	}
-	out.MaskGroups = groupNames(r.Groups)
+	out.MaskGroups = groupNames(r.Policy, r.Name, r.Groups)
 	return nil
 }
 
 // groupNames returns the arms of each group as Terraform names.
-func groupNames(groups []model.OneOfGroup) [][]string {
+func groupNames(p model.Policy, component string, groups []model.OneOfGroup) [][]string {
 	var out [][]string
 	for _, g := range groups {
 		var arms []string
 		for _, a := range g.Arms {
-			arms = append(arms, tfName(a))
+			arms = append(arms, p.TerraformName(component, a))
 		}
 		out = append(out, arms)
 	}
@@ -677,20 +677,20 @@ func maskRule(pattern string) (valid func(string) bool, leaf bool, err error) {
 }
 
 // maskTree returns the mask node of the Update field name of type t.
-func maskTree(name string, t *model.Type) *maskField {
-	n := &maskField{TFName: tfName(name), API: name, OneOf: t.Kind == model.OneOf}
+func maskTree(p model.Policy, component, name string, t *model.Type) *maskField {
+	n := &maskField{TFName: p.TerraformName(component, name), API: name, OneOf: t.Kind == model.OneOf}
 	if t.Kind != model.Object && t.Kind != model.OneOf {
 		return n
 	}
 	for _, f := range t.Fields {
-		child := maskTree(f.Name, f.Type)
+		child := maskTree(p, model.ComponentOf(t), f.Name, f.Type)
 		if len(t.Wrappers) != 0 {
 			// Terraform does not show the wrappers, but the mask path names them.
 			child.API = t.WrapperPath() + "." + child.API
 		}
 		n.Children = append(n.Children, child)
 	}
-	n.Groups = groupNames(t.Groups)
+	n.Groups = groupNames(p, model.ComponentOf(t), t.Groups)
 	return n
 }
 
@@ -864,7 +864,7 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type, comput
 // fields (createAs). Each property keeps the field lines of the object component and writes
 // the SDK field of its top-level Create field.
 func (b *convBuilder) foldField(owner string, f *model.ResourceField, folds []model.CreateFold) (*convField, error) {
-	cf := &convField{TFName: tfName(f.Name), Model: camelize(f.Name), Conv: convFold}
+	cf := &convField{TFName: b.resource.Policy.TerraformName(b.resource.Name, f.Name), Model: camelize(f.Name), Conv: convFold}
 	for _, fd := range folds {
 		inner, err := b.fieldAt(owner+"."+fd.Field, f.Type.Schema, fd.Property, fd.Type, false, true)
 		if err != nil {
@@ -885,7 +885,7 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	if err != nil {
 		return nil, err
 	}
-	cf := &convField{TFName: tfName(name), Model: camelize(name), SDK: ref.Name}
+	cf := &convField{TFName: b.resource.Policy.TerraformName(component, name), Model: camelize(name), SDK: ref.Name}
 	b.applyFieldLine(cf, component, name)
 	want, err := b.fieldConv(cf, t, computed)
 	if err != nil {

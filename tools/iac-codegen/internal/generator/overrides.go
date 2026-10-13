@@ -234,6 +234,16 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared bool) *li
 	if line.Optional && !slices.Contains(schema.Required, line.Field) {
 		stale = append(stale, "optional")
 	}
+	if line.Collection != "" {
+		if problem := collectionProblem(schema, line); problem != nil {
+			return problem
+		}
+	}
+	if line.Name != "" {
+		if problem := nameProblem(schema, line); problem != nil {
+			return problem
+		}
+	}
 	if len(stale) == 0 {
 		return nil
 	}
@@ -357,4 +367,34 @@ func contractReadOnly(schema *base.Schema, field string) bool {
 
 func hasNoRequiredList(schema *base.Schema) bool {
 	return schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()
+}
+
+// nameProblem checks a name line. The name must differ from the name that the JSON name
+// gives, and from the name of every other field of the component.
+func nameProblem(schema *base.Schema, line overrides.Line) *lineIssue {
+	if line.Name == model.TerraformName(line.Field) {
+		return &lineIssue{message: fmt.Sprintf("%q is already the Terraform name of %q", line.Name, line.Field), stale: []string{"name"}}
+	}
+	for field := range schema.Properties.KeysFromOldest() {
+		if field != line.Field && model.TerraformName(field) == line.Name {
+			return wholeLine(fmt.Errorf("name %q is the Terraform name of field %q", line.Name, field))
+		}
+	}
+	return nil
+}
+
+// collectionProblem checks a collection: set line. It needs a list that the contract does not
+// already mark as a set.
+func collectionProblem(schema *base.Schema, line overrides.Line) *lineIssue {
+	built, err := schema.Properties.GetOrZero(line.Field).BuildSchema()
+	if err != nil {
+		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
+	}
+	if !slices.Equal(built.Type, []string{"array"}) {
+		return wholeLine(fmt.Errorf("collection: set needs a list, but %q is %v", line.Field, built.Type))
+	}
+	if n := built.Extensions.GetOrZero("x-coralogix-collection"); n != nil && n.Value == "set" {
+		return &lineIssue{message: fmt.Sprintf("the contract already states that %q is a set", line.Field), stale: []string{"collection"}}
+	}
+	return nil
 }

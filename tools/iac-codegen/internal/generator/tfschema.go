@@ -123,7 +123,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // buildTFResourceWith is buildTFResource for a resource with a behavior-overrides file
 // (nil for a new resource).
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
-	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file}
+	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: r.Name + "Model"}
 	root := &tfModel{Name: out.Model}
 	b.models = append(b.models, root)
@@ -226,7 +226,7 @@ func defaultPackages(attrs []*tfAttr) []string {
 // addSingletonID adds the fixed id attribute of a singleton (D18).
 func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
 	for _, f := range r.Fields {
-		if tfName(f.Name) == "id" {
+		if r.Policy.TerraformName(r.Name, f.Name) == "id" {
 			return fmt.Errorf("%s: a singleton with an id field is not supported: the id attribute is fixed", f.Name)
 		}
 	}
@@ -242,7 +242,7 @@ func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
 // resourceAttribute builds the attribute of a top-level field: its type, its server default, a
 // client-set id, and the plan modifiers of its behavior.
 func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *model.ResourceField, group string) (*tfAttr, error) {
-	a, err := b.attribute(rootPath(group, f.Name), r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), responseOnly(f.Behavior))
+	a, err := b.attribute(rootPath(group, r.Policy.TerraformName(r.Name, f.Name)), r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), responseOnly(f.Behavior))
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +259,7 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 		a.Modifiers = append(a.Modifiers, "serverDefaultModifier{value: "+value+"}")
 		out.HasServerDefaults = true
 		if !f.Get.Required {
-			out.OmittedDefaults = append(out.OmittedDefaults, defaultPath{Path: tfName(f.Name), Value: value})
+			out.OmittedDefaults = append(out.OmittedDefaults, defaultPath{Path: r.Policy.TerraformName(r.Name, f.Name), Value: value})
 		}
 		if !containsString(out.ServerDefaultKinds, a.ValueKind) {
 			out.ServerDefaultKinds = append(out.ServerDefaultKinds, a.ValueKind)
@@ -659,18 +659,18 @@ func serverDefaultValue(t *model.Type, value string) (string, error) {
 // other arms. On the arm, Terraform runs it only when the object is set. A
 // resource validator would also run when the object is null, and then
 // "exactly one" fails.
-func addGroupValidators(attrs []*tfAttr, groups []model.OneOfGroup) {
+func addGroupValidators(attrs []*tfAttr, groups []model.OneOfGroup, name func(string) string) {
 	byName := map[string]*tfAttr{}
 	for _, a := range attrs {
 		byName[a.Name] = a
 	}
 	for _, g := range groups {
 		for _, arm := range g.Arms {
-			a := byName[tfName(arm)]
+			a := byName[name(arm)]
 			var others []string
 			for _, o := range g.Arms {
 				if o != arm {
-					others = append(others, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", tfName(o)))
+					others = append(others, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", name(o)))
 				}
 			}
 			pkg := strings.ToLower(a.ValueKind) + "validator"
@@ -714,6 +714,7 @@ type tfBuilder struct {
 	defaultKinds []string        // ServerDefaultKinds of nested attributes
 	defaultPaths []defaultPath   // DefaultPaths
 	file         *overrides.File
+	policy       model.Policy
 }
 
 // requireOneArm turns a oneOf that allows no arm into ExactlyOneOf. The contract
@@ -770,7 +771,7 @@ func (p attrPath) expr() string {
 }
 
 func (b *tfBuilder) attribute(p attrPath, component, name, desc string, t *model.Type, attrs model.Attrs, computed bool) (*tfAttr, error) {
-	a := &tfAttr{Name: tfName(name), Description: desc, Required: attrs.Required, Optional: !attrs.Required, Component: component, Property: name}
+	a := &tfAttr{Name: b.policy.TerraformName(component, name), Description: desc, Required: attrs.Required, Optional: !attrs.Required, Component: component, Property: name}
 	if err := b.setType(a, p, t, computed); err != nil {
 		return nil, err
 	}
@@ -859,7 +860,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		if requestValue(b.file, t.Schema, f.Name) {
 			continue
 		}
-		child := append(append(attrPath{}, p...), tfName(f.Name))
+		child := append(append(attrPath{}, p...), b.policy.TerraformName(t.Schema, f.Name))
 		only := b.sent.responseOnly(t.Schema, f)
 		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f), only)
 		if err != nil {
@@ -875,7 +876,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
 		attrs = append(attrs, a)
-		fields = append(fields, b.modelField(f.Name, f.Type, f.Behavior, only))
+		fields = append(fields, b.modelField(t.Schema, f.Name, f.Type, f.Behavior, only))
 	}
 	groups := t.Groups
 	if t.Kind == model.OneOf {
@@ -885,7 +886,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		}
 		groups = append(groups, group)
 	}
-	addGroupValidators(attrs, groups)
+	addGroupValidators(attrs, groups, func(arm string) string { return b.policy.TerraformName(t.Schema, arm) })
 	name := modelTypeName(t.Schema)
 	if !b.seen[name] {
 		b.seen[name] = true
@@ -1052,7 +1053,7 @@ func nestedAttrs(f *model.Field) model.Attrs {
 
 // modelField returns the model field of a field with behavior. responseOnly is true when no
 // request sends the field.
-func (b *tfBuilder) modelField(name string, t *model.Type, behavior model.Behavior, responseOnly bool) tfModelField {
+func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior model.Behavior, responseOnly bool) tfModelField {
 	var goType string
 	switch t.Kind {
 	case model.String, model.Enum:
@@ -1085,7 +1086,7 @@ func (b *tfBuilder) modelField(name string, t *model.Type, behavior model.Behavi
 			goType = "*" + modelTypeName(t.Schema)
 		}
 	}
-	return tfModelField{Name: camelize(name), Type: goType, TFName: tfName(name)}
+	return tfModelField{Name: camelize(name), Type: goType, TFName: b.policy.TerraformName(component, name)}
 }
 
 // modelTypeName is the Terraform model struct of a component schema.
@@ -1247,13 +1248,13 @@ func tfName(property string) string {
 	return model.TerraformName(property)
 }
 
-// rootPath is the attribute path of a top-level field: below its group, when a behavior-overrides
-// group holds it.
-func rootPath(group, field string) attrPath {
+// rootPath is the attribute path of a top-level attribute with the Terraform name name: below
+// its group, when a behavior-overrides group holds it.
+func rootPath(group, name string) attrPath {
 	if group == "" {
-		return attrPath{"root", tfName(field)}
+		return attrPath{"root", name}
 	}
-	return attrPath{"root", group, tfName(field)}
+	return attrPath{"root", group, name}
 }
 
 // tfGroups builds the groups of the behavior-overrides file: required objects that hold
@@ -1434,7 +1435,7 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 		if err != nil {
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
-		field := b.modelField(f.Name, f.Type, f.Behavior, responseOnly(f.Behavior))
+		field := b.modelField(r.Name, f.Name, f.Type, f.Behavior, responseOnly(f.Behavior))
 		if group == "" {
 			out.Attributes = append(out.Attributes, a)
 			root.Fields = append(root.Fields, field)
@@ -1457,7 +1458,7 @@ func (b *tfBuilder) rootOneOfs(r *model.Resource, file *overrides.File, groups *
 			return err
 		} else if group != "" {
 			// The arms are in one group, which is an object: they check each other inside it.
-			addGroupValidators(groups.attrs[group].Attributes, []model.OneOfGroup{g})
+			addGroupValidators(groups.attrs[group].Attributes, []model.OneOfGroup{g}, func(arm string) string { return r.Policy.TerraformName(r.Name, arm) })
 			if file.Groups[group].RequireOne {
 				requireOneArm(groups.attrs[group])
 			}
@@ -1465,7 +1466,7 @@ func (b *tfBuilder) rootOneOfs(r *model.Resource, file *overrides.File, groups *
 		}
 		var arms []string
 		for _, arm := range g.Arms {
-			arms = append(arms, rootPath(file.GroupOf(arm), arm).expr())
+			arms = append(arms, rootPath(file.GroupOf(arm), r.Policy.TerraformName(r.Name, arm)).expr())
 		}
 		b.validators = append(b.validators, groupValidator("resourcevalidator", g, true)+"(\n"+strings.Join(arms, ",\n")+",\n)")
 	}

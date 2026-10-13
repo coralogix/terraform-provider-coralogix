@@ -66,6 +66,10 @@ type Policy struct {
 	Optional []string
 	// Computed lists "Component.field" of fields that a computed: true line makes computed.
 	Computed []string
+	// Sets lists "Component.field" of ordered lists of the contract that the resource shows as sets.
+	Sets []string
+	// Names maps "Component.field" to the Terraform attribute name of the field.
+	Names map[string]string
 	// CreateAs maps "Component.field" of a top-level object field to the flat Create fields that
 	// hold its properties: property name to Create field name.
 	CreateAs map[string]map[string]string
@@ -289,4 +293,29 @@ func (p *Policy) withOptional(component string, s *base.Schema) *base.Schema {
 
 func (p *Policy) computed(component, field string) bool {
 	return p != nil && component != "" && slices.Contains(p.Computed, component+"."+field)
+}
+
+// asSet makes t, the type of component.field, a set when a collection: set line says so.
+func (p *Policy) asSet(component, field string, t *Type) {
+	if p != nil && t != nil && t.Kind == List && component != "" && slices.Contains(p.Sets, component+"."+field) {
+		t.Kind = Set
+	}
+}
+
+// TerraformName returns the Terraform attribute name of field of component: the name of a
+// name line, or the name derived from the JSON name.
+func (p Policy) TerraformName(component, field string) string {
+	if n, ok := p.Names[component+"."+field]; ok {
+		return n
+	}
+	return TerraformName(field)
+}
+
+// ComponentOf returns the response component of a type: a request view names its request
+// component and keeps the response component in Model. Field lines name the response component.
+func ComponentOf(t *Type) string {
+	if t.Model != "" {
+		return t.Model
+	}
+	return t.Schema
 }

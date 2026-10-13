@@ -45,8 +45,8 @@ func thingWith(root tftypes.Type, set map[string]tftypes.Value) tftypes.Value {
 func quota(root tftypes.Type, limit int64, exceeded bool) tftypes.Value {
 	typ := root.(tftypes.Object).AttributeTypes["quota"]
 	return tftypes.NewValue(typ, map[string]tftypes.Value{
-		"limit":    tftypes.NewValue(tftypes.Number, limit),
-		"exceeded": tftypes.NewValue(tftypes.Bool, exceeded),
+		"limit":        tftypes.NewValue(tftypes.Number, limit),
+		"has_exceeded": tftypes.NewValue(tftypes.Bool, exceeded),
 	})
 }
 
@@ -78,6 +78,32 @@ func TestCreateSendsTheFoldedLimitFlat(t *testing.T) {
 	}))
 	if sent.LimitValue == nil || *sent.LimitValue != 5 {
 		t.Fatalf("Create LimitValue = %v, want 5", sent.LimitValue)
+	}
+}
+
+// Create sends the renamed attributes under their API names, and the tags set as a list.
+func TestCreateSendsRenamedAttributesUnderTheirAPINames(t *testing.T) {
+	_, root := thingSchema(t)
+	entries := root.(tftypes.Object).AttributeTypes["entries"].(tftypes.List)
+	entry := entries.ElementType.(tftypes.Object)
+	item := map[string]tftypes.Value{}
+	for name, typ := range entry.AttributeTypes {
+		item[name] = tftypes.NewValue(typ, nil)
+	}
+	item["key"] = tftypes.NewValue(tftypes.String, "k")
+	item["tags"] = tftypes.NewValue(entry.AttributeTypes["tags"], []tftypes.Value{tftypes.NewValue(tftypes.String, "a")})
+	item["enable"] = tftypes.NewValue(tftypes.Bool, true)
+	sent := createThing(t, thingWith(root, map[string]tftypes.Value{
+		"id":      tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+		"name":    tftypes.NewValue(tftypes.String, "name"),
+		"entries": tftypes.NewValue(entries, []tftypes.Value{tftypes.NewValue(entry, item)}),
+	}))
+	if len(sent.Items) != 1 || sent.Items[0].Key != "k" || len(sent.Items[0].Values) != 1 || sent.Items[0].Values[0] != "a" ||
+		sent.Items[0].Enabled == nil || !*sent.Items[0].Enabled {
+		t.Fatalf("Create items = %+v, want one item k with values [a] and enabled", sent.Items)
+	}
+	if _, ok := entry.AttributeTypes["tags"].(tftypes.Set); !ok {
+		t.Fatalf("tags is %v, want a set", entry.AttributeTypes["tags"])
 	}
 }
 

@@ -359,3 +359,18 @@ func TestOptionalAndCreateAsAreChecked(t *testing.T) {
 		})
 	}
 }
+
+func TestCollectionAndNameAreChecked(t *testing.T) {
+	for name, field := range map[string]string{
+		"collection other than set": "{collection: list}",
+		"name with upper case":      "{name: Applications}",
+		"name with a dash":          "{name: has-limit}",
+		"skip and name":             "{skip: true, name: limits}",
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: " + field + "\n")); err == nil {
+				t.Fatalf("%s: want an error", field)
+			}
+		})
+	}
+}

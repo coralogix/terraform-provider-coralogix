@@ -104,17 +104,18 @@ func hasIssueAt(report issue.Report, code, location string) bool {
 func TestEchoedContractNeedsEachLine(t *testing.T) {
 	tests := map[string]struct {
 		line, code, location string
+		without              string // the line without the key, when the line has other keys
 	}{
-		"createAs folds the flat Create field":               {"      quota: {createAs: {limit: limitValue}}\n", "FIELD_LIFECYCLE_UNSUPPORTED", "EchoThing.quota"},
-		"readOnly on a server flag of a shared component":    {"      exceeded: {readOnly: true}\n", "FIELD_LIFECYCLE_UNSUPPORTED", "quota.exceeded"},
-		"computed keeps a value Update requires":             {"      limit: {computed: true}\n", "FIELD_REQUIREDNESS_UNSUPPORTED", "quota.limit"},
-		"optional relaxes a required list that may be empty": {"      values: {optional: true}\n", "REQUIRED_VALUE_CAN_BE_EMPTY", "values"},
-		"computed states the presence of a plain bool":       {"      enabled: {computed: true}\n", "FIELD_PRESENCE_UNKNOWN", "enabled"},
-		"skip of an empty oneOf marker":                      {"      none: {skip: true}\n", "RENDERER_SHAPE_UNSUPPORTED", "none"},
+		"createAs folds the flat Create field":               {"      quota: {createAs: {limit: limitValue}}\n", "FIELD_LIFECYCLE_UNSUPPORTED", "EchoThing.quota", ""},
+		"readOnly on a server flag of a shared component":    {"      exceeded: {readOnly: true, name: has_exceeded}\n", "FIELD_LIFECYCLE_UNSUPPORTED", "quota.exceeded", "      exceeded: {name: has_exceeded}\n"},
+		"computed keeps a value Update requires":             {"      limit: {computed: true}\n", "FIELD_REQUIREDNESS_UNSUPPORTED", "quota.limit", ""},
+		"optional relaxes a required list that may be empty": {"      values: {optional: true, collection: set, name: tags}\n", "REQUIRED_VALUE_CAN_BE_EMPTY", "values", "      values: {collection: set, name: tags}\n"},
+		"computed states the presence of a plain bool":       {"      enabled: {computed: true, name: enable}\n", "FIELD_PRESENCE_UNKNOWN", "enabled", "      enabled: {name: enable}\n"},
+		"skip of an empty oneOf marker":                      {"      none: {skip: true}\n", "RENDERER_SHAPE_UNSUPPORTED", "none", ""},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			err := echoedErr(t, echoedSpec(t), replaceOnce(t, echoedOverrides(t), test.line, ""))
+			err := echoedErr(t, echoedSpec(t), replaceOnce(t, echoedOverrides(t), test.line, test.without))
 			if err == nil {
 				t.Fatal("the contract is eligible, want an issue")
 			}
@@ -142,7 +143,25 @@ func TestEchoedContractRefusesWrongLines(t *testing.T) {
 		},
 		"optional on a field that the contract does not require": {
 			overrides: func(t *testing.T, o string) string {
-				return replaceOnce(t, o, "      enabled: {computed: true}\n", "      enabled: {computed: true, optional: true}\n")
+				return replaceOnce(t, o, "{computed: true, name: enable}", "{computed: true, name: enable, optional: true}")
+			},
+			code: "OVERRIDE_UNUSED", location: "EchoItem",
+		},
+		"name that the JSON name already gives": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "name: enable}", "name: enabled}")
+			},
+			code: "OVERRIDE_UNUSED", location: "EchoItem",
+		},
+		"name of another field": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "name: enable}", "name: key}")
+			},
+			code: "OVERRIDE_UNUSED", location: "EchoItem",
+		},
+		"collection: set on a field that is not a list": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "{computed: true, name: enable}", "{computed: true, name: enable, collection: set}")
 			},
 			code: "OVERRIDE_UNUSED", location: "EchoItem",
 		},
