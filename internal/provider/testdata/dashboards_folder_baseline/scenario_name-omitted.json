@@ -20,7 +20,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_dashboard_folder | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"name is required\\\"}\"}\noperation - Create"
+      "error: Error creating coralogix_dashboard_folder | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: folder name not found\"}\noperation - Create"
     ],
     "state": null
   }

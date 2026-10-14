@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -55,7 +56,7 @@ func TestDashboardsFolderFakeMatchesRecordedBackend(t *testing.T) {
 				if s.Capture != "" && status == http.StatusOK {
 					vars[s.Capture], _ = got.(map[string]any)["folderId"].(string)
 				}
-				got = unsubstJSON(t, got, vars)
+				got = dashboardsFolderMessage(unsubstJSON(t, got, vars))
 				compareFidelityStep(t, label, status, got, rc.Steps[si].Status, rc.Steps[si].Response)
 			}
 		})
@@ -112,7 +113,9 @@ func TestRecordDashboardsFolderFidelity(t *testing.T) {
 		vars := map[string]string{}
 		for _, s := range c.Steps {
 			status, got := recordDashboardsFolderStep(t, base, apiKey, s, vars, &created)
-			if status == http.StatusForbidden || status == http.StatusUnauthorized {
+			// A 403 on a call about a folder that does not exist is an answer to record. A 403 on a
+			// create means that the key cannot manage dashboards.
+			if (status == http.StatusForbidden || status == http.StatusUnauthorized) && s.Method == http.MethodPost {
 				t.Fatalf("the dashboard folders API returned %d on %s %s. Recording needs a management API key that can manage dashboards.", status, s.Method, s.Path)
 			}
 			rec.Steps = append(rec.Steps, struct {
@@ -177,6 +180,8 @@ func recordDashboardsFolderStep(t *testing.T, base, apiKey string, s fidelitySte
 	return resp.StatusCode, dashboardsFolderMessage(unsubstJSON(t, parsed, vars))
 }
 
+var folderCompany = regexp.MustCompile(`CompanyId\(\d+\)`)
+
 // dashboardsFolderMessage writes a placeholder in an error message for each id, because each run
 // makes new ids.
 func dashboardsFolderMessage(v any) any {
@@ -185,7 +190,8 @@ func dashboardsFolderMessage(v any) any {
 		return v
 	}
 	if msg, ok := m["message"].(string); ok {
-		m["message"] = folderUUID.ReplaceAllString(msg, "<id>")
+		msg = folderUUID.ReplaceAllString(msg, "<id>")
+		m["message"] = folderCompany.ReplaceAllString(msg, "CompanyId(<company>)")
 	}
 	return m
 }
