@@ -7,6 +7,7 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -40,7 +41,7 @@ func providerFiles(options Options, providerRoot, providerModule string, isNew b
 	var out []providerFile
 	if isNew {
 		dir := filepath.Join(providerRoot, "examples", "resources", "coralogix_"+typeName)
-		if err := checkExampleOwned(dir, output); err != nil {
+		if err := checkExampleOwned(dir, output, typeName); err != nil {
 			return nil, err
 		}
 		out = append(out,
@@ -69,18 +70,32 @@ func checkOverridesLocation(options Options) error {
 }
 
 // checkExampleOwned allows the generator to write the example directory of a new resource only
-// when the directory does not exist, or when an earlier run generated the resource. A handwritten
-// example stays.
-func checkExampleOwned(dir, output string) error {
+// when the directory does not exist, or when an earlier run generated the same resource in output.
+// A handwritten example stays.
+func checkExampleOwned(dir, output, typeName string) error {
 	if _, err := os.Lstat(dir); errors.Is(err, os.ErrNotExist) {
 		return nil
 	} else if err != nil {
 		return fmt.Errorf("inspect example directory: %w", err)
 	}
-	if newResourcePackage(output) {
+	if newResourcePackage(output) && generatedTypeName(output) == typeName {
 		return nil
 	}
 	return fmt.Errorf("%s exists, but tfgen did not write it: a new resource does not replace a handwritten example; delete the directory", dir)
+}
+
+var typeNameConst = regexp.MustCompile(`(?m)^const TypeName = "([^"]*)"$`)
+
+// generatedTypeName returns the resource type name of the generated package in dir, or "".
+func generatedTypeName(dir string) string {
+	data, err := os.ReadFile(filepath.Join(dir, "resource.go"))
+	if err != nil {
+		return ""
+	}
+	if m := typeNameConst.FindSubmatch(data); m != nil {
+		return string(m[1])
+	}
+	return ""
 }
 
 // newResourcePackage reports whether dir holds a generated new resource: a generator-owned package
@@ -213,8 +228,25 @@ func stageFile(file providerFile) (string, error) {
 	return stage.Name(), nil
 }
 
-// withinDir reports whether path is dir or below it.
-func withinDir(dir, path string) bool {
-	rel, err := filepath.Rel(dir, path)
-	return err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))
+// generatedDir is the directory of the generated packages, relative to the provider root. Its
+// registry is the one that provider.go imports.
+var generatedDir = filepath.Join("internal", "provider", "generated")
+
+// checkOutputLocation requires the output directory to be a direct child of generatedDir. The
+// registry sits next to the output, and provider.go imports only the registry in generatedDir.
+func checkOutputLocation(providerRoot, output string) error {
+	abs, err := filepath.Abs(output)
+	if err != nil {
+		return fmt.Errorf("resolve output directory: %w", err)
+	}
+	if !inGeneratedDir(providerRoot, abs) {
+		return fmt.Errorf("output directory %s must be a directory in %s: provider.go registers only the resources of its registry",
+			abs, filepath.Join(providerRoot, generatedDir))
+	}
+	return nil
+}
+
+// inGeneratedDir reports whether output is a direct child of generatedDir in the provider.
+func inGeneratedDir(providerRoot, output string) bool {
+	return filepath.Dir(filepath.Clean(output)) == filepath.Join(providerRoot, generatedDir)
 }

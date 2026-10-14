@@ -335,6 +335,28 @@ func TestAcceptanceCollectionElementsFitTheirValidators(t *testing.T) {
 	}
 }
 
+// Only an immutable value that both configs set and that differs is a sure replace.
+func TestNestedChange(t *testing.T) {
+	tests := map[string]struct {
+		before, after map[string]string
+		want          attrChangeKind
+	}{
+		"same values": {map[string]string{"spec.region": `"eu"`}, map[string]string{"spec.region": `"eu"`}, changeNone},
+		"no values":   {map[string]string{}, map[string]string{}, changeNone},
+		"other value": {map[string]string{"spec.region": `"eu"`}, map[string]string{"spec.region": `"us"`}, changeSure},
+		"value added": {map[string]string{}, map[string]string{"spec.region": `"eu"`}, changeMaybe},
+		"value gone":  {map[string]string{"spec.region": `"eu"`}, map[string]string{}, changeMaybe},
+		"sure wins":   {map[string]string{"a": "1", "b": "1"}, map[string]string{"a": "2", "c": "1"}, changeSure},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if got := nestedChange(test.before, test.after); got != test.want {
+				t.Fatalf("change = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
 // The step after an upgrade expects the action that its configs cause.
 func TestAcceptanceNextActionFollowsTheConfigs(t *testing.T) {
 	enum := &tfAttr{Name: "kind", Kind: "String", Required: true, Validators: []string{`stringvalidator.OneOf("alpha")`}}
@@ -349,6 +371,14 @@ func TestAcceptanceNextActionFollowsTheConfigs(t *testing.T) {
 		return &tfAttr{Name: name, Kind: kind, Required: required, Optional: !required, Attributes: children}
 	}
 	spec := nested("spec", "SingleNested", true, region, label)
+	arm := func(name string, children ...*tfAttr) *tfAttr {
+		a := nested(name, "SingleNested", false, children...)
+		a.OneOfGroup = "http,s3"
+		return a
+	}
+	storageSpec := nested("spec", "SingleNested", true, name, nested("storage", "SingleNested", false,
+		arm("http", &tfAttr{Name: "url", Kind: "String", Required: true}),
+		arm("s3", &tfAttr{Name: "bucket", Kind: "String", Required: true, Modifiers: []string{"stringplanmodifier.RequiresReplace()"}})))
 	rules := nested("rules", "ListNested", false,
 		&tfAttr{Name: "region", Kind: "String", Required: true, Modifiers: []string{"stringplanmodifier.RequiresReplace()"}}, label)
 	tests := map[string]struct {
@@ -369,9 +399,10 @@ func TestAcceptanceNextActionFollowsTheConfigs(t *testing.T) {
 		"a sure replace wins":                 {[]*tfAttr{enum, zone, region}, accMinimal, accFull, accPlanReplace},
 		// Only the immutable values below a top-level attribute decide a replace.
 		"a mutable value beside a nested immutable value changes": {[]*tfAttr{enum, spec}, accFull, accUpdated, accPlanNoReplace},
-		"a nested immutable value is added":                       {[]*tfAttr{enum, spec}, accMinimal, accFull, accPlanReplace},
-		// The plan modifiers of the parents decide whether a new object with an immutable value replaces.
-		"an object with a nested immutable value is added": {[]*tfAttr{enum, rules}, accMinimal, accFull, accPlanUnknown},
+		// The plan modifiers of the parents decide whether a new immutable value below the top level replaces.
+		"a nested immutable value is added":                   {[]*tfAttr{enum, spec}, accMinimal, accFull, accPlanUnknown},
+		"an object with a nested immutable value is added":    {[]*tfAttr{enum, rules}, accMinimal, accFull, accPlanUnknown},
+		"a oneOf takes a mutable arm before an immutable one": {[]*tfAttr{enum, storageSpec}, accMinimal, accFull, accPlanNoReplace},
 	}
 	for testName, test := range tests {
 		t.Run(testName, func(t *testing.T) {

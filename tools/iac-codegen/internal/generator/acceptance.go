@@ -100,6 +100,9 @@ type accSynth struct {
 	// releasedRequired are the attributes that the released provider requires.
 	releasedRequired map[string]bool
 	used             map[string]bool // every value path that a config used
+	// immutables records the HCL of each immutable value that a walk sets, by its state path. nil
+	// records nothing.
+	immutables map[string]string
 }
 
 var quoted = regexp.MustCompile(`"([^"]*)"`)
@@ -357,28 +360,22 @@ func (s *accSynth) nextAction(attrs []*tfAttr, from, to *accStep, fromMode, toMo
 	defer func() { s.released = released }()
 	maybe := false
 	for _, a := range attrs {
-		view, nested := a, false
-		if !immutable(a) {
-			if view = immutableView(a); view == nil {
-				continue
-			}
-			nested = true
+		if !immutable(a) && !holdsImmutable(a) {
+			continue
 		}
 		s.released = released
-		before, _, err := s.attrs([]*tfAttr{view}, "", "", fromMode, true)
+		before, beforeValues, err := s.immutableValues(a, fromMode)
 		if err != nil {
 			return "", err
 		}
 		s.released = nil
-		after, _, err := s.attrs([]*tfAttr{view}, "", "", toMode, true)
+		after, afterValues, err := s.immutableValues(a, toMode)
 		if err != nil {
 			return "", err
 		}
-		change := attrChange(view, before, after)
-		if nested && change == changeSure && (before == "" || after == "") {
-			// A config adds or removes the object that holds the immutable value. Whether that
-			// replaces the resource depends on the plan modifiers of the parents.
-			change = changeMaybe
+		change := attrChange(a, before, after)
+		if !immutable(a) {
+			change = nestedChange(beforeValues, afterValues)
 		}
 		switch change {
 		case changeSure:
@@ -611,24 +608,41 @@ func defaultState(a *tfAttr) (string, bool) {
 	return "", false
 }
 
-// immutableView returns a copy of a with only the attributes below it whose change replaces the
-// resource, and their parents. It returns nil when a has none. Two configs that render the same
-// view differ in no immutable value.
-func immutableView(a *tfAttr) *tfAttr {
-	var kept []*tfAttr
-	for _, child := range a.Attributes {
-		if immutable(child) {
-			kept = append(kept, child)
-		} else if view := immutableView(child); view != nil {
-			kept = append(kept, view)
+// immutableValues renders the attribute as the config of the mode does, and returns its lines and
+// the immutable values in it, by state path. The values come from the real config, so a oneOf
+// group keeps the arm that the config takes.
+func (s *accSynth) immutableValues(a *tfAttr, mode accMode) (string, map[string]string, error) {
+	s.immutables = map[string]string{}
+	defer func() { s.immutables = nil }()
+	lines, _, err := s.attrs([]*tfAttr{a}, "", "", mode, true)
+	return lines, s.immutables, err
+}
+
+// holdsImmutable reports whether an attribute below a replaces the resource when it changes.
+func holdsImmutable(a *tfAttr) bool {
+	return slices.ContainsFunc(a.Attributes, func(child *tfAttr) bool { return immutable(child) || holdsImmutable(child) })
+}
+
+// nestedChange compares the immutable values below a top-level attribute in two configs. A value
+// that both set and that differs replaces the resource. A value that only one sets may: that
+// depends on the plan modifiers of its parents, and on what the state holds.
+func nestedChange(before, after map[string]string) attrChangeKind {
+	change := changeNone
+	for path, value := range after {
+		prior, ok := before[path]
+		switch {
+		case ok && prior != value:
+			return changeSure
+		case !ok:
+			change = changeMaybe
 		}
 	}
-	if len(kept) == 0 {
-		return nil
+	for path := range before {
+		if _, ok := after[path]; !ok {
+			change = changeMaybe
+		}
 	}
-	view := *a
-	view.Attributes = kept
-	return &view
+	return change
 }
 
 // immutable reports whether a change of a replaces the resource, with the
@@ -637,6 +651,14 @@ func immutable(a *tfAttr) bool { return replaces(a) }
 
 // value makes the HCL value of an attribute and the checks on it.
 func (s *accSynth) value(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
+	hcl, checks, err := s.makeValue(a, tfPath, key, mode)
+	if err == nil && s.immutables != nil && immutable(a) {
+		s.immutables[tfPath] = hcl
+	}
+	return hcl, checks, err
+}
+
+func (s *accSynth) makeValue(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
 	if mode == accMinimal && slices.Contains(s.minimal, key) {
 		mode = accFull
 	}

@@ -70,12 +70,8 @@ func Generate(start string, options Options) error {
 	if err != nil {
 		return err
 	}
-	output, err := filepath.Abs(options.OutputDir)
-	if err != nil {
-		return fmt.Errorf("resolve output directory: %w", err)
-	}
-	if !withinDir(input.ProviderRoot, output) {
-		return fmt.Errorf("output directory %s is outside the provider %s: the generator registers the resource in the provider", output, input.ProviderRoot)
+	if err := checkOutputLocation(input.ProviderRoot, options.OutputDir); err != nil {
+		return err
 	}
 	return generateFromInput(options, input, input.ProviderRoot)
 }
@@ -175,7 +171,7 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 		return fmt.Errorf("resolve output directory: %w", err)
 	}
 	// The test seam can write a resource outside the provider. Generate cannot.
-	if withinDir(input.ProviderRoot, output) {
+	if inGeneratedDir(input.ProviderRoot, output) {
 		if extras, err = providerFiles(options, input.ProviderRoot, input.ProviderModule, validated.overrides == nil, tfName(validated.resource.Name), files); err != nil {
 			return err
 		}

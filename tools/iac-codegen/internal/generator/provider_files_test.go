@@ -168,6 +168,26 @@ func TestProviderFilesKeepHandwrittenFiles(t *testing.T) {
 	}
 }
 
+// An earlier run that generated another resource in the output directory does not own the example
+// of this resource.
+func TestExampleOfAnotherResourceStays(t *testing.T) {
+	input, loadDir, out := inProvider(t, "thing")
+	if err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	example := filepath.Join(input.ProviderRoot, "examples", "resources", "coralogix_thing", "resource.tf")
+	writeFile(t, example, "handwritten\n")
+	resource := filepath.Join(out, "resource.go")
+	writeFile(t, resource, strings.Replace(readFile(t, resource), `const TypeName = "thing"`, `const TypeName = "other"`, 1))
+	err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "tfgen did not write it") {
+		t.Fatalf("err = %v, want the example of another resource kept", err)
+	}
+	if got := readFile(t, example); got != "handwritten\n" {
+		t.Fatalf("the generator replaced the handwritten example:\n%s", got)
+	}
+}
+
 // The example has no value of the test environment: an environment variable becomes a placeholder
 // with its name, and the id of the test run becomes "example".
 func TestExampleHidesTheTestEnvironment(t *testing.T) {
@@ -214,16 +234,21 @@ func TestImportCommand(t *testing.T) {
 	}
 }
 
-func TestWithinDir(t *testing.T) {
-	root := filepath.Join(string(filepath.Separator), "provider")
-	for path, want := range map[string]bool{
-		root:                                   true,
-		filepath.Join(root, "internal", "x"):   true,
-		filepath.Join(root, "..", "elsewhere"): false,
-		filepath.Join(root+"-other", "x"):      false,
+// The provider imports only the registry in internal/provider/generated, so the output must be a
+// direct child of that directory.
+func TestOutputLocation(t *testing.T) {
+	root := t.TempDir()
+	generated := filepath.Join(root, "internal", "provider", "generated")
+	for out, ok := range map[string]bool{
+		filepath.Join(generated, "thing"):                             true,
+		filepath.Join(root, "internal", "provider", "other", "thing"): false,
+		filepath.Join(generated, "a", "thing"):                        false,
+		generated:                                                     false,
+		filepath.Join(t.TempDir(), "thing"):                           false,
 	} {
-		if got := withinDir(root, path); got != want {
-			t.Errorf("withinDir(%s, %s) = %v, want %v", root, path, got, want)
+		err := checkOutputLocation(root, out)
+		if ok != (err == nil) {
+			t.Errorf("checkOutputLocation(%s) = %v, want ok %v", out, err, ok)
 		}
 	}
 }
