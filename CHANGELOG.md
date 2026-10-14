@@ -6,6 +6,7 @@
 - FIX: `filter.alerts_unique_ids = []` no longer fails with "inconsistent result after apply". The state keeps `[]`; a filter without a selector still sends an empty `alertUniqueIds` and reads back as null.
 - FEAT: Validation requires `weekly.days` and `monthly.days`, and exactly one of `daily`, `weekly`, or `monthly` in `frequency`. Before, the API rejected such a rule at apply.
 - CHORE: `id` stays known in the plan of an update. `for_over`, `repeat_every`, and `monthly.days` are 32-bit numbers, as the API stores them. Update reads the rule from the replace response instead of a second read. Attributes without a description show the API description.
+- CHORE: Add the generated acceptance test, with an upgrade test that creates a rule with provider 3.21.0 and plans it with this build.
 
 #### data-source/coralogix_alerts_scheduler
 - CHORE: Uses the schema and the conversion of the generated resource.
