@@ -98,18 +98,31 @@ func (f *File) checkGroups() error {
 	if f.TypeName != "" && !tfNamePattern.MatchString(f.TypeName) {
 		return fmt.Errorf("typeName %q is not a Terraform name: lower case letters, digits, and underscores", f.TypeName)
 	}
+	if err := checkGroupMap("groups", f.Groups); err != nil {
+		return err
+	}
+	for _, name := range sortedKeys(f.Types) {
+		if err := checkGroupMap("types."+name+".groups", f.Types[name].Groups); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// checkGroupMap checks the groups at prefix: Terraform names, and each field in one group.
+func checkGroupMap(prefix string, groups map[string]Group) error {
 	seen := map[string]string{}
-	for _, name := range sortedKeys(f.Groups) {
-		g := f.Groups[name]
+	for _, name := range sortedKeys(groups) {
+		g := groups[name]
 		if !tfNamePattern.MatchString(name) {
-			return fmt.Errorf("groups.%s: the name is not a Terraform name: lower case letters, digits, and underscores", name)
+			return fmt.Errorf("%s.%s: the name is not a Terraform name: lower case letters, digits, and underscores", prefix, name)
 		}
 		if len(g.Fields) == 0 {
-			return fmt.Errorf("groups.%s: fields is empty", name)
+			return fmt.Errorf("%s.%s: fields is empty", prefix, name)
 		}
 		for _, field := range g.Fields {
 			if other, ok := seen[field]; ok {
-				return fmt.Errorf("groups.%s: field %s is also in groups.%s", name, field, other)
+				return fmt.Errorf("%s.%s: field %s is also in %s.%s", prefix, name, field, prefix, other)
 			}
 			seen[field] = name
 		}
@@ -220,6 +233,20 @@ type Type struct {
 	// Expand does not send them. Flatten writes a typed null. A handwritten
 	// overlay reads them from configuration.
 	ExtraAttributes map[string]ExtraAttribute `yaml:"extraAttributes"`
+	// Groups are required Terraform objects that the API does not have, as the top-level groups,
+	// each holding fields of this object, for example frequency = {daily = ...} for the daily
+	// field of a recurring schedule.
+	Groups map[string]Group `yaml:"groups"`
+}
+
+// GroupOf returns the group of the type that holds field, or "".
+func (t Type) GroupOf(field string) string {
+	for name, g := range t.Groups {
+		if slices.Contains(g.Fields, field) {
+			return name
+		}
+	}
+	return ""
 }
 
 // ExtraAttribute is one Terraform-only attribute of a generated object.
@@ -464,7 +491,7 @@ func (f *File) checkTypes() error {
 		if t.Required != nil && len(*t.Required) != 0 {
 			return fmt.Errorf("types.%s.required: only the empty list [] is allowed", name)
 		}
-		if t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 {
+		if t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 && len(t.Groups) == 0 {
 			return fmt.Errorf("types.%s has no override", name)
 		}
 		names := map[string]string{}

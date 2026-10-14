@@ -98,10 +98,12 @@ func flatten(ctx context.Context, v *suppressed_things_service.SuppressedThing) 
 // out. An empty arm selects that arm, so it is not the same as a missing arm
 // (contract 2.8).
 var oneOfArms = map[string]bool{
-	"repeat.always_active": true,
-	"repeat.dynamic":       true,
-	"filter.ids":           true,
-	"filter.labels":        true,
+	"repeat.always_active":            true,
+	"repeat.dynamic":                  true,
+	"repeat.dynamic.frequency.daily":  true,
+	"repeat.dynamic.frequency.weekly": true,
+	"filter.ids":                      true,
+	"filter.labels":                   true,
 }
 
 // computedAttrs are the paths of the computed attributes, with list and map
@@ -314,6 +316,7 @@ func expandDynamic(ctx context.Context, p path.Path, m *DynamicModel, diags *dia
 	}
 	out := &suppressed_things_service.Dynamic{}
 	out.Every = valueOf(expandString(m.Every))
+	expandDynamicFrequency(ctx, p.AtName("frequency"), m.Frequency, out, diags)
 	return out
 }
 
@@ -323,6 +326,48 @@ func flattenDynamic(ctx context.Context, p path.Path, v *suppressed_things_servi
 	}
 	out := &DynamicModel{}
 	out.Every = types.StringPointerValue(&v.Every)
+	out.Frequency = flattenDynamicFrequency(ctx, p.AtName("frequency"), v, diags)
+	return out
+}
+
+// expandDynamicFrequency writes the fields of a group, which the API holds in the parent object, to out.
+func expandDynamicFrequency(ctx context.Context, p path.Path, m *DynamicFrequencyModel, out *suppressed_things_service.Dynamic, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+	if m.Daily != nil {
+		out.Daily = map[string]interface{}{}
+	}
+	out.Weekly = expandWeekly(ctx, p.AtName("weekly"), m.Weekly, diags)
+}
+
+func flattenDynamicFrequency(ctx context.Context, p path.Path, v *suppressed_things_service.Dynamic, diags *diag.Diagnostics) *DynamicFrequencyModel {
+	if v == nil {
+		return nil
+	}
+	out := &DynamicFrequencyModel{}
+	if v.Daily != nil {
+		out.Daily = &DailyModel{}
+	}
+	out.Weekly = flattenWeekly(ctx, p.AtName("weekly"), v.Weekly, diags)
+	return out
+}
+
+func expandWeekly(ctx context.Context, p path.Path, m *WeeklyModel, diags *diag.Diagnostics) *suppressed_things_service.Weekly {
+	if m == nil {
+		return nil
+	}
+	out := &suppressed_things_service.Weekly{}
+	out.Note = expandString(m.Note)
+	return out
+}
+
+func flattenWeekly(ctx context.Context, p path.Path, v *suppressed_things_service.Weekly, diags *diag.Diagnostics) *WeeklyModel {
+	if v == nil {
+		return nil
+	}
+	out := &WeeklyModel{}
+	out.Note = types.StringPointerValue(v.Note)
 	return out
 }
 

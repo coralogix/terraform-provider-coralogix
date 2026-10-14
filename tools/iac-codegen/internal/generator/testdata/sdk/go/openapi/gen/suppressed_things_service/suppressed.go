@@ -34,7 +34,13 @@ type Repeat struct {
 }
 
 type Dynamic struct {
-	Every string
+	Every  string
+	Daily  map[string]interface{}
+	Weekly *Weekly
+}
+
+type Weekly struct {
+	Note *string
 }
 
 type ThingOperation string

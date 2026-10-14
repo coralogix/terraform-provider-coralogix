@@ -25,6 +25,11 @@ types:
   Filter:
     fields:
       ids: {defaultArm: true}
+  Dynamic:
+    groups:
+      frequency:
+        fields: [daily, weekly]
+        markdownDescription: "How often the rule repeats."
   Repeat:
     fields:
       alwaysActive: {asBool: true}

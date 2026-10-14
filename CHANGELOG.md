@@ -127,6 +127,8 @@
 - FIX: A `name` line can take the name of a field without an attribute (skipped, or a `requestValue`), and such fields take part in no name collision.
 - FIX: A renamed top-level field with a server default or an Update-only value keeps its released name in the omitted-default and follow-up Update paths.
 - FIX: `enums.<Enum>.names` cannot give an accepted value the spelling of a rejected value that `readRejected` reads back, and `defaultArm` needs a full-replace Update.
+- FEAT: `types.<Type>.groups` makes required Terraform objects that hold fields of a nested component, as `groups` does for top-level fields, for example `frequency` around the daily, weekly, and monthly arms of a recurring schedule.
+- FIX: A renamed top-level field with a server default or an Update-only value keeps its released name in the omitted-default and follow-up Update paths, and in the merged request and response conversion.
 
 #### resource/coralogix_global_router
 - CHORE: The acceptance test compares imported `rules[*].targets` without their order, because the API returns them in no fixed order and an import has no prior order to keep.

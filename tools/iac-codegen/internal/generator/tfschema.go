@@ -131,7 +131,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // buildTFResourceWith is buildTFResource for a resource with a behavior-overrides file
 // (nil for a new resource).
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
-	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy}
+	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy, replace: r.Replace}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: r.Name + "Model"}
 	root := &tfModel{Name: out.Model}
 	b.models = append(b.models, root)
@@ -758,6 +758,7 @@ type tfBuilder struct {
 	defaultPaths []defaultPath   // DefaultPaths
 	file         *overrides.File
 	policy       model.Policy
+	replace      bool // Update is a full replace, so a group can hold nested fields
 }
 
 // requireOneArm turns a oneOf that allows no arm into ExactlyOneOf. The contract
@@ -936,11 +937,16 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	}
 	var attrs []*tfAttr
 	var fields []tfModelField
+	groups := newNestedGroups(b, t.Schema)
 	for _, f := range t.Fields {
 		if requestValue(b.file, t.Schema, f.Name) {
 			continue
 		}
+		group := groups.of(f.Name)
 		child := append(append(attrPath{}, p...), b.policy.TerraformName(t.Schema, f.Name))
+		if group != "" {
+			child = append(append(attrPath{}, p...), group, b.policy.TerraformName(t.Schema, f.Name))
+		}
 		only := b.sent.responseOnly(t.Schema, f)
 		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f), only)
 		if err != nil {
@@ -959,18 +965,34 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		if err := b.nestedServerDefault(a, child, t.Schema, f); err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
+		field := b.modelField(t.Schema, f.Name, f.Type, f.Behavior, only, f.Attrs.Computed)
+		if group != "" {
+			if err := groups.add(group, f, a, field); err != nil {
+				return nil, err
+			}
+			if a, field, ok := groups.first(group); ok {
+				attrs = append(attrs, a)
+				fields = append(fields, field)
+			}
+			continue
+		}
 		attrs = append(attrs, a)
-		fields = append(fields, b.modelField(t.Schema, f.Name, f.Type, f.Behavior, only, f.Attrs.Computed))
+		fields = append(fields, field)
 	}
-	groups := t.Groups
+	oneOfs := t.Groups
 	if t.Kind == model.OneOf {
 		group := model.OneOfGroup{AllowNone: t.AllowNone}
 		for _, f := range t.Fields {
 			group.Arms = append(group.Arms, f.Name)
 		}
-		groups = append(groups, group)
+		oneOfs = append(oneOfs, group)
 	}
-	addGroupValidators(attrs, b.policy.WithDefaultArms(t.Schema, groups), func(arm string) string { return b.policy.TerraformName(t.Schema, arm) })
+	if err := groups.addValidators(attrs, b.policy.WithDefaultArms(t.Schema, oneOfs)); err != nil {
+		return nil, err
+	}
+	if err := groups.check(attrs); err != nil {
+		return nil, err
+	}
 	name := typeModelName(t)
 	if !b.seen[name] {
 		b.seen[name] = true
@@ -1594,4 +1616,121 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 		b.validators = append(b.validators, groupValidator("resourcevalidator", g, true)+"(\n"+strings.Join(arms, ",\n")+",\n)")
 	}
 	return nil
+}
+
+// nestedGroups builds the groups of a nested component (types.<Type>.groups): required objects
+// that hold fields of the component and that the API does not have.
+type nestedGroups struct {
+	b         *tfBuilder
+	component string
+	lines     map[string]overrides.Group
+	attrs     map[string]*tfAttr
+	models    map[string]*tfModel
+	fresh     map[string]bool // the group attribute was made by the last add
+}
+
+func newNestedGroups(b *tfBuilder, component string) *nestedGroups {
+	g := &nestedGroups{b: b, component: component, attrs: map[string]*tfAttr{}, models: map[string]*tfModel{}, fresh: map[string]bool{}}
+	if b.file != nil {
+		g.lines = b.file.Types[component].Groups
+	}
+	return g
+}
+
+// of returns the group that holds field, or "".
+func (g *nestedGroups) of(field string) string {
+	for name, line := range g.lines {
+		if slices.Contains(line.Fields, field) {
+			return name
+		}
+	}
+	return ""
+}
+
+// add puts the attribute and the model field of field f in its group. A group holds fields that
+// the user sets and that a full replace sends, as a top-level group does.
+func (g *nestedGroups) add(group string, f *model.Field, a *tfAttr, field tfModelField) error {
+	switch {
+	case !g.b.replace:
+		return fmt.Errorf("types.%s.groups.%s: a group needs a full-replace Update (PUT): a PATCH mask names the API fields", g.component, group)
+	case f.Behavior != model.Normal:
+		return fmt.Errorf("types.%s.groups.%s: %s is %s; a group holds only fields that the user sets and Update sends", g.component, group, f.Name, f.Behavior)
+	case slices.ContainsFunc(a.Modifiers, func(m string) bool { return strings.HasPrefix(m, "serverDefaultModifier") }):
+		return fmt.Errorf("types.%s.groups.%s: %s has a server default; a group cannot hold it", g.component, group, f.Name)
+	}
+	attr, found := g.attrs[group]
+	g.fresh[group] = !found
+	if !found {
+		attr = &tfAttr{Name: group, Kind: "SingleNested", ValueKind: "Object", Required: true, Component: g.component,
+			Description: g.lines[group].MarkdownDescription}
+		g.attrs[group] = attr
+		g.models[group] = &tfModel{Name: groupModelName(g.component, group)}
+	}
+	attr.Attributes = append(attr.Attributes, a)
+	g.models[group].Fields = append(g.models[group].Fields, field)
+	return nil
+}
+
+// first returns the group attribute and its model field when the last add made the group, so the
+// caller adds them once, in the place of the first field of the group.
+func (g *nestedGroups) first(group string) (*tfAttr, tfModelField, bool) {
+	if !g.fresh[group] {
+		return nil, tfModelField{}, false
+	}
+	model := g.models[group]
+	if !g.b.seen[model.Name] {
+		g.b.seen[model.Name] = true
+		g.b.models = append(g.b.models, model)
+	}
+	return g.attrs[group], tfModelField{Name: camelize(group), Type: "*" + model.Name, TFName: group}, true
+}
+
+// addValidators adds the oneOf validators: inside a group when the group holds every arm, else to
+// the attributes of the component. A group cannot hold some of the arms only.
+func (g *nestedGroups) addValidators(attrs []*tfAttr, oneOfs []model.OneOfGroup) error {
+	name := func(arm string) string { return g.b.policy.TerraformName(g.component, arm) }
+	for _, o := range oneOfs {
+		group := g.of(o.Arms[0])
+		for _, arm := range o.Arms[1:] {
+			if g.of(arm) != group {
+				return fmt.Errorf("types.%s.groups: the oneOf arms %s must all be in one group, or in none", g.component, strings.Join(o.Arms, ", "))
+			}
+		}
+		if group == "" {
+			addGroupValidators(attrs, []model.OneOfGroup{o}, name)
+			continue
+		}
+		addGroupValidators(g.attrs[group].Attributes, []model.OneOfGroup{o}, name)
+		if g.lines[group].RequireOne {
+			requireOneArm(g.attrs[group])
+		}
+	}
+	return nil
+}
+
+// check reports a group field that is no field of the component, and a group whose Terraform or
+// Go name is also the name of another attribute.
+func (g *nestedGroups) check(attrs []*tfAttr) error {
+	for _, name := range sortedGroupNames(g.lines) {
+		for _, a := range attrs {
+			if a != g.attrs[name] && (a.Name == name || camelize(a.Name) == camelize(name)) {
+				return fmt.Errorf("types.%s.groups.%s: the name is also the attribute %s", g.component, name, a.Name)
+			}
+		}
+		for _, field := range g.lines[name].Fields {
+			if !slices.ContainsFunc(g.attrs[name].attrsOrNil(), func(a *tfAttr) bool { return a.Property == field }) {
+				return fmt.Errorf("types.%s.groups.%s: %s is no field of %s that Terraform shows", g.component, name, field, g.component)
+			}
+		}
+	}
+	return nil
+}
+
+func sortedGroupNames(groups map[string]overrides.Group) []string {
+	names := make([]string, 0, len(groups))
+	for name := range groups {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
 }
