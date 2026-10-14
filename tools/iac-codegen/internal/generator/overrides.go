@@ -388,12 +388,17 @@ func hasNoRequiredList(schema *base.Schema) bool {
 	return schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()
 }
 
-// requestValueByProblem checks a requestValueBy line. Each key is an object field of the
-// component, and each value is a value of the enum of the field when the field is an enum.
+// requestValueByProblem checks a requestValueBy line. The field is a string, each key is an
+// object field of the component, and each value is a value of the enum of the field when the
+// field is an enum.
 func requestValueByProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	built, err := schema.Properties.GetOrZero(line.Field).BuildSchema()
 	if err != nil {
 		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
+	}
+	// The renderer sends each value as a string.
+	if !slices.Equal(built.Type, []string{"string"}) {
+		return wholeLine(fmt.Errorf("requestValueBy needs a string or a string enum, but %q is %v", line.Field, built.Type))
 	}
 	for _, field := range slices.Sorted(maps.Keys(line.RequestValueBy)) {
 		proxy := schema.Properties.GetOrZero(field)
@@ -404,7 +409,8 @@ func requestValueByProblem(schema *base.Schema, line overrides.Line) *lineIssue 
 		if err != nil {
 			return wholeLine(fmt.Errorf("field %q: %w", field, err))
 		}
-		if !proxy.IsReference() && !slices.Equal(s.Type, []string{"object"}) && len(s.AllOf) == 0 {
+		// The renderer tests the field for nil, so it must be an object, also behind a $ref.
+		if !slices.Equal(s.Type, []string{"object"}) && len(s.AllOf) == 0 && (len(s.Type) != 0 || s.Properties == nil) {
 			return wholeLine(fmt.Errorf("requestValueBy names %q, which is not an object", field))
 		}
 		value := line.RequestValueBy[field]
@@ -484,18 +490,64 @@ func keyedObjectProblem(item *base.Schema, line overrides.Line, isString func(st
 	if !ok || len(accepted) == 0 {
 		return wholeLine(fmt.Errorf("keyedBy: the key %q needs an enums line with values for its enum %q", k.Key, enum))
 	}
+	// Each value becomes an attribute and a Go field, so two values must not normalize to one name.
+	tfNames, goNames := map[string]string{}, map[string]string{}
+	for _, v := range slices.Sorted(maps.Keys(accepted)) {
+		tf, gn := model.TerraformName(accepted[v]), model.GoName(accepted[v])
+		if other, ok := tfNames[tf]; ok {
+			return wholeLine(fmt.Errorf("keyedBy: values %q and %q both become the attribute %q", other, v, tf))
+		}
+		if other, ok := goNames[gn]; ok {
+			return wholeLine(fmt.Errorf("keyedBy: values %q and %q both become the Go field %q", other, v, gn))
+		}
+		tfNames[tf], goNames[gn] = v, v
+	}
+	groupArms, err := oneOfArmNames(item)
+	if err != nil {
+		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
+	}
 	for _, v := range slices.Sorted(maps.Keys(k.Arms)) {
-		if !slices.Contains(accepted, v) {
+		if _, ok := accepted[v]; !ok {
 			return wholeLine(fmt.Errorf("keyedBy: arms names %q, which the enums line of %q does not accept", v, k.Key))
 		}
 		if item.Properties.GetOrZero(k.Arms[v]) == nil {
 			return wholeLine(fmt.Errorf("keyedBy: arms names %q, which the items of %q do not have", k.Arms[v], line.Field))
+		}
+		// The keyed object drops every oneOf arm but the one of its value, so an arm must be one.
+		if !slices.Contains(groupArms, k.Arms[v]) {
+			return wholeLine(fmt.Errorf("keyedBy: arms names %q, which is not a oneOf arm of the items of %q", k.Arms[v], line.Field))
 		}
 	}
 	if k.KeyAs != "" && !isString(k.KeyAs) {
 		return wholeLine(fmt.Errorf("keyedBy: keyAs %q is not a string property of the items of %q", k.KeyAs, line.Field))
 	}
 	return nil
+}
+
+// oneOfArmNames returns the oneOf arms of s: of its own oneOf, and of the oneOf of each allOf
+// entry. An arm is the one required property of a oneOf entry; the "no arm" entry has none.
+func oneOfArmNames(s *base.Schema) ([]string, error) {
+	schemas := []*base.Schema{s}
+	for _, proxy := range s.AllOf {
+		e, err := proxy.BuildSchema()
+		if err != nil {
+			return nil, err
+		}
+		schemas = append(schemas, e)
+	}
+	var arms []string
+	for _, e := range schemas {
+		for _, proxy := range e.OneOf {
+			entry, err := proxy.BuildSchema()
+			if err != nil {
+				return nil, err
+			}
+			if entry.Not == nil && len(entry.Required) == 1 {
+				arms = append(arms, entry.Required[0])
+			}
+		}
+	}
+	return arms, nil
 }
 
 // optionalProblem checks an optional line. The SDK holds a field that the contract requires as a

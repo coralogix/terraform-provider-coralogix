@@ -935,8 +935,8 @@ type Line struct {
 	// KeyedBy is, for a field line, the key and value properties of a list shown as a map.
 	KeyedBy *KeyedBy
 	// Accepted are, for a keyedBy object line, the accepted values of each enum that has an enums
-	// line: the attributes that the object can have.
-	Accepted map[string][]string
+	// line, with their Terraform values: the attributes that the object can have.
+	Accepted map[string]map[string]string
 	Keys     []string // for a field line: every key that the line sets
 }
 
@@ -981,13 +981,16 @@ func checkCreateAs(into map[string]string) error {
 
 // accepted returns the accepted values of each enum that has an enums line, for a keyedBy object
 // line, and nil for any other line.
-func (f *File) accepted(k *KeyedBy) map[string][]string {
+func (f *File) accepted(k *KeyedBy) map[string]map[string]string {
 	if k == nil || !k.Object {
 		return nil
 	}
-	out := map[string][]string{}
+	out := map[string]map[string]string{}
 	for name, e := range f.Enums {
-		out[name] = slices.Clone(e.Values)
+		out[name] = map[string]string{}
+		for _, v := range e.Values {
+			out[name][v] = e.TFValue(v)
+		}
 	}
 	return out
 }

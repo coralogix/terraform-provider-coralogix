@@ -202,6 +202,18 @@ func TestEchoedContractRefusesWrongLines(t *testing.T) {
 			},
 			code: "OVERRIDE_UNUSED", location: "KIND_HUGE",
 		},
+		"requestValueBy names a $ref to a scalar": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "{requestValueBy: {quota: KIND_LIMITED}}", "{requestValueBy: {kind: KIND_LIMITED}}")
+			},
+			code: "OVERRIDE_UNUSED", location: "not an object",
+		},
+		"requestValueBy on a field that is not a string": {
+			spec: func(t *testing.T, s string) string {
+				return replaceOnce(t, s, "    Kind:\n      type: string\n      enum: [KIND_UNSPECIFIED, KIND_LIMITED, KIND_PLAIN]\n", "    Kind:\n      type: integer\n      format: int32\n")
+			},
+			code: "OVERRIDE_UNUSED", location: "string or a string enum",
+		},
 		"keyedBy on a field that is not a list": {
 			overrides: func(t *testing.T, o string) string {
 				return replaceOnce(t, o, "{requestValueBy: {quota: KIND_LIMITED}}", "{requestValueBy: {quota: KIND_LIMITED}, keyedBy: {key: key}}")
@@ -243,6 +255,18 @@ func TestEchoedContractRefusesWrongLines(t *testing.T) {
 				return replaceOnce(t, o, "arms: {MEASURE_KIND_SAMPLES: samples}", "arms: {MEASURE_KIND_UNSPECIFIED: samples}")
 			},
 			code: "OVERRIDE_UNUSED", location: "MEASURE_KIND_UNSPECIFIED",
+		},
+		"keyedBy object with an arm that is not a oneOf arm": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "arms: {MEASURE_KIND_SAMPLES: samples}", "arms: {MEASURE_KIND_SAMPLES: enabled}")
+			},
+			code: "OVERRIDE_UNUSED", location: "not a oneOf arm",
+		},
+		"keyedBy object with two values of one attribute name": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "names: {MEASURE_KIND_MIN: min, MEASURE_KIND_SAMPLES: samples}", "names: {MEASURE_KIND_MIN: foo-bar, MEASURE_KIND_SAMPLES: foo_bar}")
+			},
+			code: "OVERRIDE_UNUSED", location: "both become",
 		},
 		"keyedBy object whose key has no enums line": {
 			overrides: func(t *testing.T, o string) string {
