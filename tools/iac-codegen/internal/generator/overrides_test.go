@@ -1121,3 +1121,28 @@ func TestNestedGroupErrors(t *testing.T) {
 		}
 	})
 }
+
+// A group model struct takes the name of its component and the group. When another model has that
+// name, the generator reports it instead of sharing one struct.
+func TestNestedGroupModelNameClash(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The weekly arm's component becomes DynamicFrequency, whose model is the model name of the
+	// frequency group of Dynamic.
+	spec := strings.ReplaceAll(string(data), "schemas/Weekly'", "schemas/DynamicFrequency'")
+	spec = strings.Replace(spec, "    Weekly:\n", "    DynamicFrequency:\n", 1)
+	overrides, err := os.ReadFile(filepath.Join("testdata", "suppressed-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	validated, err := validateOpenAPIWith([]byte(spec), "SuppressedThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, string(overrides)))
+	if err == nil {
+		_, err = buildTFResourceWith(validated.resource, "generated", validated.overrides)
+	}
+	if err == nil || !strings.Contains(err.Error(), "the model struct DynamicFrequencyModel is made by") ||
+		!strings.Contains(err.Error(), "the component DynamicFrequency") || !strings.Contains(err.Error(), "types.Dynamic.groups.frequency") {
+		t.Fatalf("err = %v, want a model struct clash", err)
+	}
+}
