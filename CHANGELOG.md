@@ -7,7 +7,8 @@
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
 
 #### resource/coralogix_dashboards_folder
-- CHORE: The resource and the data source are generated from the API contract. Schema version stays 1, and the schema is the same.
+- CHORE: The resource and the data source are generated from the API contract. Schema version stays 1, and existing state upgrades with no plan change.
+- CHORE: `name` is required, and at least 1 character: the API rejects a folder without a name, or with an empty one, so the plan now says so. The API also rejects a name of more than 100 characters.
 - CHORE: Create no longer sends an id that the provider made up: the server assigns it, and Create reads the folder with that id.
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it failed with the plain 404.
 

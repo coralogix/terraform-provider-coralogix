@@ -4,25 +4,8 @@
     "config": {
       "name": ""
     },
-    "plan": {
-      "id": "(unknown)",
-      "name": "",
-      "parent_id": null
-    },
-    "requests": [
-      {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/dashboards/folders/v1",
-        "body": {
-          "folder": {
-            "name": ""
-          }
-        },
-        "status": 400
-      }
-    ],
-    "applyDiagnostics": [
-      "error: Unable to create dashboards_folder | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: folder name cannot be empty\"}"
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"name\")] | Attribute name string length must be at least 1, got: 0"
     ],
     "state": null
   }

@@ -3,10 +3,12 @@
 package dashboardsfolder
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
 // Schema is the Terraform schema of the resource.
@@ -22,8 +24,11 @@ func Schema() schema.Schema {
 				MarkdownDescription: "Unique identifier for the folder.",
 			},
 			"name": schema.StringAttribute{
-				Optional:            true,
-				MarkdownDescription: "Display name of the folder.",
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
+				MarkdownDescription: "Display name of the folder. At least 1 and at most 100 characters; the API rejects a longer name.",
 			},
 			"parent_id": schema.StringAttribute{
 				Optional:            true,

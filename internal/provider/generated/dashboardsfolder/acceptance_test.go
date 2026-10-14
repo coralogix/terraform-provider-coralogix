@@ -73,10 +73,12 @@ const updatedConfig = `resource "coralogix_dashboards_folder" "test" {
 }`
 
 const minimalConfig = `resource "coralogix_dashboards_folder" "test" {
+  name = "@{run}-folder"
 }`
 
 // upgradeMinimalConfig is the minimal config plus the fields that the released provider needs.
 const upgradeMinimalConfig = `resource "coralogix_dashboards_folder" "test" {
+  name = "@{run}-folder"
 }`
 
 func config(run, resourceBlock string) string {
@@ -93,7 +95,6 @@ func updatedChecks(run string) resource.TestCheckFunc {
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckNoResourceAttr(resourceAddress, "name"),
 		resource.TestCheckNoResourceAttr(resourceAddress, "parent_id"),
 	)
 }

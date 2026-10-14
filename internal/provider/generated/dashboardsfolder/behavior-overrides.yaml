@@ -36,6 +36,10 @@ types:
         readOnly: true
         markdownDescription: "Unique identifier for the folder."
       name:
-        markdownDescription: "Display name of the folder."
+        # The API rejects a folder without a name, so the plan can too. Recorded on the API: an
+        # empty name and a name of more than 100 characters are rejected with 400.
+        required: true
+        markdownDescription: "Display name of the folder. At least 1 and at most 100 characters; the API rejects a longer name."
+        validators: [{lengthAtLeast: 1}]
       parentId:
         markdownDescription: "Parent folder id."

@@ -2,21 +2,8 @@
   {
     "step": "create without a name",
     "config": {},
-    "plan": {
-      "id": "(unknown)",
-      "name": null,
-      "parent_id": null
-    },
-    "requests": [
-      {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/dashboards/folders/v1",
-        "body": {},
-        "status": 400
-      }
-    ],
-    "applyDiagnostics": [
-      "error: Unable to create dashboards_folder | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: folder name not found\"}"
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"name\")] | Must set a configuration value for the name attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
     "state": null
   }
