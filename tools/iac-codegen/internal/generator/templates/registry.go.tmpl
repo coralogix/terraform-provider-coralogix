@@ -15,7 +15,7 @@ import (
 func Resources() []func() resource.Resource {
 	return []func() resource.Resource{
 {{- range .Names}}
-		func() resource.Resource { return {{.}}.NewResource({{.}}.Hooks{}) },
+		{{.}}.NewResource,
 {{- end}}
 	}
 }

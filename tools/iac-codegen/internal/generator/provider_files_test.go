@@ -1,7 +1,9 @@
 package generator
 
 import (
+	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -46,6 +48,7 @@ func TestGoldenProviderFiles(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	compileRegistry(t, input.ProviderRoot, out)
 	examples := filepath.Join(input.ProviderRoot, "examples", "resources", "coralogix_thing")
 	got := map[string]string{
 		registryFileName: readFile(t, filepath.Join(filepath.Dir(out), registryFileName)),
@@ -71,6 +74,24 @@ func TestGoldenProviderFiles(t *testing.T) {
 	}
 }
 
+// compileRegistry builds the registry with the generated package in the provider, as provider.go
+// imports them.
+func compileRegistry(t *testing.T, root, out string) {
+	t.Helper()
+	// The acceptance test imports the provider package, which the synthetic provider does not have.
+	if err := os.Remove(filepath.Join(out, "acceptance_test.go")); err != nil && !errors.Is(err, os.ErrNotExist) {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{{"mod", "tidy"}, {"build", "./internal/provider/generated/..."}} {
+		command := exec.Command("go", args...)
+		command.Dir = root
+		command.Env = append(os.Environ(), "GOWORK=off")
+		if output, err := command.CombinedOutput(); err != nil {
+			t.Fatalf("go %s: %v\n%s", strings.Join(args, " "), err, output)
+		}
+	}
+}
+
 // The registry lists every new resource next to the output, and no resource with a
 // behavior-overrides file: that one keeps its handwritten registration.
 func TestRegistryListsOnlyNewResources(t *testing.T) {
@@ -85,7 +106,7 @@ func TestRegistryListsOnlyNewResources(t *testing.T) {
 		t.Fatal(err)
 	}
 	registry := readFile(t, filepath.Join(generated, registryFileName))
-	for _, want := range []string{"alpha.NewResource(alpha.Hooks{})", "thing.NewResource(thing.Hooks{})"} {
+	for _, want := range []string{"alpha.NewResource,", "thing.NewResource,"} {
 		if !strings.Contains(registry, want) {
 			t.Errorf("registry lacks %s:\n%s", want, registry)
 		}
@@ -185,6 +206,26 @@ func TestExampleOfAnotherResourceStays(t *testing.T) {
 	}
 	if got := readFile(t, example); got != "handwritten\n" {
 		t.Fatalf("the generator replaced the handwritten example:\n%s", got)
+	}
+}
+
+// A run that fails after staging leaves no empty example directory behind: the next run would take
+// it for a handwritten one.
+func TestFailedRunRemovesTheExampleDirectory(t *testing.T) {
+	input, loadDir, out := inProvider(t, "thing")
+	writeFile(t, filepath.Join(out, "handwritten.go"), "package thing\n") // publish refuses this output
+	err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "not generator-owned") {
+		t.Fatalf("err = %v, want the output refused", err)
+	}
+	if _, err := os.Stat(filepath.Join(input.ProviderRoot, "examples")); !os.IsNotExist(err) {
+		t.Fatalf("a failed run left the examples directory: %v", err)
+	}
+	if err := os.RemoveAll(out); err != nil {
+		t.Fatal(err)
+	}
+	if err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, loadDir); err != nil {
+		t.Fatalf("the run after the fix failed: %v", err)
 	}
 }
 

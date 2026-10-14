@@ -184,15 +184,26 @@ func newResourcePackages(parent, current string, isNew bool) ([]string, error) {
 
 // publishAll publishes the output directory and the provider files. It writes every file to a
 // staging place first, so a write error changes nothing. Then it moves the output directory, and
-// then each provider file; the registry is last.
-func publishAll(output string, files map[string][]byte, extras []providerFile) error {
-	var staged []string
+// then each provider file; the registry is last. A failed run removes the directories that it
+// created and left empty, so the next run does not take them for handwritten ones.
+func publishAll(output string, files map[string][]byte, extras []providerFile) (err error) {
+	var staged, created []string
 	defer func() {
 		for _, path := range staged {
 			_ = os.Remove(path)
 		}
+		if err != nil {
+			for i := len(created) - 1; i >= 0; i-- {
+				_ = os.Remove(created[i]) // only an empty directory goes
+			}
+		}
 	}()
 	for _, extra := range extras {
+		dirs, err := createDirs(filepath.Dir(extra.path))
+		created = append(created, dirs...)
+		if err != nil {
+			return err
+		}
 		path, err := stageFile(extra)
 		if err != nil {
 			return err
@@ -210,12 +221,24 @@ func publishAll(output string, files map[string][]byte, extras []providerFile) e
 	return nil
 }
 
-func stageFile(file providerFile) (string, error) {
-	dir := filepath.Dir(file.path)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", fmt.Errorf("create %s: %w", dir, err)
+// createDirs creates dir and its missing parents. It returns the directories that it created,
+// parents first.
+func createDirs(dir string) ([]string, error) {
+	var missing []string
+	for d := filepath.Clean(dir); ; d = filepath.Dir(d) {
+		if _, err := os.Lstat(d); err == nil || filepath.Dir(d) == d {
+			break
+		}
+		missing = append([]string{d}, missing...)
 	}
-	stage, err := os.CreateTemp(dir, "."+filepath.Base(file.path)+".stage-")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return missing, fmt.Errorf("create %s: %w", dir, err)
+	}
+	return missing, nil
+}
+
+func stageFile(file providerFile) (string, error) {
+	stage, err := os.CreateTemp(filepath.Dir(file.path), "."+filepath.Base(file.path)+".stage-")
 	if err != nil {
 		return "", fmt.Errorf("stage %s: %w", file.path, err)
 	}

@@ -13,6 +13,6 @@ import (
 // Resources returns the constructors of the new generated resources.
 func Resources() []func() resource.Resource {
 	return []func() resource.Resource{
-		func() resource.Resource { return thing.NewResource(thing.Hooks{}) },
+		thing.NewResource,
 	}
 }
