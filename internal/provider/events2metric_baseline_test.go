@@ -272,7 +272,16 @@ var e2mScenarios = map[string]func(h *grHarness){
 		h.Destroy("destroy: deleted outside Terraform", s)
 	},
 
+	// The events2metric exists in the API, as it does for a real state of version 0. An upgrade
+	// that reads the API sees it; one that translates the state offline does not need it.
 	"upgrade-from-v0": func(h *grHarness) {
+		h.events2metrics().seed(j{
+			"name": "old", "type": "E2M_TYPE_LOGS2METRICS", "description": "v0",
+			"logsQuery":         j{"lucene": "x", "applicationnameFilters": l{"a"}, "severityFilters": l{"SEVERITY_INFO"}},
+			"metricFields":      l{j{"targetBaseMetricName": "f", "sourceField": "f"}},
+			"metricLabels":      l{j{"targetLabel": "L", "sourceField": "l"}},
+			"permutationsLimit": float64(10),
+		})
 		h.UpgradeV0("upgrade", `{
 			"id": "00000000-0000-4000-8000-000000000001", "name": "old", "description": "v0",
 			"metric_labels": [{"target_label": "L", "source_field": "l"}],

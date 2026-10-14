@@ -1,0 +1,170 @@
+# Where coralogix_events2metric differs from the API contract, because users already have it.
+#
+# A field with a line here keeps its released behavior. A field without a line follows the
+# API contract.
+resource: E2M
+mode: existing
+typeName: events2metric
+
+markdownDescription: "Coralogix Events2Metrics. Converts logs and spans into metrics for long-term monitoring. For more info please review - https://coralogix.com/docs/user-guides/monitoring-and-insights/events2metrics/."
+
+schema:
+  version: 1
+  upgrade:
+    # State of version 0, which used blocks, is upgraded by reading the events2metric from the API.
+    0: {priorSchema: github.com/coralogix/terraform-provider-coralogix/internal/provider/events2metrics/events2metric_schema.V0, strategy: refresh}
+
+validators:
+  inferred: false
+
+api:
+  # Replace takes the whole events2metric, with the id that the server set in the body.
+  updateIDInBody: true
+
+types:
+  E2M:
+    fields:
+      id: {readOnly: true, markdownDescription: ""}
+      name:
+        markdownDescription: "Events2Metric name. Events2Metric names have to be unique per account."
+        validators:
+          - lengthAtLeast: 1
+          - regexMatches: {pattern: '^[A-Za-z\d_:-]*$', message: 'Invalid metric name, name may only contain ASCII letters and digits, as well as underscores and colons.'}
+      # The API keeps a stored description that a replace omits, so a removed one is sent as "".
+      description: {markdownDescription: "Events2Metric description.", sendNullAsEmpty: true, readEmptyAs: "null"}
+      dataSource: {markdownDescription: "Data source in `<namespace>/<dataset_name>` format. If not set, defaults to the standard logs/spans stream."}
+      # Server values that the released resource does not show. Replace echoes them in its body.
+      createTime: {skip: true}
+      updateTime: {skip: true}
+      isInternal: {skip: true}
+      # Create takes the limit flat as permutationsLimit; Replace and Get hold permutations.limit.
+      # The API stores 30000 when the limit is omitted.
+      permutations:
+        createAs: {limit: permutationsLimit}
+        computed: true
+        useStateForUnknown: true
+        markdownDescription: "Defines the permutations' info of the events2metric."
+      # The released resource keys metric fields by their base metric name, and labels by label.
+      metricFields:
+        keyedBy: {key: targetBaseMetricName}
+        markdownDescription: ""
+        validators: [{sizeAtLeast: 1}]
+      metricLabels:
+        keyedBy: {key: targetLabel, value: sourceField}
+        markdownDescription: ""
+        validators: [{sizeAtLeast: 1}]
+      # The released resource has no type attribute: it follows the query that is set.
+      type: {requestValueBy: {logsQuery: E2M_TYPE_LOGS2METRICS, spansQuery: E2M_TYPE_SPANS2METRICS}}
+      logsQuery:
+        requireOne: true
+        markdownDescription: "logs-events2metric type. Exactly one of \"spans_query\" or \"logs_query\" must be defined."
+      spansQuery: {markdownDescription: "spans-events2metric type. Exactly one of \"spans_query\" or \"logs_query\" should be defined."}
+
+  v2.LogsQuery:
+    fields:
+      # The API stores "" for an omitted query. A null state value, as in a query block that the
+      # configuration just switched to, stays unknown for the API to fill in.
+      lucene: {computed: true, useNonNullStateForUnknown: true, description: "The search_query that we wanted to be notified on."}
+      alias: {skip: true}
+      applicationnameFilters:
+        collection: set
+        name: applications
+        # The API returns [] for no filter; the released resource reads null.
+        readEmptyAs: "null"
+        markdownDescription: "An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx"
+        validators: [{sizeAtLeast: 1}]
+      subsystemnameFilters:
+        collection: set
+        name: subsystems
+        # The API returns [] for no filter; the released resource reads null.
+        readEmptyAs: "null"
+        markdownDescription: "An array that contains log’s subsystem names that we want to be notified on.  Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx"
+        validators: [{sizeAtLeast: 1}]
+      severityFilters:
+        collection: set
+        name: severities
+        # The API returns [] for no filter; the released resource reads null.
+        readEmptyAs: "null"
+        markdownDescription: "An array of severities that we interested in. Can be one of [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Verbose\" \"Warning\"]"
+        validators: [{sizeAtLeast: 1}, {enum: true}]
+
+  v2.SpansQuery:
+    fields:
+      lucene: {computed: true, useNonNullStateForUnknown: true, description: "The search_query that we wanted to be notified on."}
+      applicationnameFilters:
+        collection: set
+        name: applications
+        # The API returns [] for no filter; the released resource reads null.
+        readEmptyAs: "null"
+        markdownDescription: "An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx"
+        validators: [{sizeAtLeast: 1}]
+      subsystemnameFilters:
+        collection: set
+        name: subsystems
+        # The API returns [] for no filter; the released resource reads null.
+        readEmptyAs: "null"
+        markdownDescription: "An array that contains log’s subsystem names that we want to be notified on.  Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx"
+        validators: [{sizeAtLeast: 1}]
+      actionFilters:
+        collection: set
+        name: actions
+        # The API returns [] for no filter; the released resource reads null.
+        readEmptyAs: "null"
+        markdownDescription: "An array that contains log’s actions names that we want to be notified on.  Actions can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx"
+        validators: [{sizeAtLeast: 1}]
+      serviceFilters:
+        collection: set
+        name: services
+        # The API returns [] for no filter; the released resource reads null.
+        readEmptyAs: "null"
+        markdownDescription: "An array that contains log’s services names that we want to be notified on.  Services can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx"
+        validators: [{sizeAtLeast: 1}]
+
+  v2.MetricField:
+    fields:
+      sourceField: {markdownDescription: ""}
+      # The contract requires aggregations, which a response always has. The API stores all seven
+      # aggregations of a metric field, so the released resource lets the user leave them out.
+      aggregations:
+        optional: true
+        computed: true
+        useNonNullStateForUnknown: true
+        markdownDescription: ""
+        keyedBy: {key: aggType, object: true, arms: {AGG_TYPE_SAMPLES: samples, AGG_TYPE_HISTOGRAM: histogram}, keyAs: targetMetricName}
+
+  v2.Aggregation:
+    fields:
+      # An aggregation sent without enabled is stored disabled.
+      enabled: {computed: true, useNonNullStateForUnknown: true, name: enable, markdownDescription: ""}
+      # Create sends the attribute name; the API stores cx_<name>.
+      targetMetricName: {readOnly: true, useNonNullStateForUnknown: true, markdownDescription: ""}
+      none: {skip: true}
+      samples: {unwrap: true, name: type, markdownDescription: "Can be one of [\"Max\" \"Min\"].", validators: [{enumExceptZero: true}]}
+      histogram: {unwrap: true, name: buckets, markdownDescription: ""}
+
+  E2MPermutations:
+    fields:
+      hasExceededLimit:
+        name: has_exceed_limit
+        useStateForUnknown: true
+        markdownDescription: "Notify if the limit permutations' limit of the events2metric has exceed (computed)."
+      # Replace requires the limit. The plan keeps the stored value, so Replace sends it.
+      limit:
+        computed: true
+        useStateForUnknown: true
+        markdownDescription: "Defines the permutations' limit of the events2metric."
+        validators: [{atLeast: 0}]
+
+enums:
+  logs2metrics.v2.Severity:
+    zero: Unspecified
+    values: [SEVERITY_DEBUG, SEVERITY_VERBOSE, SEVERITY_INFO, SEVERITY_WARNING, SEVERITY_ERROR, SEVERITY_CRITICAL]
+    names: {SEVERITY_DEBUG: Debug, SEVERITY_VERBOSE: Verbose, SEVERITY_INFO: Info, SEVERITY_WARNING: Warning, SEVERITY_ERROR: Error, SEVERITY_CRITICAL: Critical}
+  SampleType:
+    zero: unspecified
+    values: [SAMPLE_TYPE_MIN, SAMPLE_TYPE_MAX]
+    names: {SAMPLE_TYPE_MIN: Min, SAMPLE_TYPE_MAX: Max}
+  AggType:
+    zero: unspecified
+    values: [AGG_TYPE_MIN, AGG_TYPE_MAX, AGG_TYPE_COUNT, AGG_TYPE_AVG, AGG_TYPE_SUM, AGG_TYPE_SAMPLES, AGG_TYPE_HISTOGRAM]
+    names: {AGG_TYPE_MIN: min, AGG_TYPE_MAX: max, AGG_TYPE_COUNT: count, AGG_TYPE_AVG: avg, AGG_TYPE_SUM: sum, AGG_TYPE_HISTOGRAM: histogram, AGG_TYPE_SAMPLES: samples}

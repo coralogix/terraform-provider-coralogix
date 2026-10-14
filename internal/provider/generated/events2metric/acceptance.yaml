@@ -1,0 +1,18 @@
+# What the generated acceptance test needs for coralogix_events2metric, besides the schema.
+resource: E2M
+
+values:
+  name: '"@{run}-e2m"'
+  logs_query.lucene: '"remote_addr_enriched:/.*/"'
+  logs_query.severities: '["Debug", "Error"]'
+  # Keyed by the base metric name, which the API keeps unique per account. The aggregations cover a
+  # plain one and both oneOf arms.
+  metric_fields: '{ "@{run}_geo" = { source_field = "location_geopoint", aggregations = { avg = { enable = true }, samples = { type = "Min" }, histogram = { buckets = [1.5, 2] } } } }'
+
+# spans_query needs span source fields (duration or tags.*), and data_source a dataset that the
+# account has provisioned; the logs query covers the rest of the resource.
+skip:
+  - spans_query
+  - data_source
+
+upgradeFrom: "3.21.0"

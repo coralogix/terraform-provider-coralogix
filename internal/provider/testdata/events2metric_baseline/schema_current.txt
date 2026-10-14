@@ -13,7 +13,7 @@ logs_query.applications  SetAttribute optional elem=basetypes.StringType
     validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
 logs_query.lucene  StringAttribute optional computed
     description: "The search_query that we wanted to be notified on."
-    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+    plan modifier: stringplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
 logs_query.severities  SetAttribute optional elem=basetypes.StringType
     markdown: "An array of severities that we interested in. Can be one of [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Verbose\" \"Warning\"]"
     validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
@@ -40,7 +40,7 @@ metric_fields[].aggregations.count.target_metric_name  StringAttribute computed
     plan modifier: stringplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
 metric_fields[].aggregations.histogram  SingleNestedAttribute optional computed
     plan modifier: objectplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
-metric_fields[].aggregations.histogram.buckets  ListAttribute required elem=basetypes.Float64Type
+metric_fields[].aggregations.histogram.buckets  ListAttribute required elem=basetypes.Float32Type
 metric_fields[].aggregations.histogram.enable  BoolAttribute optional computed
     plan modifier: boolplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
 metric_fields[].aggregations.histogram.target_metric_name  StringAttribute computed
@@ -85,9 +85,10 @@ permutations  SingleNestedAttribute optional computed
 permutations.has_exceed_limit  BoolAttribute computed
     markdown: "Notify if the limit permutations' limit of the events2metric has exceed (computed)."
     plan modifier: boolplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
-permutations.limit  Int64Attribute optional computed
+permutations.limit  Int32Attribute optional computed
     markdown: "Defines the permutations' limit of the events2metric."
-    validator: int64validator.atLeastValidator value must be at least 0
+    plan modifier: int32planmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+    validator: int32validator.atLeastValidator value must be at least 0
 spans_query  SingleNestedAttribute optional
     markdown: "spans-events2metric type. Exactly one of \"spans_query\" or \"logs_query\" should be defined."
 spans_query.actions  SetAttribute optional elem=basetypes.StringType
@@ -98,7 +99,7 @@ spans_query.applications  SetAttribute optional elem=basetypes.StringType
     validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
 spans_query.lucene  StringAttribute optional computed
     description: "The search_query that we wanted to be notified on."
-    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+    plan modifier: stringplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
 spans_query.services  SetAttribute optional elem=basetypes.StringType
     markdown: "An array that contains log’s services names that we want to be notified on.  Services can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx"
     validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements

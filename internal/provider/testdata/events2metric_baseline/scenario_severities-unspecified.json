@@ -34,6 +34,7 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
         "body": {
+          "description": "",
           "logsQuery": {
             "severityFilters": [
               "SEVERITY_UNSPECIFIED",
@@ -41,7 +42,6 @@
             ]
           },
           "name": "sev",
-          "permutationsLimit": 0,
           "type": "E2M_TYPE_LOGS2METRICS"
         },
         "status": 200
@@ -65,7 +65,7 @@
       "name": "sev",
       "permutations": {
         "has_exceed_limit": false,
-        "limit": 0
+        "limit": 30000
       },
       "spans_query": null
     },
@@ -98,7 +98,7 @@
       "name": "sev",
       "permutations": {
         "has_exceed_limit": false,
-        "limit": 0
+        "limit": 30000
       },
       "spans_query": null
     }

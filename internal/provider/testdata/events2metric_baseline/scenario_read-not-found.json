@@ -26,9 +26,9 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
         "body": {
+          "description": "",
           "logsQuery": {},
           "name": "gone",
-          "permutationsLimit": 0,
           "type": "E2M_TYPE_LOGS2METRICS"
         },
         "status": 200
@@ -49,7 +49,7 @@
       "name": "gone",
       "permutations": {
         "has_exceed_limit": false,
-        "limit": 0
+        "limit": 30000
       },
       "spans_query": null
     },
@@ -65,7 +65,7 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: Events2Metric \"00000000-0000-4000-8000-000000000001\" is in state, but no longer exists in Coralogix backend | 00000000-0000-4000-8000-000000000001 will be recreated when you apply"
+      "warning: Resource disappeared during read | events2metric with id 00000000-0000-4000-8000-000000000001 was not found. Terraform removed it from state."
     ],
     "state": null
   }

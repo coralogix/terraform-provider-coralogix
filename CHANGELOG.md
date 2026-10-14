@@ -117,6 +117,16 @@
 
 #### resource/coralogix_events2metric
 - CHORE: Add protocol baseline golden files against an in-memory events2metrics API, checked against answers recorded from a real tenant.
+- CHORE: The resource is generated from the API contract. Schema version stays 1, and the HCL does not change. `permutations.limit` is an Int32 and `buckets` a list of Float32, the API types; both stay Terraform numbers, so state and configuration are unchanged.
+- FIX: Leaving out `permutations` no longer sends a limit of 0. The API now stores its default of 30000, and an events2metric with `metric_labels` and no `permutations` can be created; before, the API refused it.
+- FIX: Removing `description` clears it. Before, the API kept the stored description, and the apply failed with an inconsistent result. Create and Replace now send `""` for a description that is not set, which reads back as null.
+- FIX: Switching from `logs_query` to `spans_query`, or back, applies. Before, `lucene` of the new query planned null and the API returned `""`, so the apply failed with an inconsistent result.
+- FIX: Changing another attribute keeps `permutations.limit`. Before, an omitted limit planned unknown, and Replace could send no limit.
+- FIX: State of schema version 0 is upgraded by reading the events2metric from the API. Before, the upgrade kept every metric field under the key `""`, with no source field. An events2metric that no longer exists makes the upgrade fail with "Resource no longer exists", which says to remove it with `terraform state rm`.
+- CHORE: Migration tests also start from provider 3.21.0, and the generated acceptance and 3.21.0 upgrade tests are added.
+
+#### data-source/coralogix_events2metric
+- CHORE: Uses the schema and the conversion of the generated resource.
 
 # Release 3.21.0
 
