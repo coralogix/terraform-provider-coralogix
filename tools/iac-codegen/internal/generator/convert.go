@@ -632,7 +632,7 @@ func checkReadEmptyAs(cf *convField) error {
 	if !cf.ReadEmptyAsNull {
 		return nil
 	}
-	if cf.Conv == convString || (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects || (cf.Conv == convStrings && cf.Wrap == nil) ||
+	if cf.Conv == convString || (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects || cf.Conv == convStrings ||
 		cf.Conv == convKeyedObjects || cf.Conv == convKeyedValues {
 		return nil
 	}
