@@ -1170,12 +1170,37 @@ func TestGeneratedPresenceCollectionAndUpdateContract(t *testing.T) {
 		`req.ProviderData.(*clientset.ClientSet)`,
 		`if cxsdk.IsNotFound(err) {`,
 		`resp.Diagnostics.AddWarning("Resource disappeared during read"`,
-		`resp.Diagnostics.AddWarning("Resource disappeared during update"`,
+		`resp.Diagnostics.AddError("Resource no longer exists"`,
 		`resp.State.RemoveResource(ctx)`,
 	} {
 		if !bytes.Contains(resource, []byte(fragment)) {
 			t.Errorf("resource.go lacks runtime contract fragment %q", fragment)
 		}
+	}
+	// The framework fails an Update that removes the resource from state.
+	start := bytes.Index(resource, []byte("func (r *Resource) Update("))
+	end := bytes.Index(resource[start+1:], []byte("\nfunc "))
+	if start < 0 || end < 0 {
+		t.Fatal("resource.go lacks Update")
+	}
+	if bytes.Contains(resource[start:start+1+end], []byte("RemoveResource")) {
+		t.Error("Update calls RemoveResource")
+	}
+	// The framework also fails a state upgrade that removes the resource from state.
+	legacy, err := os.ReadFile(filepath.Join("testdata", "golden", "legacything", "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	start = bytes.Index(legacy, []byte("func (r *Resource) upgradeByRefresh("))
+	if start < 0 {
+		t.Fatal("legacything resource.go lacks upgradeByRefresh")
+	}
+	end = bytes.Index(legacy[start+1:], []byte("\nfunc "))
+	if end < 0 {
+		end = len(legacy) - start - 1
+	}
+	if bytes.Contains(legacy[start:start+1+end], []byte("RemoveResource")) {
+		t.Error("upgradeByRefresh calls RemoveResource")
 	}
 }
 
@@ -1495,6 +1520,10 @@ func TestIDPropertyRuntimeSemantics(t *testing.T) {
 
 func compileGenerated(t *testing.T, out string, input source.Input) {
 	t.Helper()
+	// The acceptance test imports the provider package, which the synthetic provider does not have.
+	if err := os.Remove(filepath.Join(out, "acceptance_test.go")); err != nil && !errors.Is(err, os.ErrNotExist) {
+		t.Fatal(err)
+	}
 	module := fmt.Sprintf(`module github.com/coralogix/terraform-provider-coralogix/generated-test
 
 go 1.26.0

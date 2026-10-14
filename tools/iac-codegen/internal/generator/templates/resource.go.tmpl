@@ -218,32 +218,7 @@ func validateUpdateOnly(ctx context.Context, config tfsdk.Config, plan tfsdk.Pla
 // The Update body is the created resource with the configured values, and
 // without the omitted ones, so the server stores their default.
 func (r *Resource) applyUpdateOnly(ctx context.Context, config tfsdk.Config, plan tfsdk.Plan, state *tfsdk.State) diag.Diagnostics {
-	var diags diag.Diagnostics
-	next := tfsdk.State{Schema: state.Schema, Raw: state.Raw.Copy()}
-	differs := false
-	for _, field := range updateOnlyFields {
-		var c, p, s attr.Value
-		diags.Append(config.GetAttribute(ctx, path.Root(field.attr), &c)...)
-		diags.Append(plan.GetAttribute(ctx, path.Root(field.attr), &p)...)
-		diags.Append(state.GetAttribute(ctx, path.Root(field.attr), &s)...)
-		if diags.HasError() {
-			return diags
-		}
-		switch {
-		case !c.IsNull() && !p.Equal(s):
-			diags.Append(next.SetAttribute(ctx, path.Root(field.attr), p)...)
-		case c.IsNull() && !s.IsNull() && !s.Equal(field.serverDefault):
-			null, err := s.Type(ctx).ValueFromTerraform(ctx, tftypes.NewValue(s.Type(ctx).TerraformType(ctx), nil))
-			if err != nil {
-				diags.AddAttributeError(path.Root(field.attr), "Invalid value", err.Error())
-				return diags
-			}
-			diags.Append(next.SetAttribute(ctx, path.Root(field.attr), null)...)
-		default:
-			continue
-		}
-		differs = true
-	}
+	next, differs, diags := updateOnlyState(ctx, config, plan, state)
 	if !differs || diags.HasError() {
 		return diags
 	}
@@ -290,6 +265,40 @@ func (r *Resource) applyUpdateOnly(ctx context.Context, config tfsdk.Config, pla
 	}
 	diags.Append(r.setState(ctx, v, plan, state)...)
 	return diags
+}
+
+// updateOnlyState returns the state that the follow-up Update writes: the
+// created state with each attribute that Create cannot send set to its planned
+// value, or to null when the configuration omits it and Create stored another
+// value than the server default. differs is false when no attribute needs it.
+func updateOnlyState(ctx context.Context, config tfsdk.Config, plan tfsdk.Plan, state *tfsdk.State) (tfsdk.State, bool, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	next := tfsdk.State{Schema: state.Schema, Raw: state.Raw.Copy()}
+	differs := false
+	for _, field := range updateOnlyFields {
+		var c, p, s attr.Value
+		diags.Append(config.GetAttribute(ctx, path.Root(field.attr), &c)...)
+		diags.Append(plan.GetAttribute(ctx, path.Root(field.attr), &p)...)
+		diags.Append(state.GetAttribute(ctx, path.Root(field.attr), &s)...)
+		if diags.HasError() {
+			return next, false, diags
+		}
+		switch {
+		case !c.IsNull() && !p.Equal(s):
+			diags.Append(next.SetAttribute(ctx, path.Root(field.attr), p)...)
+		case c.IsNull() && !s.IsNull() && !s.Equal(field.serverDefault):
+			null, err := s.Type(ctx).ValueFromTerraform(ctx, tftypes.NewValue(s.Type(ctx).TerraformType(ctx), nil))
+			if err != nil {
+				diags.AddAttributeError(path.Root(field.attr), "Invalid value", err.Error())
+				return next, false, diags
+			}
+			diags.Append(next.SetAttribute(ctx, path.Root(field.attr), null)...)
+		default:
+			continue
+		}
+		differs = true
+	}
+	return next, differs, diags
 }
 
 {{end -}}
@@ -364,9 +373,10 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		v, err = r.update(ctx{{if not .UpdateIDInBody}}, id{{end}}, body{{if and (not .Replace) (not .MaskInBody)}}, mask{{end}})
 	}
 	if {{$cx}}.{{.APINotFound}}(err) {
-		resp.Diagnostics.AddWarning("Resource disappeared during update",
-			fmt.Sprintf("The API did not find %s with id %v. Terraform removed it from state.", TypeName, id))
-		resp.State.RemoveResource(ctx)
+		// The framework does not allow Update to remove the resource from state.
+		// The next refresh removes it through Read.
+		resp.Diagnostics.AddError("Resource no longer exists",
+			fmt.Sprintf("The API did not find %s with id %v. Run terraform apply without -refresh=false: the refresh removes it from state, and the plan creates it again.", TypeName, id))
 		return
 	}
 	if err != nil {
@@ -525,9 +535,10 @@ func (r *Resource) upgradeByRefresh(ctx context.Context, req resource.UpgradeSta
 	}
 	v, err := r.get(ctx, id)
 	if {{$cx}}.{{.APINotFound}}(err) {
-		resp.Diagnostics.AddWarning("Resource disappeared during state upgrade",
-			fmt.Sprintf("%s with id %v was not found. Terraform removed it from state.", TypeName, id))
-		resp.State.RemoveResource(ctx)
+		// The framework does not allow a state upgrade to remove the resource from state,
+		// and a refresh runs the upgrade first, so only the user can remove it.
+		resp.Diagnostics.AddError("Resource no longer exists",
+			fmt.Sprintf("The API did not find %s with id %v, so Terraform cannot upgrade its state. Run terraform state rm on its address to remove it from state, and the next plan creates it again.", TypeName, id))
 		return
 	}
 	if err != nil {
