@@ -898,11 +898,11 @@ func TestFolderBodyIDOverrides(t *testing.T) {
 		api  string
 		want string
 	}{
-		"no lines":                {"", "RESOURCE_LIFECYCLE_INCOMPLETE"},
-		"no id field":             {"  createResponseID: thingId\n", "UPDATE_ID_NOT_IN_BODY"},
-		"unknown id field":        {"  idField: key\n  createResponseID: thingId\n", "RESOURCE_LIFECYCLE_INCOMPLETE"},
-		"unknown response id":     {"  idField: id\n  createResponseID: key\n", "RESOURCE_LIFECYCLE_INCOMPLETE"},
-		"valid lines": {"  idField: id\n  createResponseID: thingId\n", ""},
+		"no lines":            {"", "RESOURCE_LIFECYCLE_INCOMPLETE"},
+		"no id field":         {"  createResponseID: thingId\n", "UPDATE_ID_NOT_IN_BODY"},
+		"unknown id field":    {"  idField: key\n  createResponseID: thingId\n", "RESOURCE_LIFECYCLE_INCOMPLETE"},
+		"unknown response id": {"  idField: id\n  createResponseID: key\n", "RESOURCE_LIFECYCLE_INCOMPLETE"},
+		"valid lines":         {"  idField: id\n  createResponseID: thingId\n", ""},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
