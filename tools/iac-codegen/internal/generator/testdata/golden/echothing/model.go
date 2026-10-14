@@ -29,6 +29,7 @@ type DetailModel struct {
 type EchoItemModel struct {
 	Values  types.Set    `tfsdk:"tags"`
 	Enabled types.Bool   `tfsdk:"enable"`
+	Attrs   types.Map    `tfsdk:"attrs"`
 	Levels  types.Set    `tfsdk:"levels"`
 	Detail  *DetailModel `tfsdk:"detail"`
 }

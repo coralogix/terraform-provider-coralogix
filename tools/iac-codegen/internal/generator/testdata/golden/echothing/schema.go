@@ -74,6 +74,11 @@ func Schema() schema.Schema {
 							Computed:            true,
 							MarkdownDescription: "",
 						},
+						"attrs": schema.MapAttribute{
+							Optional:            true,
+							ElementType:         types.StringType,
+							MarkdownDescription: "",
+						},
 						"levels": schema.SetAttribute{
 							Optional:    true,
 							ElementType: types.StringType,

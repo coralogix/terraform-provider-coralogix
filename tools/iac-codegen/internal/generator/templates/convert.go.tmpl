@@ -1404,7 +1404,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- end}}
 {{- if and .SendEmpty (not .FlattenOnly)}}
 	if out.{{.SDK}} == nil {
-		// The request requires the list: an empty one, not null.
+		// The request requires the list or the map: an empty one, not null.
 		out.{{.SDK}} = make({{.SDKSliceType}}, 0)
 	}
 {{- end}}
@@ -1659,10 +1659,10 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		out.{{.Model}} = &{{.Object.Model}}{}
 	}
 	{{- end}}
-{{- else if and (eq .Conv "strings") .EnumMap}}
-	out.{{.Model}} = flattenEnumsMapped{{.Collection}}(ctx, {{$p}}, {{.Src}}, {{.EnumMap.Name}}FromAPI, diags)
 {{- else if eq .Conv "strings"}}
-	{{- if .Enum}}
+	{{- if .EnumMap}}
+	out.{{.Model}} = flattenEnumsMapped{{.Collection}}(ctx, {{$p}}, {{.Src}}, {{.EnumMap.Name}}FromAPI, diags)
+	{{- else if .Enum}}
 	out.{{.Model}} = flattenEnums{{.Collection}}(ctx, {{$p}}, {{.Src}}, {{printf "%q" .EnumZero}}, diags)
 	{{- else}}
 	out.{{.Model}} = flattenStrings{{.Collection}}(ctx, {{.Src}}, diags)

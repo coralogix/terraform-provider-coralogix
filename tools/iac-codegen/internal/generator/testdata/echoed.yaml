@@ -173,7 +173,7 @@ components:
         exceeded: {type: boolean}
     EchoItem:
       type: object
-      required: [key, values]
+      required: [key, values, attrs]
       oneOf:
         - {required: [none], type: object}
         - {required: [detail], type: object}
@@ -185,6 +185,9 @@ components:
           minItems: 0
           items: {type: string}
         enabled: {type: boolean}
+        attrs:
+          type: object
+          additionalProperties: {type: string}
         levels:
           type: array
           items: {$ref: '#/components/schemas/Level'}

@@ -241,10 +241,11 @@ type convField struct {
 	RequestValueBy []fixedBy
 	// FoldModel is the model of a fold field that the model holds as a types.Object.
 	FoldModel string
-	// SendEmpty: the contract requires the list, and an optional line lets Terraform leave it out.
-	// Expand sends an empty list for a null one, as the request needs the key.
+	// SendEmpty: the contract requires the list or the map, and an optional line lets Terraform
+	// leave it out.
+	// Expand sends an empty list or map for a null one, as the request needs the key.
 	SendEmpty    bool
-	SDKSliceType string // the qualified Go type of the SDK list, for SendEmpty
+	SDKSliceType string // the qualified Go type of the SDK list or map, for SendEmpty
 	// Keyed is the key and the value of the API items of a keyedobjects or keyedvalues field.
 	Keyed *keyedFields
 	// KeepPriorOrder: flatten returns the items in the order of the prior model, when the
@@ -961,7 +962,7 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	}
 	cf := &convField{TFName: b.resource.Policy.TerraformName(component, name), Model: camelize(name), SDK: ref.Name}
 	b.applyFieldLine(cf, component, name)
-	if b.resource.Policy.OptionalLine(component, name) && strings.HasPrefix(ref.Want, "[]") {
+	if b.resource.Policy.OptionalLine(component, name) && (strings.HasPrefix(ref.Want, "[]") || strings.HasPrefix(ref.Want, "map[")) {
 		cf.SendEmpty, cf.SDKSliceType = true, b.qualifyType(ref.Want)
 	}
 	want, err := b.fieldConv(cf, t, computed)

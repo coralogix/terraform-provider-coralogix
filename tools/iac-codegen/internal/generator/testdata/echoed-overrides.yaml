@@ -35,7 +35,9 @@ types:
       values: {optional: true, collection: set, name: tags}
       enabled: {computed: true, name: enable}
       none: {skip: true}
-      levels: {collection: set, validators: [{enum: true}]}
+      attrs: {optional: true}
+      # The API returns [] for no levels; the released resource reads null.
+      levels: {collection: set, readEmptyAs: "null", validators: [{enum: true}]}
   Measure:
     fields:
       name: {readOnly: true}

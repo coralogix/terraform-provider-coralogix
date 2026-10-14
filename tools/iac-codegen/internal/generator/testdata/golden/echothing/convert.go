@@ -382,10 +382,15 @@ func expandEchoItem(ctx context.Context, p path.Path, m *EchoItemModel, diags *d
 	out := &echo_things_service.EchoItem{}
 	out.Values = expandStringsSet[string](ctx, p.AtName("tags"), m.Values, diags)
 	if out.Values == nil {
-		// The request requires the list: an empty one, not null.
+		// The request requires the list or the map: an empty one, not null.
 		out.Values = make([]string, 0)
 	}
 	out.Enabled = expandBool(m.Enabled)
+	out.Attrs = expandStringMap[string](ctx, p.AtName("attrs"), m.Attrs, diags)
+	if out.Attrs == nil {
+		// The request requires the list or the map: an empty one, not null.
+		out.Attrs = make(map[string]string, 0)
+	}
 	out.Levels = expandEnumsMapped(ctx, p.AtName("levels"), m.Levels, levelToAPI, true, diags)
 	out.Detail = expandDetail(ctx, p.AtName("detail"), m.Detail, diags)
 	return out
@@ -398,7 +403,12 @@ func flattenEchoItem(ctx context.Context, p path.Path, v *echo_things_service.Ec
 	out := &EchoItemModel{}
 	out.Values = flattenStringsSet(ctx, v.Values, diags)
 	out.Enabled = types.BoolPointerValue(v.Enabled)
+	out.Attrs = flattenStringMap(ctx, v.Attrs, diags)
 	out.Levels = flattenEnumsMappedSet(ctx, p.AtName("levels"), v.Levels, levelFromAPI, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.Levels) == 0 {
+		out.Levels = types.SetNull(types.StringType)
+	}
 	out.Detail = flattenDetail(ctx, p.AtName("detail"), v.Detail, diags)
 	return out
 }
@@ -407,6 +417,7 @@ func echoItemAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"tags":   types.SetType{ElemType: types.StringType},
 		"enable": types.BoolType,
+		"attrs":  types.MapType{ElemType: types.StringType},
 		"levels": types.SetType{ElemType: types.StringType},
 		"detail": types.ObjectType{AttrTypes: detailAttrTypes()},
 	}
@@ -1052,6 +1063,46 @@ func flattenMap[T any](ctx context.Context, elem attr.Type, items map[string]T, 
 	m, d := types.MapValueFrom(ctx, elem, items)
 	diags.Append(d...)
 	return m
+}
+
+func expandStringMap[T ~string](ctx context.Context, p path.Path, v types.Map, diags *diag.Diagnostics) map[string]T {
+	items := expandMap[string](ctx, p, v, diags)
+	if items == nil {
+		return nil
+	}
+	out := make(map[string]T, len(items))
+	for k, s := range items {
+		out[k] = T(s)
+	}
+	return out
+}
+
+func flattenStringMap[T ~string](ctx context.Context, v map[string]T, diags *diag.Diagnostics) types.Map {
+	if v == nil {
+		return types.MapNull(types.StringType)
+	}
+	items := make(map[string]string, len(v))
+	for k, s := range v {
+		items[k] = string(s)
+	}
+	return flattenMap(ctx, types.StringType, items, diags)
+}
+
+func flattenEnumMap[T ~string](ctx context.Context, p path.Path, v map[string]T, zero string, diags *diag.Diagnostics) types.Map {
+	if v == nil {
+		return types.MapNull(types.StringType)
+	}
+	items := make(map[string]string, len(v))
+	keys := make([]string, 0, len(v))
+	for key, value := range v {
+		items[key] = string(value)
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		invalidEnumElement(p.AtMapKey(key), items[key], zero, diags)
+	}
+	return flattenMap(ctx, types.StringType, items, diags)
 }
 
 func expandInt32(v types.Int32) *int32 {

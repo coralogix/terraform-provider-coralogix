@@ -67,6 +67,7 @@ type EchoItem struct {
 	Values  []string
 	Levels  []Level
 	Enabled *bool
+	Attrs   map[string]string
 	None    map[string]interface{}
 	Detail  *Detail
 }

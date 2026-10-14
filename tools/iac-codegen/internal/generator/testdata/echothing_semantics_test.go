@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"example.com/iac-test-sdk/go/openapi/gen/echo_things_service"
@@ -453,5 +454,51 @@ func TestCreateSendsAnEmptyListForAnOmittedRequiredList(t *testing.T) {
 	}))
 	if len(sent.Items) != 1 || sent.Items[0].Values == nil || len(sent.Items[0].Values) != 0 {
 		t.Fatalf("Create items = %+v, want one item with an empty, non-nil values", sent.Items)
+	}
+}
+
+// The contract requires attrs, and an optional line lets Terraform leave it out: Create sends an
+// empty map, not null, because the request needs the key.
+func TestCreateSendsAnEmptyMapForAnOmittedRequiredMap(t *testing.T) {
+	_, root := thingSchema(t)
+	entries := root.(tftypes.Object).AttributeTypes["entries"].(tftypes.Map)
+	entry := entries.ElementType.(tftypes.Object)
+	item := map[string]tftypes.Value{}
+	for name, typ := range entry.AttributeTypes {
+		item[name] = tftypes.NewValue(typ, nil)
+	}
+	sent := createThing(t, thingWith(root, map[string]tftypes.Value{
+		"id":      tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+		"name":    tftypes.NewValue(tftypes.String, "name"),
+		"entries": tftypes.NewValue(entries, map[string]tftypes.Value{"k": tftypes.NewValue(entry, item)}),
+	}))
+	if len(sent.Items) != 1 || sent.Items[0].Attrs == nil || len(sent.Items[0].Attrs) != 0 {
+		t.Fatalf("Create items = %+v, want one item with an empty, non-nil attrs", sent.Items)
+	}
+}
+
+// readEmptyAs: "null" applies to a set that an enums line maps too: the API returns [] for no
+// levels, and a read with no prior value, as in an import, a data source, or a refresh upgrade,
+// stores null.
+func TestEmptyMappedEnumSetReadsAsNull(t *testing.T) {
+	ctx := context.Background()
+	schemaResp, root := thingSchema(t)
+	echo_things_service.Answer = echo_things_service.EchoThing{Id: "thing-1", Name: "name", Items: []echo_things_service.EchoItem{{
+		Key: "k", Levels: []echo_things_service.Level{},
+	}}}
+	r := &Resource{client: &echo_things_service.EchoThingsServiceAPIService{}}
+	state := tfsdk.State{Schema: schemaResp.Schema, Raw: thingValue(root, "thing-1", "name")}
+	resp := &frameworkresource.ReadResponse{State: state}
+	r.Read(ctx, frameworkresource.ReadRequest{State: state}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	var levels types.Set
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("entries").AtMapKey("k").AtName("levels"), &levels)...)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	if !levels.IsNull() {
+		t.Fatalf("levels = %v, want null", levels)
 	}
 }

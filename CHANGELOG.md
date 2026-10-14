@@ -35,6 +35,8 @@
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
 
 #### tools/iac-codegen
+- FIX: `readEmptyAs: "null"` also applies to a list or set that an `enums` line maps. Before, an empty list read as an empty set where there was no prior value, as in an import, a data source, or a refresh upgrade.
+- FIX: `optional: true` on a map that the contract requires sends an empty map when Terraform leaves it out, as it does for a list. Before, the map was sent as null.
 - CHORE: Bump the generator to `v0.1.0-beta.29`.
 - CHORE: Bump the generator to `v0.1.0-beta.28`.
 - FEAT: A new resource gets its docs example, `import.sh`, acceptance test, and registration in `internal/provider/generated/registry.go`. `acceptance.yaml` is optional for it. `make codegen RESOURCE=X OUT=x` runs the generator and the docs. `--out` must be a directory in `internal/provider/generated`.
