@@ -9,10 +9,26 @@
 - CHORE: The resource is generated from the API contract. Schema version stays 1. `id` stays computed and keeps its value when the folder is renamed. `name` stays required and must be between 1 and 100 characters.
 
 #### resource/coralogix_slo_v2
+- CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. The schema, the plan, and the state are unchanged; only the wording of some messages and descriptions differs.
+- FEAT: `window.slo_time_frame` accepts `1_day` and `30_days`. Before, they were rejected, and an SLO with such a window read back as `""`.
+- FIX: Removing `description` clears it. Before, the API kept the stored description, because a replace without it leaves the stored value; the provider now sends `""`.
+- CHORE: Add the generated acceptance test, and upgrade tests that create request-based, window-based, and APM SLOs with provider 3.21.0 and plan with this build. Add acceptance tests for the `1_day` and `30_days` time frames.
 - CHORE: Bump `coralogix-management-sdk` to the SLO contract that marks server-set fields read-only and requires the APM latency `time_window`.
 
+#### data-source/coralogix_slo_v2
+- CHORE: Uses the schema and the conversion of the generated resource.
+
 #### tools/iac-codegen
-- CHORE: Bump the generator to `v0.1.0-beta.27`.
+- CHORE: Bump the generator to `v0.1.0-beta.28`.
+- FEAT: `groups` in `behavior-overrides.yaml` makes required Terraform objects that hold top-level fields of the resource, for a released resource that nests fields the API holds at the top level. The arms of a top-level oneOf in a group check each other like the arms of a nested oneOf; `requireOne: true` makes them ExactlyOneOf, and needs a group that holds the arms of one oneOf and no other field. Flatten fails with "Invalid response from server" unless the response has exactly one of them.
+- FEAT: Generation fails when a `groups` name is also the name of a top-level attribute.
+- FEAT: `typeName` names the released resource type when it is not the OpenAPI component (`slo_v2` for `Slo`).
+- FEAT: `enums.<Enum>.trimPrefix` removes a prefix from each value before the Terraform value is made (`SLO_TIME_FRAME_7_DAYS` is `7_days`).
+- FEAT: Field lines take `useNonNullStateForUnknown`, and the validators `between`, `exactlyOneOf`, and `atLeastOneOf`. A `between` bound of an integer attribute must be a whole number that the validator states exactly.
+- FEAT: `readEmptyAs: "null"` works on a list or set of strings.
+- FEAT: `sendNullAsEmpty: true` sends `""` for a null string, for an API that keeps a stored value that the request omits. It needs `readEmptyAs: "null"`.
+- FEAT: `Hooks.BeforeFlatten` changes the API value before flatten, for a value that only an older record has.
+- FIX: A component that a request shares with the response keeps its read-only fields in flatten. Before, the read-only field was missing from the shared conversion object, and the apply failed with a value conversion error.
 - FEAT: `api.idProperty` names the property that holds the id when it is not named like the path parameter, for example `uniqueIdentifier` for `{alert_scheduler_rule_id}`.
 - FEAT: A field line `name` keeps a released Terraform attribute name that is not the Terraform form of the API name.
 - FEAT: `enums.<Enum>.names` keeps a released Terraform spelling of an enum value, for example `active` for `SCHEDULE_OPERATION_ACTIVATE` or `minutes` for `DURATION_FREQUENCY_MINUTE`.

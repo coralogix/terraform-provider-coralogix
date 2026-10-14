@@ -140,18 +140,18 @@ func TestNameAndIDPropertyPolicy(t *testing.T) {
 }
 
 // A names entry gives an accepted value its released Terraform spelling. The conversion maps and
-// the validator read it through TerraformValue, so they cannot disagree.
+// the validator read it through TFValue, so they cannot disagree.
 func TestEnumNames(t *testing.T) {
 	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  Op:\n    zero: unspecified\n    values: [OP_MUTE, OP_ACTIVATE]\n    names: {OP_ACTIVATE: active}\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	e := f.Enums["Op"]
-	if got := e.TerraformValue("OP_ACTIVATE"); got != "active" {
-		t.Fatalf("TerraformValue(OP_ACTIVATE) = %q, want active", got)
+	if got := e.TFValue("OP_ACTIVATE"); got != "active" {
+		t.Fatalf("TFValue(OP_ACTIVATE) = %q, want active", got)
 	}
-	if got := e.TerraformValue("OP_MUTE"); got != "op_mute" {
-		t.Fatalf("TerraformValue(OP_MUTE) = %q, want the lower case op_mute", got)
+	if got := e.TFValue("OP_MUTE"); got != "op_mute" {
+		t.Fatalf("TFValue(OP_MUTE) = %q, want the lower case op_mute", got)
 	}
 	tests := map[string]struct{ line, want string }{
 		"not accepted":    {"values: [OP_MUTE]\n    rejected: [OP_ACTIVATE]\n    names: {OP_ACTIVATE: active}", `"OP_ACTIVATE" is not in values`},
@@ -336,6 +336,39 @@ func TestUnwrapPolicy(t *testing.T) {
 		if !slices.Contains(line.Keys, "unwrap") {
 			t.Errorf("line %s keys = %v, want unwrap", line, line.Keys)
 		}
+	}
+}
+
+// The keys that a resource generated in the released shape of a handwritten one needs: its type
+// name, groups of top-level fields, and enum values with their prefix removed.
+func TestReleasedShapeKeys(t *testing.T) {
+	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\n"
+	f, err := Parse([]byte(head + "typeName: r_v2\ngroups:\n  sli:\n    fields: [a, b]\n    requireOne: true\n  window: {fields: [c]}\nenums:\n  E: {trimPrefix: E_, values: [E_ONE_DAY]}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.GroupOf("b") != "sli" || f.GroupOf("c") != "window" || f.GroupOf("d") != "" {
+		t.Fatalf("GroupOf = %q, %q, %q, want sli, window, and none", f.GroupOf("b"), f.GroupOf("c"), f.GroupOf("d"))
+	}
+	if got := f.Enums["E"].TFValue("E_ONE_DAY"); got != "one_day" {
+		t.Fatalf("TFValue = %q, want one_day", got)
+	}
+	tests := map[string]struct{ text, want string }{
+		"type name":           {"typeName: R-v2\n", "not a Terraform name"},
+		"group name":          {"groups:\n  Sli: {fields: [a]}\n", "not a Terraform name"},
+		"empty group":         {"groups:\n  sli: {fields: []}\n", "fields is empty"},
+		"field in two groups": {"groups:\n  sli: {fields: [a]}\n  window: {fields: [a]}\n", "also in groups.sli"},
+		"prefix of no value":  {"enums:\n  E: {trimPrefix: X_, values: [E_ONE]}\n", "not a prefix"},
+		"between order":       {"types:\n  R:\n    fields:\n      f: {validators: [{between: [100, 0]}]}\n", "minimum and a maximum"},
+		"two state modifiers": {"types:\n  R:\n    fields:\n      f: {useStateForUnknown: true, useNonNullStateForUnknown: true}\n", "cannot both be set"},
+		"two validator kinds": {"types:\n  R:\n    fields:\n      f: {validators: [{exactlyOneOf: [g], atLeastOneOf: [h]}]}\n", "exactly one"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte(head + test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
 	}
 }
 

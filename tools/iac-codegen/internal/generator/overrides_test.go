@@ -155,42 +155,6 @@ func TestStaleKeyIsNamedNotTheLine(t *testing.T) {
 	}
 }
 
-// A name line that gives the Terraform name that the field has anyway changes nothing.
-func TestNameLineWithTheDefaultNameIsStale(t *testing.T) {
-	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  LegacyThing:\n    fields:\n      name: {name: name}\n")
-	_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
-	if err == nil || !strings.Contains(err.Error(), "OVERRIDE_UNUSED") || !strings.Contains(err.Error(), `"name" is already the Terraform name of "name"`) {
-		t.Fatalf("err = %v, want OVERRIDE_UNUSED for the name line", err)
-	}
-}
-
-// Two fields that a name line makes share a Terraform name collide, as two API names would.
-func TestNameLineCollision(t *testing.T) {
-	file := mustParse(t, "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  idProperty: uniqueIdentifier\ntypes:\n  SuppressedThing:\n    fields:\n      uniqueIdentifier: {name: id}\n")
-	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = validateOpenAPIWith(spec, "SuppressedThing", model.OperationIDs{}, "sdk", "provider", file)
-	if err == nil || !strings.Contains(err.Error(), "TERRAFORM_NAME_COLLISION") || !strings.Contains(err.Error(), `Fields "uniqueIdentifier" and "id" both normalize to "id"`) {
-		t.Fatalf("err = %v, want TERRAFORM_NAME_COLLISION: the version id is not skipped", err)
-	}
-}
-
-// The id property must exist and is needed in the Update body; the version id field of the same
-// object does not stand in for it.
-func TestIDPropertyMustBeAField(t *testing.T) {
-	file := mustParse(t, "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  idProperty: ruleId\ntypes:\n  SuppressedThing:\n    fields:\n      id: {skip: true}\n")
-	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = validateOpenAPIWith(spec, "SuppressedThing", model.OperationIDs{}, "sdk", "provider", file)
-	if err == nil || !strings.Contains(err.Error(), "UPDATE_ID_NOT_IN_BODY") || !strings.Contains(err.Error(), `"ruleId"`) {
-		t.Fatalf("err = %v, want UPDATE_ID_NOT_IN_BODY for ruleId", err)
-	}
-}
-
 // A required or readOnly key is needed while the contract does not state the fact.
 func TestKeysThatTheContractDoesNotStateAreNotStale(t *testing.T) {
 	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  LegacyThing:\n    fields:\n      name: {required: true}\n      labels: {readOnly: true}\n")
@@ -321,7 +285,7 @@ func TestSkippingAOneOfArmIsRejected(t *testing.T) {
 // readEmptyAs is rendered for an object and for a list or set of objects. On another kind it
 // would do nothing, so the generator rejects it.
 func TestReadEmptyAsOnOtherKindsIsRejected(t *testing.T) {
-	for _, field := range []string{"destinations", "labels", "enabled"} {
+	for _, field := range []string{"labels", "enabled"} {
 		t.Run(field, func(t *testing.T) {
 			text := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Thing:\n    fields:\n      " + field + ": {readEmptyAs: \"null\"}\n"
 			_, err := validateOpenAPIWith(thingSpec(t), "Thing", model.OperationIDs{}, "sdk", "provider", mustParse(t, text))
@@ -329,6 +293,27 @@ func TestReadEmptyAsOnOtherKindsIsRejected(t *testing.T) {
 				t.Fatalf("err = %v, want an issue about readEmptyAs", err)
 			}
 		})
+	}
+}
+
+// readEmptyAs: "null" works on a list of strings: the API returns an empty list for a list that
+// the request did not send.
+func TestReadEmptyAsOnAStringList(t *testing.T) {
+	text := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Thing:\n    fields:\n      destinations: {readEmptyAs: \"null\"}\n"
+	validated, err := validateOpenAPIWith(thingSpec(t), "Thing", model.OperationIDs{}, "sdk", "provider", mustParse(t, text))
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := buildConvWith(validated.resource, validated.refs, validated.overrides)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, obj := range data.Objects {
+		for _, f := range obj.Fields {
+			if f.TFName == "destinations" && obj.Flatten && !f.ReadEmptyAsNull {
+				t.Fatalf("%s.destinations does not read an empty list as null", obj.Model)
+			}
+		}
 	}
 }
 
@@ -810,6 +795,130 @@ func TestClientAndServerSetIDAreExclusive(t *testing.T) {
 	_, err := overrides.Parse([]byte("resource: Thing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  clientSetID: true\n  serverSetID: true\n"))
 	if err == nil || !strings.Contains(err.Error(), "serverSetID") {
 		t.Fatalf("err = %v, want an error about clientSetID and serverSetID", err)
+	}
+}
+
+// A group holds top-level fields that the user sets and that a full replace sends. The generator
+// reports any other use, because the renderer has no plan logic for it.
+func TestGroupsRejectFieldsThatTheyCannotHold(t *testing.T) {
+	sharedSpec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "sharedthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const shared = "resource: SharedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  updateIDInBody: true\n  serverSetID: true\ntypes:\n  SharedThing:\n    fields:\n      id: {readOnly: true}\n      name: {required: true}\n      frame: {required: true, validators: [{enum: true}]}\nenums:\n  SharedFrame: {zero: unspecified, values: [SHARED_FRAME_ONE_DAY, SHARED_FRAME_SEVEN_DAYS]}\n"
+	tests := map[string]struct {
+		spec     []byte
+		resource string
+		text     string
+		want     string
+	}{
+		"patch update":                  {thingSpec(t), "Thing", "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ngroups:\n  meta: {fields: [description]}\n", "full-replace Update"},
+		"no such field":                 {sharedSpec, "SharedThing", shared + "groups:\n  meta: {fields: [missing]}\n", "no top-level field"},
+		"split oneOf":                   {sharedSpec, "SharedThing", shared + "groups:\n  a: {fields: [byCount]}\n  b: {fields: [byRatio]}\n", "must all be in one group"},
+		"requireOne without arms":       {sharedSpec, "SharedThing", shared + "groups:\n  meta:\n    fields: [name]\n    requireOne: true\n", "requireOne needs the arms"},
+		"group named as a field":        {sharedSpec, "SharedThing", shared + "groups:\n  name: {fields: [frame]}\n", "also the top-level attribute name"},
+		"requireOne with another field": {sharedSpec, "SharedThing", shared + "groups:\n  measure:\n    fields: [byCount, byRatio, name]\n    requireOne: true\n", "and no other field"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			validated, err := validateOpenAPIWith(test.spec, test.resource, model.OperationIDs{}, "sdk", "provider", mustParse(t, test.text))
+			if err == nil {
+				_, err = buildTFResourceWith(validated.resource, "generated", validated.overrides)
+			}
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}
+
+// A between bound of an integer attribute must be one the validator states exactly. A fraction
+// would be cut, so [0.5, 10] would accept 0, and a number past 2^53 has lost its last digits.
+func TestBetweenOnIntegersNeedsExactBounds(t *testing.T) {
+	tests := []struct {
+		kind    string
+		between []float64
+		want    string
+	}{
+		{"Int32", []float64{0.5, 10}, ""},
+		{"Int32", []float64{0, 2147483648}, ""},
+		{"Int64", []float64{0, 1 << 54}, ""},
+		{"Int64", []float64{-1.5, 3}, ""},
+		{"Int64", []float64{-(1 << 53), 1 << 53}, "int64validator.Between(-9007199254740992, 9007199254740992)"},
+		{"Int32", []float64{1, 10}, "int32validator.Between(1, 10)"},
+		{"Float32", []float64{0, 0.5}, "float32validator.Between(0.0, 0.5)"},
+	}
+	for _, test := range tests {
+		a := &tfAttr{Name: "n", Kind: test.kind, ValueKind: test.kind, Optional: true}
+		got, err := validatorExpr(a, overrides.Validator{Between: test.between}, nil)
+		if test.want == "" {
+			if err == nil {
+				t.Errorf("%s between %v = %q, want an error", test.kind, test.between, got)
+			}
+			continue
+		}
+		if err != nil || got != test.want {
+			t.Errorf("%s between %v = %q, %v, want %q", test.kind, test.between, got, err, test.want)
+		}
+	}
+}
+
+// An exactlyOneOf or atLeastOneOf name must be another attribute of the same object. The
+// validator renders it into a path, so a typo compiles and fails only on a configuration.
+func TestSiblingValidatorTargetsMustExist(t *testing.T) {
+	a := &tfAttr{Name: "static_values"}
+	siblings := []*tfAttr{a, {Name: "label_keys"}}
+	tests := []struct {
+		v    overrides.Validator
+		fail bool
+	}{
+		{overrides.Validator{ExactlyOneOf: []string{"label_keys"}}, false},
+		{overrides.Validator{AtLeastOneOf: []string{"label_keys"}}, false},
+		{overrides.Validator{ExactlyOneOf: []string{"labelKeys"}}, true},
+		{overrides.Validator{AtLeastOneOf: []string{"missing"}}, true},
+		{overrides.Validator{ExactlyOneOf: []string{"static_values"}}, true},
+	}
+	for _, test := range tests {
+		err := checkSiblingTargets(a, siblings, []overrides.Validator{test.v})
+		if (err != nil) != test.fail {
+			t.Errorf("checkSiblingTargets(%+v) = %v, want error %v", test.v, err, test.fail)
+		}
+	}
+}
+
+// A name line that gives the Terraform name that the field has anyway changes nothing.
+func TestNameLineWithTheDefaultNameIsStale(t *testing.T) {
+	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  LegacyThing:\n    fields:\n      name: {name: name}\n")
+	_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err == nil || !strings.Contains(err.Error(), "OVERRIDE_UNUSED") || !strings.Contains(err.Error(), `"name" is already the Terraform name of "name"`) {
+		t.Fatalf("err = %v, want OVERRIDE_UNUSED for the name line", err)
+	}
+}
+
+// Two fields that a name line makes share a Terraform name collide, as two API names would.
+func TestNameLineCollision(t *testing.T) {
+	file := mustParse(t, "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  idProperty: uniqueIdentifier\ntypes:\n  SuppressedThing:\n    fields:\n      uniqueIdentifier: {name: id}\n")
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = validateOpenAPIWith(spec, "SuppressedThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err == nil || !strings.Contains(err.Error(), "TERRAFORM_NAME_COLLISION") || !strings.Contains(err.Error(), `Fields "uniqueIdentifier" and "id" both normalize to "id"`) {
+		t.Fatalf("err = %v, want TERRAFORM_NAME_COLLISION: the version id is not skipped", err)
+	}
+}
+
+// The id property must exist and is needed in the Update body; the version id field of the same
+// object does not stand in for it.
+func TestIDPropertyMustBeAField(t *testing.T) {
+	file := mustParse(t, "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  idProperty: ruleId\ntypes:\n  SuppressedThing:\n    fields:\n      id: {skip: true}\n")
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = validateOpenAPIWith(spec, "SuppressedThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err == nil || !strings.Contains(err.Error(), "UPDATE_ID_NOT_IN_BODY") || !strings.Contains(err.Error(), `"ruleId"`) {
+		t.Fatalf("err = %v, want UPDATE_ID_NOT_IN_BODY for ruleId", err)
 	}
 }
 

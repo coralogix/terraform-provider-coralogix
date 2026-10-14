@@ -125,15 +125,11 @@ func buildCRUDWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*cru
 		Client:         client.Name,
 		Resource:       resource.Name,
 	}
-	for _, f := range r.Fields {
-		if !updateOnly(f) {
-			continue
-		}
-		value, err := serverDefaultValue(f.Type, *declaredDefault(f))
-		if err != nil {
-			return nil, fmt.Errorf("%s: server default: %w", f.Name, err)
-		}
-		out.UpdateOnly = append(out.UpdateOnly, updateOnlyAttr{Attr: tfName(f.Name), Default: value})
+	if file != nil && file.TypeName != "" {
+		out.TypeName = file.TypeName
+	}
+	if err := updateOnlyAttrs(r, out); err != nil {
+		return nil, err
 	}
 	if err := resourceIDData(r, ix, out); err != nil {
 		return nil, err
@@ -326,5 +322,20 @@ func cxsdkNames(ix *refIndex, out *crudData) error {
 	}
 	out.CXPkg, out.CXName = pkg.Pkg, pkg.Name
 	out.NewAPIError, out.APINotFound = newAPIError.Name, notFound.Name
+	return nil
+}
+
+// updateOnlyAttrs lists the fields that only Update takes, with the server default that create stores.
+func updateOnlyAttrs(r *model.Resource, out *crudData) error {
+	for _, f := range r.Fields {
+		if !updateOnly(f) {
+			continue
+		}
+		value, err := serverDefaultValue(f.Type, *declaredDefault(f))
+		if err != nil {
+			return fmt.Errorf("%s: server default: %w", f.Name, err)
+		}
+		out.UpdateOnly = append(out.UpdateOnly, updateOnlyAttr{Attr: attrName(r.Policy, r.Name, f.Name), Default: value})
+	}
 	return nil
 }

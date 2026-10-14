@@ -1,0 +1,556 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": "apm-latency",
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "filters": [
+            {
+              "key": "environment",
+              "values": [
+                "prod",
+                "staging"
+              ]
+            }
+          ],
+          "grouping_keys": [
+            "region"
+          ],
+          "latency_config": {
+            "quantile": {
+              "percentile": 0.95
+            },
+            "threshold": 300,
+            "time_window": "5_minutes"
+          },
+          "services": [
+            "checkout"
+          ]
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "plan": {
+      "apm_sli_metadata": "(unknown)",
+      "description": null,
+      "grouping": "(unknown)",
+      "id": "(unknown)",
+      "labels": "(unknown)",
+      "name": "apm-latency",
+      "ownership_tags": null,
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "error_config": null,
+          "filters": [
+            {
+              "key": "environment",
+              "values": [
+                "prod",
+                "staging"
+              ]
+            }
+          ],
+          "grouping_keys": [
+            "region"
+          ],
+          "latency_config": {
+            "average": null,
+            "quantile": {
+              "percentile": 0.95
+            },
+            "threshold": 300,
+            "time_window": "5_minutes"
+          },
+          "services": [
+            "checkout"
+          ]
+        },
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/slo/slos/v1",
+        "body": {
+          "apmSli": {
+            "filters": [
+              {
+                "key": "environment",
+                "values": [
+                  "prod",
+                  "staging"
+                ]
+              }
+            ],
+            "groupingKeys": [
+              "region"
+            ],
+            "latencyConfig": {
+              "quantile": {
+                "percentile": 0.95
+              },
+              "threshold": 300,
+              "timeWindow": "WINDOW_SLO_WINDOW_5_MINUTES"
+            },
+            "services": [
+              "checkout"
+            ]
+          },
+          "description": "",
+          "name": "apm-latency",
+          "productType": "SLO_PRODUCT_TYPE_APM",
+          "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+          "targetThresholdPercentage": 99.5
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": {
+        "error_config": null,
+        "filters": [
+          {
+            "key": "environment",
+            "values": [
+              "prod",
+              "staging"
+            ]
+          }
+        ],
+        "grouping_keys": [
+          "region"
+        ],
+        "latency_config": {
+          "average": null,
+          "quantile": {
+            "percentile": 0.949999988079071
+          },
+          "threshold": 300,
+          "time_window": "5_minutes"
+        },
+        "services": [
+          "checkout"
+        ]
+      },
+      "description": null,
+      "grouping": {
+        "labels": [
+          "service_name"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "apm-latency",
+      "ownership_tags": null,
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "error_config": null,
+          "filters": [
+            {
+              "key": "environment",
+              "values": [
+                "prod",
+                "staging"
+              ]
+            }
+          ],
+          "grouping_keys": [
+            "region"
+          ],
+          "latency_config": {
+            "average": null,
+            "quantile": {
+              "percentile": 0.95
+            },
+            "threshold": 300,
+            "time_window": "5_minutes"
+          },
+          "services": [
+            "checkout"
+          ]
+        },
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/slo/slos/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": {
+        "error_config": null,
+        "filters": [
+          {
+            "key": "environment",
+            "values": [
+              "prod",
+              "staging"
+            ]
+          }
+        ],
+        "grouping_keys": [
+          "region"
+        ],
+        "latency_config": {
+          "average": null,
+          "quantile": {
+            "percentile": 0.949999988079071
+          },
+          "threshold": 300,
+          "time_window": "5_minutes"
+        },
+        "services": [
+          "checkout"
+        ]
+      },
+      "description": null,
+      "grouping": {
+        "labels": [
+          "service_name"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "apm-latency",
+      "ownership_tags": null,
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "error_config": null,
+          "filters": [
+            {
+              "key": "environment",
+              "values": [
+                "prod",
+                "staging"
+              ]
+            }
+          ],
+          "grouping_keys": [
+            "region"
+          ],
+          "latency_config": {
+            "average": null,
+            "quantile": {
+              "percentile": 0.95
+            },
+            "threshold": 300,
+            "time_window": "5_minutes"
+          },
+          "services": [
+            "checkout"
+          ]
+        },
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    }
+  },
+  {
+    "step": "update: remove threshold, filters, and grouping keys",
+    "config": {
+      "name": "apm-latency",
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "latency_config": {
+            "quantile": {
+              "percentile": 0.95
+            },
+            "time_window": "5_minutes"
+          },
+          "services": [
+            "checkout"
+          ]
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "plan": {
+      "apm_sli_metadata": "(unknown)",
+      "description": null,
+      "grouping": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": "(unknown)",
+      "name": "apm-latency",
+      "ownership_tags": null,
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "error_config": null,
+          "filters": null,
+          "grouping_keys": null,
+          "latency_config": {
+            "average": null,
+            "quantile": {
+              "percentile": 0.95
+            },
+            "threshold": 300,
+            "time_window": "5_minutes"
+          },
+          "services": [
+            "checkout"
+          ]
+        },
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/slo/slos/v1",
+        "body": {
+          "apmSli": {
+            "latencyConfig": {
+              "quantile": {
+                "percentile": 0.95
+              },
+              "threshold": 300,
+              "timeWindow": "WINDOW_SLO_WINDOW_5_MINUTES"
+            },
+            "services": [
+              "checkout"
+            ]
+          },
+          "description": "",
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "apm-latency",
+          "productType": "SLO_PRODUCT_TYPE_APM",
+          "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+          "targetThresholdPercentage": 99.5
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": {
+        "error_config": null,
+        "filters": null,
+        "grouping_keys": null,
+        "latency_config": {
+          "average": null,
+          "quantile": {
+            "percentile": 0.949999988079071
+          },
+          "threshold": 300,
+          "time_window": "5_minutes"
+        },
+        "services": [
+          "checkout"
+        ]
+      },
+      "description": null,
+      "grouping": {
+        "labels": [
+          "service_name"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "apm-latency",
+      "ownership_tags": null,
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "error_config": null,
+          "filters": null,
+          "grouping_keys": null,
+          "latency_config": {
+            "average": null,
+            "quantile": {
+              "percentile": 0.95
+            },
+            "threshold": 300,
+            "time_window": "5_minutes"
+          },
+          "services": [
+            "checkout"
+          ]
+        },
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: average instead of quantile",
+    "config": {
+      "name": "apm-latency",
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "latency_config": {
+            "average": {},
+            "time_window": "1_minute"
+          },
+          "services": [
+            "checkout"
+          ]
+        }
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "plan": {
+      "apm_sli_metadata": "(unknown)",
+      "description": null,
+      "grouping": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": "(unknown)",
+      "name": "apm-latency",
+      "ownership_tags": null,
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "error_config": null,
+          "filters": null,
+          "grouping_keys": null,
+          "latency_config": {
+            "average": {},
+            "quantile": null,
+            "threshold": 300,
+            "time_window": "1_minute"
+          },
+          "services": [
+            "checkout"
+          ]
+        },
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/slo/slos/v1",
+        "body": {
+          "apmSli": {
+            "latencyConfig": {
+              "threshold": 300,
+              "timeWindow": "WINDOW_SLO_WINDOW_1_MINUTE"
+            },
+            "services": [
+              "checkout"
+            ]
+          },
+          "description": "",
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "apm-latency",
+          "productType": "SLO_PRODUCT_TYPE_APM",
+          "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+          "targetThresholdPercentage": 99.5
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": {
+        "error_config": null,
+        "filters": null,
+        "grouping_keys": null,
+        "latency_config": {
+          "average": {},
+          "quantile": null,
+          "threshold": 300,
+          "time_window": "1_minute"
+        },
+        "services": [
+          "checkout"
+        ]
+      },
+      "description": null,
+      "grouping": {
+        "labels": [
+          "service_name"
+        ]
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "apm-latency",
+      "ownership_tags": null,
+      "product_type": "apm",
+      "sli": {
+        "apm_sli": {
+          "error_config": null,
+          "filters": null,
+          "grouping_keys": null,
+          "latency_config": {
+            "average": {},
+            "quantile": null,
+            "threshold": 300,
+            "time_window": "1_minute"
+          },
+          "services": [
+            "checkout"
+          ]
+        },
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99.5,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/slo/slos/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]
