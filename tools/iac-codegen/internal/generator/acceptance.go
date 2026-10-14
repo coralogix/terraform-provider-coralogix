@@ -110,9 +110,6 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 	if len(res.ConfigValidators) != 0 {
 		return nil, errors.New("acceptance test: a oneOf group among the top-level fields is not supported")
 	}
-	if path := nestedImmutable("", res.Attributes, true); path != "" {
-		return nil, fmt.Errorf("acceptance test: %q has RequiresReplace below the top level, which nextAction does not compare", path)
-	}
 	typeName := res.CRUD.TypeName
 	s := &accSynth{file: file, minimal: file.Minimal, idAttr: res.CRUD.IDAttr, known: map[string]bool{}, settable: map[string]bool{}, required: map[string]bool{}, used: map[string]bool{}}
 	out := &acceptanceData{
@@ -346,7 +343,7 @@ const (
 )
 
 // nextAction is the plan check of a step from one config to the next. It is exact only where the
-// action is sure: no-op for the same config, replace when a top-level immutable attribute surely
+// action is sure: no-op for the same config, replace when an immutable value surely
 // differs. Otherwise the step must not replace the resource; it may update it or not, because a
 // default or an API value in state can equal what the next config sets. The value checks after the
 // apply catch a missing update. When an immutable attribute may differ (a left-out
@@ -360,20 +357,30 @@ func (s *accSynth) nextAction(attrs []*tfAttr, from, to *accStep, fromMode, toMo
 	defer func() { s.released = released }()
 	maybe := false
 	for _, a := range attrs {
+		view, nested := a, false
 		if !immutable(a) {
-			continue
+			if view = immutableView(a); view == nil {
+				continue
+			}
+			nested = true
 		}
 		s.released = released
-		before, _, err := s.attrs([]*tfAttr{a}, "", "", fromMode, true)
+		before, _, err := s.attrs([]*tfAttr{view}, "", "", fromMode, true)
 		if err != nil {
 			return "", err
 		}
 		s.released = nil
-		after, _, err := s.attrs([]*tfAttr{a}, "", "", toMode, true)
+		after, _, err := s.attrs([]*tfAttr{view}, "", "", toMode, true)
 		if err != nil {
 			return "", err
 		}
-		switch attrChange(a, before, after) {
+		change := attrChange(view, before, after)
+		if nested && change == changeSure && (before == "" || after == "") {
+			// A config adds or removes the object that holds the immutable value. Whether that
+			// replaces the resource depends on the plan modifiers of the parents.
+			change = changeMaybe
+		}
+		switch change {
 		case changeSure:
 			return accPlanReplace, nil
 		case changeMaybe:
@@ -475,31 +482,30 @@ func joinPath(parent, name string) string {
 
 // include says whether the config of the mode sets the attribute.
 func (s *accSynth) include(a *tfAttr, key string, mode accMode, top bool) bool {
+	if slices.Contains(s.file.Skip, key) || !s.inRelease(key) {
+		return false // skipped, or the released provider does not have it
+	}
+	if a.Extra {
+		_, ok := s.file.Values[key]
+		return ok // extraAttributes are not API fields; a made-up map key is not valid
+	}
 	switch {
-	case slices.Contains(s.file.Skip, key):
-		return false
-	case a.Extra:
-		if _, ok := s.file.Values[key]; !ok {
-			return false // extraAttributes are not API fields; a made-up map key is not valid
-		}
-		if s.released != nil && !s.released[key] {
-			return false
-		}
-		return true
-	case s.released != nil && !s.released[key]:
-		return false // the released provider does not have it
 	case !a.Required && !a.Optional:
 		return false // the server sets it
 	case s.released != nil && s.releasedRequired[key]:
 		return true // the released provider requires it, even when this build does not
 	case top && a.Name == s.idAttr && !a.Required:
 		return false // the server makes the id; a changed id would replace the resource
-	case a.Required:
-		return true
-	case a.OneOfRequired:
-		return true // the group needs one arm; the walk takes the first that is included
+	case a.Required, a.OneOfRequired:
+		return true // a OneOfRequired group needs one arm; the walk takes the first that is included
 	}
 	return mode != accMinimal || slices.Contains(s.minimal, key) || s.minimalBelow(key)
+}
+
+// inRelease reports whether the released provider of the upgrade test has the attribute. Without
+// an upgrade config, every attribute is in.
+func (s *accSynth) inRelease(key string) bool {
+	return s.released == nil || s.released[key]
 }
 
 // minimalBelow reports whether the minimal config sets a field below the attribute. The attribute
@@ -605,23 +611,24 @@ func defaultState(a *tfAttr) (string, bool) {
 	return "", false
 }
 
-// nestedImmutable returns the path of an attribute below the top level that has RequiresReplace, or
-// "". The schema builder adds it only to top-level fields, so nextAction compares only those.
-func nestedImmutable(key string, attrs []*tfAttr, top bool) string {
-	for _, a := range attrs {
-		path := joinPath(key, a.Name)
-		if !top && immutable(a) {
-			return path
-		}
-		child := path
-		if a.Kind == "ListNested" || a.Kind == "SetNested" {
-			child += "[]"
-		}
-		if found := nestedImmutable(child, a.Attributes, false); found != "" {
-			return found
+// immutableView returns a copy of a with only the attributes below it whose change replaces the
+// resource, and their parents. It returns nil when a has none. Two configs that render the same
+// view differ in no immutable value.
+func immutableView(a *tfAttr) *tfAttr {
+	var kept []*tfAttr
+	for _, child := range a.Attributes {
+		if immutable(child) {
+			kept = append(kept, child)
+		} else if view := immutableView(child); view != nil {
+			kept = append(kept, view)
 		}
 	}
-	return ""
+	if len(kept) == 0 {
+		return nil
+	}
+	view := *a
+	view.Attributes = kept
+	return &view
 }
 
 // immutable reports whether a change of a replaces the resource, with the

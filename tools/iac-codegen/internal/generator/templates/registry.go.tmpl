@@ -1,0 +1,21 @@
+{{.VersionHeader}}
+
+// Package {{.Package}} registers the generated resources that are new. A resource that users
+// already had keeps its handwritten registration.
+package {{.Package}}
+
+import (
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+{{range .Names}}
+	"{{$.ImportBase}}/{{.}}"
+{{- end}}
+)
+
+// Resources returns the constructors of the new generated resources.
+func Resources() []func() resource.Resource {
+	return []func() resource.Resource{
+{{- range .Names}}
+		func() resource.Resource { return {{.}}.NewResource({{.}}.Hooks{}) },
+{{- end}}
+	}
+}

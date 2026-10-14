@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/acceptance"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
@@ -69,6 +70,13 @@ func Generate(start string, options Options) error {
 	if err != nil {
 		return err
 	}
+	output, err := filepath.Abs(options.OutputDir)
+	if err != nil {
+		return fmt.Errorf("resolve output directory: %w", err)
+	}
+	if !withinDir(input.ProviderRoot, output) {
+		return fmt.Errorf("output directory %s is outside the provider %s: the generator registers the resource in the provider", output, input.ProviderRoot)
+	}
 	return generateFromInput(options, input, input.ProviderRoot)
 }
 
@@ -97,12 +105,19 @@ func Check(options CheckOptions) error {
 		return unneededDeleteOverrideError(validated)
 	}
 	acc, err := readAcceptance(Options{Resource: options.Resource, AcceptancePath: options.AcceptancePath})
-	if err != nil || acc == nil {
-		return err
-	}
-	prior, err := readUpgrade(filepath.Dir(options.AcceptancePath))
 	if err != nil {
 		return err
+	}
+	acc = defaultAcceptance(acc, validated, options.Resource)
+	if acc == nil {
+		return nil
+	}
+	var prior *acceptance.UpgradeAttributes
+	if options.AcceptancePath != "" {
+		// Without a file, the default has no upgrade test.
+		if prior, err = readUpgrade(filepath.Dir(options.AcceptancePath)); err != nil {
+			return err
+		}
 	}
 	if _, err := renderAll(validated.resource, validated.refs, "generated", validated.overrides, acc, prior, source.ProviderModule); err != nil {
 		return eligibilityIssue("ACCEPTANCE_INVALID", "renderer.acceptance", err,
@@ -133,6 +148,7 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 	if err != nil {
 		return err
 	}
+	accFile = defaultAcceptance(accFile, validated, options.Resource)
 	if err := checkUpgradeLocation(options, accFile); err != nil {
 		return err
 	}
@@ -153,7 +169,29 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 	if err := keepAcceptance(options, files); err != nil {
 		return err
 	}
-	return publish(options.OutputDir, files)
+	var extras []providerFile
+	output, err := filepath.Abs(options.OutputDir)
+	if err != nil {
+		return fmt.Errorf("resolve output directory: %w", err)
+	}
+	// The test seam can write a resource outside the provider. Generate cannot.
+	if withinDir(input.ProviderRoot, output) {
+		if extras, err = providerFiles(options, input.ProviderRoot, input.ProviderModule, validated.overrides == nil, tfName(validated.resource.Name), files); err != nil {
+			return err
+		}
+	}
+	delete(files, exampleKey)
+	delete(files, importKey)
+	return publishAll(options.OutputDir, files, extras)
+}
+
+// defaultAcceptance returns the acceptance file of a run. A new resource always gets an acceptance
+// test and a docs example: without a file, the test makes up every value.
+func defaultAcceptance(file *acceptance.File, validated *validatedResource, resource string) *acceptance.File {
+	if file == nil && validated.overrides == nil {
+		return &acceptance.File{Resource: resource}
+	}
+	return file
 }
 
 // checkSDK checks every SDK symbol that the generated code uses. A Delete override is stale when

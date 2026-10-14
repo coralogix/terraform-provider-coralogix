@@ -345,6 +345,12 @@ func TestAcceptanceNextActionFollowsTheConfigs(t *testing.T) {
 	label := &tfAttr{Name: "label", Kind: "String", Optional: true}
 	zone := &tfAttr{Name: "zone", Kind: "String", Optional: true, Computed: true, Modifiers: []string{"stringplanmodifier.RequiresReplace()"}}
 	targets := &tfAttr{Name: "targets", Kind: "String", Optional: true, Modifiers: []string{`requestReplaceModifier{at: "targets"}`}}
+	nested := func(name, kind string, required bool, children ...*tfAttr) *tfAttr {
+		return &tfAttr{Name: name, Kind: kind, Required: required, Optional: !required, Attributes: children}
+	}
+	spec := nested("spec", "SingleNested", true, region, label)
+	rules := nested("rules", "ListNested", false,
+		&tfAttr{Name: "region", Kind: "String", Required: true, Modifiers: []string{"stringplanmodifier.RequiresReplace()"}}, label)
 	tests := map[string]struct {
 		attrs    []*tfAttr
 		from, to accMode
@@ -361,6 +367,11 @@ func TestAcceptanceNextActionFollowsTheConfigs(t *testing.T) {
 		// The API may have set the immutable zone to the value of the next config, or not.
 		"a left-out immutable computed value": {[]*tfAttr{enum, name, zone}, accMinimal, accUpdated, accPlanUnknown},
 		"a sure replace wins":                 {[]*tfAttr{enum, zone, region}, accMinimal, accFull, accPlanReplace},
+		// Only the immutable values below a top-level attribute decide a replace.
+		"a mutable value beside a nested immutable value changes": {[]*tfAttr{enum, spec}, accFull, accUpdated, accPlanNoReplace},
+		"a nested immutable value is added":                       {[]*tfAttr{enum, spec}, accMinimal, accFull, accPlanReplace},
+		// The plan modifiers of the parents decide whether a new object with an immutable value replaces.
+		"an object with a nested immutable value is added": {[]*tfAttr{enum, rules}, accMinimal, accFull, accPlanUnknown},
 	}
 	for testName, test := range tests {
 		t.Run(testName, func(t *testing.T) {
@@ -750,29 +761,6 @@ func TestAcceptanceMinimalIncludesParentsOfNestedFields(t *testing.T) {
 	}
 	if strings.Contains(body, "kind") {
 		t.Errorf("minimal config sets an optional field that is not listed:\n%s", body)
-	}
-}
-
-// nextAction compares only top-level attributes, so a replace modifier below them stops generation.
-// requestReplaceModifier replaces the resource as RequiresReplace does.
-func TestAcceptanceRejectsNestedRequiresReplace(t *testing.T) {
-	for _, modifier := range []string{"stringplanmodifier.RequiresReplace()", `requestReplaceModifier{at: "rules.region"}`} {
-		t.Run(modifier, func(t *testing.T) {
-			res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "thing", IDAttr: "id", Resource: "Thing"}, Attributes: []*tfAttr{
-				{Name: "name", Kind: "String", Required: true},
-				{Name: "rules", Kind: "ListNested", Optional: true, Attributes: []*tfAttr{
-					{Name: "region", Kind: "String", Required: true, Modifiers: []string{modifier}},
-				}},
-			}}
-			file, err := acceptance.Parse([]byte("resource: Thing\n"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			_, err = buildAcceptance(res, "example.com/provider", file, nil)
-			if err == nil || !strings.Contains(err.Error(), `"rules[].region" has RequiresReplace below the top level`) {
-				t.Fatalf("err = %v, want nested RequiresReplace rejected", err)
-			}
-		})
 	}
 }
 
