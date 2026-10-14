@@ -59,6 +59,7 @@
 - FEAT: An optional request scalar needs `x-coralogix-presence` only when it declares a default that is not its zero value and the zero value is valid, for example `false` next to a default of `true`. An enum never needs it. Without presence or a default, a scalar whose zero value is valid is handled as if it declared that zero value as its server default: it is `Optional + Computed`, and removing it resets it to zero. A scalar whose zero value is not valid, such as an integer with `minimum: 1`, reads zero as null.
 - CHORE: Bump the generator to `v0.1.0-beta.31`.
 - FEAT: `readEmptyAs: "null"` on a `keyedBy` map reads an empty API list as null.
+- CHORE: A test renders the alerts scheduler from the pinned contract with a new top-level and nested field, and checks that the new attributes reach the schema, the model, expand, and flatten while every other generated line stays. The IaC generator CI job downloads the pinned SDK for it.
 - FIX: A skipped empty arm of a top-level oneOf also leaves the resource validator. Before, the validator named an attribute that the schema did not have.
 - FIX: `requestValueBy` is refused on a resource that Update patches with an update mask: the mask cannot hold a derived value, so a switch of the object that sets it could be ignored.
 - FIX: `keyedBy` with `object: true` needs an arm for every accepted value when the items' oneOf requires an arm. Before, a value without one produced items without their required arm.
