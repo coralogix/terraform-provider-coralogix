@@ -54,7 +54,7 @@
 - FIX: With `api.idProperty`, an id property that Create does not send is classified as the server-set id, as a path-parameter id is. Before, it was an unsupported field lifecycle. An `idProperty` that names the path parameter is reported as unneeded.
 - FIX: The Go name collision check uses the Go form of a `name` line, as the model does, and leaves out `requestValue` fields. Before, two renamed fields could get one Go field and fail to compile.
 - FIX: A renamed top-level field with a server default or an Update-only value keeps its released name in the omitted-default and follow-up Update paths, and in the merged request and response conversion.
-- FIX: `enums.<Enum>.names` cannot give an accepted value the spelling of a rejected value that `readRejected` reads back, and `defaultArm` needs a full-replace Update.
+- FIX: `enums.<Enum>.names` and `zero` cannot give a value the spelling of a rejected value that `readRejected` reads back. `defaultArm` needs a full-replace Update, and expand does not send the default arm while another arm is unknown.
 - FIX: The SDK check expects a snake_case path parameter in lower camel case, as the Go SDK writes it. Before, it rejected the SDK of any resource with such a parameter.
 - FIX: A skipped field takes part in no Terraform name collision.
 - FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.

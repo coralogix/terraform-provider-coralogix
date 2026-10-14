@@ -537,6 +537,9 @@ func (e Enum) checkNames() error {
 	}
 	if e.ReadRejected {
 		for _, api := range e.Rejected {
+			if other, ok := seen[api]; ok {
+				return fmt.Errorf("%s and the rejected %s both have the Terraform value %q", other, api, api)
+			}
 			seen[api] = api
 		}
 	}

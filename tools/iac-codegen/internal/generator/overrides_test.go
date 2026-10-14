@@ -946,7 +946,7 @@ func TestAsBoolNeedsAnEmptyObject(t *testing.T) {
 // defaultArm marks one arm of a oneOf group in a nested object.
 func TestDefaultArmErrors(t *testing.T) {
 	tests := map[string]struct{ from, to, want string }{
-		"two arms of one group": {"ids: {defaultArm: true}", "ids: {defaultArm: true}\n      labels: {defaultArm: true}", "ids and labels are arms of one group"},
+		"two arms of one group": {"ids: {defaultArm: true, readEmptyAs: \"null\"}", "ids: {defaultArm: true, readEmptyAs: \"null\"}\n      labels: {defaultArm: true}", "ids and labels are arms of one group"},
 		"no arm":                {"timezone: {name: time_zone}", "timezone: {name: time_zone, defaultArm: true}", "timezone is no oneOf arm"},
 		"top level":             {"window: {name: time_frame}", "window: {name: time_frame, defaultArm: true}", "nested object only"},
 	}

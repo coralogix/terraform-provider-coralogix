@@ -316,7 +316,7 @@ func expandAlertSchedulerRuleProtobufV1Filter(ctx context.Context, p path.Path, 
 	}
 	out.WhatExpression = valueOf(expandString(m.WhatExpression))
 	// No arm is set, so the request sends the empty AlertUniqueIds arm.
-	if out.AlertMetaLabels == nil && out.AlertUniqueIds == nil {
+	if out.AlertMetaLabels == nil && out.AlertUniqueIds == nil && !m.MetaLabels.IsUnknown() && !m.AlertsUniqueIds.IsUnknown() {
 		out.AlertUniqueIds = wrapAlertUniqueIds([]string{})
 	}
 	return out
