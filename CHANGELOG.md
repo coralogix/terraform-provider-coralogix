@@ -8,6 +8,7 @@
 - FIX: `id` stays known in the plan of an update. Before, every update planned it as unknown, so resources that reference it planned a change too. The API keeps the id on update.
 - FEAT: Validation requires `weekly.days` and `monthly.days`, and exactly one of `daily`, `weekly`, or `monthly` in `frequency`. Before, the API rejected such a rule at apply.
 - CHORE: Update reads the rule from the replace response instead of a second read; the two differ only in a field that the resource does not manage. Attributes without a description show the API description.
+- CHORE: Add the generated acceptance test, with an upgrade test that creates a rule with provider 3.21.0 and plans it with this build.
 
 #### data-source/coralogix_alerts_scheduler
 - CHORE: Uses the schema and the conversion of the generated resource.

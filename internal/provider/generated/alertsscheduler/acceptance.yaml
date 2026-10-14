@@ -1,0 +1,15 @@
+# What the generated acceptance test needs for coralogix_alerts_scheduler, besides the schema.
+resource: AlertSchedulerRule
+
+values:
+  name: '"@{run}-scheduler"'
+  filter.what_expression: '"source logs | filter true"'
+  schedule.operation: '"mute"'
+  schedule.one_time.time_frame.start_time: '"2030-01-01T00:00:00.000"'
+  schedule.one_time.time_frame.time_zone: '"UTC+0"'
+
+# The API rejects an alert id that does not exist, so the tests select alerts by meta label.
+skip:
+  - filter.alerts_unique_ids
+
+upgradeFrom: "3.21.0"

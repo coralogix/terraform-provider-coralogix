@@ -1,0 +1,46 @@
+# Written by coralogix-iac-codegen. Do not edit.
+# The attributes that the released provider of the upgrade test has. The upgrade test leaves out
+# every other attribute. The generator takes the list from the schema when upgradeFrom changes.
+from: 3.21.0
+attributes:
+    description: {type: String}
+    enabled: {type: Bool}
+    filter: {type: SingleNested, required: true}
+    filter.alerts_unique_ids: {type: Set(String)}
+    filter.meta_labels: {type: SetNested}
+    filter.meta_labels[].key: {type: String, required: true}
+    filter.meta_labels[].value: {type: String}
+    filter.what_expression: {type: String, required: true}
+    id: {type: String}
+    meta_labels: {type: SetNested}
+    meta_labels[].key: {type: String, required: true}
+    meta_labels[].value: {type: String}
+    name: {type: String, required: true}
+    schedule: {type: SingleNested, required: true}
+    schedule.one_time: {type: SingleNested}
+    schedule.one_time.time_frame: {type: SingleNested, required: true}
+    schedule.one_time.time_frame.duration: {type: SingleNested}
+    schedule.one_time.time_frame.duration.for_over: {type: Int64, required: true}
+    schedule.one_time.time_frame.duration.frequency: {type: String, required: true}
+    schedule.one_time.time_frame.end_time: {type: String}
+    schedule.one_time.time_frame.start_time: {type: String, required: true}
+    schedule.one_time.time_frame.time_zone: {type: String, required: true}
+    schedule.operation: {type: String, required: true}
+    schedule.recurring: {type: SingleNested}
+    schedule.recurring.always_active: {type: Bool}
+    schedule.recurring.dynamic: {type: SingleNested}
+    schedule.recurring.dynamic.frequency: {type: SingleNested, required: true}
+    schedule.recurring.dynamic.frequency.daily: {type: SingleNested}
+    schedule.recurring.dynamic.frequency.monthly: {type: SingleNested}
+    schedule.recurring.dynamic.frequency.monthly.days: {type: Set(Int64), required: true}
+    schedule.recurring.dynamic.frequency.weekly: {type: SingleNested}
+    schedule.recurring.dynamic.frequency.weekly.days: {type: Set(String), required: true}
+    schedule.recurring.dynamic.repeat_every: {type: Int64, required: true}
+    schedule.recurring.dynamic.termination_date: {type: String}
+    schedule.recurring.dynamic.time_frame: {type: SingleNested, required: true}
+    schedule.recurring.dynamic.time_frame.duration: {type: SingleNested}
+    schedule.recurring.dynamic.time_frame.duration.for_over: {type: Int64, required: true}
+    schedule.recurring.dynamic.time_frame.duration.frequency: {type: String, required: true}
+    schedule.recurring.dynamic.time_frame.end_time: {type: String}
+    schedule.recurring.dynamic.time_frame.start_time: {type: String, required: true}
+    schedule.recurring.dynamic.time_frame.time_zone: {type: String, required: true}
