@@ -40,7 +40,7 @@ func TestExpandE2MAggregationsSimple(t *testing.T) {
 
 	byType := map[e2ms.AggType]e2ms.V2Aggregation{}
 	for _, agg := range aggs {
-		if agg.AggType == nil {
+		if agg.AggType == "" {
 			t.Fatal("expected aggType to be set")
 		}
 		if agg.None != nil || agg.Samples != nil || agg.Histogram != nil {
@@ -49,7 +49,7 @@ func TestExpandE2MAggregationsSimple(t *testing.T) {
 		if agg.Enabled == nil {
 			t.Fatal("expected enabled pointer to be set")
 		}
-		byType[*agg.AggType] = agg
+		byType[agg.AggType] = agg
 	}
 
 	assertEnabled(t, byType[e2ms.AGGTYPE_AGG_TYPE_MIN], true, "min")
@@ -78,13 +78,13 @@ func TestExpandE2MAggregationsSamples(t *testing.T) {
 		t.Fatalf("expected 1 aggregation, got %d", len(aggs))
 	}
 	agg := aggs[0]
-	if agg.AggType == nil || *agg.AggType != e2ms.AGGTYPE_AGG_TYPE_SAMPLES {
+	if agg.AggType == "" || agg.AggType != e2ms.AGGTYPE_AGG_TYPE_SAMPLES {
 		t.Fatalf("expected samples aggType, got %v", agg.AggType)
 	}
 	if agg.None != nil || agg.Histogram != nil {
 		t.Fatalf("samples aggregation must leave none/histogram unset, got %+v", agg)
 	}
-	if agg.Samples == nil || agg.Samples.SampleType == nil || *agg.Samples.SampleType != e2ms.SAMPLETYPE_SAMPLE_TYPE_MIN {
+	if agg.Samples == nil || agg.Samples.SampleType == "" || agg.Samples.SampleType != e2ms.SAMPLETYPE_SAMPLE_TYPE_MIN {
 		t.Fatalf("expected samples.sampleType=Min, got %+v", agg.Samples)
 	}
 	assertTarget(t, agg, "samples")
@@ -113,7 +113,7 @@ func TestExpandE2MAggregationsHistogram(t *testing.T) {
 		t.Fatalf("expected 1 aggregation, got %d", len(aggs))
 	}
 	agg := aggs[0]
-	if agg.AggType == nil || *agg.AggType != e2ms.AGGTYPE_AGG_TYPE_HISTOGRAM {
+	if agg.AggType == "" || agg.AggType != e2ms.AGGTYPE_AGG_TYPE_HISTOGRAM {
 		t.Fatalf("expected histogram aggType, got %v", agg.AggType)
 	}
 	if agg.None != nil || agg.Samples != nil {
@@ -164,7 +164,7 @@ func TestExpandE2MAggregationsMixed(t *testing.T) {
 
 	byType := map[e2ms.AggType]e2ms.V2Aggregation{}
 	for _, agg := range aggs {
-		byType[*agg.AggType] = agg
+		byType[agg.AggType] = agg
 	}
 	if byType[e2ms.AGGTYPE_AGG_TYPE_AVG].Samples != nil || byType[e2ms.AGGTYPE_AGG_TYPE_AVG].Histogram != nil || byType[e2ms.AGGTYPE_AGG_TYPE_AVG].None != nil {
 		t.Fatalf("avg must leave metadata unset, got %+v", byType[e2ms.AGGTYPE_AGG_TYPE_AVG])
@@ -224,8 +224,8 @@ func TestFlattenE2MAggregationsUnknownType(t *testing.T) {
 	unknown := e2ms.AggType("AGG_TYPE_UNSPECIFIED")
 	minType := e2ms.AGGTYPE_AGG_TYPE_MIN
 	flattened, diags := flattenE2MAggregations(context.Background(), []e2ms.V2Aggregation{
-		{AggType: &unknown, Enabled: ptr(true), TargetMetricName: ptr("x")},
-		{AggType: &minType, Enabled: ptr(true), TargetMetricName: ptr("min")},
+		{AggType: unknown, Enabled: ptr(true), TargetMetricName: "x"},
+		{AggType: minType, Enabled: ptr(true), TargetMetricName: "min"},
 	})
 	if diags.HasError() {
 		t.Fatalf("unrecognized aggregation types must be skipped, not fail: %v", diags)
@@ -242,9 +242,9 @@ func TestFlattenE2MHistogramAggregationEmptyBuckets(t *testing.T) {
 	aggType := e2ms.AGGTYPE_AGG_TYPE_HISTOGRAM
 	flattened, diags := flattenE2MAggregations(context.Background(), []e2ms.V2Aggregation{
 		{
-			AggType:          &aggType,
+			AggType:          aggType,
 			Enabled:          ptr(false),
-			TargetMetricName: ptr("cx_bucket"),
+			TargetMetricName: "cx_bucket",
 			Histogram: &e2ms.E2MAggHistogram{
 				Buckets: []float32{},
 			},
@@ -276,7 +276,7 @@ func assertEnabled(t *testing.T, agg e2ms.V2Aggregation, want bool, name string)
 
 func assertTarget(t *testing.T, agg e2ms.V2Aggregation, want string) {
 	t.Helper()
-	if agg.TargetMetricName == nil || *agg.TargetMetricName != want {
+	if agg.TargetMetricName == "" || agg.TargetMetricName != want {
 		t.Fatalf("expected target_metric_name=%q, got %v", want, agg.TargetMetricName)
 	}
 }
