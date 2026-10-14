@@ -37,6 +37,10 @@
 
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.30`.
+- FIX: A skipped empty arm of a top-level oneOf also leaves the resource validator. Before, the validator named an attribute that the schema did not have.
+- FIX: `requestValueBy` is refused on a resource that Update patches with an update mask: the mask cannot hold a derived value, so a switch of the object that sets it could be ignored.
+- FIX: `keyedBy` with `object: true` needs an arm for every accepted value when the items' oneOf requires an arm. Before, a value without one produced items without their required arm.
+- FIX: An `atLeast` bound of an integer attribute must be a whole number in the attribute's range, as for `between`. Before, a bound past the range or past 2^53 rendered a different number.
 - FIX: `readEmptyAs: "null"` also applies to a list or set that an `enums` line maps. Before, an empty list read as an empty set where there was no prior value, as in an import, a data source, or a refresh upgrade.
 - FIX: `optional: true` on a map that the contract requires sends an empty map when Terraform leaves it out, as it does for a list. Before, the map was sent as null.
 - CHORE: Bump the generator to `v0.1.0-beta.29`.

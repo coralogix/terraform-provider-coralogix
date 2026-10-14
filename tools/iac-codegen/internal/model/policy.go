@@ -246,6 +246,9 @@ func (r *Resource) pruneSkipped() {
 		return
 	}
 	r.Fields = slices.DeleteFunc(r.Fields, func(f *ResourceField) bool { return r.Policy.skips(r.Name, f.Name) })
+	// A skipped top-level arm leaves its group too, or the resource validator names an
+	// attribute that the schema does not have.
+	r.Groups = r.Policy.pruneGroups(r.Name, r.Groups)
 	seen := map[*Type]bool{}
 	for _, f := range r.Fields {
 		r.Policy.pruneType(f.Type, seen)
@@ -271,6 +274,19 @@ func (p Policy) pruneType(t *Type, seen map[*Type]bool) {
 	for _, f := range t.Fields {
 		p.pruneType(f.Type, seen)
 	}
+}
+
+// pruneGroups returns the groups of component without the arms that the policy skips. A group
+// with no arm left is dropped: it has nothing to check.
+func (p Policy) pruneGroups(component string, groups []OneOfGroup) []OneOfGroup {
+	var out []OneOfGroup
+	for _, g := range groups {
+		g.Arms = slices.DeleteFunc(slices.Clone(g.Arms), func(arm string) bool { return p.skips(component, arm) })
+		if len(g.Arms) != 0 {
+			out = append(out, g)
+		}
+	}
+	return out
 }
 
 // requiredOf returns the required list of a component without the fields that the policy

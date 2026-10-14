@@ -885,3 +885,20 @@ func TestSiblingValidatorTargetsMustExist(t *testing.T) {
 		}
 	}
 }
+
+// A requestValueBy value is not an attribute, so an update mask cannot hold it: switching the
+// object that sets it would send the new value in the body and leave it out of the mask.
+// The generator refuses the line on a resource that Update patches with a mask.
+func TestRequestValueByIsRefusedWithAnUpdateMask(t *testing.T) {
+	text := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Thing:\n    fields:\n      kind: {requestValueBy: {config: THING_KIND_STANDARD, spec: THING_KIND_ADVANCED}}\n"
+	// The update body also takes kind, so Update sends the derived value.
+	spec := strings.Replace(string(thingSpec(t)), "              title: UpdateThingRequest\n              type: object\n              required: []\n              properties:\n",
+		"              title: UpdateThingRequest\n              type: object\n              required: []\n              properties:\n                kind:\n                  $ref: '#/components/schemas/ThingKind'\n", 1)
+	if spec == string(thingSpec(t)) {
+		t.Fatal("the test spec did not change: update the replaced text")
+	}
+	_, err := validateOpenAPIWith([]byte(spec), "Thing", model.OperationIDs{}, "sdk", "provider", mustParse(t, text))
+	if err == nil || !strings.Contains(err.Error(), "requestValueBy needs an Update that replaces the resource") {
+		t.Fatalf("err = %v, want requestValueBy refused for a masked Update", err)
+	}
+}

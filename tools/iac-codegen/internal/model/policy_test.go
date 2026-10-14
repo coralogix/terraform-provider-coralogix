@@ -296,3 +296,26 @@ func TestSkippableEmptyArm(t *testing.T) {
 		t.Fatal("an object with a group that allows no arm: want only the empty arm skippable")
 	}
 }
+
+// A skipped empty arm of a top-level oneOf leaves the resource group too: the resource
+// validator must not name an attribute that the schema does not have.
+func TestSkippedTopLevelArmLeavesItsGroup(t *testing.T) {
+	r := &Resource{
+		Name:   "Thing",
+		Policy: Policy{Skip: []string{"Thing.none", "Thing.gone"}},
+		Groups: []OneOfGroup{
+			{Arms: []string{"none", "logs", "spans"}, AllowNone: true},
+			{Arms: []string{"gone"}, AllowNone: true},
+		},
+		Fields: []*ResourceField{
+			{Name: "none"}, {Name: "logs"}, {Name: "spans"}, {Name: "gone"},
+		},
+	}
+	r.pruneSkipped()
+	if len(r.Groups) != 1 || !slices.Equal(r.Groups[0].Arms, []string{"logs", "spans"}) || !r.Groups[0].AllowNone {
+		t.Fatalf("groups = %+v, want one group of logs and spans that allows none", r.Groups)
+	}
+	if len(r.Fields) != 2 {
+		t.Fatalf("fields = %d, want 2", len(r.Fields))
+	}
+}

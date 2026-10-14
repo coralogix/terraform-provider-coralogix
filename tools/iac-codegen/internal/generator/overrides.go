@@ -502,9 +502,25 @@ func keyedObjectProblem(item *base.Schema, line overrides.Line, isString func(st
 		}
 		tfNames[tf], goNames[gn] = v, v
 	}
-	groupArms, err := oneOfArmNames(item)
+	groups, err := oneOfArmGroups(item)
 	if err != nil {
 		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
+	}
+	var groupArms []string
+	for _, g := range groups {
+		groupArms = append(groupArms, g.arms...)
+	}
+	// A value without an arm gets an attribute with no arm of the union, so a union that
+	// requires an arm needs one for every value that the resource accepts.
+	for _, g := range groups {
+		if g.allowNone {
+			continue
+		}
+		for _, v := range slices.Sorted(maps.Keys(accepted)) {
+			if !slices.Contains(g.arms, k.Arms[v]) {
+				return wholeLine(fmt.Errorf("keyedBy: %q has no arm in arms, but the items of %q require one of %v", v, line.Field, g.arms))
+			}
+		}
 	}
 	for _, v := range slices.Sorted(maps.Keys(k.Arms)) {
 		if _, ok := accepted[v]; !ok {
@@ -524,9 +540,16 @@ func keyedObjectProblem(item *base.Schema, line overrides.Line, isString func(st
 	return nil
 }
 
-// oneOfArmNames returns the oneOf arms of s: of its own oneOf, and of the oneOf of each allOf
-// entry. An arm is the one required property of a oneOf entry; the "no arm" entry has none.
-func oneOfArmNames(s *base.Schema) ([]string, error) {
+// oneOfArmGroup is a oneOf group of a contract schema: its arms, and whether it allows no arm.
+type oneOfArmGroup struct {
+	arms      []string
+	allowNone bool
+}
+
+// oneOfArmGroups returns the oneOf groups of s: its own oneOf, and the oneOf of each allOf
+// entry. An arm is the one required property of a oneOf entry; the "no arm" entry has none, and
+// its presence lets the group have no arm.
+func oneOfArmGroups(s *base.Schema) ([]oneOfArmGroup, error) {
 	schemas := []*base.Schema{s}
 	for _, proxy := range s.AllOf {
 		e, err := proxy.BuildSchema()
@@ -535,19 +558,27 @@ func oneOfArmNames(s *base.Schema) ([]string, error) {
 		}
 		schemas = append(schemas, e)
 	}
-	var arms []string
+	var groups []oneOfArmGroup
 	for _, e := range schemas {
+		if len(e.OneOf) == 0 {
+			continue
+		}
+		var g oneOfArmGroup
 		for _, proxy := range e.OneOf {
 			entry, err := proxy.BuildSchema()
 			if err != nil {
 				return nil, err
 			}
-			if entry.Not == nil && len(entry.Required) == 1 {
-				arms = append(arms, entry.Required[0])
+			switch {
+			case entry.Not != nil:
+				g.allowNone = true
+			case len(entry.Required) == 1:
+				g.arms = append(g.arms, entry.Required[0])
 			}
 		}
+		groups = append(groups, g)
 	}
-	return arms, nil
+	return groups, nil
 }
 
 // optionalProblem checks an optional line. The SDK holds a field that the contract requires as a

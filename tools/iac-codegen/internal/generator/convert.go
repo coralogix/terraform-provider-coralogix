@@ -435,6 +435,9 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 	if r.Replace {
 		return out, replaceFields(r, out, fixed, b.file)
 	}
+	if err := derivedValuesInMask(b.file); err != nil {
+		return nil, err
+	}
 	if err := buildMask(r, out, fixed); err != nil {
 		return nil, err
 	}
@@ -659,6 +662,24 @@ func replaceFields(r *model.Resource, out *convData, fixed func(string) bool, fi
 	}
 	if len(out.UpdateFields) == 0 {
 		return fmt.Errorf("update.body: no Update fields")
+	}
+	return nil
+}
+
+// derivedValuesInMask refuses requestValueBy on a resource that Update patches with a mask. The
+// mask holds attributes, and a derived value is not one: when the configuration switches the
+// object that sets it, expand sends the new value but the mask leaves it out, so the API can
+// keep the old one.
+func derivedValuesInMask(file *overrides.File) error {
+	if file == nil {
+		return nil
+	}
+	for _, component := range slices.Sorted(maps.Keys(file.Types)) {
+		for _, field := range slices.Sorted(maps.Keys(file.Types[component].Fields)) {
+			if len(file.Types[component].Fields[field].RequestValueBy) != 0 {
+				return fmt.Errorf("%s.%s: requestValueBy needs an Update that replaces the resource; an update mask would leave the derived value out", component, field)
+			}
+		}
 	}
 	return nil
 }

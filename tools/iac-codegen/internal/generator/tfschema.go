@@ -542,10 +542,10 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 	case len(v.AtLeastOneOf) != 0:
 		return pkg + ".AtLeastOneOf(" + siblingPaths(v.AtLeastOneOf) + ")", nil
 	case v.AtLeast != nil && (a.ValueKind == "Int32" || a.ValueKind == "Int64"):
-		if *v.AtLeast != math.Trunc(*v.AtLeast) {
-			return "", fmt.Errorf("atLeast %v is not a whole number", *v.AtLeast)
+		if err := checkIntegerBound(a.ValueKind, "atLeast", *v.AtLeast); err != nil {
+			return "", err
 		}
-		return fmt.Sprintf("%s.AtLeast(%d)", pkg, int64(*v.AtLeast)), nil
+		return fmt.Sprintf("%s.AtLeast(%s)", pkg, numberLiteral(a.ValueKind, *v.AtLeast)), nil
 	case v.AtLeast != nil && a.ValueKind == "Float64":
 		return fmt.Sprintf("float64validator.AtLeast(%s)", formatFloat(*v.AtLeast)), nil
 	case v.RegexMatches != nil && a.ValueKind == "String":
@@ -1411,7 +1411,7 @@ func checkGroupField(r *model.Resource, f *model.ResourceField, group string) er
 // betweenExpr is the Between validator of a number attribute.
 func betweenExpr(a *tfAttr, bounds []float64) (string, error) {
 	for _, bound := range bounds {
-		if err := checkIntegerBound(a.ValueKind, bound); err != nil {
+		if err := checkIntegerBound(a.ValueKind, "between bound", bound); err != nil {
 			return "", err
 		}
 	}
@@ -1423,17 +1423,18 @@ func betweenExpr(a *tfAttr, bounds []float64) (string, error) {
 // behavior-overrides file, stores exactly.
 const maxExactInteger = 1 << 53
 
-// checkIntegerBound rejects a between bound of an integer attribute that the validator would not
-// state exactly: a fraction would be cut, and a number past 2^53 has already lost its last digits.
-func checkIntegerBound(kind string, v float64) error {
+// checkIntegerBound rejects a bound (between or atLeast, named by what) of an integer attribute
+// that the validator would not state exactly: a fraction would be cut, and a number past 2^53 has
+// already lost its last digits.
+func checkIntegerBound(kind, what string, v float64) error {
 	switch kind {
 	case "Int32":
 		if v != math.Trunc(v) || v < math.MinInt32 || v > math.MaxInt32 {
-			return fmt.Errorf("between bound %v is not an int32", v)
+			return fmt.Errorf("%s %v is not an int32", what, v)
 		}
 	case "Int64":
 		if v != math.Trunc(v) || math.Abs(v) > maxExactInteger {
-			return fmt.Errorf("between bound %v is not an integer of at most 2^53, which the file can state exactly", v)
+			return fmt.Errorf("%s %v is not an integer of at most 2^53, which the file can state exactly", what, v)
 		}
 	}
 	return nil

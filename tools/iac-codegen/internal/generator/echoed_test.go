@@ -262,6 +262,12 @@ func TestEchoedContractRefusesWrongLines(t *testing.T) {
 			},
 			code: "OVERRIDE_UNUSED", location: "not a oneOf arm",
 		},
+		"keyedBy object without an arm for a value whose union requires one": {
+			spec: func(t *testing.T, s string) string {
+				return replaceOnce(t, s, "        - {required: [samples], type: object}\n        - {type: object, not: {anyOf: [{required: [samples], type: object}]}}\n", "        - {required: [samples], type: object}\n")
+			},
+			code: "OVERRIDE_UNUSED", location: "MEASURE_KIND_MIN",
+		},
 		"keyedBy object with two values of one attribute name": {
 			overrides: func(t *testing.T, o string) string {
 				return replaceOnce(t, o, "names: {MEASURE_KIND_MIN: min, MEASURE_KIND_SAMPLES: samples}", "names: {MEASURE_KIND_MIN: foo-bar, MEASURE_KIND_SAMPLES: foo_bar}")
@@ -291,6 +297,18 @@ func TestEchoedContractRefusesWrongLines(t *testing.T) {
 				return replaceOnce(t, o, "          - lengthAtLeast: 1\n", "          - atLeast: 1\n")
 			},
 			code: "RENDERER_SHAPE_UNSUPPORTED", location: "name",
+		},
+		"atLeast past the int32 range": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "validators: [{atLeast: 0}]}", "validators: [{atLeast: 3000000000}]}")
+			},
+			code: "RENDERER_SHAPE_UNSUPPORTED", location: "atLeast 3e+09 is not an int32",
+		},
+		"atLeast with a fraction": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "validators: [{atLeast: 0}]}", "validators: [{atLeast: 0.5}]}")
+			},
+			code: "RENDERER_SHAPE_UNSUPPORTED", location: "atLeast 0.5 is not an int32",
 		},
 		"collection: set on a field that is not a list": {
 			overrides: func(t *testing.T, o string) string {
