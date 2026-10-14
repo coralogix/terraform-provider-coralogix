@@ -1,0 +1,256 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "logs_query": {},
+      "metric_fields": {
+        "f": {
+          "aggregations": {
+            "min": {
+              "enable": false
+            }
+          },
+          "source_field": "f"
+        }
+      },
+      "name": "aggs"
+    },
+    "plan": {
+      "data_source": null,
+      "description": null,
+      "id": "(unknown)",
+      "logs_query": {
+        "applications": null,
+        "lucene": "(unknown)",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": {
+        "f": {
+          "aggregations": {
+            "avg": "(unknown)",
+            "count": "(unknown)",
+            "histogram": "(unknown)",
+            "max": "(unknown)",
+            "min": {
+              "enable": false,
+              "target_metric_name": "(unknown)"
+            },
+            "samples": "(unknown)",
+            "sum": "(unknown)"
+          },
+          "source_field": "f"
+        }
+      },
+      "metric_labels": null,
+      "name": "aggs",
+      "permutations": "(unknown)",
+      "spans_query": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
+        "body": {
+          "logsQuery": {},
+          "metricFields": [
+            {
+              "aggregations": [
+                {
+                  "aggType": "AGG_TYPE_MIN",
+                  "enabled": false,
+                  "targetMetricName": "min"
+                }
+              ],
+              "sourceField": "f",
+              "targetBaseMetricName": "f"
+            }
+          ],
+          "name": "aggs",
+          "permutationsLimit": 0,
+          "type": "E2M_TYPE_LOGS2METRICS"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "data_source": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": {
+        "f": {
+          "aggregations": {
+            "avg": {
+              "enable": true,
+              "target_metric_name": "cx_avg"
+            },
+            "count": {
+              "enable": true,
+              "target_metric_name": "cx_count"
+            },
+            "histogram": {
+              "buckets": [],
+              "enable": false,
+              "target_metric_name": "cx_bucket"
+            },
+            "max": {
+              "enable": true,
+              "target_metric_name": "cx_max"
+            },
+            "min": {
+              "enable": false,
+              "target_metric_name": "cx_min"
+            },
+            "samples": {
+              "enable": true,
+              "target_metric_name": "cx_value",
+              "type": "Max"
+            },
+            "sum": {
+              "enable": true,
+              "target_metric_name": "cx_sum"
+            }
+          },
+          "source_field": "f"
+        }
+      },
+      "metric_labels": null,
+      "name": "aggs",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 0
+      },
+      "spans_query": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: min left out",
+    "config": {
+      "logs_query": {},
+      "metric_fields": {
+        "f": {
+          "source_field": "f"
+        }
+      },
+      "name": "aggs"
+    },
+    "plan": {
+      "data_source": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": {
+        "f": {
+          "aggregations": {
+            "avg": {
+              "enable": true,
+              "target_metric_name": "cx_avg"
+            },
+            "count": {
+              "enable": true,
+              "target_metric_name": "cx_count"
+            },
+            "histogram": {
+              "buckets": [],
+              "enable": false,
+              "target_metric_name": "cx_bucket"
+            },
+            "max": {
+              "enable": true,
+              "target_metric_name": "cx_max"
+            },
+            "min": {
+              "enable": false,
+              "target_metric_name": "cx_min"
+            },
+            "samples": {
+              "enable": true,
+              "target_metric_name": "cx_value",
+              "type": "Max"
+            },
+            "sum": {
+              "enable": true,
+              "target_metric_name": "cx_sum"
+            }
+          },
+          "source_field": "f"
+        }
+      },
+      "metric_labels": null,
+      "name": "aggs",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 0
+      },
+      "spans_query": null
+    },
+    "noChange": true,
+    "state": {
+      "data_source": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": {
+        "f": {
+          "aggregations": {
+            "avg": {
+              "enable": true,
+              "target_metric_name": "cx_avg"
+            },
+            "count": {
+              "enable": true,
+              "target_metric_name": "cx_count"
+            },
+            "histogram": {
+              "buckets": [],
+              "enable": false,
+              "target_metric_name": "cx_bucket"
+            },
+            "max": {
+              "enable": true,
+              "target_metric_name": "cx_max"
+            },
+            "min": {
+              "enable": false,
+              "target_metric_name": "cx_min"
+            },
+            "samples": {
+              "enable": true,
+              "target_metric_name": "cx_value",
+              "type": "Max"
+            },
+            "sum": {
+              "enable": true,
+              "target_metric_name": "cx_sum"
+            }
+          },
+          "source_field": "f"
+        }
+      },
+      "metric_labels": null,
+      "name": "aggs",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 0
+      },
+      "spans_query": null
+    }
+  }
+]

@@ -1,0 +1,109 @@
+[
+  {
+    "step": "create without labels",
+    "config": {
+      "logs_query": {},
+      "name": "nolabels"
+    },
+    "plan": {
+      "data_source": null,
+      "description": null,
+      "id": "(unknown)",
+      "logs_query": {
+        "applications": null,
+        "lucene": "(unknown)",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "nolabels",
+      "permutations": "(unknown)",
+      "spans_query": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
+        "body": {
+          "logsQuery": {},
+          "name": "nolabels",
+          "permutationsLimit": 0,
+          "type": "E2M_TYPE_LOGS2METRICS"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "data_source": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "nolabels",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 0
+      },
+      "spans_query": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create with labels",
+    "config": {
+      "logs_query": {},
+      "metric_labels": {
+        "L": "l"
+      },
+      "name": "labels"
+    },
+    "plan": {
+      "data_source": null,
+      "description": null,
+      "id": "(unknown)",
+      "logs_query": {
+        "applications": null,
+        "lucene": "(unknown)",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": {
+        "L": "l"
+      },
+      "name": "labels",
+      "permutations": "(unknown)",
+      "spans_query": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
+        "body": {
+          "logsQuery": {},
+          "metricLabels": [
+            {
+              "sourceField": "l",
+              "targetLabel": "L"
+            }
+          ],
+          "name": "labels",
+          "permutationsLimit": 0,
+          "type": "E2M_TYPE_LOGS2METRICS"
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating Events2Metric | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"message\\\":\\\"Bad Request\\\",\\\"status\\\":400,\\\"details\\\":[{\\\"code\\\":\\\"custom\\\",\\\"message\\\":\\\"Permutation amount needs to be bigger than 1 when \\\\\\\"metricLabels\\\\\\\" are set\\\",\\\"path\\\":[\\\"e2m\\\",\\\"permutations\\\",\\\"limit\\\"]}]}\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

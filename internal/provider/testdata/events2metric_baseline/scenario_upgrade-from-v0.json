@@ -1,0 +1,72 @@
+[
+  {
+    "step": "upgrade",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "old",
+      "description": "v0",
+      "metric_labels": [
+        {
+          "target_label": "L",
+          "source_field": "l"
+        }
+      ],
+      "metric_fields": [
+        {
+          "target_base_metric_name": "f",
+          "source_field": "f",
+          "aggregations": []
+        }
+      ],
+      "permutations": [
+        {
+          "limit": "10",
+          "has_exceed_limit": false
+        }
+      ],
+      "logs_query": [
+        {
+          "lucene": "x",
+          "applications": [
+            "a"
+          ],
+          "subsystems": null,
+          "severities": [
+            "Info"
+          ]
+        }
+      ],
+      "spans_query": []
+    },
+    "state": {
+      "data_source": null,
+      "description": "v0",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": [
+          "a"
+        ],
+        "lucene": "x",
+        "severities": [
+          "Info"
+        ],
+        "subsystems": null
+      },
+      "metric_fields": {
+        "": {
+          "aggregations": null,
+          "source_field": null
+        }
+      },
+      "metric_labels": {
+        "L": "l"
+      },
+      "name": "old",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 10
+      },
+      "spans_query": null
+    }
+  }
+]

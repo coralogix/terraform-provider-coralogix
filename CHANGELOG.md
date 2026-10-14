@@ -75,6 +75,9 @@
 - FIX: The unknown-value check and the change check drop server-set values inside a set of objects, as they do in a list or map. Before, an unknown server-set child of a set element blocked Create and Update.
 - FIX: A generated Update that gets a resource-not-found 404 returns an error that says the resource no longer exists and that a refresh removes it from state. A state upgrade that reads the resource returns an error that names `terraform state rm`, because a refresh runs the upgrade first. Neither calls `RemoveResource` any more, which the Framework does not allow there. Read still warns and removes the resource, and Delete still treats the 404 as deleted.
 
+#### resource/coralogix_events2metric
+- CHORE: Add protocol baseline golden files against an in-memory events2metrics API, checked against answers recorded from a real tenant.
+
 # Release 3.21.0
 
 #### resource/coralogix_configuration_group
