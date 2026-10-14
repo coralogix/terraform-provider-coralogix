@@ -166,7 +166,7 @@ types:
         markdownDescription: "..."
 ```
 
-The rules are those of a top-level group: the group object is required, holds every arm of a oneOf of the component or none, needs a full-replace Update, and holds only fields that the user sets and that have no server default. Its name cannot be the name of another attribute of the component.
+The rules are those of a top-level group: the group object is required, holds every arm of a oneOf of the component or none, needs a full-replace Update, and holds only fields that the user sets and that have no server default. Its name cannot be the name of another attribute of the component. Its model struct is `<Component><Group>Model`; a component, the resource, or another group with that model name is an error.
 
 A read-only field inside a component that the request shares with the response is computed in existing mode: the request does not send it, and flatten reads it. `readEmptyAs: "null"` also works on a list or set of strings, also inside wrapper objects (`unwrap`), for a list that the API returns as `[]` when the request did not send it.
 

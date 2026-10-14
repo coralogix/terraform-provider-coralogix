@@ -125,9 +125,12 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // buildTFResourceWith is buildTFResource for a resource with a behavior-overrides file
 // (nil for a new resource).
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
-	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy, replace: r.Replace}
+	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: r.Name + "Model"}
 	root := &tfModel{Name: out.Model}
+	if err := b.claimModel(root.Name, "the resource "+r.Name); err != nil {
+		return nil, err
+	}
 	b.models = append(b.models, root)
 	if r.Singleton {
 		if err := addSingletonID(out, root, r); err != nil {
@@ -719,8 +722,19 @@ type tfBuilder struct {
 	defaultKinds []string        // ServerDefaultKinds of nested attributes
 	defaultPaths []defaultPath   // DefaultPaths
 	file         *overrides.File
-	policy       model.Policy // names the attributes that a name line renames
-	replace      bool         // Update is a full replace, so a group can hold nested fields
+	policy       model.Policy      // names the attributes that a name line renames
+	replace      bool              // Update is a full replace, so a group can hold nested fields
+	owners       map[string]string // model struct name to what makes it: the resource, a component, or a group
+}
+
+// claimModel records that owner makes the model struct name. Two owners of one name would share
+// one struct, which holds the fields of only one of them, so the generator reports it.
+func (b *tfBuilder) claimModel(name, owner string) error {
+	if previous, ok := b.owners[name]; ok && previous != owner {
+		return fmt.Errorf("the model struct %s is made by %s and by %s: rename the group", name, previous, owner)
+	}
+	b.owners[name] = owner
+	return nil
 }
 
 // requireOneArm turns a oneOf that allows no arm into ExactlyOneOf. The contract
@@ -924,7 +938,11 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 			if err := groups.add(group, f, a, field); err != nil {
 				return nil, err
 			}
-			if a, field, ok := groups.first(group); ok {
+			a, field, ok, err := groups.first(group)
+			if err != nil {
+				return nil, err
+			}
+			if ok {
 				attrs = append(attrs, a)
 				fields = append(fields, field)
 			}
@@ -948,6 +966,9 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		return nil, err
 	}
 	name := modelTypeName(t.Schema)
+	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
+		return nil, err
+	}
 	if !b.seen[name] {
 		b.seen[name] = true
 		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
@@ -1521,6 +1542,9 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 			continue
 		}
 		if groups.add(group, a, field) {
+			if err := b.claimModel(groups.models[group].Name, "groups."+group); err != nil {
+				return err
+			}
 			out.Attributes = append(out.Attributes, groups.attrs[group])
 			root.Fields = append(root.Fields, tfModelField{Name: camelize(group), Type: "*" + groups.models[group].Name, TFName: group})
 			b.models = append(b.models, groups.models[group])
@@ -1607,16 +1631,19 @@ func (g *nestedGroups) add(group string, f *model.Field, a *tfAttr, field tfMode
 
 // first returns the group attribute and its model field when the last add made the group, so the
 // caller adds them once, in the place of the first field of the group.
-func (g *nestedGroups) first(group string) (*tfAttr, tfModelField, bool) {
+func (g *nestedGroups) first(group string) (*tfAttr, tfModelField, bool, error) {
 	if !g.fresh[group] {
-		return nil, tfModelField{}, false
+		return nil, tfModelField{}, false, nil
 	}
 	model := g.models[group]
+	if err := g.b.claimModel(model.Name, "types."+g.component+".groups."+group); err != nil {
+		return nil, tfModelField{}, false, err
+	}
 	if !g.b.seen[model.Name] {
 		g.b.seen[model.Name] = true
 		g.b.models = append(g.b.models, model)
 	}
-	return g.attrs[group], tfModelField{Name: camelize(group), Type: "*" + model.Name, TFName: group}, true
+	return g.attrs[group], tfModelField{Name: camelize(group), Type: "*" + model.Name, TFName: group}, true, nil
 }
 
 // addValidators adds the oneOf validators: inside a group when the group holds every arm, else to
