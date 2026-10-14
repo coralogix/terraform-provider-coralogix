@@ -133,6 +133,7 @@
 - FIX: `enums.<Enum>.names` and `zero` cannot give a value the spelling of a rejected value that `readRejected` reads back. `defaultArm` needs a full-replace Update, and expand does not send the default arm while another arm is unknown.
 - FIX: A nested group whose model struct name is also the model of a component, the resource, or another group is an error. Before, the group used the other model, and the generated code did not compile.
 - FIX: A `names` entry that gives the spelling the enum has anyway (lower case, `trimPrefix`, or `verbatim`) is an error, so a rename that a contract change makes stale does not stay unnoticed.
+- FIX: A `name` line on a `requestValue` field is an error: the field is no Terraform attribute, so the name changes nothing.
 
 #### resource/coralogix_global_router
 - CHORE: The acceptance test compares imported `rules[*].targets` without their order, because the API returns them in no fixed order and an import has no prior order to keep.

@@ -751,6 +751,9 @@ func (l Field) check() error {
 	if l.Skip && (l.hasBehavior() || l.Name != "") {
 		return errors.New("a skipped field has no other behavior")
 	}
+	if l.RequestValue != "" && l.Name != "" {
+		return errors.New("a requestValue field is no Terraform attribute, so name changes nothing")
+	}
 	if err := checkValueNames(l.ValueNames); err != nil {
 		return err
 	}
