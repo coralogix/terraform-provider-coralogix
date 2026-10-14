@@ -1544,6 +1544,10 @@ func TestRequestValueDoesNotBlockCreateOrUpdate(t *testing.T) {
 
 func compileGenerated(t *testing.T, out string, input source.Input) {
 	t.Helper()
+	// The acceptance test imports the provider package, which the synthetic provider does not have.
+	if err := os.Remove(filepath.Join(out, "acceptance_test.go")); err != nil && !errors.Is(err, os.ErrNotExist) {
+		t.Fatal(err)
+	}
 	module := fmt.Sprintf(`module github.com/coralogix/terraform-provider-coralogix/generated-test
 
 go 1.26.0

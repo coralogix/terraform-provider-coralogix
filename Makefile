@@ -85,3 +85,10 @@ testacc-provider-migration:
 generate:
 	go generate ${BUILD_ARGS}
 	git checkout -- docs/guides
+
+# Generate one resource with the IaC generator, then the docs.
+# Example: make codegen RESOURCE=GlobalRouter OUT=globalrouter
+codegen:
+	@test -n "$(RESOURCE)" && test -n "$(OUT)" || { echo "usage: make codegen RESOURCE=<OpenAPI component> OUT=<directory in internal/provider/generated>"; exit 2; }
+	cd tools/iac-codegen && go run ./cmd/tfgen generate --resource '$(RESOURCE)' --out ../../internal/provider/generated/$(OUT)
+	$(MAKE) generate

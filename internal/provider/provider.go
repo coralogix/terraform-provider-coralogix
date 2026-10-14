@@ -20,6 +20,8 @@ import (
 	"os"
 	"strings"
 
+	fwdiag "github.com/hashicorp/terraform-plugin-framework/diag"
+
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/aaa"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/actions"
@@ -33,6 +35,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/enrichment_rules"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/events2metrics"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/fleet"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/aievaluation"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/configurationgroup"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/globalrouter"
@@ -258,9 +261,40 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 
 	// If practitioner provided a configuration value for any of the
 	// attributes, it must be a known value.
+	resp.Diagnostics.Append(validateKnownProviderConfig(config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
+	domain, terraformEnvironmentAlias, apiKey := providerSettings(config)
+
+	// If any of the expected configurations are missing, return
+	// errors with provider-specific guidance.
+	resp.Diagnostics.Append(validateProviderSettings(domain, terraformEnvironmentAlias, apiKey)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	targetUrl, diags := grpcTargetURL(domain, terraformEnvironmentAlias)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	sdkEnvironment := terraformEnvironmentAliasToSdkEnvironment[terraformEnvironmentAlias]
+	if domain != "" {
+		sdkEnvironment = domain
+	}
+	clientSet := clientset.NewClientSet(sdkEnvironment, apiKey, targetUrl)
+	resp.DataSourceData = clientSet
+	resp.ResourceData = clientSet
+}
+
+// validateKnownProviderConfig rejects unknown configuration values: the client needs them now.
+func validateKnownProviderConfig(config coralogixProviderModel) fwdiag.Diagnostics {
+	var diags fwdiag.Diagnostics
 	if config.Domain.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
+		diags.AddAttributeError(
 			path.Root("domain"),
 			"Unknown Coralogix Domain",
 			"The provider cannot create the Coralogix API client as there is an unknown configuration value for the Coralogix domain. "+
@@ -269,7 +303,7 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 	}
 
 	if config.Env.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
+		diags.AddAttributeError(
 			path.Root("env"),
 			"Unknown Coralogix Env",
 			"The provider cannot create the Coralogix API client as there is an unknown configuration value for the Coralogix environment. "+
@@ -278,7 +312,7 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 	}
 
 	if config.ApiKey.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
+		diags.AddAttributeError(
 			path.Root("api_key"),
 			"Unknown Coralogix API API-Key",
 			"The provider cannot create the Coralogix API client as there is an unknown configuration value for the Coralogix API-Key. "+
@@ -286,16 +320,15 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 		)
 	}
 
-	if resp.Diagnostics.HasError() {
-		return
-	}
+	return diags
+}
 
-	// Default values to environment variables, but override
-	// with Terraform configuration value if set.
-
-	domain := os.Getenv("CORALOGIX_DOMAIN")
-	terraformEnvironmentAlias := os.Getenv("CORALOGIX_ENV")
-	apiKey := os.Getenv("CORALOGIX_API_KEY")
+// providerSettings returns the domain, the env alias, and the API key. The environment variables
+// are the defaults, and the Terraform configuration overrides them.
+func providerSettings(config coralogixProviderModel) (domain, terraformEnvironmentAlias, apiKey string) {
+	domain = os.Getenv("CORALOGIX_DOMAIN")
+	terraformEnvironmentAlias = os.Getenv("CORALOGIX_ENV")
+	apiKey = os.Getenv("CORALOGIX_API_KEY")
 
 	if !config.Domain.IsNull() {
 		domain = config.Domain.ValueString()
@@ -309,12 +342,14 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 	if !config.ApiKey.IsNull() {
 		apiKey = config.ApiKey.ValueString()
 	}
+	return domain, terraformEnvironmentAlias, apiKey
+}
 
-	// If any of the expected configurations are missing, return
-	// errors with provider-specific guidance.
-
+// validateProviderSettings requires exactly one of domain and env, a valid env, and an API key.
+func validateProviderSettings(domain, terraformEnvironmentAlias, apiKey string) fwdiag.Diagnostics {
+	var diags fwdiag.Diagnostics
 	if domain == "" && terraformEnvironmentAlias == "" {
-		resp.Diagnostics.AddAttributeError(
+		diags.AddAttributeError(
 			path.Root("domain"),
 			"Missing Coralogix domain",
 			"The provider cannot create the Coralogix API client as there is a missing or empty value for the Coralogix domain. "+
@@ -322,7 +357,7 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 				"If either is already set, ensure the value is not empty."+
 				"Coralogix env can be set instead",
 		)
-		resp.Diagnostics.AddAttributeError(
+		diags.AddAttributeError(
 			path.Root("env"),
 			"Missing Coralogix API Host",
 			"The provider cannot create the Coralogix API client as there is a missing or empty value for the Coralogix environment. "+
@@ -333,16 +368,16 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 	}
 
 	if domain != "" && terraformEnvironmentAlias != "" {
-		resp.Diagnostics.AddError("Conflicting attributes \"env\" and \"domain\"",
+		diags.AddError("Conflicting attributes \"env\" and \"domain\"",
 			"Only one of \"env\" need to be set."+
 				"ensure CORALOGIX_ENV and CORALOGIX_DOMAIN are not set together as well.",
 		)
 	} else if domain == "" && !slices.Contains(validEnvironmentAliases, terraformEnvironmentAlias) {
-		resp.Diagnostics.AddAttributeError(path.Root("env"), "Invalid Coralogix env", fmt.Sprintf("The Coralogix env must be one of %q", validEnvironmentAliases))
+		diags.AddAttributeError(path.Root("env"), "Invalid Coralogix env", fmt.Sprintf("The Coralogix env must be one of %q", validEnvironmentAliases))
 	}
 
 	if apiKey == "" {
-		resp.Diagnostics.AddAttributeError(
+		diags.AddAttributeError(
 			path.Root("api_key"),
 			"Missing Coralogix API API-Key",
 			"The provider cannot create the Coralogix API client as there is a missing or empty value for the Coralogix API-Key. "+
@@ -351,29 +386,25 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 		)
 	}
 
-	if resp.Diagnostics.HasError() {
-		return
-	}
+	return diags
+}
 
+// grpcTargetURL returns the gRPC URL of the env alias, or of the domain when no alias is set.
+func grpcTargetURL(domain, terraformEnvironmentAlias string) (string, fwdiag.Diagnostics) {
+	var diags fwdiag.Diagnostics
 	var targetUrl string
 	if terraformEnvironmentAlias != "" {
 		targetUrl = terraformEnvironmentAliasToGrpcUrl[terraformEnvironmentAlias]
 	} else {
 		target, err := clientset.GrpcTargetFromDomain(domain)
 		if err != nil {
-			resp.Diagnostics.AddAttributeError(path.Root("domain"), "Invalid Coralogix domain", err.Error())
-			return
+			diags.AddAttributeError(path.Root("domain"), "Invalid Coralogix domain", err.Error())
+			return "", diags
 		}
 		targetUrl = target
 	}
 
-	sdkEnvironment := terraformEnvironmentAliasToSdkEnvironment[terraformEnvironmentAlias]
-	if domain != "" {
-		sdkEnvironment = domain
-	}
-	clientSet := clientset.NewClientSet(sdkEnvironment, apiKey, targetUrl)
-	resp.DataSourceData = clientSet
-	resp.ResourceData = clientSet
+	return targetUrl, diags
 }
 
 func (p *coralogixProvider) DataSources(context.Context) []func() datasource.DataSource {
@@ -413,7 +444,8 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 }
 
 func (p *coralogixProvider) Resources(context.Context) []func() resource.Resource {
-	return []func() resource.Resource{
+	// generated.Resources are the new generated resources. tfgen registers them.
+	return append([]func() resource.Resource{
 		events2metrics.NewEvents2MetricResource,
 		actions.NewActionResource,
 		func() resource.Resource { return aievaluation.NewResource(aievaluation.Hooks{}) },
@@ -450,5 +482,5 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		parsing_rules.NewParsingRulesResource,
 		enrichment_rules.NewDataEnrichmentsResource,
 		func() resource.Resource { return configurationgroup.NewResource(configurationgroup.Hooks{}) },
-	}
+	}, generated.Resources()...)
 }

@@ -273,7 +273,7 @@ func TestAcceptanceCollectionsFitTheirSize(t *testing.T) {
 }
 
 // A made-up string fits the length validators of the attribute and keeps @{run} when it can.
-// @{run} is 12 characters.
+// @{run} is 12 characters in a test run and 7 ("example") in the docs example: the value fits both.
 func TestAcceptanceStringsFitTheirLength(t *testing.T) {
 	tests := map[string]struct {
 		validator     string
@@ -283,7 +283,8 @@ func TestAcceptanceStringsFitTheirLength(t *testing.T) {
 		"room for both":       {"stringvalidator.LengthBetween(1, 25)", "@{run}-name", "@{run}-name-updated"},
 		"update cut":          {"stringvalidator.LengthAtMost(20)", "@{run}-name", "@{run}uname"},
 		"both cut":            {"stringvalidator.LengthAtMost(15)", "@{run}-na", "@{run}una"},
-		"padded":              {"stringvalidator.LengthAtLeast(30)", "@{run}-namexxxxxxxxxxxxx", "@{run}-name-updatedxxxxx"},
+		"padded":              {"stringvalidator.LengthAtLeast(30)", "@{run}-name" + strings.Repeat("x", 18), "@{run}-name-updated" + strings.Repeat("x", 10)},
+		"too narrow for both": {"stringvalidator.LengthBetween(15, 18)", strings.Repeat("a", 15), strings.Repeat("b", 15)},
 		"no room for the run": {"stringvalidator.LengthBetween(3, 10)", "aaa", "bbb"},
 		"only the run":        {"stringvalidator.LengthAtMost(12)", "@{run}", "@{run}"},
 	}
@@ -299,9 +300,11 @@ func TestAcceptanceStringsFitTheirLength(t *testing.T) {
 			}
 			low, high := lengthRange(a)
 			for _, v := range []string{full, updated} {
-				n := len(strings.ReplaceAll(v, "@{run}", strings.Repeat("r", runLength)))
-				if n < low || n > high {
-					t.Fatalf("%q has length %d, want %d to %d", v, n, low, high)
+				for _, run := range []string{strings.Repeat("r", runLength), exampleRun} {
+					n := len(strings.ReplaceAll(v, "@{run}", run))
+					if n < low || n > high {
+						t.Fatalf("%q with @{run} = %q has length %d, want %d to %d", v, run, n, low, high)
+					}
 				}
 			}
 		})
@@ -335,6 +338,28 @@ func TestAcceptanceCollectionElementsFitTheirValidators(t *testing.T) {
 	}
 }
 
+// Only an immutable value that both configs set and that differs is a sure replace.
+func TestNestedChange(t *testing.T) {
+	tests := map[string]struct {
+		before, after map[string]string
+		want          attrChangeKind
+	}{
+		"same values": {map[string]string{"spec.region": `"eu"`}, map[string]string{"spec.region": `"eu"`}, changeNone},
+		"no values":   {map[string]string{}, map[string]string{}, changeNone},
+		"other value": {map[string]string{"spec.region": `"eu"`}, map[string]string{"spec.region": `"us"`}, changeSure},
+		"value added": {map[string]string{}, map[string]string{"spec.region": `"eu"`}, changeMaybe},
+		"value gone":  {map[string]string{"spec.region": `"eu"`}, map[string]string{}, changeMaybe},
+		"sure wins":   {map[string]string{"a": "1", "b": "1"}, map[string]string{"a": "2", "c": "1"}, changeSure},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if got := nestedChange(test.before, test.after); got != test.want {
+				t.Fatalf("change = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
 // The step after an upgrade expects the action that its configs cause.
 func TestAcceptanceNextActionFollowsTheConfigs(t *testing.T) {
 	enum := &tfAttr{Name: "kind", Kind: "String", Required: true, Validators: []string{`stringvalidator.OneOf("alpha")`}}
@@ -345,6 +370,20 @@ func TestAcceptanceNextActionFollowsTheConfigs(t *testing.T) {
 	label := &tfAttr{Name: "label", Kind: "String", Optional: true}
 	zone := &tfAttr{Name: "zone", Kind: "String", Optional: true, Computed: true, Modifiers: []string{"stringplanmodifier.RequiresReplace()"}}
 	targets := &tfAttr{Name: "targets", Kind: "String", Optional: true, Modifiers: []string{`requestReplaceModifier{at: "targets"}`}}
+	nested := func(name, kind string, required bool, children ...*tfAttr) *tfAttr {
+		return &tfAttr{Name: name, Kind: kind, Required: required, Optional: !required, Attributes: children}
+	}
+	spec := nested("spec", "SingleNested", true, region, label)
+	arm := func(name string, children ...*tfAttr) *tfAttr {
+		a := nested(name, "SingleNested", false, children...)
+		a.OneOfGroup = "http,s3"
+		return a
+	}
+	storageSpec := nested("spec", "SingleNested", true, name, nested("storage", "SingleNested", false,
+		arm("http", &tfAttr{Name: "url", Kind: "String", Required: true}),
+		arm("s3", &tfAttr{Name: "bucket", Kind: "String", Required: true, Modifiers: []string{"stringplanmodifier.RequiresReplace()"}})))
+	rules := nested("rules", "ListNested", false,
+		&tfAttr{Name: "region", Kind: "String", Required: true, Modifiers: []string{"stringplanmodifier.RequiresReplace()"}}, label)
 	tests := map[string]struct {
 		attrs    []*tfAttr
 		from, to accMode
@@ -361,6 +400,12 @@ func TestAcceptanceNextActionFollowsTheConfigs(t *testing.T) {
 		// The API may have set the immutable zone to the value of the next config, or not.
 		"a left-out immutable computed value": {[]*tfAttr{enum, name, zone}, accMinimal, accUpdated, accPlanUnknown},
 		"a sure replace wins":                 {[]*tfAttr{enum, zone, region}, accMinimal, accFull, accPlanReplace},
+		// Only the immutable values below a top-level attribute decide a replace.
+		"a mutable value beside a nested immutable value changes": {[]*tfAttr{enum, spec}, accFull, accUpdated, accPlanNoReplace},
+		// The plan modifiers of the parents decide whether a new immutable value below the top level replaces.
+		"a nested immutable value is added":                   {[]*tfAttr{enum, spec}, accMinimal, accFull, accPlanUnknown},
+		"an object with a nested immutable value is added":    {[]*tfAttr{enum, rules}, accMinimal, accFull, accPlanUnknown},
+		"a oneOf takes a mutable arm before an immutable one": {[]*tfAttr{enum, storageSpec}, accMinimal, accFull, accPlanNoReplace},
 	}
 	for testName, test := range tests {
 		t.Run(testName, func(t *testing.T) {
@@ -750,29 +795,6 @@ func TestAcceptanceMinimalIncludesParentsOfNestedFields(t *testing.T) {
 	}
 	if strings.Contains(body, "kind") {
 		t.Errorf("minimal config sets an optional field that is not listed:\n%s", body)
-	}
-}
-
-// nextAction compares only top-level attributes, so a replace modifier below them stops generation.
-// requestReplaceModifier replaces the resource as RequiresReplace does.
-func TestAcceptanceRejectsNestedRequiresReplace(t *testing.T) {
-	for _, modifier := range []string{"stringplanmodifier.RequiresReplace()", `requestReplaceModifier{at: "rules.region"}`} {
-		t.Run(modifier, func(t *testing.T) {
-			res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "thing", IDAttr: "id", Resource: "Thing"}, Attributes: []*tfAttr{
-				{Name: "name", Kind: "String", Required: true},
-				{Name: "rules", Kind: "ListNested", Optional: true, Attributes: []*tfAttr{
-					{Name: "region", Kind: "String", Required: true, Modifiers: []string{modifier}},
-				}},
-			}}
-			file, err := acceptance.Parse([]byte("resource: Thing\n"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			_, err = buildAcceptance(res, "example.com/provider", file, nil)
-			if err == nil || !strings.Contains(err.Error(), `"rules[].region" has RequiresReplace below the top level`) {
-				t.Fatalf("err = %v, want nested RequiresReplace rejected", err)
-			}
-		})
 	}
 }
 

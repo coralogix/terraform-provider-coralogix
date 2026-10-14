@@ -26,7 +26,7 @@
 - CHORE: Uses the schema and the conversion of the generated resource.
 
 #### tools/iac-codegen
-- CHORE: Bump the generator to `v0.1.0-beta.28`.
+- CHORE: Bump the generator to `v0.1.0-beta.29`.
 - FEAT: `collection: set` on a field line makes a list a Terraform set, although the contract does not mark it. The generator reports it as stale once the contract does.
 - CHORE: The `evalthing` golden fixture covers `collection: set`, `requiresReplace`, `unsupportedArms`, a mask-less `updateMaskInBody`, an enum that starts with a business value, and a Get response written as `allOf: [$ref]`.
 - FEAT: `requiresReplace: true` on a top-level field forces a new resource when that field changes, although Update accepts it.
@@ -44,6 +44,9 @@
 - FEAT: `api.topLevelMaskReplacesOneOf: true` lets a top-level query-parameter update mask change a nested oneOf when the server replaces the whole value of that path.
 - CHANGE: `api.updateMaskInBody: true` sends no mask, as a released resource that never sent one did. The server updates every field present in the body. An immutable field, also a `requiresReplace` field, stays out of the body. Every field that Update sends must be required, have a static default, or keep its state value, because without a mask removing it cannot clear it. A field that replaces the resource and that the Update body requires is an error, because the body would send its zero value.
 - CHORE: Bump the generator to `v0.1.0-beta.26`.
+- FEAT: A new resource gets its docs example, `import.sh`, acceptance test, and registration in `internal/provider/generated/registry.go`. `acceptance.yaml` is optional for it. `make codegen RESOURCE=X OUT=x` runs the generator and the docs. `--out` must be a directory in `internal/provider/generated`.
+- FEAT: The generated acceptance test supports immutable fields below the top level.
+- FIX: `make generate` works in a directory that is not named `terraform-provider-coralogix`.
 - CHORE: Bump the generator to `v0.1.0-beta.27`.
 - FEAT: `groups` in `behavior-overrides.yaml` makes required Terraform objects that hold top-level fields of the resource, for a released resource that nests fields the API holds at the top level. The arms of a top-level oneOf in a group check each other like the arms of a nested oneOf; `requireOne: true` makes them ExactlyOneOf, and needs a group that holds the arms of one oneOf and no other field. Flatten fails with "Invalid response from server" unless the response has exactly one of them.
 - FEAT: Generation fails when a `groups` name is also the name of a top-level attribute.

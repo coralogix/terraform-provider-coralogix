@@ -3,6 +3,7 @@ package generator
 import (
 	"regexp"
 	"regexp/syntax"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -35,9 +36,10 @@ func patternOf(a *tfAttr) *regexp.Regexp {
 // passes a pattern only when it passes with each of them.
 var sampleRuns = []string{"acc-00000000", "acc-ffffffff", "acc-0a1b2c3d"}
 
-// madeUpMatches reports whether the made-up value v, with @{run}, matches re in every run.
+// madeUpMatches reports whether the made-up value v, with @{run}, matches re in every run and in
+// the docs example.
 func madeUpMatches(re *regexp.Regexp, v string) bool {
-	for _, run := range sampleRuns {
+	for _, run := range append(slices.Clone(sampleRuns), exampleRun) {
 		if !re.MatchString(strings.ReplaceAll(v, "@{run}", run)) {
 			return false
 		}
