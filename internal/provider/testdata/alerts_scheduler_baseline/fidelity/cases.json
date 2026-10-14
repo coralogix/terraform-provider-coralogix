@@ -80,6 +80,19 @@
         {"method": "GET", "path": "/{{MISSING}}"},
         {"method": "DELETE", "path": "/{{MISSING}}"}
       ]
+    },
+    {
+      "name": "update-responses",
+      "steps": [
+        {"method": "POST", "path": "", "capture": "R8", "body": {"alertSchedulerRule": {"name": "{{NAME}}-updates", "enabled": true, "filter": {"whatExpression": "source logs | filter true", "alertUniqueIds": {"value": []}}, "schedule": {"scheduleOperation": "SCHEDULE_OPERATION_MUTE", "oneTime": {"timeframe": {"startTime": "2030-01-04T00:00:00Z", "endTime": "2030-01-05T00:00:00.000", "timezone": "UTC+2"}}}}}},
+        {"method": "PUT", "path": "", "body": {"alertSchedulerRule": {"name": "{{NAME}}-updates", "enabled": true, "filter": {"whatExpression": "source logs | filter true", "alertUniqueIds": {"value": []}}, "schedule": {"scheduleOperation": "SCHEDULE_OPERATION_MUTE", "oneTime": {"timeframe": {"startTime": "2030-01-04T06:00:00.000", "endTime": "2030-01-06T00:00:00.000", "timezone": "UTC+0"}}}, "uniqueIdentifier": "{{R8}}"}}},
+        {"method": "GET", "path": "/{{R8}}"},
+        {"method": "PUT", "path": "", "body": {"alertSchedulerRule": {"name": "{{NAME}}-updates", "enabled": true, "filter": {"whatExpression": "source logs | filter true", "alertUniqueIds": {"value": []}}, "schedule": {"scheduleOperation": "SCHEDULE_OPERATION_MUTE", "recurring": {"schedule": {"repeatEvery": 2, "weekly": {"daysOfWeek": [2, 6]}, "terminationDate": "2031-01-01T00:00:00.000", "timeframe": {"startTime": "2030-01-07T08:00:00.000", "endTime": "2030-01-07T18:00:00.000", "timezone": "UTC-3"}}}}, "uniqueIdentifier": "{{R8}}", "description": "weekly"}}},
+        {"method": "GET", "path": "/{{R8}}"},
+        {"method": "PUT", "path": "", "body": {"alertSchedulerRule": {"name": "{{NAME}}-updates", "enabled": false, "filter": {"whatExpression": "source logs | filter $d.pod == '1'", "alertMetaLabels": {"value": [{"key": "team", "value": "a"}, {"key": "env"}]}}, "schedule": {"scheduleOperation": "SCHEDULE_OPERATION_MUTE", "recurring": {"alwaysActive": {}}}, "uniqueIdentifier": "{{R8}}", "description": "always"}}},
+        {"method": "GET", "path": "/{{R8}}"},
+        {"method": "DELETE", "path": "/{{R8}}"}
+      ]
     }
   ]
 }

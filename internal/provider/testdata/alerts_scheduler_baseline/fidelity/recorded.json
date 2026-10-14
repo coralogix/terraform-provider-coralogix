@@ -7,7 +7,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:09.000Z",
+              "createdAt": "2026-10-14T13:50:18.000Z",
               "description": "first",
               "enabled": true,
               "filter": {
@@ -16,7 +16,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "cbcdf2ef-179d-4b88-ab28-53e2293c8989",
+              "id": "73d914e3-ddea-4748-b119-e9bdccccb393",
               "metaLabels": [],
               "name": "{{NAME}}-always",
               "schedule": {
@@ -26,7 +26,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
               },
               "uniqueIdentifier": "{{R1}}",
-              "updatedAt": "2026-10-13T13:24:09.000Z"
+              "updatedAt": "2026-10-14T13:50:18.000Z"
             }
           }
         },
@@ -34,7 +34,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:09.000Z",
+              "createdAt": "2026-10-14T13:50:18.000Z",
               "description": "first",
               "enabled": true,
               "filter": {
@@ -43,7 +43,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "cbcdf2ef-179d-4b88-ab28-53e2293c8989",
+              "id": "73d914e3-ddea-4748-b119-e9bdccccb393",
               "metaLabels": [],
               "name": "{{NAME}}-always",
               "schedule": {
@@ -53,7 +53,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
               },
               "uniqueIdentifier": "{{R1}}",
-              "updatedAt": "2026-10-13T13:24:09.000Z"
+              "updatedAt": "2026-10-14T13:50:18.000Z"
             }
           }
         },
@@ -61,7 +61,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:10.000Z",
+              "createdAt": "2026-10-14T13:50:18.000Z",
               "description": "changed",
               "enabled": false,
               "filter": {
@@ -70,7 +70,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "22fec9fd-7aa7-4df5-a4e8-791cfddc77b7",
+              "id": "29113de3-8dfd-4a86-b014-29d3efec97ad",
               "metaLabels": [],
               "name": "{{NAME}}-always",
               "schedule": {
@@ -80,7 +80,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_ACTIVATE"
               },
               "uniqueIdentifier": "{{R1}}",
-              "updatedAt": "2026-10-13T13:24:10.000Z"
+              "updatedAt": "2026-10-14T13:50:18.000Z"
             }
           }
         },
@@ -88,7 +88,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:10.000Z",
+              "createdAt": "2026-10-14T13:50:18.000Z",
               "description": "changed",
               "enabled": false,
               "filter": {
@@ -97,7 +97,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "22fec9fd-7aa7-4df5-a4e8-791cfddc77b7",
+              "id": "29113de3-8dfd-4a86-b014-29d3efec97ad",
               "metaLabels": [],
               "name": "{{NAME}}-always",
               "schedule": {
@@ -107,7 +107,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_ACTIVATE"
               },
               "uniqueIdentifier": "{{R1}}",
-              "updatedAt": "2026-10-13T13:24:10.000Z"
+              "updatedAt": "2026-10-14T13:50:18.000Z"
             }
           }
         },
@@ -145,7 +145,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:10.000Z",
+              "createdAt": "2026-10-14T13:50:19.000Z",
               "description": "",
               "enabled": false,
               "filter": {
@@ -154,7 +154,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "458e6503-f21c-4838-b205-e07555a9c24a",
+              "id": "9e3e1de8-3752-4b35-b800-aa260ab9f706",
               "metaLabels": [],
               "name": "{{NAME}}-omitted",
               "schedule": {
@@ -164,7 +164,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
               },
               "uniqueIdentifier": "{{R2}}",
-              "updatedAt": "2026-10-13T13:24:10.000Z"
+              "updatedAt": "2026-10-14T13:50:19.000Z"
             }
           }
         },
@@ -172,7 +172,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:10.000Z",
+              "createdAt": "2026-10-14T13:50:19.000Z",
               "description": "",
               "enabled": false,
               "filter": {
@@ -181,7 +181,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "458e6503-f21c-4838-b205-e07555a9c24a",
+              "id": "9e3e1de8-3752-4b35-b800-aa260ab9f706",
               "metaLabels": [],
               "name": "{{NAME}}-omitted",
               "schedule": {
@@ -191,7 +191,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
               },
               "uniqueIdentifier": "{{R2}}",
-              "updatedAt": "2026-10-13T13:24:10.000Z"
+              "updatedAt": "2026-10-14T13:50:19.000Z"
             }
           }
         },
@@ -208,7 +208,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:10.000Z",
+              "createdAt": "2026-10-14T13:50:19.000Z",
               "description": "",
               "enabled": true,
               "filter": {
@@ -217,7 +217,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "ca5fbd04-e83c-42c7-877b-3bbc8b90c02e",
+              "id": "4b161ef5-d9c1-4f10-9d2f-875231fd962a",
               "metaLabels": [],
               "name": "{{NAME}}-once",
               "schedule": {
@@ -232,7 +232,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
               },
               "uniqueIdentifier": "{{R3}}",
-              "updatedAt": "2026-10-13T13:24:10.000Z"
+              "updatedAt": "2026-10-14T13:50:19.000Z"
             }
           }
         },
@@ -240,7 +240,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:10.000Z",
+              "createdAt": "2026-10-14T13:50:19.000Z",
               "description": "",
               "enabled": true,
               "filter": {
@@ -249,7 +249,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "ca5fbd04-e83c-42c7-877b-3bbc8b90c02e",
+              "id": "4b161ef5-d9c1-4f10-9d2f-875231fd962a",
               "metaLabels": [],
               "name": "{{NAME}}-once",
               "schedule": {
@@ -263,7 +263,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
               },
               "uniqueIdentifier": "{{R3}}",
-              "updatedAt": "2026-10-13T13:24:10.000Z"
+              "updatedAt": "2026-10-14T13:50:19.000Z"
             }
           }
         },
@@ -271,7 +271,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:11.000Z",
+              "createdAt": "2026-10-14T13:50:20.000Z",
               "description": "",
               "enabled": true,
               "filter": {
@@ -280,7 +280,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "912717d1-69ef-465a-ac55-79112117827c",
+              "id": "5aa86b24-1ce0-450c-bf31-72f386cae782",
               "metaLabels": [],
               "name": "{{NAME}}-once",
               "schedule": {
@@ -298,7 +298,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
               },
               "uniqueIdentifier": "{{R3}}",
-              "updatedAt": "2026-10-13T13:24:11.000Z"
+              "updatedAt": "2026-10-14T13:50:20.000Z"
             }
           }
         },
@@ -306,7 +306,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:11.000Z",
+              "createdAt": "2026-10-14T13:50:20.000Z",
               "description": "",
               "enabled": true,
               "filter": {
@@ -315,7 +315,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "912717d1-69ef-465a-ac55-79112117827c",
+              "id": "5aa86b24-1ce0-450c-bf31-72f386cae782",
               "metaLabels": [],
               "name": "{{NAME}}-once",
               "schedule": {
@@ -332,7 +332,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
               },
               "uniqueIdentifier": "{{R3}}",
-              "updatedAt": "2026-10-13T13:24:11.000Z"
+              "updatedAt": "2026-10-14T13:50:20.000Z"
             }
           }
         },
@@ -349,7 +349,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:11.000Z",
+              "createdAt": "2026-10-14T13:50:20.000Z",
               "description": "",
               "enabled": true,
               "filter": {
@@ -358,7 +358,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "128d44d1-c302-4714-bd58-a530cbc1dd05",
+              "id": "9576b13f-6730-4d65-b578-793b8a27ccbf",
               "metaLabels": [],
               "name": "{{NAME}}-weekly",
               "schedule": {
@@ -386,7 +386,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_ACTIVATE"
               },
               "uniqueIdentifier": "{{R4}}",
-              "updatedAt": "2026-10-13T13:24:11.000Z"
+              "updatedAt": "2026-10-14T13:50:20.000Z"
             }
           }
         },
@@ -394,7 +394,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:11.000Z",
+              "createdAt": "2026-10-14T13:50:20.000Z",
               "description": "",
               "enabled": true,
               "filter": {
@@ -403,7 +403,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "128d44d1-c302-4714-bd58-a530cbc1dd05",
+              "id": "9576b13f-6730-4d65-b578-793b8a27ccbf",
               "metaLabels": [],
               "name": "{{NAME}}-weekly",
               "schedule": {
@@ -430,7 +430,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_ACTIVATE"
               },
               "uniqueIdentifier": "{{R4}}",
-              "updatedAt": "2026-10-13T13:24:11.000Z"
+              "updatedAt": "2026-10-14T13:50:20.000Z"
             }
           }
         },
@@ -447,7 +447,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:11.000Z",
+              "createdAt": "2026-10-14T13:50:20.000Z",
               "description": "",
               "enabled": true,
               "filter": {
@@ -456,7 +456,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "d255950f-9b21-4109-8286-8c76b87294c0",
+              "id": "f092d13e-8150-4b7b-9d17-1199428714ad",
               "metaLabels": [],
               "name": "{{NAME}}-daily",
               "schedule": {
@@ -479,7 +479,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
               },
               "uniqueIdentifier": "{{R5}}",
-              "updatedAt": "2026-10-13T13:24:11.000Z"
+              "updatedAt": "2026-10-14T13:50:20.000Z"
             }
           }
         },
@@ -487,7 +487,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:11.000Z",
+              "createdAt": "2026-10-14T13:50:20.000Z",
               "description": "",
               "enabled": true,
               "filter": {
@@ -496,7 +496,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "d255950f-9b21-4109-8286-8c76b87294c0",
+              "id": "f092d13e-8150-4b7b-9d17-1199428714ad",
               "metaLabels": [],
               "name": "{{NAME}}-daily",
               "schedule": {
@@ -518,7 +518,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
               },
               "uniqueIdentifier": "{{R5}}",
-              "updatedAt": "2026-10-13T13:24:11.000Z"
+              "updatedAt": "2026-10-14T13:50:20.000Z"
             }
           }
         },
@@ -526,7 +526,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:11.000Z",
+              "createdAt": "2026-10-14T13:50:20.000Z",
               "description": "",
               "enabled": true,
               "filter": {
@@ -535,7 +535,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "e2a2f4cc-f54c-4c39-8358-5c85e18eabc8",
+              "id": "e40a5628-0475-411f-8e59-70731897cac6",
               "metaLabels": [],
               "name": "{{NAME}}-daily",
               "schedule": {
@@ -563,7 +563,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
               },
               "uniqueIdentifier": "{{R5}}",
-              "updatedAt": "2026-10-13T13:24:11.000Z"
+              "updatedAt": "2026-10-14T13:50:20.000Z"
             }
           }
         },
@@ -571,7 +571,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:11.000Z",
+              "createdAt": "2026-10-14T13:50:20.000Z",
               "description": "",
               "enabled": true,
               "filter": {
@@ -580,7 +580,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "e2a2f4cc-f54c-4c39-8358-5c85e18eabc8",
+              "id": "e40a5628-0475-411f-8e59-70731897cac6",
               "metaLabels": [],
               "name": "{{NAME}}-daily",
               "schedule": {
@@ -607,7 +607,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
               },
               "uniqueIdentifier": "{{R5}}",
-              "updatedAt": "2026-10-13T13:24:11.000Z"
+              "updatedAt": "2026-10-14T13:50:20.000Z"
             }
           }
         },
@@ -624,7 +624,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:12.000Z",
+              "createdAt": "2026-10-14T13:50:21.000Z",
               "description": "",
               "enabled": true,
               "filter": {
@@ -644,7 +644,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "985b9974-e2f5-4329-a389-dd057ded6b4e",
+              "id": "e6afe096-4f31-4db4-8b1b-e9e3b0a3c62b",
               "metaLabels": [
                 {
                   "id": "5a8cfaa8-f642-4587-8a02-8d31210f4738",
@@ -664,7 +664,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
               },
               "uniqueIdentifier": "{{R6}}",
-              "updatedAt": "2026-10-13T13:24:12.000Z"
+              "updatedAt": "2026-10-14T13:50:21.000Z"
             }
           }
         },
@@ -672,7 +672,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:12.000Z",
+              "createdAt": "2026-10-14T13:50:21.000Z",
               "description": "",
               "enabled": true,
               "filter": {
@@ -692,7 +692,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "985b9974-e2f5-4329-a389-dd057ded6b4e",
+              "id": "e6afe096-4f31-4db4-8b1b-e9e3b0a3c62b",
               "metaLabels": [
                 {
                   "id": "5a8cfaa8-f642-4587-8a02-8d31210f4738",
@@ -712,7 +712,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
               },
               "uniqueIdentifier": "{{R6}}",
-              "updatedAt": "2026-10-13T13:24:12.000Z"
+              "updatedAt": "2026-10-14T13:50:21.000Z"
             }
           }
         },
@@ -729,7 +729,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:12.000Z",
+              "createdAt": "2026-10-14T13:50:21.000Z",
               "description": "",
               "enabled": true,
               "filter": {
@@ -738,7 +738,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "05bb3a25-2656-4f5c-aa4c-da582f32eef2",
+              "id": "21148205-d80b-4737-914a-23762f42a0e3",
               "metaLabels": [],
               "name": "{{NAME}}-zero",
               "schedule": {
@@ -748,7 +748,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
               },
               "uniqueIdentifier": "{{R7}}",
-              "updatedAt": "2026-10-13T13:24:12.000Z"
+              "updatedAt": "2026-10-14T13:50:21.000Z"
             }
           }
         },
@@ -756,7 +756,7 @@
           "status": 200,
           "response": {
             "alertSchedulerRule": {
-              "createdAt": "2026-10-13T13:24:12.000Z",
+              "createdAt": "2026-10-14T13:50:21.000Z",
               "description": "",
               "enabled": true,
               "filter": {
@@ -765,7 +765,7 @@
                 },
                 "whatExpression": "source logs | filter true"
               },
-              "id": "05bb3a25-2656-4f5c-aa4c-da582f32eef2",
+              "id": "21148205-d80b-4737-914a-23762f42a0e3",
               "metaLabels": [],
               "name": "{{NAME}}-zero",
               "schedule": {
@@ -775,7 +775,7 @@
                 "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
               },
               "uniqueIdentifier": "{{R7}}",
-              "updatedAt": "2026-10-13T13:24:12.000Z"
+              "updatedAt": "2026-10-14T13:50:21.000Z"
             }
           }
         },
@@ -857,6 +857,267 @@
             "code": 404,
             "message": "Not Found: No suppression rule found with unique identifier {{MISSING}}"
           }
+        }
+      ]
+    },
+    {
+      "name": "update-responses",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:22.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "bd988cb7-3b3a-4c6e-95a4-c2e3c8d435c4",
+              "metaLabels": [],
+              "name": "{{NAME}}-updates",
+              "schedule": {
+                "oneTime": {
+                  "timeframe": {
+                    "endTime": "2030-01-05T00:00:00.000",
+                    "startTime": "2030-01-04T02:00:00.000",
+                    "submittedStartTime": "2030-01-04T00:00:00Z",
+                    "timezone": "UTC+2"
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R8}}",
+              "updatedAt": "2026-10-14T13:50:22.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:23.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "009be827-2f8d-4bb3-9052-d1a6007e984a",
+              "metaLabels": [],
+              "name": "{{NAME}}-updates",
+              "schedule": {
+                "oneTime": {
+                  "timeframe": {
+                    "endTime": "2030-01-06T00:00:00.000",
+                    "startTime": "2030-01-04T06:00:00.000",
+                    "submittedStartTime": "2030-01-04T06:00:00.000",
+                    "timezone": "UTC+0"
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R8}}",
+              "updatedAt": "2026-10-14T13:50:23.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:23.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "009be827-2f8d-4bb3-9052-d1a6007e984a",
+              "metaLabels": [],
+              "name": "{{NAME}}-updates",
+              "schedule": {
+                "oneTime": {
+                  "timeframe": {
+                    "endTime": "2030-01-06T00:00:00.000",
+                    "startTime": "2030-01-04T06:00:00.000",
+                    "timezone": "UTC+0"
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R8}}",
+              "updatedAt": "2026-10-14T13:50:23.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:23.000Z",
+              "description": "weekly",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "04193e65-bc9f-470f-a5a4-96df314cee7e",
+              "metaLabels": [],
+              "name": "{{NAME}}-updates",
+              "schedule": {
+                "recurring": {
+                  "schedule": {
+                    "repeatEvery": 2,
+                    "terminationDate": "2031-01-01T00:00:00.000",
+                    "timeframe": {
+                      "endTime": "2030-01-07T18:00:00.000",
+                      "startTime": "2030-01-07T08:00:00.000",
+                      "submittedStartTime": "2030-01-07T08:00:00.000",
+                      "timezone": "UTC-3"
+                    },
+                    "weekly": {
+                      "daysOfWeek": [
+                        2,
+                        6
+                      ]
+                    }
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R8}}",
+              "updatedAt": "2026-10-14T13:50:23.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:23.000Z",
+              "description": "weekly",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "04193e65-bc9f-470f-a5a4-96df314cee7e",
+              "metaLabels": [],
+              "name": "{{NAME}}-updates",
+              "schedule": {
+                "recurring": {
+                  "schedule": {
+                    "repeatEvery": 2,
+                    "terminationDate": "2031-01-01T00:00:00.000",
+                    "timeframe": {
+                      "endTime": "2030-01-07T18:00:00.000",
+                      "startTime": "2030-01-07T08:00:00.000",
+                      "timezone": "UTC-3"
+                    },
+                    "weekly": {
+                      "daysOfWeek": [
+                        2,
+                        6
+                      ]
+                    }
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R8}}",
+              "updatedAt": "2026-10-14T13:50:23.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:23.000Z",
+              "description": "always",
+              "enabled": false,
+              "filter": {
+                "alertMetaLabels": {
+                  "value": [
+                    {
+                      "id": "7b84273f-00d2-4b8b-bc64-8c5a89eb075d",
+                      "key": "env"
+                    },
+                    {
+                      "id": "bca89513-5b17-4bd1-8065-f09bfd4e5bd9",
+                      "key": "team",
+                      "value": "a"
+                    }
+                  ]
+                },
+                "whatExpression": "source logs | filter $d.pod == '1'"
+              },
+              "id": "e696952c-315e-4cf3-a6b0-af80d9523b62",
+              "metaLabels": [],
+              "name": "{{NAME}}-updates",
+              "schedule": {
+                "recurring": {
+                  "alwaysActive": {}
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R8}}",
+              "updatedAt": "2026-10-14T13:50:23.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:23.000Z",
+              "description": "always",
+              "enabled": false,
+              "filter": {
+                "alertMetaLabels": {
+                  "value": [
+                    {
+                      "id": "7b84273f-00d2-4b8b-bc64-8c5a89eb075d",
+                      "key": "env"
+                    },
+                    {
+                      "id": "bca89513-5b17-4bd1-8065-f09bfd4e5bd9",
+                      "key": "team",
+                      "value": "a"
+                    }
+                  ]
+                },
+                "whatExpression": "source logs | filter $d.pod == '1'"
+              },
+              "id": "e696952c-315e-4cf3-a6b0-af80d9523b62",
+              "metaLabels": [],
+              "name": "{{NAME}}-updates",
+              "schedule": {
+                "recurring": {
+                  "alwaysActive": {}
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R8}}",
+              "updatedAt": "2026-10-14T13:50:23.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
         }
       ]
     }
