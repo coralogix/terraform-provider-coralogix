@@ -314,7 +314,8 @@ func validateFieldContracts(p Policy, name string, ops map[verb]foundOp) issue.R
 	var report issue.Report
 	idParam, bodyOnlyID := "", ""
 	if params := pathParams(ops[opGet]); len(params) == 1 {
-		idParam = params[0].Name
+		// The id property, which api.idProperty can name apart from the path parameter.
+		idParam = p.idProperty(ops)
 		if len(pathParams(ops[opUpdate])) == 0 && !p.UpdateIDInBody {
 			bodyOnlyID = idParam
 		}
@@ -500,6 +501,14 @@ func resourceIDIssues(p Policy, name string, ops map[verb]foundOp, get *base.Sch
 	id := p.idProperty(ops)
 	if id == "" {
 		return nil // Build reports an unsupported resource identity shape.
+	}
+	if params := pathParams(ops[opGet]); p.IDProperty != "" && params[0].Name == p.IDProperty {
+		return issue.Report{{
+			Code:        "ID_PROPERTY_UNNEEDED",
+			Location:    "components.schemas." + name + "." + id,
+			Message:     fmt.Sprintf("The override idProperty names %q, which is already the name of the Get path parameter.", id),
+			Remediation: "Delete api.idProperty from the overrides.",
+		}}
 	}
 	property := propertyOf(get, id)
 	if property == nil {
@@ -1531,8 +1540,8 @@ func nameCollisions(p Policy, location string, t *Type) issue.Report {
 	terraformNames := map[string]string{}
 	goNames := map[string]string{}
 	for _, field := range t.Fields {
-		if p.skips(t.Schema, field.Name) {
-			continue // a skipped field has no Terraform attribute or Go field
+		if p.skips(t.Schema, field.Name) || p.fixedRequest(t.Schema, field.Name) {
+			continue // a skipped field or a fixed request value has no Terraform attribute or Go field
 		}
 		terraformName := p.TerraformName(t.Schema, field.Name)
 		if previous, ok := terraformNames[terraformName]; ok && previous != field.Name {
@@ -1540,9 +1549,9 @@ func nameCollisions(p Policy, location string, t *Type) issue.Report {
 		} else {
 			terraformNames[terraformName] = field.Name
 		}
-		goName := GoName(field.Name)
+		goName := p.GoFieldName(t.Schema, field.Name)
 		if previous, ok := goNames[goName]; ok && previous != field.Name {
-			report = append(report, issue.Issue{Code: "GO_NAME_COLLISION", Location: location, Message: fmt.Sprintf("Fields %q and %q both generate the Go name %q.", previous, field.Name, goName), Remediation: "Rename a source API field so every generated Go field name is unique."})
+			report = append(report, issue.Issue{Code: "GO_NAME_COLLISION", Location: location, Message: fmt.Sprintf("Fields %q and %q both generate the Go name %q.", previous, field.Name, goName), Remediation: "Rename a source API field, or change a name line, so every generated Go field name is unique."})
 		} else {
 			goNames[goName] = field.Name
 		}

@@ -228,6 +228,15 @@ func (p Policy) WithDefaultArms(component string, groups []OneOfGroup) []OneOfGr
 	return out
 }
 
+// GoFieldName returns the Go field of field of component in a Terraform model struct: the Go form
+// of its name line, or of the API name.
+func (p Policy) GoFieldName(component, field string) string {
+	if n, ok := p.Names[component+"."+field]; ok && component != "" {
+		return GoName(n)
+	}
+	return GoName(field)
+}
+
 func (p Policy) skips(component, field string) bool {
 	return component != "" && slices.Contains(p.Skip, component+"."+field)
 }

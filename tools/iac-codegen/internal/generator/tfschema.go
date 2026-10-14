@@ -1302,10 +1302,7 @@ func attrName(p model.Policy, component, property string) string {
 // modelFieldName is the Go field of property of component in a Terraform model struct. A field
 // with a name line takes the Go form of that name; any other keeps the Go form of the API name.
 func modelFieldName(p model.Policy, component, property string) string {
-	if n, ok := p.Names[component+"."+property]; ok {
-		return camelize(n)
-	}
-	return camelize(property)
+	return p.GoFieldName(component, property)
 }
 
 // rootPath is the attribute path of the top-level attribute name: below its group, when a

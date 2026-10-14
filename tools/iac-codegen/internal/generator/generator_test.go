@@ -1964,7 +1964,10 @@ func functionBody(t *testing.T, source, signature string) string {
 // An Update-only field with a default makes Create follow with an Update. When only the server
 // sets the id and Update finds the resource by the id in the body, that follow-up Update sends
 // the state id as the normal Update does.
-func TestFollowUpUpdateSendsTheServerSetID(t *testing.T) {
+// generateSharedWithUpdateOnly generates sharedthing with an Update-only field, compact, that has
+// a server default. edit changes the behavior-overrides file.
+func generateSharedWithUpdateOnly(t *testing.T, edit func(string) string) (string, source.Input) {
+	t.Helper()
 	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "sharedthing.yaml"))
 	if err != nil {
 		t.Fatal(err)
@@ -1990,13 +1993,26 @@ func TestFollowUpUpdateSendsTheServerSetID(t *testing.T) {
 	}
 	n := c + strings.Index(text[c:], componentName) + len(componentName)
 	text = text[:n] + "        compact: {type: boolean, x-coralogix-presence: true}\n" + text[n:]
+	overrides, err := os.ReadFile(filepath.Join("testdata", "sharedthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overridesPath := filepath.Join(t.TempDir(), "overrides.yaml")
+	if err := os.WriteFile(overridesPath, []byte(edit(string(overrides))), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	input, loadDir := syntheticInput(t)
 	input.OpenAPI = []byte(text)
 	out := filepath.Join(t.TempDir(), "sharedthing")
-	options := Options{Resource: "SharedThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "sharedthing-overrides.yaml")}
+	options := Options{Resource: "SharedThing", OutputDir: out, OverridesPath: overridesPath}
 	if err := generateFromInput(options, input, loadDir); err != nil {
 		t.Fatal(err)
 	}
+	return out, input
+}
+
+func TestFollowUpUpdateSendsTheServerSetID(t *testing.T) {
+	out, input := generateSharedWithUpdateOnly(t, func(s string) string { return s })
 	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
 	if err != nil {
 		t.Fatal(err)
@@ -2009,6 +2025,21 @@ func TestFollowUpUpdateSendsTheServerSetID(t *testing.T) {
 	end := strings.Index(src[start:], "\n}\n")
 	if !strings.Contains(src[start:start+end], "body.Id = &id") {
 		t.Fatalf("applyUpdateOnly does not send the state id:\n%s", src[start:start+end])
+	}
+	compileGenerated(t, out, input)
+}
+
+// A renamed Update-only field keeps its released name in the follow-up Update.
+func TestRenamedUpdateOnlyFieldUsesItsName(t *testing.T) {
+	out, input := generateSharedWithUpdateOnly(t, func(s string) string {
+		return strings.Replace(s, "  SharedThing:\n    fields:\n", "  SharedThing:\n    fields:\n      compact: {name: compact_mode}\n", 1)
+	})
+	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(resource), `{attr: "compact_mode",`) || strings.Contains(string(resource), `{attr: "compact",`) {
+		t.Fatalf("updateOnlyFields does not name compact_mode:\n%s", functionBody(t, string(resource), "var updateOnlyFields"))
 	}
 	compileGenerated(t, out, input)
 }

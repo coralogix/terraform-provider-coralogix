@@ -493,7 +493,8 @@ func (f *File) checkEnums() error {
 }
 
 // checkNames checks that each names entry renames an accepted value, and that no two values of
-// the enum, the zero value included, have one Terraform spelling.
+// the enum have one Terraform spelling: the zero value, and with readRejected the rejected values,
+// which read back as their API spelling, count too.
 func (e Enum) checkNames() error {
 	for _, api := range sortedKeys(e.Names) {
 		if !slices.Contains(e.Values, api) {
@@ -506,6 +507,11 @@ func (e Enum) checkNames() error {
 	seen := map[string]string{}
 	if e.Zero != "" {
 		seen[e.Zero] = "zero"
+	}
+	if e.ReadRejected {
+		for _, api := range e.Rejected {
+			seen[api] = api
+		}
 	}
 	for _, api := range e.Values {
 		tf := e.TFValue(api)

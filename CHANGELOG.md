@@ -38,6 +38,10 @@
 - FEAT: A field line `valueNames` keeps released names for the numbers of an integer list or set, for example `Sunday` for day `1`.
 - FEAT: A field line `asBool` keeps a released bool for an object without fields, for example `always_active = true` for the oneOf arm `alwaysActive: {}`.
 - FEAT: A field line `defaultArm` sends an empty arm when the configuration sets no arm of a oneOf that the API requires, for example `alertUniqueIds: {}` for a released filter without a selector.
+- FIX: With `api.idProperty`, an id property that Create does not send is classified as the server-set id, as a path-parameter id is. Before, it was an unsupported field lifecycle. An `idProperty` that names the path parameter is reported as unneeded.
+- FIX: The Go name collision check uses the Go form of a `name` line, as the model does, and leaves out `requestValue` fields. Before, two renamed fields could get one Go field and fail to compile.
+- FIX: A renamed top-level field with a server default or an Update-only value keeps its released name in the omitted-default and follow-up Update paths, and in the merged request and response conversion.
+- FIX: `enums.<Enum>.names` cannot give an accepted value the spelling of a rejected value that `readRejected` reads back, and `defaultArm` needs a full-replace Update.
 - FIX: The SDK check expects a snake_case path parameter in lower camel case, as the Go SDK writes it. Before, it rejected the SDK of any resource with such a parameter.
 - FIX: A skipped field takes part in no Terraform name collision.
 - FEAT: In existing-resource mode, a response can hold other values next to the resource, such as the ids of objects that the call also changed. The generated code reads only the resource.
