@@ -106,7 +106,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Resource disappeared during update | The API did not find global_router with id 00000000-0000-4000-8000-000000000001. Run Terraform again: the refresh removes it from state and plans to create it."
+      "error: Resource no longer exists | The API did not find global_router with id 00000000-0000-4000-8000-000000000001. Run terraform apply without -refresh=false: the refresh removes it from state, and the plan creates it again."
     ],
     "state": {
       "create_time": "2026-01-01T00:00:01Z",
