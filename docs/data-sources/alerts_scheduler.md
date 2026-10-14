@@ -33,8 +33,8 @@ Coralogix alerts-scheduler (alert suppression rules). For more info please revie
 
 Read-Only:
 
-- `alerts_unique_ids` (Set of String)
-- `meta_labels` (Attributes Set) (see [below for nested schema](#nestedatt--filter--meta_labels))
+- `alerts_unique_ids` (Set of String) Alert unique ids.
+- `meta_labels` (Attributes Set) Meta labels. (see [below for nested schema](#nestedatt--filter--meta_labels))
 - `what_expression` (String) A [DataPrime](https://coralogix.com/docs/dataprime-query-language/) expression that filters which **group-by values** to suppress within the selected alerts. The expression must start with `source logs | filter` (this syntax is required even for metric or tracing alerts - the filtering works on group-by values regardless of alert type). Use `"source logs | filter true"` to suppress all alert activity without filtering specific values. Use `"source logs | filter $d.fieldName == 'value'"` to suppress only when specific group-by values match. This field controls **what triggered values** to suppress, while `alerts_unique_ids` or `meta_labels` control **which alerts** the rule applies to.
 
 <a id="nestedatt--filter--meta_labels"></a>
@@ -42,8 +42,8 @@ Read-Only:
 
 Read-Only:
 
-- `key` (String)
-- `value` (String)
+- `key` (String) The key.
+- `value` (String) The value.
 
 
 
@@ -52,8 +52,8 @@ Read-Only:
 
 Read-Only:
 
-- `key` (String)
-- `value` (String)
+- `key` (String) The key.
+- `value` (String) The value.
 
 
 <a id="nestedatt--schedule"></a>
@@ -61,7 +61,7 @@ Read-Only:
 
 Read-Only:
 
-- `one_time` (Attributes) (see [below for nested schema](#nestedatt--schedule--one_time))
+- `one_time` (Attributes) One time. (see [below for nested schema](#nestedatt--schedule--one_time))
 - `operation` (String) The operation to perform. Can be `mute` or `active`.
 - `recurring` (Attributes) Recurring schedule configuration. Use `dynamic` for time-based recurring schedules, or `always_active = true` for permanent suppression rules. (see [below for nested schema](#nestedatt--schedule--recurring))
 
@@ -70,7 +70,7 @@ Read-Only:
 
 Read-Only:
 
-- `time_frame` (Attributes) (see [below for nested schema](#nestedatt--schedule--one_time--time_frame))
+- `time_frame` (Attributes) Timeframe. (see [below for nested schema](#nestedatt--schedule--one_time--time_frame))
 
 <a id="nestedatt--schedule--one_time--time_frame"></a>
 ### Nested Schema for `schedule.one_time.time_frame`
@@ -99,7 +99,7 @@ Read-Only:
 Read-Only:
 
 - `always_active` (Boolean) When set to `true`, creates a permanent suppression rule that is always active. This is mutually exclusive with `dynamic`. When using `always_active = true`, no time frame or frequency configuration is needed.
-- `dynamic` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic))
+- `dynamic` (Attributes) Dynamic. (see [below for nested schema](#nestedatt--schedule--recurring--dynamic))
 
 <a id="nestedatt--schedule--recurring--dynamic"></a>
 ### Nested Schema for `schedule.recurring.dynamic`
@@ -107,18 +107,18 @@ Read-Only:
 Read-Only:
 
 - `frequency` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--frequency))
-- `repeat_every` (Number)
-- `termination_date` (String)
-- `time_frame` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--time_frame))
+- `repeat_every` (Number) Interval multiplier controlling how often the rule recurs (e.g., every N days, weeks, or months).
+- `termination_date` (String) ISO 8601 date after which the recurring rule stops being applied.
+- `time_frame` (Attributes) Timeframe. (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--time_frame))
 
 <a id="nestedatt--schedule--recurring--dynamic--frequency"></a>
 ### Nested Schema for `schedule.recurring.dynamic.frequency`
 
 Read-Only:
 
-- `daily` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--frequency--daily))
-- `monthly` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--frequency--monthly))
-- `weekly` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--frequency--weekly))
+- `daily` (Attributes) Daily. (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--frequency--daily))
+- `monthly` (Attributes) Monthly. (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--frequency--monthly))
+- `weekly` (Attributes) Weekly. (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--frequency--weekly))
 
 <a id="nestedatt--schedule--recurring--dynamic--frequency--daily"></a>
 ### Nested Schema for `schedule.recurring.dynamic.frequency.daily`
@@ -129,7 +129,7 @@ Read-Only:
 
 Read-Only:
 
-- `days` (Set of Number)
+- `days` (Set of Number) The days of month.
 
 
 <a id="nestedatt--schedule--recurring--dynamic--frequency--weekly"></a>
@@ -137,7 +137,7 @@ Read-Only:
 
 Read-Only:
 
-- `days` (Set of String)
+- `days` (Set of String) The days of week.
 
 
 

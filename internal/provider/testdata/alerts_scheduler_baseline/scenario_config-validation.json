@@ -132,7 +132,8 @@
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"recurring\").AttributeName(\"dynamic\")] | 2 attributes specified when one (and only one) of [schedule.recurring.dynamic.<.always_active,schedule.recurring.dynamic.<.dynamic] is required"
+      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"recurring\").AttributeName(\"always_active\")] | 2 attributes specified when one (and only one) of [schedule.recurring.always_active.<.dynamic] is required",
+      "error: Invalid Attribute Combination [AttributeName(\"schedule\").AttributeName(\"recurring\").AttributeName(\"dynamic\")] | 2 attributes specified when one (and only one) of [schedule.recurring.dynamic.<.always_active] is required"
     ],
     "state": null
   },
@@ -193,7 +194,7 @@
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value Match [AttributeName(\"schedule\").AttributeName(\"one_time\").AttributeName(\"time_frame\").AttributeName(\"time_zone\")] | Attribute schedule.one_time.time_frame.time_zone value must be one of: [\"UTC\" \"UTC-11\" \"UTC-10\" \"UTC-9\" \"UTC-8\" \"UTC-7\" \"UTC-6\" \"UTC-5\" \"UTC-4\" \"UTC-3\" \"UTC-2\" \"UTC-1\" \"UTC+0\" \"UTC+1\" \"UTC+2\" \"UTC+3\" \"UTC+4\" \"UTC+5\" \"UTC+6\" \"UTC+7\" \"UTC+8\" \"UTC+9\" \"UTC+10\" \"UTC+11\" \"UTC+12\" \"UTC+13\" \"UTC+14\"], got: \"UTC+15\""
+      "error: Invalid Attribute Value Match [AttributeName(\"schedule\").AttributeName(\"one_time\").AttributeName(\"time_frame\").AttributeName(\"time_zone\")] | Attribute schedule.one_time.time_frame.time_zone value must be one of: [\"UTC\" \"UTC+0\" \"UTC+1\" \"UTC+2\" \"UTC+3\" \"UTC+4\" \"UTC+5\" \"UTC+6\" \"UTC+7\" \"UTC+8\" \"UTC+9\" \"UTC+10\" \"UTC+11\" \"UTC+12\" \"UTC+13\" \"UTC+14\" \"UTC-1\" \"UTC-2\" \"UTC-3\" \"UTC-4\" \"UTC-5\" \"UTC-6\" \"UTC-7\" \"UTC-8\" \"UTC-9\" \"UTC-10\" \"UTC-11\"], got: \"UTC+15\""
     ],
     "state": null
   },

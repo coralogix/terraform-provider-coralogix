@@ -99,9 +99,6 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "schedule.recurring.dynamic.frequency.daily"
-    ],
     "state": {
       "description": "",
       "enabled": true,
@@ -120,7 +117,7 @@
           "always_active": null,
           "dynamic": {
             "frequency": {
-              "daily": null,
+              "daily": {},
               "monthly": null,
               "weekly": null
             },
@@ -139,11 +136,7 @@
         }
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"id\")",
-      "AttributeName(\"schedule\").AttributeName(\"recurring\").AttributeName(\"dynamic\").AttributeName(\"frequency\").AttributeName(\"daily\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -172,7 +165,7 @@
           "always_active": null,
           "dynamic": {
             "frequency": {
-              "daily": null,
+              "daily": {},
               "monthly": null,
               "weekly": null
             },
@@ -237,7 +230,7 @@
         "meta_labels": null,
         "what_expression": "source logs | filter true"
       },
-      "id": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
       "meta_labels": null,
       "name": "freq",
       "schedule": {
@@ -310,11 +303,6 @@
             "uniqueIdentifier": "00000000-0000-4000-8000-000000000001"
           }
         },
-        "status": 200
-      },
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
         "status": 200
       }
     ],
@@ -402,7 +390,7 @@
         "meta_labels": null,
         "what_expression": "source logs | filter true"
       },
-      "id": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
       "meta_labels": null,
       "name": "freq",
       "schedule": {
@@ -476,11 +464,6 @@
           }
         },
         "status": 200
-      },
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
-        "status": 200
       }
     ],
     "state": {
@@ -549,7 +532,7 @@
         "meta_labels": null,
         "what_expression": "source logs | filter true"
       },
-      "id": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
       "meta_labels": null,
       "name": "freq",
       "schedule": {
@@ -583,11 +566,6 @@
             "uniqueIdentifier": "00000000-0000-4000-8000-000000000001"
           }
         },
-        "status": 200
-      },
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
         "status": 200
       }
     ],
