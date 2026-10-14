@@ -397,6 +397,10 @@ func flattenFilter(ctx context.Context, p path.Path, v *suppressed_things_servic
 	{
 		inner := unwrapIds(v.Ids)
 		out.Ids = flattenStringsSet(ctx, inner, diags)
+		// The API returns an empty list for a list that the request did not send.
+		if len(inner) == 0 {
+			out.Ids = types.SetNull(types.StringType)
+		}
 	}
 	out.Labels = flattenLabels(ctx, p.AtName("labels"), v.Labels, diags)
 	return out

@@ -565,7 +565,7 @@ func checkReadEmptyAs(cf *convField) error {
 	if !cf.ReadEmptyAsNull {
 		return nil
 	}
-	if cf.Conv == convString || (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects || (cf.Conv == convStrings && cf.Wrap == nil) {
+	if cf.Conv == convString || (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects || cf.Conv == convStrings {
 		return nil
 	}
 	return fmt.Errorf("readEmptyAs: \"null\" is supported for a string, an object, and a list or set of strings or objects, not for the %s field %s", cf.Conv, cf.TFName)

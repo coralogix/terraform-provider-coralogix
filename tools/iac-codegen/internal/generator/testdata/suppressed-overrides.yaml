@@ -24,7 +24,7 @@ types:
       scheduleOperation: {name: operation, validators: [{enum: true}]}
   Filter:
     fields:
-      ids: {defaultArm: true}
+      ids: {defaultArm: true, readEmptyAs: "null"}
   Dynamic:
     groups:
       frequency:

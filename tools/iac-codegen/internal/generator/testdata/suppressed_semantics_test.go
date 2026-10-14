@@ -244,3 +244,18 @@ func TestFrequencyGroupHoldsTheArms(t *testing.T) {
 		t.Fatalf("daily: {} read back as %+v, want frequency.daily set", f)
 	}
 }
+
+// The API reads the empty ids arm back as an empty list. readEmptyAs makes it null, as a filter
+// without an arm has no ids; the state keeps the configured [] through keepPriorEmpty.
+func TestEmptyWrappedIDsReadAsNull(t *testing.T) {
+	flat, diags := flatten(context.Background(), &suppressed_things_service.SuppressedThing{
+		UniqueIdentifier: ptr("rule-1"), Name: "rule", ScheduleOperation: suppressed_things_service.THINGOPERATION_THING_OPERATION_MUTE,
+		Filter: &suppressed_things_service.Filter{Ids: &suppressed_things_service.Ids{Value: []string{}}},
+	})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if !flat.Filter.Ids.IsNull() {
+		t.Fatalf("ids {value: []} read back as %v, want null", flat.Filter.Ids)
+	}
+}
