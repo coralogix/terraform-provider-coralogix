@@ -135,7 +135,7 @@
         "latency_config": {
           "average": null,
           "quantile": {
-            "percentile": 0.949999988079071
+            "percentile": 0.95
           },
           "threshold": 300,
           "time_window": "5_minutes"
@@ -219,7 +219,7 @@
         "latency_config": {
           "average": null,
           "quantile": {
-            "percentile": 0.949999988079071
+            "percentile": 0.95
           },
           "threshold": 300,
           "time_window": "5_minutes"
@@ -367,7 +367,7 @@
         "latency_config": {
           "average": null,
           "quantile": {
-            "percentile": 0.949999988079071
+            "percentile": 0.95
           },
           "threshold": 300,
           "time_window": "5_minutes"

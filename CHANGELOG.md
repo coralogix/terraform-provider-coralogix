@@ -17,6 +17,7 @@
 - CHORE: Add the generated acceptance test, and upgrade tests that create request-based, window-based, and APM SLOs with provider 3.21.0 and plan with this build. Add acceptance tests for the `1_day` and `30_days` time frames.
 - CHORE: Bump `coralogix-management-sdk` to the SLO contract that marks server-set fields read-only and requires the APM latency `time_window`.
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
+- FIX: An imported SLO with a threshold, a percentile, or a target that a float32 cannot hold exactly, such as `0.2`, plans no change. Before, the import stored `0.20000000298023224`, and the next plan sent an update.
 
 #### data-source/coralogix_slo_v2
 - CHORE: Uses the schema and the conversion of the generated resource.
@@ -35,6 +36,7 @@
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.30`.
 - FIX: `readEmptyAs: "null"` also applies to a list or set that an `enums` line maps. Before, an empty list read as an empty set where there was no prior value, as in an import, a data source, or a refresh upgrade.
 - FIX: `optional: true` on a map that the contract requires sends an empty map when Terraform leaves it out, as it does for a list. Before, the map was sent as null.
 - CHORE: Bump the generator to `v0.1.0-beta.29`.
