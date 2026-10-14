@@ -1,1 +1,1 @@
-terraform import coralogix_thing.example <id>
+terraform import coralogix_thing.example "<id>"

@@ -54,9 +54,10 @@ func renderExample(acc *acceptanceData, typeName string) ([]byte, error) {
 }
 
 // renderImport returns the import command of the docs. A singleton has one id per company: the
-// resource type name.
+// resource type name. Other ids are a quoted placeholder: unquoted, a shell reads < and > as
+// redirections.
 func renderImport(crud *crudData) []byte {
-	id := "<" + crud.IDAttr + ">"
+	id := `"<` + crud.IDAttr + `>"`
 	if crud.Singleton {
 		id = crud.TypeName
 	}

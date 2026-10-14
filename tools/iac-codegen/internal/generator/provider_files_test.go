@@ -262,8 +262,8 @@ func TestImportCommand(t *testing.T) {
 		crud *crudData
 		want string
 	}{
-		"id":        {&crudData{TypeName: "thing", IDAttr: "id"}, "terraform import coralogix_thing.example <id>\n"},
-		"custom id": {&crudData{TypeName: "thing", IDAttr: "key"}, "terraform import coralogix_thing.example <key>\n"},
+		"id":        {&crudData{TypeName: "thing", IDAttr: "id"}, "terraform import coralogix_thing.example \"<id>\"\n"},
+		"custom id": {&crudData{TypeName: "thing", IDAttr: "key"}, "terraform import coralogix_thing.example \"<key>\"\n"},
 		"singleton": {&crudData{TypeName: "settings", IDAttr: "id", Singleton: true}, "terraform import coralogix_settings.example settings\n"},
 	}
 	for name, test := range tests {
