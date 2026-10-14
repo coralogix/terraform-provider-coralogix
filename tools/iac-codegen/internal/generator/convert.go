@@ -177,6 +177,9 @@ type defaultArm struct {
 	Field string   // SDK field of the arm
 	Value string   // Go expression of the empty arm
 	Arms  []string // SDK fields of every arm of the group
+	// Unknown are the model fields of the arms that can be unknown. An unknown arm is no missing
+	// arm, so expand does not send the default arm then.
+	Unknown []string
 }
 
 type convAttrType struct {
@@ -1375,6 +1378,9 @@ func (b *convBuilder) defaultArms(component string, t *model.Type, fields []*con
 			continue
 		}
 		lines = slices.DeleteFunc(lines, func(name string) bool { return name == arm })
+		if nestedGroupOf(b.file, component, arm) != "" {
+			return nil, fmt.Errorf("defaultArm %s: an arm in a group of the behavior-overrides file is not supported", arm)
+		}
 		cf := byName[arm]
 		value, err := emptyArm(b.qualify, cf)
 		if err != nil {
@@ -1382,7 +1388,11 @@ func (b *convBuilder) defaultArms(component string, t *model.Type, fields []*con
 		}
 		d := defaultArm{Field: cf.SDK, Value: value}
 		for _, name := range g.Arms {
-			d.Arms = append(d.Arms, byName[name].SDK)
+			arm := byName[name]
+			d.Arms = append(d.Arms, arm.SDK)
+			if arm.Conv != convObj && arm.Conv != convEmpty || arm.ObjectValue {
+				d.Unknown = append(d.Unknown, arm.Model)
+			}
 		}
 		out = append(out, d)
 	}

@@ -130,6 +130,7 @@
 - FEAT: `types.<Type>.groups` makes required Terraform objects that hold fields of a nested component, as `groups` does for top-level fields, for example `frequency` around the daily, weekly, and monthly arms of a recurring schedule.
 - FIX: A renamed top-level field with a server default or an Update-only value keeps its released name in the omitted-default and follow-up Update paths, and in the merged request and response conversion.
 - FEAT: `readEmptyAs: "null"` also works on a list or set of strings inside wrapper objects (`unwrap`), for example `alertUniqueIds: {value: []}`.
+- FIX: `enums.<Enum>.names` and `zero` cannot give a value the spelling of a rejected value that `readRejected` reads back. `defaultArm` needs a full-replace Update, and expand does not send the default arm while another arm is unknown.
 
 #### resource/coralogix_global_router
 - CHORE: The acceptance test compares imported `rules[*].targets` without their order, because the API returns them in no fixed order and an import has no prior order to keep.

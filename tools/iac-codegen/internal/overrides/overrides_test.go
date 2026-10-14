@@ -105,6 +105,7 @@ func TestParseIsStrict(t *testing.T) {
 		"name of a readable rejected value": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    zero: unspecified\n    values: [E_ONE]\n    rejected: [E_TWO]\n    readRejected: true\n    names: {E_ONE: E_TWO}\n", "have the same Terraform value"},
 		"bad nested group name":             {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    groups:\n      Bad-Name: {fields: [a]}\n", "types.T.groups.Bad-Name: the name is not a Terraform name"},
 		"field in two nested groups":        {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    groups:\n      a: {fields: [x]}\n      b: {fields: [x]}\n", "field x is also in types.T.groups.a"},
+		"zero spelling of a readable rejected value": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    zero: E_TWO\n    values: [E_ONE]\n    rejected: [E_TWO]\n    readRejected: true\n", "zero and the rejected \"E_TWO\" have the same Terraform value"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

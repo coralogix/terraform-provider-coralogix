@@ -259,3 +259,14 @@ func TestEmptyWrappedIDsReadAsNull(t *testing.T) {
 		t.Fatalf("ids {value: []} read back as %v, want null", flat.Filter.Ids)
 	}
 }
+
+// An unknown ids arm is no missing arm: expand does not send the default arm, which would select
+// every alert.
+func TestUnknownArmSendsNoDefaultArm(t *testing.T) {
+	m := model(types.StringValue("rule-1"))
+	m.Filter = &FilterModel{Ids: types.SetUnknown(types.StringType)}
+	body, _ := expandCreate(context.Background(), m)
+	if body != nil && body.SuppressedThing.Filter != nil && body.SuppressedThing.Filter.Ids != nil {
+		t.Fatalf("an unknown ids arm sent %#v, want no default arm", body.SuppressedThing.Filter.Ids)
+	}
+}

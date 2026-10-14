@@ -589,6 +589,9 @@ func (f *File) checkEnums() error {
 		if e.ReadRejected {
 			// A rejected value reads back as its API spelling, so no accepted value can have it.
 			for _, v := range e.Rejected {
+				if previous, ok := seen[v]; ok {
+					return fmt.Errorf("enums.%s: %s and the rejected %q have the same Terraform value %q", name, previous, v, v)
+				}
 				seen[v] = "the rejected " + strconv.Quote(v)
 			}
 		}
