@@ -1141,12 +1141,12 @@ func extractCreateE2M(ctx context.Context, plan Events2MetricResourceModel) (e2m
 	}
 
 	if spansQuery := plan.SpansQuery; spansQuery != nil {
-		params.Type = e2ms.E2MTYPE_E2_M_TYPE_SPANS2_METRICS.Ptr()
+		params.Type = e2ms.E2MTYPE_E2_M_TYPE_SPANS2_METRICS
 		query, d := expandCreateSpansQuery(ctx, spansQuery)
 		diags.Append(d...)
 		params.SpansQuery = query
 	} else if logsQuery := plan.LogsQuery; logsQuery != nil {
-		params.Type = e2ms.E2MTYPE_E2_M_TYPE_LOGS2_METRICS.Ptr()
+		params.Type = e2ms.E2MTYPE_E2_M_TYPE_LOGS2_METRICS
 		query, d := expandCreateLogsQuery(ctx, logsQuery)
 		diags.Append(d...)
 		params.LogsQuery = query
@@ -1177,7 +1177,7 @@ func extractUpdateE2M(ctx context.Context, plan Events2MetricResourceModel) (e2m
 	}
 
 	e2m := e2ms.E2M1{
-		Id:   ptr(plan.ID.ValueString()),
+		Id:   plan.ID.ValueString(),
 		Name: plan.Name.ValueString(),
 		// Intentional create/update asymmetry (follow-up): update sends "" when description is null.
 		Description:  ptr(plan.Description.ValueString()),
@@ -1295,47 +1295,47 @@ func expandE2MAggregations(ctx context.Context, aggregationsModel *AggregationsM
 
 	if min := aggregationsModel.Min; min != nil {
 		aggregations = append(aggregations, e2ms.V2Aggregation{
-			AggType:          e2ms.AGGTYPE_AGG_TYPE_MIN.Ptr(),
+			AggType:          e2ms.AGGTYPE_AGG_TYPE_MIN,
 			Enabled:          ptr(min.Enable.ValueBool()),
-			TargetMetricName: ptr("min"),
+			TargetMetricName: "min",
 		})
 	}
 	if max := aggregationsModel.Max; max != nil {
 		aggregations = append(aggregations, e2ms.V2Aggregation{
-			AggType:          e2ms.AGGTYPE_AGG_TYPE_MAX.Ptr(),
+			AggType:          e2ms.AGGTYPE_AGG_TYPE_MAX,
 			Enabled:          ptr(max.Enable.ValueBool()),
-			TargetMetricName: ptr("max"),
+			TargetMetricName: "max",
 		})
 	}
 	if count := aggregationsModel.Count; count != nil {
 		aggregations = append(aggregations, e2ms.V2Aggregation{
-			AggType:          e2ms.AGGTYPE_AGG_TYPE_COUNT.Ptr(),
+			AggType:          e2ms.AGGTYPE_AGG_TYPE_COUNT,
 			Enabled:          ptr(count.Enable.ValueBool()),
-			TargetMetricName: ptr("count"),
+			TargetMetricName: "count",
 		})
 	}
 	if avg := aggregationsModel.AVG; avg != nil {
 		aggregations = append(aggregations, e2ms.V2Aggregation{
-			AggType:          e2ms.AGGTYPE_AGG_TYPE_AVG.Ptr(),
+			AggType:          e2ms.AGGTYPE_AGG_TYPE_AVG,
 			Enabled:          ptr(avg.Enable.ValueBool()),
-			TargetMetricName: ptr("avg"),
+			TargetMetricName: "avg",
 		})
 	}
 	if sum := aggregationsModel.Sum; sum != nil {
 		aggregations = append(aggregations, e2ms.V2Aggregation{
-			AggType:          e2ms.AGGTYPE_AGG_TYPE_SUM.Ptr(),
+			AggType:          e2ms.AGGTYPE_AGG_TYPE_SUM,
 			Enabled:          ptr(sum.Enable.ValueBool()),
-			TargetMetricName: ptr("sum"),
+			TargetMetricName: "sum",
 		})
 	}
 	if samples := aggregationsModel.Samples; samples != nil {
 		sampleType := schemaToAPIAggregationSampleType[samples.Type.ValueString()]
 		aggregations = append(aggregations, e2ms.V2Aggregation{
-			AggType:          e2ms.AGGTYPE_AGG_TYPE_SAMPLES.Ptr(),
+			AggType:          e2ms.AGGTYPE_AGG_TYPE_SAMPLES,
 			Enabled:          ptr(samples.Enable.ValueBool()),
-			TargetMetricName: ptr("samples"),
+			TargetMetricName: "samples",
 			Samples: &e2ms.E2MAggSamples{
-				SampleType: sampleType.Ptr(),
+				SampleType: sampleType,
 			},
 		})
 	}
@@ -1345,9 +1345,9 @@ func expandE2MAggregations(ctx context.Context, aggregationsModel *AggregationsM
 			return nil, diags
 		}
 		aggregations = append(aggregations, e2ms.V2Aggregation{
-			AggType:          e2ms.AGGTYPE_AGG_TYPE_HISTOGRAM.Ptr(),
+			AggType:          e2ms.AGGTYPE_AGG_TYPE_HISTOGRAM,
 			Enabled:          ptr(histogram.Enable.ValueBool()),
-			TargetMetricName: ptr("histogram"),
+			TargetMetricName: "histogram",
 			Histogram: &e2ms.E2MAggHistogram{
 				Buckets: buckets,
 			},
