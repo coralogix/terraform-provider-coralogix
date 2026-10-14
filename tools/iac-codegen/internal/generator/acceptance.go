@@ -548,7 +548,7 @@ func (s *accSynth) attrs(attrs []*tfAttr, tfPath, key string, mode accMode, top 
 func (s *accSynth) absent(attrs []*tfAttr) []string {
 	var out []string
 	for _, a := range attrs {
-		scalar := slices.Contains([]string{"String", "Bool", "Int64", "Int32", "Float64"}, a.Kind)
+		scalar := slices.Contains([]string{"String", "Bool", "Int64", "Int32", "Float64", "Float32"}, a.Kind)
 		if scalar && a.Optional && !a.Computed && !s.include(a, a.Name, accMinimal, true) {
 			out = append(out, a.Name)
 		}
@@ -563,7 +563,7 @@ func (s *accSynth) absent(attrs []*tfAttr) []string {
 // which the schema does not state; the empty plan after the apply and the import still check it.
 func (s *accSynth) removed(attrs []*tfAttr, full []accCheck) (defaults, kept []accCheck) {
 	for _, a := range attrs {
-		scalar := slices.Contains([]string{"String", "Bool", "Int64", "Int32", "Float64"}, a.Kind)
+		scalar := slices.Contains([]string{"String", "Bool", "Int64", "Int32", "Float64", "Float32"}, a.Kind)
 		if !scalar || !a.Optional || !a.Computed || s.include(a, a.Name, accMinimal, true) {
 			continue
 		}
@@ -674,7 +674,7 @@ func (s *accSynth) makeValue(a *tfAttr, tfPath, key string, mode accMode) (strin
 		return strings.TrimSpace(v), checks, nil
 	}
 	switch a.Kind {
-	case "String", "Bool", "Int64", "Int32", "Float64":
+	case "String", "Bool", "Int64", "Int32", "Float64", "Float32":
 		v, check, err := scalarValue(a, mode)
 		if err != nil {
 			return "", nil, err
@@ -734,7 +734,7 @@ func scalarValue(a *tfAttr, mode accMode) (hcl, state string, err error) {
 		}
 		v := strconv.FormatInt(int64(full), 10)
 		return v, v, nil
-	case "Float64":
+	case "Float64", "Float32":
 		full, next := numberValues(a, 1.5)
 		if updated {
 			full = next
@@ -966,7 +966,7 @@ func enumValues(a *tfAttr) []string {
 func (s *accSynth) collectionValue(a *tfAttr, tfPath string, mode accMode) (string, []accCheck, error) {
 	elem, ok := map[string]string{
 		"types.StringType": "String", rfc3339Type: "String", "types.BoolType": "Bool", "types.Int64Type": "Int64",
-		"types.Int32Type": "Int32", "types.Float64Type": "Float64",
+		"types.Int32Type": "Int32", "types.Float64Type": "Float64", "types.Float32Type": "Float32",
 	}[a.ElementType]
 	if !ok {
 		return "", nil, fmt.Errorf("elements of type %s are not supported: set the value in %s", a.ElementType, acceptance.FileName)

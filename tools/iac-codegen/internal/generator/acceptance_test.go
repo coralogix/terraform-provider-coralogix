@@ -220,6 +220,7 @@ func TestAcceptanceNumbersFitTheirRange(t *testing.T) {
 		"one number":           {"Int64", "int64validator.Between(5, 5)", "5", "5"},
 		"float default":        {"Float64", "", "1.5", "2.5"},
 		"float range":          {"Float64", "float64validator.Between(0, 1)", "0", "1"},
+		"narrow float range":   {"Float32", "float32validator.Between(0, 0.5)", "0", "0.25"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

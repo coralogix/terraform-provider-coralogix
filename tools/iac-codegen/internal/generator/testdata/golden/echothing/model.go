@@ -22,7 +22,7 @@ type QuotaModel struct {
 
 type DetailModel struct {
 	Text    types.String  `tfsdk:"text"`
-	Ratio   types.Float64 `tfsdk:"ratio"`
+	Ratio   types.Float32 `tfsdk:"ratio"`
 	Buckets types.List    `tfsdk:"buckets"`
 }
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"math/big"
 	"slices"
 	"sort"
 	"strconv"
@@ -425,15 +426,15 @@ func flattenDetail(ctx context.Context, p path.Path, v *echo_things_service.Deta
 	out := &DetailModel{}
 	out.Text = types.StringPointerValue(&v.Text)
 	out.Ratio = flattenFloat32(v.Ratio)
-	out.Buckets = flattenScalarsList(ctx, types.Float64Type, widenFloat32s(v.Buckets), diags)
+	out.Buckets = flattenScalarsList(ctx, types.Float32Type, widenFloat32s(v.Buckets), diags)
 	return out
 }
 
 func detailAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"text":    types.StringType,
-		"ratio":   types.Float64Type,
-		"buckets": types.ListType{ElemType: types.Float64Type},
+		"ratio":   types.Float32Type,
+		"buckets": types.ListType{ElemType: types.Float32Type},
 	}
 }
 
@@ -1057,24 +1058,31 @@ func expandInt32(v types.Int32) *int32 {
 	return &n
 }
 
-func expandFloat32(v types.Float64) *float32 {
+func expandFloat32(v types.Float32) *float32 {
 	if v.IsNull() || v.IsUnknown() {
 		return nil
 	}
-	f := float32(v.ValueFloat64())
+	f := v.ValueFloat32()
 	return &f
 }
 
-func flattenFloat32(v *float32) types.Float64 {
+// flattenFloat32 returns the Float32 of the shortest decimal that reads back as v. A plain
+// types.Float32Value keeps float64(v), 0.10000000149011612 for 0.1, which a read without a
+// prior value, such as an import, would put in state.
+func flattenFloat32(v *float32) types.Float32 {
 	if v == nil {
-		return types.Float64Null()
+		return types.Float32Null()
 	}
-	return types.Float64Value(widenFloat32(*v))
+	value, err := types.Float32Type.ValueFromTerraform(context.Background(), tftypes.NewValue(tftypes.Number, big.NewFloat(widenFloat32(*v))))
+	if err != nil {
+		return types.Float32Value(*v)
+	}
+	return value.(types.Float32)
 }
 
 // widenFloat32 returns the float64 of the shortest decimal that reads back as v. A plain
-// float64(v) shows the rounding of float32 (0.1 → 0.10000000149011612), which would never
-// equal the configured value.
+// float64(v) shows the rounding of float32 (0.1 → 0.10000000149011612). A Float32 attribute
+// that holds the shortest decimal also matches the configuration after an import.
 func widenFloat32(v float32) float64 {
 	f, _ := strconv.ParseFloat(strconv.FormatFloat(float64(v), 'g', -1, 32), 64)
 	return f
