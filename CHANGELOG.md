@@ -29,6 +29,7 @@
 
 #### resource/coralogix_global_router
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
+- FIX: Upgrading the state of a router that no longer exists fails with "Resource no longer exists", which says to remove it with `terraform state rm`. Before, it warned that Terraform removed it from state, and the plan then failed with "Missing Upgraded Resource State".
 
 #### resource/coralogix_preset
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
@@ -67,7 +68,7 @@
 - FIX: A configured value that is still unknown stops Create and Update, also for a nested field with a server default. Before, the request dropped it as if it were omitted.
 - FIX: A nested server default inside a set is an error. Flatten cannot match a set element that a read returns without the default to the configured element, so it could not keep the configured default.
 - FIX: The unknown-value check and the change check drop server-set values inside a set of objects, as they do in a list or map. Before, an unknown server-set child of a set element blocked Create and Update.
-- FIX: A generated Update that gets a resource-not-found 404 returns an error that says the resource no longer exists and that a refresh removes it from state. It no longer calls `RemoveResource`, which the Framework does not allow in Update. Read still warns and removes the resource, and Delete still treats the 404 as deleted.
+- FIX: A generated Update that gets a resource-not-found 404 returns an error that says the resource no longer exists and that a refresh removes it from state. A state upgrade that reads the resource returns an error that names `terraform state rm`, because a refresh runs the upgrade first. Neither calls `RemoveResource` any more, which the Framework does not allow there. Read still warns and removes the resource, and Delete still treats the 404 as deleted.
 
 # Release 3.21.0
 

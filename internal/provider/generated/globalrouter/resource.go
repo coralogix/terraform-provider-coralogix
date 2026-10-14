@@ -309,9 +309,10 @@ func (r *Resource) upgradeByRefresh(ctx context.Context, req resource.UpgradeSta
 	}
 	v, err := r.get(ctx, id)
 	if cxsdk.IsNotFound(err) {
-		resp.Diagnostics.AddWarning("Resource disappeared during state upgrade",
-			fmt.Sprintf("%s with id %v was not found. Terraform removed it from state.", TypeName, id))
-		resp.State.RemoveResource(ctx)
+		// The framework does not allow a state upgrade to remove the resource from state,
+		// and a refresh runs the upgrade first, so only the user can remove it.
+		resp.Diagnostics.AddError("Resource no longer exists",
+			fmt.Sprintf("The API did not find %s with id %v, so Terraform cannot upgrade its state. Run terraform state rm on its address to remove it from state, and the next plan creates it again.", TypeName, id))
 		return
 	}
 	if err != nil {

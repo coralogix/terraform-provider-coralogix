@@ -58,8 +58,7 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: Resource disappeared during state upgrade | global_router with id does-not-exist was not found. Terraform removed it from state.",
-      "error: Missing Upgraded Resource State | After attempting a resource state upgrade to version 0, the provider did not return any state data. Preventing the unexpected loss of resource state data. This is always an issue with the Terraform Provider and should be reported to the provider developer."
+      "error: Resource no longer exists | The API did not find global_router with id does-not-exist, so Terraform cannot upgrade its state. Run terraform state rm on its address to remove it from state, and the next plan creates it again."
     ],
     "state": null
   }
