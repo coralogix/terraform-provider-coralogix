@@ -28,6 +28,10 @@ func (p Policy) foldCreateBody(component string, body *base.Schema) (*base.Schem
 	flat := map[string]bool{}
 	for _, f := range folds {
 		for _, name := range f.flat() {
+			if flat[name] {
+				// Two objects would write one Create field, and one of the values would be lost.
+				return nil, fmt.Errorf("createAs on %s.%s: another createAs line already sends %q", component, f.field, name)
+			}
 			flat[name] = true
 		}
 	}
@@ -56,6 +60,11 @@ func (p Policy) foldCreateBody(component string, body *base.Schema) (*base.Schem
 			if slices.Contains(body.Required, name) {
 				object.Required = append(object.Required, nested)
 			}
+		}
+		if len(object.Required) != 0 {
+			// Create requires a flat field, so it requires the object that holds it. Terraform does
+			// not check the required attributes of an object that the configuration leaves out.
+			out.Required = append(out.Required, f.field)
 		}
 		out.Properties.Set(f.field, base.CreateSchemaProxy(object))
 	}

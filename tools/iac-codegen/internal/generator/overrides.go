@@ -233,11 +233,18 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared bool) *li
 	if line.Required && slices.Contains(schema.Required, line.Field) && !(shared && requiredLineStatesPresence(schema, line.Field)) {
 		stale = append(stale, "required")
 	}
-	if line.Optional && !slices.Contains(schema.Required, line.Field) {
+	if line.Optional && shared && !slices.Contains(schema.Required, line.Field) {
+		// The resource component has request components of its own: the contract check reports
+		// an optional line that relaxes none of them.
 		stale = append(stale, "optional")
 	}
 	if line.Collection != "" {
 		if problem := collectionProblem(schema, line); problem != nil {
+			return problem
+		}
+	}
+	if line.Optional {
+		if problem := optionalProblem(schema, line); problem != nil {
 			return problem
 		}
 	}
@@ -409,8 +416,8 @@ func requestValueByProblem(schema *base.Schema, line overrides.Line) *lineIssue 
 }
 
 // keyedByProblem checks a keyedBy line. The field is a list of objects. The key is a required
-// string property of the object. The value, when the line names one, is a string property, and
-// the object has no other property.
+// string property of the object. The value, when the line names one, is a required string
+// property, and the object has no other property.
 func keyedByProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	built, err := schema.Properties.GetOrZero(line.Field).BuildSchema()
 	if err != nil {
@@ -444,6 +451,10 @@ func keyedByProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	if value != "" && (!isString(value) || item.Properties.Len() != 2) {
 		return wholeLine(fmt.Errorf("keyedBy: the value %q must be a string property, and the items of %q must have only the key and the value", value, line.Field))
 	}
+	if value != "" && !slices.Contains(item.Required, value) {
+		// A map of strings has no place for an item without a value.
+		return wholeLine(fmt.Errorf("keyedBy: the value %q is not a required property of the items of %q", value, line.Field))
+	}
 	return nil
 }
 
@@ -463,9 +474,19 @@ func keyedObjectProblem(item *base.Schema, line overrides.Line, isString func(st
 	if len(values) == 0 || !slices.Contains(item.Required, k.Key) {
 		return wholeLine(fmt.Errorf("keyedBy: the key %q is not a required enum property of the items of %q", k.Key, line.Field))
 	}
+	// The object has an attribute per value that the enums line of the key accepts, so an arm of
+	// another value, or a key without an enums line, would change nothing.
+	enum := ""
+	if proxy.IsReference() {
+		enum = strings.TrimPrefix(proxy.GetReference(), "#/components/schemas/")
+	}
+	accepted, ok := line.Accepted[enum]
+	if !ok || len(accepted) == 0 {
+		return wholeLine(fmt.Errorf("keyedBy: the key %q needs an enums line with values for its enum %q", k.Key, enum))
+	}
 	for _, v := range slices.Sorted(maps.Keys(k.Arms)) {
-		if !slices.Contains(values, v) {
-			return wholeLine(fmt.Errorf("keyedBy: arms names %q, which the enum of %q does not have", v, k.Key))
+		if !slices.Contains(accepted, v) {
+			return wholeLine(fmt.Errorf("keyedBy: arms names %q, which the enums line of %q does not accept", v, k.Key))
 		}
 		if item.Properties.GetOrZero(k.Arms[v]) == nil {
 			return wholeLine(fmt.Errorf("keyedBy: arms names %q, which the items of %q do not have", k.Arms[v], line.Field))
@@ -473,6 +494,21 @@ func keyedObjectProblem(item *base.Schema, line overrides.Line, isString func(st
 	}
 	if k.KeyAs != "" && !isString(k.KeyAs) {
 		return wholeLine(fmt.Errorf("keyedBy: keyAs %q is not a string property of the items of %q", k.KeyAs, line.Field))
+	}
+	return nil
+}
+
+// optionalProblem checks an optional line. The SDK holds a field that the contract requires as a
+// value, which Create would send as its zero value when Terraform leaves the field out. Only a
+// list or a map is nil when it is left out, so only they can be optional.
+func optionalProblem(schema *base.Schema, line overrides.Line) *lineIssue {
+	built, err := schema.Properties.GetOrZero(line.Field).BuildSchema()
+	if err != nil {
+		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
+	}
+	isMap := slices.Equal(built.Type, []string{"object"}) && built.AdditionalProperties != nil && built.AdditionalProperties.A != nil
+	if !slices.Equal(built.Type, []string{"array"}) && !isMap {
+		return wholeLine(fmt.Errorf("optional needs a list or a map, but %q is %v: the SDK holds a required value, which Create sends as its zero value", line.Field, built.Type))
 	}
 	return nil
 }

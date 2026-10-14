@@ -1400,6 +1400,7 @@ func objectFields(s *base.Schema, path string, w walk, component string) ([]*Fie
 		}
 		a.Required = slices.Contains(required, name)
 		a.Computed = w.policy.computed(component, name)
+		a.KeepState = w.policy.keepsState(component, name)
 		if w.policy != nil && w.policy.readOnly(component, name) {
 			// A readOnly line states what the contract cannot: the request shares the component
 			// with the response, and the server ignores the value that a request sends.

@@ -452,10 +452,23 @@ func (f *File) checkTypes() error {
 		if t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 {
 			return fmt.Errorf("types.%s has no override", name)
 		}
-		for field, line := range t.Fields {
+		names := map[string]string{}
+		for _, field := range sortedKeys(t.Fields) {
+			line := t.Fields[field]
 			if err := line.check(); err != nil {
 				return fmt.Errorf("types.%s.fields.%s: %w", name, field, err)
 			}
+			if len(line.CreateAs) != 0 && name != f.Resource {
+				// Only the Create body of the resource has top-level fields to fold.
+				return fmt.Errorf("types.%s.fields.%s: createAs works on a field of the resource component %s only", name, field, f.Resource)
+			}
+			if line.Name == "" {
+				continue
+			}
+			if other, ok := names[line.Name]; ok {
+				return fmt.Errorf("types.%s.fields.%s: name %q is also the name of %s", name, field, line.Name, other)
+			}
+			names[line.Name] = field
 		}
 		for field, extra := range t.ExtraAttributes {
 			if err := extra.check(field); err != nil {
@@ -828,6 +841,9 @@ func (f *File) Policy() model.Policy {
 			if c := t.Fields[field].Computed; c != nil && *c {
 				p.Computed = append(p.Computed, name+"."+field)
 			}
+			if t.Fields[field].UseStateForUnknown || t.Fields[field].UseNonNullStateForUnknown {
+				p.KeepState = append(p.KeepState, name+"."+field)
+			}
 			if t.Fields[field].Collection == "set" {
 				p.Sets = append(p.Sets, name+"."+field)
 			}
@@ -872,6 +888,7 @@ func (f *File) Policy() model.Policy {
 // Lines returns one description per line of the file that the contract must match,
 // in a stable order. The generator uses it to report a line that matches nothing.
 func (f *File) Lines() []Line {
+	file := f
 	var out []Line
 	for _, name := range sortedKeys(f.Enums) {
 		out = append(out, Line{Kind: KindEnum, Component: name, EnumZero: f.Enums[name].Zero, EnumValues: f.Enums[name].Values, EnumRejected: f.Enums[name].Rejected})
@@ -883,7 +900,7 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Equality: f.Equality, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Accepted: file.accepted(f.KeyedBy), Equality: f.Equality, Keys: f.keys()})
 		}
 	}
 	return out
@@ -917,7 +934,10 @@ type Line struct {
 	RequestValueBy map[string]string
 	// KeyedBy is, for a field line, the key and value properties of a list shown as a map.
 	KeyedBy *KeyedBy
-	Keys    []string // for a field line: every key that the line sets
+	// Accepted are, for a keyedBy object line, the accepted values of each enum that has an enums
+	// line: the attributes that the object can have.
+	Accepted map[string][]string
+	Keys     []string // for a field line: every key that the line sets
 }
 
 // String names the line as it is written in the file.
@@ -957,4 +977,17 @@ func checkCreateAs(into map[string]string) error {
 		seen[flat] = true
 	}
 	return nil
+}
+
+// accepted returns the accepted values of each enum that has an enums line, for a keyedBy object
+// line, and nil for any other line.
+func (f *File) accepted(k *KeyedBy) map[string][]string {
+	if k == nil || !k.Object {
+		return nil
+	}
+	out := map[string][]string{}
+	for name, e := range f.Enums {
+		out[name] = slices.Clone(e.Values)
+	}
+	return out
 }

@@ -66,6 +66,9 @@ type Policy struct {
 	Optional []string
 	// Computed lists "Component.field" of fields that a computed: true line makes computed.
 	Computed []string
+	// KeepState lists "Component.field" of fields whose line keeps the state value for an unknown
+	// plan value (useStateForUnknown or useNonNullStateForUnknown).
+	KeepState []string
 	// Sets lists "Component.field" of ordered lists of the contract that the resource shows as sets.
 	Sets []string
 	// Names maps "Component.field" to the Terraform attribute name of the field.
@@ -299,6 +302,12 @@ func (p *Policy) withOptional(component string, s *base.Schema) *base.Schema {
 // ComputedLine reports whether a computed: true line makes component.field computed. The
 // model holds such an object as a types.Object, which can be unknown in a plan.
 func (p Policy) ComputedLine(component, field string) bool { return p.computed(component, field) }
+
+// keepsState reports whether a line keeps the state value of component.field when the plan has
+// none, so Update can send the value that Get returned.
+func (p *Policy) keepsState(component, field string) bool {
+	return p != nil && component != "" && slices.Contains(p.KeepState, component+"."+field)
+}
 
 func (p *Policy) computed(component, field string) bool {
 	return p != nil && component != "" && slices.Contains(p.Computed, component+"."+field)

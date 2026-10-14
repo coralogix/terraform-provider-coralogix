@@ -128,9 +128,12 @@ type Attrs struct {
 	// Computed: a computed: true line keeps the value of the field in state. With a Get that
 	// requires the field, state always has a value that Update can send.
 	Computed bool
-	Required bool    // in the parent "required" list
-	Presence bool    // x-coralogix-presence: true
-	Default  *string // YAML text of "default", nil when there is none
+	// KeepState: a line keeps the state value for an unknown plan value (useStateForUnknown or
+	// useNonNullStateForUnknown).
+	KeepState bool
+	Required  bool    // in the parent "required" list
+	Presence  bool    // x-coralogix-presence: true
+	Default   *string // YAML text of "default", nil when there is none
 	// ReadOnly: readOnly: true. In a request, the server sets the field, so the request does not send it.
 	ReadOnly bool
 }

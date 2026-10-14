@@ -401,3 +401,19 @@ func TestEnumNamesAreChecked(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateAsAndNamesAreCheckedAcrossLines(t *testing.T) {
+	for name, types := range map[string]string{
+		"createAs on a nested component": "  Quota:\n    fields:\n      limit: {createAs: {max: maxValue}}\n",
+		"two fields with one name":       "  R:\n    fields:\n      applicationFilters: {name: apps}\n      appFilters: {name: apps}\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n" + types)); err == nil {
+				t.Fatal("want an error")
+			}
+		})
+	}
+	if _, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: {createAs: {limit: limitValue}}\n")); err != nil {
+		t.Fatalf("createAs on the resource component: %v", err)
+	}
+}

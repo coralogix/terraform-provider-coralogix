@@ -90,6 +90,18 @@ func TestSkipOfARequiredRequestFieldIsRefused(t *testing.T) {
 	}
 }
 
+// A required property that the request marks read-only is required in responses only, so the
+// request does not send it, and a skip line can leave it out.
+func TestSkipOfARequiredReadOnlyRequestFieldIsAccepted(t *testing.T) {
+	spec := replaceOnce(t, echoedSpec(t), "              title: Replace Echo Thing Request\n              type: object\n              required: [id, name, kind]\n",
+		"              title: Replace Echo Thing Request\n              type: object\n              required: [id, name, kind, isInternal]\n")
+	spec = replaceOnce(t, spec, "                createTime: {type: string}\n                isInternal: {type: boolean}\n",
+		"                createTime: {type: string}\n                isInternal: {type: boolean, readOnly: true}\n")
+	if err := echoedErr(t, spec, echoedOverrides(t)); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func hasIssueAt(report issue.Report, code, location string) bool {
 	for _, item := range report {
 		if item.Code == code && strings.Contains(item.Location+" "+item.Message, location) {
@@ -106,12 +118,13 @@ func TestEchoedContractNeedsEachLine(t *testing.T) {
 		line, code, location string
 		without              string // the line without the key, when the line has other keys
 	}{
-		"createAs folds the flat Create field":               {"      quota: {createAs: {limit: limitValue}, computed: true}\n", "FIELD_LIFECYCLE_UNSUPPORTED", "EchoThing.quota", "      quota: {computed: true}\n"},
-		"readOnly on a server flag of a shared component":    {"      exceeded: {readOnly: true, name: has_exceeded}\n", "FIELD_LIFECYCLE_UNSUPPORTED", "quota.exceeded", "      exceeded: {name: has_exceeded}\n"},
-		"computed keeps a value Update requires":             {"      limit: {computed: true, validators: [{atLeast: 0}]}\n", "FIELD_REQUIREDNESS_UNSUPPORTED", "quota.limit", "      limit: {validators: [{atLeast: 0}]}\n"},
-		"optional relaxes a required list that may be empty": {"      values: {optional: true, collection: set, name: tags}\n", "REQUIRED_VALUE_CAN_BE_EMPTY", "values", "      values: {collection: set, name: tags}\n"},
-		"computed states the presence of a plain bool":       {"      enabled: {computed: true, name: enable}\n", "FIELD_PRESENCE_UNKNOWN", "enabled", "      enabled: {name: enable}\n"},
-		"skip of an empty oneOf marker":                      {"      none: {skip: true}\n", "RENDERER_SHAPE_UNSUPPORTED", "none", ""},
+		"createAs folds the flat Create field":                      {"      quota: {createAs: {limit: limitValue}, computed: true}\n", "FIELD_LIFECYCLE_UNSUPPORTED", "EchoThing.quota", "      quota: {computed: true}\n"},
+		"readOnly on a server flag of a shared component":           {"      exceeded: {readOnly: true, name: has_exceeded}\n", "FIELD_LIFECYCLE_UNSUPPORTED", "quota.exceeded", "      exceeded: {name: has_exceeded}\n"},
+		"computed keeps a value Update requires":                    {"      limit: {computed: true, useStateForUnknown: true, validators: [{atLeast: 0}]}\n", "FIELD_REQUIREDNESS_UNSUPPORTED", "quota.limit", "      limit: {useStateForUnknown: true, validators: [{atLeast: 0}]}\n"},
+		"useStateForUnknown keeps the value in the plan for Update": {"      limit: {computed: true, useStateForUnknown: true, validators: [{atLeast: 0}]}\n", "FIELD_REQUIREDNESS_UNSUPPORTED", "quota.limit", "      limit: {computed: true, validators: [{atLeast: 0}]}\n"},
+		"optional relaxes a required list that may be empty":        {"      values: {optional: true, collection: set, name: tags}\n", "REQUIRED_VALUE_CAN_BE_EMPTY", "values", "      values: {collection: set, name: tags}\n"},
+		"computed states the presence of a plain bool":              {"      enabled: {computed: true, name: enable}\n", "FIELD_PRESENCE_UNKNOWN", "enabled", "      enabled: {name: enable}\n"},
+		"skip of an empty oneOf marker":                             {"      none: {skip: true}\n", "RENDERER_SHAPE_UNSUPPORTED", "none", ""},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -146,6 +159,18 @@ func TestEchoedContractRefusesWrongLines(t *testing.T) {
 				return replaceOnce(t, o, "{computed: true, name: enable}", "{computed: true, name: enable, optional: true}")
 			},
 			code: "OVERRIDE_UNUSED", location: "EchoItem",
+		},
+		"optional on a required scalar": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "      values: {optional: true,", "      key: {optional: true}\n      values: {optional: true,")
+			},
+			code: "OVERRIDE_UNUSED", location: "needs a list or a map",
+		},
+		"optional on a resource field that no request requires": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "items: {name: entries, keyedBy: {key: key}}", "items: {name: entries, keyedBy: {key: key}, optional: true}")
+			},
+			code: "OVERRIDE_UNUSED", location: "already leave",
 		},
 		"name that the JSON name already gives": {
 			overrides: func(t *testing.T, o string) string {
@@ -189,6 +214,12 @@ func TestEchoedContractRefusesWrongLines(t *testing.T) {
 			},
 			code: "OVERRIDE_UNUSED", location: "required string",
 		},
+		"keyedBy with a value that the items do not require": {
+			spec: func(t *testing.T, s string) string {
+				return replaceOnce(t, s, "    Label:\n      type: object\n      required: [name, value]\n", "    Label:\n      type: object\n      required: [name]\n")
+			},
+			code: "OVERRIDE_UNUSED", location: "not a required property",
+		},
 		"keyedBy with a value next to other properties": {
 			overrides: func(t *testing.T, o string) string {
 				return replaceOnce(t, o, "keyedBy: {key: key}", "keyedBy: {key: key, value: values}")
@@ -206,6 +237,18 @@ func TestEchoedContractRefusesWrongLines(t *testing.T) {
 				return replaceOnce(t, o, "arms: {MEASURE_KIND_SAMPLES: samples}", "arms: {MEASURE_KIND_MAX: samples}")
 			},
 			code: "OVERRIDE_UNUSED", location: "MEASURE_KIND_MAX",
+		},
+		"keyedBy object with an arm of the zero value": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "arms: {MEASURE_KIND_SAMPLES: samples}", "arms: {MEASURE_KIND_UNSPECIFIED: samples}")
+			},
+			code: "OVERRIDE_UNUSED", location: "MEASURE_KIND_UNSPECIFIED",
+		},
+		"keyedBy object whose key has no enums line": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "  MeasureKind:\n", "  OtherKind:\n")
+			},
+			code: "OVERRIDE_UNUSED", location: "needs an enums line",
 		},
 		"keyedBy object with keyAs that is not a string": {
 			overrides: func(t *testing.T, o string) string {

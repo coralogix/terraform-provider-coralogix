@@ -275,3 +275,24 @@ func TestBuildSendsTheFieldsOfARequestBodyWrittenAsAllOf(t *testing.T) {
 		}
 	}
 }
+
+// An empty marker arm of a group that allows no arm holds no value, so skip can leave it out,
+// whether the type has other fields (Object) or only the arms (OneOf).
+func TestSkippableEmptyArm(t *testing.T) {
+	empty := &Type{Kind: Object, Schema: "Empty"}
+	detail := &Type{Kind: Object, Schema: "Detail", Fields: []*Field{{Name: "text", Type: &Type{Kind: String}}}}
+	arms := []*Field{{Name: "none", Type: empty}, {Name: "detail", Type: detail}}
+	pure := &Type{Kind: OneOf, Schema: "Item", Fields: arms, AllowNone: true}
+	if !skippableArm(pure, "none") || skippableArm(pure, "detail") {
+		t.Fatal("a pure oneOf that allows no arm: want only the empty arm skippable")
+	}
+	pure.AllowNone = false
+	if skippableArm(pure, "none") {
+		t.Fatal("a pure oneOf that needs an arm: want no arm skippable")
+	}
+	mixed := &Type{Kind: Object, Schema: "Item", Fields: append([]*Field{{Name: "key", Type: &Type{Kind: String}}}, arms...),
+		Groups: []OneOfGroup{{Arms: []string{"none", "detail"}, AllowNone: true}}}
+	if !skippableArm(mixed, "none") || skippableArm(mixed, "detail") || skippableArm(mixed, "key") {
+		t.Fatal("an object with a group that allows no arm: want only the empty arm skippable")
+	}
+}
