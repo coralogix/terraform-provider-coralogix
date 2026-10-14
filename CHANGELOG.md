@@ -6,6 +6,14 @@
 - FEAT: Validation rejects a `time_selection.quick_selection.seconds` that is not a preset, and a `filters.filters[*].selected_values` entry set to `false`: the API stores the nearest preset and drops false values, so the read would disagree with the plan.
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
 
+#### resource/coralogix_dashboards_folder
+- CHORE: The resource and the data source are generated from the API contract. Schema version stays 1, and the schema is the same.
+- CHORE: Create no longer sends an id that the provider made up: the server assigns it, and Create reads the folder with that id.
+- FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it failed with the plain 404.
+
+#### data-source/coralogix_dashboards_folder
+- FIX: A folder that is not found by `id` or `name` ends with an error and returns. Before, a folder without a name could stop the provider with a nil pointer, and the data source went on to write an empty state.
+
 #### resource/coralogix_view_folder
 - CHORE: The resource is generated from the API contract. Schema version stays 1. `id` stays computed and keeps its value when the folder is renamed. `name` stays required and must be between 1 and 100 characters.
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
@@ -35,6 +43,12 @@
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.30`.
+- FEAT: `api.idField` names the field of the resource that the id path parameter names, when it has another name (`{folder_id}` in the path, `id` in the resource).
+- FEAT: `api.createResponseID` names the property of a Create response that holds only the id. The generated Create then reads the resource with Get.
+- FEAT: An existing resource can have an Update response with no fields. The generated Update then reads the resource with Get.
+- FIX: Validation reads the fields of a Get response whose resource field is `allOf` a reference, as the OpenAPI fork writes a field with a description. It reported every field as missing from Get.
+- FIX: The SDK check writes a path parameter in camel case (`folder_id` is `folderId`), as openapi-generator does.
 - CHORE: Bump the generator to `v0.1.0-beta.29`.
 - CHORE: Bump the generator to `v0.1.0-beta.28`.
 - FEAT: A new resource gets its docs example, `import.sh`, acceptance test, and registration in `internal/provider/generated/registry.go`. `acceptance.yaml` is optional for it. `make codegen RESOURCE=X OUT=x` runs the generator and the docs. `--out` must be a directory in `internal/provider/generated`.

@@ -1,0 +1,41 @@
+# Where coralogix_dashboards_folder differs from the API contract, because users already have it.
+#
+# A field with a line here keeps its released behavior. A field without a line follows the
+# API contract.
+resource: DashboardFolder
+mode: existing
+typeName: dashboards_folder
+
+markdownDescription: "Coralogix Custom Dashboards folder. Folders organize dashboards into a navigable catalog. For more info please review - https://coralogix.com/docs/user-guides/custom-dashboards/tutorials/manage-dashboard-catalog/."
+
+schema:
+  version: 1
+
+# The released resource did not check the limits of the contract.
+validators:
+  inferred: false
+
+api:
+  # Create and Update send {"folder": {...}}, and the other property of the body is an
+  # idempotency key that the resource does not send.
+  requestWrapper: folder
+  # Replace has no id in its path.
+  updateIDInBody: true
+  # The path parameter is folder_id, and the resource field is id.
+  idField: id
+  # The Create response holds only the id, in folderId. Replace returns an empty object.
+  createResponseID: folderId
+  # The DashboardFolder schema is shared with the requests, so the contract cannot require the
+  # id in Get. The API returns it in every response.
+  serverSetID: true
+
+types:
+  DashboardFolder:
+    fields:
+      id:
+        readOnly: true
+        markdownDescription: "Unique identifier for the folder."
+      name:
+        markdownDescription: "Display name of the folder."
+      parentId:
+        markdownDescription: "Parent folder id."

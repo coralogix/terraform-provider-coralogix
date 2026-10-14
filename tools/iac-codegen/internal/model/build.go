@@ -74,11 +74,14 @@ func BuildWithPolicy(doc *v3.Document, name string, ids OperationIDs, policy Pol
 		return nil, err
 	}
 	if !r.Singleton {
-		index := slices.IndexFunc(r.Fields, func(field *ResourceField) bool { return field.Name == r.IDParam })
+		index := slices.IndexFunc(r.Fields, func(field *ResourceField) bool { return field.Name == r.IDField() })
 		if index < 0 {
-			return nil, fmt.Errorf("%s: no field %q for the id path parameter", r.Name, r.IDParam)
+			return nil, fmt.Errorf("%s: no field %q for the id path parameter", r.Name, r.IDField())
 		}
 		r.IDType = r.Fields[index].Type
+		if r.Create.Response.ID != "" && r.IDType.Kind != String {
+			return nil, fmt.Errorf("%s: the Create response holds the id as a string, but the id field %q is not a string", r.Name, r.IDField())
+		}
 	}
 	r.pruneSkipped()
 	if err := r.unwrap(); err != nil {
@@ -323,7 +326,7 @@ func (r *Resource) readTargets(ops map[verb]foundOp) error {
 		if o.Body, err = bodyName(f.op); err != nil {
 			return fmt.Errorf("%s: %w", v, err)
 		}
-		if o.Response, err = r.response(f.op, v != opDelete); err != nil {
+		if o.Response, err = r.response(f.op, v); err != nil {
 			return fmt.Errorf("%s: %w", v, err)
 		}
 	}
@@ -533,17 +536,19 @@ func okSchema(op *v3.Operation) (*base.SchemaProxy, error) {
 	return resp.Content.GetOrZero(jsonMedia).Schema, nil
 }
 
-// response reads the 200 response. When wrapped is true, the response must
-// have exactly one property, and that property must be the resource.
-// response reads the 200 response. With wrapped, it must return the resource:
-// the resource itself (Direct), or one field that wraps it.
-func (r *Resource) response(op *v3.Operation, wrapped bool) (Response, error) {
+// response reads the 200 response. Except for Delete, it must return the resource: the
+// resource itself (Direct), or one field that wraps it. An existing resource can also have a
+// Create response that holds only the id (Policy.CreateResponseID), and an Update response with
+// no fields. The generated code then reads the resource with Get.
+func (r *Resource) response(op *v3.Operation, v verb) (Response, error) {
+	wrapped := v != opDelete
 	schema, err := okSchema(op)
 	if err != nil {
 		return Response{}, err
 	}
 	proxy := responseRef(schema)
-	if proxy == nil && !wrapped && emptyInlineObject(schema) {
+	emptyAllowed := !wrapped || v == opUpdate && r.Policy.Existing
+	if proxy == nil && emptyAllowed && emptyInlineObject(schema) {
 		// google.protobuf.Empty is an inline object with no fields. The SDK
 		// returns map[string]interface{}, the same as for an empty component.
 		return Response{Empty: true}, nil
@@ -556,8 +561,16 @@ func (r *Resource) response(op *v3.Operation, wrapped bool) (Response, error) {
 		return Response{}, err
 	}
 	out := Response{Schema: name}
+	if v == opCreate && r.Policy.CreateResponseID != "" {
+		return r.idResponse(out, proxy)
+	}
 	if !wrapped {
 		return emptyResponse(out, proxy)
+	}
+	if v == opUpdate && r.Policy.Existing {
+		if out, err = emptyResponse(out, proxy); err != nil || out.Empty {
+			return out, err
+		}
 	}
 	if name == r.Name {
 		out.Direct = true
@@ -579,6 +592,29 @@ func (r *Resource) response(op *v3.Operation, wrapped bool) (Response, error) {
 		return Response{}, fmt.Errorf("response %s.%s is %s, want %s", name, keys[0], inner, r.Name)
 	}
 	out.Field = keys[0]
+	return out, nil
+}
+
+// idResponse reads a Create response that holds only the id of the new resource, in the property
+// that the behavior-overrides file names.
+func (r *Resource) idResponse(out Response, proxy *base.SchemaProxy) (Response, error) {
+	s, err := schemaOf(proxy)
+	if err != nil {
+		return Response{}, err
+	}
+	key := r.Policy.CreateResponseID
+	property := propertyOf(s, key)
+	if property == nil {
+		return Response{}, fmt.Errorf("response %s has no property %q for the id (api.createResponseID)", out.Schema, key)
+	}
+	ps, err := schemaOf(property)
+	if err != nil {
+		return Response{}, fmt.Errorf("response %s.%s: %w", out.Schema, key, err)
+	}
+	if !slices.Equal(ps.Type, []string{"string"}) {
+		return Response{}, fmt.Errorf("response %s.%s has type %v, want a string id", out.Schema, key, ps.Type)
+	}
+	out.ID = key
 	return out, nil
 }
 
@@ -828,8 +864,8 @@ func (r *Resource) checkBodies(createBody, updateBody, getSchema *base.Schema, u
 			return fmt.Errorf("%s: unexpected %s property", loc.name, name)
 		}
 	}
-	if !r.Singleton && propertyOf(getSchema, r.IDParam) == nil {
-		return fmt.Errorf("%s: no field %q for the id path parameter", r.Name, r.IDParam)
+	if !r.Singleton && propertyOf(getSchema, r.IDField()) == nil {
+		return fmt.Errorf("%s: no field %q for the id path parameter", r.Name, r.IDField())
 	}
 	for _, loc := range []location{{"create body", createBody}, {"update body", updateBody}, {r.Name, getSchema}} {
 		if err := checkRequired(loc.schema); err != nil {
@@ -991,7 +1027,7 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		return nil, fmt.Errorf("update body: %w", err)
 	}
 	gp := propertyOf(getSchema, name)
-	behavior, err := classifyTopLevel(r.Policy, r.IDParam, name, cp != nil, up != nil, gp != nil, schemaDefault(up) != nil)
+	behavior, err := classifyTopLevel(r.Policy, r.IDField(), name, cp != nil, up != nil, gp != nil, schemaDefault(up) != nil)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", name, err)
 	}

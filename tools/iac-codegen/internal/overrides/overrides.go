@@ -164,6 +164,12 @@ type API struct {
 	RequestWrapper string `yaml:"requestWrapper"`
 	// UpdateIDInBody: Update has no id in its path. The id is a field of the resource.
 	UpdateIDInBody bool `yaml:"updateIDInBody"`
+	// IDField is the field of the resource that the id path parameter names, when the field has
+	// another name: the path has {folder_id} and the resource has id.
+	IDField string `yaml:"idField"`
+	// CreateResponseID is the property of the Create response that holds the id of the new
+	// resource, when the response does not return the resource. Create then reads the resource.
+	CreateResponseID string `yaml:"createResponseID"`
 	// ClientSetID: the client can send the id on Create.
 	ClientSetID bool `yaml:"clientSetID"`
 	// ServerSetID: the server sets the id and returns it in every response, but the Get
@@ -655,6 +661,8 @@ func (f *File) Policy() model.Policy {
 		Existing:         true,
 		RequestWrapper:   f.API.RequestWrapper,
 		UpdateIDInBody:   f.API.UpdateIDInBody,
+		IDField:          f.API.IDField,
+		CreateResponseID: f.API.CreateResponseID,
 		ClientSetID:      f.API.ClientSetID,
 		ServerSetID:      f.API.ServerSetID,
 		CustomMethods:    f.API.CustomMethods,

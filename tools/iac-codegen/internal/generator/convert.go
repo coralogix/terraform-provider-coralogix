@@ -1653,7 +1653,7 @@ func idGuard(r *model.Resource) string {
 	if r.Singleton || !r.Policy.ClientSetID && !r.Policy.ServerSetID {
 		return ""
 	}
-	return camelize(r.IDParam)
+	return camelize(r.IDField())
 }
 
 // addToGroup puts the field cf of the root object in its group. The group is an object of its

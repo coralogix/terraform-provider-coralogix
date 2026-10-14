@@ -254,7 +254,8 @@ func (s *resolver) operation(r *model.Resource, name string, op model.Operation,
 		if err != nil {
 			return fmt.Errorf("%s.id: %w", path, err)
 		}
-		params += ", " + r.IDParam + " " + idType
+		// openapi-generator writes the path parameter in camel case: folder_id is folderId.
+		params += ", " + lowerFirst(camelize(r.IDParam)) + " " + idType
 	}
 	s.add(sdkRef{Path: path, Kind: kindMethod, Owner: client, Name: method,
 		Want: "func(" + params + ") " + builder, Rule: ruleOperationID})
@@ -286,6 +287,10 @@ func (s *resolver) operation(r *model.Resource, name string, op model.Operation,
 	s.add(sdkRef{Path: path + ".response", Kind: kindType, Name: resp, Rule: ruleComponent})
 	s.add(sdkRef{Path: path, Kind: kindMethod, Owner: builder, Name: "Execute",
 		Want: "func() (*" + resp + ", *http.Response, error)", Rule: ruleOperationID})
+	if op.Response.ID != "" {
+		s.add(sdkRef{Path: path + ".response." + op.Response.ID, Kind: kindField, Owner: resp,
+			Name: goFieldName(op.Response.ID), Want: "*string", WantValue: "string", Rule: ruleProperty})
+	}
 	if op.Response.Field != "" {
 		s.add(sdkRef{Path: path + ".response." + op.Response.Field, Kind: kindField, Owner: resp,
 			Name: goFieldName(op.Response.Field), Want: "*" + goTypeName(r.Name), WantValue: goTypeName(r.Name), Rule: ruleProperty})
@@ -471,7 +476,7 @@ func serverSetBodyID(r *model.Resource) *model.ResourceField {
 	if r.Singleton || !r.Policy.UpdateIDInBody {
 		return nil
 	}
-	i := slices.IndexFunc(r.Fields, func(f *model.ResourceField) bool { return f.Name == r.IDParam })
+	i := slices.IndexFunc(r.Fields, func(f *model.ResourceField) bool { return f.Name == r.IDField() })
 	if i < 0 || r.Fields[i].Update != nil {
 		return nil
 	}

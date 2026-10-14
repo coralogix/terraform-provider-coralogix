@@ -371,6 +371,12 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		body.{{.UpdateBodyID}} = {{if not .UpdateBodyIDValue}}&{{end}}id
 {{- end}}
 		v, err = r.update(ctx{{if not .UpdateIDInBody}}, id{{end}}, body{{if and (not .Replace) (not .MaskInBody)}}, mask{{end}})
+{{- if .Update.Empty}}
+		if err == nil {
+			// The Update response has no fields. Read the resource that it changed.
+			v, err = r.get(ctx, id)
+		}
+{{- end}}
 	}
 	if {{$cx}}.{{.APINotFound}}(err) {
 		// The framework does not allow Update to remove the resource from state.
@@ -407,11 +413,25 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBod
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 	}
+{{- if .Create.ResponseID}}
+	if out == nil || {{if not .Create.ResponseIDValue}}out.{{.Create.ResponseID}} == nil{{else}}out.{{.Create.ResponseID}} == ""{{end}} {
+		return nil, fmt.Errorf("the API did not return the id of the new resource")
+	}
+	id := {{if not .Create.ResponseIDValue}}*{{end}}out.{{.Create.ResponseID}}
+	// The Create response holds only the id. Read the resource that it created.
+	v, err := r.get(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("created %s with id %v, but could not read it: %w", TypeName, id, err)
+	}
+	return v, nil
+}
+{{- else}}
 	if out == nil {
 		return nil, nil
 	}
 	return {{if .Create.Response}}{{if .Create.ResponseValue}}&{{end}}out.{{.Create.Response}}{{else}}out{{end}}, nil
 }
+{{- end}}
 
 func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Resource}}, error) {
 	out, httpResp, err := r.client.{{.Get.Method}}(ctx{{if not .Singleton}}, id{{end}}).Execute()
@@ -425,6 +445,13 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 }
 
 func (r *Resource) update(ctx context.Context{{if not .UpdateIDInBody}}, id {{.IDGoType}}{{end}}, body *{{$sdk}}.{{$.Conv.UpdateBody}}{{if and (not .Replace) (not .MaskInBody)}}, mask string{{end}}) (*{{$sdk}}.{{.Resource}}, error) {
+{{- if .Update.Empty}}
+	_, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}(*body){{if and (not .Replace) (not .MaskInBody)}}.{{.UpdateMask}}(mask){{end}}.Execute()
+	if err != nil {
+		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
+	}
+	return nil, nil
+{{- else}}
 	out, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}(*body){{if and (not .Replace) (not .MaskInBody)}}.{{.UpdateMask}}(mask){{end}}.Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
@@ -433,6 +460,7 @@ func (r *Resource) update(ctx context.Context{{if not .UpdateIDInBody}}, id {{.I
 		return nil, nil
 	}
 	return {{if .Update.Response}}{{if .Update.ResponseValue}}&{{end}}out.{{.Update.Response}}{{else}}out{{end}}, nil
+{{- end}}
 }
 
 func (r *Resource) delete(ctx context.Context, id {{.IDGoType}}) error {

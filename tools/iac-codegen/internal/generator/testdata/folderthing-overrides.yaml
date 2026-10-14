@@ -1,0 +1,20 @@
+# A released resource like the dashboards folder.
+resource: FolderThing
+mode: existing
+typeName: folder_thing_v2
+
+validators:
+  inferred: false
+
+api:
+  requestWrapper: thing
+  updateIDInBody: true
+  idField: id
+  createResponseID: thingId
+  serverSetID: true
+
+types:
+  FolderThing:
+    fields:
+      id:
+        readOnly: true

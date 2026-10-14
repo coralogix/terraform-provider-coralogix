@@ -6,7 +6,7 @@
   {
     "step": "import an id that is not a UUID (refresh)",
     "applyDiagnostics": [
-      "error: Error reading coralogix_dashboard_folder | error - folderId must have at least 36 elements\noperation - Read"
+      "error: Unable to read dashboards_folder | id not-a-uuid: folderId must have at least 36 elements"
     ],
     "state": {
       "id": "not-a-uuid",

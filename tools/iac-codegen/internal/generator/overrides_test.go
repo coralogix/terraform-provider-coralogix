@@ -885,3 +885,37 @@ func TestSiblingValidatorTargetsMustExist(t *testing.T) {
 		}
 	}
 }
+
+// A Create response that holds only the id, and an id path parameter with another name than the
+// id field, need the idField and createResponseID lines. A line that names nothing is an error.
+func TestFolderBodyIDOverrides(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "folderthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const head = "resource: FolderThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  FolderThing:\n    fields:\n      id: {readOnly: true}\napi:\n  requestWrapper: thing\n  updateIDInBody: true\n  serverSetID: true\n"
+	tests := map[string]struct {
+		api  string
+		want string
+	}{
+		"no lines":                {"", "RESOURCE_LIFECYCLE_INCOMPLETE"},
+		"no id field":             {"  createResponseID: thingId\n", "UPDATE_ID_NOT_IN_BODY"},
+		"unknown id field":        {"  idField: key\n  createResponseID: thingId\n", "RESOURCE_LIFECYCLE_INCOMPLETE"},
+		"unknown response id":     {"  idField: id\n  createResponseID: key\n", "RESOURCE_LIFECYCLE_INCOMPLETE"},
+		"valid lines": {"  idField: id\n  createResponseID: thingId\n", ""},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := validateOpenAPIWith(spec, "FolderThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, head+test.api))
+			if test.want == "" {
+				if err != nil && !strings.Contains(err.Error(), "SDK_") {
+					t.Fatalf("err = %v, want none", err)
+				}
+				return
+			}
+			if !slices.Contains(eligibilityCodes(t, err), test.want) {
+				t.Fatalf("err = %v, want %s", err, test.want)
+			}
+		})
+	}
+}

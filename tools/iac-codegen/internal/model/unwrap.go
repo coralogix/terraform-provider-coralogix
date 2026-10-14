@@ -15,7 +15,7 @@ func (r *Resource) unwrap() error {
 		if err != nil {
 			return err
 		}
-		if len(t.Wrappers) != 0 && f.Name == r.IDParam {
+		if len(t.Wrappers) != 0 && f.Name == r.IDField() {
 			return unwrapError(fieldLocation(r.Name, f.Name), "UNWRAP_COMPONENT_UNSUPPORTED",
 				"The resource id cannot be inside a wrapper: the generated calls send it as a path parameter.",
 				"Delete the unwrap line or the list entry that names the wrapper of the id.")

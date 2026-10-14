@@ -31,6 +31,13 @@ type Policy struct {
 	// the resource in the body. Update uses the Create path, unless CustomMethods
 	// names a different path.
 	UpdateIDInBody bool
+	// IDField is the field of the resource that the id path parameter names, when the field has
+	// another name. "" means the field has the name of the parameter.
+	IDField string
+	// CreateResponseID is the property of the Create response that holds the id, when the
+	// response does not return the resource (an existing resource only). Create reads the
+	// resource with Get. "" means that the Create response holds the resource.
+	CreateResponseID string
 	// CustomMethods means Get, Update, and Delete are not the Create path with an id.
 	// Get and Delete each carry the same {id} path parameter. Update has no path
 	// parameter. New resources leave this false.
@@ -247,4 +254,12 @@ func (p Policy) pruneType(t *Type, seen map[*Type]bool) {
 	for _, f := range t.Fields {
 		p.pruneType(f.Type, seen)
 	}
+}
+
+// idField returns the field of the resource that the id path parameter param names.
+func (p Policy) idField(param string) string {
+	if p.IDField != "" {
+		return p.IDField
+	}
+	return param
 }

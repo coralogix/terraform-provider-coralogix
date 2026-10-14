@@ -15,7 +15,6 @@
         "path": "/mgmt/openapi/5/dashboards/folders/v1",
         "body": {
           "folder": {
-            "id": "<generated-id-1>",
             "name": "gone"
           }
         },
@@ -23,12 +22,12 @@
       },
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-1>",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
         "status": 200
       }
     ],
     "state": {
-      "id": "<generated-id-1>",
+      "id": "00000000-0000-4000-8000-000000000001",
       "name": "gone",
       "parent_id": null
     },
@@ -40,7 +39,7 @@
       "name": "gone-renamed"
     },
     "plan": {
-      "id": "<generated-id-1>",
+      "id": "00000000-0000-4000-8000-000000000001",
       "name": "gone-renamed",
       "parent_id": null
     },
@@ -50,7 +49,7 @@
         "path": "/mgmt/openapi/5/dashboards/folders/v1",
         "body": {
           "folder": {
-            "id": "<generated-id-1>",
+            "id": "00000000-0000-4000-8000-000000000001",
             "name": "gone-renamed"
           }
         },
@@ -58,10 +57,10 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_dashboard_folder | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: folder with id DashboardFolderId(<generated-id-1>) does not exist\"}\noperation - Replace"
+      "error: Unable to update dashboards_folder | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: folder with id DashboardFolderId(00000000-0000-4000-8000-000000000001) does not exist\"}"
     ],
     "state": {
-      "id": "<generated-id-1>",
+      "id": "00000000-0000-4000-8000-000000000001",
       "name": "gone",
       "parent_id": null
     }

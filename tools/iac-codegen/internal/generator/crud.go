@@ -90,6 +90,13 @@ type crudOp struct {
 	// ResponseValue: the response field is a value, not a pointer. openapi-generator uses a value
 	// for a required field.
 	ResponseValue bool
+	// ResponseID is the response field that holds only the id of the resource: a Create response
+	// that does not return the resource. The generated call then reads the resource with Get.
+	ResponseID string
+	// ResponseIDValue: the id field is a value, not a pointer.
+	ResponseIDValue bool
+	// Empty: the response has no fields, so the generated call reads the resource with Get.
+	Empty bool
 }
 
 // buildCRUD maps the operations and their SDK names to the template data.
@@ -186,14 +193,14 @@ func resourceIDData(r *model.Resource, ix *refIndex, out *crudData) error {
 		return fmt.Errorf("resource id: Go type %s is not supported", idGoType)
 	}
 	out.IDGoType = idGoType
-	id, err := ix.fieldRef("fields." + r.IDParam)
+	id, err := ix.fieldRef("fields." + r.IDField())
 	if err != nil {
 		return err
 	}
 	if id.Want != "*"+idGoType && id.Want != idGoType {
 		return fmt.Errorf("SDK field %s has type %s, the id needs *%s or %s", id.sdkName(), id.Want, idGoType, idGoType)
 	}
-	out.IDAttr, out.IDField, out.IDValue = tfName(r.IDParam), id.Name, id.Want == idGoType
+	out.IDAttr, out.IDField, out.IDValue = tfName(r.IDField()), id.Name, id.Want == idGoType
 	return nil
 }
 
@@ -209,7 +216,7 @@ func updateIDFromState(r *model.Resource, ix *refIndex, out *crudData) error {
 		out.UpdateBodyID, out.UpdateBodyIDValue = goFieldName(wrapper)+"."+out.IDField, out.IDValue
 		return nil
 	}
-	id, err := ix.fieldRef("update.body." + r.IDParam)
+	id, err := ix.fieldRef("update.body." + r.IDField())
 	if err != nil {
 		return err
 	}
@@ -249,7 +256,8 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string) (crudOp, err
 	if (o.op.Body != "") != o.body {
 		return out, fmt.Errorf("%s: request body %q is not supported", o.name, o.op.Body)
 	}
-	if (o.op.Response.Field != "" || o.op.Response.Direct) != o.resource {
+	readsBack := o.op.Response.ID != "" || o.name == "update" && o.op.Response.Empty
+	if (o.op.Response.Field != "" || o.op.Response.Direct) != o.resource && !readsBack {
 		return out, fmt.Errorf("%s: response field %q is not supported", o.name, o.op.Response.Field)
 	}
 	method, err := ix.methodRef(o.name, client)
@@ -267,6 +275,21 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string) (crudOp, err
 			return out, err
 		}
 		out.Body = body.Name
+	}
+	if o.op.Response.ID != "" {
+		field, err := ix.fieldRef(o.name + ".response." + o.op.Response.ID)
+		if err != nil {
+			return out, err
+		}
+		if field.Want != "*string" && field.Want != "string" {
+			return out, fmt.Errorf("SDK field %s has type %s, want *string", field.sdkName(), field.Want)
+		}
+		out.ResponseID, out.ResponseIDValue = field.Name, field.Want == "string"
+		return out, nil
+	}
+	if o.name == "update" && o.op.Response.Empty {
+		out.Empty = true
+		return out, nil
 	}
 	if o.resource && !o.op.Response.Direct {
 		field, err := ix.fieldRef(o.name + ".response." + o.op.Response.Field)

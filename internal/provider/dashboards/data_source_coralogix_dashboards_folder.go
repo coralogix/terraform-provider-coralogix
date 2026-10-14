@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/dashboardsfolder"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
@@ -29,7 +30,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
@@ -64,12 +64,8 @@ func (d *DashboardsFolderDataSource) Configure(_ context.Context, req datasource
 	d.client = clientSet.DashboardsFolders()
 }
 
-func (d *DashboardsFolderDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r DashboardsFolderResource
-	var resourceResp resource.SchemaResponse
-	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
-
-	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+func (d *DashboardsFolderDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(dashboardsfolder.Schema())
 
 	if idAttr, ok := resp.Schema.Attributes["id"].(schema.StringAttribute); ok {
 		idAttr.Required = false
@@ -88,7 +84,7 @@ func (d *DashboardsFolderDataSource) Schema(ctx context.Context, _ datasource.Sc
 }
 
 func (d *DashboardsFolderDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data DashboardsFolderResourceModel
+	var data dashboardsfolder.DashboardFolderModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -101,22 +97,30 @@ func (d *DashboardsFolderDataSource) Read(ctx context.Context, req datasource.Re
 		resp.Diagnostics.AddError("Error listing coralogix_dashboard_folder", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
 		return
 	}
-	var dashboardsFolder dbfs.DashboardFolder
-	var found = false
-	for _, folder := range listResult.GetFolder() {
-		found = folder.GetId() == data.ID.ValueString() ||
-			*folder.Name == data.Name.ValueString()
-		if found {
-			dashboardsFolder = folder
+
+	// Exactly one of id/name is set, so match on the one the caller actually gave.
+	byID := !data.Id.IsNull() && !data.Id.IsUnknown()
+	folders := listResult.GetFolder()
+	var match *dbfs.DashboardFolder
+	for i := range folders {
+		if byID && folders[i].GetId() == data.Id.ValueString() ||
+			!byID && folders[i].GetName() == data.Name.ValueString() {
+			match = &folders[i]
 			break
 		}
 	}
-	if !found {
+	if match == nil {
 		resp.Diagnostics.AddError(
 			"Error reading coralogix_dashboard_folders",
-			fmt.Sprintf("Could not find folder with id (%s) or name (%s)", data.ID.ValueString(), data.Name.ValueString()),
+			fmt.Sprintf("Could not find folder with id (%s) or name (%s)", data.Id.ValueString(), data.Name.ValueString()),
 		)
+		return
 	}
-	data = flattenDashboardsFolder(&dashboardsFolder)
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+
+	flat, diags := dashboardsfolder.Flatten(ctx, match)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, flat)...)
 }

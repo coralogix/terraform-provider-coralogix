@@ -15,7 +15,6 @@
         "path": "/mgmt/openapi/5/dashboards/folders/v1",
         "body": {
           "folder": {
-            "id": "<generated-id-1>",
             "name": ""
           }
         },
@@ -23,7 +22,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_dashboard_folder | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: folder name cannot be empty\"}\noperation - Create"
+      "error: Unable to create dashboards_folder | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: folder name cannot be empty\"}"
     ],
     "state": null
   }

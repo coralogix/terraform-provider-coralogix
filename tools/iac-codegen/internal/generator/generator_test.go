@@ -1991,3 +1991,53 @@ func TestFollowUpUpdateSendsTheServerSetID(t *testing.T) {
 	}
 	compileGenerated(t, out, input)
 }
+
+// The golden output of a released resource whose path parameter has another name than the id
+// field, whose Create returns only the id, and whose Replace returns an object with no fields.
+func TestGoldenOutputFolderBody(t *testing.T) {
+	out := generateFolderThing(t)
+	golden := filepath.Join("testdata", "golden", "folderthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputFolderBody -update:\n%s", diff)
+	}
+}
+
+// Create reads the resource that it made, with Get, because its response holds only the id.
+// Update reads it too, because the Replace response has no fields.
+func TestFolderBodyRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateFolderThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "folderthing_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// generateFolderThing generates the synthetic resource whose Create returns only the id.
+func generateFolderThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "folderthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "folderthing")
+	options := Options{Resource: "FolderThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "folderthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}

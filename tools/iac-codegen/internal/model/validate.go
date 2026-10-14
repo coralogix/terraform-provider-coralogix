@@ -303,7 +303,7 @@ func validateFieldContracts(p Policy, name string, ops map[verb]foundOp) issue.R
 	// The component is validated by Survey. Build performs the detailed
 	// request/response match after this pass.
 	resourceProxy := responseResourceProxy(ops[opGet].op, name)
-	get, getErr := schemaOf(resourceProxy)
+	get, getErr := schemaOf(referencedSchema(resourceProxy))
 	if getErr != nil {
 		return nil
 	}
@@ -314,7 +314,7 @@ func validateFieldContracts(p Policy, name string, ops map[verb]foundOp) issue.R
 	var report issue.Report
 	idParam, bodyOnlyID := "", ""
 	if params := pathParams(ops[opGet]); len(params) == 1 {
-		idParam = params[0].Name
+		idParam = p.idField(params[0].Name)
 		if len(pathParams(ops[opUpdate])) == 0 && !p.UpdateIDInBody {
 			bodyOnlyID = idParam
 		}
@@ -344,7 +344,7 @@ func bodyIDIssues(p Policy, ops map[verb]foundOp, create, update *base.Schema) i
 	if len(params) != 1 {
 		return nil // A singleton has no id, and Build reports an unsupported identity shape.
 	}
-	id := params[0].Name
+	id := p.idField(params[0].Name)
 	var report issue.Report
 	if p.ClientSetID && bodyProperty(create, id) == nil {
 		report = append(report, issue.Issue{
@@ -371,10 +371,10 @@ func bodyIDIssues(p Policy, ops map[verb]foundOp, create, update *base.Schema) i
 // planned id instead of the state id, so a change could name another resource.
 func serverSetIDIssues(p Policy, name string, ops map[verb]foundOp, create, update *base.Schema) issue.Report {
 	params := pathParams(ops[opGet])
-	if !p.ServerSetID || len(params) != 1 || p.readOnly(name, params[0].Name) {
+	if len(params) != 1 || !p.ServerSetID || p.readOnly(name, p.idField(params[0].Name)) {
 		return nil
 	}
-	id := params[0].Name
+	id := p.idField(params[0].Name)
 	var report issue.Report
 	for _, body := range []struct {
 		op     verb
@@ -425,13 +425,14 @@ func isReadOnly(s *base.Schema) bool {
 // resource by its id, so a resource without the id attribute cannot read, update, delete, or import.
 func skippedIDIssues(p Policy, name string, ops map[verb]foundOp) issue.Report {
 	params := pathParams(ops[opGet])
-	if len(params) != 1 || !p.skips(name, params[0].Name) {
+	if len(params) != 1 || !p.skips(name, p.idField(params[0].Name)) {
 		return nil
 	}
+	id := p.idField(params[0].Name)
 	return issue.Report{{
 		Code:        "RESOURCE_ID_SKIPPED",
-		Location:    "components.schemas." + name + "." + params[0].Name,
-		Message:     fmt.Sprintf("The override skips the resource id field %q. Read, Update, Delete, and import need it.", params[0].Name),
+		Location:    "components.schemas." + name + "." + id,
+		Message:     fmt.Sprintf("The override skips the resource id field %q. Read, Update, Delete, and import need it.", id),
 		Remediation: "Delete the skip line of the resource id from the overrides.",
 	}}
 }
@@ -489,7 +490,7 @@ func resourceIDIssues(p Policy, name string, ops map[verb]foundOp, get *base.Sch
 	if len(params) != 1 {
 		return nil // Build reports an unsupported resource identity shape.
 	}
-	id := params[0].Name
+	id := p.idField(params[0].Name)
 	property := propertyOf(get, id)
 	if property == nil {
 		return nil
