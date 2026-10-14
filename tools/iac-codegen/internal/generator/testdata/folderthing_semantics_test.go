@@ -2,6 +2,7 @@ package folderthing
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -89,5 +90,29 @@ func TestUpdateReadsTheThingWithGet(t *testing.T) {
 	}
 	if len(folder_things_service.GetIDs) != 1 || folder_things_service.GetIDs[0] != id {
 		t.Fatalf("get ids = %v, want the id of the thing", folder_things_service.GetIDs)
+	}
+}
+
+// A Get that fails after Create made the thing keeps the id in the state, so Terraform marks the
+// resource as tainted instead of leaving it behind.
+func TestCreateKeepsTheIDWhenTheReadFails(t *testing.T) {
+	ctx := context.Background()
+	folder_things_service.GetErr = errors.New("read failed")
+	defer func() { folder_things_service.GetErr = nil }()
+	r, schemaResp, root := thingSchema(t)
+	plan := thingValue(root, tftypes.NewValue(tftypes.String, tftypes.UnknownValue), tftypes.NewValue(tftypes.String, "a"))
+	config := thingValue(root, tftypes.NewValue(tftypes.String, nil), tftypes.NewValue(tftypes.String, "a"))
+	resp := &frameworkresource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(root, nil)}}
+	r.Create(ctx, frameworkresource.CreateRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: config},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan},
+	}, resp)
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("create with a failing read: want an error")
+	}
+	var id types.String
+	resp.State.GetAttribute(ctx, path.Root("id"), &id)
+	if id.ValueString() != folder_things_service.CreatedID {
+		t.Fatalf("state id = %q, want %q", id.ValueString(), folder_things_service.CreatedID)
 	}
 }

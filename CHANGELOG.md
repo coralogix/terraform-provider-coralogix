@@ -47,6 +47,7 @@
 - CHORE: Bump the generator to `v0.1.0-beta.30`.
 - FEAT: `api.idField` names the field of the resource that the id path parameter names, when it has another name (`{folder_id}` in the path, `id` in the resource).
 - FEAT: `api.createResponseID` names the property of a Create response that holds only the id. The generated Create then reads the resource with Get.
+- FIX: A generated Create that reads the resource after it made it keeps the id in the state when that read fails, so Terraform marks the resource as tainted instead of leaving it behind.
 - FEAT: An existing resource can have an Update response with no fields. The generated Update then reads the resource with Get.
 - FIX: Validation reads the fields of a Get response whose resource field is `allOf` a reference, as the OpenAPI fork writes a field with a description. It reported every field as missing from Get.
 - FIX: The SDK check writes a path parameter in camel case (`folder_id` is `folderId`), as openapi-generator does.

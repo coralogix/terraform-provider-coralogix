@@ -111,6 +111,11 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	v, err := r.create(ctx, body)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create "+TypeName, err.Error())
+		if v != nil {
+			// The resource exists, but reading it failed. Keep the id, so Terraform marks the
+			// resource as tainted and can delete it.
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), *v.Id)...)
+		}
 		return
 	}
 	diags = r.setState(ctx, v, req.Plan, &resp.State)
@@ -218,7 +223,11 @@ func (r *Resource) create(ctx context.Context, body *dashboard_folders_service.C
 	// The Create response holds only the id. Read the resource that it created.
 	v, err := r.get(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("created %s with id %v, but could not read it: %w", TypeName, id, err)
+		// Return the id with the error, so Create can keep it in the state.
+		return &dashboard_folders_service.DashboardFolder{Id: &id}, fmt.Errorf("created %s with id %v, but could not read it: %w", TypeName, id, err)
+	}
+	if v == nil {
+		return &dashboard_folders_service.DashboardFolder{Id: &id}, fmt.Errorf("created %s with id %v, but the API returned no resource", TypeName, id)
 	}
 	return v, nil
 }

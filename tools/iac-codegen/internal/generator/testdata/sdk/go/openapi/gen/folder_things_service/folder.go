@@ -53,6 +53,8 @@ var (
 	CreatedID = "folder-1"
 	Stored    FolderThing
 	GetIDs    []string
+	// GetErr makes Get fail.
+	GetErr error
 )
 
 // The path parameter is thing_id in the contract, which openapi-generator writes as thingId.
@@ -94,6 +96,9 @@ func (r ApiFolderThingsServiceCreateFolderThingRequest) Execute() (*CreateFolder
 
 func (r ApiFolderThingsServiceGetFolderThingRequest) Execute() (*GetFolderThingResponse, *http.Response, error) {
 	GetIDs = append(GetIDs, r.id)
+	if GetErr != nil {
+		return nil, nil, GetErr
+	}
 	stored := Stored
 	return &GetFolderThingResponse{Thing: &stored}, nil, nil
 }
