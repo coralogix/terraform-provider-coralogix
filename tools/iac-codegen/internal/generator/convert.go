@@ -210,6 +210,10 @@ const (
 	convScalars = "scalars" // types.List/Set ↔ []bool, []int32, []int64, []float32, []float64
 	// convNamedInts is a list or set of integers that Terraform shows as names (valueNames).
 	convNamedInts = "namedints" // types.List/Set of types.String ↔ []int32, []int64
+	// convInt32AsInt64 and convInts32AsInt64 keep the released Int64 type of an int32 field
+	// (terraformType: Int64).
+	convInt32AsInt64  = "int32asint64"  // types.Int64 ↔ *int32
+	convInts32AsInt64 = "ints32asint64" // types.List/Set of types.Int64Type ↔ []int32
 
 	convStringMap = "stringmap" // types.Map ↔ map[string]string or map[string]<enum type>
 	convScalarMap = "scalarmap" // types.Map ↔ map[string]bool, int32, int64, float32, float64
@@ -964,6 +968,22 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	}
 }
 
+// applyTerraformType converts an int32 field, or a list or set of int32, to the released Int64.
+func (b *convBuilder) applyTerraformType(cf *convField, component, name string) error {
+	if b.resource.Policy.TerraformType(component, name) == "" {
+		return nil
+	}
+	switch {
+	case cf.Conv == convInt32:
+		cf.Conv = convInt32AsInt64
+	case cf.Conv == convScalars && cf.SDKType == "int32":
+		cf.Conv, cf.ElemType = convInts32AsInt64, "types.Int64Type"
+	default:
+		return fmt.Errorf("%s: terraformType Int64 needs an int32 field, or a list or set of int32", cf.TFName)
+	}
+	return nil
+}
+
 // applyValueNames converts a list or set of integers to the names of its values and back.
 func (b *convBuilder) applyValueNames(cf *convField, component, name string) error {
 	if b.file == nil {
@@ -1058,6 +1078,9 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 		return nil, fmt.Errorf("%s: %w", cf.TFName, errUnwrapCombination)
 	}
 	if err := b.applyValueNames(cf, component, name); err != nil {
+		return nil, err
+	}
+	if err := b.applyTerraformType(cf, component, name); err != nil {
 		return nil, err
 	}
 	if b.resource.Policy.AsBool(component, name) {
@@ -1534,7 +1557,7 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 var scalarAttrTypes = map[string]string{
 	convString: "types.StringType", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
 	convBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
-	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type",
+	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
 	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
 }
 
@@ -1548,7 +1571,7 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		return "types." + f.Collection + "Type{ElemType: types.StringType}", nil
 	case convTimes:
 		return "types." + f.Collection + "Type{ElemType: " + rfc3339Type + "}", nil
-	case convScalars, convNamedInts:
+	case convScalars, convNamedInts, convInts32AsInt64:
 		return "types." + f.Collection + "Type{ElemType: " + f.ElemType + "}", nil
 	case convScalarMap:
 		return "types.MapType{ElemType: " + f.ElemType + "}", nil
@@ -1906,7 +1929,7 @@ func sameCheck(f *convField) (string, error) {
 			break
 		}
 		return "slices.EqualFunc(" + a + ", " + b + ", time.Time.Equal)", nil
-	case convString, convBool, convFloat64, convFloat32, convInt32, convInt64, convUint64, convEnum, convTime:
+	case convString, convBool, convFloat64, convFloat32, convInt32, convInt32AsInt64, convInt64, convUint64, convEnum, convTime:
 		if !value {
 			a, b = "pointerValue("+a+")", "pointerValue("+b+")"
 		}
@@ -1917,7 +1940,7 @@ func sameCheck(f *convField) (string, error) {
 		return a + " == " + b, nil
 	case convStringMap, convScalarMap, convUint64Map:
 		return "maps.Equal(" + a + ", " + b + ")", nil
-	case convStrings, convScalars, convNamedInts:
+	case convStrings, convScalars, convNamedInts, convInts32AsInt64:
 		if f.Collection == "Set" {
 			break
 		}

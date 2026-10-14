@@ -403,6 +403,9 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 	if err := applyValueNames(a, l); err != nil {
 		return err
 	}
+	if err := applyTerraformType(a, l); err != nil {
+		return err
+	}
 	if l.RequireOne {
 		// On an arm of a top-level oneOf, the resource validator becomes ExactlyOneOf. Elsewhere,
 		// the line names the field that holds the oneOf.
@@ -917,6 +920,32 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 	return nil
 }
 
+// applyTerraformType keeps the released Terraform type of an int32 attribute, or of a list or set
+// of int32: Int64. The validators follow the type.
+func applyTerraformType(a *tfAttr, l overrides.Field) error {
+	if l.TerraformType == "" {
+		return nil
+	}
+	retype := func(vs []string) []string {
+		out := make([]string, 0, len(vs))
+		for _, v := range vs {
+			out = append(out, strings.NewReplacer("int32validator.", "int64validator.", "ValueInt32sAre(", "ValueInt64sAre(").Replace(v))
+		}
+		return out
+	}
+	switch {
+	case a.Kind == "Int32":
+		a.Kind, a.ValueKind = "Int64", "Int64"
+	case (a.Kind == "Set" || a.Kind == "List") && a.ElementType == "types.Int32Type":
+		a.ElementType = "types.Int64Type"
+		a.ElemValidators = retype(a.ElemValidators)
+	default:
+		return fmt.Errorf("terraformType Int64 needs an int32 attribute, or a list or set of int32, not a %s", a.Kind)
+	}
+	a.Validators, a.GroupValidators = retype(a.Validators), retype(a.GroupValidators)
+	return nil
+}
+
 // applyValueNames makes a list or set of integers a list or set of the names of its values. Only
 // the names are valid, so the line also brings their OneOf validator.
 func applyValueNames(a *tfAttr, l overrides.Field) error {
@@ -1205,7 +1234,7 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 		}
 	case model.Integer:
 		goType = "types.Int64"
-		if t.Format == "int32" {
+		if t.Format == "int32" && b.policy.TerraformType(component, name) == "" {
 			goType = "types.Int32"
 		}
 	case model.Set:

@@ -98,6 +98,8 @@ func TestParseIsStrict(t *testing.T) {
 		"unwrap twice":                      {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nunwrap: [A, A]\n", "names A twice"},
 		"skip and unwrap":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, unwrap: true}\n", "skipped field"},
 		"requestValue and name":             {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {requestValue: X, name: g}\n", "requestValue field is no Terraform attribute"},
+		"terraformType other than Int64":    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {terraformType: Int16}\n", "want \"Int64\""},
+		"skip and terraformType":            {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, terraformType: Int64}\n", "skipped field"},
 		"skip and name":                     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, name: g}\n", "skipped field"},
 		"bad name":                          {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {name: Time-Frame}\n", "is not a Terraform attribute name"},
 		"empty value name":                  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {valueNames: {1: Sunday, 2: \"\"}}\n", "2 has an empty name"},

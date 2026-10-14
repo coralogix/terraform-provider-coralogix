@@ -13,6 +13,7 @@ type SuppressedThing struct {
 	Repeat            *Repeat
 	Filter            *Filter
 	ScheduleOperation ThingOperation
+	Priority          *int32
 }
 
 type Filter struct {
@@ -54,6 +55,7 @@ const (
 type Window struct {
 	Timezone   string
 	DaysOfWeek []int32
+	Hours      []int32
 }
 
 type CreateSuppressedThingRequest struct {

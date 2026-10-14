@@ -47,6 +47,9 @@ type Policy struct {
 	// Bools are the "Component.field" objects without fields that a bool attribute shows: true
 	// when the object is present.
 	Bools []string
+	// TerraformTypes maps "Component.field" to the released Terraform type of an int32 field when it
+	// is not Int32: Int64.
+	TerraformTypes map[string]string
 	// DefaultArms are the "Component.field" oneOf arms that Create and Update send empty when the
 	// configuration sets no arm of the group.
 	DefaultArms []string
@@ -212,6 +215,15 @@ func (p Policy) methods(v verb) []string {
 		return []string{"POST"}
 	}
 	return verbMethods[v]
+}
+
+// TerraformType returns the released Terraform type of field of component, or "" for the type of
+// the contract.
+func (p Policy) TerraformType(component, field string) string {
+	if component == "" {
+		return ""
+	}
+	return p.TerraformTypes[component+"."+field]
 }
 
 // AsBool reports whether a bool attribute shows the object field of component.

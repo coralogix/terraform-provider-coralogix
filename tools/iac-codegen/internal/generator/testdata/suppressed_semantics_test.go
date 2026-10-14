@@ -17,7 +17,7 @@ import (
 func ptr[T any](v T) *T { return &v }
 
 func model(id types.String) *SuppressedThingModel {
-	return &SuppressedThingModel{UniqueIdentifier: id, Name: types.StringValue("rule"), Window: &WindowModel{Timezone: types.StringValue("UTC+2"), DaysOfWeek: types.SetNull(types.StringType)}, ScheduleOperation: types.StringValue("active")}
+	return &SuppressedThingModel{UniqueIdentifier: id, Name: types.StringValue("rule"), Window: &WindowModel{Timezone: types.StringValue("UTC+2"), DaysOfWeek: types.SetNull(types.StringType), Hours: types.SetNull(types.Int64Type)}, ScheduleOperation: types.StringValue("active")}
 }
 
 // The server sets the id: Create sends no id, also when the plan has one.
@@ -268,5 +268,49 @@ func TestUnknownArmSendsNoDefaultArm(t *testing.T) {
 	body, _ := expandCreate(context.Background(), m)
 	if body != nil && body.SuppressedThing.Filter != nil && body.SuppressedThing.Filter.Ids != nil {
 		t.Fatalf("an unknown ids arm sent %#v, want no default arm", body.SuppressedThing.Filter.Ids)
+	}
+}
+
+// priority and hours keep the released Int64 type, while the API holds int32. A value outside the
+// int32 range is an error, not a wrapped number.
+func TestInt64AttributesSendInt32(t *testing.T) {
+	ctx := context.Background()
+	m := model(types.StringValue("rule-1"))
+	m.Priority = types.Int64Value(7)
+	m.Window.Hours = types.SetValueMust(types.Int64Type, []attr.Value{types.Int64Value(8), types.Int64Value(20)})
+	body, diags := expandCreate(ctx, m)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	thing := body.SuppressedThing
+	if thing.Priority == nil || *thing.Priority != 7 {
+		t.Fatalf("priority 7 was sent as %v, want 7", thing.Priority)
+	}
+	if got := slices.Sorted(slices.Values(thing.Window.Hours)); !slices.Equal(got, []int32{8, 20}) {
+		t.Fatalf("hours [8 20] were sent as %v", got)
+	}
+
+	m.Priority = types.Int64Value(1 << 31)
+	if _, diags := expandCreate(ctx, m); !diags.HasError() {
+		t.Fatal("priority 2^31 must be an error: the API holds int32")
+	}
+	m.Priority = types.Int64Value(7)
+	m.Window.Hours = types.SetValueMust(types.Int64Type, []attr.Value{types.Int64Value(-(1 << 31) - 1)})
+	if _, diags := expandCreate(ctx, m); !diags.HasError() {
+		t.Fatal("an hour below the int32 range must be an error")
+	}
+
+	flat, diags := flatten(ctx, &suppressed_things_service.SuppressedThing{
+		UniqueIdentifier: ptr("rule-1"), Name: "rule", ScheduleOperation: suppressed_things_service.THINGOPERATION_THING_OPERATION_MUTE,
+		Priority: ptr(int32(3)), Window: &suppressed_things_service.Window{Timezone: "UTC", Hours: []int32{6}},
+	})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if !flat.Priority.Equal(types.Int64Value(3)) {
+		t.Fatalf("priority 3 read back as %v", flat.Priority)
+	}
+	if want := types.SetValueMust(types.Int64Type, []attr.Value{types.Int64Value(6)}); !flat.Window.Hours.Equal(want) {
+		t.Fatalf("hours [6] read back as %v", flat.Window.Hours)
 	}
 }

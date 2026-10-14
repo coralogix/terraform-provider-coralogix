@@ -97,6 +97,7 @@ components:
         repeat: {$ref: '#/components/schemas/Repeat'}
         filter: {$ref: '#/components/schemas/Filter'}
         scheduleOperation: {$ref: '#/components/schemas/ThingOperation'}
+        priority: {type: integer, format: int32, x-coralogix-presence: true}
     ThingOperation:
       type: string
       enum: [THING_OPERATION_UNSPECIFIED, THING_OPERATION_MUTE, THING_OPERATION_ACTIVATE]
@@ -151,6 +152,10 @@ components:
       properties:
         timezone: {type: string, minLength: 1}
         daysOfWeek:
+          type: array
+          x-coralogix-collection: set
+          items: {type: integer, format: int32}
+        hours:
           type: array
           x-coralogix-collection: set
           items: {type: integer, format: int32}

@@ -1058,6 +1058,7 @@ func TestIDPropertyMissingFromCreateIsComputed(t *testing.T) {
         repeat: {$ref: '#/components/schemas/Repeat'}
         filter: {$ref: '#/components/schemas/Filter'}
         scheduleOperation: {$ref: '#/components/schemas/ThingOperation'}
+        priority: {type: integer, format: int32, x-coralogix-presence: true}
 `
 	file := mustParse(t, "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  idProperty: uniqueIdentifier\nunwrap: [Ids]\ntypes:\n  SuppressedThing:\n    fields:\n      uniqueIdentifier: {name: id}\n      id: {skip: true}\n  SuppressedThingDraft:\n    fields:\n      id: {skip: true}\n")
 	validated, err := validateOpenAPIWith([]byte(spec), "SuppressedThing", model.OperationIDs{}, "sdk", "provider", file)
@@ -1144,5 +1145,13 @@ func TestNestedGroupModelNameClash(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "the model struct DynamicFrequencyModel is made by") ||
 		!strings.Contains(err.Error(), "the component DynamicFrequency") || !strings.Contains(err.Error(), "types.Dynamic.groups.frequency") {
 		t.Fatalf("err = %v, want a model struct clash", err)
+	}
+}
+
+// terraformType keeps a released Int64 on an int32 field, or a list or set of int32 only.
+func TestTerraformTypeNeedsAnInt32Field(t *testing.T) {
+	err := generateSuppressedWith(t, "timezone: {name: time_zone}", "timezone: {name: time_zone, terraformType: Int64}")
+	if err == nil || !strings.Contains(err.Error(), "terraformType Int64 needs an int32") {
+		t.Fatalf("err = %v, want terraformType Int64 needs an int32 field", err)
 	}
 }

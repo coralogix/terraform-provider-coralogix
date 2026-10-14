@@ -22,6 +22,8 @@ types:
       id: {skip: true}
       window: {name: time_frame}
       scheduleOperation: {name: operation, validators: [{enum: true}]}
+      # The released attributes are Int64; the API holds int32.
+      priority: {terraformType: Int64}
   Filter:
     fields:
       ids: {defaultArm: true, readEmptyAs: "null"}
@@ -36,6 +38,7 @@ types:
   Window:
     fields:
       timezone: {name: time_zone}
+      hours: {terraformType: Int64}
       daysOfWeek:
         name: days
         valueNames: {1: Sunday, 2: Monday, 3: Tuesday, 4: Wednesday, 5: Thursday, 6: Friday, 7: Saturday}
