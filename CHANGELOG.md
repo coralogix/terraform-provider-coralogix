@@ -1,5 +1,15 @@
 # Unreleased
 
+#### resource/coralogix_alerts_scheduler
+- CHORE: The resource is generated from the API contract. Schema version stays 0, and plans and state keep their values: `start_time` and `time_zone` keep their configured form (with or without `Z`, `UTC` or `UTC+0`), and `UTC` is sent as `UTC+0`.
+- FIX: `schedule.recurring.dynamic.frequency.daily = {}` no longer fails with "inconsistent result after apply". The state keeps `daily = {}`.
+- FIX: `filter.alerts_unique_ids = []` no longer fails with "inconsistent result after apply". The state keeps `[]`; a filter without a selector still sends an empty `alertUniqueIds` and reads back as null.
+- FEAT: Validation requires `weekly.days` and `monthly.days`, and exactly one of `daily`, `weekly`, or `monthly` in `frequency`. Before, the API rejected such a rule at apply.
+- CHORE: `id` stays known in the plan of an update. `for_over`, `repeat_every`, and `monthly.days` are 32-bit numbers, as the API stores them. Update reads the rule from the replace response instead of a second read. Attributes without a description show the API description.
+
+#### data-source/coralogix_alerts_scheduler
+- CHORE: Uses the schema and the conversion of the generated resource.
+
 #### provider
 - CHORE: Bump `coralogix-management-sdk` to the version with the alert suppression rule contract. The SDK holds required fields as values; `coralogix_alerts_scheduler`, `coralogix_events2metric`, and `coralogix_slo_v2` adapt, with no change to plans or state.
 

@@ -9,32 +9,41 @@ enabled  BoolAttribute optional computed
 filter  SingleNestedAttribute required
     markdown: "Alert Scheduler filter. Only one of `meta_labels` or `alerts_unique_ids` can be set. If none of them set, all alerts will be affected."
 filter.alerts_unique_ids  SetAttribute optional elem=basetypes.StringType
+    markdown: "Alert unique ids."
     validator: schemavalidator.ConflictsWithValidator Ensure that if an attribute is set, these are not set: "[<.meta_labels]"
 filter.meta_labels  SetNestedAttribute optional
+    markdown: "Meta labels."
     validator: schemavalidator.ConflictsWithValidator Ensure that if an attribute is set, these are not set: "[<.alerts_unique_ids]"
 filter.meta_labels[]  NestedObject
 filter.meta_labels[].key  StringAttribute required
+    markdown: "The key."
 filter.meta_labels[].value  StringAttribute optional
+    markdown: "The value."
 filter.what_expression  StringAttribute required
     markdown: "A [DataPrime](https://coralogix.com/docs/dataprime-query-language/) expression that filters which **group-by values** to suppress within the selected alerts. The expression must start with `source logs | filter` (this syntax is required even for metric or tracing alerts - the filtering works on group-by values regardless of alert type). Use `\"source logs | filter true\"` to suppress all alert activity without filtering specific values. Use `\"source logs | filter $d.fieldName == 'value'\"` to suppress only when specific group-by values match. This field controls **what triggered values** to suppress, while `alerts_unique_ids` or `meta_labels` control **which alerts** the rule applies to."
 id  StringAttribute computed
     markdown: "Alert Scheduler ID."
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 meta_labels  SetNestedAttribute optional
     markdown: "Alert Scheduler meta labels."
 meta_labels[]  NestedObject
 meta_labels[].key  StringAttribute required
+    markdown: "The key."
 meta_labels[].value  StringAttribute optional
+    markdown: "The value."
 name  StringAttribute required
     markdown: "Alert Scheduler name."
 schedule  SingleNestedAttribute required
     markdown: "Exactly one of `one_time` or `recurring` must be set."
 schedule.one_time  SingleNestedAttribute optional
+    markdown: "One time."
     validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.recurring]"
 schedule.one_time.time_frame  SingleNestedAttribute required
+    markdown: "Timeframe."
 schedule.one_time.time_frame.duration  SingleNestedAttribute optional
     markdown: "The duration from the start time to wait."
     validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.end_time]"
-schedule.one_time.time_frame.duration.for_over  Int64Attribute required
+schedule.one_time.time_frame.duration.for_over  Int32Attribute required
     markdown: "The number of time units to wait before the alert is triggered. For example, if the frequency is set to `hours` and the value is set to `2`, the alert will be triggered after 2 hours."
 schedule.one_time.time_frame.duration.frequency  StringAttribute required
     markdown: "The time unit to wait before the alert is triggered. Can be `minutes`, `hours` or `days`."
@@ -55,23 +64,36 @@ schedule.recurring  SingleNestedAttribute optional
     validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.one_time]"
 schedule.recurring.always_active  BoolAttribute optional
     markdown: "When set to `true`, creates a permanent suppression rule that is always active. This is mutually exclusive with `dynamic`. When using `always_active = true`, no time frame or frequency configuration is needed."
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.dynamic]"
 schedule.recurring.dynamic  SingleNestedAttribute optional
-    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.always_active,<.dynamic]"
+    markdown: "Dynamic."
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.always_active]"
 schedule.recurring.dynamic.frequency  SingleNestedAttribute required
 schedule.recurring.dynamic.frequency.daily  SingleNestedAttribute optional
+    markdown: "Daily."
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.weekly,<.monthly]"
 schedule.recurring.dynamic.frequency.monthly  SingleNestedAttribute optional
-schedule.recurring.dynamic.frequency.monthly.days  SetAttribute optional elem=basetypes.Int64Type
+    markdown: "Monthly."
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.daily,<.weekly]"
+schedule.recurring.dynamic.frequency.monthly.days  SetAttribute required elem=basetypes.Int32Type
+    markdown: "The days of month."
 schedule.recurring.dynamic.frequency.weekly  SingleNestedAttribute optional
-schedule.recurring.dynamic.frequency.weekly.days  SetAttribute optional elem=basetypes.StringType
+    markdown: "Weekly."
+    validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.daily,<.monthly]"
+schedule.recurring.dynamic.frequency.weekly.days  SetAttribute required elem=basetypes.StringType
+    markdown: "The days of week."
     validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: value must be one of: ["Friday" "Monday" "Saturday" "Sunday" "Thursday" "Tuesday" "Wednesday"]
-schedule.recurring.dynamic.repeat_every  Int64Attribute required
+schedule.recurring.dynamic.repeat_every  Int32Attribute required
+    markdown: "Interval multiplier controlling how often the rule recurs (e.g., every N days, weeks, or months)."
 schedule.recurring.dynamic.termination_date  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to 
+    markdown: "ISO 8601 date after which the recurring rule stops being applied."
 schedule.recurring.dynamic.time_frame  SingleNestedAttribute required
+    markdown: "Timeframe."
 schedule.recurring.dynamic.time_frame.duration  SingleNestedAttribute optional
     markdown: "The duration from the start time to wait."
     validator: schemavalidator.ExactlyOneOfValidator Ensure that one and only one attribute from this collection is set: "[<.end_time]"
-schedule.recurring.dynamic.time_frame.duration.for_over  Int64Attribute required
+schedule.recurring.dynamic.time_frame.duration.for_over  Int32Attribute required
     markdown: "The number of time units to wait before the alert is triggered. For example, if the frequency is set to `hours` and the value is set to `2`, the alert will be triggered after 2 hours."
 schedule.recurring.dynamic.time_frame.duration.frequency  StringAttribute required
     markdown: "The time unit to wait before the alert is triggered. Can be `minutes`, `hours` or `days`."
