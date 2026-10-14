@@ -184,6 +184,7 @@
               "targetBaseMetricName": "geo_point"
             },
             {
+              "aggregations": [],
               "sourceField": "method",
               "targetBaseMetricName": "method"
             }
@@ -681,6 +682,9 @@
                 {
                   "aggType": "AGG_TYPE_HISTOGRAM",
                   "enabled": false,
+                  "histogram": {
+                    "buckets": []
+                  },
                   "targetMetricName": "histogram"
                 }
               ],

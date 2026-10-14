@@ -184,6 +184,7 @@
               "targetBaseMetricName": "geo_point"
             },
             {
+              "aggregations": [],
               "sourceField": "method",
               "targetBaseMetricName": "method"
             }

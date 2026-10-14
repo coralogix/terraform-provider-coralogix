@@ -36,8 +36,10 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
         "body": {
+          "logsQuery": {},
           "metricFields": [
             {
+              "aggregations": [],
               "sourceField": "a",
               "targetBaseMetricName": "a"
             }
@@ -244,6 +246,9 @@
                 {
                   "aggType": "AGG_TYPE_HISTOGRAM",
                   "enabled": false,
+                  "histogram": {
+                    "buckets": []
+                  },
                   "targetMetricName": "histogram"
                 }
               ],
@@ -490,6 +495,9 @@
                 {
                   "aggType": "AGG_TYPE_HISTOGRAM",
                   "enabled": false,
+                  "histogram": {
+                    "buckets": []
+                  },
                   "targetMetricName": "histogram"
                 }
               ],

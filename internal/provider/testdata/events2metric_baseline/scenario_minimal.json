@@ -26,6 +26,7 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
         "body": {
+          "logsQuery": {},
           "name": "minimal",
           "permutationsLimit": 0,
           "type": "E2M_TYPE_LOGS2METRICS"

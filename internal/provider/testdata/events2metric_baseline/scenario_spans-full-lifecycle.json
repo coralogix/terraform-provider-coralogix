@@ -74,6 +74,7 @@
           "description": "spans2metric",
           "metricFields": [
             {
+              "aggregations": [],
               "sourceField": "duration",
               "targetBaseMetricName": "duration"
             }
@@ -385,6 +386,9 @@
                 {
                   "aggType": "AGG_TYPE_HISTOGRAM",
                   "enabled": false,
+                  "histogram": {
+                    "buckets": []
+                  },
                   "targetMetricName": "histogram"
                 }
               ],

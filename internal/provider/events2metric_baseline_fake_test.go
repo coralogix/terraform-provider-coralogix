@@ -131,7 +131,9 @@ func (f *e2mFake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_ = json.Unmarshal(raw, &rec.Body)
 	}
 	status, body := f.handle(r.Method, r.URL.Path, rec.Body)
-	rec.Body = e2mSortRequest(dropEmptyCollections(rec.Body))
+	// Empty lists and objects stay in the recorded request: sending {} or [] and leaving the key
+	// out are different requests, and the switch to generated code must show such a change.
+	rec.Body = e2mSortRequest(rec.Body)
 	rec.Status = status
 	f.requests = append(f.requests, rec)
 
