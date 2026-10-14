@@ -1,0 +1,29 @@
+[
+  {
+    "step": "empty config",
+    "config": {},
+    "state": null
+  },
+  {
+    "step": "empty name",
+    "config": {
+      "name": ""
+    },
+    "state": null
+  },
+  {
+    "step": "name longer than 100 characters",
+    "config": {
+      "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "state": null
+  },
+  {
+    "step": "parent_id is not a UUID",
+    "config": {
+      "name": "n",
+      "parent_id": "not-a-uuid"
+    },
+    "state": null
+  }
+]
