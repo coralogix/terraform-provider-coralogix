@@ -888,14 +888,15 @@ const runLength = 12
 // and the update starts with "u" instead of "-" so that the two values still differ. A short value
 // is padded with "x". A maximum below the length of @{run} gets a fixed value.
 func madeUpString(name string, updated bool, low, high int) string {
-	if high < runLength {
+	room := high - runLength       // the longest tail that fits with a test run
+	short := low - len(exampleRun) // the shortest tail that fits in the docs example
+	if room < 0 || short > room {
 		n := min(max(low, 1), high)
 		if updated {
 			return strings.Repeat("b", n)
 		}
 		return strings.Repeat("a", n)
 	}
-	room := high - runLength
 	tail := "-" + name
 	if updated {
 		tail += "-updated"
@@ -904,8 +905,8 @@ func madeUpString(name string, updated bool, low, high int) string {
 		}
 	}
 	tail = tail[:min(len(tail), room)]
-	if short := low - runLength - len(tail); short > 0 {
-		tail += strings.Repeat("x", short)
+	if pad := short - len(tail); pad > 0 {
+		tail += strings.Repeat("x", pad)
 	}
 	return "@{run}" + tail
 }

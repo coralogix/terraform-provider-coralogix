@@ -273,7 +273,7 @@ func TestAcceptanceCollectionsFitTheirSize(t *testing.T) {
 }
 
 // A made-up string fits the length validators of the attribute and keeps @{run} when it can.
-// @{run} is 12 characters.
+// @{run} is 12 characters in a test run and 7 ("example") in the docs example: the value fits both.
 func TestAcceptanceStringsFitTheirLength(t *testing.T) {
 	tests := map[string]struct {
 		validator     string
@@ -283,7 +283,8 @@ func TestAcceptanceStringsFitTheirLength(t *testing.T) {
 		"room for both":       {"stringvalidator.LengthBetween(1, 25)", "@{run}-name", "@{run}-name-updated"},
 		"update cut":          {"stringvalidator.LengthAtMost(20)", "@{run}-name", "@{run}uname"},
 		"both cut":            {"stringvalidator.LengthAtMost(15)", "@{run}-na", "@{run}una"},
-		"padded":              {"stringvalidator.LengthAtLeast(30)", "@{run}-namexxxxxxxxxxxxx", "@{run}-name-updatedxxxxx"},
+		"padded":              {"stringvalidator.LengthAtLeast(30)", "@{run}-name" + strings.Repeat("x", 18), "@{run}-name-updated" + strings.Repeat("x", 10)},
+		"too narrow for both": {"stringvalidator.LengthBetween(15, 18)", strings.Repeat("a", 15), strings.Repeat("b", 15)},
 		"no room for the run": {"stringvalidator.LengthBetween(3, 10)", "aaa", "bbb"},
 		"only the run":        {"stringvalidator.LengthAtMost(12)", "@{run}", "@{run}"},
 	}
@@ -299,9 +300,11 @@ func TestAcceptanceStringsFitTheirLength(t *testing.T) {
 			}
 			low, high := lengthRange(a)
 			for _, v := range []string{full, updated} {
-				n := len(strings.ReplaceAll(v, "@{run}", strings.Repeat("r", runLength)))
-				if n < low || n > high {
-					t.Fatalf("%q has length %d, want %d to %d", v, n, low, high)
+				for _, run := range []string{strings.Repeat("r", runLength), exampleRun} {
+					n := len(strings.ReplaceAll(v, "@{run}", run))
+					if n < low || n > high {
+						t.Fatalf("%q with @{run} = %q has length %d, want %d to %d", v, run, n, low, high)
+					}
 				}
 			}
 		})

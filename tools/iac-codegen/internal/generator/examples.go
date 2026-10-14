@@ -27,6 +27,9 @@ const exampleProviders = `terraform {
   }
 }`
 
+// exampleRun is @{run} in the docs example. Made-up strings fit their validators with it too.
+const exampleRun = "example"
+
 var envPlaceholder = regexp.MustCompile(`@\{env\.([A-Z][A-Z0-9_]*)\}`)
 
 // renderExample returns the example of the docs: the prerequisites and the full config of the
@@ -46,7 +49,7 @@ func renderExample(acc *acceptanceData, typeName string) ([]byte, error) {
 	}
 	parts = append(parts, config)
 	text := envPlaceholder.ReplaceAllString(strings.Join(parts, "\n\n")+"\n", "<$1>")
-	text = strings.ReplaceAll(text, "@{run}", "example")
+	text = strings.ReplaceAll(text, "@{run}", exampleRun)
 	if _, diags := hclsyntax.ParseConfig([]byte(text), "resource.tf", hcl.InitialPos); diags.HasErrors() {
 		return nil, fmt.Errorf("example: %s", diags.Error())
 	}

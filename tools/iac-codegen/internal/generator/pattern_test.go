@@ -43,6 +43,20 @@ func TestStringValueMatchesThePattern(t *testing.T) {
 	}
 }
 
+// The docs example replaces @{run} with "example". A pattern that a test run matches and the example
+// does not gets a value without @{run}.
+func TestStringValueMatchesThePatternInTheExample(t *testing.T) {
+	pattern := `^[a-z0-9]+-[0-9a-f]{8}-[a-z]+$`
+	a := &tfAttr{Name: "name", Validators: []string{patternValidator(pattern)}}
+	v := mustStringValue(t, a, false)
+	if strings.Contains(v, "@{run}") {
+		t.Fatalf("value %q keeps @{run}, but %q does not match with %q", v, pattern, exampleRun)
+	}
+	if !regexp.MustCompile(pattern).MatchString(v) {
+		t.Fatalf("value %q does not match %s", v, pattern)
+	}
+}
+
 func TestStringValueKeepsTheMadeUpValueWhenItMatches(t *testing.T) {
 	a := &tfAttr{Name: "name", Validators: []string{patternValidator(`^[a-zA-Z0-9][a-zA-Z0-9_-]*$`)}}
 	if got := mustStringValue(t, a, false); got != "@{run}-name" {
