@@ -407,6 +407,11 @@ func (e Enum) TFValue(v string) string {
 	if tf, ok := e.Names[v]; ok {
 		return tf
 	}
+	return e.defaultTFValue(v)
+}
+
+// defaultTFValue is the Terraform value of v without its names entry.
+func (e Enum) defaultTFValue(v string) string {
 	v = strings.TrimPrefix(v, e.TrimPrefix)
 	if e.Verbatim {
 		return v
@@ -580,6 +585,9 @@ func (f *File) checkEnums() error {
 			}
 			if e.Names[v] == "" {
 				return fmt.Errorf("enums.%s.names: %q has an empty name", name, v)
+			}
+			if e.Names[v] == e.defaultTFValue(v) {
+				return fmt.Errorf("enums.%s.names: %q is already the Terraform value of %q, so the entry changes nothing", name, e.Names[v], v)
 			}
 		}
 		seen := map[string]string{}

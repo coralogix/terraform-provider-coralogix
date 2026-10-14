@@ -106,6 +106,9 @@ func TestParseIsStrict(t *testing.T) {
 		"bad nested group name":             {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    groups:\n      Bad-Name: {fields: [a]}\n", "types.T.groups.Bad-Name: the name is not a Terraform name"},
 		"field in two nested groups":        {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    groups:\n      a: {fields: [x]}\n      b: {fields: [x]}\n", "field x is also in types.T.groups.a"},
 		"zero spelling of a readable rejected value": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    zero: E_TWO\n    values: [E_ONE]\n    rejected: [E_TWO]\n    readRejected: true\n", "zero and the rejected \"E_TWO\" have the same Terraform value"},
+		"name that is the lower case":                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    values: [E_ONE]\n    names: {E_ONE: e_one}\n", "already the Terraform value"},
+		"name that trimPrefix makes":                 {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    trimPrefix: E_\n    values: [E_ONE]\n    names: {E_ONE: one}\n", "already the Terraform value"},
+		"name that verbatim makes":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    verbatim: true\n    values: [E_ONE]\n    names: {E_ONE: E_ONE}\n", "already the Terraform value"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
