@@ -1,0 +1,17 @@
+[
+  {
+    "step": "import an id that is not a UUID",
+    "state": null
+  },
+  {
+    "step": "import an id that is not a UUID (refresh)",
+    "applyDiagnostics": [
+      "error: Error reading coralogix_dashboard_folder | error - folderId must have at least 36 elements\noperation - Read"
+    ],
+    "state": {
+      "id": "not-a-uuid",
+      "name": null,
+      "parent_id": null
+    }
+  }
+]

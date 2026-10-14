@@ -1,0 +1,69 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": "gone"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "name": "gone",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "id": "<generated-id-1>",
+            "name": "gone"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-1>",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "<generated-id-1>",
+      "name": "gone",
+      "parent_id": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: folder was deleted outside Terraform",
+    "config": {
+      "name": "gone-renamed"
+    },
+    "plan": {
+      "id": "<generated-id-1>",
+      "name": "gone-renamed",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "id": "<generated-id-1>",
+            "name": "gone-renamed"
+          }
+        },
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error replacing coralogix_dashboard_folder | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: {\\\"reason\\\":\\\"folder not found\\\"}\"}\noperation - Replace"
+    ],
+    "state": {
+      "id": "<generated-id-1>",
+      "name": "gone",
+      "parent_id": null
+    }
+  }
+]

@@ -1,0 +1,48 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": "gone"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "name": "gone",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "id": "<generated-id-1>",
+            "name": "gone"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-1>",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "<generated-id-1>",
+      "name": "gone",
+      "parent_id": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy: the API answers 404",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-1>",
+        "status": 404
+      }
+    ],
+    "state": null
+  }
+]

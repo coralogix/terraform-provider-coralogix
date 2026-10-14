@@ -1,0 +1,9 @@
+(schema)  version=1
+    markdown: "Coralogix Custom Dashboards folder. Folders organize dashboards into a navigable catalog. For more info please review - https://coralogix.com/docs/user-guides/custom-dashboards/tutorials/manage-dashboard-catalog/."
+id  StringAttribute computed
+    markdown: "Unique identifier for the folder."
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+name  StringAttribute optional
+    markdown: "Display name of the folder."
+parent_id  StringAttribute optional
+    markdown: "Parent folder id."
