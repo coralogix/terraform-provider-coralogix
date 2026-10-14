@@ -256,6 +256,12 @@ func TestEchoedContractRefusesWrongLines(t *testing.T) {
 			},
 			code: "OVERRIDE_UNUSED", location: "keyAs",
 		},
+		"requireOne on a field that holds no oneOf": {
+			overrides: func(t *testing.T, o string) string {
+				return replaceOnce(t, o, "      name:\n        validators:\n", "      name:\n        requireOne: true\n        validators:\n")
+			},
+			code: "RENDERER_SHAPE_UNSUPPORTED", location: "requireOne",
+		},
 		"atLeast on a string": {
 			overrides: func(t *testing.T, o string) string {
 				return replaceOnce(t, o, "          - lengthAtLeast: 1\n", "          - atLeast: 1\n")

@@ -65,6 +65,11 @@
 - FEAT: `skip` can name an empty object arm of a `oneOf` group that allows no arm, such as an `Empty` marker.
 - FIX: The SDK constant of an enum value has "_" between a digit and the letter after it, as openapi-generator writes it (`E2M_TYPE_LOGS2METRICS` is `E2MTYPE_E2_M_TYPE_LOGS2_METRICS`). Before, the SDK check reported the constant missing.
 - FIX: An object that a `computed: true` line makes optional and computed is a `types.Object` in the model, as a response-only object is. Before, it was a pointer to a struct, and Create failed with "Received unknown value" when the configuration left the object to the server. Create and Update send it when it is known, and `createAs` and `requestValueBy` read it.
+- FEAT: `requireOne` on an arm of a top-level oneOf makes the resource validator ExactlyOneOf. On a field that holds no oneOf, the line is an error; before, it changed nothing.
+- FEAT: The attributes of a `keyedBy` object take the `useStateForUnknown` or `useNonNullStateForUnknown` of its line.
+- FEAT: The generated acceptance test supports a oneOf group among the top-level fields: it sets the first arm that the file does not skip.
+- FIX: A list that the contract requires and an `optional` line relaxes is sent as `[]`, not `null`, when the configuration leaves it out.
+- FIX: A `keyedBy` object inside a list or map item generates. Before, the converter looked for an SDK type of the object, which it does not have.
 - FIX: The relaxation for a field that Create leaves optional and Update requires needs `computed: true` and a plan modifier that keeps the state value (`useStateForUnknown` or `useNonNullStateForUnknown`). Before, a change of another attribute planned the field unknown, and Update left out a field that it requires.
 - FIX: `createAs` makes the object required when Create requires a flat field that it holds, and it refuses two lines that send one flat field. A `createAs` line outside the resource component is refused.
 - FIX: `optional` needs a list or a map, and its staleness is checked against the Create and Update requests of the resource. `keyedBy` needs a required `value`, and its object form needs an `enums` line for the key that accepts each value of `arms`. Two `name` lines cannot choose one name.

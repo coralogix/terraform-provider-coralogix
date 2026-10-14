@@ -78,6 +78,11 @@ type tfAttr struct {
 	OneOfGroup string
 	// OneOfRequired says that the group needs one arm (ExactlyOneOf), so every config sets one.
 	OneOfRequired bool
+	// RootArm: the attribute is an arm of a top-level oneOf, which a resource validator checks.
+	RootArm bool
+	// KeyedObject: the attribute is the object of a keyedBy line, with an attribute per value of
+	// the key. Its attributes take the state-keeping plan modifier of its line.
+	KeyedObject bool
 	// EnumSchema is the OpenAPI component of the enum of a scalar attribute, or of the elements
 	// of a list or set, or "".
 	EnumSchema string
@@ -137,7 +142,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	if err := b.rootAttributes(out, root, r, file, groups); err != nil {
 		return nil, err
 	}
-	if err := b.rootOneOfs(r, file, groups); err != nil {
+	if err := b.rootOneOfs(out, r, file, groups); err != nil {
 		return nil, err
 	}
 	if err := groups.check(out.Attributes); err != nil {
@@ -327,6 +332,17 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 				if err := applyField(a, line, file); err != nil {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
 				}
+				if a.KeyedObject {
+					// Each attribute is an item that the API can fill in, as the object is.
+					for _, item := range a.Attributes {
+						if line.UseStateForUnknown {
+							item.Modifiers = append(item.Modifiers, "objectplanmodifier.UseStateForUnknown()")
+						}
+						if line.UseNonNullStateForUnknown {
+							item.Modifiers = append(item.Modifiers, "objectplanmodifier.UseNonNullStateForUnknown()")
+						}
+					}
+				}
 				if err := checkAttrMode(a); err != nil {
 					return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
 				}
@@ -380,7 +396,14 @@ func requestValue(file *overrides.File, component, field string) bool {
 
 func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 	if l.RequireOne {
-		requireOneArm(a)
+		// On an arm of a top-level oneOf, the resource validator becomes ExactlyOneOf. Elsewhere,
+		// the line names the field that holds the oneOf.
+		if !a.RootArm && !slices.ContainsFunc(a.Attributes, func(c *tfAttr) bool { return c.OneOfGroup != "" }) {
+			return errors.New("requireOne needs a field that holds a oneOf, or an arm of a top-level oneOf")
+		}
+		if !a.RootArm {
+			requireOneArm(a)
+		}
 	}
 	if l.Required {
 		a.Required, a.Optional = true, false
@@ -814,6 +837,7 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type, computed bool)
 		return b.collection(a, p, t)
 	case model.Object, model.OneOf:
 		a.Kind, a.ValueKind = "SingleNested", "Object"
+		a.KeyedObject = t.Keyed != nil && t.Keyed.Object
 		attrs, err := b.objectAttributes(p, t)
 		if err != nil {
 			return err
@@ -1483,7 +1507,7 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 
 // rootOneOfs adds the validators of the top-level oneOf groups: a resource validator, or arm
 // validators when a behavior-overrides group holds the arms.
-func (b *tfBuilder) rootOneOfs(r *model.Resource, file *overrides.File, groups *tfGroups) error {
+func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrides.File, groups *tfGroups) error {
 	for _, g := range r.Groups {
 		if group, err := groups.oneOf(g); err != nil {
 			return err
@@ -1497,7 +1521,21 @@ func (b *tfBuilder) rootOneOfs(r *model.Resource, file *overrides.File, groups *
 		}
 		var arms []string
 		for _, arm := range g.Arms {
-			arms = append(arms, rootPath(file.GroupOf(arm), r.Policy.TerraformName(r.Name, arm)).expr())
+			name := r.Policy.TerraformName(r.Name, arm)
+			arms = append(arms, rootPath(file.GroupOf(arm), name).expr())
+			if file.Types[r.Name].Fields[arm].RequireOne {
+				// The released resource required one arm although the contract allows none.
+				g.AllowNone = false
+			}
+		}
+		for _, arm := range g.Arms {
+			name := r.Policy.TerraformName(r.Name, arm)
+			for _, a := range out.Attributes {
+				if a.Name == name {
+					// The resource validator checks the arms; the acceptance test sets one of them.
+					a.RootArm, a.OneOfGroup, a.OneOfRequired = true, strings.Join(g.Arms, ","), !g.AllowNone
+				}
+			}
 		}
 		b.validators = append(b.validators, groupValidator("resourcevalidator", g, true)+"(\n"+strings.Join(arms, ",\n")+",\n)")
 	}

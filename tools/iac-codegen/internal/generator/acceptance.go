@@ -110,9 +110,6 @@ var quoted = regexp.MustCompile(`"([^"]*)"`)
 // buildAcceptance makes the data of the acceptance test of a resource.
 // prior is the upgrade attributes file of the last run, or nil.
 func buildAcceptance(res *tfResource, providerModule string, file *acceptance.File, prior *acceptance.UpgradeAttributes) (*acceptanceData, error) {
-	if len(res.ConfigValidators) != 0 {
-		return nil, errors.New("acceptance test: a oneOf group among the top-level fields is not supported")
-	}
 	typeName := res.CRUD.TypeName
 	s := &accSynth{file: file, minimal: file.Minimal, idAttr: res.CRUD.IDAttr, known: map[string]bool{}, settable: map[string]bool{}, required: map[string]bool{}, used: map[string]bool{}}
 	out := &acceptanceData{

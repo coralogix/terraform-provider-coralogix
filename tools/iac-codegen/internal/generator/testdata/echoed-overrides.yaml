@@ -23,6 +23,7 @@ types:
       labels: {keyedBy: {key: name, value: value}}
       measures:
         computed: true
+        useNonNullStateForUnknown: true
         keyedBy: {key: kind, object: true, arms: {MEASURE_KIND_SAMPLES: samples}, keyAs: name}
       kind: {requestValueBy: {quota: KIND_LIMITED}}
   Quota:

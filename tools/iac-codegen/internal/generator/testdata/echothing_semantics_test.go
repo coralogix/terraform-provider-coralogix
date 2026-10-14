@@ -435,3 +435,23 @@ func TestMeasuresAreAnObjectByKind(t *testing.T) {
 		t.Fatalf("Create measures = %+v, want none when the plan leaves them to the server", sent.Measures)
 	}
 }
+
+// The contract requires values, and an optional line lets Terraform leave them out: Create sends
+// an empty list, not null, because the request needs the key.
+func TestCreateSendsAnEmptyListForAnOmittedRequiredList(t *testing.T) {
+	_, root := thingSchema(t)
+	entries := root.(tftypes.Object).AttributeTypes["entries"].(tftypes.Map)
+	entry := entries.ElementType.(tftypes.Object)
+	item := map[string]tftypes.Value{}
+	for name, typ := range entry.AttributeTypes {
+		item[name] = tftypes.NewValue(typ, nil)
+	}
+	sent := createThing(t, thingWith(root, map[string]tftypes.Value{
+		"id":      tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+		"name":    tftypes.NewValue(tftypes.String, "name"),
+		"entries": tftypes.NewValue(entries, map[string]tftypes.Value{"k": tftypes.NewValue(entry, item)}),
+	}))
+	if len(sent.Items) != 1 || sent.Items[0].Values == nil || len(sent.Items[0].Values) != 0 {
+		t.Fatalf("Create items = %+v, want one item with an empty, non-nil values", sent.Items)
+	}
+}

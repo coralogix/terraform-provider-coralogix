@@ -1402,6 +1402,12 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- else}}
 {{- template "expandValue" .}}
 {{- end}}
+{{- if and .SendEmpty (not .FlattenOnly)}}
+	if out.{{.SDK}} == nil {
+		// The request requires the list: an empty one, not null.
+		out.{{.SDK}} = make({{.SDKSliceType}}, 0)
+	}
+{{- end}}
 {{- end}}
 
 {{- define "expandValue"}}

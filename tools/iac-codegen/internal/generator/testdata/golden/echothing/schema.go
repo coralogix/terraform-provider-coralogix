@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -115,10 +116,16 @@ func Schema() schema.Schema {
 			"measures": schema.SingleNestedAttribute{
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseNonNullStateForUnknown(),
+				},
 				Attributes: map[string]schema.Attribute{
 					"min": schema.SingleNestedAttribute{
 						Optional: true,
 						Computed: true,
+						PlanModifiers: []planmodifier.Object{
+							objectplanmodifier.UseNonNullStateForUnknown(),
+						},
 						Attributes: map[string]schema.Attribute{
 							"name": schema.StringAttribute{
 								Computed:            true,
@@ -135,6 +142,9 @@ func Schema() schema.Schema {
 					"samples": schema.SingleNestedAttribute{
 						Optional: true,
 						Computed: true,
+						PlanModifiers: []planmodifier.Object{
+							objectplanmodifier.UseNonNullStateForUnknown(),
+						},
 						Attributes: map[string]schema.Attribute{
 							"name": schema.StringAttribute{
 								Computed:            true,

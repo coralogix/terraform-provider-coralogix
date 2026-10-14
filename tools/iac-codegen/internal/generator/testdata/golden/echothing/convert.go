@@ -381,6 +381,10 @@ func expandEchoItem(ctx context.Context, p path.Path, m *EchoItemModel, diags *d
 	}
 	out := &echo_things_service.EchoItem{}
 	out.Values = expandStringsSet[string](ctx, p.AtName("tags"), m.Values, diags)
+	if out.Values == nil {
+		// The request requires the list: an empty one, not null.
+		out.Values = make([]string, 0)
+	}
 	out.Enabled = expandBool(m.Enabled)
 	out.Levels = expandEnumsMapped(ctx, p.AtName("levels"), m.Levels, levelToAPI, true, diags)
 	out.Detail = expandDetail(ctx, p.AtName("detail"), m.Detail, diags)

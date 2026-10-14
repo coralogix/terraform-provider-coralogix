@@ -303,6 +303,12 @@ func (p *Policy) withOptional(component string, s *base.Schema) *base.Schema {
 // model holds such an object as a types.Object, which can be unknown in a plan.
 func (p Policy) ComputedLine(component, field string) bool { return p.computed(component, field) }
 
+// OptionalLine reports whether an optional line relaxes component.field, a list or a map that the
+// contract requires. The request still has the key, so expand sends an empty value, not null.
+func (p Policy) OptionalLine(component, field string) bool {
+	return component != "" && slices.Contains(p.Optional, component+"."+field)
+}
+
 // keepsState reports whether a line keeps the state value of component.field when the plan has
 // none, so Update can send the value that Get returned.
 func (p *Policy) keepsState(component, field string) bool {

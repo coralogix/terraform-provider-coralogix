@@ -241,6 +241,10 @@ type convField struct {
 	RequestValueBy []fixedBy
 	// FoldModel is the model of a fold field that the model holds as a types.Object.
 	FoldModel string
+	// SendEmpty: the contract requires the list, and an optional line lets Terraform leave it out.
+	// Expand sends an empty list for a null one, as the request needs the key.
+	SendEmpty    bool
+	SDKSliceType string // the qualified Go type of the SDK list, for SendEmpty
 	// Keyed is the key and the value of the API items of a keyedobjects or keyedvalues field.
 	Keyed *keyedFields
 	// KeepPriorOrder: flatten returns the items in the order of the prior model, when the
@@ -957,6 +961,9 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	}
 	cf := &convField{TFName: b.resource.Policy.TerraformName(component, name), Model: camelize(name), SDK: ref.Name}
 	b.applyFieldLine(cf, component, name)
+	if b.resource.Policy.OptionalLine(component, name) && strings.HasPrefix(ref.Want, "[]") {
+		cf.SendEmpty, cf.SDKSliceType = true, b.qualifyType(ref.Want)
+	}
 	want, err := b.fieldConv(cf, t, computed)
 	if err != nil {
 		return nil, err
@@ -1867,6 +1874,15 @@ func (b *convBuilder) mergeNested(t *model.Type) error {
 	switch t.Kind {
 	case model.Object, model.OneOf:
 		if len(t.Fields) == 0 {
+			return nil
+		}
+		if t.Keyed != nil && t.Keyed.Object {
+			// The object of a keyedBy line has no SDK type: its attributes hold the items.
+			for _, f := range t.Fields {
+				if err := b.mergeNested(f.Type); err != nil {
+					return err
+				}
+			}
 			return nil
 		}
 		_, err := b.nested(t)
