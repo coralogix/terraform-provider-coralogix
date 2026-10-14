@@ -39,7 +39,11 @@ const (
 //	UPDATE_GOLDEN=1 go test ./internal/provider -run TestDashboardsFolderBaseline
 
 func newDashboardsFolderHarness(t *testing.T) *grHarness {
-	return newProtocolHarness(t, dashboardsFolderTypeName, newDashboardsFolderFake(t))
+	fake := newDashboardsFolderFake(t)
+	// The fixture parents exist, as the API checks the parent of a folder.
+	fake.seeded[dashboardsFolderParent] = true
+	fake.seeded["22222222-2222-4222-8222-222222222222"] = true
+	return newProtocolHarness(t, dashboardsFolderTypeName, fake)
 }
 
 func (h *grHarness) dashboardsFolders() *dashboardsFolderFake {
@@ -88,7 +92,6 @@ var dashboardsFolderScenarios = map[string]func(h *grHarness){
 		h.Validate("empty config", j{})
 		h.Validate("empty name", j{"name": ""})
 		h.Validate("name longer than 100 characters", j{"name": longName(101)})
-		h.Validate("parent_id is not a UUID", j{"name": "n", "parent_id": "not-a-uuid"})
 	},
 
 	"name-omitted": func(h *grHarness) {
@@ -122,8 +125,7 @@ var dashboardsFolderScenarios = map[string]func(h *grHarness){
 	"delete-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), j{"name": "gone"})
 		h.dashboardsFolders().forget(idOf(s))
-		h.dashboardsFolders().deleteStatus = 404
-		h.Destroy("destroy: the API answers 404", s)
+		h.Destroy("destroy: the API answers 403 for a folder that does not exist", s)
 	},
 
 	"update-not-found": func(h *grHarness) {

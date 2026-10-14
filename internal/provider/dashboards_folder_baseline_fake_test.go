@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -37,14 +38,14 @@ type dashboardsFolderFake struct {
 	folders  map[string]map[string]any
 	seq      int
 	requests []grRequest
-
-	// deleteStatus is the status of a delete. 0 means 200.
-	deleteStatus int
+	// seeded are the ids of folders that exist and that a test does not list, so a folder can
+	// name them as its parent.
+	seeded map[string]bool
 }
 
 func newDashboardsFolderFake(t *testing.T) *dashboardsFolderFake {
 	t.Helper()
-	f := &dashboardsFolderFake{folders: map[string]map[string]any{}}
+	f := &dashboardsFolderFake{folders: map[string]map[string]any{}, seeded: map[string]bool{}}
 	srv := httptest.NewServer(f)
 	t.Cleanup(srv.Close)
 
@@ -103,12 +104,28 @@ func (f *dashboardsFolderFake) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	_ = json.NewEncoder(w).Encode(body)
 }
 
+// dashboardsFolderFail is an error answer of the real API: the status name, then the reason.
+func dashboardsFolderFail(status int, reason string) (int, any) {
+	prefix := map[int]string{
+		http.StatusBadRequest: "Bad Request", http.StatusForbidden: "Permission Denied",
+		http.StatusNotFound: "Not Found", http.StatusConflict: "Already Exists",
+	}[status]
+	return status, map[string]any{"code": status, "message": prefix + ": " + reason}
+}
+
+var folderIDPattern = regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+
+func folderMissing(id string) string { return fmt.Sprintf("DashboardFolderId(%s)", id) }
+
 func (f *dashboardsFolderFake) handle(method, path string, body any) (int, any) {
 	_, rest, ok := strings.Cut(path, dashboardsFolderBasePath)
 	if !ok {
-		return grFail(http.StatusNotFound, "unknown path "+path)
+		return dashboardsFolderFail(http.StatusNotFound, "unknown path "+path)
 	}
 	id := strings.TrimPrefix(rest, "/")
+	if id != "" && !folderIDPattern.MatchString(id) {
+		return dashboardsFolderFail(http.StatusBadRequest, "invalid uuid")
+	}
 	switch {
 	case method == http.MethodPost && rest == "":
 		return f.write(body, false)
@@ -123,43 +140,68 @@ func (f *dashboardsFolderFake) handle(method, path string, body any) (int, any) 
 	case method == http.MethodGet && id != "":
 		folder, ok := f.folders[id]
 		if !ok {
-			return grFail(http.StatusNotFound, "folder not found")
+			return dashboardsFolderFail(http.StatusNotFound, "dashboard folder with id "+folderMissing(id)+" does not exist")
 		}
 		return http.StatusOK, map[string]any{"folder": folder}
 	case method == http.MethodDelete && id != "":
-		if f.deleteStatus != 0 {
-			return grFail(f.deleteStatus, "folder not found")
-		}
+		// The API answers 403, not 404, for a folder that does not exist.
 		if _, ok := f.folders[id]; !ok {
-			return grFail(http.StatusNotFound, "folder not found")
+			return dashboardsFolderFail(http.StatusForbidden, "dont have permissions to delete folder "+folderMissing(id))
 		}
 		delete(f.folders, id)
 		return http.StatusOK, map[string]any{}
 	}
-	return grFail(http.StatusNotFound, "unknown route "+method+" "+path)
+	return dashboardsFolderFail(http.StatusNotFound, "unknown route "+method+" "+path)
 }
 
 func (f *dashboardsFolderFake) write(body any, replace bool) (int, any) {
 	req, _ := body.(map[string]any)
 	in, _ := req["folder"].(map[string]any)
 	if in == nil {
-		return grFail(http.StatusBadRequest, "folder is required")
-	}
-	name, _ := in["name"].(string)
-	if name == "" {
-		return grFail(http.StatusBadRequest, "name is required")
+		in = map[string]any{}
 	}
 	id, _ := in["id"].(string)
-	if replace {
+	if id != "" && !folderIDPattern.MatchString(id) {
+		return dashboardsFolderFail(http.StatusBadRequest, "invalid uuid")
+	}
+	name, hasName := in["name"].(string)
+	parent, _ := in["parentId"].(string)
+	switch {
+	case replace && id == "":
+		return dashboardsFolderFail(http.StatusBadRequest, "folder id is required")
+	case !hasName:
+		return dashboardsFolderFail(http.StatusBadRequest, "folder name not found")
+	case name == "":
+		return dashboardsFolderFail(http.StatusBadRequest, "folder name cannot be empty")
+	case len([]rune(name)) > 100:
+		return dashboardsFolderFail(http.StatusBadRequest, "folder name length is bigger than 100")
+	case parent != "" && !folderIDPattern.MatchString(parent):
+		return dashboardsFolderFail(http.StatusBadRequest, "invalid uuid")
+	case replace && parent == id:
+		return dashboardsFolderFail(http.StatusBadRequest, fmt.Sprintf("folder_id and parent_id can't be equal (%s)", id))
+	case replace:
 		if _, ok := f.folders[id]; !ok {
-			return grFail(http.StatusNotFound, "folder not found")
+			return dashboardsFolderFail(http.StatusBadRequest, "folder with id "+folderMissing(id)+" does not exist")
 		}
-	} else if id == "" {
-		f.seq++
-		id = fmt.Sprintf("00000000-0000-4000-8000-%012d", f.seq)
+	}
+	if parent != "" {
+		if _, ok := f.folders[parent]; !ok && !f.seeded[parent] {
+			return dashboardsFolderFail(http.StatusBadRequest, "parent folder id "+folderMissing(parent)+" for company CompanyId(1) does not exist")
+		}
+	}
+	if !replace {
+		if id == "" {
+			f.seq++
+			id = fmt.Sprintf("00000000-0000-4000-8000-%012d", f.seq)
+		}
+		for existing, folder := range f.folders {
+			if existing == id || folder["name"] == name {
+				return dashboardsFolderFail(http.StatusConflict, fmt.Sprintf("folder with id %s or name %s already exist in your company", folderMissing(id), name))
+			}
+		}
 	}
 	folder := map[string]any{"id": id, "name": name}
-	if parent, _ := in["parentId"].(string); parent != "" {
+	if parent != "" {
 		folder["parentId"] = parent
 	}
 	f.folders[id] = folder

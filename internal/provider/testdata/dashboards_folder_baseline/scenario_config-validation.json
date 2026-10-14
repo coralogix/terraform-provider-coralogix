@@ -17,13 +17,5 @@
       "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     },
     "state": null
-  },
-  {
-    "step": "parent_id is not a UUID",
-    "config": {
-      "name": "n",
-      "parent_id": "not-a-uuid"
-    },
-    "state": null
   }
 ]

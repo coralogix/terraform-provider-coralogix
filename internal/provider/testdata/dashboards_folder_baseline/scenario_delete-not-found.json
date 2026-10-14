@@ -35,14 +35,21 @@
     "replanEmpty": true
   },
   {
-    "step": "destroy: the API answers 404",
+    "step": "destroy: the API answers 403 for a folder that does not exist",
     "requests": [
       {
         "method": "DELETE",
         "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-1>",
-        "status": 404
+        "status": 403
       }
     ],
-    "state": null
+    "applyDiagnostics": [
+      "error: Error deleting coralogix_dashboard_folder | error - 403 Forbidden — {\"code\":403,\"message\":\"Permission Denied: dont have permissions to delete folder DashboardFolderId(<generated-id-1>)\"}\noperation - Delete"
+    ],
+    "state": {
+      "id": "<generated-id-1>",
+      "name": "gone",
+      "parent_id": null
+    }
   }
 ]
