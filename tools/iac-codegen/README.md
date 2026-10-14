@@ -76,7 +76,7 @@ A third small golden contract, `configthing`, is an existing resource with JSON 
 
 A fourth small golden contract, `wrapthing`, is an existing resource whose API holds values in wrapper objects: a string, an enum, a required number, a list of wrapped items, an object, and a list inside two wrappers. One component collapses in one place and stays an object in another. Its behavior-overrides file has an `unwrap` list and `unwrap` field lines.
 
-A further small golden contract, `suppressedthing`, is an existing resource whose path parameter is `thing_id` while its id is the property `uniqueIdentifier`, next to a version `id` that the file skips. Its behavior-overrides file has `api.idProperty`, `serverSetID`, `name` lines on a top-level and a nested field, an enum whose values have `names` (`mute` and `active`), a set of weekday numbers with `valueNames`, an empty oneOf arm with `asBool`, and a filter whose required oneOf has a `defaultArm`.
+A further small golden contract, `suppressedthing`, is an existing resource whose path parameter is `thing_id` while its id is the property `uniqueIdentifier`, next to a version `id` that the file skips. Its behavior-overrides file has `api.idProperty`, `serverSetID`, `name` lines on a top-level and a nested field, an enum whose values have `names` (`mute` and `active`), a set of weekday numbers with `valueNames`, an empty oneOf arm with `asBool`, a filter whose required oneOf has a `defaultArm`, and a nested `frequency` group.
 
 ## Existing resources
 
@@ -154,6 +154,19 @@ groups:
 ```
 
 Expand writes the fields of a group into the API object that holds them, and flatten reads them from it. The arms of a top-level oneOf are in one group or in none; in a group they check each other as the arms of a nested oneOf. A group holds fields that the user sets and that Update sends, so it needs a full-replace Update (a PATCH mask names the API fields), and it cannot hold the id, an immutable field, or a field with a server default. The generator reports a group field that is no top-level field.
+
+`types.<Type>.groups` does the same for the fields of a nested component, for example `frequency = {daily = {}}` for the `daily` arm of a recurring schedule:
+
+```yaml
+types:
+  Recurring.Dynamic:
+    groups:
+      frequency:
+        fields: [daily, weekly, monthly]
+        markdownDescription: "..."
+```
+
+The rules are those of a top-level group: the group object is required, holds every arm of a oneOf of the component or none, needs a full-replace Update, and holds only fields that the user sets and that have no server default. Its name cannot be the name of another attribute of the component.
 
 A read-only field inside a component that the request shares with the response is computed in existing mode: the request does not send it, and flatten reads it. `readEmptyAs: "null"` also works on a list or set of strings, for a list that the API returns as `[]` when the request did not send it.
 

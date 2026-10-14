@@ -101,6 +101,8 @@ func TestParseIsStrict(t *testing.T) {
 		"bad name":                          {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {name: Time-Frame}\n", "must be a Terraform name"},
 		"empty value name":                  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {valueNames: {1: Sunday, 2: \"\"}}\n", "2 has an empty name"},
 		"name of a readable rejected value": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    zero: unspecified\n    values: [E_ONE]\n    rejected: [E_TWO]\n    readRejected: true\n    names: {E_ONE: E_TWO}\n", "both have the Terraform value"},
+		"bad nested group name":             {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    groups:\n      Bad-Name: {fields: [a]}\n", "types.T.groups.Bad-Name: the name is not a Terraform name"},
+		"field in two nested groups":        {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    groups:\n      a: {fields: [x]}\n      b: {fields: [x]}\n", "field x is also in types.T.groups.a"},
 		"skip and asBool":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, asBool: true}\n", "skipped field"},
 		"same value name":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {valueNames: {1: Sunday, 7: Sunday}}\n", "1 and 7 both have the name"},
 	}

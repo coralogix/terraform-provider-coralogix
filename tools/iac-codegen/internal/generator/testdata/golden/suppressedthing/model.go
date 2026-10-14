@@ -20,8 +20,21 @@ type WindowModel struct {
 	Days     types.Set    `tfsdk:"days"`
 }
 
+type DailyModel struct {
+}
+
+type DynamicFrequencyModel struct {
+	Daily  *DailyModel  `tfsdk:"daily"`
+	Weekly *WeeklyModel `tfsdk:"weekly"`
+}
+
+type WeeklyModel struct {
+	Note types.String `tfsdk:"note"`
+}
+
 type DynamicModel struct {
-	Every types.String `tfsdk:"every"`
+	Every     types.String           `tfsdk:"every"`
+	Frequency *DynamicFrequencyModel `tfsdk:"frequency"`
 }
 
 type RepeatModel struct {

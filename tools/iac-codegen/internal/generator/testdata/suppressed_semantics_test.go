@@ -205,3 +205,42 @@ func TestFilterWithoutArmSendsTheDefaultArm(t *testing.T) {
 		t.Fatalf("ids [a] sent %#v, want [a]", got)
 	}
 }
+
+// frequency is a Terraform-only object that holds the daily and weekly arms, which the API holds in
+// the dynamic schedule itself.
+func TestFrequencyGroupHoldsTheArms(t *testing.T) {
+	ctx := context.Background()
+	m := model(types.StringValue("rule-1"))
+	m.Repeat = &RepeatModel{AlwaysActive: types.BoolNull(), Dynamic: &DynamicModel{Every: types.StringValue("day"), Frequency: &DynamicFrequencyModel{Daily: &DailyModel{}}}}
+	body, diags := expandCreate(ctx, m)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	got := body.SuppressedThing.Repeat.Dynamic
+	if got == nil || got.Daily == nil || got.Weekly != nil || got.Every != "day" {
+		t.Fatalf("frequency.daily sent %#v, want the daily arm of the dynamic schedule", got)
+	}
+
+	flat, diags := flatten(ctx, &suppressed_things_service.SuppressedThing{
+		UniqueIdentifier: ptr("rule-1"), Name: "rule", ScheduleOperation: suppressed_things_service.THINGOPERATION_THING_OPERATION_MUTE,
+		Repeat: &suppressed_things_service.Repeat{Dynamic: &suppressed_things_service.Dynamic{Every: "week", Weekly: &suppressed_things_service.Weekly{Note: ptr("mondays")}}},
+	})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	f := flat.Repeat.Dynamic.Frequency
+	if f == nil || f.Daily != nil || f.Weekly == nil || f.Weekly.Note.ValueString() != "mondays" {
+		t.Fatalf("the weekly arm read back as %+v, want frequency.weekly", f)
+	}
+
+	flat, diags = flatten(ctx, &suppressed_things_service.SuppressedThing{
+		UniqueIdentifier: ptr("rule-1"), Name: "rule", ScheduleOperation: suppressed_things_service.THINGOPERATION_THING_OPERATION_MUTE,
+		Repeat: &suppressed_things_service.Repeat{Dynamic: &suppressed_things_service.Dynamic{Every: "day", Daily: map[string]interface{}{}}},
+	})
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if f := flat.Repeat.Dynamic.Frequency; f == nil || f.Daily == nil {
+		t.Fatalf("daily: {} read back as %+v, want frequency.daily set", f)
+	}
+}

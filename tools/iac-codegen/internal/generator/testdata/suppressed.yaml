@@ -134,6 +134,17 @@ components:
       required: [every]
       properties:
         every: {type: string, minLength: 1}
+        daily: {$ref: '#/components/schemas/Daily'}
+        weekly: {$ref: '#/components/schemas/Weekly'}
+      oneOf:
+        - required: [daily]
+        - required: [weekly]
+    Daily:
+      type: object
+    Weekly:
+      type: object
+      properties:
+        note: {type: string, x-coralogix-presence: true}
     Window:
       type: object
       required: [timezone]

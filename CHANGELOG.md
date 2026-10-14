@@ -38,6 +38,7 @@
 - FEAT: A field line `valueNames` keeps released names for the numbers of an integer list or set, for example `Sunday` for day `1`.
 - FEAT: A field line `asBool` keeps a released bool for an object without fields, for example `always_active = true` for the oneOf arm `alwaysActive: {}`.
 - FEAT: A field line `defaultArm` sends an empty arm when the configuration sets no arm of a oneOf that the API requires, for example `alertUniqueIds: {}` for a released filter without a selector.
+- FEAT: `types.<Type>.groups` makes required Terraform objects that hold fields of a nested component, as `groups` does for top-level fields, for example `frequency` around the daily, weekly, and monthly arms of a recurring schedule.
 - FIX: With `api.idProperty`, an id property that Create does not send is classified as the server-set id, as a path-parameter id is. Before, it was an unsupported field lifecycle. An `idProperty` that names the path parameter is reported as unneeded.
 - FIX: The Go name collision check uses the Go form of a `name` line, as the model does, and leaves out `requestValue` fields. Before, two renamed fields could get one Go field and fail to compile.
 - FIX: A renamed top-level field with a server default or an Update-only value keeps its released name in the omitted-default and follow-up Update paths, and in the merged request and response conversion.

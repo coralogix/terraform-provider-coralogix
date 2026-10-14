@@ -69,6 +69,33 @@ func Schema() schema.Schema {
 								Required:            true,
 								MarkdownDescription: "",
 							},
+							"frequency": schema.SingleNestedAttribute{
+								Required: true,
+								Attributes: map[string]schema.Attribute{
+									"daily": schema.SingleNestedAttribute{
+										Optional: true,
+										Validators: []validator.Object{
+											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("weekly")),
+										},
+										Attributes:          map[string]schema.Attribute{},
+										MarkdownDescription: "",
+									},
+									"weekly": schema.SingleNestedAttribute{
+										Optional: true,
+										Validators: []validator.Object{
+											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("daily")),
+										},
+										Attributes: map[string]schema.Attribute{
+											"note": schema.StringAttribute{
+												Optional:            true,
+												MarkdownDescription: "",
+											},
+										},
+										MarkdownDescription: "",
+									},
+								},
+								MarkdownDescription: "How often the rule repeats.",
+							},
 						},
 						MarkdownDescription: "",
 					},

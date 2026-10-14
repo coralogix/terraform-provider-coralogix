@@ -1072,3 +1072,39 @@ func TestDefaultArmNeedsAFullReplace(t *testing.T) {
 		t.Fatalf("err = %v, want defaultArm needs a full-replace Update", err)
 	}
 }
+
+// A group of a nested component holds fields of that component, every arm of a oneOf or none, and
+// needs a full replace, as a top-level group does.
+func TestNestedGroupErrors(t *testing.T) {
+	const from = "        fields: [daily, weekly]\n"
+	tests := map[string]struct{ to, want string }{
+		"no such field": {"        fields: [daily, weekly, monthly]\n", "monthly is no field of Dynamic"},
+		"split oneOf":   {"        fields: [daily]\n", "must all be in one group, or in none"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := generateSuppressedWith(t, from, test.to)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %q", err, test.want)
+			}
+		})
+	}
+	t.Run("named as a field", func(t *testing.T) {
+		err := generateSuppressedWith(t, "      frequency:\n", "      every:\n")
+		if err == nil || !strings.Contains(err.Error(), "the name is also the attribute every") {
+			t.Fatalf("err = %v, want the name is also the attribute every", err)
+		}
+	})
+	t.Run("patch update", func(t *testing.T) {
+		overridesPath := filepath.Join(t.TempDir(), "overrides.yaml")
+		text := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  ThingConfig:\n    groups:\n      kind: {fields: [http, queue]}\n"
+		if err := os.WriteFile(overridesPath, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		input, loadDir := syntheticInput(t)
+		err := generateFromInput(Options{Resource: "Thing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: overridesPath}, input, loadDir)
+		if err == nil || !strings.Contains(err.Error(), "a group needs a full-replace Update") {
+			t.Fatalf("err = %v, want a group needs a full-replace Update", err)
+		}
+	})
+}

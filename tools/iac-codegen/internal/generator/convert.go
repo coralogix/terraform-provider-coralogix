@@ -420,19 +420,19 @@ func oneOfArmPaths(r *model.Resource, file *overrides.File) []string {
 		}
 	}
 	for _, f := range r.Fields {
-		out = typeArmPaths(r.Policy, out, rootPath(file.GroupOf(f.Name), attrName(r.Policy, r.Name, f.Name)).dotted(), f.Type, map[*model.Type]bool{})
+		out = typeArmPaths(r.Policy, file, out, rootPath(file.GroupOf(f.Name), attrName(r.Policy, r.Name, f.Name)).dotted(), f.Type, map[*model.Type]bool{})
 	}
 	return out
 }
 
-func typeArmPaths(p model.Policy, out []string, at string, t *model.Type, seen map[*model.Type]bool) []string {
+func typeArmPaths(p model.Policy, file *overrides.File, out []string, at string, t *model.Type, seen map[*model.Type]bool) []string {
 	if t == nil || seen[t] {
 		return out
 	}
 	seen[t] = true
 	defer delete(seen, t)
 	if t.Elem != nil {
-		return typeArmPaths(p, out, at, t.Elem, seen)
+		return typeArmPaths(p, file, out, at, t.Elem, seen)
 	}
 	arms := map[string]bool{}
 	for _, g := range t.Groups {
@@ -442,10 +442,13 @@ func typeArmPaths(p model.Policy, out []string, at string, t *model.Type, seen m
 	}
 	for _, f := range t.Fields {
 		child := at + "." + attrName(p, t.Schema, f.Name)
+		if group := nestedGroupOf(file, t.Schema, f.Name); group != "" {
+			child = at + "." + group + "." + attrName(p, t.Schema, f.Name)
+		}
 		if t.Kind == model.OneOf && f.Name != t.Discriminator || arms[f.Name] {
 			out = append(out, child)
 		}
-		out = typeArmPaths(p, out, child, f.Type, seen)
+		out = typeArmPaths(p, file, out, child, f.Type, seen)
 	}
 	return out
 }
@@ -1123,12 +1126,11 @@ func (b *convBuilder) defaultArms(component string, t *model.Type, fields []*con
 	byName := map[string]*convField{}
 	var lines []string
 	for _, f := range t.Fields {
-		name := attrName(b.resource.Policy, component, f.Name)
-		i := slices.IndexFunc(fields, func(cf *convField) bool { return cf.TFName == name })
-		if i < 0 {
+		cf := findField(fields, attrName(b.resource.Policy, component, f.Name))
+		if cf == nil {
 			return nil, fmt.Errorf("%s: no conversion of the field", f.Name)
 		}
-		byName[f.Name] = fields[i]
+		byName[f.Name] = cf
 		if b.resource.Policy.DefaultArm(component, f.Name) {
 			lines = append(lines, f.Name)
 		}
@@ -1810,7 +1812,7 @@ func (b *convBuilder) addToGroup(root *convObject, groups map[string]*convObject
 func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component string, t *model.Type) error {
 	for _, f := range t.Fields {
 		name := attrName(b.resource.Policy, component, f.Name)
-		if slices.ContainsFunc(obj.Fields, func(cf *convField) bool { return cf.TFName == name }) {
+		if findField(obj.Fields, name) != nil {
 			// The field is there, but an object inside it can still miss fields.
 			if err := b.mergeNested(f.Type); err != nil {
 				return fmt.Errorf("%s: %w", f.Name, err)
@@ -1831,7 +1833,52 @@ func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component strin
 				b.listed = append(b.listed, cf.Object)
 			}
 		}
+		if group := nestedGroupOf(b.file, component, f.Name); group != "" {
+			g := b.nestedGroup(obj, component, group)
+			g.Fields = append(g.Fields, cf)
+			continue
+		}
 		obj.Fields = append(obj.Fields, cf)
+	}
+	return nil
+}
+
+// nestedGroupOf returns the group of the behavior-overrides file that holds field of component, or "".
+func nestedGroupOf(file *overrides.File, component, field string) string {
+	if file == nil {
+		return ""
+	}
+	return file.Types[component].GroupOf(field)
+}
+
+// nestedGroup returns the group object of obj that holds fields of component in group, and makes it
+// on first use. As a top-level group, it is an object of its own in Terraform, and its fields are
+// fields of the SDK struct of obj.
+func (b *convBuilder) nestedGroup(obj *convObject, component, group string) *convObject {
+	for _, cf := range obj.Fields {
+		if cf.Conv == convGroup && cf.TFName == group {
+			return cf.Object
+		}
+	}
+	g := &convObject{Func: obj.Func + camelize(group), Model: groupModelName(component, group), SDK: obj.SDK, Group: true,
+		RequireOne: b.file.Types[component].Groups[group].RequireOne}
+	g.AttrTypesFunc = lowerFirst(g.Func) + "AttrTypes"
+	b.objects = append(b.objects, g)
+	obj.Fields = append(obj.Fields, &convField{TFName: group, Model: camelize(group), Conv: convGroup, Object: g})
+	return g
+}
+
+// findField returns the field of fields with the Terraform name, also inside a group, or nil.
+func findField(fields []*convField, name string) *convField {
+	for _, cf := range fields {
+		if cf.TFName == name {
+			return cf
+		}
+		if cf.Conv == convGroup {
+			if found := findField(cf.Object.Fields, name); found != nil {
+				return found
+			}
+		}
 	}
 	return nil
 }
