@@ -19,6 +19,10 @@
 - CHORE: Uses the schema and the conversion of the generated resource.
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.28`.
+- FEAT: A new resource gets its docs example, `import.sh`, acceptance test, and registration in `internal/provider/generated/registry.go`. `acceptance.yaml` is optional for it. `make codegen RESOURCE=X OUT=x` runs the generator and the docs. `--out` must be a directory in `internal/provider/generated`.
+- FEAT: The generated acceptance test supports immutable fields below the top level.
+- FIX: `make generate` works in a directory that is not named `terraform-provider-coralogix`.
 - CHORE: Bump the generator to `v0.1.0-beta.27`.
 - FEAT: `groups` in `behavior-overrides.yaml` makes required Terraform objects that hold top-level fields of the resource, for a released resource that nests fields the API holds at the top level. The arms of a top-level oneOf in a group check each other like the arms of a nested oneOf; `requireOne: true` makes them ExactlyOneOf, and needs a group that holds the arms of one oneOf and no other field. Flatten fails with "Invalid response from server" unless the response has exactly one of them.
 - FEAT: Generation fails when a `groups` name is also the name of a top-level attribute.

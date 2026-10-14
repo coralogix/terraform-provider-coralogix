@@ -42,7 +42,8 @@ func renderWith(r *model.Resource, refs []sdkRef, pkg string, file *overrides.Fi
 
 // renderAll is renderWith that also writes the acceptance test, when acc is not nil, and the upgrade
 // attributes file of its upgrade test. prior is that file of the last run, or nil. providerModule
-// is the module path of the provider; the test imports its provider package.
+// is the module path of the provider; the test imports its provider package. For a new resource,
+// it also writes the docs example and import command under exampleKey and importKey.
 func renderAll(r *model.Resource, refs []sdkRef, pkg string, file *overrides.File, acc *acceptance.File, prior *acceptance.UpgradeAttributes, providerModule string) (map[string][]byte, error) {
 	data, err := buildTFResourceWith(r, pkg, file)
 	if err != nil {
@@ -89,20 +90,36 @@ func renderAll(r *model.Resource, refs []sdkRef, pkg string, file *overrides.Fil
 		out[file] = src
 	}
 	if acc != nil {
-		accData, err := buildAcceptance(data, providerModule, acc, prior)
-		if err != nil {
+		if err := renderTestFiles(out, data, providerModule, acc, prior, file == nil); err != nil {
 			return nil, err
-		}
-		if out["acceptance_test.go"], err = renderAcceptance(accData); err != nil {
-			return nil, err
-		}
-		if accData.UpgradeAttributes != nil {
-			if out[acceptance.UpgradeFileName], err = accData.UpgradeAttributes.Marshal(); err != nil {
-				return nil, err
-			}
 		}
 	}
 	return out, nil
+}
+
+// renderTestFiles adds the acceptance test and the upgrade attributes file of its upgrade test to
+// out. A new resource has no handwritten docs, so it also adds the docs example, which is the full
+// config of the test, and the import command.
+func renderTestFiles(out map[string][]byte, data *tfResource, providerModule string, acc *acceptance.File, prior *acceptance.UpgradeAttributes, newResource bool) error {
+	accData, err := buildAcceptance(data, providerModule, acc, prior)
+	if err != nil {
+		return err
+	}
+	if out["acceptance_test.go"], err = renderAcceptance(accData); err != nil {
+		return err
+	}
+	if accData.UpgradeAttributes != nil {
+		if out[acceptance.UpgradeFileName], err = accData.UpgradeAttributes.Marshal(); err != nil {
+			return err
+		}
+	}
+	if newResource {
+		if out[exampleKey], err = renderExample(accData, data.CRUD.TypeName); err != nil {
+			return err
+		}
+		out[importKey] = renderImport(data.CRUD)
+	}
+	return nil
 }
 
 // formatSource removes the unused imports and formats the file. A template
