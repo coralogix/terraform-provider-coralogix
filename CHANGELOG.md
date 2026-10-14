@@ -56,6 +56,7 @@
 - FIX: A renamed top-level field with a server default or an Update-only value keeps its released name in the omitted-default and follow-up Update paths, and in the merged request and response conversion.
 - FIX: A nested group whose model struct name is also the model of a component, the resource, or another group is an error. Before, the group used the other model, and the generated code did not compile.
 - CHORE: A test renders the alerts scheduler from the pinned contract with a new top-level and nested field, and checks that the new attributes reach the schema, the model, expand, and flatten while every other generated line stays. The IaC generator CI job downloads the pinned SDK for it.
+- FIX: A `names` entry that gives the spelling the enum has anyway (lower case, `trimPrefix`, or `verbatim`) is an error, so a rename that a contract change makes stale does not stay unnoticed.
 - FIX: `enums.<Enum>.names` and `zero` cannot give a value the spelling of a rejected value that `readRejected` reads back. `defaultArm` needs a full-replace Update, and expand does not send the default arm while another arm is unknown.
 - FIX: The SDK check expects a snake_case path parameter in lower camel case, as the Go SDK writes it. Before, it rejected the SDK of any resource with such a parameter.
 - FIX: A skipped field takes part in no Terraform name collision.
