@@ -100,6 +100,9 @@ type accSynth struct {
 	// releasedRequired are the attributes that the released provider requires.
 	releasedRequired map[string]bool
 	used             map[string]bool // every value path that a config used
+	// immutables records the HCL of each immutable value that a walk sets, by its state path. nil
+	// records nothing.
+	immutables map[string]string
 }
 
 var quoted = regexp.MustCompile(`"([^"]*)"`)
@@ -109,9 +112,6 @@ var quoted = regexp.MustCompile(`"([^"]*)"`)
 func buildAcceptance(res *tfResource, providerModule string, file *acceptance.File, prior *acceptance.UpgradeAttributes) (*acceptanceData, error) {
 	if len(res.ConfigValidators) != 0 {
 		return nil, errors.New("acceptance test: a oneOf group among the top-level fields is not supported")
-	}
-	if path := nestedImmutable("", res.Attributes, true); path != "" {
-		return nil, fmt.Errorf("acceptance test: %q has RequiresReplace below the top level, which nextAction does not compare", path)
 	}
 	typeName := res.CRUD.TypeName
 	s := &accSynth{file: file, minimal: file.Minimal, idAttr: res.CRUD.IDAttr, known: map[string]bool{}, settable: map[string]bool{}, required: map[string]bool{}, used: map[string]bool{}}
@@ -346,7 +346,7 @@ const (
 )
 
 // nextAction is the plan check of a step from one config to the next. It is exact only where the
-// action is sure: no-op for the same config, replace when a top-level immutable attribute surely
+// action is sure: no-op for the same config, replace when an immutable value surely
 // differs. Otherwise the step must not replace the resource; it may update it or not, because a
 // default or an API value in state can equal what the next config sets. The value checks after the
 // apply catch a missing update. When an immutable attribute may differ (a left-out
@@ -360,20 +360,24 @@ func (s *accSynth) nextAction(attrs []*tfAttr, from, to *accStep, fromMode, toMo
 	defer func() { s.released = released }()
 	maybe := false
 	for _, a := range attrs {
-		if !immutable(a) {
+		if !immutable(a) && !holdsImmutable(a) {
 			continue
 		}
 		s.released = released
-		before, _, err := s.attrs([]*tfAttr{a}, "", "", fromMode, true)
+		before, beforeValues, err := s.immutableValues(a, fromMode)
 		if err != nil {
 			return "", err
 		}
 		s.released = nil
-		after, _, err := s.attrs([]*tfAttr{a}, "", "", toMode, true)
+		after, afterValues, err := s.immutableValues(a, toMode)
 		if err != nil {
 			return "", err
 		}
-		switch attrChange(a, before, after) {
+		change := attrChange(a, before, after)
+		if !immutable(a) {
+			change = nestedChange(beforeValues, afterValues)
+		}
+		switch change {
 		case changeSure:
 			return accPlanReplace, nil
 		case changeMaybe:
@@ -475,31 +479,30 @@ func joinPath(parent, name string) string {
 
 // include says whether the config of the mode sets the attribute.
 func (s *accSynth) include(a *tfAttr, key string, mode accMode, top bool) bool {
+	if slices.Contains(s.file.Skip, key) || !s.inRelease(key) {
+		return false // skipped, or the released provider does not have it
+	}
+	if a.Extra {
+		_, ok := s.file.Values[key]
+		return ok // extraAttributes are not API fields; a made-up map key is not valid
+	}
 	switch {
-	case slices.Contains(s.file.Skip, key):
-		return false
-	case a.Extra:
-		if _, ok := s.file.Values[key]; !ok {
-			return false // extraAttributes are not API fields; a made-up map key is not valid
-		}
-		if s.released != nil && !s.released[key] {
-			return false
-		}
-		return true
-	case s.released != nil && !s.released[key]:
-		return false // the released provider does not have it
 	case !a.Required && !a.Optional:
 		return false // the server sets it
 	case s.released != nil && s.releasedRequired[key]:
 		return true // the released provider requires it, even when this build does not
 	case top && a.Name == s.idAttr && !a.Required:
 		return false // the server makes the id; a changed id would replace the resource
-	case a.Required:
-		return true
-	case a.OneOfRequired:
-		return true // the group needs one arm; the walk takes the first that is included
+	case a.Required, a.OneOfRequired:
+		return true // a OneOfRequired group needs one arm; the walk takes the first that is included
 	}
 	return mode != accMinimal || slices.Contains(s.minimal, key) || s.minimalBelow(key)
+}
+
+// inRelease reports whether the released provider of the upgrade test has the attribute. Without
+// an upgrade config, every attribute is in.
+func (s *accSynth) inRelease(key string) bool {
+	return s.released == nil || s.released[key]
 }
 
 // minimalBelow reports whether the minimal config sets a field below the attribute. The attribute
@@ -605,23 +608,41 @@ func defaultState(a *tfAttr) (string, bool) {
 	return "", false
 }
 
-// nestedImmutable returns the path of an attribute below the top level that has RequiresReplace, or
-// "". The schema builder adds it only to top-level fields, so nextAction compares only those.
-func nestedImmutable(key string, attrs []*tfAttr, top bool) string {
-	for _, a := range attrs {
-		path := joinPath(key, a.Name)
-		if !top && immutable(a) {
-			return path
-		}
-		child := path
-		if a.Kind == "ListNested" || a.Kind == "SetNested" {
-			child += "[]"
-		}
-		if found := nestedImmutable(child, a.Attributes, false); found != "" {
-			return found
+// immutableValues renders the attribute as the config of the mode does, and returns its lines and
+// the immutable values in it, by state path. The values come from the real config, so a oneOf
+// group keeps the arm that the config takes.
+func (s *accSynth) immutableValues(a *tfAttr, mode accMode) (string, map[string]string, error) {
+	s.immutables = map[string]string{}
+	defer func() { s.immutables = nil }()
+	lines, _, err := s.attrs([]*tfAttr{a}, "", "", mode, true)
+	return lines, s.immutables, err
+}
+
+// holdsImmutable reports whether an attribute below a replaces the resource when it changes.
+func holdsImmutable(a *tfAttr) bool {
+	return slices.ContainsFunc(a.Attributes, func(child *tfAttr) bool { return immutable(child) || holdsImmutable(child) })
+}
+
+// nestedChange compares the immutable values below a top-level attribute in two configs. A value
+// that both set and that differs replaces the resource. A value that only one sets may: that
+// depends on the plan modifiers of its parents, and on what the state holds.
+func nestedChange(before, after map[string]string) attrChangeKind {
+	change := changeNone
+	for path, value := range after {
+		prior, ok := before[path]
+		switch {
+		case ok && prior != value:
+			return changeSure
+		case !ok:
+			change = changeMaybe
 		}
 	}
-	return ""
+	for path := range before {
+		if _, ok := after[path]; !ok {
+			change = changeMaybe
+		}
+	}
+	return change
 }
 
 // immutable reports whether a change of a replaces the resource, with the
@@ -630,6 +651,14 @@ func immutable(a *tfAttr) bool { return replaces(a) }
 
 // value makes the HCL value of an attribute and the checks on it.
 func (s *accSynth) value(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
+	hcl, checks, err := s.makeValue(a, tfPath, key, mode)
+	if err == nil && s.immutables != nil && immutable(a) {
+		s.immutables[tfPath] = hcl
+	}
+	return hcl, checks, err
+}
+
+func (s *accSynth) makeValue(a *tfAttr, tfPath, key string, mode accMode) (string, []accCheck, error) {
 	if mode == accMinimal && slices.Contains(s.minimal, key) {
 		mode = accFull
 	}
@@ -859,14 +888,15 @@ const runLength = 12
 // and the update starts with "u" instead of "-" so that the two values still differ. A short value
 // is padded with "x". A maximum below the length of @{run} gets a fixed value.
 func madeUpString(name string, updated bool, low, high int) string {
-	if high < runLength {
+	room := high - runLength       // the longest tail that fits with a test run
+	short := low - len(exampleRun) // the shortest tail that fits in the docs example
+	if room < 0 || short > room {
 		n := min(max(low, 1), high)
 		if updated {
 			return strings.Repeat("b", n)
 		}
 		return strings.Repeat("a", n)
 	}
-	room := high - runLength
 	tail := "-" + name
 	if updated {
 		tail += "-updated"
@@ -875,8 +905,8 @@ func madeUpString(name string, updated bool, low, high int) string {
 		}
 	}
 	tail = tail[:min(len(tail), room)]
-	if short := low - runLength - len(tail); short > 0 {
-		tail += strings.Repeat("x", short)
+	if pad := short - len(tail); pad > 0 {
+		tail += strings.Repeat("x", pad)
 	}
 	return "@{run}" + tail
 }
