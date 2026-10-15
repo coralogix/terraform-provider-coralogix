@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/alertsscheduler"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -60,21 +61,20 @@ func (d *AlertsSchedulerDataSource) Configure(_ context.Context, req datasource.
 }
 
 func (d *AlertsSchedulerDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r AlertsSchedulerResource
 	var resourceResp resource.SchemaResponse
-	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
+	NewAlertsSchedulerResource().Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *AlertsSchedulerDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *AlertsSchedulerResourceModel
+	var data *alertsscheduler.AlertSchedulerRuleModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	id := data.ID.ValueString()
+	id := data.UniqueIdentifier.ValueString()
 	getAlertsSchedulerResp, httpResp, err := d.client.
 		AlertSchedulerRuleServiceGetAlertSchedulerRule(ctx, id).
 		Execute()
@@ -86,7 +86,9 @@ func (d *AlertsSchedulerDataSource) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
-	data, diags := flattenAlertScheduler(ctx, getAlertsSchedulerResp.AlertSchedulerRule)
+	rule := &getAlertsSchedulerResp.AlertSchedulerRule
+	resp.Diagnostics.Append(normalizeStartTimes(ctx, rule)...)
+	data, diags := alertsscheduler.Flatten(ctx, rule)
 	if diags.HasError() {
 		resp.Diagnostics = diags
 		return

@@ -102,7 +102,7 @@
         "meta_labels": null,
         "what_expression": "source logs | filter true"
       },
-      "id": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
       "meta_labels": null,
       "name": "gone",
       "schedule": {
@@ -140,7 +140,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating alerts-scheduler | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: No result found\"}\noperation - Update"
+      "error: Resource no longer exists | The API did not find alerts_scheduler with id 00000000-0000-4000-8000-000000000001. Run terraform apply without -refresh=false: the refresh removes it from state, and the plan creates it again."
     ],
     "state": {
       "description": "",

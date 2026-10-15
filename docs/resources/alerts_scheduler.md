@@ -214,19 +214,19 @@ Required:
 
 Optional:
 
-- `alerts_unique_ids` (Set of String)
-- `meta_labels` (Attributes Set) (see [below for nested schema](#nestedatt--filter--meta_labels))
+- `alerts_unique_ids` (Set of String) Alert unique ids.
+- `meta_labels` (Attributes Set) Meta labels. (see [below for nested schema](#nestedatt--filter--meta_labels))
 
 <a id="nestedatt--filter--meta_labels"></a>
 ### Nested Schema for `filter.meta_labels`
 
 Required:
 
-- `key` (String)
+- `key` (String) The key.
 
 Optional:
 
-- `value` (String)
+- `value` (String) The value.
 
 
 
@@ -239,7 +239,7 @@ Required:
 
 Optional:
 
-- `one_time` (Attributes) (see [below for nested schema](#nestedatt--schedule--one_time))
+- `one_time` (Attributes) One time. (see [below for nested schema](#nestedatt--schedule--one_time))
 - `recurring` (Attributes) Recurring schedule configuration. Use `dynamic` for time-based recurring schedules, or `always_active = true` for permanent suppression rules. (see [below for nested schema](#nestedatt--schedule--recurring))
 
 <a id="nestedatt--schedule--one_time"></a>
@@ -247,7 +247,7 @@ Optional:
 
 Required:
 
-- `time_frame` (Attributes) (see [below for nested schema](#nestedatt--schedule--one_time--time_frame))
+- `time_frame` (Attributes) Timeframe. (see [below for nested schema](#nestedatt--schedule--one_time--time_frame))
 
 <a id="nestedatt--schedule--one_time--time_frame"></a>
 ### Nested Schema for `schedule.one_time.time_frame`
@@ -279,7 +279,7 @@ Required:
 Optional:
 
 - `always_active` (Boolean) When set to `true`, creates a permanent suppression rule that is always active. This is mutually exclusive with `dynamic`. When using `always_active = true`, no time frame or frequency configuration is needed.
-- `dynamic` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic))
+- `dynamic` (Attributes) Dynamic. (see [below for nested schema](#nestedatt--schedule--recurring--dynamic))
 
 <a id="nestedatt--schedule--recurring--dynamic"></a>
 ### Nested Schema for `schedule.recurring.dynamic`
@@ -287,21 +287,21 @@ Optional:
 Required:
 
 - `frequency` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--frequency))
-- `repeat_every` (Number)
-- `time_frame` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--time_frame))
+- `repeat_every` (Number) Interval multiplier controlling how often the rule recurs (e.g., every N days, weeks, or months).
+- `time_frame` (Attributes) Timeframe. (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--time_frame))
 
 Optional:
 
-- `termination_date` (String)
+- `termination_date` (String) ISO 8601 date after which the recurring rule stops being applied.
 
 <a id="nestedatt--schedule--recurring--dynamic--frequency"></a>
 ### Nested Schema for `schedule.recurring.dynamic.frequency`
 
 Optional:
 
-- `daily` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--frequency--daily))
-- `monthly` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--frequency--monthly))
-- `weekly` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--frequency--weekly))
+- `daily` (Attributes) Daily. (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--frequency--daily))
+- `monthly` (Attributes) Monthly. (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--frequency--monthly))
+- `weekly` (Attributes) Weekly. (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--frequency--weekly))
 
 <a id="nestedatt--schedule--recurring--dynamic--frequency--daily"></a>
 ### Nested Schema for `schedule.recurring.dynamic.frequency.daily`
@@ -310,17 +310,17 @@ Optional:
 <a id="nestedatt--schedule--recurring--dynamic--frequency--monthly"></a>
 ### Nested Schema for `schedule.recurring.dynamic.frequency.monthly`
 
-Optional:
+Required:
 
-- `days` (Set of Number)
+- `days` (Set of Number) The days of month.
 
 
 <a id="nestedatt--schedule--recurring--dynamic--frequency--weekly"></a>
 ### Nested Schema for `schedule.recurring.dynamic.frequency.weekly`
 
-Optional:
+Required:
 
-- `days` (Set of String)
+- `days` (Set of String) The days of week.
 
 
 
@@ -355,8 +355,8 @@ Required:
 
 Required:
 
-- `key` (String)
+- `key` (String) The key.
 
 Optional:
 
-- `value` (String)
+- `value` (String) The value.

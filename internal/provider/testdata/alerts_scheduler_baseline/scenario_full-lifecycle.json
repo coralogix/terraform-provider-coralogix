@@ -347,7 +347,7 @@
         ],
         "what_expression": "source logs | filter $d.pod == '1'"
       },
-      "id": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
       "meta_labels": [
         {
           "key": "team",
@@ -438,11 +438,6 @@
             "uniqueIdentifier": "00000000-0000-4000-8000-000000000001"
           }
         },
-        "status": 200
-      },
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
         "status": 200
       }
     ],

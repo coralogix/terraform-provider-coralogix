@@ -146,7 +146,7 @@
         "meta_labels": null,
         "what_expression": "source logs | filter true"
       },
-      "id": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
       "meta_labels": null,
       "name": "switch",
       "schedule": {
@@ -217,11 +217,6 @@
             "uniqueIdentifier": "00000000-0000-4000-8000-000000000001"
           }
         },
-        "status": 200
-      },
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
         "status": 200
       }
     ],
@@ -297,7 +292,7 @@
         "meta_labels": null,
         "what_expression": "source logs | filter true"
       },
-      "id": "(unknown)",
+      "id": "00000000-0000-4000-8000-000000000001",
       "meta_labels": null,
       "name": "switch",
       "schedule": {
@@ -345,11 +340,6 @@
             "uniqueIdentifier": "00000000-0000-4000-8000-000000000001"
           }
         },
-        "status": 200
-      },
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
         "status": 200
       }
     ],

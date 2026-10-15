@@ -1,0 +1,158 @@
+# Where coralogix_alerts_scheduler differs from the API contract, because users already have it.
+#
+# A field with a line here keeps its released behavior. A field without a line follows the
+# API contract.
+resource: AlertSchedulerRule
+mode: existing
+typeName: alerts_scheduler
+
+markdownDescription: "Coralogix alerts-scheduler (alert suppression rules). For more info please review - https://coralogix.com/docs/user-guides/alerting/alert-suppression-rules/."
+
+schema:
+  version: 0
+
+validators:
+  inferred: false
+
+api:
+  # The rule wraps the resource in the request bodies.
+  requestWrapper: alertSchedulerRule
+  # Update finds the rule by the id in the body.
+  updateIDInBody: true
+  # The rule is the request and the response schema, so the contract cannot require the id
+  # that only the server sets. The API returns it in every response.
+  serverSetID: true
+  # The path parameter is alert_scheduler_rule_id. The id is uniqueIdentifier; id is a version
+  # id that every Update replaces.
+  idProperty: uniqueIdentifier
+  operations:
+    create: AlertSchedulerRuleService_CreateAlertSchedulerRule
+    get: AlertSchedulerRuleService_GetAlertSchedulerRule
+    update: AlertSchedulerRuleService_UpdateAlertSchedulerRule
+    delete: AlertSchedulerRuleService_DeleteAlertSchedulerRule
+
+# The released resource shows the alert ids and the meta labels as plain lists.
+unwrap: [AlertUniqueIds, MetaLabels]
+
+types:
+  AlertSchedulerRule:
+    fields:
+      uniqueIdentifier:
+        readOnly: true
+        name: id
+        markdownDescription: "Alert Scheduler ID."
+      id: {skip: true}
+      createdAt: {skip: true}
+      updatedAt: {skip: true}
+      name:
+        markdownDescription: "Alert Scheduler name."
+      description:
+        computed: true
+        default: ""
+        markdownDescription: "Alert Scheduler description."
+      enabled:
+        computed: true
+        default: true
+        markdownDescription: "Alert Scheduler enabled. If set to `false`, the alert scheduler will be disabled. True by default."
+      metaLabels:
+        markdownDescription: "Alert Scheduler meta labels."
+      filter:
+        markdownDescription: "Alert Scheduler filter. Only one of `meta_labels` or `alerts_unique_ids` can be set. If none of them set, all alerts will be affected."
+      schedule:
+        markdownDescription: "Exactly one of `one_time` or `recurring` must be set."
+  meta_labels_protobuf.v1.MetaLabel:
+    fields:
+      id: {skip: true}
+      key: {required: true}
+  alert_scheduler_rule_protobuf.v1.Filter:
+    fields:
+      whatExpression:
+        markdownDescription: "A [DataPrime](https://coralogix.com/docs/dataprime-query-language/) expression that filters which **group-by values** to suppress within the selected alerts. The expression must start with `source logs | filter` (this syntax is required even for metric or tracing alerts - the filtering works on group-by values regardless of alert type). Use `\"source logs | filter true\"` to suppress all alert activity without filtering specific values. Use `\"source logs | filter $d.fieldName == 'value'\"` to suppress only when specific group-by values match. This field controls **what triggered values** to suppress, while `alerts_unique_ids` or `meta_labels` control **which alerts** the rule applies to."
+      # The API requires a selector and reads an empty alertUniqueIds as every alert. The released
+      # filter allows no selector and sends that.
+      alertUniqueIds:
+        name: alerts_unique_ids
+        defaultArm: true
+        readEmptyAs: "null"
+      alertMetaLabels:
+        name: meta_labels
+  Schedule:
+    fields:
+      scheduleOperation:
+        name: operation
+        markdownDescription: "The operation to perform. Can be `mute` or `active`."
+        validators: [{enum: true}]
+      recurring:
+        markdownDescription: "Recurring schedule configuration. Use `dynamic` for time-based recurring schedules, or `always_active = true` for permanent suppression rules."
+  OneTime:
+    fields:
+      timeframe:
+        name: time_frame
+  Recurring:
+    fields:
+      alwaysActive:
+        asBool: true
+        markdownDescription: "When set to `true`, creates a permanent suppression rule that is always active. This is mutually exclusive with `dynamic`. When using `always_active = true`, no time frame or frequency configuration is needed."
+      schedule:
+        name: dynamic
+  Recurring.Dynamic:
+    fields:
+      # The released attributes are Int64; the API holds int32.
+      repeatEvery: {required: true, terraformType: Int64}
+      terminationDate:
+        computed: true
+        default: ""
+      timeframe:
+        name: time_frame
+    # The released resource holds the daily, weekly, and monthly arms in frequency.
+    groups:
+      frequency:
+        fields: [daily, weekly, monthly]
+  Weekly:
+    fields:
+      daysOfWeek:
+        name: days
+        valueNames: {1: Sunday, 2: Monday, 3: Tuesday, 4: Wednesday, 5: Thursday, 6: Friday, 7: Saturday}
+  Monthly:
+    fields:
+      daysOfMonth:
+        name: days
+        terraformType: Int64
+  Timeframe:
+    fields:
+      submittedStartTime: {skip: true}
+      startTime:
+        required: true
+        markdownDescription: "Start time in ISO8601 format (e.g. `2026-02-17T08:00:00.000` or `2026-02-17T08:00:00.000Z`)."
+      endTime:
+        markdownDescription: "The end time of the time frame. In a isodate format. For example, `2021-01-01T00:00:00.000`."
+      duration:
+        markdownDescription: "The duration from the start time to wait."
+      timezone:
+        name: time_zone
+        markdownDescription: "Timezone (e.g. `UTC`, `UTC+0`, `UTC+2`). Both `UTC` and `UTC+0` are accepted for zero offset."
+        validators: [{oneOf: ["UTC", "UTC+0", "UTC+1", "UTC+2", "UTC+3", "UTC+4", "UTC+5", "UTC+6", "UTC+7", "UTC+8", "UTC+9", "UTC+10", "UTC+11", "UTC+12", "UTC+13", "UTC+14", "UTC-1", "UTC-2", "UTC-3", "UTC-4", "UTC-5", "UTC-6", "UTC-7", "UTC-8", "UTC-9", "UTC-10", "UTC-11"]}]
+  v1.Duration:
+    fields:
+      forOver:
+        required: true
+        terraformType: Int64
+        markdownDescription: "The number of time units to wait before the alert is triggered. For example, if the frequency is set to `hours` and the value is set to `2`, the alert will be triggered after 2 hours."
+      frequency:
+        markdownDescription: "The time unit to wait before the alert is triggered. Can be `minutes`, `hours` or `days`."
+        validators: [{enumExceptZero: true}]
+
+enums:
+  ScheduleOperation:
+    zero: unspecified
+    values: [SCHEDULE_OPERATION_MUTE, SCHEDULE_OPERATION_ACTIVATE]
+    names:
+      SCHEDULE_OPERATION_MUTE: mute
+      SCHEDULE_OPERATION_ACTIVATE: active
+  DurationFrequency:
+    zero: unspecified
+    values: [DURATION_FREQUENCY_MINUTE, DURATION_FREQUENCY_HOUR, DURATION_FREQUENCY_DAY]
+    names:
+      DURATION_FREQUENCY_MINUTE: minutes
+      DURATION_FREQUENCY_HOUR: hours
+      DURATION_FREQUENCY_DAY: days

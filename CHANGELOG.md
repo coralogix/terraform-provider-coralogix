@@ -1,7 +1,21 @@
 # Unreleased
 
 #### resource/coralogix_alerts_scheduler
+- CHORE: The resource is generated from the API contract. Schema version stays 0, every attribute keeps its type, and plans and state keep their values: `start_time` and `time_zone` keep their configured form (with or without `Z`, `UTC` or `UTC+0`), and `UTC` is sent as `UTC+0`.
+- FIX: `schedule.recurring.dynamic.frequency.daily = {}` no longer fails with "inconsistent result after apply". The state keeps `daily = {}`, and the plan after a refresh is empty.
+- FIX: `filter.alerts_unique_ids = []` no longer fails with "inconsistent result after apply". The state keeps `[]`; a filter without a selector still sends an empty `alertUniqueIds` and reads back as null.
+- FIX: Update of a rule deleted outside Terraform (with `-refresh=false`) returns an error that says to apply with a refresh, which removes the rule from state. Before, it returned the raw API 404.
+- FIX: `id` stays known in the plan of an update. Before, every update planned it as unknown, so resources that reference it planned a change too. The API keeps the id on update.
+- FEAT: Validation requires `weekly.days` and `monthly.days`, and exactly one of `daily`, `weekly`, or `monthly` in `frequency`. Before, the API rejected such a rule at apply.
+- CHORE: Update reads the rule from the replace response instead of a second read; the two differ only in a field that the resource does not manage. Attributes without a description show the API description.
+- CHORE: Add the generated acceptance test, with an upgrade test that creates a rule with provider 3.21.0 and plans it with this build.
+
+#### data-source/coralogix_alerts_scheduler
+- CHORE: Uses the schema and the conversion of the generated resource.
+
+#### resource/coralogix_alerts_scheduler
 - CHORE: Add a protocol baseline of the resource (schema and lifecycle scenarios against an in-memory API), checked against a recording of the real API. Test-only; no behavior change.
+
 #### provider
 - CHORE: Bump `coralogix-management-sdk` to the version with the alert suppression rule contract. The SDK holds required fields as values; `coralogix_alerts_scheduler`, `coralogix_events2metric`, and `coralogix_slo_v2` adapt, with no change to plans.
 
@@ -46,6 +60,7 @@
 - FEAT: An optional request scalar needs `x-coralogix-presence` only when it declares a default that is not its zero value and the zero value is valid, for example `false` next to a default of `true`. An enum never needs it. Without presence or a default, a scalar whose zero value is valid is handled as if it declared that zero value as its server default: it is `Optional + Computed`, and removing it resets it to zero. A scalar whose zero value is not valid, such as an integer with `minimum: 1`, reads zero as null.
 - CHORE: Bump the generator to `v0.1.0-beta.31`.
 - FEAT: `readEmptyAs: "null"` on a `keyedBy` map reads an empty API list as null.
+- CHORE: A test renders the alerts scheduler from the pinned contract with a new top-level and nested field, and checks that the new attributes reach the schema, the model, expand, and flatten while every other generated line stays. The IaC generator CI job downloads the pinned SDK for it.
 - FIX: A skipped empty arm of a top-level oneOf also leaves the resource validator. Before, the validator named an attribute that the schema did not have.
 - FIX: `requestValueBy` is refused on a resource that Update patches with an update mask: the mask cannot hold a derived value, so a switch of the object that sets it could be ignored.
 - FIX: `keyedBy` with `object: true` needs an arm for every accepted value when the items' oneOf requires an arm. Before, a value without one produced items without their required arm.
