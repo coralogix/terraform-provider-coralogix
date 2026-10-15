@@ -17,10 +17,14 @@ package provider
 import (
 	"fmt"
 	"os"
+	"reflect"
+	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 const globalRouterResourceName = "coralogix_global_router.example"
@@ -32,6 +36,7 @@ var pagerDutyIntegrationId = os.Getenv("PD_INTEGRATION_ID")
 
 func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 	name := uuid.NewString()
+	var appliedTargets []string
 	resource.Test(t, resource.TestCase{
 		PreCheck: func() {
 			testAccRequiredEnvVarsPreCheck(
@@ -73,12 +78,27 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 						"connector_id": fmt.Sprintf("pd-%v", name),
 						"preset_id":    fmt.Sprintf("pd-%v", name),
 					}),
+					captureRuleTargets(globalRouterResourceName, &appliedTargets),
 				),
 			},
 			{
-				ResourceName:      globalRouterResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
+				// The API returns the targets of a rule in no fixed order. Apply and refresh keep the
+				// order of the prior list, but an import has no prior list and keeps the API order.
+				// The targets are compared as a multiset instead.
+				ResourceName:            globalRouterResourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"rules.0.targets."},
+				ImportStateCheck: func(states []*terraform.InstanceState) error {
+					if len(states) != 1 {
+						return fmt.Errorf("expected 1 imported resource, got %d", len(states))
+					}
+					imported := ruleTargets(states[0].Attributes)
+					if !reflect.DeepEqual(imported, appliedTargets) {
+						return fmt.Errorf("imported rules.0.targets %v, want %v in any order", imported, appliedTargets)
+					}
+					return nil
+				},
 			},
 			{
 				Config: testAccResourceCoralogixGlobalRouterUpdate(name),
@@ -109,6 +129,50 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 			},
 		},
 	})
+}
+
+// captureRuleTargets stores the targets of the first rule, see ruleTargets.
+func captureRuleTargets(name string, out *[]string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[name]
+		if !ok {
+			return fmt.Errorf("resource %s not found", name)
+		}
+		*out = ruleTargets(rs.Primary.Attributes)
+		if len(*out) == 0 {
+			return fmt.Errorf("resource %s has no rules.0.targets", name)
+		}
+		return nil
+	}
+}
+
+// ruleTargets returns the targets of the first rule in flatmap state, one sorted
+// "key=value" text per target, sorted, so that two lists compare without their order.
+func ruleTargets(attrs map[string]string) []string {
+	const prefix = "rules.0.targets."
+	byIndex := map[string][]string{}
+	for k, v := range attrs {
+		rest, ok := strings.CutPrefix(k, prefix)
+		if !ok || rest == "#" {
+			continue
+		}
+		// ImportStateVerify treats an empty collection like a missing one; so does this.
+		if (strings.HasSuffix(k, ".#") || strings.HasSuffix(k, ".%")) && v == "0" {
+			continue
+		}
+		index, field, ok := strings.Cut(rest, ".")
+		if !ok {
+			continue
+		}
+		byIndex[index] = append(byIndex[index], field+"="+v)
+	}
+	targets := make([]string, 0, len(byIndex))
+	for _, fields := range byIndex {
+		sort.Strings(fields)
+		targets = append(targets, strings.Join(fields, ","))
+	}
+	sort.Strings(targets)
+	return targets
 }
 
 // A router without `description`, and a rule without `entity_type`. The API stores an omitted
