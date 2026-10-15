@@ -26,9 +26,9 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
         "body": {
+          "description": "",
           "logsQuery": {},
           "name": "gone",
-          "permutationsLimit": 0,
           "type": "E2M_TYPE_LOGS2METRICS"
         },
         "status": 200
@@ -49,7 +49,7 @@
       "name": "gone",
       "permutations": {
         "has_exceed_limit": false,
-        "limit": 0
+        "limit": 30000
       },
       "spans_query": null
     },
@@ -65,7 +65,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error Deleting Events2Metric | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"message\\\":\\\"Bad Request\\\",\\\"status\\\":400,\\\"details\\\":[{\\\"code\\\":\\\"custom\\\",\\\"message\\\":\\\"L2M does not exist\\\",\\\"path\\\":[\\\"id\\\"]}]}\"}\noperation - Delete"
+      "error: Unable to delete events2metric | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"message\\\":\\\"Bad Request\\\",\\\"status\\\":400,\\\"details\\\":[{\\\"code\\\":\\\"custom\\\",\\\"message\\\":\\\"L2M does not exist\\\",\\\"path\\\":[\\\"id\\\"]}]}\"}"
     ],
     "state": {
       "data_source": null,
@@ -82,7 +82,7 @@
       "name": "gone",
       "permutations": {
         "has_exceed_limit": false,
-        "limit": 0
+        "limit": 30000
       },
       "spans_query": null
     }

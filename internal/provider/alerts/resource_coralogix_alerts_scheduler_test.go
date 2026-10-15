@@ -138,7 +138,7 @@ func TestFlattenFilterTreatsNilOrEmptyAlertIDsAsAllAlerts(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			filter := &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
-				WhatExpression: alertscheduler.PtrString("source logs | filter true"),
+				WhatExpression: "source logs | filter true",
 				AlertUniqueIds: &alertscheduler.AlertUniqueIds{Value: tt.ids},
 			}
 
@@ -168,7 +168,7 @@ func TestFlattenFilterTreatsNilOrEmptyAlertIDsAsAllAlerts(t *testing.T) {
 func TestFlattenFilterPreservesDirectAlertIDs(t *testing.T) {
 	ctx := context.Background()
 	filter := &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
-		WhatExpression: alertscheduler.PtrString("source logs | filter true"),
+		WhatExpression: "source logs | filter true",
 		AlertUniqueIds: &alertscheduler.AlertUniqueIds{Value: []string{"alert-id-1", "alert-id-2"}},
 	}
 

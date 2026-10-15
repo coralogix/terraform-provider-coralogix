@@ -243,7 +243,7 @@ jobs:
             pattern: *dashboard_migration_v360_pattern
           - shard: dashboard-schema-v3
             pattern: *dashboard_migration_schema_v3_pattern
-          - shard: events2metric-grpc-v3.8.0
+          - shard: events2metric-v3.8.0-and-v3.21.0
             pattern: *events2metric_migration_acc_pattern
           - shard: user-scim-v3.14.0
             pattern: *user_migration_acc_pattern

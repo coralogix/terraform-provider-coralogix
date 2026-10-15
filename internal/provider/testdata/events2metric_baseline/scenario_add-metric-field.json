@@ -36,6 +36,7 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
         "body": {
+          "description": "",
           "logsQuery": {},
           "metricFields": [
             {
@@ -45,7 +46,6 @@
             }
           ],
           "name": "grow",
-          "permutationsLimit": 0,
           "type": "E2M_TYPE_LOGS2METRICS"
         },
         "status": 200
@@ -102,7 +102,7 @@
       "name": "grow",
       "permutations": {
         "has_exceed_limit": false,
-        "limit": 0
+        "limit": 30000
       },
       "spans_query": null
     },
@@ -193,7 +193,7 @@
       "name": "grow",
       "permutations": {
         "has_exceed_limit": false,
-        "limit": 0
+        "limit": 30000
       },
       "spans_query": null
     },
@@ -270,19 +270,16 @@
           "name": "grow",
           "permutations": {
             "hasExceededLimit": false,
-            "limit": 0
+            "limit": 30000
           },
           "type": "E2M_TYPE_LOGS2METRICS"
         },
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "data_source": null,
-      "description": "",
+      "description": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "logs_query": {
         "applications": null,
@@ -366,14 +363,11 @@
       "name": "grow",
       "permutations": {
         "has_exceed_limit": false,
-        "limit": 0
+        "limit": 30000
       },
       "spans_query": null
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update: remove the first field",
@@ -442,7 +436,7 @@
       "name": "grow",
       "permutations": {
         "has_exceed_limit": false,
-        "limit": 0
+        "limit": 30000
       },
       "spans_query": null
     },
@@ -508,19 +502,16 @@
           "name": "grow",
           "permutations": {
             "hasExceededLimit": false,
-            "limit": 0
+            "limit": 30000
           },
           "type": "E2M_TYPE_LOGS2METRICS"
         },
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "data_source": null,
-      "description": "",
+      "description": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "logs_query": {
         "applications": null,
@@ -569,14 +560,11 @@
       "name": "grow",
       "permutations": {
         "has_exceed_limit": false,
-        "limit": 0
+        "limit": 30000
       },
       "spans_query": null
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -589,7 +577,7 @@
     ],
     "state": {
       "data_source": null,
-      "description": "",
+      "description": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "logs_query": {
         "applications": null,
@@ -638,7 +626,7 @@
       "name": "grow",
       "permutations": {
         "has_exceed_limit": false,
-        "limit": 0
+        "limit": 30000
       },
       "spans_query": null
     }

@@ -1693,7 +1693,10 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 {{- else if eq .Conv "keyedobjects"}}
 	out.{{.Model}} = types.MapNull(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()})
-	if {{.Src}} != nil {
+	{{- if .ReadEmptyAsNull}}
+	// The API returns an empty list for no items; the released resource reads null.
+	{{- end}}
+	if {{if .ReadEmptyAsNull}}len({{.Src}}) != 0{{else}}{{.Src}} != nil{{end}} {
 		{{- if .Object.NeedsPrior}}
 		var prior{{.Model}} map[string]{{.Object.Model}}
 		if prior != nil {
@@ -1719,7 +1722,10 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 {{- else if eq .Conv "keyedvalues"}}
 	out.{{.Model}} = types.MapNull(types.StringType)
-	if {{.Src}} != nil {
+	{{- if .ReadEmptyAsNull}}
+	// The API returns an empty list for no items; the released resource reads null.
+	{{- end}}
+	if {{if .ReadEmptyAsNull}}len({{.Src}}) != 0{{else}}{{.Src}} != nil{{end}} {
 		items := make(map[string]string, len({{.Src}}))
 		for _, item := range {{.Src}} {
 			items[{{if not .Keyed.KeyValue}}*{{end}}item.{{.Keyed.Key}}] = {{if not .Keyed.ValueValue}}*{{end}}item.{{.Keyed.Value}}

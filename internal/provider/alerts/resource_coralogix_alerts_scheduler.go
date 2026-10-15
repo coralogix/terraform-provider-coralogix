@@ -651,12 +651,12 @@ func flattenAlertScheduler(ctx context.Context, scheduler alertscheduler.AlertSc
 		return nil, diags
 	}
 
-	filter, diags := flattenFilter(ctx, scheduler.Filter)
+	filter, diags := flattenFilter(ctx, &scheduler.Filter)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	schedule, diags := flattenSchedule(ctx, scheduler.Schedule)
+	schedule, diags := flattenSchedule(ctx, &scheduler.Schedule)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -806,21 +806,21 @@ func flattenDynamic(ctx context.Context, dynamic *alertscheduler.RecurringDynami
 	var terminationDate string
 
 	if dynamic.Daily != nil {
-		timeFrame, diags = flattenAlertsSchedulerTimeFrame(ctx, dynamic.Timeframe)
+		timeFrame, diags = flattenAlertsSchedulerTimeFrame(ctx, &dynamic.Timeframe)
 		if diags.HasError() {
 			return types.ObjectNull(dynamicModelAttr()), diags
 		}
 		repeatEvery = dynamic.GetRepeatEvery()
 		terminationDate = dynamic.GetTerminationDate()
 	} else if dynamic.Weekly != nil {
-		timeFrame, diags = flattenAlertsSchedulerTimeFrame(ctx, dynamic.Timeframe)
+		timeFrame, diags = flattenAlertsSchedulerTimeFrame(ctx, &dynamic.Timeframe)
 		if diags.HasError() {
 			return types.ObjectNull(dynamicModelAttr()), diags
 		}
 		repeatEvery = dynamic.GetRepeatEvery()
 		terminationDate = dynamic.GetTerminationDate()
 	} else if dynamic.Monthly != nil {
-		timeFrame, diags = flattenAlertsSchedulerTimeFrame(ctx, dynamic.Timeframe)
+		timeFrame, diags = flattenAlertsSchedulerTimeFrame(ctx, &dynamic.Timeframe)
 		if diags.HasError() {
 			return types.ObjectNull(dynamicModelAttr()), diags
 		}
@@ -907,7 +907,7 @@ func flattenOneTime(ctx context.Context, time *alertscheduler.OneTime) (types.Ob
 		return types.ObjectNull(oneTimeModelAttr()), nil
 	}
 
-	timeFrame, diags := flattenAlertsSchedulerTimeFrame(ctx, time.Timeframe)
+	timeFrame, diags := flattenAlertsSchedulerTimeFrame(ctx, &time.Timeframe)
 	if diags.HasError() {
 		return types.ObjectNull(oneTimeModelAttr()), diags
 	}
@@ -1068,11 +1068,11 @@ func extractAlertsScheduler(ctx context.Context, plan *AlertsSchedulerResourceMo
 
 	return alertscheduler.AlertSchedulerRule{
 		UniqueIdentifier: id,
-		Name:             alertscheduler.PtrString(plan.Name.ValueString()),
+		Name:             plan.Name.ValueString(),
 		Description:      utils.TypeStringToStringPointer(plan.Description),
 		MetaLabels:       metaLabels,
-		Filter:           filter,
-		Schedule:         schedule,
+		Filter:           valueOrZero(filter),
+		Schedule:         valueOrZero(schedule),
 		Enabled:          alertscheduler.PtrBool(plan.Enabled.ValueBool()),
 	}, nil
 }
@@ -1117,7 +1117,7 @@ func extractFilter(ctx context.Context, filter types.Object) (*alertscheduler.Al
 			return nil, diags
 		}
 		return &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
-			WhatExpression: alertscheduler.PtrString(whatExpression),
+			WhatExpression: whatExpression,
 			AlertUniqueIds: &alertscheduler.AlertUniqueIds{
 				Value: ids,
 			},
@@ -1128,7 +1128,7 @@ func extractFilter(ctx context.Context, filter types.Object) (*alertscheduler.Al
 			return nil, diags
 		}
 		return &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
-			WhatExpression: alertscheduler.PtrString(whatExpression),
+			WhatExpression: whatExpression,
 			AlertMetaLabels: &alertscheduler.MetaLabels{
 				Value: metaLabels,
 			},
@@ -1136,7 +1136,7 @@ func extractFilter(ctx context.Context, filter types.Object) (*alertscheduler.Al
 	}
 
 	return &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
-		WhatExpression: alertscheduler.PtrString(whatExpression),
+		WhatExpression: whatExpression,
 		AlertUniqueIds: &alertscheduler.AlertUniqueIds{
 			Value: nil,
 		},
@@ -1162,7 +1162,7 @@ func extractSchedule(ctx context.Context, schedule types.Object) (*alertschedule
 		}
 		return &alertscheduler.Schedule{
 			OneTime:           oneTime,
-			ScheduleOperation: &operation,
+			ScheduleOperation: operation,
 		}, nil
 	} else if !(scheduleModel.Recurring.IsNull() || scheduleModel.Recurring.IsUnknown()) {
 		recurring, diags := extractRecurring(ctx, scheduleModel.Recurring)
@@ -1171,7 +1171,7 @@ func extractSchedule(ctx context.Context, schedule types.Object) (*alertschedule
 		}
 		return &alertscheduler.Schedule{
 			Recurring:         recurring,
-			ScheduleOperation: &operation,
+			ScheduleOperation: operation,
 		}, nil
 	}
 
@@ -1194,7 +1194,7 @@ func extractOneTime(ctx context.Context, oneTimeObject types.Object) (*alertsche
 	}
 
 	return &alertscheduler.OneTime{
-		Timeframe: timeFrame,
+		Timeframe: valueOrZero(timeFrame),
 	}, nil
 }
 
@@ -1222,13 +1222,13 @@ func extractTimeFrame(ctx context.Context, timeFrame types.Object) (*alertschedu
 		}
 		return &alertscheduler.Timeframe{
 			StartTime: alertscheduler.PtrString(startTime),
-			Timezone:  alertscheduler.PtrString(timezone),
+			Timezone:  timezone,
 			Duration:  duration,
 		}, nil
 	} else if !(timeFrameModel.EndTime.IsNull() || timeFrameModel.EndTime.IsUnknown()) {
 		return &alertscheduler.Timeframe{
 			StartTime: alertscheduler.PtrString(startTime),
-			Timezone:  alertscheduler.PtrString(timezone),
+			Timezone:  timezone,
 			EndTime:   timeFrameModel.EndTime.ValueStringPointer(),
 		}, nil
 	}
@@ -1247,7 +1247,7 @@ func extractDuration(ctx context.Context, duration types.Object) (*alertschedule
 	freq := schemaToProtoDurationFrequency[durationModel.Frequency.ValueString()]
 	return &alertscheduler.V1Duration{
 		ForOver:   alertscheduler.PtrInt32(int32(durationModel.ForOver.ValueInt64())),
-		Frequency: &freq,
+		Frequency: freq,
 	}, nil
 }
 
@@ -1314,7 +1314,7 @@ func expandFrequency(ctx context.Context, frequency types.Object, timeFrame *ale
 	if daily := frequencyModel.Daily; !(daily.IsNull() || daily.IsUnknown()) {
 		return &alertscheduler.RecurringDynamic{
 			Daily:           make(map[string]interface{}),
-			Timeframe:       timeFrame,
+			Timeframe:       valueOrZero(timeFrame),
 			RepeatEvery:     &repeatEvery,
 			TerminationDate: terminationDate,
 		}, nil
@@ -1337,7 +1337,7 @@ func expandFrequency(ctx context.Context, frequency types.Object, timeFrame *ale
 			Weekly: &alertscheduler.Weekly{
 				DaysOfWeek: daysValues,
 			},
-			Timeframe:       timeFrame,
+			Timeframe:       valueOrZero(timeFrame),
 			RepeatEvery:     &repeatEvery,
 			TerminationDate: terminationDate,
 		}, nil
@@ -1356,7 +1356,7 @@ func expandFrequency(ctx context.Context, frequency types.Object, timeFrame *ale
 			Monthly: &alertscheduler.Monthly{
 				DaysOfMonth: days,
 			},
-			Timeframe:       timeFrame,
+			Timeframe:       valueOrZero(timeFrame),
 			RepeatEvery:     &repeatEvery,
 			TerminationDate: terminationDate,
 		}, nil
@@ -1496,4 +1496,14 @@ func (r *AlertsSchedulerResource) Delete(ctx context.Context, req resource.Delet
 		)
 		return
 	}
+}
+
+// valueOrZero returns the value that p points to, or the zero value for nil. The SDK holds a
+// required field as a value.
+func valueOrZero[T any](p *T) T {
+	if p == nil {
+		var zero T
+		return zero
+	}
+	return *p
 }

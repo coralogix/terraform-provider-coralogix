@@ -280,15 +280,15 @@ func testAccBackendAlertsSchedulerDirectAlertID(name string, alertID string) ale
 func testAccBackendAlertsScheduler(name string, alertIDs []string) alertscheduler.AlertSchedulerRule {
 	operation := alertscheduler.SCHEDULEOPERATION_SCHEDULE_OPERATION_MUTE
 	return alertscheduler.AlertSchedulerRule{
-		Name:        alertscheduler.PtrString(name),
+		Name:        name,
 		Description: alertscheduler.PtrString("Imported parity scheduler"),
 		Enabled:     alertscheduler.PtrBool(true),
-		Filter: &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
-			WhatExpression: alertscheduler.PtrString("source logs | filter true"),
+		Filter: alertscheduler.AlertSchedulerRuleProtobufV1Filter{
+			WhatExpression: "source logs | filter true",
 			AlertUniqueIds: &alertscheduler.AlertUniqueIds{Value: alertIDs},
 		},
-		Schedule: &alertscheduler.Schedule{
-			ScheduleOperation: &operation,
+		Schedule: alertscheduler.Schedule{
+			ScheduleOperation: operation,
 			Recurring: &alertscheduler.Recurring{
 				AlwaysActive: map[string]interface{}{},
 			},

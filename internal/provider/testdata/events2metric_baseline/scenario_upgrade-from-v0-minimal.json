@@ -1,0 +1,48 @@
+[
+  {
+    "step": "upgrade an events2metric without fields or labels",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "bare",
+      "description": null,
+      "metric_labels": [],
+      "metric_fields": [],
+      "permutations": [],
+      "logs_query": [
+        {
+          "lucene": null,
+          "applications": null,
+          "subsystems": null,
+          "severities": null
+        }
+      ],
+      "spans_query": []
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "data_source": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": {
+        "applications": null,
+        "lucene": "",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": "bare",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 30000
+      },
+      "spans_query": null
+    }
+  }
+]

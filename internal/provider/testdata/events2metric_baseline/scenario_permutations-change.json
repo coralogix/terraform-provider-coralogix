@@ -32,6 +32,7 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
         "body": {
+          "description": "",
           "logsQuery": {},
           "name": "perm",
           "permutationsLimit": 10,
@@ -109,12 +110,9 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "data_source": null,
-      "description": "",
+      "description": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "logs_query": {
         "applications": null,
@@ -131,10 +129,7 @@
       },
       "spans_query": null
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update: permutations left out",
@@ -161,32 +156,10 @@
       },
       "spans_query": null
     },
-    "requests": [
-      {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
-        "body": {
-          "description": "",
-          "id": "00000000-0000-4000-8000-000000000001",
-          "logsQuery": {
-            "lucene": ""
-          },
-          "name": "perm",
-          "permutations": {
-            "hasExceededLimit": false,
-            "limit": 20
-          },
-          "type": "E2M_TYPE_LOGS2METRICS"
-        },
-        "status": 200
-      }
-    ],
-    "inconsistentResult": [
-      "description"
-    ],
+    "noChange": true,
     "state": {
       "data_source": null,
-      "description": "",
+      "description": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "logs_query": {
         "applications": null,
@@ -202,10 +175,6 @@
         "limit": 20
       },
       "spans_query": null
-    },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    }
   }
 ]
