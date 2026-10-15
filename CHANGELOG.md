@@ -2,7 +2,7 @@
 
 #### resource/coralogix_alerts_scheduler
 - CHORE: The resource is generated from the API contract. Schema version stays 0, every attribute keeps its type, and plans and state keep their values: `start_time` and `time_zone` keep their configured form (with or without `Z`, `UTC` or `UTC+0`), and `UTC` is sent as `UTC+0`.
-- FIX: `schedule.recurring.dynamic.frequency.daily = {}` no longer fails with "inconsistent result after apply". The state keeps `daily = {}`.
+- FIX: `schedule.recurring.dynamic.frequency.daily = {}` no longer fails with "inconsistent result after apply". The state keeps `daily = {}`, and the plan after a refresh is empty.
 - FIX: `filter.alerts_unique_ids = []` no longer fails with "inconsistent result after apply". The state keeps `[]`; a filter without a selector still sends an empty `alertUniqueIds` and reads back as null.
 - FIX: Update of a rule deleted outside Terraform (with `-refresh=false`) returns an error that says to apply with a refresh, which removes the rule from state. Before, it returned the raw API 404.
 - FIX: `id` stays known in the plan of an update. Before, every update planned it as unknown, so resources that reference it planned a change too. The API keeps the id on update.

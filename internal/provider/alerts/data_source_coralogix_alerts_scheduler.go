@@ -74,7 +74,7 @@ func (d *AlertsSchedulerDataSource) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
-	id := data.Id.ValueString()
+	id := data.UniqueIdentifier.ValueString()
 	getAlertsSchedulerResp, httpResp, err := d.client.
 		AlertSchedulerRuleServiceGetAlertSchedulerRule(ctx, id).
 		Execute()

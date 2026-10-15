@@ -184,11 +184,7 @@
         }
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"id\")",
-      "AttributeName(\"schedule\").AttributeName(\"recurring\").AttributeName(\"dynamic\").AttributeName(\"frequency\").AttributeName(\"daily\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update: monthly",
