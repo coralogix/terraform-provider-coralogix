@@ -17,6 +17,7 @@ package provider
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -28,6 +29,9 @@ const (
 	events2MetricMigrationAcceptanceEnv  = "CORALOGIX_EVENTS2METRIC_MIGRATION_ACC"
 	events2MetricMigrationProviderSource = "registry.terraform.io/coralogix/coralogix"
 	events2MetricMigrationGRPCVersion    = "= 3.8.0"
+	// events2MetricMigrationReleasedVersion is the last release of the handwritten resource,
+	// before the resource moved to code generated from the API contract.
+	events2MetricMigrationReleasedVersion = "= 3.21.0"
 )
 
 func TestAccCoralogixResourceEvents2MetricMigration(t *testing.T) {
@@ -113,65 +117,67 @@ func TestAccCoralogixResourceEvents2MetricMigration(t *testing.T) {
 		},
 	}
 
-	for _, tc := range cases {
-		tc := tc
-		t.Run(tc.name, func(t *testing.T) {
-			name := acctest.RandStringFromCharSet(10, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012346789_:")
-			metricField := "tf_" + acctest.RandStringFromCharSet(12, "abcdefghijklmnopqrstuvwxyz0123456789_")
-			initial := tc.initialConfig(name, metricField)
-			updated := tc.updatedConfig(name, metricField)
-			var extraChecks, updateChecks []resource.TestCheckFunc
-			if tc.extraChecks != nil {
-				extraChecks = tc.extraChecks(metricField)
-			}
-			if tc.updateChecks != nil {
-				updateChecks = tc.updateChecks(metricField)
-			}
+	for _, version := range []string{events2MetricMigrationGRPCVersion, events2MetricMigrationReleasedVersion} {
+		for _, tc := range cases {
+			version, tc := version, tc
+			t.Run(strings.TrimPrefix(version, "= ")+"/"+tc.name, func(t *testing.T) {
+				name := acctest.RandStringFromCharSet(10, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012346789_:")
+				metricField := "tf_" + acctest.RandStringFromCharSet(12, "abcdefghijklmnopqrstuvwxyz0123456789_")
+				initial := tc.initialConfig(name, metricField)
+				updated := tc.updatedConfig(name, metricField)
+				var extraChecks, updateChecks []resource.TestCheckFunc
+				if tc.extraChecks != nil {
+					extraChecks = tc.extraChecks(metricField)
+				}
+				if tc.updateChecks != nil {
+					updateChecks = tc.updateChecks(metricField)
+				}
 
-			steps := []resource.TestStep{
-				{
-					Config:            initial,
-					ExternalProviders: events2MetricMigrationExternalProvider(events2MetricMigrationGRPCVersion),
-					Check:             resource.ComposeAggregateTestCheckFunc(extraChecks...),
-				},
-				{
-					Config:                   initial,
-					ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-					ConfigPlanChecks: resource.ConfigPlanChecks{
-						PreApply: []plancheck.PlanCheck{
-							plancheck.ExpectResourceAction(events2metricResourceName, plancheck.ResourceActionNoop),
-						},
-						PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				steps := []resource.TestStep{
+					{
+						Config:            initial,
+						ExternalProviders: events2MetricMigrationExternalProvider(version),
+						Check:             resource.ComposeAggregateTestCheckFunc(extraChecks...),
 					},
-					Check: resource.ComposeAggregateTestCheckFunc(extraChecks...),
-				},
-				{
-					Config:                   updated,
-					ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-					ConfigPlanChecks: resource.ConfigPlanChecks{
-						PreApply: []plancheck.PlanCheck{
-							plancheck.ExpectResourceAction(events2metricResourceName, plancheck.ResourceActionUpdate),
+					{
+						Config:                   initial,
+						ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+						ConfigPlanChecks: resource.ConfigPlanChecks{
+							PreApply: []plancheck.PlanCheck{
+								plancheck.ExpectResourceAction(events2metricResourceName, plancheck.ResourceActionNoop),
+							},
+							PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
 						},
-						PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+						Check: resource.ComposeAggregateTestCheckFunc(extraChecks...),
 					},
-					Check: resource.ComposeAggregateTestCheckFunc(updateChecks...),
-				},
-			}
-			if !tc.skipImport {
-				steps = append(steps, resource.TestStep{
-					ResourceName:             events2metricResourceName,
-					ImportState:              true,
-					ImportStateVerify:        true,
-					ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+					{
+						Config:                   updated,
+						ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+						ConfigPlanChecks: resource.ConfigPlanChecks{
+							PreApply: []plancheck.PlanCheck{
+								plancheck.ExpectResourceAction(events2metricResourceName, plancheck.ResourceActionUpdate),
+							},
+							PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+						},
+						Check: resource.ComposeAggregateTestCheckFunc(updateChecks...),
+					},
+				}
+				if !tc.skipImport {
+					steps = append(steps, resource.TestStep{
+						ResourceName:             events2metricResourceName,
+						ImportState:              true,
+						ImportStateVerify:        true,
+						ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+					})
+				}
+
+				resource.ParallelTest(t, resource.TestCase{
+					PreCheck:     func() { testAccPreCheck(t) },
+					CheckDestroy: testAccCheckEvents2MetricDestroy,
+					Steps:        steps,
 				})
-			}
-
-			resource.ParallelTest(t, resource.TestCase{
-				PreCheck:     func() { testAccPreCheck(t) },
-				CheckDestroy: testAccCheckEvents2MetricDestroy,
-				Steps:        steps,
 			})
-		})
+		}
 	}
 }
 

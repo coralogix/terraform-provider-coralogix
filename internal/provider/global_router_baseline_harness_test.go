@@ -74,6 +74,8 @@ type grHarness struct {
 	api      requestLog
 	typeName string
 	steps    []grStep
+	// applied is the config of the last apply that succeeded. RefreshPlan plans it again.
+	applied map[string]any
 }
 
 func newGRHarness(t *testing.T) *grHarness {
@@ -290,6 +292,7 @@ func (h *grHarness) Apply(name string, prior tftypes.Value, cfgJSON map[string]a
 	state := h.decode(resp.NewState)
 	step.State = toJSON(state)
 	inconsistent("", planned, state, &step.Inconsistent)
+	h.applied = cfgJSON
 
 	replanned, _, rd := h.plan(state, cfg)
 	if hasError(rd) {
@@ -326,6 +329,29 @@ func (h *grHarness) Refresh(name string, state tftypes.Value) tftypes.Value {
 		step.Drift = diffPaths(state, next)
 	}
 	h.record(step)
+	return next
+}
+
+// RefreshPlan reads the resource, then plans the config of the last apply on the refreshed state,
+// as terraform plan does after a refresh. A value that a read gives in another form than the
+// config then shows as a diff.
+func (h *grHarness) RefreshPlan(name string, state tftypes.Value) tftypes.Value {
+	h.t.Helper()
+	next := h.Refresh(name, state)
+	if next.IsNull() || h.applied == nil {
+		return next
+	}
+	step := &h.steps[len(h.steps)-1]
+	replanned, _, rd := h.plan(next, h.config(h.applied))
+	if hasError(rd) {
+		step.ReplanDiff = diagStrings(rd)
+		return next
+	}
+	empty := replanned.Equal(next)
+	step.ReplanEmpty = &empty
+	if !empty {
+		step.ReplanDiff = diffPaths(next, replanned)
+	}
 	return next
 }
 

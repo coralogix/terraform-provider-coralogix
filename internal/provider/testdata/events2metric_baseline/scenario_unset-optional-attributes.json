@@ -356,12 +356,9 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "data_source": null,
-      "description": "",
+      "description": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "logs_query": {
         "applications": null,
@@ -378,10 +375,7 @@
       },
       "spans_query": null
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -394,7 +388,7 @@
     ],
     "state": {
       "data_source": null,
-      "description": "",
+      "description": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "logs_query": {
         "applications": null,

@@ -201,6 +201,16 @@ var e2mScenarios = map[string]func(h *grHarness){
 		h.Apply("update: permutations left out", s, logs2metric("perm"))
 	},
 
+	// An empty permutations block: the limit is left out but the block is set. Create, change
+	// another attribute, set a limit, and remove it again.
+	"permutations-empty-block": func(h *grHarness) {
+		cfg := logs2metric("emptyperm", j{"permutations": j{}})
+		s := h.Apply("create", h.null(), cfg)
+		s = h.Apply("update: change the description", s, with(cfg, j{"description": "changed"}))
+		s = h.Apply("update: limit 20", s, with(cfg, j{"description": "changed", "permutations": j{"limit": float64(20)}}))
+		h.Apply("update: limit removed", s, with(cfg, j{"description": "changed"}))
+	},
+
 	"has-exceeded-limit": func(h *grHarness) {
 		s := h.Apply("create", h.null(), logs2metric("exceeded", j{"permutations": j{"limit": float64(5)}}))
 		h.events2metrics().exceeded[idOf(s)] = true
@@ -272,7 +282,29 @@ var e2mScenarios = map[string]func(h *grHarness){
 		h.Destroy("destroy: deleted outside Terraform", s)
 	},
 
+	// The events2metric exists in the API, as it does for a real state of version 0. An upgrade
+	// that reads the API sees it; one that translates the state offline does not need it.
+	// The API returns [] for no metric fields and no labels. The upgrade reads the events2metric
+	// with no prior value of this schema version, and stores null for them, as the released
+	// resource does, so a configuration without them plans no change.
+	"upgrade-from-v0-minimal": func(h *grHarness) {
+		h.events2metrics().seed(j{"name": "bare", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": j{}})
+		h.UpgradeV0("upgrade an events2metric without fields or labels", `{
+			"id": "00000000-0000-4000-8000-000000000001", "name": "bare", "description": null,
+			"metric_labels": [], "metric_fields": [], "permutations": [],
+			"logs_query": [{"lucene": null, "applications": null, "subsystems": null, "severities": null}],
+			"spans_query": []
+		}`)
+	},
+
 	"upgrade-from-v0": func(h *grHarness) {
+		h.events2metrics().seed(j{
+			"name": "old", "type": "E2M_TYPE_LOGS2METRICS", "description": "v0",
+			"logsQuery":         j{"lucene": "x", "applicationnameFilters": l{"a"}, "severityFilters": l{"SEVERITY_INFO"}},
+			"metricFields":      l{j{"targetBaseMetricName": "f", "sourceField": "f"}},
+			"metricLabels":      l{j{"targetLabel": "L", "sourceField": "l"}},
+			"permutationsLimit": float64(10),
+		})
 		h.UpgradeV0("upgrade", `{
 			"id": "00000000-0000-4000-8000-000000000001", "name": "old", "description": "v0",
 			"metric_labels": [{"target_label": "L", "source_field": "l"}],

@@ -1,0 +1,50 @@
+# Written by coralogix-iac-codegen. Do not edit.
+# The attributes that the released provider of the upgrade test has. The upgrade test leaves out
+# every other attribute. The generator takes the list from the schema when upgradeFrom changes.
+from: 3.21.0
+attributes:
+    data_source: {type: String}
+    description: {type: String}
+    id: {type: String}
+    logs_query: {type: SingleNested}
+    logs_query.applications: {type: Set(String)}
+    logs_query.lucene: {type: String}
+    logs_query.severities: {type: Set(String)}
+    logs_query.subsystems: {type: Set(String)}
+    metric_fields: {type: MapNested}
+    metric_fields.aggregations: {type: SingleNested}
+    metric_fields.aggregations.avg: {type: SingleNested}
+    metric_fields.aggregations.avg.enable: {type: Bool}
+    metric_fields.aggregations.avg.target_metric_name: {type: String}
+    metric_fields.aggregations.count: {type: SingleNested}
+    metric_fields.aggregations.count.enable: {type: Bool}
+    metric_fields.aggregations.count.target_metric_name: {type: String}
+    metric_fields.aggregations.histogram: {type: SingleNested}
+    metric_fields.aggregations.histogram.buckets: {type: List(Float32), required: true}
+    metric_fields.aggregations.histogram.enable: {type: Bool}
+    metric_fields.aggregations.histogram.target_metric_name: {type: String}
+    metric_fields.aggregations.max: {type: SingleNested}
+    metric_fields.aggregations.max.enable: {type: Bool}
+    metric_fields.aggregations.max.target_metric_name: {type: String}
+    metric_fields.aggregations.min: {type: SingleNested}
+    metric_fields.aggregations.min.enable: {type: Bool}
+    metric_fields.aggregations.min.target_metric_name: {type: String}
+    metric_fields.aggregations.samples: {type: SingleNested}
+    metric_fields.aggregations.samples.enable: {type: Bool}
+    metric_fields.aggregations.samples.target_metric_name: {type: String}
+    metric_fields.aggregations.samples.type: {type: String, required: true}
+    metric_fields.aggregations.sum: {type: SingleNested}
+    metric_fields.aggregations.sum.enable: {type: Bool}
+    metric_fields.aggregations.sum.target_metric_name: {type: String}
+    metric_fields.source_field: {type: String, required: true}
+    metric_labels: {type: Map(String)}
+    name: {type: String, required: true}
+    permutations: {type: SingleNested}
+    permutations.has_exceed_limit: {type: Bool}
+    permutations.limit: {type: Int32}
+    spans_query: {type: SingleNested}
+    spans_query.actions: {type: Set(String)}
+    spans_query.applications: {type: Set(String)}
+    spans_query.lucene: {type: String}
+    spans_query.services: {type: Set(String)}
+    spans_query.subsystems: {type: Set(String)}

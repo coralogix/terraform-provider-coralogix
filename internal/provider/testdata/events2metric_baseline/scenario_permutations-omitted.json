@@ -26,9 +26,9 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
         "body": {
+          "description": "",
           "logsQuery": {},
           "name": "nolabels",
-          "permutationsLimit": 0,
           "type": "E2M_TYPE_LOGS2METRICS"
         },
         "status": 200
@@ -49,7 +49,7 @@
       "name": "nolabels",
       "permutations": {
         "has_exceed_limit": false,
-        "limit": 0
+        "limit": 30000
       },
       "spans_query": null
     },
@@ -87,6 +87,7 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
         "body": {
+          "description": "",
           "logsQuery": {},
           "metricLabels": [
             {
@@ -95,15 +96,32 @@
             }
           ],
           "name": "labels",
-          "permutationsLimit": 0,
           "type": "E2M_TYPE_LOGS2METRICS"
         },
-        "status": 400
+        "status": 200
       }
     ],
-    "applyDiagnostics": [
-      "error: Error creating Events2Metric | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"message\\\":\\\"Bad Request\\\",\\\"status\\\":400,\\\"details\\\":[{\\\"code\\\":\\\"custom\\\",\\\"message\\\":\\\"Permutation amount needs to be bigger than 1 when \\\\\\\"metricLabels\\\\\\\" are set\\\",\\\"path\\\":[\\\"e2m\\\",\\\"permutations\\\",\\\"limit\\\"]}]}\"}\noperation - Create"
-    ],
-    "state": null
+    "state": {
+      "data_source": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-000000000002",
+      "logs_query": {
+        "applications": null,
+        "lucene": "",
+        "severities": null,
+        "subsystems": null
+      },
+      "metric_fields": null,
+      "metric_labels": {
+        "L": "l"
+      },
+      "name": "labels",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 30000
+      },
+      "spans_query": null
+    },
+    "replanEmpty": true
   }
 ]

@@ -1,0 +1,1125 @@
+{
+  "cases": [
+    {
+      "name": "always-lifecycle",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:18.000Z",
+              "description": "first",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "73d914e3-ddea-4748-b119-e9bdccccb393",
+              "metaLabels": [],
+              "name": "{{NAME}}-always",
+              "schedule": {
+                "recurring": {
+                  "alwaysActive": {}
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R1}}",
+              "updatedAt": "2026-10-14T13:50:18.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:18.000Z",
+              "description": "first",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "73d914e3-ddea-4748-b119-e9bdccccb393",
+              "metaLabels": [],
+              "name": "{{NAME}}-always",
+              "schedule": {
+                "recurring": {
+                  "alwaysActive": {}
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R1}}",
+              "updatedAt": "2026-10-14T13:50:18.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:18.000Z",
+              "description": "changed",
+              "enabled": false,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "29113de3-8dfd-4a86-b014-29d3efec97ad",
+              "metaLabels": [],
+              "name": "{{NAME}}-always",
+              "schedule": {
+                "recurring": {
+                  "alwaysActive": {}
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_ACTIVATE"
+              },
+              "uniqueIdentifier": "{{R1}}",
+              "updatedAt": "2026-10-14T13:50:18.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:18.000Z",
+              "description": "changed",
+              "enabled": false,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "29113de3-8dfd-4a86-b014-29d3efec97ad",
+              "metaLabels": [],
+              "name": "{{NAME}}-always",
+              "schedule": {
+                "recurring": {
+                  "alwaysActive": {}
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_ACTIVATE"
+              },
+              "uniqueIdentifier": "{{R1}}",
+              "updatedAt": "2026-10-14T13:50:18.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: No suppression rule found with unique identifier {{R1}}"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: No suppression rule found with unique identifier {{R1}}"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: No result found"
+          }
+        }
+      ]
+    },
+    {
+      "name": "omitted-optional-fields",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:19.000Z",
+              "description": "",
+              "enabled": false,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "9e3e1de8-3752-4b35-b800-aa260ab9f706",
+              "metaLabels": [],
+              "name": "{{NAME}}-omitted",
+              "schedule": {
+                "recurring": {
+                  "alwaysActive": {}
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R2}}",
+              "updatedAt": "2026-10-14T13:50:19.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:19.000Z",
+              "description": "",
+              "enabled": false,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "9e3e1de8-3752-4b35-b800-aa260ab9f706",
+              "metaLabels": [],
+              "name": "{{NAME}}-omitted",
+              "schedule": {
+                "recurring": {
+                  "alwaysActive": {}
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R2}}",
+              "updatedAt": "2026-10-14T13:50:19.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "one-time-end-time",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:19.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "4b161ef5-d9c1-4f10-9d2f-875231fd962a",
+              "metaLabels": [],
+              "name": "{{NAME}}-once",
+              "schedule": {
+                "oneTime": {
+                  "timeframe": {
+                    "endTime": "2030-01-05T00:00:00.000",
+                    "startTime": "2030-01-04T00:00:00.000",
+                    "submittedStartTime": "2030-01-04T00:00:00.000",
+                    "timezone": "UTC+0"
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R3}}",
+              "updatedAt": "2026-10-14T13:50:19.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:19.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "4b161ef5-d9c1-4f10-9d2f-875231fd962a",
+              "metaLabels": [],
+              "name": "{{NAME}}-once",
+              "schedule": {
+                "oneTime": {
+                  "timeframe": {
+                    "endTime": "2030-01-05T00:00:00.000",
+                    "startTime": "2030-01-04T00:00:00.000",
+                    "timezone": "UTC+0"
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R3}}",
+              "updatedAt": "2026-10-14T13:50:19.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:20.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "5aa86b24-1ce0-450c-bf31-72f386cae782",
+              "metaLabels": [],
+              "name": "{{NAME}}-once",
+              "schedule": {
+                "oneTime": {
+                  "timeframe": {
+                    "duration": {
+                      "forOver": 2,
+                      "frequency": "DURATION_FREQUENCY_HOUR"
+                    },
+                    "startTime": "2030-01-04T02:00:00.000",
+                    "submittedStartTime": "2030-01-04T00:00:00Z",
+                    "timezone": "UTC+2"
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R3}}",
+              "updatedAt": "2026-10-14T13:50:20.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:20.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "5aa86b24-1ce0-450c-bf31-72f386cae782",
+              "metaLabels": [],
+              "name": "{{NAME}}-once",
+              "schedule": {
+                "oneTime": {
+                  "timeframe": {
+                    "duration": {
+                      "forOver": 2,
+                      "frequency": "DURATION_FREQUENCY_HOUR"
+                    },
+                    "startTime": "2030-01-04T02:00:00.000",
+                    "timezone": "UTC+2"
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R3}}",
+              "updatedAt": "2026-10-14T13:50:20.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "recurring-weekly-start-on-other-day",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:20.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "9576b13f-6730-4d65-b578-793b8a27ccbf",
+              "metaLabels": [],
+              "name": "{{NAME}}-weekly",
+              "schedule": {
+                "recurring": {
+                  "schedule": {
+                    "repeatEvery": 2,
+                    "terminationDate": "2031-01-01T00:00:00.000",
+                    "timeframe": {
+                      "duration": {
+                        "forOver": 2,
+                        "frequency": "DURATION_FREQUENCY_HOUR"
+                      },
+                      "startTime": "2030-01-02T10:30:00.000",
+                      "submittedStartTime": "2030-01-02T10:30:00.000",
+                      "timezone": "UTC+2"
+                    },
+                    "weekly": {
+                      "daysOfWeek": [
+                        7,
+                        1
+                      ]
+                    }
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_ACTIVATE"
+              },
+              "uniqueIdentifier": "{{R4}}",
+              "updatedAt": "2026-10-14T13:50:20.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:20.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "9576b13f-6730-4d65-b578-793b8a27ccbf",
+              "metaLabels": [],
+              "name": "{{NAME}}-weekly",
+              "schedule": {
+                "recurring": {
+                  "schedule": {
+                    "repeatEvery": 2,
+                    "terminationDate": "2031-01-01T00:00:00.000",
+                    "timeframe": {
+                      "duration": {
+                        "forOver": 2,
+                        "frequency": "DURATION_FREQUENCY_HOUR"
+                      },
+                      "startTime": "2030-01-02T10:30:00.000",
+                      "timezone": "UTC+2"
+                    },
+                    "weekly": {
+                      "daysOfWeek": [
+                        7,
+                        1
+                      ]
+                    }
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_ACTIVATE"
+              },
+              "uniqueIdentifier": "{{R4}}",
+              "updatedAt": "2026-10-14T13:50:20.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "recurring-daily-and-monthly",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:20.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "f092d13e-8150-4b7b-9d17-1199428714ad",
+              "metaLabels": [],
+              "name": "{{NAME}}-daily",
+              "schedule": {
+                "recurring": {
+                  "schedule": {
+                    "daily": {},
+                    "repeatEvery": 1,
+                    "terminationDate": "",
+                    "timeframe": {
+                      "duration": {
+                        "forOver": 30,
+                        "frequency": "DURATION_FREQUENCY_MINUTE"
+                      },
+                      "startTime": "2030-01-02T10:30:00.000",
+                      "submittedStartTime": "2030-01-02T10:30:00.000",
+                      "timezone": "UTC"
+                    }
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R5}}",
+              "updatedAt": "2026-10-14T13:50:20.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:20.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "f092d13e-8150-4b7b-9d17-1199428714ad",
+              "metaLabels": [],
+              "name": "{{NAME}}-daily",
+              "schedule": {
+                "recurring": {
+                  "schedule": {
+                    "daily": {},
+                    "repeatEvery": 1,
+                    "terminationDate": "",
+                    "timeframe": {
+                      "duration": {
+                        "forOver": 30,
+                        "frequency": "DURATION_FREQUENCY_MINUTE"
+                      },
+                      "startTime": "2030-01-02T10:30:00.000",
+                      "timezone": "UTC"
+                    }
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R5}}",
+              "updatedAt": "2026-10-14T13:50:20.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:20.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "e40a5628-0475-411f-8e59-70731897cac6",
+              "metaLabels": [],
+              "name": "{{NAME}}-daily",
+              "schedule": {
+                "recurring": {
+                  "schedule": {
+                    "monthly": {
+                      "daysOfMonth": [
+                        15,
+                        1
+                      ]
+                    },
+                    "repeatEvery": 1,
+                    "terminationDate": "",
+                    "timeframe": {
+                      "duration": {
+                        "forOver": 1,
+                        "frequency": "DURATION_FREQUENCY_DAY"
+                      },
+                      "startTime": "2030-01-02T10:30:00.000",
+                      "submittedStartTime": "2030-01-02T10:30:00.000",
+                      "timezone": "UTC"
+                    }
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R5}}",
+              "updatedAt": "2026-10-14T13:50:20.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:20.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "e40a5628-0475-411f-8e59-70731897cac6",
+              "metaLabels": [],
+              "name": "{{NAME}}-daily",
+              "schedule": {
+                "recurring": {
+                  "schedule": {
+                    "monthly": {
+                      "daysOfMonth": [
+                        15,
+                        1
+                      ]
+                    },
+                    "repeatEvery": 1,
+                    "terminationDate": "",
+                    "timeframe": {
+                      "duration": {
+                        "forOver": 1,
+                        "frequency": "DURATION_FREQUENCY_DAY"
+                      },
+                      "startTime": "2030-01-02T10:30:00.000",
+                      "timezone": "UTC"
+                    }
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R5}}",
+              "updatedAt": "2026-10-14T13:50:20.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "meta-labels",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:21.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertMetaLabels": {
+                  "value": [
+                    {
+                      "id": "905c791e-b4c3-4758-9023-51570967a9ee",
+                      "key": "env",
+                      "value": "prod"
+                    },
+                    {
+                      "id": "bca89513-5b17-4bd1-8065-f09bfd4e5bd9",
+                      "key": "team",
+                      "value": "a"
+                    }
+                  ]
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "e6afe096-4f31-4db4-8b1b-e9e3b0a3c62b",
+              "metaLabels": [
+                {
+                  "id": "5a8cfaa8-f642-4587-8a02-8d31210f4738",
+                  "key": "zeta",
+                  "value": "z"
+                },
+                {
+                  "id": "aed9a09b-186e-4190-af20-285b563d00ed",
+                  "key": "alpha"
+                }
+              ],
+              "name": "{{NAME}}-labels",
+              "schedule": {
+                "recurring": {
+                  "alwaysActive": {}
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R6}}",
+              "updatedAt": "2026-10-14T13:50:21.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:21.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertMetaLabels": {
+                  "value": [
+                    {
+                      "id": "905c791e-b4c3-4758-9023-51570967a9ee",
+                      "key": "env",
+                      "value": "prod"
+                    },
+                    {
+                      "id": "bca89513-5b17-4bd1-8065-f09bfd4e5bd9",
+                      "key": "team",
+                      "value": "a"
+                    }
+                  ]
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "e6afe096-4f31-4db4-8b1b-e9e3b0a3c62b",
+              "metaLabels": [
+                {
+                  "id": "5a8cfaa8-f642-4587-8a02-8d31210f4738",
+                  "key": "zeta",
+                  "value": "z"
+                },
+                {
+                  "id": "aed9a09b-186e-4190-af20-285b563d00ed",
+                  "key": "alpha"
+                }
+              ],
+              "name": "{{NAME}}-labels",
+              "schedule": {
+                "recurring": {
+                  "alwaysActive": {}
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R6}}",
+              "updatedAt": "2026-10-14T13:50:21.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "recurring-repeat-every-zero",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:21.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "21148205-d80b-4737-914a-23762f42a0e3",
+              "metaLabels": [],
+              "name": "{{NAME}}-zero",
+              "schedule": {
+                "recurring": {
+                  "alwaysActive": {}
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R7}}",
+              "updatedAt": "2026-10-14T13:50:21.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:21.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "21148205-d80b-4737-914a-23762f42a0e3",
+              "metaLabels": [],
+              "name": "{{NAME}}-zero",
+              "schedule": {
+                "recurring": {
+                  "alwaysActive": {}
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R7}}",
+              "updatedAt": "2026-10-14T13:50:21.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "rejections",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [ alertSchedulerRule.name ] String must contain at least 1 character(s)"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [ alertSchedulerRule.filter.whichAlerts ] Invalid input"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [ alertSchedulerRule.schedule.scheduleOperation ] ScheduleOperation value UNSPECIFIED is not allowed"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [ alertSchedulerRule.schedule.scheduler.oneTime.timeframe.timezone ] invalid timezone"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [ alertSchedulerRule.schedule.scheduler.recurring.condition.schedule.frequency.weekly.daysOfWeek ] Need to insert daysOfWeek"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [ alertSchedulerRule.filter.whatExpression ] Invalid dataPrime expression : {\"syntax_error\":\"expression does not start with 'source logs | filter'\"}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [ alertSchedulerRule.filter.whichAlerts.alertUniqueIds.value ] invalid alert uniqe ids"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [ alertSchedulerRule ] uniqueIdentifier is required; the value provided in the id field is a version id and cannot be used to update a rule"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: No suppression rule found with unique identifier {{MISSING}}"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: No suppression rule found with unique identifier {{MISSING}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "update-responses",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:22.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "bd988cb7-3b3a-4c6e-95a4-c2e3c8d435c4",
+              "metaLabels": [],
+              "name": "{{NAME}}-updates",
+              "schedule": {
+                "oneTime": {
+                  "timeframe": {
+                    "endTime": "2030-01-05T00:00:00.000",
+                    "startTime": "2030-01-04T02:00:00.000",
+                    "submittedStartTime": "2030-01-04T00:00:00Z",
+                    "timezone": "UTC+2"
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R8}}",
+              "updatedAt": "2026-10-14T13:50:22.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:23.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "009be827-2f8d-4bb3-9052-d1a6007e984a",
+              "metaLabels": [],
+              "name": "{{NAME}}-updates",
+              "schedule": {
+                "oneTime": {
+                  "timeframe": {
+                    "endTime": "2030-01-06T00:00:00.000",
+                    "startTime": "2030-01-04T06:00:00.000",
+                    "submittedStartTime": "2030-01-04T06:00:00.000",
+                    "timezone": "UTC+0"
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R8}}",
+              "updatedAt": "2026-10-14T13:50:23.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:23.000Z",
+              "description": "",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "009be827-2f8d-4bb3-9052-d1a6007e984a",
+              "metaLabels": [],
+              "name": "{{NAME}}-updates",
+              "schedule": {
+                "oneTime": {
+                  "timeframe": {
+                    "endTime": "2030-01-06T00:00:00.000",
+                    "startTime": "2030-01-04T06:00:00.000",
+                    "timezone": "UTC+0"
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R8}}",
+              "updatedAt": "2026-10-14T13:50:23.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:23.000Z",
+              "description": "weekly",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "04193e65-bc9f-470f-a5a4-96df314cee7e",
+              "metaLabels": [],
+              "name": "{{NAME}}-updates",
+              "schedule": {
+                "recurring": {
+                  "schedule": {
+                    "repeatEvery": 2,
+                    "terminationDate": "2031-01-01T00:00:00.000",
+                    "timeframe": {
+                      "endTime": "2030-01-07T18:00:00.000",
+                      "startTime": "2030-01-07T08:00:00.000",
+                      "submittedStartTime": "2030-01-07T08:00:00.000",
+                      "timezone": "UTC-3"
+                    },
+                    "weekly": {
+                      "daysOfWeek": [
+                        2,
+                        6
+                      ]
+                    }
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R8}}",
+              "updatedAt": "2026-10-14T13:50:23.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:23.000Z",
+              "description": "weekly",
+              "enabled": true,
+              "filter": {
+                "alertUniqueIds": {
+                  "value": []
+                },
+                "whatExpression": "source logs | filter true"
+              },
+              "id": "04193e65-bc9f-470f-a5a4-96df314cee7e",
+              "metaLabels": [],
+              "name": "{{NAME}}-updates",
+              "schedule": {
+                "recurring": {
+                  "schedule": {
+                    "repeatEvery": 2,
+                    "terminationDate": "2031-01-01T00:00:00.000",
+                    "timeframe": {
+                      "endTime": "2030-01-07T18:00:00.000",
+                      "startTime": "2030-01-07T08:00:00.000",
+                      "timezone": "UTC-3"
+                    },
+                    "weekly": {
+                      "daysOfWeek": [
+                        2,
+                        6
+                      ]
+                    }
+                  }
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R8}}",
+              "updatedAt": "2026-10-14T13:50:23.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:23.000Z",
+              "description": "always",
+              "enabled": false,
+              "filter": {
+                "alertMetaLabels": {
+                  "value": [
+                    {
+                      "id": "7b84273f-00d2-4b8b-bc64-8c5a89eb075d",
+                      "key": "env"
+                    },
+                    {
+                      "id": "bca89513-5b17-4bd1-8065-f09bfd4e5bd9",
+                      "key": "team",
+                      "value": "a"
+                    }
+                  ]
+                },
+                "whatExpression": "source logs | filter $d.pod == '1'"
+              },
+              "id": "e696952c-315e-4cf3-a6b0-af80d9523b62",
+              "metaLabels": [],
+              "name": "{{NAME}}-updates",
+              "schedule": {
+                "recurring": {
+                  "alwaysActive": {}
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R8}}",
+              "updatedAt": "2026-10-14T13:50:23.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "alertSchedulerRule": {
+              "createdAt": "2026-10-14T13:50:23.000Z",
+              "description": "always",
+              "enabled": false,
+              "filter": {
+                "alertMetaLabels": {
+                  "value": [
+                    {
+                      "id": "7b84273f-00d2-4b8b-bc64-8c5a89eb075d",
+                      "key": "env"
+                    },
+                    {
+                      "id": "bca89513-5b17-4bd1-8065-f09bfd4e5bd9",
+                      "key": "team",
+                      "value": "a"
+                    }
+                  ]
+                },
+                "whatExpression": "source logs | filter $d.pod == '1'"
+              },
+              "id": "e696952c-315e-4cf3-a6b0-af80d9523b62",
+              "metaLabels": [],
+              "name": "{{NAME}}-updates",
+              "schedule": {
+                "recurring": {
+                  "alwaysActive": {}
+                },
+                "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+              },
+              "uniqueIdentifier": "{{R8}}",
+              "updatedAt": "2026-10-14T13:50:23.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    }
+  ]
+}

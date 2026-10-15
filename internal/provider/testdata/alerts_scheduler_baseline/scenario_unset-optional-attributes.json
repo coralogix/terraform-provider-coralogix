@@ -1,0 +1,442 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "description": "full rule",
+      "enabled": false,
+      "filter": {
+        "meta_labels": [
+          {
+            "key": "severity",
+            "value": "high"
+          }
+        ],
+        "what_expression": "source logs | filter $d.pod == '1'"
+      },
+      "meta_labels": [
+        {
+          "key": "team",
+          "value": "a"
+        },
+        {
+          "key": "env"
+        }
+      ],
+      "name": "full",
+      "schedule": {
+        "operation": "active",
+        "recurring": {
+          "dynamic": {
+            "frequency": {
+              "weekly": {
+                "days": [
+                  "Sunday",
+                  "Saturday"
+                ]
+              }
+            },
+            "repeat_every": 2,
+            "termination_date": "2031-01-01T00:00:00.000",
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "plan": {
+      "description": "full rule",
+      "enabled": false,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": [
+          {
+            "key": "severity",
+            "value": "high"
+          }
+        ],
+        "what_expression": "source logs | filter $d.pod == '1'"
+      },
+      "id": "(unknown)",
+      "meta_labels": [
+        {
+          "key": "team",
+          "value": "a"
+        },
+        {
+          "key": "env",
+          "value": null
+        }
+      ],
+      "name": "full",
+      "schedule": {
+        "one_time": null,
+        "operation": "active",
+        "recurring": {
+          "always_active": null,
+          "dynamic": {
+            "frequency": {
+              "daily": null,
+              "monthly": null,
+              "weekly": {
+                "days": [
+                  "Sunday",
+                  "Saturday"
+                ]
+              }
+            },
+            "repeat_every": 2,
+            "termination_date": "2031-01-01T00:00:00.000",
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "end_time": null,
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1",
+        "body": {
+          "alertSchedulerRule": {
+            "description": "full rule",
+            "enabled": false,
+            "filter": {
+              "alertMetaLabels": {
+                "value": [
+                  {
+                    "key": "severity",
+                    "value": "high"
+                  }
+                ]
+              },
+              "whatExpression": "source logs | filter $d.pod == '1'"
+            },
+            "metaLabels": [
+              {
+                "key": "team",
+                "value": "a"
+              },
+              {
+                "key": "env"
+              }
+            ],
+            "name": "full",
+            "schedule": {
+              "recurring": {
+                "schedule": {
+                  "repeatEvery": 2,
+                  "terminationDate": "2031-01-01T00:00:00.000",
+                  "timeframe": {
+                    "duration": {
+                      "forOver": 2,
+                      "frequency": "DURATION_FREQUENCY_HOUR"
+                    },
+                    "startTime": "2030-01-04T00:00:00.000",
+                    "timezone": "UTC+2"
+                  },
+                  "weekly": {
+                    "daysOfWeek": [
+                      1,
+                      7
+                    ]
+                  }
+                }
+              },
+              "scheduleOperation": "SCHEDULE_OPERATION_ACTIVATE"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "full rule",
+      "enabled": false,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": [
+          {
+            "key": "severity",
+            "value": "high"
+          }
+        ],
+        "what_expression": "source logs | filter $d.pod == '1'"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": [
+        {
+          "key": "team",
+          "value": "a"
+        },
+        {
+          "key": "env",
+          "value": null
+        }
+      ],
+      "name": "full",
+      "schedule": {
+        "one_time": null,
+        "operation": "active",
+        "recurring": {
+          "always_active": null,
+          "dynamic": {
+            "frequency": {
+              "daily": null,
+              "monthly": null,
+              "weekly": {
+                "days": [
+                  "Sunday",
+                  "Saturday"
+                ]
+              }
+            },
+            "repeat_every": 2,
+            "termination_date": "2031-01-01T00:00:00.000",
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "end_time": null,
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: only name, filter, and schedule are left",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "full",
+      "schedule": {
+        "operation": "active",
+        "recurring": {
+          "dynamic": {
+            "frequency": {
+              "weekly": {
+                "days": [
+                  "Sunday",
+                  "Saturday"
+                ]
+              }
+            },
+            "repeat_every": 2,
+            "termination_date": "2031-01-01T00:00:00.000",
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "plan": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "(unknown)",
+      "meta_labels": null,
+      "name": "full",
+      "schedule": {
+        "one_time": null,
+        "operation": "active",
+        "recurring": {
+          "always_active": null,
+          "dynamic": {
+            "frequency": {
+              "daily": null,
+              "monthly": null,
+              "weekly": {
+                "days": [
+                  "Sunday",
+                  "Saturday"
+                ]
+              }
+            },
+            "repeat_every": 2,
+            "termination_date": "2031-01-01T00:00:00.000",
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "end_time": null,
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1",
+        "body": {
+          "alertSchedulerRule": {
+            "description": "",
+            "enabled": true,
+            "filter": {
+              "alertUniqueIds": {},
+              "whatExpression": "source logs | filter true"
+            },
+            "name": "full",
+            "schedule": {
+              "recurring": {
+                "schedule": {
+                  "repeatEvery": 2,
+                  "terminationDate": "2031-01-01T00:00:00.000",
+                  "timeframe": {
+                    "duration": {
+                      "forOver": 2,
+                      "frequency": "DURATION_FREQUENCY_HOUR"
+                    },
+                    "startTime": "2030-01-04T00:00:00.000",
+                    "timezone": "UTC+2"
+                  },
+                  "weekly": {
+                    "daysOfWeek": [
+                      1,
+                      7
+                    ]
+                  }
+                }
+              },
+              "scheduleOperation": "SCHEDULE_OPERATION_ACTIVATE"
+            },
+            "uniqueIdentifier": "00000000-0000-4000-8000-000000000001"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "full",
+      "schedule": {
+        "one_time": null,
+        "operation": "active",
+        "recurring": {
+          "always_active": null,
+          "dynamic": {
+            "frequency": {
+              "daily": null,
+              "monthly": null,
+              "weekly": {
+                "days": [
+                  "Sunday",
+                  "Saturday"
+                ]
+              }
+            },
+            "repeat_every": 2,
+            "termination_date": "2031-01-01T00:00:00.000",
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "end_time": null,
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "full",
+      "schedule": {
+        "one_time": null,
+        "operation": "active",
+        "recurring": {
+          "always_active": null,
+          "dynamic": {
+            "frequency": {
+              "daily": null,
+              "monthly": null,
+              "weekly": {
+                "days": [
+                  "Sunday",
+                  "Saturday"
+                ]
+              }
+            },
+            "repeat_every": 2,
+            "termination_date": "2031-01-01T00:00:00.000",
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "end_time": null,
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "replanEmpty": true
+  }
+]

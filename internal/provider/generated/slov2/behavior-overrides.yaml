@@ -43,7 +43,6 @@ types:
         readOnly: true
         markdownDescription: "SLO ID."
       name:
-        required: true
         markdownDescription: "SLO name."
       description:
         # The API keeps a stored description that a replace omits, so a removed one is sent as "".
@@ -76,7 +75,6 @@ types:
         requireOne: true
         markdownDescription: "SLI generated from an APM Service Catalog service instead of from PromQL. Requires `product_type = \"apm\"`."
       sloTimeFrame:
-        required: true
         markdownDescription: "SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified."
         validators: [{enum: true}]
       # The released resource does not show these server values.
@@ -119,29 +117,23 @@ types:
   RequestBasedMetricSli:
     fields:
       goodEvents:
-        required: true
         markdownDescription: "Query defining good events."
       totalEvents:
-        required: true
         markdownDescription: "Query defining total events."
 
   Metric:
     fields:
       query:
-        required: true
         markdownDescription: "Query string for the metric."
 
   WindowBasedMetricSli:
     fields:
       query:
-        required: true
         markdownDescription: "Query used for evaluating the time-window SLI."
       window:
-        required: true
         markdownDescription: "Time window type for evaluation. One of: 1_minute, 5_minutes."
         validators: [{enumExceptZero: true}]
       comparisonOperator:
-        required: true
         markdownDescription: "Comparison operator used to evaluate the threshold. One of: greater_than,greater_than_or_equals,less_than,less_than_or_equals,unspecified"
         validators: [{enum: true}]
       threshold:
@@ -156,7 +148,6 @@ types:
   ApmSli:
     fields:
       services:
-        required: true
         markdownDescription: "Names of the APM Service Catalog services to monitor. The backend currently accepts exactly one service and rejects unknown service names."
         validators: [{sizeAtLeast: 1}]
       errorConfig:
@@ -176,7 +167,6 @@ types:
   ApmFilter:
     fields:
       key:
-        required: true
         markdownDescription: "Label or tag name to filter on."
       values:
         required: true

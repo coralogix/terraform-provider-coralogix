@@ -26,9 +26,9 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
         "body": {
+          "description": "",
           "logsQuery": {},
           "name": "switch",
-          "permutationsLimit": 0,
           "type": "E2M_TYPE_LOGS2METRICS"
         },
         "status": 200
@@ -49,7 +49,7 @@
       "name": "switch",
       "permutations": {
         "has_exceed_limit": false,
-        "limit": 0
+        "limit": 30000
       },
       "spans_query": null
     },
@@ -71,12 +71,12 @@
       "name": "switch",
       "permutations": {
         "has_exceed_limit": false,
-        "limit": 0
+        "limit": 30000
       },
       "spans_query": {
         "actions": null,
         "applications": null,
-        "lucene": null,
+        "lucene": "(unknown)",
         "services": null,
         "subsystems": null
       }
@@ -91,7 +91,7 @@
           "name": "switch",
           "permutations": {
             "hasExceededLimit": false,
-            "limit": 0
+            "limit": 30000
           },
           "spansQuery": {},
           "type": "E2M_TYPE_SPANS2METRICS"
@@ -99,13 +99,9 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description",
-      "spans_query.lucene"
-    ],
     "state": {
       "data_source": null,
-      "description": "",
+      "description": null,
       "id": "00000000-0000-4000-8000-000000000001",
       "logs_query": null,
       "metric_fields": null,
@@ -113,7 +109,7 @@
       "name": "switch",
       "permutations": {
         "has_exceed_limit": false,
-        "limit": 0
+        "limit": 30000
       },
       "spans_query": {
         "actions": null,
@@ -123,9 +119,6 @@
         "subsystems": null
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   }
 ]

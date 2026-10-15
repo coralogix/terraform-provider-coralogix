@@ -1,0 +1,326 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "filter": {
+        "alerts_unique_ids": [
+          "alert-1",
+          "alert-2"
+        ],
+        "what_expression": "source logs | filter true"
+      },
+      "name": "ids",
+      "schedule": {
+        "operation": "mute",
+        "recurring": {
+          "always_active": true
+        }
+      }
+    },
+    "plan": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": [
+          "alert-1",
+          "alert-2"
+        ],
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "(unknown)",
+      "meta_labels": null,
+      "name": "ids",
+      "schedule": {
+        "one_time": null,
+        "operation": "mute",
+        "recurring": {
+          "always_active": true,
+          "dynamic": null
+        }
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1",
+        "body": {
+          "alertSchedulerRule": {
+            "description": "",
+            "enabled": true,
+            "filter": {
+              "alertUniqueIds": {
+                "value": [
+                  "alert-1",
+                  "alert-2"
+                ]
+              },
+              "whatExpression": "source logs | filter true"
+            },
+            "name": "ids",
+            "schedule": {
+              "recurring": {
+                "alwaysActive": {}
+              },
+              "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": [
+          "alert-1",
+          "alert-2"
+        ],
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "ids",
+      "schedule": {
+        "one_time": null,
+        "operation": "mute",
+        "recurring": {
+          "always_active": true,
+          "dynamic": null
+        }
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": [
+          "alert-1",
+          "alert-2"
+        ],
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "ids",
+      "schedule": {
+        "one_time": null,
+        "operation": "mute",
+        "recurring": {
+          "always_active": true,
+          "dynamic": null
+        }
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: all alerts (no selector)",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "ids",
+      "schedule": {
+        "operation": "mute",
+        "recurring": {
+          "always_active": true
+        }
+      }
+    },
+    "plan": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "(unknown)",
+      "meta_labels": null,
+      "name": "ids",
+      "schedule": {
+        "one_time": null,
+        "operation": "mute",
+        "recurring": {
+          "always_active": true,
+          "dynamic": null
+        }
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1",
+        "body": {
+          "alertSchedulerRule": {
+            "description": "",
+            "enabled": true,
+            "filter": {
+              "alertUniqueIds": {},
+              "whatExpression": "source logs | filter true"
+            },
+            "name": "ids",
+            "schedule": {
+              "recurring": {
+                "alwaysActive": {}
+              },
+              "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+            },
+            "uniqueIdentifier": "00000000-0000-4000-8000-000000000001"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "ids",
+      "schedule": {
+        "one_time": null,
+        "operation": "mute",
+        "recurring": {
+          "always_active": true,
+          "dynamic": null
+        }
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: meta label selector",
+    "config": {
+      "filter": {
+        "meta_labels": [
+          {
+            "key": "team",
+            "value": "a"
+          }
+        ],
+        "what_expression": "source logs | filter true"
+      },
+      "name": "ids",
+      "schedule": {
+        "operation": "mute",
+        "recurring": {
+          "always_active": true
+        }
+      }
+    },
+    "plan": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": [
+          {
+            "key": "team",
+            "value": "a"
+          }
+        ],
+        "what_expression": "source logs | filter true"
+      },
+      "id": "(unknown)",
+      "meta_labels": null,
+      "name": "ids",
+      "schedule": {
+        "one_time": null,
+        "operation": "mute",
+        "recurring": {
+          "always_active": true,
+          "dynamic": null
+        }
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1",
+        "body": {
+          "alertSchedulerRule": {
+            "description": "",
+            "enabled": true,
+            "filter": {
+              "alertMetaLabels": {
+                "value": [
+                  {
+                    "key": "team",
+                    "value": "a"
+                  }
+                ]
+              },
+              "whatExpression": "source logs | filter true"
+            },
+            "name": "ids",
+            "schedule": {
+              "recurring": {
+                "alwaysActive": {}
+              },
+              "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+            },
+            "uniqueIdentifier": "00000000-0000-4000-8000-000000000001"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": [
+          {
+            "key": "team",
+            "value": "a"
+          }
+        ],
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "ids",
+      "schedule": {
+        "one_time": null,
+        "operation": "mute",
+        "recurring": {
+          "always_active": true,
+          "dynamic": null
+        }
+      }
+    },
+    "replanEmpty": true
+  }
+]

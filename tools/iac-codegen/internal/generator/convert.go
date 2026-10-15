@@ -593,10 +593,11 @@ func checkReadEmptyAs(cf *convField) error {
 	if !cf.ReadEmptyAsNull {
 		return nil
 	}
-	if cf.Conv == convString || (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects || (cf.Conv == convStrings && cf.Wrap == nil) {
+	if cf.Conv == convString || (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects || (cf.Conv == convStrings && cf.Wrap == nil) ||
+		cf.Conv == convKeyedObjects || cf.Conv == convKeyedValues {
 		return nil
 	}
-	return fmt.Errorf("readEmptyAs: \"null\" is supported for a string, an object, and a list or set of strings or objects, not for the %s field %s", cf.Conv, cf.TFName)
+	return fmt.Errorf("readEmptyAs: \"null\" is supported for a string, an object, a list or set of strings or objects, and a keyedBy map, not for the %s field %s", cf.Conv, cf.TFName)
 }
 
 // markComputedObjectValue makes a directly nested computed field capable of

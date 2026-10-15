@@ -1,5 +1,10 @@
 # Unreleased
 
+#### resource/coralogix_alerts_scheduler
+- CHORE: Add a protocol baseline of the resource (schema and lifecycle scenarios against an in-memory API), checked against a recording of the real API. Test-only; no behavior change.
+#### provider
+- CHORE: Bump `coralogix-management-sdk` to the version with the alert suppression rule contract. The SDK holds required fields as values; `coralogix_alerts_scheduler`, `coralogix_events2metric`, and `coralogix_slo_v2` adapt, with no change to plans.
+
 #### resource/coralogix_view
 - FEAT: Add `coralogix_view` for a saved Explore view. `name` and `time_selection` are required, and `time_selection` needs exactly one of `quick_selection` or `custom_selection`. `search_query`, `filters`, `folder_id`, `view_type`, and `is_compact_mode` can be set, changed, and removed. An omitted `view_type`, `is_compact_mode`, or `search_query.syntax_type` reads back as the server default (`VIEW_TYPE_LOGS`, `false`, `SYNTAX_TYPE_LUCENE`), and removing one restores that default. A configured `is_compact_mode` is applied with a replace right after create, because create does not take it. `time_selection.quick_selection.caption` is computed. The API stores `time_selection.quick_selection.seconds` as the nearest preset, so set one of the listed presets.
 - CHORE: Bump `coralogix-management-sdk` to the version with the views API contract.
@@ -43,6 +48,7 @@
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.32`.
 - CHORE: Bump the generator to `v0.1.0-beta.31`.
 - CHORE: Bump the generator to `v0.1.0-beta.30`.
 - CHORE: The `evalthing` golden fixture covers `collection: set`, `requiresReplace`, `unsupportedArms`, a mask-less `updateMaskInBody`, an enum that starts with a business value, and a Get response written as `allOf: [$ref]`.
@@ -59,6 +65,7 @@
 - FEAT: `api.topLevelMaskReplacesOneOf: true` lets a top-level query-parameter update mask change a nested oneOf when the server replaces the whole value of that path.
 - CHANGE: `api.updateMaskInBody: true` sends no mask, as a released resource that never sent one did. The server updates every field present in the body. An immutable field, also a `requiresReplace` field, stays out of the body. Every field that Update sends must be required, have a static default, or keep its state value, because without a mask removing it cannot clear it. A field that replaces the resource and that the Update body requires is an error, because the body would send its zero value.
 - CHORE: Bump the generator to `v0.1.0-beta.26`.
+- FEAT: `readEmptyAs: "null"` on a `keyedBy` map reads an empty API list as null.
 - FIX: A skipped empty arm of a top-level oneOf also leaves the resource validator. Before, the validator named an attribute that the schema did not have.
 - FIX: `requestValueBy` is refused on a resource that Update patches with an update mask: the mask cannot hold a derived value, so a switch of the object that sets it could be ignored.
 - FIX: `keyedBy` with `object: true` needs an arm for every accepted value when the items' oneOf requires an arm. Before, a value without one produced items without their required arm.
@@ -134,6 +141,17 @@
 
 #### resource/coralogix_events2metric
 - CHORE: Add protocol baseline golden files against an in-memory events2metrics API, checked against answers recorded from a real tenant.
+- CHORE: The resource is generated from the API contract. Schema version stays 1, and the HCL does not change. `permutations.limit` is an Int32 and `buckets` a list of Float32, the API types; both stay Terraform numbers, so state and configuration are unchanged.
+- FIX: Leaving out `permutations` no longer sends a limit of 0. The API now stores its default of 30000, and an events2metric with `metric_labels` and no `permutations` can be created; before, the API refused it.
+- FIX: Removing `description` clears it. Before, the API kept the stored description, and the apply failed with an inconsistent result. Create and Replace now send `""` for a description that is not set, which reads back as null.
+- FIX: Switching from `logs_query` to `spans_query`, or back, applies. Before, `lucene` of the new query planned null and the API returned `""`, so the apply failed with an inconsistent result.
+- FIX: A `permutations` block without `limit` (`permutations = {}`) no longer sends a limit of 0. Create leaves the limit out, so the API stores its default of 30000, and Replace sends the stored limit. Before, Create and Replace sent 0. Removing `limit` keeps the stored value, as before.
+- FIX: State of schema version 0 is upgraded by reading the events2metric from the API. Before, the upgrade kept every metric field under the key `""`, with no source field. An events2metric that no longer exists makes the upgrade fail with "Resource no longer exists", which says to remove it with `terraform state rm`.
+- FIX: An events2metric without metric fields or labels reads them as null in the data source and in the v0 state upgrade, as the released resource does. The API returns `[]` for none.
+- CHORE: Migration tests also start from provider 3.21.0, and the generated acceptance and 3.21.0 upgrade tests are added.
+
+#### data-source/coralogix_events2metric
+- CHORE: Uses the schema and the conversion of the generated resource. `description` still shows the stored value, `""` included, as before.
 
 # Release 3.21.0
 

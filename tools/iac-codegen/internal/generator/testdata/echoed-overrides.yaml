@@ -19,8 +19,9 @@ types:
       createTime: {skip: true}
       isInternal: {skip: true}
       quota: {createAs: {limit: limitValue}, computed: true}
-      items: {name: entries, keyedBy: {key: key}}
-      labels: {keyedBy: {key: name, value: value}}
+      # The API returns [] for no items or labels; the released resource reads null.
+      items: {name: entries, keyedBy: {key: key}, readEmptyAs: "null"}
+      labels: {keyedBy: {key: name, value: value}, readEmptyAs: "null"}
       measures:
         computed: true
         useNonNullStateForUnknown: true

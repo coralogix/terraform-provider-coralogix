@@ -20,13 +20,16 @@ import (
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/events2metric"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	e2ms "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/events2metrics_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var _ datasource.DataSourceWithConfigure = &Events2MetricDataSource{}
@@ -61,24 +64,23 @@ func (d *Events2MetricDataSource) Configure(_ context.Context, req datasource.Co
 }
 
 func (d *Events2MetricDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r Events2MetricResource
 	var resourceResp resource.SchemaResponse
-	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
+	NewEvents2MetricResource().Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data Events2MetricResourceModel
+	var data *events2metric.E2MModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	id := data.ID.ValueString()
+	id := data.Id.ValueString()
 	getResp, httpResponse, err := d.client.Events2MetricServiceGetE2M(ctx, id).Execute()
 	if err != nil {
-		if responseStatus(httpResponse) == http.StatusNotFound {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				err.Error(),
 				fmt.Sprintf("Events2Metric %q is in state, but no longer exists in Coralogix backend", id),
@@ -99,11 +101,26 @@ func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadR
 		return
 	}
 
-	data, diags := flattenE2M(ctx, &getResp.E2m)
+	data, diags := flattenDataSource(ctx, &getResp.E2m)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// flattenDataSource is the data source model of an events2metric. It uses the resource's
+// Flatten, but shows the description as the API stores it: the resource reads a stored "" as
+// null so that a removed description plans no change, while the data source has no
+// configuration and showed "" before the resource was generated.
+func flattenDataSource(ctx context.Context, v *e2ms.E2M) (*events2metric.E2MModel, diag.Diagnostics) {
+	data, diags := events2metric.Flatten(ctx, v)
+	if diags.HasError() || data == nil {
+		return data, diags
+	}
+	if v.Description != nil {
+		data.Description = types.StringValue(*v.Description)
+	}
+	return data, diags
 }
