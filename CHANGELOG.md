@@ -41,6 +41,8 @@
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.31`.
+- FEAT: `readEmptyAs: "null"` on a `keyedBy` map reads an empty API list as null.
 - CHORE: Bump the generator to `v0.1.0-beta.30`.
 - FIX: A skipped empty arm of a top-level oneOf also leaves the resource validator. Before, the validator named an attribute that the schema did not have.
 - FIX: `requestValueBy` is refused on a resource that Update patches with an update mask: the mask cannot hold a derived value, so a switch of the object that sets it could be ignored.
@@ -123,6 +125,7 @@
 - FIX: Switching from `logs_query` to `spans_query`, or back, applies. Before, `lucene` of the new query planned null and the API returned `""`, so the apply failed with an inconsistent result.
 - FIX: Changing another attribute keeps `permutations.limit`. Before, an omitted limit planned unknown, and Replace could send no limit.
 - FIX: State of schema version 0 is upgraded by reading the events2metric from the API. Before, the upgrade kept every metric field under the key `""`, with no source field. An events2metric that no longer exists makes the upgrade fail with "Resource no longer exists", which says to remove it with `terraform state rm`.
+- FIX: An events2metric without metric fields or labels reads them as null in the data source and in the v0 state upgrade, as the released resource does. The API returns `[]` for none.
 - CHORE: Migration tests also start from provider 3.21.0, and the generated acceptance and 3.21.0 upgrade tests are added.
 
 #### data-source/coralogix_events2metric

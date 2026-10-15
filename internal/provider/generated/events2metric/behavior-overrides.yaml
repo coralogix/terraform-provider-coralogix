@@ -45,12 +45,15 @@ types:
         useStateForUnknown: true
         markdownDescription: "Defines the permutations' info of the events2metric."
       # The released resource keys metric fields by their base metric name, and labels by label.
+      # The API returns [] for none; the released resource reads null.
       metricFields:
         keyedBy: {key: targetBaseMetricName}
+        readEmptyAs: "null"
         markdownDescription: ""
         validators: [{sizeAtLeast: 1}]
       metricLabels:
         keyedBy: {key: targetLabel, value: sourceField}
+        readEmptyAs: "null"
         markdownDescription: ""
         validators: [{sizeAtLeast: 1}]
       # The released resource has no type attribute: it follows the query that is set.

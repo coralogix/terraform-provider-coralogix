@@ -168,7 +168,7 @@ func TestEchoedContractRefusesWrongLines(t *testing.T) {
 		},
 		"optional on a resource field that no request requires": {
 			overrides: func(t *testing.T, o string) string {
-				return replaceOnce(t, o, "items: {name: entries, keyedBy: {key: key}}", "items: {name: entries, keyedBy: {key: key}, optional: true}")
+				return replaceOnce(t, o, "items: {name: entries, keyedBy: {key: key}, readEmptyAs: \"null\"}", "items: {name: entries, keyedBy: {key: key}, readEmptyAs: \"null\", optional: true}")
 			},
 			code: "OVERRIDE_UNUSED", location: "already leave",
 		},

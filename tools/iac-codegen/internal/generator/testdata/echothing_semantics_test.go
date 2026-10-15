@@ -5,6 +5,7 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -500,5 +501,22 @@ func TestEmptyMappedEnumSetReadsAsNull(t *testing.T) {
 	}
 	if !levels.IsNull() {
 		t.Fatalf("levels = %v, want null", levels)
+	}
+}
+
+// readEmptyAs: "null" applies to keyed maps too: the API returns [] for no items and no labels.
+// Flatten has no prior value in an import, a data source, or a refresh upgrade, so it must store
+// null itself, as the released resource does.
+func TestEmptyKeyedMapsReadAsNull(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+	out := flattenEchoThing(ctx, path.Empty(), &echo_things_service.EchoThing{
+		Id: "thing-1", Name: "name", Items: []echo_things_service.EchoItem{}, Labels: []echo_things_service.Label{},
+	}, &diags)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	if !out.Items.IsNull() || !out.Labels.IsNull() {
+		t.Fatalf("items = %v, labels = %v, want both null", out.Items, out.Labels)
 	}
 }

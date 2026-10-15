@@ -274,6 +274,19 @@ var e2mScenarios = map[string]func(h *grHarness){
 
 	// The events2metric exists in the API, as it does for a real state of version 0. An upgrade
 	// that reads the API sees it; one that translates the state offline does not need it.
+	// The API returns [] for no metric fields and no labels. The upgrade reads the events2metric
+	// with no prior value of this schema version, and stores null for them, as the released
+	// resource does, so a configuration without them plans no change.
+	"upgrade-from-v0-minimal": func(h *grHarness) {
+		h.events2metrics().seed(j{"name": "bare", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": j{}})
+		h.UpgradeV0("upgrade an events2metric without fields or labels", `{
+			"id": "00000000-0000-4000-8000-000000000001", "name": "bare", "description": null,
+			"metric_labels": [], "metric_fields": [], "permutations": [],
+			"logs_query": [{"lucene": null, "applications": null, "subsystems": null, "severities": null}],
+			"spans_query": []
+		}`)
+	},
+
 	"upgrade-from-v0": func(h *grHarness) {
 		h.events2metrics().seed(j{
 			"name": "old", "type": "E2M_TYPE_LOGS2METRICS", "description": "v0",
