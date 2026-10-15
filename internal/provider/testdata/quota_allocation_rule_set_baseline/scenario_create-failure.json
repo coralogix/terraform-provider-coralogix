@@ -1,0 +1,20 @@
+[
+  {
+    "step": "create: percentage above 100 is refused by the API",
+    "config": {
+      "rules": [
+        {
+          "allocation": 120,
+          "allocation_type": "unspecified",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid percentage quota allocation [AttributeName(\"rules\")] | The quota allocation rule for entity_type \"logs\" uses allocation_type \"percentage\", so allocation must be between 0 and 100."
+    ],
+    "state": null
+  }
+]
