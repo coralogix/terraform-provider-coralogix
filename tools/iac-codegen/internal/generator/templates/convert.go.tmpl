@@ -501,6 +501,12 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 {{- template "expandField" .}}
 {{- end}}
 {{- end}}
+{{- range .DefaultArms}}
+	// No arm is set, so the request sends the empty {{.Field}} arm.
+	if {{range $i, $arm := .Arms}}{{if $i}} && {{end}}out.{{$arm}} == nil{{end}}{{range .Unknown}} && !m.{{.}}.IsUnknown(){{end}} {
+		out.{{.Field}} = {{.Value}}
+	}
+{{- end}}
 	return out
 }
 {{end}}
@@ -1367,7 +1373,7 @@ func widenFloat32Map(v map[string]float32) map[string]float64 {
 	return out
 }
 {{- end}}
-{{- if .Conv.Uses "scalars"}}
+{{- if or (.Conv.Uses "scalars") (.Conv.Uses "ints32asint64")}}
 
 func flattenScalarsList[T any](ctx context.Context, elem attr.Type, v []T, diags *diag.Diagnostics) types.List {
 	if v == nil {
@@ -1381,6 +1387,112 @@ func flattenScalarsSet[T any](ctx context.Context, elem attr.Type, v []T, diags 
 		return types.SetNull(elem)
 	}
 	return flattenSet(ctx, elem, v, diags)
+}
+{{- end}}
+{{- if or (.Conv.Uses "int32asint64") (.Conv.Uses "ints32asint64")}}
+
+// expandInt64AsInt32 returns the int32 that the API holds for an Int64 attribute. A value outside
+// the int32 range is an error.
+func expandInt64AsInt32(p path.Path, v types.Int64, diags *diag.Diagnostics) *int32 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	return int64AsInt32(p, v.ValueInt64(), diags)
+}
+
+func int64AsInt32(p path.Path, n int64, diags *diag.Diagnostics) *int32 {
+	if n < math.MinInt32 || n > math.MaxInt32 {
+		diags.AddAttributeError(p, "Value out of range", fmt.Sprintf("%d is outside the range that the API stores, %d to %d.", n, math.MinInt32, math.MaxInt32))
+		return nil
+	}
+	out := int32(n)
+	return &out
+}
+
+// int64sAsInt32 returns the int32 values that the API holds for an Int64 list or set.
+func int64sAsInt32(p path.Path, v []int64, diags *diag.Diagnostics) []int32 {
+	if v == nil {
+		return nil
+	}
+	out := make([]int32, 0, len(v))
+	for _, n := range v {
+		if m := int64AsInt32(p, n, diags); m != nil {
+			out = append(out, *m)
+		}
+	}
+	return out
+}
+
+func int32AsInt64(v *int32) *int64 {
+	if v == nil {
+		return nil
+	}
+	out := int64(*v)
+	return &out
+}
+
+func ints32AsInt64(v []int32) []int64 {
+	if v == nil {
+		return nil
+	}
+	out := make([]int64, 0, len(v))
+	for _, n := range v {
+		out = append(out, int64(n))
+	}
+	return out
+}
+{{- end}}
+{{- if .Conv.Uses "namedints"}}
+
+// expandNamedInts returns the numbers of the names in v. A name that the map lacks is an error.
+func expandNamedInts[T int32 | int64](ctx context.Context, p path.Path, v elements, numbers map[string]T, diags *diag.Diagnostics) []T {
+	names := expandElements[string](ctx, p, v, diags)
+	if names == nil {
+		return nil
+	}
+	out := make([]T, 0, len(names))
+	for _, name := range names {
+		n, ok := numbers[name]
+		if !ok {
+			diags.AddAttributeError(p, "Unsupported value", fmt.Sprintf("%q is not a supported value.", name))
+			continue
+		}
+		out = append(out, n)
+	}
+	return out
+}
+
+// flattenNamedInts returns the names of the numbers in v. A number that the map lacks is an error.
+func flattenNamedInts[T int32 | int64](p path.Path, v []T, names map[T]string, diags *diag.Diagnostics) ([]string, bool) {
+	if v == nil {
+		return nil, false
+	}
+	out := make([]string, 0, len(v))
+	for _, n := range v {
+		name, ok := names[n]
+		if !ok {
+			diags.AddAttributeError(p, "Unsupported API value", fmt.Sprintf("The API returned %d, which this resource does not support.", n))
+			continue
+		}
+		out = append(out, name)
+	}
+	return out, true
+}
+
+func flattenNamedIntsSet[T int32 | int64](ctx context.Context, p path.Path, v []T, names map[T]string, diags *diag.Diagnostics) types.Set {
+	out, ok := flattenNamedInts(p, v, names, diags)
+	if !ok {
+		return types.SetNull(types.StringType)
+	}
+	return flattenSet(ctx, types.StringType, out, diags)
+}
+
+func flattenNamedIntsList[T int32 | int64](ctx context.Context, p path.Path, v []T, names map[T]string, diags *diag.Diagnostics) types.List {
+	out, ok := flattenNamedInts(p, v, names, diags)
+	if !ok {
+		return types.ListNull(types.StringType)
+	}
+	return flattenList(ctx, types.StringType, out, diags)
 }
 {{- end}}
 {{- if .Conv.Uses "scalarmap"}}
@@ -1432,6 +1544,14 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{.Dst}} = {{$l}}expandInt32(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "int64"}}
 	{{.Dst}} = {{$l}}expandInt64(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "int32asint64"}}
+	{{.Dst}} = {{$l}}expandInt64AsInt32({{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "ints32asint64"}}
+	{{- if eq .Collection "Set"}}
+	{{.Dst}} = int64sAsInt32({{$p}}, expandSet[int64](ctx, {{$p}}, m.{{.Model}}, diags), diags)
+	{{- else}}
+	{{.Dst}} = int64sAsInt32({{$p}}, expandElements[int64](ctx, {{$p}}, m.{{.Model}}, diags), diags)
+	{{- end}}
 {{- else if eq .Conv "float32"}}
 	{{.Dst}} = {{$l}}expandFloat32(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "scalars"}}
@@ -1440,6 +1560,8 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{- else}}
 	{{.Dst}} = expandElements[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
 	{{- end}}
+{{- else if eq .Conv "namedints"}}
+	{{.Dst}} = expandNamedInts(ctx, {{$p}}, m.{{.Model}}, map[string]{{.SDKType}}{ {{- range .ValueNames}}{{printf "%q" .Name}}: {{.Number}}, {{end -}} }, diags)
 {{- else if eq .Conv "scalarmap"}}
 	{{.Dst}} = expandMap[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
 {{- else if eq .Conv "uint64"}}
@@ -1475,6 +1597,14 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- else if eq .Conv "empty"}}
 	if m.{{.Model}} != nil {
 		{{.Dst}} = map[string]interface{}{}
+	}
+{{- else if eq .Conv "emptybool"}}
+	if !m.{{.Model}}.IsNull() && !m.{{.Model}}.IsUnknown() {
+		if m.{{.Model}}.ValueBool() {
+			{{.Dst}} = map[string]interface{}{}
+		} else {
+			diags.AddAttributeError({{$p}}, "Invalid value", "Only true is a valid value. Remove the attribute instead of setting false.")
+		}
 	}
 {{- else if eq .Conv "fold"}}
 	{{- if .ObjectValue}}
@@ -1601,11 +1731,18 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- else if eq .Conv "int64"}}
 	out.{{.Model}} = types.Int64PointerValue({{$v}})
 	{{- template "readZeroAsNull" .}}
+{{- else if eq .Conv "int32asint64"}}
+	out.{{.Model}} = types.Int64PointerValue(int32AsInt64({{$v}}))
+	{{- template "readZeroAsNull" .}}
+{{- else if eq .Conv "ints32asint64"}}
+	out.{{.Model}} = flattenScalars{{.Collection}}(ctx, types.Int64Type, ints32AsInt64({{.Src}}), diags)
 {{- else if eq .Conv "float32"}}
 	out.{{.Model}} = flattenFloat32({{$v}})
 	{{- template "readZeroAsNull" .}}
 {{- else if eq .Conv "scalars"}}
 	out.{{.Model}} = flattenScalars{{.Collection}}(ctx, {{.ElemType}}, {{if eq .SDKType "float32"}}widenFloat32s({{.Src}}){{else}}{{.Src}}{{end}}, diags)
+{{- else if eq .Conv "namedints"}}
+	out.{{.Model}} = flattenNamedInts{{.Collection}}(ctx, {{$p}}, {{.Src}}, map[{{.SDKType}}]string{ {{- range .ValueNames}}{{.Number}}: {{printf "%q" .Name}}, {{end -}} }, diags)
 {{- else if eq .Conv "scalarmap"}}
 	out.{{.Model}} = flattenScalarMap(ctx, {{.ElemType}}, {{if eq .SDKType "float32"}}widenFloat32Map({{.Src}}){{else}}{{.Src}}{{end}}, diags)
 {{- else if eq .Conv "uint64"}}
@@ -1676,6 +1813,11 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		out.{{.Model}} = &{{.Object.Model}}{}
 	}
 	{{- end}}
+{{- else if eq .Conv "emptybool"}}
+	out.{{.Model}} = types.BoolNull()
+	if {{.Src}} != nil {
+		out.{{.Model}} = types.BoolValue(true)
+	}
 {{- else if eq .Conv "strings"}}
 	{{- if .EnumMap}}
 	out.{{.Model}} = flattenEnumsMapped{{.Collection}}(ctx, {{$p}}, {{.Src}}, {{.EnumMap.Name}}FromAPI, diags)

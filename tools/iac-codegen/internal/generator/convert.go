@@ -84,6 +84,7 @@ type wrapHelper struct {
 // helpers. Flatten calls the unwrap helpers, then converts the value.
 type fieldWrap struct {
 	Inner string   // qualified Go type of the value that the field conversion writes and reads
+	Outer string   // qualified Go type of the outer wrapper, the SDK type of the field
 	Funcs []string // the helpers, outer first
 }
 
@@ -167,6 +168,19 @@ type convObject struct {
 	ExtraFlatten []extraFlatten
 	// Local: SDK is a struct of the generated package, not of the SDK (keyedBy object).
 	Local bool
+	// DefaultArms are the arms that expand sends empty when the configuration sets no arm of
+	// their oneOf group (defaultArm).
+	DefaultArms []defaultArm
+}
+
+// defaultArm is an arm that expand sends empty when no arm of its group is set.
+type defaultArm struct {
+	Field string   // SDK field of the arm
+	Value string   // Go expression of the empty arm
+	Arms  []string // SDK fields of every arm of the group
+	// Unknown are the model fields of the arms that can be unknown. An unknown arm is no missing
+	// arm, so expand does not send the default arm then.
+	Unknown []string
 }
 
 type convAttrType struct {
@@ -186,13 +200,21 @@ const (
 	convEnum    = "enum"    // types.String ↔ *<enum type> (D12)
 	convObj     = "object"  // *<Model> ↔ *<SDK type>
 	convEmpty   = "empty"   // *<Model> ↔ map[string]interface{} (F16)
-	convStrings = "strings" // types.Set/List ↔ []string or []<enum type>
-	convObjects = "objects" // types.List ↔ []<SDK type>
+	// convEmptyBool shows an object without fields as a bool (asBool): true ↔ a non-nil empty map.
+	convEmptyBool = "emptybool"
+	convStrings   = "strings" // types.Set/List ↔ []string or []<enum type>
+	convObjects   = "objects" // types.List ↔ []<SDK type>
 
 	convInt32   = "int32"   // types.Int32 ↔ *int32
 	convInt64   = "int64"   // types.Int64 ↔ *int64 (signed, a JSON number)
 	convFloat32 = "float32" // types.Float32 ↔ *float32, read as its shortest decimal
 	convScalars = "scalars" // types.List/Set ↔ []bool, []int32, []int64, []float32, []float64
+	// convNamedInts is a list or set of integers that Terraform shows as names (valueNames).
+	convNamedInts = "namedints" // types.List/Set of types.String ↔ []int32, []int64
+	// convInt32AsInt64 and convInts32AsInt64 keep the released Int64 type of an int32 field
+	// (terraformType: Int64).
+	convInt32AsInt64  = "int32asint64"  // types.Int64 ↔ *int32
+	convInts32AsInt64 = "ints32asint64" // types.List/Set of types.Int64Type ↔ []int32
 
 	convStringMap = "stringmap" // types.Map ↔ map[string]string or map[string]<enum type>
 	convScalarMap = "scalarmap" // types.Map ↔ map[string]bool, int32, int64, float32, float64
@@ -222,6 +244,8 @@ type convField struct {
 	// ElemType is the Terraform element type of scalars and scalarmap, for
 	// example "types.Int32Type".
 	ElemType string
+	// ValueNames are the numbers of a namedints field and their Terraform names, in ascending order.
+	ValueNames []overrides.ValueName
 	// Enum is true for a collection or map whose string values are enum
 	// values. Response conversion then rejects protobuf zero sentinels.
 	Enum     bool
@@ -400,6 +424,11 @@ func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*con
 		return nil, err
 	}
 	out.IDGuard = idGuard(r)
+	for _, f := range r.Fields {
+		if r.Policy.DefaultArm(r.Name, f.Name) {
+			return nil, fmt.Errorf("%s: defaultArm is supported on an arm of a nested object only", f.Name)
+		}
+	}
 
 	roots := []convRoot{
 		{&out.Create, "create.body", true, func(f *model.ResourceField) bool { return f.Create != nil }},
@@ -458,19 +487,19 @@ func oneOfArmPaths(r *model.Resource, file *overrides.File) []string {
 		}
 	}
 	for _, f := range r.Fields {
-		out = typeArmPaths(r.Policy, out, rootPath(file.GroupOf(f.Name), r.Policy.TerraformName(r.Name, f.Name)).dotted(), f.Type, map[*model.Type]bool{})
+		out = typeArmPaths(r.Policy, file, out, rootPath(file.GroupOf(f.Name), r.Policy.TerraformName(r.Name, f.Name)).dotted(), f.Type, map[*model.Type]bool{})
 	}
 	return out
 }
 
-func typeArmPaths(p model.Policy, out []string, at string, t *model.Type, seen map[*model.Type]bool) []string {
+func typeArmPaths(p model.Policy, file *overrides.File, out []string, at string, t *model.Type, seen map[*model.Type]bool) []string {
 	if t == nil || seen[t] {
 		return out
 	}
 	seen[t] = true
 	defer delete(seen, t)
 	if t.Elem != nil {
-		return typeArmPaths(p, out, at, t.Elem, seen)
+		return typeArmPaths(p, file, out, at, t.Elem, seen)
 	}
 	arms := map[string]bool{}
 	for _, g := range t.Groups {
@@ -480,10 +509,13 @@ func typeArmPaths(p model.Policy, out []string, at string, t *model.Type, seen m
 	}
 	for _, f := range t.Fields {
 		child := at + "." + p.TerraformName(model.ComponentOf(t), f.Name)
+		if group := nestedGroupOf(file, model.ComponentOf(t), f.Name); group != "" {
+			child = at + "." + group + "." + p.TerraformName(model.ComponentOf(t), f.Name)
+		}
 		if t.Kind == model.OneOf && f.Name != t.Discriminator || arms[f.Name] {
 			out = append(out, child)
 		}
-		out = typeArmPaths(p, out, child, f.Type, seen)
+		out = typeArmPaths(p, file, out, child, f.Type, seen)
 	}
 	return out
 }
@@ -608,7 +640,7 @@ func checkReadEmptyAs(cf *convField) error {
 	if !cf.ReadEmptyAsNull {
 		return nil
 	}
-	if cf.Conv == convString || (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects || (cf.Conv == convStrings && cf.Wrap == nil) ||
+	if cf.Conv == convString || (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects || cf.Conv == convStrings ||
 		cf.Conv == convKeyedObjects || cf.Conv == convKeyedValues {
 		return nil
 	}
@@ -937,6 +969,38 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	}
 }
 
+// applyTerraformType converts an int32 field, or a list or set of int32, to the released Int64.
+func (b *convBuilder) applyTerraformType(cf *convField, component, name string) error {
+	if b.resource.Policy.TerraformType(component, name) == "" {
+		return nil
+	}
+	switch {
+	case cf.Conv == convInt32:
+		cf.Conv = convInt32AsInt64
+	case cf.Conv == convScalars && cf.SDKType == "int32":
+		cf.Conv, cf.ElemType = convInts32AsInt64, "types.Int64Type"
+	default:
+		return fmt.Errorf("%s: terraformType Int64 needs an int32 field, or a list or set of int32", cf.TFName)
+	}
+	return nil
+}
+
+// applyValueNames converts a list or set of integers to the names of its values and back.
+func (b *convBuilder) applyValueNames(cf *convField, component, name string) error {
+	if b.file == nil {
+		return nil
+	}
+	line := b.file.Types[component].Fields[name]
+	if len(line.ValueNames) == 0 {
+		return nil
+	}
+	if cf.Conv != convScalars || cf.SDKType != "int32" && cf.SDKType != "int64" {
+		return fmt.Errorf("%s: valueNames needs a list or set of integers", cf.TFName)
+	}
+	cf.Conv, cf.ElemType, cf.ValueNames = convNamedInts, "types.StringType", line.SortedValueNames()
+	return nil
+}
+
 func (b *convBuilder) applyFixedRequest(cf *convField) {
 	if cf.RequestValue == "" && len(cf.RequestValueBy) == 0 {
 		return
@@ -1013,6 +1077,18 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	}
 	if cf.Wrap != nil && (cf.KeepPriorOrder || cf.Equality != "") {
 		return nil, fmt.Errorf("%s: %w", cf.TFName, errUnwrapCombination)
+	}
+	if err := b.applyValueNames(cf, component, name); err != nil {
+		return nil, err
+	}
+	if err := b.applyTerraformType(cf, component, name); err != nil {
+		return nil, err
+	}
+	if b.resource.Policy.AsBool(component, name) {
+		if cf.Conv != convEmpty {
+			return nil, fmt.Errorf("%s: asBool needs an object without fields", cf.TFName)
+		}
+		cf.Conv, cf.Object = convEmptyBool, nil
 	}
 	b.applyFixedRequest(cf)
 	b.applyMissingEnum(cf, component, name, presence)
@@ -1270,7 +1346,100 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	if err := b.injectReadOnly(obj, ref.Path, t); err != nil {
 		return nil, err
 	}
+	arms, err := b.defaultArms(component, t, obj.Fields)
+	if err != nil {
+		return nil, err
+	}
+	obj.DefaultArms = arms
 	return obj, nil
+}
+
+// defaultArms returns the arms of t that expand sends empty when the configuration sets no arm of
+// their group. fields are the conversions of the object, which hold the fields of t.
+func (b *convBuilder) defaultArms(component string, t *model.Type, fields []*convField) ([]defaultArm, error) {
+	byName := map[string]*convField{}
+	var lines []string
+	for _, f := range t.Fields {
+		cf := findField(fields, b.resource.Policy.TerraformName(component, f.Name))
+		if cf == nil {
+			return nil, fmt.Errorf("%s: no conversion of the field", f.Name)
+		}
+		byName[f.Name] = cf
+		if b.resource.Policy.DefaultArm(component, f.Name) {
+			lines = append(lines, f.Name)
+		}
+	}
+	if len(lines) == 0 {
+		return nil, nil
+	}
+	if !b.resource.Replace {
+		// A PATCH mask names the arm that the plan selects, which is not the arm that expand adds.
+		return nil, fmt.Errorf("defaultArm %s needs a full-replace Update (PUT)", strings.Join(lines, ", "))
+	}
+	groups := t.Groups
+	if t.Kind == model.OneOf {
+		group := model.OneOfGroup{AllowNone: t.AllowNone}
+		for _, f := range t.Fields {
+			if f.Name != t.Discriminator {
+				group.Arms = append(group.Arms, f.Name)
+			}
+		}
+		groups = append(groups, group)
+	}
+	var out []defaultArm
+	for _, g := range groups {
+		var arm string
+		for _, name := range g.Arms {
+			if !slices.Contains(lines, name) {
+				continue
+			}
+			if arm != "" {
+				return nil, fmt.Errorf("defaultArm: %s and %s are arms of one group", arm, name)
+			}
+			arm = name
+		}
+		if arm == "" {
+			continue
+		}
+		lines = slices.DeleteFunc(lines, func(name string) bool { return name == arm })
+		if nestedGroupOf(b.file, component, arm) != "" {
+			return nil, fmt.Errorf("defaultArm %s: an arm in a group of the behavior-overrides file is not supported", arm)
+		}
+		cf := byName[arm]
+		value, err := emptyArm(cf)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cf.TFName, err)
+		}
+		d := defaultArm{Field: cf.SDK, Value: value}
+		for _, name := range g.Arms {
+			arm := byName[name]
+			d.Arms = append(d.Arms, arm.SDK)
+			if arm.Conv != convObj && arm.Conv != convEmpty || arm.ObjectValue {
+				d.Unknown = append(d.Unknown, arm.Model)
+			}
+		}
+		out = append(out, d)
+	}
+	if len(lines) != 0 {
+		return nil, fmt.Errorf("defaultArm: %s is no oneOf arm", strings.Join(lines, ", "))
+	}
+	return out, nil
+}
+
+// emptyArm returns the Go expression of the empty arm f: the empty outer wrapper ({}), not a
+// wrapper of an empty value ({"value": []}), as the released resources send it. f must be a list
+// of strings in wrapper objects that reads empty as null, so the empty arm reads back as the null
+// that the plan has. An empty object arm reads back as an object of nulls, which no plan has.
+func emptyArm(f *convField) (string, error) {
+	var rest string
+	ok := false
+	if f.Wrap != nil {
+		rest, ok = strings.CutPrefix(f.Wrap.Outer, "*")
+	}
+	if !ok || f.Conv != convStrings || !f.ReadEmptyAsNull {
+		return "", errors.New(`defaultArm needs a list of strings in wrapper objects with readEmptyAs: "null", which reads the empty arm back as null`)
+	}
+	return "&" + rest + "{}", nil
 }
 
 // injectReadOnly adds the response fields that the request type omitted
@@ -1387,8 +1556,8 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 var scalarAttrTypes = map[string]string{
 	convString: "types.StringType", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
 	convBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
-	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type",
-	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}",
+	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
+	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
 }
 
 // attrType returns the Terraform attribute type expression of field f.
@@ -1401,7 +1570,7 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		return "types." + f.Collection + "Type{ElemType: types.StringType}", nil
 	case convTimes:
 		return "types." + f.Collection + "Type{ElemType: " + rfc3339Type + "}", nil
-	case convScalars:
+	case convScalars, convNamedInts, convInts32AsInt64:
 		return "types." + f.Collection + "Type{ElemType: " + f.ElemType + "}", nil
 	case convScalarMap:
 		return "types.MapType{ElemType: " + f.ElemType + "}", nil
@@ -1759,7 +1928,7 @@ func sameCheck(f *convField) (string, error) {
 			break
 		}
 		return "slices.EqualFunc(" + a + ", " + b + ", time.Time.Equal)", nil
-	case convString, convBool, convFloat64, convFloat32, convInt32, convInt64, convUint64, convEnum, convTime:
+	case convString, convBool, convFloat64, convFloat32, convInt32, convInt32AsInt64, convInt64, convUint64, convEnum, convTime:
 		if !value {
 			a, b = "pointerValue("+a+")", "pointerValue("+b+")"
 		}
@@ -1770,7 +1939,7 @@ func sameCheck(f *convField) (string, error) {
 		return a + " == " + b, nil
 	case convStringMap, convScalarMap, convUint64Map:
 		return "maps.Equal(" + a + ", " + b + ")", nil
-	case convStrings, convScalars:
+	case convStrings, convScalars, convNamedInts, convInts32AsInt64:
 		if f.Collection == "Set" {
 			break
 		}
@@ -1862,7 +2031,7 @@ func idGuard(r *model.Resource) string {
 	if r.Singleton || !r.Policy.ClientSetID && !r.Policy.ServerSetID {
 		return ""
 	}
-	return camelize(r.IDParam)
+	return camelize(r.ID())
 }
 
 // addToGroup puts the field cf of the root object in its group. The group is an object of its
@@ -1883,7 +2052,8 @@ func (b *convBuilder) addToGroup(root *convObject, groups map[string]*convObject
 // sends is FlattenOnly: expand leaves it out, and flatten reads it.
 func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component string, t *model.Type) error {
 	for _, f := range t.Fields {
-		if slices.ContainsFunc(obj.Fields, func(cf *convField) bool { return cf.TFName == b.resource.Policy.TerraformName(component, f.Name) }) {
+		name := b.resource.Policy.TerraformName(component, f.Name)
+		if findField(obj.Fields, name) != nil {
 			// The field is there, but an object inside it can still miss fields.
 			if err := b.mergeNested(f.Type); err != nil {
 				return fmt.Errorf("%s: %w", f.Name, err)
@@ -1904,7 +2074,52 @@ func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component strin
 				b.listed = append(b.listed, cf.Object)
 			}
 		}
+		if group := nestedGroupOf(b.file, component, f.Name); group != "" {
+			g := b.nestedGroup(obj, component, group)
+			g.Fields = append(g.Fields, cf)
+			continue
+		}
 		obj.Fields = append(obj.Fields, cf)
+	}
+	return nil
+}
+
+// nestedGroupOf returns the group of the behavior-overrides file that holds field of component, or "".
+func nestedGroupOf(file *overrides.File, component, field string) string {
+	if file == nil {
+		return ""
+	}
+	return file.Types[component].GroupOf(field)
+}
+
+// nestedGroup returns the group object of obj that holds fields of component in group, and makes it
+// on first use. As a top-level group, it is an object of its own in Terraform, and its fields are
+// fields of the SDK struct of obj.
+func (b *convBuilder) nestedGroup(obj *convObject, component, group string) *convObject {
+	for _, cf := range obj.Fields {
+		if cf.Conv == convGroup && cf.TFName == group {
+			return cf.Object
+		}
+	}
+	g := &convObject{Func: obj.Func + camelize(group), Model: groupModelName(component, group), SDK: obj.SDK, Group: true,
+		RequireOne: b.file.Types[component].Groups[group].RequireOne}
+	g.AttrTypesFunc = lowerFirst(g.Func) + "AttrTypes"
+	b.objects = append(b.objects, g)
+	obj.Fields = append(obj.Fields, &convField{TFName: group, Model: camelize(group), Conv: convGroup, Object: g})
+	return g
+}
+
+// findField returns the field of fields with the Terraform name, also inside a group, or nil.
+func findField(fields []*convField, name string) *convField {
+	for _, cf := range fields {
+		if cf.TFName == name {
+			return cf
+		}
+		if cf.Conv == convGroup {
+			if found := findField(cf.Object.Fields, name); found != nil {
+				return found
+			}
+		}
 	}
 	return nil
 }

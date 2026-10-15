@@ -160,6 +160,12 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string) *lineIs
 		return wholeLine(fmt.Errorf("component %q: a missing required list already means that no field is required, so no override is needed", line.Component))
 	case overrides.KindField:
 		return fieldLineProblem(schema, line, line.Component != resource)
+	case overrides.KindGroup:
+		for _, field := range line.GroupFields {
+			if schema.Properties == nil || schema.Properties.GetOrZero(field) == nil {
+				return wholeLine(fmt.Errorf("component %q has no field %q", line.Component, field))
+			}
+		}
 	}
 	return nil
 }
@@ -597,13 +603,13 @@ func optionalProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 }
 
 // nameProblem checks a name line. The name must differ from the name that the JSON name
-// gives, and from the name of every other field of the component.
+// gives, and from the name of every other field of the component that has an attribute.
 func nameProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	if line.Name == model.TerraformName(line.Field) {
 		return &lineIssue{message: fmt.Sprintf("%q is already the Terraform name of %q", line.Name, line.Field), stale: []string{"name"}}
 	}
 	for field := range schema.Properties.KeysFromOldest() {
-		if field != line.Field && model.TerraformName(field) == line.Name {
+		if field != line.Field && model.TerraformName(field) == line.Name && !slices.Contains(line.NoAttribute, field) {
 			return wholeLine(fmt.Errorf("name %q is the Terraform name of field %q", line.Name, field))
 		}
 	}

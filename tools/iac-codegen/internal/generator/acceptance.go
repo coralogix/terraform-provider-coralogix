@@ -722,7 +722,7 @@ func scalarValue(a *tfAttr, mode accMode) (hcl, state string, err error) {
 	updated := mode == accUpdated
 	switch a.Kind {
 	case "Bool":
-		v := !updated
+		v := !updated || a.TrueOnly
 		return strconv.FormatBool(v), strconv.FormatBool(v), nil
 	case "Int64", "Int32":
 		full, next := numberValues(a, 1)

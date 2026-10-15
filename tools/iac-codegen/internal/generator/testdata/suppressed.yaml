@@ -1,0 +1,161 @@
+# A resource that users already have, modeled on alert suppression rules. The path parameter is
+# thing_id, but the resource holds its id in uniqueIdentifier, and id is a version id that every
+# Update replaces. Update sends uniqueIdentifier in its body. The released Terraform names differ
+# from the API names: id, time_frame, time_zone, and operation, whose values are mute and active
+# where the API says THING_OPERATION_MUTE and THING_OPERATION_ACTIVATE, and days, the names Sunday to
+# Saturday of the weekdays that the API numbers 1 to 7.
+openapi: 3.1.0
+info: {title: suppressed, version: 1.0.0}
+paths:
+  /suppressed/v1/things:
+    post:
+      tags: [Suppressed Things Service]
+      operationId: SuppressedThingsService_CreateSuppressedThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Create Suppressed Thing Request
+              type: object
+              required: [suppressedThing]
+              properties:
+                suppressedThing: {$ref: '#/components/schemas/SuppressedThing'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreateSuppressedThingResponse'}
+    put:
+      tags: [Suppressed Things Service]
+      operationId: SuppressedThingsService_UpdateSuppressedThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Update Suppressed Thing Request
+              type: object
+              required: [suppressedThing]
+              properties:
+                suppressedThing: {$ref: '#/components/schemas/SuppressedThing'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/UpdateSuppressedThingResponse'}
+  /suppressed/v1/things/{thing_id}:
+    parameters:
+      - {name: thing_id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Suppressed Things Service]
+      operationId: SuppressedThingsService_GetSuppressedThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetSuppressedThingResponse'}
+    delete:
+      tags: [Suppressed Things Service]
+      operationId: SuppressedThingsService_DeleteSuppressedThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteSuppressedThingResponse'}
+components:
+  schemas:
+    DeleteSuppressedThingResponse:
+      type: object
+    CreateSuppressedThingResponse:
+      type: object
+      required: [suppressedThing]
+      properties:
+        suppressedThing: {$ref: '#/components/schemas/SuppressedThing'}
+    GetSuppressedThingResponse:
+      type: object
+      required: [suppressedThing]
+      properties:
+        suppressedThing: {$ref: '#/components/schemas/SuppressedThing'}
+    UpdateSuppressedThingResponse:
+      type: object
+      required: [suppressedThing]
+      properties:
+        suppressedThing: {$ref: '#/components/schemas/SuppressedThing'}
+    SuppressedThing:
+      type: object
+      required: [name, scheduleOperation]
+      properties:
+        uniqueIdentifier: {type: string, x-coralogix-presence: true, description: The id of the thing.}
+        id: {type: string, x-coralogix-presence: true, description: The version id of the thing.}
+        name: {type: string, minLength: 1}
+        window: {$ref: '#/components/schemas/Window'}
+        repeat: {$ref: '#/components/schemas/Repeat'}
+        filter: {$ref: '#/components/schemas/Filter'}
+        scheduleOperation: {$ref: '#/components/schemas/ThingOperation'}
+        priority: {type: integer, format: int32, x-coralogix-presence: true}
+    ThingOperation:
+      type: string
+      enum: [THING_OPERATION_UNSPECIFIED, THING_OPERATION_MUTE, THING_OPERATION_ACTIVATE]
+    Filter:
+      type: object
+      properties:
+        ids: {$ref: '#/components/schemas/Ids'}
+        labels: {$ref: '#/components/schemas/Labels'}
+      oneOf:
+        - required: [ids]
+        - required: [labels]
+    Ids:
+      type: object
+      properties:
+        value:
+          type: array
+          x-coralogix-collection: set
+          items: {type: string}
+    Labels:
+      type: object
+      properties:
+        key: {type: string, x-coralogix-presence: true}
+    Repeat:
+      type: object
+      properties:
+        alwaysActive: {$ref: '#/components/schemas/AlwaysActive'}
+        dynamic: {$ref: '#/components/schemas/Dynamic'}
+      oneOf:
+        - required: [alwaysActive]
+        - required: [dynamic]
+    AlwaysActive:
+      type: object
+    Dynamic:
+      type: object
+      required: [every]
+      properties:
+        every: {type: string, minLength: 1}
+        daily: {$ref: '#/components/schemas/Daily'}
+        weekly: {$ref: '#/components/schemas/Weekly'}
+      oneOf:
+        - required: [daily]
+        - required: [weekly]
+    Daily:
+      type: object
+    Weekly:
+      type: object
+      properties:
+        note: {type: string, x-coralogix-presence: true}
+    Window:
+      type: object
+      required: [timezone]
+      properties:
+        timezone: {type: string, minLength: 1}
+        daysOfWeek:
+          type: array
+          x-coralogix-collection: set
+          items: {type: integer, format: int32}
+        hours:
+          type: array
+          x-coralogix-collection: set
+          items: {type: integer, format: int32}

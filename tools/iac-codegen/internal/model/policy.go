@@ -41,6 +41,18 @@ type Policy struct {
 	// ServerSetID means that the server sets the id and returns it in every response, and
 	// the Get response does not require it: the request shares the resource schema.
 	ServerSetID bool
+	// IDProperty is the property of the resource that holds the id when its name is not the name
+	// of the path parameter. "" means the property named like the path parameter.
+	IDProperty string
+	// Bools are the "Component.field" objects without fields that a bool attribute shows: true
+	// when the object is present.
+	Bools []string
+	// TerraformTypes maps "Component.field" to the released Terraform type of an int32 field when it
+	// is not Int32: Int64.
+	TerraformTypes map[string]string
+	// DefaultArms are the "Component.field" oneOf arms that Create and Update send empty when the
+	// configuration sets no arm of the group.
+	DefaultArms []string
 	// Operations names the lifecycle operationIds from behavior-overrides. Flags
 	// still override an empty slot. A flag and the file cannot name different ids.
 	Operations OperationIDs
@@ -203,6 +215,37 @@ func (p Policy) methods(v verb) []string {
 		return []string{"POST"}
 	}
 	return verbMethods[v]
+}
+
+// TerraformType returns the released Terraform type of field of component, or "" for the type of
+// the contract.
+func (p Policy) TerraformType(component, field string) string {
+	if component == "" {
+		return ""
+	}
+	return p.TerraformTypes[component+"."+field]
+}
+
+// AsBool reports whether a bool attribute shows the object field of component.
+func (p Policy) AsBool(component, field string) bool {
+	return component != "" && slices.Contains(p.Bools, component+"."+field)
+}
+
+// DefaultArm reports whether field of component is the arm that a request sends empty when the
+// configuration sets no arm of its oneOf group.
+func (p Policy) DefaultArm(component, field string) bool {
+	return component != "" && slices.Contains(p.DefaultArms, component+"."+field)
+}
+
+// WithDefaultArms returns the groups of component. A group with a default arm allows no arm.
+func (p Policy) WithDefaultArms(component string, groups []OneOfGroup) []OneOfGroup {
+	out := slices.Clone(groups)
+	for i, g := range out {
+		if slices.ContainsFunc(g.Arms, func(arm string) bool { return p.DefaultArm(component, arm) }) {
+			out[i].AllowNone = true
+		}
+	}
+	return out
 }
 
 func (p Policy) skips(component, field string) bool {

@@ -155,6 +155,42 @@ func TestStaleKeyIsNamedNotTheLine(t *testing.T) {
 	}
 }
 
+// A name line that gives the Terraform name that the field has anyway changes nothing.
+func TestNameLineWithTheDefaultNameIsStale(t *testing.T) {
+	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  LegacyThing:\n    fields:\n      name: {name: name}\n")
+	_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err == nil || !strings.Contains(err.Error(), "OVERRIDE_UNUSED") || !strings.Contains(err.Error(), `"name" is already the Terraform name of "name"`) {
+		t.Fatalf("err = %v, want OVERRIDE_UNUSED for the name line", err)
+	}
+}
+
+// Two fields that a name line makes share a Terraform name collide, as two API names would.
+func TestNameLineCollision(t *testing.T) {
+	file := mustParse(t, "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  idProperty: uniqueIdentifier\ntypes:\n  SuppressedThing:\n    fields:\n      uniqueIdentifier: {name: id}\n")
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = validateOpenAPIWith(spec, "SuppressedThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err == nil || !strings.Contains(err.Error(), `name "id" is the Terraform name of field "id"`) {
+		t.Fatalf("err = %v, want the name id rejected: the version id is not skipped", err)
+	}
+}
+
+// The id property must exist and is needed in the Update body; the version id field of the same
+// object does not stand in for it.
+func TestIDPropertyMustBeAField(t *testing.T) {
+	file := mustParse(t, "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  idProperty: ruleId\ntypes:\n  SuppressedThing:\n    fields:\n      id: {skip: true}\n")
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = validateOpenAPIWith(spec, "SuppressedThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err == nil || !strings.Contains(err.Error(), "UPDATE_ID_NOT_IN_BODY") || !strings.Contains(err.Error(), `"ruleId"`) {
+		t.Fatalf("err = %v, want UPDATE_ID_NOT_IN_BODY for ruleId", err)
+	}
+}
+
 // A required or readOnly key is needed while the contract does not state the fact.
 func TestKeysThatTheContractDoesNotStateAreNotStale(t *testing.T) {
 	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  LegacyThing:\n    fields:\n      name: {required: true}\n      labels: {readOnly: true}\n")
@@ -901,5 +937,251 @@ func TestRequestValueByIsRefusedWithAnUpdateMask(t *testing.T) {
 	_, err := validateOpenAPIWith([]byte(spec), "Thing", model.OperationIDs{}, "sdk", "provider", mustParse(t, text))
 	if err == nil || !strings.Contains(err.Error(), "requestValueBy needs an Update that replaces the resource") {
 		t.Fatalf("err = %v, want requestValueBy refused for a masked Update", err)
+	}
+}
+
+// valueNames names the numbers of an integer list or set. On any other field it is an error.
+func TestValueNamesNeedIntegerCollection(t *testing.T) {
+	err := generateSuppressedWith(t, "timezone: {name: time_zone}", "timezone: {name: time_zone, valueNames: {1: UTC}}")
+	if err == nil || !strings.Contains(err.Error(), "valueNames needs a list or set of integers") {
+		t.Fatalf("err = %v, want valueNames needs a list or set of integers", err)
+	}
+}
+
+// asBool shows an object without fields. An object with fields is an error.
+func TestAsBoolNeedsAnEmptyObject(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := mustParse(t, "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  serverSetID: true\n  idProperty: uniqueIdentifier\ntypes:\n  SuppressedThing:\n    fields:\n      uniqueIdentifier: {readOnly: true, name: id}\n      id: {skip: true}\n  Repeat:\n    fields:\n      dynamic: {asBool: true}\n")
+	_, err = validateOpenAPIWith(spec, "SuppressedThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err == nil || !strings.Contains(err.Error(), "asBool needs an object without fields") {
+		t.Fatalf("err = %v, want asBool needs an object without fields", err)
+	}
+}
+
+// defaultArm marks one arm of a oneOf group in a nested object: a wrapped list of strings that
+// reads empty as null. An object arm would read back as an object of nulls where the plan has null.
+func TestDefaultArmErrors(t *testing.T) {
+	tests := map[string]struct{ from, to, want string }{
+		"two arms of one group": {"ids: {defaultArm: true, readEmptyAs: \"null\"}", "ids: {defaultArm: true, readEmptyAs: \"null\"}\n      labels: {defaultArm: true}", "ids and labels are arms of one group"},
+		"no arm":                {"timezone: {name: time_zone}", "timezone: {name: time_zone, defaultArm: true}", "timezone is no oneOf arm"},
+		"top level":             {"window: {name: time_frame}", "window: {name: time_frame, defaultArm: true}", "nested object only"},
+		"object arm":            {"ids: {defaultArm: true, readEmptyAs: \"null\"}", "ids: {readEmptyAs: \"null\"}\n      labels: {defaultArm: true}", "defaultArm needs a list of strings in wrapper objects"},
+		"empty list not null":   {"ids: {defaultArm: true, readEmptyAs: \"null\"}", "ids: {defaultArm: true}", "defaultArm needs a list of strings in wrapper objects"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := generateSuppressedWith(t, test.from, test.to)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
+// generateSuppressedWith generates the suppressedthing resource with one change of its
+// behavior-overrides file.
+func generateSuppressedWith(t *testing.T, from, to string) error {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := os.ReadFile(filepath.Join("testdata", "suppressed-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := strings.Replace(string(text), from, to, 1)
+	if changed == string(text) {
+		t.Fatalf("%q is not in suppressed-overrides.yaml", from)
+	}
+	overridesPath := filepath.Join(t.TempDir(), "overrides.yaml")
+	if err := os.WriteFile(overridesPath, []byte(changed), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	options := Options{Resource: "SuppressedThing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: overridesPath}
+	return generateFromInput(options, input, loadDir)
+}
+
+// The name collision check leaves out a fixed request value, which has no attribute.
+func TestNameLineCollisionsFollowTheRenderedFields(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const head = "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  serverSetID: true\n  idProperty: uniqueIdentifier\ntypes:\n  SuppressedThing:\n    fields:\n      uniqueIdentifier: {readOnly: true, name: id}\n      id: {skip: true}\n"
+	fixed := head + "      scheduleOperation: {requestValue: THING_OPERATION_MUTE}\n      name: {name: schedule_operation}\n"
+	_, err = validateOpenAPIWith(spec, "SuppressedThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, fixed))
+	if err != nil && (strings.Contains(err.Error(), "NAME_COLLISION") || strings.Contains(err.Error(), "is the Terraform name of field")) {
+		t.Fatalf("a fixed request value has no attribute, so it collides with nothing: %v", err)
+	}
+}
+
+// An idProperty that names the Get path parameter changes nothing.
+func TestIDPropertyThatIsThePathParameterIsUnneeded(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := mustParse(t, "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  idProperty: thing_id\n")
+	_, err = validateOpenAPIWith(spec, "SuppressedThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err == nil || !strings.Contains(err.Error(), "ID_PROPERTY_UNNEEDED") {
+		t.Fatalf("err = %v, want ID_PROPERTY_UNNEEDED", err)
+	}
+}
+
+// An id property that Create does not send, and that Update and Get have, is the server-set id:
+// computed, as for an id named like the path parameter.
+func TestIDPropertyMissingFromCreateIsComputed(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec := string(data)
+	createRef := "                suppressedThing: {$ref: '#/components/schemas/SuppressedThing'}\n"
+	if i := strings.Index(spec, createRef); i < 0 {
+		t.Fatal("no Create body ref in suppressed.yaml")
+	} else {
+		spec = spec[:i] + strings.Replace(createRef, "SuppressedThing'", "SuppressedThingDraft'", 1) + spec[i+len(createRef):]
+	}
+	// Without serverSetID, Get must require the id.
+	spec = strings.Replace(spec, "      required: [name, scheduleOperation]\n      properties:\n        uniqueIdentifier:", "      required: [uniqueIdentifier, name, scheduleOperation]\n      properties:\n        uniqueIdentifier:", 1)
+	spec = strings.Replace(spec, "uniqueIdentifier: {type: string, x-coralogix-presence: true,", "uniqueIdentifier: {type: string, minLength: 1, x-coralogix-presence: true,", 1)
+	spec += `    SuppressedThingDraft:
+      type: object
+      required: [name, scheduleOperation]
+      properties:
+        id: {type: string, x-coralogix-presence: true, description: The version id of the thing.}
+        name: {type: string, minLength: 1}
+        window: {$ref: '#/components/schemas/Window'}
+        repeat: {$ref: '#/components/schemas/Repeat'}
+        filter: {$ref: '#/components/schemas/Filter'}
+        scheduleOperation: {$ref: '#/components/schemas/ThingOperation'}
+        priority: {type: integer, format: int32, x-coralogix-presence: true}
+`
+	file := mustParse(t, "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  idProperty: uniqueIdentifier\nunwrap: [Ids]\ntypes:\n  SuppressedThing:\n    fields:\n      uniqueIdentifier: {name: id}\n      id: {skip: true}\n  SuppressedThingDraft:\n    fields:\n      id: {skip: true}\n")
+	validated, err := validateOpenAPIWith([]byte(spec), "SuppressedThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err != nil {
+		t.Fatalf("an id property that only Update and Get have must be computed: %v", err)
+	}
+	for _, f := range validated.resource.Fields {
+		if f.Name == "uniqueIdentifier" && f.Behavior != model.Computed {
+			t.Fatalf("uniqueIdentifier is %s, want computed", f.Behavior)
+		}
+	}
+}
+
+// The update mask of a PATCH names the arm that the plan selects, not the arm that expand adds, so a
+// default arm needs a full replace.
+func TestDefaultArmNeedsAFullReplace(t *testing.T) {
+	overridesPath := filepath.Join(t.TempDir(), "overrides.yaml")
+	text := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  ThingConfig:\n    fields:\n      http: {defaultArm: true}\n"
+	if err := os.WriteFile(overridesPath, []byte(text), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	err := generateFromInput(Options{Resource: "Thing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: overridesPath}, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "needs a full-replace Update") {
+		t.Fatalf("err = %v, want defaultArm needs a full-replace Update", err)
+	}
+}
+
+// A group of a nested component holds fields of that component, every arm of a oneOf or none, and
+// needs a full replace, as a top-level group does.
+func TestNestedGroupErrors(t *testing.T) {
+	const from = "        fields: [daily, weekly]\n"
+	tests := map[string]struct{ to, want string }{
+		"no such field":      {"        fields: [daily, weekly, monthly]\n", `component "Dynamic" has no field "monthly"`},
+		"split oneOf":        {"        fields: [daily]\n", "must all be in one group, or in none"},
+		"requireOne non-arm": {"        fields: [every, daily, weekly]\n        requireOne: true\n", "types.Dynamic.groups.frequency: requireOne needs the arms of one oneOf of Dynamic"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := generateSuppressedWith(t, from, test.to)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %q", err, test.want)
+			}
+		})
+	}
+	t.Run("misspelled type", func(t *testing.T) {
+		err := generateSuppressedWith(t, "  Dynamic:\n    groups:\n", "  Dyanmic:\n    groups:\n")
+		if err == nil || !strings.Contains(err.Error(), `no component "Dyanmic"`) {
+			t.Fatalf("err = %v, want no component Dyanmic", err)
+		}
+	})
+	t.Run("type of no object of the resource", func(t *testing.T) {
+		// The component is in the contract, so only the builder sees that the groups go nowhere.
+		data, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		spec := strings.Replace(string(data), "    Daily:\n", "    Unused:\n      type: object\n      properties:\n        a: {type: string}\n    Daily:\n", 1)
+		text, err := os.ReadFile(filepath.Join("testdata", "suppressed-overrides.yaml"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		changed := strings.Replace(string(text), "  Dynamic:\n    groups:\n", "  Unused:\n    groups:\n      g: {fields: [a]}\n  Dynamic:\n    groups:\n", 1)
+		validated, err := validateOpenAPIWith([]byte(spec), "SuppressedThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, changed))
+		if err == nil {
+			_, err = buildTFResourceWith(validated.resource, "generated", validated.overrides)
+		}
+		if err == nil || !strings.Contains(err.Error(), "types.Unused.groups: no object of the resource is Unused") {
+			t.Fatalf("err = %v, want the unused groups reported", err)
+		}
+	})
+	t.Run("named as a field", func(t *testing.T) {
+		err := generateSuppressedWith(t, "      frequency:\n", "      every:\n")
+		if err == nil || !strings.Contains(err.Error(), "the name is also the attribute every") {
+			t.Fatalf("err = %v, want the name is also the attribute every", err)
+		}
+	})
+	t.Run("patch update", func(t *testing.T) {
+		overridesPath := filepath.Join(t.TempDir(), "overrides.yaml")
+		text := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  ThingConfig:\n    groups:\n      kind: {fields: [http, queue]}\n"
+		if err := os.WriteFile(overridesPath, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		input, loadDir := syntheticInput(t)
+		err := generateFromInput(Options{Resource: "Thing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: overridesPath}, input, loadDir)
+		if err == nil || !strings.Contains(err.Error(), "a group needs a full-replace Update") {
+			t.Fatalf("err = %v, want a group needs a full-replace Update", err)
+		}
+	})
+}
+
+// A group model struct takes the name of its component and the group. When another model has that
+// name, the generator reports it instead of sharing one struct.
+func TestNestedGroupModelNameClash(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The weekly arm's component becomes DynamicFrequency, whose model is the model name of the
+	// frequency group of Dynamic.
+	spec := strings.ReplaceAll(string(data), "schemas/Weekly'", "schemas/DynamicFrequency'")
+	spec = strings.Replace(spec, "    Weekly:\n", "    DynamicFrequency:\n", 1)
+	overrides, err := os.ReadFile(filepath.Join("testdata", "suppressed-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	validated, err := validateOpenAPIWith([]byte(spec), "SuppressedThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, string(overrides)))
+	if err == nil {
+		_, err = buildTFResourceWith(validated.resource, "generated", validated.overrides)
+	}
+	if err == nil || !strings.Contains(err.Error(), "the model struct DynamicFrequencyModel is made by") ||
+		!strings.Contains(err.Error(), "the component DynamicFrequency") || !strings.Contains(err.Error(), "types.Dynamic.groups.frequency") {
+		t.Fatalf("err = %v, want a model struct clash", err)
+	}
+}
+
+// terraformType keeps a released Int64 on an int32 field, or a list or set of int32 only.
+func TestTerraformTypeNeedsAnInt32Field(t *testing.T) {
+	err := generateSuppressedWith(t, "timezone: {name: time_zone}", "timezone: {name: time_zone, terraformType: Int64}")
+	if err == nil || !strings.Contains(err.Error(), "terraformType Int64 needs an int32") {
+		t.Fatalf("err = %v, want terraformType Int64 needs an int32 field", err)
 	}
 }

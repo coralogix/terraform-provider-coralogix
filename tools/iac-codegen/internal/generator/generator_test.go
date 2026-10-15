@@ -1991,42 +1991,8 @@ func functionBody(t *testing.T, source, signature string) string {
 	return source[start : start+end]
 }
 
-// An Update-only field with a default makes Create follow with an Update. When only the server
-// sets the id and Update finds the resource by the id in the body, that follow-up Update sends
-// the state id as the normal Update does.
 func TestFollowUpUpdateSendsTheServerSetID(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "sharedthing.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	text := string(spec)
-	// The Replace body gets its own title and an Update-only field with a server default, and
-	// the response component gets the field too.
-	put := strings.Index(text, "    put:")
-	nameLine := "                name: {type: string}\n"
-	i := strings.Index(text[put:], nameLine)
-	title := strings.Index(text[put:], "              title: SharedThing\n")
-	if put < 0 || i < 0 || title < 0 || title > i {
-		t.Fatal("sharedthing.yaml has no Replace body")
-	}
-	at := put + i + len(nameLine)
-	text = text[:at] + "                compact: {type: boolean, default: false, x-coralogix-presence: true}\n" + text[at:]
-	text = text[:put+title] + strings.Replace(text[put+title:], "title: SharedThing\n", "title: SharedThingUpdate\n", 1)
-	component := "    SharedThing:\n      title: SharedThing\n"
-	componentName := "        name: {type: string}\n"
-	c := strings.Index(text, component)
-	if c < 0 || !strings.Contains(text[c:], componentName) {
-		t.Fatal("sharedthing.yaml has no SharedThing component")
-	}
-	n := c + strings.Index(text[c:], componentName) + len(componentName)
-	text = text[:n] + "        compact: {type: boolean, x-coralogix-presence: true}\n" + text[n:]
-	input, loadDir := syntheticInput(t)
-	input.OpenAPI = []byte(text)
-	out := filepath.Join(t.TempDir(), "sharedthing")
-	options := Options{Resource: "SharedThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "sharedthing-overrides.yaml")}
-	if err := generateFromInput(options, input, loadDir); err != nil {
-		t.Fatal(err)
-	}
+	out, input := generateSharedWithUpdateOnly(t, func(s string) string { return s })
 	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
 	if err != nil {
 		t.Fatal(err)
@@ -2055,4 +2021,119 @@ func TestEnumConstName(t *testing.T) {
 			t.Errorf("enumConstName(%q, %q) = %q, want %q", test.typ, test.value, got, test.want)
 		}
 	}
+}
+
+// The golden output of a resource whose id property has another name than the path parameter,
+// and whose released attributes have other names than the API.
+func TestGoldenOutputIDPropertyAndNames(t *testing.T) {
+	out := generateSuppressedThing(t)
+	golden := filepath.Join("testdata", "golden", "suppressedthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputIDPropertyAndNames -update:\n%s", diff)
+	}
+}
+
+// generateSuppressedThing generates the synthetic resource modeled on alert suppression rules.
+func generateSuppressedThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "suppressedthing")
+	options := Options{Resource: "SuppressedThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "suppressed-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// The generated resource whose id property has another name than the path parameter sends no id on
+// Create, sends the id property on Update, and reads it back as the id attribute.
+func TestIDPropertyRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateSuppressedThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "suppressed_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// An Update-only field with a default makes Create follow with an Update. When only the server
+// sets the id and Update finds the resource by the id in the body, that follow-up Update sends
+// the state id as the normal Update does.
+// generateSharedWithUpdateOnly generates sharedthing with an Update-only field, compact, that has
+// a server default. edit changes the behavior-overrides file.
+func generateSharedWithUpdateOnly(t *testing.T, edit func(string) string) (string, source.Input) {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "sharedthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(spec)
+	// The Replace body gets its own title and an Update-only field with a server default, and
+	// the response component gets the field too.
+	put := strings.Index(text, "    put:")
+	nameLine := "                name: {type: string}\n"
+	i := strings.Index(text[put:], nameLine)
+	title := strings.Index(text[put:], "              title: SharedThing\n")
+	if put < 0 || i < 0 || title < 0 || title > i {
+		t.Fatal("sharedthing.yaml has no Replace body")
+	}
+	at := put + i + len(nameLine)
+	text = text[:at] + "                compact: {type: boolean, default: false, x-coralogix-presence: true}\n" + text[at:]
+	text = text[:put+title] + strings.Replace(text[put+title:], "title: SharedThing\n", "title: SharedThingUpdate\n", 1)
+	component := "    SharedThing:\n      title: SharedThing\n"
+	componentName := "        name: {type: string}\n"
+	c := strings.Index(text, component)
+	if c < 0 || !strings.Contains(text[c:], componentName) {
+		t.Fatal("sharedthing.yaml has no SharedThing component")
+	}
+	n := c + strings.Index(text[c:], componentName) + len(componentName)
+	text = text[:n] + "        compact: {type: boolean, x-coralogix-presence: true}\n" + text[n:]
+	overrides, err := os.ReadFile(filepath.Join("testdata", "sharedthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overridesPath := filepath.Join(t.TempDir(), "overrides.yaml")
+	if err := os.WriteFile(overridesPath, []byte(edit(string(overrides))), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = []byte(text)
+	out := filepath.Join(t.TempDir(), "sharedthing")
+	options := Options{Resource: "SharedThing", OutputDir: out, OverridesPath: overridesPath}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out, input
+}
+
+// A renamed Update-only field keeps its released name in the follow-up Update.
+func TestRenamedUpdateOnlyFieldUsesItsName(t *testing.T) {
+	out, input := generateSharedWithUpdateOnly(t, func(s string) string {
+		return strings.Replace(s, "  SharedThing:\n    fields:\n", "  SharedThing:\n    fields:\n      compact: {name: compact_mode}\n", 1)
+	})
+	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(resource), `{attr: "compact_mode",`) || strings.Contains(string(resource), `{attr: "compact",`) {
+		t.Fatalf("updateOnlyFields does not name compact_mode:\n%s", functionBody(t, string(resource), "var updateOnlyFields"))
+	}
+	compileGenerated(t, out, input)
 }

@@ -41,6 +41,7 @@
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.33`.
 - CHORE: Bump the generator to `v0.1.0-beta.32`.
 - FEAT: An optional request scalar needs `x-coralogix-presence` only when it declares a default that is not its zero value and the zero value is valid, for example `false` next to a default of `true`. An enum never needs it. Without presence or a default, a scalar whose zero value is valid is handled as if it declared that zero value as its server default: it is `Optional + Computed`, and removing it resets it to zero. A scalar whose zero value is not valid, such as an integer with `minimum: 1`, reads zero as null.
 - CHORE: Bump the generator to `v0.1.0-beta.31`.
@@ -117,6 +118,22 @@
 - FIX: A nested server default inside a set is an error. Flatten cannot match a set element that a read returns without the default to the configured element, so it could not keep the configured default.
 - FIX: The unknown-value check and the change check drop server-set values inside a set of objects, as they do in a list or map. Before, an unknown server-set child of a set element blocked Create and Update.
 - FIX: A generated Update that gets a resource-not-found 404 returns an error that says the resource no longer exists and that a refresh removes it from state. A state upgrade that reads the resource returns an error that names `terraform state rm`, because a refresh runs the upgrade first. Neither calls `RemoveResource` any more, which the Framework does not allow there. Read still warns and removes the resource, and Delete still treats the 404 as deleted.
+- FEAT: `api.idProperty` names the property that holds the id when it is not named like the path parameter, for example `uniqueIdentifier` for `{alert_scheduler_rule_id}`.
+- FIX: The SDK check expects a snake_case path parameter in lower camel case, as the Go SDK writes it. Before, it rejected the SDK of any resource with such a parameter.
+- FEAT: A field line `valueNames` keeps released names for the numbers of an integer list or set, for example `Sunday` for day `1`.
+- FEAT: A field line `asBool` keeps a released bool for an object without fields, for example `always_active = true` for the oneOf arm `alwaysActive: {}`.
+- FIX: With `api.idProperty`, an id property that Create does not send is classified as the server-set id, as a path-parameter id is. Before, it was an unsupported field lifecycle. An `idProperty` that names the path parameter is reported as unneeded.
+- FIX: A `name` line can take the name of a field without an attribute (skipped, or a `requestValue`), and such fields take part in no name collision.
+- FEAT: `types.<Type>.groups` makes required Terraform objects that hold fields of a nested component, as `groups` does for top-level fields, for example `frequency` around the daily, weekly, and monthly arms of a recurring schedule.
+- FIX: A renamed top-level field with a server default or an Update-only value keeps its released name in the omitted-default and follow-up Update paths, and in the merged request and response conversion.
+- FEAT: `readEmptyAs: "null"` also works on a list or set of strings inside wrapper objects (`unwrap`), for example `alertUniqueIds: {value: []}`.
+- FIX: `enums.<Enum>.names` and `zero` cannot give a value the spelling of a rejected value that `readRejected` reads back. `defaultArm` needs a full-replace Update, and expand does not send the default arm while another arm is unknown.
+- FIX: A nested group whose model struct name is also the model of a component, the resource, or another group is an error. Before, the group used the other model, and the generated code did not compile.
+- FIX: `types.<Type>.groups` of a type that is no component, or no object of the resource, is an error. Before, a misspelled type name dropped the group without a word. `requireOne` on a nested group needs the arms of one oneOf, as on a top-level group; before, it was accepted and the next read failed.
+- FIX: A `names` entry that gives the spelling the enum has anyway (lower case, `trimPrefix`, or `verbatim`) is an error, so a rename that a contract change makes stale does not stay unnoticed.
+- FIX: A `name` line on a `requestValue` field is an error: the field is no Terraform attribute, so the name changes nothing.
+- FEAT: A field line `terraformType: Int64` keeps the released Int64 type of an int32 field, or of a list or set of int32. Expand converts to int32 and reports a value outside its range.
+- FEAT: A field line `defaultArm` sends an empty arm when the configuration sets no arm of a oneOf that the API requires, for example `alertUniqueIds: {}` for a released filter without a selector. The arm must be a list of strings in wrapper objects with `readEmptyAs: "null"`, and is sent as the empty outer wrapper (`{}`), not as a wrapper of an empty value (`{"value": []}`). An object arm is refused: it would read back as an object of nulls where the plan has null.
 
 #### resource/coralogix_global_router
 - CHORE: The acceptance test compares imported `rules[*].targets` without their order, because the API returns them in no fixed order and an import has no prior order to keep.

@@ -1,0 +1,52 @@
+# The behavior-overrides file of the synthetic resource whose id is a property with another name
+# than the path parameter, and whose released attributes and enum values have other names than the
+# API.
+resource: SuppressedThing
+mode: existing
+
+validators:
+  inferred: false
+
+api:
+  requestWrapper: suppressedThing
+  updateIDInBody: true
+  serverSetID: true
+  idProperty: uniqueIdentifier
+
+unwrap: [Ids]
+
+types:
+  SuppressedThing:
+    fields:
+      uniqueIdentifier: {readOnly: true, name: id}
+      id: {skip: true}
+      window: {name: time_frame}
+      scheduleOperation: {name: operation, validators: [{enum: true}]}
+      # The released attributes are Int64; the API holds int32.
+      priority: {terraformType: Int64}
+  Filter:
+    fields:
+      ids: {defaultArm: true, readEmptyAs: "null"}
+  Dynamic:
+    groups:
+      frequency:
+        fields: [daily, weekly]
+        markdownDescription: "How often the rule repeats."
+  Repeat:
+    fields:
+      alwaysActive: {asBool: true}
+  Window:
+    fields:
+      timezone: {name: time_zone}
+      hours: {terraformType: Int64}
+      daysOfWeek:
+        name: days
+        valueNames: {1: Sunday, 2: Monday, 3: Tuesday, 4: Wednesday, 5: Thursday, 6: Friday, 7: Saturday}
+
+enums:
+  ThingOperation:
+    zero: unspecified
+    values: [THING_OPERATION_MUTE, THING_OPERATION_ACTIVATE]
+    names:
+      THING_OPERATION_MUTE: mute
+      THING_OPERATION_ACTIVATE: active

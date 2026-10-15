@@ -98,18 +98,31 @@ func (f *File) checkGroups() error {
 	if f.TypeName != "" && !tfNamePattern.MatchString(f.TypeName) {
 		return fmt.Errorf("typeName %q is not a Terraform name: lower case letters, digits, and underscores", f.TypeName)
 	}
+	if err := checkGroupMap("groups", f.Groups); err != nil {
+		return err
+	}
+	for _, name := range sortedKeys(f.Types) {
+		if err := checkGroupMap("types."+name+".groups", f.Types[name].Groups); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// checkGroupMap checks the groups at prefix: Terraform names, and each field in one group.
+func checkGroupMap(prefix string, groups map[string]Group) error {
 	seen := map[string]string{}
-	for _, name := range sortedKeys(f.Groups) {
-		g := f.Groups[name]
+	for _, name := range sortedKeys(groups) {
+		g := groups[name]
 		if !tfNamePattern.MatchString(name) {
-			return fmt.Errorf("groups.%s: the name is not a Terraform name: lower case letters, digits, and underscores", name)
+			return fmt.Errorf("%s.%s: the name is not a Terraform name: lower case letters, digits, and underscores", prefix, name)
 		}
 		if len(g.Fields) == 0 {
-			return fmt.Errorf("groups.%s: fields is empty", name)
+			return fmt.Errorf("%s.%s: fields is empty", prefix, name)
 		}
 		for _, field := range g.Fields {
 			if other, ok := seen[field]; ok {
-				return fmt.Errorf("groups.%s: field %s is also in groups.%s", name, field, other)
+				return fmt.Errorf("%s.%s: field %s is also in %s.%s", prefix, name, field, prefix, other)
 			}
 			seen[field] = name
 		}
@@ -171,6 +184,10 @@ type API struct {
 	// ServerSetID: the server sets the id and returns it in every response, but the Get
 	// response cannot require it, because the request shares the resource schema.
 	ServerSetID bool `yaml:"serverSetID"`
+	// IDProperty is the property of the resource that holds the id when it does not have the name
+	// of the path parameter, for example uniqueIdentifier for /rules/{rule_id}. "" means the
+	// property named like the path parameter.
+	IDProperty string `yaml:"idProperty"`
 	// CustomMethods: Get, Update, and Delete are not the Create path with an id.
 	// Get and Delete each have the same {id} path parameter on their own paths.
 	// Update has no path parameter, and the id stays in the body. New resources
@@ -216,6 +233,20 @@ type Type struct {
 	// Expand does not send them. Flatten writes a typed null. A handwritten
 	// overlay reads them from configuration.
 	ExtraAttributes map[string]ExtraAttribute `yaml:"extraAttributes"`
+	// Groups are required Terraform objects that the API does not have, as the top-level groups,
+	// each holding fields of this object, for example frequency = {daily = ...} for the daily
+	// field of a recurring schedule.
+	Groups map[string]Group `yaml:"groups"`
+}
+
+// GroupOf returns the group of the type that holds field, or "".
+func (t Type) GroupOf(field string) string {
+	for name, g := range t.Groups {
+		if slices.Contains(g.Fields, field) {
+			return name
+		}
+	}
+	return ""
 }
 
 // ExtraAttribute is one Terraform-only attribute of a generated object.
@@ -233,6 +264,21 @@ type ExtraAttribute struct {
 type Field struct {
 	// Skip: the resource does not manage the field. It is not sent and not stored.
 	Skip bool `yaml:"skip"`
+	// ValueNames shows a list or set of integers as the names of its values, for example the
+	// weekdays 1 to 7 as Sunday to Saturday. Terraform holds strings; the API holds the numbers.
+	ValueNames map[int64]string `yaml:"valueNames"`
+	// AsBool shows an object without fields as a bool, for example a oneOf arm alwaysActive: {}.
+	// true sends the empty object, false is an error, and a response that has the object reads
+	// as true; one without it reads as null.
+	AsBool bool `yaml:"asBool"`
+	// TerraformType keeps the released Terraform type of an int32 field, or of a list or set of
+	// int32: Int64. Expand converts the value and reports one outside the int32 range.
+	TerraformType string `yaml:"terraformType"`
+	// DefaultArm: when the configuration sets no arm of the oneOf group of this arm, Create and
+	// Update send this arm empty. The group then allows no arm in Terraform, for an API that
+	// requires an arm and reads an empty one as "all", for example alertUniqueIds: {}. The arm
+	// must be a list of strings in wrapper objects with readEmptyAs: "null".
+	DefaultArm bool `yaml:"defaultArm"`
 	// Description and MarkdownDescription are the released texts of the docs. An empty
 	// string means that the released field had no description.
 	Description         *string `yaml:"description"`
@@ -365,6 +411,11 @@ func (e Enum) TFValue(v string) string {
 	if tf, ok := e.Names[v]; ok {
 		return tf
 	}
+	return e.defaultTFValue(v)
+}
+
+// defaultTFValue is the Terraform value of v without its names entry.
+func (e Enum) defaultTFValue(v string) string {
 	v = strings.TrimPrefix(v, e.TrimPrefix)
 	if e.Verbatim {
 		return v
@@ -449,7 +500,7 @@ func (f *File) checkTypes() error {
 		if t.Required != nil && len(*t.Required) != 0 {
 			return fmt.Errorf("types.%s.required: only the empty list [] is allowed", name)
 		}
-		if t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 {
+		if t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 && len(t.Groups) == 0 {
 			return fmt.Errorf("types.%s has no override", name)
 		}
 		names := map[string]string{}
@@ -539,10 +590,22 @@ func (f *File) checkEnums() error {
 			if e.Names[v] == "" {
 				return fmt.Errorf("enums.%s.names: %q has an empty name", name, v)
 			}
+			if e.Names[v] == e.defaultTFValue(v) {
+				return fmt.Errorf("enums.%s.names: %q is already the Terraform value of %q, so the entry changes nothing", name, e.Names[v], v)
+			}
 		}
 		seen := map[string]string{}
 		if e.Zero != "" {
 			seen[e.Zero] = "zero"
+		}
+		if e.ReadRejected {
+			// A rejected value reads back as its API spelling, so no accepted value can have it.
+			for _, v := range e.Rejected {
+				if previous, ok := seen[v]; ok {
+					return fmt.Errorf("enums.%s: %s and the rejected %q have the same Terraform value %q", name, previous, v, v)
+				}
+				seen[v] = "the rejected " + strconv.Quote(v)
+			}
 		}
 		for _, v := range e.Values {
 			tf := e.TFValue(v)
@@ -577,6 +640,10 @@ func (l Field) keys() []string {
 		}
 	}
 	add(l.Skip, "skip")
+	add(len(l.ValueNames) != 0, "valueNames")
+	add(l.AsBool, "asBool")
+	add(l.TerraformType != "", "terraformType")
+	add(l.DefaultArm, "defaultArm")
 	add(l.Description != nil, "description")
 	add(l.MarkdownDescription != nil, "markdownDescription")
 	add(l.ReadOnly, "readOnly")
@@ -647,7 +714,7 @@ func (l Field) empty() bool {
 }
 
 func (l Field) emptyMode() bool {
-	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && l.Name == "" && l.Deprecation == "" &&
+	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && l.Name == "" && len(l.ValueNames) == 0 && !l.AsBool && l.TerraformType == "" && !l.DefaultArm && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown
 }
 
@@ -686,8 +753,17 @@ func (l Field) check() error {
 	if l.Description != nil && l.MarkdownDescription != nil {
 		return errors.New("set description or markdownDescription, not both")
 	}
-	if l.Skip && l.hasBehavior() {
+	if l.Skip && (l.hasBehavior() || l.Name != "") {
 		return errors.New("a skipped field has no other behavior")
+	}
+	if l.TerraformType != "" && l.TerraformType != "Int64" {
+		return fmt.Errorf("terraformType is %q, want \"Int64\"", l.TerraformType)
+	}
+	if l.RequestValue != "" && l.Name != "" {
+		return errors.New("a requestValue field is no Terraform attribute, so name changes nothing")
+	}
+	if err := checkValueNames(l.ValueNames); err != nil {
+		return err
 	}
 	return checkValidators(l.Validators)
 }
@@ -737,11 +813,51 @@ func (l Field) checkConflicts() error {
 	return nil
 }
 
+// checkValueNames checks that every number has a name, and that no two numbers have one name.
+func checkValueNames(names map[int64]string) error {
+	seen := map[string]int64{}
+	for _, n := range sortedIntKeys(names) {
+		name := names[n]
+		if name == "" {
+			return fmt.Errorf("valueNames: %d has an empty name", n)
+		}
+		if other, ok := seen[name]; ok {
+			return fmt.Errorf("valueNames: %d and %d both have the name %q", other, n, name)
+		}
+		seen[name] = n
+	}
+	return nil
+}
+
+// SortedValueNames returns the numbers of a valueNames line in ascending order with their names.
+func (l Field) SortedValueNames() []ValueName {
+	out := make([]ValueName, 0, len(l.ValueNames))
+	for _, n := range sortedIntKeys(l.ValueNames) {
+		out = append(out, ValueName{Number: n, Name: l.ValueNames[n]})
+	}
+	return out
+}
+
+// ValueName is one number of a valueNames line and its Terraform name.
+type ValueName struct {
+	Number int64
+	Name   string
+}
+
+func sortedIntKeys[V any](m map[int64]V) []int64 {
+	keys := make([]int64, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+	return keys
+}
+
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
 func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.Fixed() ||
-		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil
+		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.AsBool || l.TerraformType != "" || l.DefaultArm
 }
 
 func checkValidators(validators []Validator) error {
@@ -798,6 +914,7 @@ func (f *File) Policy() model.Policy {
 		UpdateIDInBody:   f.API.UpdateIDInBody,
 		ClientSetID:      f.API.ClientSetID,
 		ServerSetID:      f.API.ServerSetID,
+		IDProperty:       f.API.IDProperty,
 		CustomMethods:    f.API.CustomMethods,
 		UpdateMaskInBody: f.API.UpdateMaskInBody,
 		// Parse checked that the file states validators.inferred.
@@ -859,6 +976,18 @@ func (f *File) Policy() model.Policy {
 				}
 				p.Names[name+"."+field] = n
 			}
+			if tt := t.Fields[field].TerraformType; tt != "" {
+				if p.TerraformTypes == nil {
+					p.TerraformTypes = map[string]string{}
+				}
+				p.TerraformTypes[name+"."+field] = tt
+			}
+			if t.Fields[field].AsBool {
+				p.Bools = append(p.Bools, name+"."+field)
+			}
+			if t.Fields[field].DefaultArm {
+				p.DefaultArms = append(p.DefaultArms, name+"."+field)
+			}
 			if into := t.Fields[field].CreateAs; len(into) != 0 {
 				if p.CreateAs == nil {
 					p.CreateAs = map[string]map[string]string{}
@@ -900,7 +1029,22 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Accepted: file.accepted(f.KeyedBy), Equality: f.Equality, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, NoAttribute: t.noAttribute(), RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Accepted: file.accepted(f.KeyedBy), Equality: f.Equality, Keys: f.keys()})
+		}
+		for _, group := range sortedKeys(t.Groups) {
+			out = append(out, Line{Kind: KindGroup, Component: name, Field: group, GroupFields: t.Groups[group].Fields})
+		}
+	}
+	return out
+}
+
+// noAttribute returns the fields of the type that have no Terraform attribute, in order: skipped
+// fields and requestValue fields.
+func (t Type) noAttribute() []string {
+	var out []string
+	for _, field := range sortedKeys(t.Fields) {
+		if t.Fields[field].Skip || t.Fields[field].RequestValue != "" {
+			out = append(out, field)
 		}
 	}
 	return out
@@ -913,6 +1057,7 @@ const (
 	KindEnum          Kind = "enum"
 	KindEmptyRequired Kind = "empty-required"
 	KindField         Kind = "field"
+	KindGroup         Kind = "group"
 )
 
 // Line is one place in the contract that the file refers to.
@@ -930,6 +1075,9 @@ type Line struct {
 	Optional     bool   // for a field line: the file says that the field is optional
 	Collection   string // for a field line: "set" when the file shows a list as a set
 	Name         string // for a field line: the Terraform attribute name
+	// NoAttribute are, for a field line, the fields of the component without a Terraform
+	// attribute: skipped fields and requestValue fields. A name line can take their name.
+	NoAttribute []string
 	// RequestValueBy is, for a field line, the API value sent for each object field that is set.
 	RequestValueBy map[string]string
 	// KeyedBy is, for a field line, the key and value properties of a list shown as a map.
@@ -938,6 +1086,8 @@ type Line struct {
 	// line, with their Terraform values: the attributes that the object can have.
 	Accepted map[string]map[string]string
 	Keys     []string // for a field line: every key that the line sets
+	// GroupFields are, for a group line (Field is the group name), the fields that the group holds.
+	GroupFields []string
 }
 
 // String names the line as it is written in the file.
@@ -947,6 +1097,8 @@ func (l Line) String() string {
 		return "enums." + l.Component
 	case KindEmptyRequired:
 		return "types." + l.Component + ".required"
+	case KindGroup:
+		return "types." + l.Component + ".groups." + l.Field
 	default:
 		return "types." + l.Component + ".fields." + l.Field
 	}
