@@ -15,6 +15,7 @@
 
 #### resource/coralogix_alerts_scheduler
 - CHORE: Add a protocol baseline of the resource (schema and lifecycle scenarios against an in-memory API), checked against a recording of the real API. Test-only; no behavior change.
+
 #### provider
 - CHORE: Bump `coralogix-management-sdk` to the version with the alert suppression rule contract. The SDK holds required fields as values; `coralogix_alerts_scheduler`, `coralogix_events2metric`, and `coralogix_slo_v2` adapt, with no change to plans.
 
