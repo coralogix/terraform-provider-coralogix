@@ -137,8 +137,23 @@ var quotaScenarios = map[string]func(h *grHarness){
 		h.Apply("create: the rule set already has customer rules, and the API replaces them", h.null(), quotaConfig(quotaRule("logs", 60)))
 	},
 
-	"create-failure": func(h *grHarness) {
-		h.Apply("create: percentage above 100 is refused by the API", h.null(), quotaConfig(quotaRule("logs", 120, j{"allocation_type": "unspecified"})))
+	// The provider refuses a percentage above 100 before it calls the API.
+	"create-over-100-percent": func(h *grHarness) {
+		h.Apply("create: percentage above 100 is refused by the provider", h.null(), quotaConfig(quotaRule("logs", 120, j{"allocation_type": "unspecified"})))
+	},
+
+	// The configuration is valid, and the API fails the write.
+	"create-api-error": func(h *grHarness) {
+		h.quota().writeStatus = 500
+		h.Apply("create: the API answers 500, and no state is written", h.null(), quotaConfig(quotaRule("logs", 10)))
+	},
+
+	"update-api-error": func(h *grHarness) {
+		s := h.Apply("create", h.null(), quotaConfig(quotaRule("logs", 10)))
+		h.quota().writeStatus = 500
+		s = h.Apply("update: the API answers 500", s, quotaConfig(quotaRule("logs", 20)))
+		h.quota().writeStatus = 0
+		h.Refresh("refresh: the rules did not change", s)
 	},
 
 	"config-validation": func(h *grHarness) {

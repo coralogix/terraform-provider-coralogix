@@ -62,6 +62,8 @@ type quotaFake struct {
 	// A failed delete still clears the customer rules when deleteClears is true.
 	deleteStatus int
 	deleteClears bool
+	// writeStatus is the status of a create or replace that fails. 0 means that a write works.
+	writeStatus int
 }
 
 func newQuotaFake(t *testing.T) *quotaFake {
@@ -157,6 +159,9 @@ func (f *quotaFake) handle(method, path, id string, body any) (int, any) {
 		}
 		return http.StatusOK, map[string]any{"ruleSet": f.set}
 	case http.MethodPost:
+		if f.writeStatus != 0 {
+			return quotaFail(f.writeStatus, "quota allocation rule set could not be written")
+		}
 		// The recording shows a create over a rule set with customer rules, or with none, as a
 		// replace. A 409 is not recorded: the tenant has no Coralogix-managed rules. The fake
 		// answers it when managed rules exist, as the provider expects.
@@ -165,6 +170,9 @@ func (f *quotaFake) handle(method, path, id string, body any) (int, any) {
 		}
 		return f.write(in)
 	case http.MethodPut:
+		if f.writeStatus != 0 {
+			return quotaFail(f.writeStatus, "quota allocation rule set could not be written")
+		}
 		if f.set == nil {
 			return quotaFail(http.StatusNotFound, "quota allocation rule set not found")
 		}

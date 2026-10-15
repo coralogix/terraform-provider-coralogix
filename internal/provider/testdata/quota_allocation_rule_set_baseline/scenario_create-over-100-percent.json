@@ -1,6 +1,6 @@
 [
   {
-    "step": "create: percentage above 100 is refused by the API",
+    "step": "create: percentage above 100 is refused by the provider",
     "config": {
       "rules": [
         {
