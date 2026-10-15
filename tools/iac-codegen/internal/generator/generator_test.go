@@ -533,7 +533,7 @@ func TestObjectCollectionAttrTypeFollowsSetOrList(t *testing.T) {
 
 func TestEligibilityFailurePreservesOutput(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
-	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("x-coralogix-presence: true"), nil, 2)
+	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("default: true\n                  x-coralogix-presence: true"), []byte("default: true"), 1)
 	out := filepath.Join(t.TempDir(), "thing")
 	if err := os.Mkdir(out, 0o755); err != nil {
 		t.Fatal(err)
@@ -555,7 +555,7 @@ func TestEligibilityFailurePreservesOutput(t *testing.T) {
 
 func TestCheckUsesGenerateEligibilityAndWritesNothing(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
-	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("x-coralogix-presence: true"), nil, 2)
+	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("default: true\n                  x-coralogix-presence: true"), []byte("default: true"), 1)
 	work := t.TempDir()
 	candidate := filepath.Join(work, "candidate.yaml")
 	if err := os.WriteFile(candidate, input.OpenAPI, 0o644); err != nil {

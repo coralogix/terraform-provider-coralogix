@@ -41,6 +41,8 @@
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.32`.
+- FEAT: An optional request scalar needs `x-coralogix-presence` only when it declares a default that is not its zero value and the zero value is valid, for example `false` next to a default of `true`. An enum never needs it. Without presence or a default, a scalar whose zero value is valid is handled as if it declared that zero value as its server default: it is `Optional + Computed`, and removing it resets it to zero. A scalar whose zero value is not valid, such as an integer with `minimum: 1`, reads zero as null.
 - CHORE: Bump the generator to `v0.1.0-beta.31`.
 - FEAT: `readEmptyAs: "null"` on a `keyedBy` map reads an empty API list as null.
 - FIX: A skipped empty arm of a top-level oneOf also leaves the resource validator. Before, the validator named an attribute that the schema did not have.

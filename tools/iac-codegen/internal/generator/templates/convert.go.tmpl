@@ -1558,11 +1558,21 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- end}}
 {{- end}}
 
+{{- define "readZeroAsNull"}}
+	{{- if .ReadZeroAsNull}}
+	// A configuration cannot hold the zero value, so a read of it is an omitted value.
+	if out.{{.Model}}.Value{{.ValueKind}}() == {{if eq .Conv "string"}}{{printf "%q" .Zero}}{{else}}0{{end}} {
+		out.{{.Model}} = types.{{.ValueKind}}Null()
+	}
+	{{- end}}
+{{- end}}
+
 {{- define "flattenValue"}}
 {{- $p := printf "p.AtName(%q)" .TFName}}
 {{- $v := .Src}}{{if .DirectValue}}{{$v = printf "&%s" .Src}}{{end}}
 {{- if eq .Conv "string"}}
 	out.{{.Model}} = types.StringPointerValue({{$v}})
+	{{- template "readZeroAsNull" .}}
 	{{- if .Equality}}
 	if prior != nil {
 		out.{{.Model}} = keepEquivalentText(prior.{{.Model}}, out.{{.Model}}, {{.Equality}}Equal)
@@ -1582,18 +1592,23 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.Model}} = types.BoolPointerValue({{$v}})
 {{- else if eq .Conv "float64"}}
 	out.{{.Model}} = types.Float64PointerValue({{$v}})
+	{{- template "readZeroAsNull" .}}
 {{- else if eq .Conv "int32"}}
 	out.{{.Model}} = types.Int32PointerValue({{$v}})
+	{{- template "readZeroAsNull" .}}
 {{- else if eq .Conv "int64"}}
 	out.{{.Model}} = types.Int64PointerValue({{$v}})
+	{{- template "readZeroAsNull" .}}
 {{- else if eq .Conv "float32"}}
 	out.{{.Model}} = flattenFloat32({{$v}})
+	{{- template "readZeroAsNull" .}}
 {{- else if eq .Conv "scalars"}}
 	out.{{.Model}} = flattenScalars{{.Collection}}(ctx, {{.ElemType}}, {{if eq .SDKType "float32"}}widenFloat32s({{.Src}}){{else}}{{.Src}}{{end}}, diags)
 {{- else if eq .Conv "scalarmap"}}
 	out.{{.Model}} = flattenScalarMap(ctx, {{.ElemType}}, {{if eq .SDKType "float32"}}widenFloat32Map({{.Src}}){{else}}{{.Src}}{{end}}, diags)
 {{- else if eq .Conv "uint64"}}
 	out.{{.Model}} = flattenUint64({{$p}}, {{$v}}, diags)
+	{{- template "readZeroAsNull" .}}
 {{- else if eq .Conv "time"}}
 	out.{{.Model}} = flattenTime({{$v}})
 {{- else if eq .Conv "rfc3339"}}

@@ -479,9 +479,10 @@ func TestPublishRefusesOtherFiles(t *testing.T) {
 }
 
 // A line that only changes a text does not say how an omitted value behaves. The generator still
-// stops when the contract does not state presence for the field.
+// stops when the contract does not state presence for a field that needs it: env has a default
+// that is not "".
 func TestWordingOnlyLineDoesNotWaivePresence(t *testing.T) {
-	spec := strings.Replace(string(legacySpec(t)), "          x-coralogix-presence: true\n", "", 1)
+	spec := strings.Replace(string(legacySpec(t)), "        env: {type: string}\n", "        env: {type: string, default: prod}\n", 1)
 	if spec == string(legacySpec(t)) {
 		t.Fatal("the test contract did not change: update the replaced text")
 	}
@@ -489,12 +490,12 @@ func TestWordingOnlyLineDoesNotWaivePresence(t *testing.T) {
 		line      string
 		wantIssue bool
 	}{
-		"wording only":       {"{description: The id.}", true},
-		"states a lifecycle": {"{description: The id., computed: true}", false},
+		"wording only":       {"{description: The env.}", true},
+		"states a lifecycle": {"{description: The env., computed: true}", false},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			text := strings.Replace(legacyOverrides, "id: {description: The id.}", "id: "+test.line, 1)
+			text := strings.Replace(legacyOverrides, "env: {computed: true}", "env: "+test.line, 1)
 			_, err := validateOpenAPIWith([]byte(spec), "LegacyThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, text))
 			if got := slices.Contains(eligibilityCodes(t, err), "FIELD_PRESENCE_UNKNOWN"); got != test.wantIssue {
 				t.Fatalf("FIELD_PRESENCE_UNKNOWN = %v, want %v (err = %v)", got, test.wantIssue, err)

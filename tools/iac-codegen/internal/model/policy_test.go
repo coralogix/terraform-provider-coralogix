@@ -37,12 +37,29 @@ func legacyDoc(t *testing.T) []byte {
 
 func legacyCodes(t *testing.T, p Policy) []string {
 	t.Helper()
-	doc, err := Load(legacyDoc(t))
+	return legacyDocCodes(t, legacyDoc(t), p)
+}
+
+func legacyDocCodes(t *testing.T, data []byte, p Policy) []string {
+	t.Helper()
+	doc, err := Load(data)
 	if err != nil {
 		t.Fatal(err)
 	}
 	codes := reportCodes(ValidateWithPolicy(doc, "LegacyThing", OperationIDs{}, p))
 	return slices.Compact(codes)
+}
+
+// legacyDocWithDefault is testdata/legacy.yaml with a default that is not "" on the released
+// LegacyLabels.env. Without its line, the field must state presence.
+func legacyDocWithDefault(t *testing.T) []byte {
+	t.Helper()
+	old := "        env: {type: string}\n"
+	data := string(legacyDoc(t))
+	if !strings.Contains(data, old) {
+		t.Fatal("testdata/legacy.yaml has no plain LegacyLabels.env")
+	}
+	return []byte(strings.Replace(data, old, "        env: {type: string, default: prod}\n", 1))
 }
 
 // A released resource is refused by the rules for a new resource, for these reasons.
@@ -78,14 +95,17 @@ func TestEachPolicyFieldRelaxesOneRule(t *testing.T) {
 		"update id in body": {func(p *Policy) { p.UpdateIDInBody = false }, "UPDATE_ID_IN_BODY_UNSUPPORTED"},
 		"client set id":     {func(p *Policy) { p.ClientSetID = false }, "RESOURCE_ID_OPTIONAL"},
 		"enum prefix":       {func(p *Policy) { p.EnumAnyPrefix = nil }, "ENUM_ZERO_INVALID"},
-		"released":          {func(p *Policy) { p.Released = nil }, "FIELD_PRESENCE_UNKNOWN"},
+		"released":          {func(p *Policy) { p.Released = nil }, "FIELD_PRESENCE_UNKNOWN"}, // see legacyDocWithDefault
 		"existing":          {func(p *Policy) { p.Existing = false }, "RESPONSE_WRAPPER_UNSUPPORTED"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			p := legacyPolicy()
+			if got := legacyDocCodes(t, legacyDocWithDefault(t), p); len(got) != 0 {
+				t.Fatalf("codes with the full policy = %v, want none", got)
+			}
 			test.without(&p)
-			if got := legacyCodes(t, p); !slices.Contains(got, test.code) {
+			if got := legacyDocCodes(t, legacyDocWithDefault(t), p); !slices.Contains(got, test.code) {
 				t.Fatalf("codes = %v, want %s", got, test.code)
 			}
 		})

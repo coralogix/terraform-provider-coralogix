@@ -652,14 +652,14 @@ func validateFieldContract(p Policy, name, idParam, field string, create, update
 	// A field with a line in the behavior-overrides file keeps its released behavior, so
 	// the contract need not say whether omission differs from an empty value.
 	if !p.released(name, field) {
-		report = append(report, fieldPresenceIssue(location+".create", field, create, cp)...)
-		// A field with a server default resets to it when Update omits it: the generated
-		// Update leaves a removed value out. Omission has that meaning, so it needs no marker
-		// when a configured value cannot look like omission: an enum never sends its zero
-		// value, and a default that is the zero value is what an omitted zero stores anyway.
-		// Any other zero, such as false next to a default of true, still needs presence.
-		if !createRequires(create, cp, field) && (cp == nil || !omissionIsDefault(up, schemaDefault(cp))) {
-			report = append(report, fieldPresenceIssue(location+".update", field, update, up)...)
+		report = append(report, fieldPresenceIssue(location+".create", field, create, cp, schemaDefault(cp))...)
+		// Generation reads the Create default. A field that only Update has declares it there.
+		updateDefault := schemaDefault(up)
+		if cp != nil {
+			updateDefault = schemaDefault(cp)
+		}
+		if !createRequires(create, cp, field) {
+			report = append(report, fieldPresenceIssue(location+".update", field, update, up, updateDefault)...)
 		}
 	}
 	// The response decides which wrappers collapse, as in the generated resource: a request can
@@ -884,14 +884,16 @@ func omissionIsDefault(proxy *base.SchemaProxy, d *string) bool {
 	if target := refSiblingTarget(proxy, schema); target != nil {
 		schema = target
 	}
-	if !scalarZeroValueValid(valueSchema(schema)) {
+	zero, ok := scalarZero(valueSchema(schema))
+	if !ok {
 		return true // the zero value is not a value that Terraform sends
 	}
-	switch *d {
-	case "false", "0", "0.0", "":
+	if *d == zero {
 		return true
 	}
-	return false
+	// A number default can spell zero another way, such as 0.0.
+	n, err := strconv.ParseFloat(*d, 64)
+	return zero == "0" && err == nil && n == 0 && !plainStringSchema(valueSchema(schema))
 }
 
 func schemaDefault(proxy *base.SchemaProxy) *string {
@@ -1144,7 +1146,9 @@ func fieldTypeIssues(p Policy, name, field, location string, gp, cp, up *base.Sc
 	return nil
 }
 
-func fieldPresenceIssue(location, field string, parent *base.Schema, proxy *base.SchemaProxy) issue.Report {
+// fieldPresenceIssue reports a request scalar that must preserve field presence. serverDefault is
+// the declared default that the server stores for an omitted value, or nil.
+func fieldPresenceIssue(location, field string, parent *base.Schema, proxy *base.SchemaProxy, serverDefault *string) issue.Report {
 	if proxy == nil {
 		return nil
 	}
@@ -1176,7 +1180,15 @@ func fieldPresenceIssue(location, field string, parent *base.Schema, proxy *base
 			Remediation: "Use a presence-tracking protobuf scalar and expose x-coralogix-presence: true in OpenAPI.",
 		}}
 	}
-	return issue.Report{{Code: "FIELD_PRESENCE_UNKNOWN", Location: location, Message: "The optional request field does not state whether omission differs from an explicit zero or empty value.", Remediation: "Add x-coralogix-presence: true to the source API contract."}}
+	// Proto3 does not send a zero scalar, so the server reads it as omitted. Without a declared
+	// default, omission and zero both store zero, and the generated resource keeps the prior form
+	// on read. A default that is the zero value, or a zero that is not valid (an enum zero), also
+	// stores the same value. Only a valid zero next to another default, such as false next to a
+	// default of true, cannot be sent without presence.
+	if serverDefault == nil || omissionIsDefault(proxy, serverDefault) {
+		return nil
+	}
+	return issue.Report{{Code: "FIELD_PRESENCE_UNKNOWN", Location: location, Message: fmt.Sprintf("The optional request field has the default %s, so the server stores an explicit zero value as that default.", *serverDefault), Remediation: "Add x-coralogix-presence: true to the source API contract (a proto3 optional field)."}}
 }
 
 // requiredEmptyIssue reports a required string, list, or map that accepts an
@@ -1259,48 +1271,101 @@ func plainStringSchema(schema *base.Schema) bool {
 	return slices.Equal(schema.Type, []string{"string"}) && len(schema.Enum) == 0 && schema.Format == ""
 }
 
+// scalarZeroValueValid reports whether a client can set the protobuf zero value of a scalar.
 func scalarZeroValueValid(schema *base.Schema) bool {
+	_, ok := scalarZero(schema)
+	return ok
+}
+
+// scalarZero returns the protobuf zero value of a scalar, as the text that a default holds, and
+// whether a client can set it. An enum zero is never set, and neither is a zero outside the
+// limits of the field. Matches settable_zero in scripts/lint_iac_contract.py of
+// cx-management-apis.
+func scalarZero(schema *base.Schema) (string, bool) {
 	if inner, err := singleAllOf(schema, "schema"); err == nil {
 		resolved, resolveErr := schemaOf(inner)
-		return resolveErr == nil && scalarZeroValueValid(resolved)
+		if resolveErr != nil {
+			return "", false
+		}
+		return scalarZero(resolved)
 	}
 	if len(schema.Enum) != 0 || len(schema.Type) != 1 {
-		return false
+		return "", false
 	}
 	switch schema.Type[0] {
 	case "boolean":
-		return true
+		return "false", true
 	case "integer", "number":
-		return numericZeroValueValid(schema)
+		return "0", numberAcceptsZero(schema)
 	case "string":
-		return stringZeroValueValid(schema)
+		return stringZero(schema)
 	default:
-		return false
+		return "", false
 	}
 }
 
-func numericZeroValueValid(schema *base.Schema) bool {
-	return (schema.Minimum == nil || *schema.Minimum <= 0) && (schema.Maximum == nil || *schema.Maximum >= 0)
+// numberAcceptsZero reports whether the bounds of a number accept 0: inclusive bounds, and
+// exclusive bounds in both the OpenAPI 3.1 form (a number) and the 3.0 form (true next to
+// minimum or maximum). Matches number_accepts_zero in the API lint.
+func numberAcceptsZero(schema *base.Schema) bool {
+	if schema.Minimum != nil && *schema.Minimum > 0 || schema.Maximum != nil && *schema.Maximum < 0 {
+		return false
+	}
+	for _, bound := range []struct {
+		exclusive *base.DynamicValue[bool, float64]
+		inclusive *float64
+		excludes  func(float64) bool
+	}{
+		{schema.ExclusiveMinimum, schema.Minimum, func(v float64) bool { return v >= 0 }},
+		{schema.ExclusiveMaximum, schema.Maximum, func(v float64) bool { return v <= 0 }},
+	} {
+		switch {
+		case bound.exclusive == nil:
+		case bound.exclusive.IsA() && bound.exclusive.A && bound.inclusive != nil && *bound.inclusive == 0:
+			return false
+		case bound.exclusive.IsB() && bound.excludes(bound.exclusive.B):
+			return false
+		}
+	}
+	return true
 }
 
-func stringZeroValueValid(schema *base.Schema) bool {
+// stringZero returns the protobuf zero value of a string and whether a client can set it. A
+// 64-bit number is a string whose zero is "0": with an int64 or uint64 format, or as a digit
+// string with no format. Matches the string part of settable_zero in the API lint.
+func stringZero(schema *base.Schema) (string, bool) {
 	value := ""
-	switch schema.Format {
-	case "":
-	case "int64", "uint64":
+	switch {
+	case schema.Format == "int64" || schema.Format == "uint64":
 		value = "0"
+	case schema.Format == "" && digitString(schema.Pattern):
+		value = "0"
+	case schema.Format == "":
 	default:
-		return false
+		return "", false
 	}
 	length := int64(len([]rune(value)))
 	if schema.MinLength != nil && length < *schema.MinLength || schema.MaxLength != nil && length > *schema.MaxLength {
-		return false
+		return "", false
 	}
 	if schema.Pattern == "" {
-		return true
+		return value, true
 	}
 	re, err := regexp.Compile(schema.Pattern)
-	return err == nil && re.MatchString(value)
+	return value, err == nil && re.MatchString(value)
+}
+
+// int64Patterns are the patterns that the OpenAPI generator (protoc-gen-openapiv3,
+// stringInt64Pattern) writes for a 64-bit number sent as a string without a format. Matches
+// INT64_PATTERNS in the API lint.
+var int64Patterns = []string{`^[0-9]+$`, `^-?[0-9]+$`}
+
+// digitString reports whether a string is a 64-bit number that the OpenAPI generator writes as a
+// digit string without a format. Its protobuf zero is "0". Only the exact generated patterns
+// count: a pattern such as ^[A-Z0-9]+$ also accepts "0", but its field is a protobuf string.
+// Matches digit_string in the API lint.
+func digitString(pattern string) bool {
+	return slices.Contains(int64Patterns, pattern)
 }
 
 // createRequires reports whether Create requires the field. Terraform then requires it, and a
@@ -1373,11 +1438,12 @@ func nestedPresenceIssues(p Policy, location string, proxy, get, create *base.Sc
 		if unsentField(p, component, name, child) {
 			continue
 		}
+		createChild := propertyOf(createObject, name)
 		if !wrapped && !grouped[name] && asksPresence(p, component, name, createRequired) {
-			report = append(report, fieldPresenceIssue(location+"."+name, name, &parent, child)...)
+			report = append(report, fieldPresenceIssue(location+"."+name, name, &parent, child, requestDefault(child, createChild))...)
 		}
 		getChild := propertyOf(getObject, name)
-		report = append(report, nestedPresenceIssues(p, location+"."+name, child, getChild, propertyOf(createObject, name), p.unwraps(owner, name, wrapperComponent(getChild)), seen)...)
+		report = append(report, nestedPresenceIssues(p, location+"."+name, child, getChild, createChild, p.unwraps(owner, name, wrapperComponent(getChild)), seen)...)
 	}
 	if object.Items != nil && object.Items.IsA() {
 		report = append(report, nestedPresenceIssues(p, location+"[]", object.Items.A, itemsOf(getObject), itemsOf(createObject), wrapped, seen)...)
@@ -1386,6 +1452,15 @@ func nestedPresenceIssues(p Policy, location string, proxy, get, create *base.Sc
 		report = append(report, nestedPresenceIssues(p, location+"{}", object.AdditionalProperties.A, nil, nil, false, seen)...)
 	}
 	return report
+}
+
+// requestDefault returns the declared default of a nested request field. In Update, create is the
+// same field in Create, and generation reads its default.
+func requestDefault(field, create *base.SchemaProxy) *string {
+	if create != nil {
+		return schemaDefault(create)
+	}
+	return schemaDefault(field)
 }
 
 // itemsOf returns the items of the list schema s, or nil.
