@@ -41,6 +41,7 @@
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.33`.
 - CHORE: Bump the generator to `v0.1.0-beta.32`.
 - FEAT: An optional request scalar needs `x-coralogix-presence` only when it declares a default that is not its zero value and the zero value is valid, for example `false` next to a default of `true`. An enum never needs it. Without presence or a default, a scalar whose zero value is valid is handled as if it declared that zero value as its server default: it is `Optional + Computed`, and removing it resets it to zero. A scalar whose zero value is not valid, such as an integer with `minimum: 1`, reads zero as null.
 - CHORE: Bump the generator to `v0.1.0-beta.31`.
@@ -119,14 +120,10 @@
 - FIX: A generated Update that gets a resource-not-found 404 returns an error that says the resource no longer exists and that a refresh removes it from state. A state upgrade that reads the resource returns an error that names `terraform state rm`, because a refresh runs the upgrade first. Neither calls `RemoveResource` any more, which the Framework does not allow there. Read still warns and removes the resource, and Delete still treats the 404 as deleted.
 - FEAT: `api.idProperty` names the property that holds the id when it is not named like the path parameter, for example `uniqueIdentifier` for `{alert_scheduler_rule_id}`.
 - FIX: The SDK check expects a snake_case path parameter in lower camel case, as the Go SDK writes it. Before, it rejected the SDK of any resource with such a parameter.
-- FIX: A skipped field takes part in no Terraform name collision.
 - FEAT: A field line `valueNames` keeps released names for the numbers of an integer list or set, for example `Sunday` for day `1`.
 - FEAT: A field line `asBool` keeps a released bool for an object without fields, for example `always_active = true` for the oneOf arm `alwaysActive: {}`.
-- FEAT: A field line `defaultArm` sends an empty arm when the configuration sets no arm of a oneOf that the API requires, for example `alertUniqueIds: {}` for a released filter without a selector.
 - FIX: With `api.idProperty`, an id property that Create does not send is classified as the server-set id, as a path-parameter id is. Before, it was an unsupported field lifecycle. An `idProperty` that names the path parameter is reported as unneeded.
 - FIX: A `name` line can take the name of a field without an attribute (skipped, or a `requestValue`), and such fields take part in no name collision.
-- FIX: A renamed top-level field with a server default or an Update-only value keeps its released name in the omitted-default and follow-up Update paths.
-- FIX: `enums.<Enum>.names` cannot give an accepted value the spelling of a rejected value that `readRejected` reads back, and `defaultArm` needs a full-replace Update.
 - FEAT: `types.<Type>.groups` makes required Terraform objects that hold fields of a nested component, as `groups` does for top-level fields, for example `frequency` around the daily, weekly, and monthly arms of a recurring schedule.
 - FIX: A renamed top-level field with a server default or an Update-only value keeps its released name in the omitted-default and follow-up Update paths, and in the merged request and response conversion.
 - FEAT: `readEmptyAs: "null"` also works on a list or set of strings inside wrapper objects (`unwrap`), for example `alertUniqueIds: {value: []}`.
