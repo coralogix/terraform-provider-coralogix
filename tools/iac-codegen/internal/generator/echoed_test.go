@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/issue"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
 )
 
 func echoedSpec(t *testing.T) string {

@@ -9,14 +9,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/source"
 )
 
 func legacySpec(t *testing.T) []byte {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join("..", "model", "testdata", "legacy.yaml"))
+	data, err := os.ReadFile(filepath.Join("testdata", "legacy.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -563,7 +562,7 @@ func TestEmptyRequiredLineIsUnused(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	component, report := model.ResolveResource(doc, "LegacyThing")
+	component, report := resolveResource(doc, "LegacyThing")
 	if len(report) != 0 {
 		t.Fatal(report)
 	}
@@ -685,7 +684,7 @@ func TestModeLinesReplaceTheContractDefault(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			validated, err := validateOpenAPIWith([]byte(spec), "ArchivedThing", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, lineOf(test.line))
+			validated, err := validateOpenAPIWith([]byte(spec), "ArchivedThing", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", providerModulePath, lineOf(test.line))
 			if err != nil {
 				t.Fatal(reportOf(t, err))
 			}
@@ -705,7 +704,7 @@ func TestModeLinesReplaceTheContractDefault(t *testing.T) {
 			}
 		})
 	}
-	_, err = validateOpenAPIWith([]byte(spec), "ArchivedThing", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, lineOf("{required: true}"))
+	_, err = validateOpenAPIWith([]byte(spec), "ArchivedThing", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", providerModulePath, lineOf("{required: true}"))
 	if !reportHas(requireReport(t, err), "OVERRIDE_UNUSED", "behavior-overrides.yaml:types.ArchivedThing.fields.priority") {
 		t.Fatalf("required line: err = %v, want OVERRIDE_UNUSED", err)
 	}
@@ -817,7 +816,7 @@ func TestServerSetIDOnARequiredIDIsAnError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "customthing.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "customthing.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -838,7 +837,7 @@ func TestClientAndServerSetIDAreExclusive(t *testing.T) {
 // A group holds top-level fields that the user sets and that a full replace sends. The generator
 // reports any other use, because the renderer has no plan logic for it.
 func TestGroupsRejectFieldsThatTheyCannotHold(t *testing.T) {
-	sharedSpec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "sharedthing.yaml"))
+	sharedSpec, err := os.ReadFile(filepath.Join("testdata", "sharedthing.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}

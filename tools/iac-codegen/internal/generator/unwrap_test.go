@@ -7,12 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/sdkcheck"
 )
 
 func wrapThingSpec(t *testing.T) []byte {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join("..", "model", "testdata", "wrapthing.yaml"))
+	data, err := os.ReadFile(filepath.Join("testdata", "wrapthing.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,7 +155,7 @@ func TestWrapHelperNamesKeepTheWrapperBoundaries(t *testing.T) {
 }
 
 func TestQualifyType(t *testing.T) {
-	b := &convBuilder{ix: &refIndex{pkg: sdkRef{Name: "sdk"}}}
+	b := &convBuilder{ix: &refIndex{pkg: sdkcheck.Ref{Name: "sdk"}}}
 	for in, want := range map[string]string{
 		"*string": "*string", "[]string": "[]string", "*Thing": "*sdk.Thing", "[]Thing": "[]sdk.Thing",
 		"*time.Time": "*time.Time", "map[string]interface{}": "map[string]interface{}", "map[string]Kind": "map[string]sdk.Kind",

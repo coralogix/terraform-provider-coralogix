@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
 )
@@ -241,7 +241,7 @@ func defaultPackages(attrs []*tfAttr) []string {
 // addSingletonID adds the fixed id attribute of a singleton (D18).
 func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
 	for _, f := range r.Fields {
-		if r.Policy.TerraformName(r.Name, f.Name) == "id" {
+		if terraformName(r.Policy, r.Name, f.Name) == "id" {
 			return fmt.Errorf("%s: a singleton with an id field is not supported: the id attribute is fixed", f.Name)
 		}
 	}
@@ -257,7 +257,7 @@ func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
 // resourceAttribute builds the attribute of a top-level field: its type, its server default, a
 // client-set id, and the plan modifiers of its behavior.
 func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *model.ResourceField, group string) (*tfAttr, error) {
-	a, err := b.attribute(rootPath(group, r.Policy.TerraformName(r.Name, f.Name)), r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), responseOnly(f.Behavior))
+	a, err := b.attribute(rootPath(group, terraformName(r.Policy, r.Name, f.Name)), r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), responseOnly(f.Behavior))
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +274,7 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 		a.Modifiers = append(a.Modifiers, "serverDefaultModifier{value: "+value+"}")
 		out.HasServerDefaults = true
 		if !f.Get.Required {
-			out.OmittedDefaults = append(out.OmittedDefaults, defaultPath{Path: r.Policy.TerraformName(r.Name, f.Name), Value: value})
+			out.OmittedDefaults = append(out.OmittedDefaults, defaultPath{Path: terraformName(r.Policy, r.Name, f.Name), Value: value})
 		}
 		if !containsString(out.ServerDefaultKinds, a.ValueKind) {
 			out.ServerDefaultKinds = append(out.ServerDefaultKinds, a.ValueKind)
@@ -837,7 +837,7 @@ func (p attrPath) expr() string {
 }
 
 func (b *tfBuilder) attribute(p attrPath, component, name, desc string, t *model.Type, attrs model.Attrs, computed bool) (*tfAttr, error) {
-	a := &tfAttr{Name: b.policy.TerraformName(component, name), Description: desc, Required: attrs.Required, Optional: !attrs.Required, Component: component, Property: name}
+	a := &tfAttr{Name: terraformName(b.policy, component, name), Description: desc, Required: attrs.Required, Optional: !attrs.Required, Component: component, Property: name}
 	if b.policy.AsBool(component, name) {
 		if !emptyObject(t) {
 			return nil, fmt.Errorf("%s.%s: asBool needs an object without fields", component, name)
@@ -991,9 +991,9 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 			continue
 		}
 		group := groups.of(f.Name)
-		child := append(append(attrPath{}, p...), b.policy.TerraformName(t.Schema, f.Name))
+		child := append(append(attrPath{}, p...), terraformName(b.policy, t.Schema, f.Name))
 		if group != "" {
-			child = append(append(attrPath{}, p...), group, b.policy.TerraformName(t.Schema, f.Name))
+			child = append(append(attrPath{}, p...), group, terraformName(b.policy, t.Schema, f.Name))
 		}
 		only := b.sent.responseOnly(t.Schema, f)
 		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f), only)
@@ -1239,7 +1239,7 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 		}
 	case model.Integer:
 		goType = "types.Int64"
-		if t.Format == "int32" && b.policy.TerraformType(component, name) == "" {
+		if t.Format == "int32" && terraformType(b.policy, component, name) == "" {
 			goType = "types.Int32"
 		}
 	case model.Set:
@@ -1257,7 +1257,7 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 			goType = "*" + typeModelName(t)
 		}
 	}
-	return tfModelField{Name: camelize(name), Type: goType, TFName: b.policy.TerraformName(component, name)}
+	return tfModelField{Name: camelize(name), Type: goType, TFName: terraformName(b.policy, component, name)}
 }
 
 // emptyObject reports whether t is an object without fields, which the SDK holds as a map.
@@ -1430,7 +1430,7 @@ func formatInt(f float64) string   { return strconv.FormatInt(int64(f), 10) }
 
 // tfName is the Terraform name for a property name: "sqlReadOnly" → "sql_read_only".
 func tfName(property string) string {
-	return model.TerraformName(property)
+	return TerraformName(property)
 }
 
 // rootPath is the attribute path of a top-level attribute with the Terraform name name: below
@@ -1647,7 +1647,7 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 			return err
 		} else if group != "" {
 			// The arms are in one group, which is an object: they check each other inside it.
-			addGroupValidators(groups.attrs[group].Attributes, []model.OneOfGroup{g}, func(arm string) string { return r.Policy.TerraformName(r.Name, arm) })
+			addGroupValidators(groups.attrs[group].Attributes, []model.OneOfGroup{g}, func(arm string) string { return terraformName(r.Policy, r.Name, arm) })
 			if file.Groups[group].RequireOne {
 				requireOneArm(groups.attrs[group])
 			}
@@ -1655,7 +1655,7 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 		}
 		var arms []string
 		for _, arm := range g.Arms {
-			name := r.Policy.TerraformName(r.Name, arm)
+			name := terraformName(r.Policy, r.Name, arm)
 			arms = append(arms, rootPath(file.GroupOf(arm), name).expr())
 			if file.Types[r.Name].Fields[arm].RequireOne {
 				// The released resource required one arm although the contract allows none.
@@ -1663,7 +1663,7 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 			}
 		}
 		for _, arm := range g.Arms {
-			name := r.Policy.TerraformName(r.Name, arm)
+			name := terraformName(r.Policy, r.Name, arm)
 			for _, a := range out.Attributes {
 				if a.Name == name {
 					// The resource validator checks the arms; the acceptance test sets one of them.
@@ -1769,7 +1769,7 @@ func (g *nestedGroups) first(group string) (*tfAttr, tfModelField, bool, error) 
 // addValidators adds the oneOf validators: inside a group when the group holds every arm, else to
 // the attributes of the component. A group cannot hold some of the arms only.
 func (g *nestedGroups) addValidators(attrs []*tfAttr, oneOfs []model.OneOfGroup) error {
-	name := func(arm string) string { return g.b.policy.TerraformName(g.component, arm) }
+	name := func(arm string) string { return terraformName(g.b.policy, g.component, arm) }
 	for _, o := range oneOfs {
 		group := g.of(o.Arms[0])
 		for _, arm := range o.Arms[1:] {
