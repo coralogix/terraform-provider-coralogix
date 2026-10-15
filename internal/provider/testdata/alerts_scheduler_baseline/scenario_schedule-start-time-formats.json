@@ -142,6 +142,7 @@
         "operation": "mute",
         "recurring": null
       }
-    }
+    },
+    "replanEmpty": true
   }
 ]

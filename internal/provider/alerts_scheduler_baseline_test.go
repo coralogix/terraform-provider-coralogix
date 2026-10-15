@@ -135,13 +135,13 @@ var asFull = asRule("full", asWeekly, j{
 var asScenarios = map[string]func(h *grHarness){
 	"minimal": func(h *grHarness) {
 		s := h.Apply("create", h.null(), asRule("minimal", asAlways))
-		s = h.Refresh("refresh", s)
+		s = h.RefreshPlan("refresh", s)
 		h.Destroy("destroy", s)
 	},
 
 	"full-lifecycle": func(h *grHarness) {
 		s := h.Apply("create", h.null(), asFull)
-		s = h.Refresh("refresh", s)
+		s = h.RefreshPlan("refresh", s)
 		s = h.Apply("update: change name, description, enabled, and labels", s, with(asFull, j{
 			"name":        "full-updated",
 			"description": "changed",
@@ -154,7 +154,7 @@ var asScenarios = map[string]func(h *grHarness){
 	"unset-optional-attributes": func(h *grHarness) {
 		s := h.Apply("create", h.null(), asFull)
 		s = h.Apply("update: only name, filter, and schedule are left", s, asRule("full", asWeekly))
-		h.Refresh("refresh", s)
+		h.RefreshPlan("refresh", s)
 	},
 
 	"filter-alert-ids": func(h *grHarness) {
@@ -163,7 +163,7 @@ var asScenarios = map[string]func(h *grHarness){
 			"alerts_unique_ids": l{"alert-1", "alert-2"},
 		}})
 		s := h.Apply("create", h.null(), cfg)
-		s = h.Refresh("refresh", s)
+		s = h.RefreshPlan("refresh", s)
 		s = h.Apply("update: all alerts (no selector)", s, asRule("ids", asAlways))
 		h.Apply("update: meta label selector", s, asRule("ids", asAlways, j{"filter": j{
 			"what_expression": "source logs | filter true",
@@ -185,7 +185,7 @@ var asScenarios = map[string]func(h *grHarness){
 			"time_zone":  "UTC",
 		}}})
 		s := h.Apply("create", h.null(), cfg)
-		s = h.Refresh("refresh", s)
+		s = h.RefreshPlan("refresh", s)
 		h.Apply("update: duration instead of end_time", s, asRule("once", j{"operation": "mute", "one_time": j{
 			"time_frame": asTimeFrame(j{"time_zone": "UTC"}),
 		}}))
@@ -207,7 +207,7 @@ var asScenarios = map[string]func(h *grHarness){
 			return j{"operation": "mute", "recurring": j{"dynamic": d}}
 		}
 		s := h.Apply("create with termination_date", h.null(), asRule("term", dyn(j{"termination_date": "2031-01-01T00:00:00.000"})))
-		s = h.Refresh("refresh", s)
+		s = h.RefreshPlan("refresh", s)
 		h.Apply("update: remove termination_date", s, asRule("term", dyn(nil)))
 	},
 
@@ -215,7 +215,7 @@ var asScenarios = map[string]func(h *grHarness){
 		s := h.Apply("create with a Z suffix", h.null(), asRule("z", j{"operation": "mute", "one_time": j{
 			"time_frame": asTimeFrame(j{"start_time": "2030-01-04T00:00:00Z", "time_zone": "UTC+0"}),
 		}}))
-		h.Refresh("refresh", s)
+		h.RefreshPlan("refresh", s)
 	},
 
 	"schedule-recurring-frequencies": func(h *grHarness) {
@@ -225,7 +225,7 @@ var asScenarios = map[string]func(h *grHarness){
 			}}}
 		}
 		s := h.Apply("create daily", h.null(), asRule("freq", dyn(j{"daily": j{}})))
-		s = h.Refresh("refresh", s)
+		s = h.RefreshPlan("refresh", s)
 		s = h.Apply("update: monthly", s, asRule("freq", dyn(j{"monthly": j{"days": l{float64(1), float64(15)}}})))
 		s = h.Apply("update: weekly", s, asRule("freq", dyn(j{"weekly": j{"days": l{"Monday", "Friday"}}})))
 		h.Apply("update: always active", s, asRule("freq", asAlways))
@@ -281,7 +281,7 @@ var asScenarios = map[string]func(h *grHarness){
 	"read-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), asRule("gone", asAlways))
 		h.schedulers().forget(idOf(s))
-		h.Refresh("refresh: deleted outside Terraform", s)
+		h.RefreshPlan("refresh: deleted outside Terraform", s)
 	},
 
 	"update-not-found": func(h *grHarness) {

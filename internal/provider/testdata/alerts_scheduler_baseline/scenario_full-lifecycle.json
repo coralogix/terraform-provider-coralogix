@@ -284,7 +284,8 @@
           }
         }
       }
-    }
+    },
+    "replanEmpty": true
   },
   {
     "step": "update: change name, description, enabled, and labels",

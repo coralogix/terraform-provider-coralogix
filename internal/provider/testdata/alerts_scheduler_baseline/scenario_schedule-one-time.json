@@ -127,7 +127,8 @@
         "operation": "mute",
         "recurring": null
       }
-    }
+    },
+    "replanEmpty": true
   },
   {
     "step": "update: duration instead of end_time",

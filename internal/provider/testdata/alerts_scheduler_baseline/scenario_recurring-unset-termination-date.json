@@ -204,7 +204,8 @@
           }
         }
       }
-    }
+    },
+    "replanEmpty": true
   },
   {
     "step": "update: remove termination_date",
