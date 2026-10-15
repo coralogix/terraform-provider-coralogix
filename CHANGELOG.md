@@ -117,6 +117,9 @@
 - FIX: A nested server default inside a set is an error. Flatten cannot match a set element that a read returns without the default to the configured element, so it could not keep the configured default.
 - FIX: The unknown-value check and the change check drop server-set values inside a set of objects, as they do in a list or map. Before, an unknown server-set child of a set element blocked Create and Update.
 - FIX: A generated Update that gets a resource-not-found 404 returns an error that says the resource no longer exists and that a refresh removes it from state. A state upgrade that reads the resource returns an error that names `terraform state rm`, because a refresh runs the upgrade first. Neither calls `RemoveResource` any more, which the Framework does not allow there. Read still warns and removes the resource, and Delete still treats the 404 as deleted.
+- FEAT: `api.idProperty` names the property that holds the id when it is not named like the path parameter, for example `uniqueIdentifier` for `{alert_scheduler_rule_id}`.
+- FIX: The SDK check expects a snake_case path parameter in lower camel case, as the Go SDK writes it. Before, it rejected the SDK of any resource with such a parameter.
+- FIX: A skipped field takes part in no Terraform name collision.
 
 #### resource/coralogix_global_router
 - CHORE: The acceptance test compares imported `rules[*].targets` without their order, because the API returns them in no fixed order and an import has no prior order to keep.

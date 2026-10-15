@@ -69,14 +69,20 @@ func BuildWithPolicy(doc *v3.Document, name string, ids OperationIDs, policy Pol
 	if err := r.readOperations(ops); err != nil {
 		return nil, err
 	}
+	if !r.Singleton {
+		r.IDField = r.IDParam
+		if policy.IDProperty != "" {
+			r.IDField = policy.IDProperty
+		}
+	}
 	r.readBodyTitles(doc, ops)
 	if err := r.readFields(doc, ops); err != nil {
 		return nil, err
 	}
 	if !r.Singleton {
-		index := slices.IndexFunc(r.Fields, func(field *ResourceField) bool { return field.Name == r.IDParam })
+		index := slices.IndexFunc(r.Fields, func(field *ResourceField) bool { return field.Name == r.IDField })
 		if index < 0 {
-			return nil, fmt.Errorf("%s: no field %q for the id path parameter", r.Name, r.IDParam)
+			return nil, fmt.Errorf("%s: no field %q for the id path parameter", r.Name, r.IDField)
 		}
 		r.IDType = r.Fields[index].Type
 	}
@@ -836,8 +842,8 @@ func (r *Resource) checkBodies(createBody, updateBody, getSchema *base.Schema, u
 			return fmt.Errorf("%s: unexpected %s property", loc.name, name)
 		}
 	}
-	if !r.Singleton && propertyOf(getSchema, r.IDParam) == nil {
-		return fmt.Errorf("%s: no field %q for the id path parameter", r.Name, r.IDParam)
+	if !r.Singleton && propertyOf(getSchema, r.IDField) == nil {
+		return fmt.Errorf("%s: no field %q for the id path parameter", r.Name, r.IDField)
 	}
 	for _, loc := range []location{{"create body", createBody}, {"update body", updateBody}, {r.Name, getSchema}} {
 		if err := checkRequired(loc.schema); err != nil {

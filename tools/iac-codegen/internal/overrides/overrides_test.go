@@ -97,6 +97,8 @@ func TestParseIsStrict(t *testing.T) {
 		"bad extra type":  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      token_wo:\n        elementType: bool\n        markdownDescription: x\n", "elementType"},
 		"unwrap twice":    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nunwrap: [A, A]\n", "names A twice"},
 		"skip and unwrap": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, unwrap: true}\n", "skipped field"},
+		"skip and name":   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, name: g}\n", "skipped field"},
+		"bad name":        {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {name: Time-Frame}\n", "is not a Terraform attribute name"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -105,6 +107,32 @@ func TestParseIsStrict(t *testing.T) {
 				t.Fatalf("err = %v, want it to contain %q", err, test.want)
 			}
 		})
+	}
+}
+
+// A name line renames the Terraform attribute of a field, and idProperty names the field that
+// holds the id. The policy keeps both.
+func TestNameAndIDPropertyPolicy(t *testing.T) {
+	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\napi:\n  updateIDInBody: true\n  idProperty: uniqueIdentifier\ntypes:\n  R:\n    fields:\n      uniqueIdentifier: {name: id}\n      scheduleOperation: {name: operation, markdownDescription: The operation.}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := f.Policy()
+	if p.IDProperty != "uniqueIdentifier" {
+		t.Fatalf("IDProperty = %q, want uniqueIdentifier", p.IDProperty)
+	}
+	want := map[string]string{"R.uniqueIdentifier": "id", "R.scheduleOperation": "operation"}
+	if !reflect.DeepEqual(p.Names, want) {
+		t.Fatalf("Names = %v, want %v", p.Names, want)
+	}
+	if got := p.TerraformName("R", "scheduleOperation"); got != "operation" {
+		t.Fatalf("TerraformName = %q, want operation", got)
+	}
+	if got := p.TerraformName("Other", "scheduleOperation"); got != "schedule_operation" {
+		t.Fatalf("TerraformName of another component = %q, want schedule_operation", got)
+	}
+	if slices.Contains(p.Released, "R.scheduleOperation") {
+		t.Fatal("a name line states no presence: the field must still follow the contract")
 	}
 }
 

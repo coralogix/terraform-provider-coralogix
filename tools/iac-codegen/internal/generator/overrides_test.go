@@ -155,6 +155,42 @@ func TestStaleKeyIsNamedNotTheLine(t *testing.T) {
 	}
 }
 
+// A name line that gives the Terraform name that the field has anyway changes nothing.
+func TestNameLineWithTheDefaultNameIsStale(t *testing.T) {
+	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  LegacyThing:\n    fields:\n      name: {name: name}\n")
+	_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err == nil || !strings.Contains(err.Error(), "OVERRIDE_UNUSED") || !strings.Contains(err.Error(), `"name" is already the Terraform name of "name"`) {
+		t.Fatalf("err = %v, want OVERRIDE_UNUSED for the name line", err)
+	}
+}
+
+// Two fields that a name line makes share a Terraform name collide, as two API names would.
+func TestNameLineCollision(t *testing.T) {
+	file := mustParse(t, "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  idProperty: uniqueIdentifier\ntypes:\n  SuppressedThing:\n    fields:\n      uniqueIdentifier: {name: id}\n")
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = validateOpenAPIWith(spec, "SuppressedThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err == nil || !strings.Contains(err.Error(), `name "id" is the Terraform name of field "id"`) {
+		t.Fatalf("err = %v, want the name id rejected: the version id is not skipped", err)
+	}
+}
+
+// The id property must exist and is needed in the Update body; the version id field of the same
+// object does not stand in for it.
+func TestIDPropertyMustBeAField(t *testing.T) {
+	file := mustParse(t, "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  idProperty: ruleId\ntypes:\n  SuppressedThing:\n    fields:\n      id: {skip: true}\n")
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = validateOpenAPIWith(spec, "SuppressedThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err == nil || !strings.Contains(err.Error(), "UPDATE_ID_NOT_IN_BODY") || !strings.Contains(err.Error(), `"ruleId"`) {
+		t.Fatalf("err = %v, want UPDATE_ID_NOT_IN_BODY for ruleId", err)
+	}
+}
+
 // A required or readOnly key is needed while the contract does not state the fact.
 func TestKeysThatTheContractDoesNotStateAreNotStale(t *testing.T) {
 	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  LegacyThing:\n    fields:\n      name: {required: true}\n      labels: {readOnly: true}\n")

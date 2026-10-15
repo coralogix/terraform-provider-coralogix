@@ -186,14 +186,14 @@ func resourceIDData(r *model.Resource, ix *refIndex, out *crudData) error {
 		return fmt.Errorf("resource id: Go type %s is not supported", idGoType)
 	}
 	out.IDGoType = idGoType
-	id, err := ix.fieldRef("fields." + r.IDParam)
+	id, err := ix.fieldRef("fields." + r.ID())
 	if err != nil {
 		return err
 	}
 	if id.Want != "*"+idGoType && id.Want != idGoType {
 		return fmt.Errorf("SDK field %s has type %s, the id needs *%s or %s", id.sdkName(), id.Want, idGoType, idGoType)
 	}
-	out.IDAttr, out.IDField, out.IDValue = r.Policy.TerraformName(r.Name, r.IDParam), id.Name, id.Want == idGoType
+	out.IDAttr, out.IDField, out.IDValue = r.Policy.TerraformName(r.Name, r.ID()), id.Name, id.Want == idGoType
 	return nil
 }
 
@@ -209,7 +209,7 @@ func updateIDFromState(r *model.Resource, ix *refIndex, out *crudData) error {
 		out.UpdateBodyID, out.UpdateBodyIDValue = goFieldName(wrapper)+"."+out.IDField, out.IDValue
 		return nil
 	}
-	id, err := ix.fieldRef("update.body." + r.IDParam)
+	id, err := ix.fieldRef("update.body." + r.ID())
 	if err != nil {
 		return err
 	}

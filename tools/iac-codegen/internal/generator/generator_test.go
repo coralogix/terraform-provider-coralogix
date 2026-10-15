@@ -2056,3 +2056,53 @@ func TestEnumConstName(t *testing.T) {
 		}
 	}
 }
+
+// The golden output of a resource whose id property has another name than the path parameter,
+// and whose released attributes have other names than the API.
+func TestGoldenOutputIDPropertyAndNames(t *testing.T) {
+	out := generateSuppressedThing(t)
+	golden := filepath.Join("testdata", "golden", "suppressedthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputIDPropertyAndNames -update:\n%s", diff)
+	}
+}
+
+// generateSuppressedThing generates the synthetic resource modeled on alert suppression rules.
+func generateSuppressedThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "suppressedthing")
+	options := Options{Resource: "SuppressedThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "suppressed-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// The generated resource whose id property has another name than the path parameter sends no id on
+// Create, sends the id property on Update, and reads it back as the id attribute.
+func TestIDPropertyRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateSuppressedThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "suppressed_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}

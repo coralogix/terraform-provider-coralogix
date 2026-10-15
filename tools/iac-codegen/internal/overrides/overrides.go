@@ -171,6 +171,10 @@ type API struct {
 	// ServerSetID: the server sets the id and returns it in every response, but the Get
 	// response cannot require it, because the request shares the resource schema.
 	ServerSetID bool `yaml:"serverSetID"`
+	// IDProperty is the property of the resource that holds the id when it does not have the name
+	// of the path parameter, for example uniqueIdentifier for /rules/{rule_id}. "" means the
+	// property named like the path parameter.
+	IDProperty string `yaml:"idProperty"`
 	// CustomMethods: Get, Update, and Delete are not the Create path with an id.
 	// Get and Delete each have the same {id} path parameter on their own paths.
 	// Update has no path parameter, and the id stays in the body. New resources
@@ -686,7 +690,7 @@ func (l Field) check() error {
 	if l.Description != nil && l.MarkdownDescription != nil {
 		return errors.New("set description or markdownDescription, not both")
 	}
-	if l.Skip && l.hasBehavior() {
+	if l.Skip && (l.hasBehavior() || l.Name != "") {
 		return errors.New("a skipped field has no other behavior")
 	}
 	return checkValidators(l.Validators)
@@ -798,6 +802,7 @@ func (f *File) Policy() model.Policy {
 		UpdateIDInBody:   f.API.UpdateIDInBody,
 		ClientSetID:      f.API.ClientSetID,
 		ServerSetID:      f.API.ServerSetID,
+		IDProperty:       f.API.IDProperty,
 		CustomMethods:    f.API.CustomMethods,
 		UpdateMaskInBody: f.API.UpdateMaskInBody,
 		// Parse checked that the file states validators.inferred.
@@ -900,7 +905,18 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Accepted: file.accepted(f.KeyedBy), Equality: f.Equality, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, Skipped: t.skipped(), RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Accepted: file.accepted(f.KeyedBy), Equality: f.Equality, Keys: f.keys()})
+		}
+	}
+	return out
+}
+
+// skipped returns the fields of the type that the file skips, in order.
+func (t Type) skipped() []string {
+	var out []string
+	for _, field := range sortedKeys(t.Fields) {
+		if t.Fields[field].Skip {
+			out = append(out, field)
 		}
 	}
 	return out
@@ -930,6 +946,9 @@ type Line struct {
 	Optional     bool   // for a field line: the file says that the field is optional
 	Collection   string // for a field line: "set" when the file shows a list as a set
 	Name         string // for a field line: the Terraform attribute name
+	// Skipped are, for a field line, the fields of the component that the file skips. They have
+	// no attribute, so a name line can take their name.
+	Skipped []string
 	// RequestValueBy is, for a field line, the API value sent for each object field that is set.
 	RequestValueBy map[string]string
 	// KeyedBy is, for a field line, the key and value properties of a list shown as a map.

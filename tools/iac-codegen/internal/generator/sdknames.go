@@ -264,7 +264,9 @@ func (s *resolver) operation(r *model.Resource, name string, op model.Operation,
 		if err != nil {
 			return fmt.Errorf("%s.id: %w", path, err)
 		}
-		params += ", " + r.IDParam + " " + idType
+		// The Go SDK names the parameter in lower camel case: alert_scheduler_rule_id becomes
+		// alertSchedulerRuleId, and id stays id.
+		params += ", " + lowerFirst(camelize(r.IDParam)) + " " + idType
 	}
 	s.add(sdkRef{Path: path, Kind: kindMethod, Owner: client, Name: method,
 		Want: "func(" + params + ") " + builder, Rule: ruleOperationID})
@@ -502,7 +504,7 @@ func serverSetBodyID(r *model.Resource) *model.ResourceField {
 	if r.Singleton || !r.Policy.UpdateIDInBody {
 		return nil
 	}
-	i := slices.IndexFunc(r.Fields, func(f *model.ResourceField) bool { return f.Name == r.IDParam })
+	i := slices.IndexFunc(r.Fields, func(f *model.ResourceField) bool { return f.Name == r.ID() })
 	if i < 0 || r.Fields[i].Update != nil {
 		return nil
 	}

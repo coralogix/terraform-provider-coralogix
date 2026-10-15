@@ -41,6 +41,9 @@ type Policy struct {
 	// ServerSetID means that the server sets the id and returns it in every response, and
 	// the Get response does not require it: the request shares the resource schema.
 	ServerSetID bool
+	// IDProperty is the property of the resource that holds the id when its name is not the name
+	// of the path parameter. "" means the property named like the path parameter.
+	IDProperty string
 	// Operations names the lifecycle operationIds from behavior-overrides. Flags
 	// still override an empty slot. A flag and the file cannot name different ids.
 	Operations OperationIDs

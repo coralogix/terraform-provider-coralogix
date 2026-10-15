@@ -271,7 +271,7 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 			out.ServerDefaultKinds = append(out.ServerDefaultKinds, a.ValueKind)
 		}
 	}
-	clientSetID := r.Policy.ClientSetID && f.Name == r.IDParam
+	clientSetID := r.Policy.ClientSetID && f.Name == r.ID()
 	if clientSetID {
 		// The user can set the id. Without a value, the server makes one.
 		// The id names the resource, so a new id replaces it: Update cannot
@@ -283,7 +283,7 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 	switch {
 	case f.Behavior == model.Computed:
 		markComputed(a)
-		if f.Name == r.IDParam {
+		if f.Name == r.ID() {
 			a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
 		}
 	case f.Behavior == model.Immutable || clientSetID:
@@ -1406,7 +1406,7 @@ func checkGroupField(r *model.Resource, f *model.ResourceField, group string) er
 		return nil
 	case !r.Replace:
 		return fmt.Errorf("groups.%s: a group needs a full-replace Update (PUT): a PATCH mask names the API fields", group)
-	case f.Name == r.IDParam:
+	case f.Name == r.ID():
 		return fmt.Errorf("groups.%s: the resource id %s cannot be in a group", group, f.Name)
 	case f.Behavior != model.Normal:
 		return fmt.Errorf("groups.%s: %s is %s; a group holds only fields that the user sets and Update sends", group, f.Name, f.Behavior)
