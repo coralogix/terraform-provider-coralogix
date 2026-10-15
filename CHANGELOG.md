@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_alerts_scheduler
+- CHORE: Add a protocol baseline of the resource (schema and lifecycle scenarios against an in-memory API), checked against a recording of the real API. Test-only; no behavior change.
+
 #### resource/coralogix_view
 - FEAT: Add `coralogix_view` for a saved Explore view. `name` and `time_selection` are required, and `time_selection` needs exactly one of `quick_selection` or `custom_selection`. `search_query`, `filters`, `folder_id`, `view_type`, and `is_compact_mode` can be set, changed, and removed. An omitted `view_type`, `is_compact_mode`, or `search_query.syntax_type` reads back as the server default (`VIEW_TYPE_LOGS`, `false`, `SYNTAX_TYPE_LUCENE`), and removing one restores that default. A configured `is_compact_mode` is applied with a replace right after create, because create does not take it. `time_selection.quick_selection.caption` is computed. The API stores `time_selection.quick_selection.seconds` as the nearest preset, so set one of the listed presets.
 - CHORE: Bump `coralogix-management-sdk` to the version with the views API contract.

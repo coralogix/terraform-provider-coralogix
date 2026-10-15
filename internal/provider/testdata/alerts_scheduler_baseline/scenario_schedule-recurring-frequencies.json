@@ -1,0 +1,616 @@
+[
+  {
+    "step": "create daily",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "freq",
+      "schedule": {
+        "operation": "active",
+        "recurring": {
+          "dynamic": {
+            "frequency": {
+              "daily": {}
+            },
+            "repeat_every": 1,
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "plan": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "(unknown)",
+      "meta_labels": null,
+      "name": "freq",
+      "schedule": {
+        "one_time": null,
+        "operation": "active",
+        "recurring": {
+          "always_active": null,
+          "dynamic": {
+            "frequency": {
+              "daily": {},
+              "monthly": null,
+              "weekly": null
+            },
+            "repeat_every": 1,
+            "termination_date": "",
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "end_time": null,
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1",
+        "body": {
+          "alertSchedulerRule": {
+            "description": "",
+            "enabled": true,
+            "filter": {
+              "alertUniqueIds": {},
+              "whatExpression": "source logs | filter true"
+            },
+            "name": "freq",
+            "schedule": {
+              "recurring": {
+                "schedule": {
+                  "daily": {},
+                  "repeatEvery": 1,
+                  "terminationDate": "",
+                  "timeframe": {
+                    "duration": {
+                      "forOver": 2,
+                      "frequency": "DURATION_FREQUENCY_HOUR"
+                    },
+                    "startTime": "2030-01-04T00:00:00.000",
+                    "timezone": "UTC+2"
+                  }
+                }
+              },
+              "scheduleOperation": "SCHEDULE_OPERATION_ACTIVATE"
+            }
+          }
+        },
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "schedule.recurring.dynamic.frequency.daily"
+    ],
+    "state": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "freq",
+      "schedule": {
+        "one_time": null,
+        "operation": "active",
+        "recurring": {
+          "always_active": null,
+          "dynamic": {
+            "frequency": {
+              "daily": null,
+              "monthly": null,
+              "weekly": null
+            },
+            "repeat_every": 1,
+            "termination_date": "",
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "end_time": null,
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"id\")",
+      "AttributeName(\"schedule\").AttributeName(\"recurring\").AttributeName(\"dynamic\").AttributeName(\"frequency\").AttributeName(\"daily\")"
+    ]
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "freq",
+      "schedule": {
+        "one_time": null,
+        "operation": "active",
+        "recurring": {
+          "always_active": null,
+          "dynamic": {
+            "frequency": {
+              "daily": null,
+              "monthly": null,
+              "weekly": null
+            },
+            "repeat_every": 1,
+            "termination_date": "",
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "end_time": null,
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"id\")",
+      "AttributeName(\"schedule\").AttributeName(\"recurring\").AttributeName(\"dynamic\").AttributeName(\"frequency\").AttributeName(\"daily\")"
+    ]
+  },
+  {
+    "step": "update: monthly",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "freq",
+      "schedule": {
+        "operation": "active",
+        "recurring": {
+          "dynamic": {
+            "frequency": {
+              "monthly": {
+                "days": [
+                  1,
+                  15
+                ]
+              }
+            },
+            "repeat_every": 1,
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "plan": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "(unknown)",
+      "meta_labels": null,
+      "name": "freq",
+      "schedule": {
+        "one_time": null,
+        "operation": "active",
+        "recurring": {
+          "always_active": null,
+          "dynamic": {
+            "frequency": {
+              "daily": null,
+              "monthly": {
+                "days": [
+                  1,
+                  15
+                ]
+              },
+              "weekly": null
+            },
+            "repeat_every": 1,
+            "termination_date": "",
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "end_time": null,
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1",
+        "body": {
+          "alertSchedulerRule": {
+            "description": "",
+            "enabled": true,
+            "filter": {
+              "alertUniqueIds": {},
+              "whatExpression": "source logs | filter true"
+            },
+            "name": "freq",
+            "schedule": {
+              "recurring": {
+                "schedule": {
+                  "monthly": {
+                    "daysOfMonth": [
+                      1,
+                      15
+                    ]
+                  },
+                  "repeatEvery": 1,
+                  "terminationDate": "",
+                  "timeframe": {
+                    "duration": {
+                      "forOver": 2,
+                      "frequency": "DURATION_FREQUENCY_HOUR"
+                    },
+                    "startTime": "2030-01-04T00:00:00.000",
+                    "timezone": "UTC+2"
+                  }
+                }
+              },
+              "scheduleOperation": "SCHEDULE_OPERATION_ACTIVATE"
+            },
+            "uniqueIdentifier": "00000000-0000-4000-8000-000000000001"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "freq",
+      "schedule": {
+        "one_time": null,
+        "operation": "active",
+        "recurring": {
+          "always_active": null,
+          "dynamic": {
+            "frequency": {
+              "daily": null,
+              "monthly": {
+                "days": [
+                  1,
+                  15
+                ]
+              },
+              "weekly": null
+            },
+            "repeat_every": 1,
+            "termination_date": "",
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "end_time": null,
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: weekly",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "freq",
+      "schedule": {
+        "operation": "active",
+        "recurring": {
+          "dynamic": {
+            "frequency": {
+              "weekly": {
+                "days": [
+                  "Monday",
+                  "Friday"
+                ]
+              }
+            },
+            "repeat_every": 1,
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "plan": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "(unknown)",
+      "meta_labels": null,
+      "name": "freq",
+      "schedule": {
+        "one_time": null,
+        "operation": "active",
+        "recurring": {
+          "always_active": null,
+          "dynamic": {
+            "frequency": {
+              "daily": null,
+              "monthly": null,
+              "weekly": {
+                "days": [
+                  "Monday",
+                  "Friday"
+                ]
+              }
+            },
+            "repeat_every": 1,
+            "termination_date": "",
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "end_time": null,
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1",
+        "body": {
+          "alertSchedulerRule": {
+            "description": "",
+            "enabled": true,
+            "filter": {
+              "alertUniqueIds": {},
+              "whatExpression": "source logs | filter true"
+            },
+            "name": "freq",
+            "schedule": {
+              "recurring": {
+                "schedule": {
+                  "repeatEvery": 1,
+                  "terminationDate": "",
+                  "timeframe": {
+                    "duration": {
+                      "forOver": 2,
+                      "frequency": "DURATION_FREQUENCY_HOUR"
+                    },
+                    "startTime": "2030-01-04T00:00:00.000",
+                    "timezone": "UTC+2"
+                  },
+                  "weekly": {
+                    "daysOfWeek": [
+                      2,
+                      6
+                    ]
+                  }
+                }
+              },
+              "scheduleOperation": "SCHEDULE_OPERATION_ACTIVATE"
+            },
+            "uniqueIdentifier": "00000000-0000-4000-8000-000000000001"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "freq",
+      "schedule": {
+        "one_time": null,
+        "operation": "active",
+        "recurring": {
+          "always_active": null,
+          "dynamic": {
+            "frequency": {
+              "daily": null,
+              "monthly": null,
+              "weekly": {
+                "days": [
+                  "Monday",
+                  "Friday"
+                ]
+              }
+            },
+            "repeat_every": 1,
+            "termination_date": "",
+            "time_frame": {
+              "duration": {
+                "for_over": 2,
+                "frequency": "hours"
+              },
+              "end_time": null,
+              "start_time": "2030-01-04T00:00:00.000",
+              "time_zone": "UTC+2"
+            }
+          }
+        }
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: always active",
+    "config": {
+      "filter": {
+        "what_expression": "source logs | filter true"
+      },
+      "name": "freq",
+      "schedule": {
+        "operation": "mute",
+        "recurring": {
+          "always_active": true
+        }
+      }
+    },
+    "plan": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "(unknown)",
+      "meta_labels": null,
+      "name": "freq",
+      "schedule": {
+        "one_time": null,
+        "operation": "mute",
+        "recurring": {
+          "always_active": true,
+          "dynamic": null
+        }
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1",
+        "body": {
+          "alertSchedulerRule": {
+            "description": "",
+            "enabled": true,
+            "filter": {
+              "alertUniqueIds": {},
+              "whatExpression": "source logs | filter true"
+            },
+            "name": "freq",
+            "schedule": {
+              "recurring": {
+                "alwaysActive": {}
+              },
+              "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
+            },
+            "uniqueIdentifier": "00000000-0000-4000-8000-000000000001"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": null,
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": null,
+      "name": "freq",
+      "schedule": {
+        "one_time": null,
+        "operation": "mute",
+        "recurring": {
+          "always_active": true,
+          "dynamic": null
+        }
+      }
+    },
+    "replanEmpty": true
+  }
+]
