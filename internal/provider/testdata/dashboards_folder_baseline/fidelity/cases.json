@@ -333,6 +333,87 @@
           "path": "/{{id}}"
         }
       ]
+    },
+    {
+      "name": "replace to a name that another folder has",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "tf-fidelity-h1"
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "tf-fidelity-h2"
+            }
+          },
+          "capture": "id2"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "folder": {
+              "id": "{{id2}}",
+              "name": "tf-fidelity-h1"
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "folder": {
+              "id": "{{id2}}",
+              "name": "tf-fidelity-h2"
+            }
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id2}}"
+        }
+      ]
+    },
+    {
+      "name": "name of 100 and 101 non-ASCII characters",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+            }
+          }
+        }
+      ]
     }
   ]
 }

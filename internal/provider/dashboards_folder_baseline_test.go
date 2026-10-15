@@ -102,6 +102,13 @@ var dashboardsFolderScenarios = map[string]func(h *grHarness){
 		h.Apply("create with an empty name", h.null(), j{"name": ""})
 	},
 
+	"update-to-duplicate-name": func(h *grHarness) {
+		h.Apply("create the first folder", h.null(), j{"name": "first"})
+		s := h.Apply("create the second folder", h.null(), j{"name": "second"})
+		s = h.Apply("update: rename to the name of the first", s, j{"name": "first"})
+		h.Refresh("refresh", s)
+	},
+
 	"import": func(h *grHarness) {
 		id := h.dashboardsFolders().seed(j{"name": "seeded", "parentId": dashboardsFolderParent})
 		s := h.Import("import", id)

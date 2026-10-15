@@ -183,6 +183,13 @@ func (f *dashboardsFolderFake) write(body any, replace bool) (int, any) {
 		if _, ok := f.folders[id]; !ok {
 			return dashboardsFolderFail(http.StatusBadRequest, "folder with id "+folderMissing(id)+" does not exist")
 		}
+		// A replace to the name of another folder is 400, where a create is 409. Recorded for
+		// folders at the root; the path of a nested folder is not recorded.
+		for other, folder := range f.folders {
+			if other != id && folder["name"] == name {
+				return dashboardsFolderFail(http.StatusBadRequest, "folder with path /"+name+" already exists")
+			}
+		}
 	}
 	if parent != "" {
 		if _, ok := f.folders[parent]; !ok && !f.seeded[parent] {

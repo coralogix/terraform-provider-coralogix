@@ -311,6 +311,64 @@
           }
         }
       ]
+    },
+    {
+      "name": "replace to a name that another folder has",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "folderId": "{{id}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "folderId": "{{id2}}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: folder with path /tf-fidelity-h1 already exists"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "name of 100 and 101 non-ASCII characters",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "folderId": "{{id}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: folder name length is bigger than 100"
+          }
+        }
+      ]
     }
   ]
 }
