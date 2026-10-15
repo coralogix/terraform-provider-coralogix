@@ -201,6 +201,16 @@ var e2mScenarios = map[string]func(h *grHarness){
 		h.Apply("update: permutations left out", s, logs2metric("perm"))
 	},
 
+	// An empty permutations block: the limit is left out but the block is set. Create, change
+	// another attribute, set a limit, and remove it again.
+	"permutations-empty-block": func(h *grHarness) {
+		cfg := logs2metric("emptyperm", j{"permutations": j{}})
+		s := h.Apply("create", h.null(), cfg)
+		s = h.Apply("update: change the description", s, with(cfg, j{"description": "changed"}))
+		s = h.Apply("update: limit 20", s, with(cfg, j{"description": "changed", "permutations": j{"limit": float64(20)}}))
+		h.Apply("update: limit removed", s, with(cfg, j{"description": "changed"}))
+	},
+
 	"has-exceeded-limit": func(h *grHarness) {
 		s := h.Apply("create", h.null(), logs2metric("exceeded", j{"permutations": j{"limit": float64(5)}}))
 		h.events2metrics().exceeded[idOf(s)] = true
