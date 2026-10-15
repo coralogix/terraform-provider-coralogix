@@ -377,6 +377,11 @@ func requestValues() map[string]attr.Value {
 		"labels":       types.MapNull(types.StringType),
 		"expire_time":  timetypes.NewRFC3339Null(),
 		"windows":      types.ListNull(timetypes.RFC3339Type{}),
+		"paused":       types.BoolNull(),
+		"retries":      types.Int32Null(),
+		"priority":     types.StringNull(),
+		"limit":        types.Int32Null(),
+		"label":        types.StringNull(),
 	}
 }
 
@@ -458,6 +463,61 @@ func TestEmptyValuesKeepPriorForm(t *testing.T) {
 	}
 }
 
+// A request scalar without presence or a default: the API returns its zero value for an omitted
+// one. A valid zero is a server default, so the attribute is computed and the read keeps zero, as
+// an import does. A zero that is not valid is an omitted value, so it reads as null. An enum zero
+// reads as null too.
+func TestScalarsWithoutPresence(t *testing.T) {
+	ctx := context.Background()
+	attrs := Schema().Attributes
+	for name, computed := range map[string]bool{"paused": true, "retries": true, "limit": false, "label": false, "priority": false} {
+		if attrs[name].IsComputed() != computed || !attrs[name].IsOptional() {
+			t.Errorf("%s: optional %t computed %t, want optional and computed %t", name, attrs[name].IsOptional(), attrs[name].IsComputed(), computed)
+		}
+	}
+	var diags diag.Diagnostics
+	zero, empty, no := int32(0), "", false
+	unspecified := things_service.THINGPRIORITY_THING_PRIORITY_UNSPECIFIED
+	got := flattenThing(ctx, path.Root("thing"), &things_service.Thing{Paused: &no, Retries: &zero, Limit: &zero, Label: &empty, Priority: &unspecified}, &diags)
+	if !got.Paused.Equal(types.BoolValue(false)) || !got.Retries.Equal(types.Int32Value(0)) {
+		t.Fatalf("valid zero values = %v, %v; want false and 0", got.Paused, got.Retries)
+	}
+	if !got.Limit.IsNull() || !got.Label.IsNull() || !got.Priority.IsNull() {
+		t.Fatalf("zero values that are not valid = %v, %v, %v; want null", got.Limit, got.Label, got.Priority)
+	}
+	one, label := int32(1), "a"
+	got = flattenThing(ctx, path.Root("thing"), &things_service.Thing{Limit: &one, Label: &label}, &diags)
+	if !got.Limit.Equal(types.Int32Value(1)) || !got.Label.Equal(types.StringValue("a")) {
+		t.Fatalf("values = %v, %v; want 1 and \"a\"", got.Limit, got.Label)
+	}
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+}
+
+// An import has no prior state. spec holds a configured "" (mode has presence) and the zero
+// default of weight. The contract declares no default in spec, so the service does not fill an
+// omitted spec: the read keeps the object, and the plan after the import is empty.
+func TestImportKeepsAnObjectWithOnlyZeroValues(t *testing.T) {
+	ctx := context.Background()
+	s := Schema()
+	root := s.Type().TerraformType(ctx).(tftypes.Object)
+	specType := root.AttributeTypes["spec"].(tftypes.Object)
+	spec := nullTFValues(specType)
+	spec["mode"] = tftypes.NewValue(tftypes.String, "")
+	spec["weight"] = tftypes.NewValue(tftypes.Number, 0)
+	response := nullTFValues(root)
+	response["spec"] = tftypes.NewValue(specType, spec)
+	state := tfsdk.State{Schema: s, Raw: tftypes.NewValue(root, response)}
+	imported := tfsdk.State{Schema: s, Raw: tftypes.NewValue(root, nullTFValues(root))}
+	if diags := keepPriorEmpty(ctx, imported, &state); diags.HasError() {
+		t.Fatal(diags)
+	}
+	if want := tftypes.NewValue(root, response); !state.Raw.Equal(want) {
+		t.Fatalf("state = %s, want the API object", state.Raw)
+	}
+}
+
 func TestEmptyObjectRules(t *testing.T) {
 	ctx := context.Background()
 	httpType := map[string]attr.Type{"endpoint": types.StringType}
@@ -520,14 +580,16 @@ func (f nestedFixture) itemValue(id, key interface{}, name string) tftypes.Value
 // specValue is the spec in configuration (server false) or in state (server true).
 func (f nestedFixture) specValue(server bool, mode, region string, items ...tftypes.Value) tftypes.Value {
 	revision, source, targetID := tfString(nil), tftypes.NewValue(f.source, nil), tfString(nil)
+	weight := tftypes.NewValue(tftypes.Number, nil)
 	if server {
+		weight = tftypes.NewValue(tftypes.Number, 0) // the zero value that the API returns
 		revision = tfString("1")
 		source = tftypes.NewValue(f.source, map[string]tftypes.Value{"origin": tfString("api")})
 		targetID = tfString("target-1")
 	}
 	target := tftypes.NewValue(f.targetType, map[string]tftypes.Value{"id": targetID, "name": tfString(f.target)})
 	return tftypes.NewValue(f.spec, map[string]tftypes.Value{
-		"mode": tfString(mode), "region": tfString(region), "revision": revision, "source": source,
+		"mode": tfString(mode), "region": tfString(region), "revision": revision, "source": source, "weight": weight,
 		"items": tftypes.NewValue(f.items, items), "targets": tftypes.NewValue(f.targets, []tftypes.Value{target}),
 	})
 }
@@ -548,6 +610,9 @@ func (f nestedFixture) resourceValue(server bool, name string, spec tftypes.Valu
 		statusType := f.root.AttributeTypes["status"].(tftypes.Object)
 		values["id"] = tfString("thing-1")
 		values["enabled"] = tftypes.NewValue(tftypes.Bool, true)
+		// A field without presence or a default reads back as its zero value.
+		values["paused"] = tftypes.NewValue(tftypes.Bool, false)
+		values["retries"] = tftypes.NewValue(tftypes.Number, 0)
 		values["status"] = tftypes.NewValue(statusType, map[string]tftypes.Value{"health": tfString("ok"), "items": tftypes.NewValue(statusType.AttributeTypes["items"], nil)})
 		values["create_time"] = tfString("2026-01-01T00:00:00Z")
 		values["update_time"] = tfString("2026-01-01T00:00:00Z")
@@ -688,6 +753,7 @@ func TestNestedServerValuesDoNotBlockCreate(t *testing.T) {
 	plan := f.resourceValue(false, "thing", tftypes.NewValue(f.spec, map[string]tftypes.Value{
 		"mode": tfString("fast"), "region": tfString("eu"), "revision": tfString(tftypes.UnknownValue),
 		"source": tftypes.NewValue(f.source, tftypes.UnknownValue),
+		"weight": tftypes.NewValue(tftypes.Number, tftypes.UnknownValue), // an omitted value with a server default
 		"items":  tftypes.NewValue(f.items, []tftypes.Value{f.itemValue(tftypes.UnknownValue, "k1", "a")}),
 		"targets": tftypes.NewValue(f.targets, []tftypes.Value{tftypes.NewValue(f.targetType, map[string]tftypes.Value{
 			"id": tfString(tftypes.UnknownValue), "name": tfString("t1"),

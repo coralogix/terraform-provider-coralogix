@@ -230,6 +230,10 @@ type convField struct {
 	// ReadEmptyAsNull: flatten reads an empty string, an empty list, or an object
 	// with no value, as null.
 	ReadEmptyAsNull bool
+	// ReadZeroAsNull: flatten reads the zero value of a string or a number as null. The
+	// contract sends the scalar without presence, and a configuration cannot hold zero.
+	ReadZeroAsNull bool
+	Zero           string // the zero value that ReadZeroAsNull compares, as model.Type.Zero
 	// ReadNullAsEmpty: flatten reads a missing list or set as an empty collection.
 	ReadNullAsEmpty bool
 	// SendNullAsEmpty: expand sends "" for a null string, so the API clears the stored value.
@@ -611,6 +615,21 @@ func checkReadEmptyAs(cf *convField) error {
 	return fmt.Errorf("readEmptyAs: \"null\" is supported for a string, an object, a list or set of strings or objects, and a keyedBy map, not for the %s field %s", cf.Conv, cf.TFName)
 }
 
+// ValueKind is the Terraform value kind of a string or number field, for example "Int32".
+func (f *convField) ValueKind() string {
+	switch f.Conv {
+	case convString:
+		return "String"
+	case convInt32:
+		return "Int32"
+	case convFloat32:
+		return "Float32"
+	case convFloat64:
+		return "Float64"
+	}
+	return "Int64" // int64, uint64
+}
+
 // markComputedObjectValue makes a directly nested computed field capable of
 // holding the unknown value that Terraform plans before Create.
 func (b *convBuilder) markComputedObjectValue(cf *convField, f *model.ResourceField, response bool) {
@@ -984,6 +1003,7 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	}
 	cf := &convField{TFName: b.resource.Policy.TerraformName(component, name), Model: camelize(name), SDK: ref.Name}
 	b.applyFieldLine(cf, component, name)
+	cf.ReadZeroAsNull, cf.Zero = t.ReadZeroAsNull, t.Zero
 	if b.resource.Policy.OptionalLine(component, name) && (strings.HasPrefix(ref.Want, "[]") || strings.HasPrefix(ref.Want, "map[")) {
 		cf.SendEmpty, cf.SDKSliceType = true, b.qualifyType(ref.Want)
 	}

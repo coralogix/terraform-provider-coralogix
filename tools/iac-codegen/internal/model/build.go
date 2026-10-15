@@ -84,6 +84,7 @@ func BuildWithPolicy(doc *v3.Document, name string, ids OperationIDs, policy Pol
 	if err := r.unwrap(); err != nil {
 		return nil, err
 	}
+	r.zeroDefaults()
 	return r, nil
 }
 
@@ -1152,6 +1153,7 @@ func typeOf(proxy *base.SchemaProxy, path string, w walk) (*Type, error) {
 	if err := fillType(t, s, path, w); err != nil {
 		return nil, err
 	}
+	t.Zero, t.ZeroValid = scalarZero(s)
 	return t, nil
 }
 

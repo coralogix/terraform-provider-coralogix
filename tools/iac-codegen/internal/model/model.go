@@ -191,6 +191,20 @@ type Type struct {
 	// discriminator with no mapping). It is also a normal field (F36).
 	Discriminator string
 
+	// Zero is the protobuf zero value of a scalar, as the text that a default holds: "false",
+	// "0", or "". A 64-bit number that the API writes as a string has the zero "0".
+	Zero string
+	// ZeroValid: Zero meets the limits and the pattern of the contract. It is false for an
+	// enum, a time, and a value that is not a scalar.
+	ZeroValid bool
+	// ReadZeroAsNull: a request sends the scalar without presence or a default, and its zero value
+	// is not valid, so a configuration never holds it. A read of the zero value is an omitted one.
+	ReadZeroAsNull bool
+	// ImplicitDefault: the contract declares no default. The default is the zero value that a
+	// request scalar without presence reads back as. The service does not fill an omitted object
+	// that holds it.
+	ImplicitDefault bool
+
 	MinLength, MaxLength *int64
 	// Pattern is the regular expression that a String must match, "" for
 	// none. The free-text pattern is none. Existing resources have none.

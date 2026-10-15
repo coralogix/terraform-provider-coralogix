@@ -121,19 +121,20 @@ func TestUnwrapRequestTypeKeepsTheWrappers(t *testing.T) {
 }
 
 // A wrapper that collapses states the presence of its property, because Terraform null sends no
-// wrapper. The same property in a kept object still needs presence.
+// wrapper. The same property in a kept object still needs presence: Threshold.value is a required
+// number whose zero value is valid.
 func TestUnwrapStatesThePresenceOfTheWrappedProperty(t *testing.T) {
 	if codes := wrapCodes(t, wrapSpec(t), wrapPolicy()); len(codes) != 0 {
 		t.Fatalf("codes %v, want none", codes)
 	}
 	without := Policy{Existing: true, NoInferredValidators: true}
-	if codes := wrapCodes(t, wrapSpec(t), without); !slices.Contains(codes, "FIELD_PRESENCE_UNKNOWN") {
-		t.Fatalf("codes %v, want FIELD_PRESENCE_UNKNOWN without the unwrap lines", codes)
+	if codes := wrapCodes(t, wrapSpec(t), without); !slices.Contains(codes, "REQUIRED_SCALAR_PRESENCE_UNKNOWN") {
+		t.Fatalf("codes %v, want REQUIRED_SCALAR_PRESENCE_UNKNOWN without the unwrap lines", codes)
 	}
 	kept := wrapPolicy()
-	kept.UnwrapFields = map[string]bool{"WrapThing.rawQuery": false, "WrapThing.mainLabel": true, "WrapThing.priority": false}
-	if codes := wrapCodes(t, wrapSpec(t), kept); !slices.Contains(codes, "FIELD_PRESENCE_UNKNOWN") {
-		t.Fatalf("codes %v, want FIELD_PRESENCE_UNKNOWN for the kept priority object", codes)
+	kept.UnwrapFields = map[string]bool{"WrapThing.rawQuery": false, "WrapThing.mainLabel": true, "WrapThing.threshold": false}
+	if codes := wrapCodes(t, wrapSpec(t), kept); !slices.Contains(codes, "REQUIRED_SCALAR_PRESENCE_UNKNOWN") {
+		t.Fatalf("codes %v, want REQUIRED_SCALAR_PRESENCE_UNKNOWN for the kept threshold object", codes)
 	}
 }
 
@@ -143,18 +144,21 @@ func TestUnwrapPresenceFollowsTheResponseComponents(t *testing.T) {
 	spec := wrapSpec(t,
 		"                priority: {$ref: '#/components/schemas/PriorityValue'}",
 		"                priority: {$ref: '#/components/schemas/RequestPriorityValue'}",
+		"                threshold: {$ref: '#/components/schemas/Threshold'}",
+		"                threshold: {$ref: '#/components/schemas/RequestThreshold'}",
 		"                  items: {$ref: '#/components/schemas/UUID'}",
 		"                  items: {$ref: '#/components/schemas/RequestUUID'}",
 		"    Label:\n",
 		"    RequestPriorityValue:\n      type: object\n      required: []\n      properties:\n        value: {$ref: '#/components/schemas/WrapPriority'}\n"+
+			"    RequestThreshold:\n      type: object\n      required: [value]\n      properties:\n        value: {type: number, format: double}\n"+
 			"    RequestUUID:\n      type: object\n      required: []\n      properties:\n        value: {type: string}\n    Label:\n")
 	if codes := wrapCodes(t, spec, wrapPolicy()); len(codes) != 0 {
 		t.Fatalf("codes %v, want none", codes)
 	}
 	kept := wrapPolicy()
-	kept.Unwrap = slices.DeleteFunc(slices.Clone(kept.Unwrap), func(c string) bool { return c == "PriorityValue" })
-	if codes := wrapCodes(t, spec, kept); !slices.Contains(codes, "FIELD_PRESENCE_UNKNOWN") {
-		t.Fatalf("codes %v, want FIELD_PRESENCE_UNKNOWN for the kept priority object", codes)
+	kept.Unwrap = slices.DeleteFunc(slices.Clone(kept.Unwrap), func(c string) bool { return c == "Threshold" })
+	if codes := wrapCodes(t, spec, kept); !slices.Contains(codes, "REQUIRED_SCALAR_PRESENCE_UNKNOWN") {
+		t.Fatalf("codes %v, want REQUIRED_SCALAR_PRESENCE_UNKNOWN for the kept threshold object", codes)
 	}
 }
 

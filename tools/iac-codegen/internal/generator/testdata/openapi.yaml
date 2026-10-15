@@ -57,6 +57,20 @@ paths:
                 windows:
                   type: array
                   items: {type: string, format: date-time}
+                paused:
+                  type: boolean
+                retries:
+                  type: integer
+                  format: int32
+                priority:
+                  $ref: '#/components/schemas/ThingPriority'
+                limit:
+                  type: integer
+                  format: int32
+                  minimum: 1
+                label:
+                  type: string
+                  minLength: 1
       responses:
         '200':
           description: Created
@@ -140,6 +154,20 @@ paths:
                 windows:
                   type: array
                   items: {type: string, format: date-time}
+                paused:
+                  type: boolean
+                retries:
+                  type: integer
+                  format: int32
+                priority:
+                  $ref: '#/components/schemas/ThingPriority'
+                limit:
+                  type: integer
+                  format: int32
+                  minimum: 1
+                label:
+                  type: string
+                  minLength: 1
       responses:
         '200':
           description: Updated
@@ -213,6 +241,24 @@ components:
           type: array
           items: {type: string, format: date-time}
           description: Ordered maintenance window starts, in UTC.
+        paused:
+          type: boolean
+          description: Whether the thing is paused. Omitted and false are the same.
+        retries:
+          type: integer
+          format: int32
+          description: How many times the thing retries. Omitted and 0 are the same.
+        priority:
+          $ref: '#/components/schemas/ThingPriority'
+        limit:
+          type: integer
+          format: int32
+          minimum: 1
+          description: The most items at once. Omitted and 0 are the same, and 0 is not valid.
+        label:
+          type: string
+          minLength: 1
+          description: A label. Omitted and "" are the same, and "" is not valid.
         createTime:
           type: string
           format: date-time
@@ -232,6 +278,9 @@ components:
     ThingKind:
       type: string
       enum: [THING_KIND_UNSPECIFIED, THING_KIND_STANDARD, THING_KIND_ADVANCED, THING_KIND_P5_OR_UNSPECIFIED]
+    ThingPriority:
+      type: string
+      enum: [THING_PRIORITY_UNSPECIFIED, THING_PRIORITY_LOW, THING_PRIORITY_HIGH]
     ThingConfig:
       type: object
       required: []
@@ -281,6 +330,10 @@ components:
         revision:
           type: string
           description: The server-assigned revision of the settings.
+        weight:
+          type: integer
+          format: int32
+          description: The weight. Omitted and 0 are the same.
         source:
           $ref: '#/components/schemas/ThingSource'
         items:
@@ -300,6 +353,9 @@ components:
         mode:
           type: string
           x-coralogix-presence: true
+        weight:
+          type: integer
+          format: int32
         region:
           type: string
           x-coralogix-presence: true
@@ -318,6 +374,9 @@ components:
         mode:
           type: string
           x-coralogix-presence: true
+        weight:
+          type: integer
+          format: int32
         items:
           type: array
           items:

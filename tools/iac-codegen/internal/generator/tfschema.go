@@ -977,7 +977,7 @@ func (b *tfBuilder) nestedServerDefault(a *tfAttr, p attrPath, component string,
 	}
 	a.Computed = true
 	a.Modifiers = append(a.Modifiers, "serverDefaultModifier{value: "+value+"}")
-	b.defaultPaths = append(b.defaultPaths, defaultPath{Path: p.dotted(), Value: value})
+	b.defaultPaths = append(b.defaultPaths, defaultPath{Path: p.dotted(), Value: value, Implicit: f.Type.ImplicitDefault})
 	if !containsString(b.defaultKinds, a.ValueKind) {
 		b.defaultKinds = append(b.defaultKinds, a.ValueKind)
 	}
@@ -985,14 +985,22 @@ func (b *tfBuilder) nestedServerDefault(a *tfAttr, p attrPath, component string,
 }
 
 // defaultPath is a nested attribute with a server default: its path in the form of
-// ComputedPaths, and the Go expression of the default.
-type defaultPath struct{ Path, Value string }
+// ComputedPaths, and the Go expression of the default. Implicit is true for the zero value of a
+// scalar without presence, which the contract does not declare.
+type defaultPath struct {
+	Path, Value string
+	Implicit    bool
+}
 
-// DefaultObjects are the paths of the objects that hold a nested attribute with a server
-// default, sorted. Only these objects read "" or a declared default as empty.
+// DefaultObjects are the paths of the objects that hold a nested attribute with a declared server
+// default, sorted. Only these objects read "" or a declared default as empty: the service fills
+// such an object when a request omits it. An implicit zero default states no such thing.
 func (r *tfResource) DefaultObjects() []string {
 	var out []string
 	for _, d := range r.DefaultPaths {
+		if d.Implicit {
+			continue
+		}
 		if i := strings.LastIndex(d.Path, "."); i > 0 && !slices.Contains(out, d.Path[:i]) {
 			out = append(out, d.Path[:i])
 		}

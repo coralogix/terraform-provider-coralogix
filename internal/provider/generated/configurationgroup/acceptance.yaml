@@ -1,6 +1,6 @@
 # What the generated acceptance test needs for coralogix_configuration_group, besides the schema.
 # The test sets the preset arm of the family.
-resource: configuration_group
+resource: ConfigurationGroup
 
 values:
   # An archive needs an inactive family, so every config keeps it inactive.

@@ -123,7 +123,6 @@ func TestEchoedContractNeedsEachLine(t *testing.T) {
 		"computed keeps a value Update requires":                    {"      limit: {computed: true, useStateForUnknown: true, validators: [{atLeast: 0}]}\n", "FIELD_REQUIREDNESS_UNSUPPORTED", "quota.limit", "      limit: {useStateForUnknown: true, validators: [{atLeast: 0}]}\n"},
 		"useStateForUnknown keeps the value in the plan for Update": {"      limit: {computed: true, useStateForUnknown: true, validators: [{atLeast: 0}]}\n", "FIELD_REQUIREDNESS_UNSUPPORTED", "quota.limit", "      limit: {computed: true, validators: [{atLeast: 0}]}\n"},
 		"optional relaxes a required list that may be empty":        {"      values: {optional: true, collection: set, name: tags}\n", "REQUIRED_VALUE_CAN_BE_EMPTY", "values", "      values: {collection: set, name: tags}\n"},
-		"computed states the presence of a plain bool":              {"      enabled: {computed: true, name: enable}\n", "FIELD_PRESENCE_UNKNOWN", "enabled", "      enabled: {name: enable}\n"},
 		"skip of an empty oneOf marker":                             {"      none: {skip: true}\n", "RENDERER_SHAPE_UNSUPPORTED", "none", ""},
 	}
 	for name, test := range tests {

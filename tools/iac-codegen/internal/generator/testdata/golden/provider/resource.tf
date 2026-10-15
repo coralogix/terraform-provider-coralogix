@@ -19,6 +19,7 @@ resource "coralogix_thing" "example" {
   spec = {
     mode   = "example-mode"
     region = "example-region"
+    weight = 1
     items = [
       {
         key        = "example-key"
@@ -42,4 +43,9 @@ resource "coralogix_thing" "example" {
   labels      = { key = "example-labels" }
   expire_time = "2030-01-01T00:00:00Z"
   windows     = ["2030-01-01T00:00:00Z"]
+  paused      = true
+  retries     = 1
+  priority    = "THING_PRIORITY_LOW"
+  limit       = 1
+  label       = "example-label"
 }
