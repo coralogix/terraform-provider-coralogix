@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"math/big"
 	"reflect"
 	"slices"
 	"sort"
@@ -19,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"{{.Conv.SDKPkg}}"
@@ -487,11 +489,11 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, out *{{$sd
 {{- end}}
 }
 {{else if .Expand}}
-func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{$sdk}}.{{.SDK}} {
+func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{if not .Local}}{{$sdk}}.{{end}}{{.SDK}} {
 	if m == nil {
 		return nil
 	}
-	out := &{{$sdk}}.{{.SDK}}{}
+	out := &{{if not .Local}}{{$sdk}}.{{end}}{{.SDK}}{}
 {{- range .Fields}}
 {{- if not .FlattenOnly}}
 {{- template "expandField" .}}
@@ -501,7 +503,7 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 }
 {{end}}
 {{- if .Flatten}}
-func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$sdk}}.{{.SDK}}, {{if .NeedsPrior}}prior *{{.Model}}, {{end}}diags *diag.Diagnostics) *{{.Model}} {
+func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$sdk}}.{{end}}{{.SDK}}, {{if .NeedsPrior}}prior *{{.Model}}, {{end}}diags *diag.Diagnostics) *{{.Model}} {
 	if v == nil {
 		return nil
 	}
@@ -556,6 +558,63 @@ func valueOf[T any](p *T) T {
 	return *p
 }
 {{end}}
+{{- range .Conv.KeyedObjects}}
+{{- $ko := .}}
+
+// {{.Local}} holds the API item of each value of {{.Key}} that the configuration or the API has.
+type {{.Local}} struct {
+{{- range .Values}}
+	{{.Field}} *{{$ko.Item}}
+{{- end}}
+}
+
+// wrap{{.Func}} returns the API items, each with its {{.Key}}{{if .KeyAs}} and its {{.KeyAs}}, the attribute name{{end}}.
+func wrap{{.Func}}(v *{{.Local}}) []{{.Item}} {
+	if v == nil {
+		return nil
+	}
+	out := []{{.Item}}{}
+{{- range .Values}}
+	if v.{{.Field}} != nil {
+		item := *v.{{.Field}}
+		key := {{$ko.KeyType}}({{printf "%q" .API}})
+		item.{{$ko.Key}} = {{if $ko.KeyValue}}key{{else}}&key{{end}}
+		{{- if $ko.KeyAs}}
+		name := {{printf "%q" .TFName}}
+		item.{{$ko.KeyAs}} = {{if $ko.KeyAsValue}}name{{else}}&name{{end}}
+		{{- end}}
+		out = append(out, item)
+	}
+{{- end}}
+	return out
+}
+
+// unwrap{{.Func}} returns the API items by their {{.Key}}. An item of another value is not in the
+// resource.
+func unwrap{{.Func}}(w []{{.Item}}) *{{.Local}} {
+	if w == nil {
+		return nil
+	}
+	out := &{{.Local}}{}
+	for i := range w {
+		item := w[i]
+		{{- if .KeyValue}}
+		switch string(item.{{.Key}}) {
+		{{- else}}
+		if item.{{.Key}} == nil {
+			continue
+		}
+		switch string(*item.{{.Key}}) {
+		{{- end}}
+{{- range .Values}}
+		case {{printf "%q" .API}}:
+			out.{{.Field}} = &item
+{{- end}}
+		}
+	}
+	return out
+}
+{{- end}}
 {{- range .Conv.WrapHelpers}}
 {{- if .Item}}
 // wrap{{.Func}} puts each item in its API wrapper objects.
@@ -766,6 +825,64 @@ func flattenEnumMapped[T ~string](p path.Path, v *T, fromAPI map[T]string, diags
 		return types.StringNull()
 	}
 	return types.StringValue(s)
+}
+{{- end}}
+{{- if .Conv.UsesEnumsMapped}}
+
+// expandEnumsMapped returns the API values of a list or set of Terraform values. A value that
+// the map lacks is an error. A set sends each value once.
+func expandEnumsMapped[T ~string](ctx context.Context, p path.Path, v elements, toAPI map[string]T, set bool, diags *diag.Diagnostics) []T {
+	items := expandStrings[string](ctx, p, v, diags)
+	if items == nil {
+		return nil
+	}
+	out := make([]T, 0, len(items))
+	seen := make(map[T]struct{}, len(items))
+	for i, item := range items {
+		e, ok := toAPI[item]
+		if !ok {
+			at := p.AtListIndex(i)
+			if set {
+				at = p.AtSetValue(types.StringValue(item))
+			}
+			diags.AddAttributeError(at, "Unsupported value", fmt.Sprintf("The value %q is not supported.", item))
+			continue
+		}
+		if _, dup := seen[e]; set && dup {
+			continue
+		}
+		seen[e] = struct{}{}
+		out = append(out, e)
+	}
+	return out
+}
+
+// flattenEnumsMappedTF returns the Terraform values of API values. A value that the map lacks is an error.
+func flattenEnumsMappedTF[T ~string](p path.Path, v []T, fromAPI map[T]string, diags *diag.Diagnostics) []string {
+	out := make([]string, 0, len(v))
+	for i, e := range v {
+		s, ok := fromAPI[e]
+		if !ok {
+			diags.AddAttributeError(p.AtListIndex(i), "Unsupported API value", fmt.Sprintf("The API returned %q, which this resource does not support.", string(e)))
+			continue
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+func flattenEnumsMappedList[T ~string](ctx context.Context, p path.Path, v []T, fromAPI map[T]string, diags *diag.Diagnostics) types.List {
+	if v == nil {
+		return types.ListNull(types.StringType)
+	}
+	return flattenList(ctx, types.StringType, flattenEnumsMappedTF(p, v, fromAPI, diags), diags)
+}
+
+func flattenEnumsMappedSet[T ~string](ctx context.Context, p path.Path, v []T, fromAPI map[T]string, diags *diag.Diagnostics) types.Set {
+	if v == nil {
+		return types.SetNull(types.StringType)
+	}
+	return flattenSet(ctx, types.StringType, flattenEnumsMappedTF(p, v, fromAPI, diags), diags)
 }
 {{- end}}
 
@@ -1077,7 +1194,7 @@ func flattenList[T any](ctx context.Context, elem attr.Type, items []T, diags *d
 	return l
 }
 
-{{- if or (.Conv.Uses "stringmap") (.Conv.Uses "uint64map") (.Conv.Uses "objectmap") (.Conv.Uses "scalarmap")}}
+{{- if or (.Conv.Uses "stringmap") (.Conv.Uses "uint64map") (.Conv.Uses "objectmap") (.Conv.Uses "scalarmap") (.Conv.Uses "keyedobjects") (.Conv.Uses "keyedvalues")}}
 
 // expandMap returns the values of v. It returns nil for a null value, and a
 // non-nil map for an empty value.
@@ -1201,6 +1318,52 @@ func expandFloat32(v types.Float32) *float32 {
 	f := v.ValueFloat32()
 	return &f
 }
+
+// flattenFloat32 returns the Float32 of the shortest decimal that reads back as v. A plain
+// types.Float32Value keeps float64(v), 0.10000000149011612 for 0.1, which a read without a
+// prior value, such as an import, would put in state.
+func flattenFloat32(v *float32) types.Float32 {
+	if v == nil {
+		return types.Float32Null()
+	}
+	value, err := types.Float32Type.ValueFromTerraform(context.Background(), tftypes.NewValue(tftypes.Number, big.NewFloat(widenFloat32(*v))))
+	if err != nil {
+		return types.Float32Value(*v)
+	}
+	return value.(types.Float32)
+}
+{{- end}}
+{{- if .Conv.UsesFloat32}}
+
+// widenFloat32 returns the float64 of the shortest decimal that reads back as v. A plain
+// float64(v) shows the rounding of float32 (0.1 → 0.10000000149011612). A Float32 attribute
+// that holds the shortest decimal also matches the configuration after an import.
+func widenFloat32(v float32) float64 {
+	f, _ := strconv.ParseFloat(strconv.FormatFloat(float64(v), 'g', -1, 32), 64)
+	return f
+}
+
+func widenFloat32s(v []float32) []float64 {
+	if v == nil {
+		return nil
+	}
+	out := make([]float64, len(v))
+	for i, f := range v {
+		out[i] = widenFloat32(f)
+	}
+	return out
+}
+
+func widenFloat32Map(v map[string]float32) map[string]float64 {
+	if v == nil {
+		return nil
+	}
+	out := make(map[string]float64, len(v))
+	for k, f := range v {
+		out[k] = widenFloat32(f)
+	}
+	return out
+}
 {{- end}}
 {{- if .Conv.Uses "scalars"}}
 
@@ -1238,6 +1401,12 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 {{- else}}
 {{- template "expandValue" .}}
+{{- end}}
+{{- if and .SendEmpty (not .FlattenOnly)}}
+	if out.{{.SDK}} == nil {
+		// The request requires the list or the map: an empty one, not null.
+		out.{{.SDK}} = make({{.SDKSliceType}}, 0)
+	}
 {{- end}}
 {{- end}}
 
@@ -1277,10 +1446,25 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{.Dst}} = {{$l}}expandEnumMapped({{$p}}, m.{{.Model}}, {{.EnumMap.Name}}ToAPI, diags){{$r}}
 {{- else if eq .Conv "enum"}}
 	{{.Dst}} = {{$l}}expandEnum[{{.SDKType}}](m.{{.Model}}){{$r}}
+{{- else if and (eq .Conv "fixed") .RequestValueBy}}
+	{{- $f := .}}
+	switch {
+{{- range .RequestValueBy}}
+	case {{if .ObjectValue}}!m.{{.Model}}.IsNull() && !m.{{.Model}}.IsUnknown(){{else}}m.{{.Model}} != nil{{end}}:
+		fixed := {{$f.SDKType}}({{printf "%q" .Value}})
+		{{$f.Dst}} = {{if $f.Value}}fixed{{else}}&fixed{{end}}
+{{- end}}
+	}
 {{- else if eq .Conv "fixed"}}
 	{
 		fixed := {{.SDKType}}({{printf "%q" .RequestValue}})
 		{{.Dst}} = {{if .Value}}fixed{{else}}&fixed{{end}}
+	}
+{{- else if and (eq .Conv "object") .ObjectValue}}
+	if v := m.{{.Model}}; !v.IsNull() && !v.IsUnknown() {
+		var nested {{.Object.Model}}
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		{{.Dst}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, &nested, diags){{$r}}
 	}
 {{- else if eq .Conv "object"}}
 	{{.Dst}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags){{$r}}
@@ -1290,10 +1474,27 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	if m.{{.Model}} != nil {
 		{{.Dst}} = map[string]interface{}{}
 	}
+{{- else if eq .Conv "fold"}}
+	{{- if .ObjectValue}}
+	if v := m.{{.Model}}; !v.IsNull() && !v.IsUnknown() {
+		var nested {{.FoldModel}}
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		m := &nested
+	{{- else}}
+	if m := m.{{.Model}}; m != nil {
+	{{- end}}
+		p := {{$p}}
+		_ = p // a scalar conversion does not report a path
+{{- range .Fold}}
+{{- template "expandValue" .}}
+{{- end}}
+	}
 {{- else if eq .Conv "rfc3339"}}
 	{{.Dst}} = {{$l}}expandRFC3339({{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if eq .Conv "times"}}
 	{{.Dst}} = expandTimes(ctx, {{$p}}, m.{{.Model}}, diags)
+{{- else if and (eq .Conv "strings") .EnumMap}}
+	{{.Dst}} = expandEnumsMapped(ctx, {{$p}}, m.{{.Model}}, {{.EnumMap.Name}}ToAPI, {{if eq .Collection "Set"}}true{{else}}false{{end}}, diags)
 {{- else if eq .Conv "strings"}}
 	{{- if eq .Collection "Set"}}
 	{{.Dst}} = expandStringsSet[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
@@ -1310,6 +1511,24 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		for k := range items {
 			item := items[k]
 			{{.Dst}}[k] = *expand{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &item, diags)
+		}
+	}
+{{- else if eq .Conv "keyedobjects"}}
+	if items := expandMap[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags); items != nil {
+		{{.Dst}} = make([]{{.SDKType}}, 0, len(items))
+		for _, k := range slices.Sorted(maps.Keys(items)) {
+			item := items[k]
+			v := *expand{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &item, diags)
+			v.{{.Keyed.Key}} = {{if .Keyed.KeyValue}}k{{else}}&k{{end}}
+			{{.Dst}} = append({{.Dst}}, v)
+		}
+	}
+{{- else if eq .Conv "keyedvalues"}}
+	if items := expandMap[string](ctx, {{$p}}, m.{{.Model}}, diags); items != nil {
+		{{.Dst}} = make([]{{.SDKType}}, 0, len(items))
+		for _, k := range slices.Sorted(maps.Keys(items)) {
+			v := items[k]
+			{{.Dst}} = append({{.Dst}}, {{.SDKType}}{ {{- .Keyed.Key}}: {{if .Keyed.KeyValue}}k{{else}}&k{{end}}, {{.Keyed.Value}}: {{if .Keyed.ValueValue}}v{{else}}&v{{end -}} })
 		}
 	}
 {{- else if eq .Conv "objects"}}
@@ -1368,11 +1587,11 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- else if eq .Conv "int64"}}
 	out.{{.Model}} = types.Int64PointerValue({{$v}})
 {{- else if eq .Conv "float32"}}
-	out.{{.Model}} = types.Float32PointerValue({{$v}})
+	out.{{.Model}} = flattenFloat32({{$v}})
 {{- else if eq .Conv "scalars"}}
-	out.{{.Model}} = flattenScalars{{.Collection}}(ctx, {{.ElemType}}, {{.Src}}, diags)
+	out.{{.Model}} = flattenScalars{{.Collection}}(ctx, {{.ElemType}}, {{if eq .SDKType "float32"}}widenFloat32s({{.Src}}){{else}}{{.Src}}{{end}}, diags)
 {{- else if eq .Conv "scalarmap"}}
-	out.{{.Model}} = flattenScalarMap(ctx, {{.ElemType}}, {{.Src}}, diags)
+	out.{{.Model}} = flattenScalarMap(ctx, {{.ElemType}}, {{if eq .SDKType "float32"}}widenFloat32Map({{.Src}}){{else}}{{.Src}}{{end}}, diags)
 {{- else if eq .Conv "uint64"}}
 	out.{{.Model}} = flattenUint64({{$p}}, {{$v}}, diags)
 {{- else if eq .Conv "time"}}
@@ -1441,7 +1660,9 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 	{{- end}}
 {{- else if eq .Conv "strings"}}
-	{{- if .Enum}}
+	{{- if .EnumMap}}
+	out.{{.Model}} = flattenEnumsMapped{{.Collection}}(ctx, {{$p}}, {{.Src}}, {{.EnumMap.Name}}FromAPI, diags)
+	{{- else if .Enum}}
 	out.{{.Model}} = flattenEnums{{.Collection}}(ctx, {{$p}}, {{.Src}}, {{printf "%q" .EnumZero}}, diags)
 	{{- else}}
 	out.{{.Model}} = flattenStrings{{.Collection}}(ctx, {{.Src}}, diags)
@@ -1469,6 +1690,41 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 			items[k] = *flatten{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &item, diags)
 		}
 		out.{{.Model}} = flattenMap(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
+	}
+{{- else if eq .Conv "keyedobjects"}}
+	out.{{.Model}} = types.MapNull(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()})
+	if {{.Src}} != nil {
+		{{- if .Object.NeedsPrior}}
+		var prior{{.Model}} map[string]{{.Object.Model}}
+		if prior != nil {
+			var scratch diag.Diagnostics
+			prior{{.Model}} = expandMap[{{.Object.Model}}](ctx, path.Empty(), prior.{{.Model}}, &scratch)
+		}
+		{{- end}}
+		items := make(map[string]{{.Object.Model}}, len({{.Src}}))
+		for i := range {{.Src}} {
+			k := {{if not .Keyed.KeyValue}}*{{end}}{{.Src}}[i].{{.Keyed.Key}}
+			{{- if .Object.NeedsPrior}}
+			// The prior item with the same key keeps the order of its own lists and the text of its documents.
+			var priorItem *{{.Object.Model}}
+			if p, ok := prior{{.Model}}[k]; ok {
+				priorItem = &p
+			}
+			items[k] = *flatten{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &{{.Src}}[i], priorItem, diags)
+			{{- else}}
+			items[k] = *flatten{{.Object.Func}}(ctx, {{$p}}.AtMapKey(k), &{{.Src}}[i], diags)
+			{{- end}}
+		}
+		out.{{.Model}} = flattenMap(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
+	}
+{{- else if eq .Conv "keyedvalues"}}
+	out.{{.Model}} = types.MapNull(types.StringType)
+	if {{.Src}} != nil {
+		items := make(map[string]string, len({{.Src}}))
+		for _, item := range {{.Src}} {
+			items[{{if not .Keyed.KeyValue}}*{{end}}item.{{.Keyed.Key}}] = {{if not .Keyed.ValueValue}}*{{end}}item.{{.Keyed.Value}}
+		}
+		out.{{.Model}} = flattenMap(ctx, types.StringType, items, diags)
 	}
 {{- else if eq .Conv "objects"}}
 	{{- $src := .Src}}{{if .KeepPriorOrder}}{{$src = printf "src%s" .Model}}{{end}}

@@ -101,7 +101,7 @@ func TestMaskPathsNameTheWrappers(t *testing.T) {
 		Fields:   []*model.Field{{Name: "text", Type: &model.Type{Kind: model.String}}},
 		Wrappers: []model.Wrapper{{Schema: "FilterHolder", Field: "filter"}},
 	}
-	tree := maskTree("filter", filter)
+	tree := maskTree(model.Policy{}, "Root", "filter", filter)
 	var paths []string
 	if err := checkMaskPaths(tree, "", func(p string) bool { paths = append(paths, p); return true }); err != nil {
 		t.Fatal(err)

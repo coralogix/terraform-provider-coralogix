@@ -275,3 +275,47 @@ func TestBuildSendsTheFieldsOfARequestBodyWrittenAsAllOf(t *testing.T) {
 		}
 	}
 }
+
+// An empty marker arm of a group that allows no arm holds no value, so skip can leave it out,
+// whether the type has other fields (Object) or only the arms (OneOf).
+func TestSkippableEmptyArm(t *testing.T) {
+	empty := &Type{Kind: Object, Schema: "Empty"}
+	detail := &Type{Kind: Object, Schema: "Detail", Fields: []*Field{{Name: "text", Type: &Type{Kind: String}}}}
+	arms := []*Field{{Name: "none", Type: empty}, {Name: "detail", Type: detail}}
+	pure := &Type{Kind: OneOf, Schema: "Item", Fields: arms, AllowNone: true}
+	if !skippableArm(pure, "none") || skippableArm(pure, "detail") {
+		t.Fatal("a pure oneOf that allows no arm: want only the empty arm skippable")
+	}
+	pure.AllowNone = false
+	if skippableArm(pure, "none") {
+		t.Fatal("a pure oneOf that needs an arm: want no arm skippable")
+	}
+	mixed := &Type{Kind: Object, Schema: "Item", Fields: append([]*Field{{Name: "key", Type: &Type{Kind: String}}}, arms...),
+		Groups: []OneOfGroup{{Arms: []string{"none", "detail"}, AllowNone: true}}}
+	if !skippableArm(mixed, "none") || skippableArm(mixed, "detail") || skippableArm(mixed, "key") {
+		t.Fatal("an object with a group that allows no arm: want only the empty arm skippable")
+	}
+}
+
+// A skipped empty arm of a top-level oneOf leaves the resource group too: the resource
+// validator must not name an attribute that the schema does not have.
+func TestSkippedTopLevelArmLeavesItsGroup(t *testing.T) {
+	r := &Resource{
+		Name:   "Thing",
+		Policy: Policy{Skip: []string{"Thing.none", "Thing.gone"}},
+		Groups: []OneOfGroup{
+			{Arms: []string{"none", "logs", "spans"}, AllowNone: true},
+			{Arms: []string{"gone"}, AllowNone: true},
+		},
+		Fields: []*ResourceField{
+			{Name: "none"}, {Name: "logs"}, {Name: "spans"}, {Name: "gone"},
+		},
+	}
+	r.pruneSkipped()
+	if len(r.Groups) != 1 || !slices.Equal(r.Groups[0].Arms, []string{"logs", "spans"}) || !r.Groups[0].AllowNone {
+		t.Fatalf("groups = %+v, want one group of logs and spans that allows none", r.Groups)
+	}
+	if len(r.Fields) != 2 {
+		t.Fatalf("fields = %d, want 2", len(r.Fields))
+	}
+}

@@ -125,6 +125,7 @@ type CreateThingRequest struct {
 }
 
 type UpdateThingRequest struct {
+	Kind         *ThingKind
 	Name         *string
 	Description  *string
 	Enabled      *bool

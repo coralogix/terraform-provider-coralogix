@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -14,6 +15,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // overridesPath returns the file to read: the explicit path, else the file in the
@@ -231,6 +233,36 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared bool) *li
 	if line.Required && slices.Contains(schema.Required, line.Field) && !(shared && requiredLineStatesPresence(schema, line.Field)) {
 		stale = append(stale, "required")
 	}
+	if line.Optional && shared && !slices.Contains(schema.Required, line.Field) {
+		// The resource component has request components of its own: the contract check reports
+		// an optional line that relaxes none of them.
+		stale = append(stale, "optional")
+	}
+	if line.Collection != "" {
+		if problem := collectionProblem(schema, line); problem != nil {
+			return problem
+		}
+	}
+	if line.Optional {
+		if problem := optionalProblem(schema, line); problem != nil {
+			return problem
+		}
+	}
+	if line.Name != "" {
+		if problem := nameProblem(schema, line); problem != nil {
+			return problem
+		}
+	}
+	if len(line.RequestValueBy) != 0 {
+		if problem := requestValueByProblem(schema, line); problem != nil {
+			return problem
+		}
+	}
+	if line.KeyedBy != nil {
+		if problem := keyedByProblem(schema, line); problem != nil {
+			return problem
+		}
+	}
 	if len(stale) == 0 {
 		return nil
 	}
@@ -354,4 +386,242 @@ func contractReadOnly(schema *base.Schema, field string) bool {
 
 func hasNoRequiredList(schema *base.Schema) bool {
 	return schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()
+}
+
+// requestValueByProblem checks a requestValueBy line. The field is a string, each key is an
+// object field of the component, and each value is a value of the enum of the field when the
+// field is an enum.
+func requestValueByProblem(schema *base.Schema, line overrides.Line) *lineIssue {
+	built, err := schema.Properties.GetOrZero(line.Field).BuildSchema()
+	if err != nil {
+		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
+	}
+	// The renderer sends each value as a string.
+	if !slices.Equal(built.Type, []string{"string"}) {
+		return wholeLine(fmt.Errorf("requestValueBy needs a string or a string enum, but %q is %v", line.Field, built.Type))
+	}
+	for _, field := range slices.Sorted(maps.Keys(line.RequestValueBy)) {
+		proxy := schema.Properties.GetOrZero(field)
+		if proxy == nil {
+			return wholeLine(fmt.Errorf("requestValueBy names %q, which component %q does not have", field, line.Component))
+		}
+		s, err := proxy.BuildSchema()
+		if err != nil {
+			return wholeLine(fmt.Errorf("field %q: %w", field, err))
+		}
+		// The renderer tests the field for nil, so it must be an object, also behind a $ref.
+		if !slices.Equal(s.Type, []string{"object"}) && len(s.AllOf) == 0 && (len(s.Type) != 0 || s.Properties == nil) {
+			return wholeLine(fmt.Errorf("requestValueBy names %q, which is not an object", field))
+		}
+		value := line.RequestValueBy[field]
+		if len(built.Enum) != 0 && !slices.ContainsFunc(built.Enum, func(n *yaml.Node) bool { return n.Value == value }) {
+			return wholeLine(fmt.Errorf("requestValueBy sends %q, which the enum of %q does not have", value, line.Field))
+		}
+	}
+	return nil
+}
+
+// keyedByProblem checks a keyedBy line. The field is a list of objects. The key is a required
+// string property of the object. The value, when the line names one, is a required string
+// property, and the object has no other property.
+func keyedByProblem(schema *base.Schema, line overrides.Line) *lineIssue {
+	built, err := schema.Properties.GetOrZero(line.Field).BuildSchema()
+	if err != nil {
+		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
+	}
+	if !slices.Equal(built.Type, []string{"array"}) || built.Items == nil || built.Items.A == nil {
+		return wholeLine(fmt.Errorf("keyedBy needs a list of objects, but %q is %v", line.Field, built.Type))
+	}
+	item, err := built.Items.A.BuildSchema()
+	if err != nil {
+		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
+	}
+	if item.Properties == nil {
+		return wholeLine(fmt.Errorf("keyedBy needs a list of objects, but the items of %q have no properties", line.Field))
+	}
+	isString := func(name string) bool {
+		proxy := item.Properties.GetOrZero(name)
+		if proxy == nil {
+			return false
+		}
+		s, err := proxy.BuildSchema()
+		return err == nil && slices.Equal(s.Type, []string{"string"}) && len(s.Enum) == 0
+	}
+	key, value := line.KeyedBy.Key, line.KeyedBy.Value
+	if line.KeyedBy.Object {
+		return keyedObjectProblem(item, line, isString)
+	}
+	if !isString(key) || !slices.Contains(item.Required, key) {
+		return wholeLine(fmt.Errorf("keyedBy: the key %q is not a required string property of the items of %q", key, line.Field))
+	}
+	if value != "" && (!isString(value) || item.Properties.Len() != 2) {
+		return wholeLine(fmt.Errorf("keyedBy: the value %q must be a string property, and the items of %q must have only the key and the value", value, line.Field))
+	}
+	if value != "" && !slices.Contains(item.Required, value) {
+		// A map of strings has no place for an item without a value.
+		return wholeLine(fmt.Errorf("keyedBy: the value %q is not a required property of the items of %q", value, line.Field))
+	}
+	return nil
+}
+
+// keyedObjectProblem checks a keyedBy object line. The key is a required enum property of the
+// item. Each arm names an enum value and a property of the item. keyAs is a string property.
+func keyedObjectProblem(item *base.Schema, line overrides.Line, isString func(string) bool) *lineIssue {
+	k := line.KeyedBy
+	proxy := item.Properties.GetOrZero(k.Key)
+	var values []string
+	if proxy != nil {
+		if s, err := proxy.BuildSchema(); err == nil {
+			for _, n := range s.Enum {
+				values = append(values, n.Value)
+			}
+		}
+	}
+	if len(values) == 0 || !slices.Contains(item.Required, k.Key) {
+		return wholeLine(fmt.Errorf("keyedBy: the key %q is not a required enum property of the items of %q", k.Key, line.Field))
+	}
+	// The object has an attribute per value that the enums line of the key accepts, so an arm of
+	// another value, or a key without an enums line, would change nothing.
+	enum := ""
+	if proxy.IsReference() {
+		enum = strings.TrimPrefix(proxy.GetReference(), "#/components/schemas/")
+	}
+	accepted, ok := line.Accepted[enum]
+	if !ok || len(accepted) == 0 {
+		return wholeLine(fmt.Errorf("keyedBy: the key %q needs an enums line with values for its enum %q", k.Key, enum))
+	}
+	// Each value becomes an attribute and a Go field, so two values must not normalize to one name.
+	tfNames, goNames := map[string]string{}, map[string]string{}
+	for _, v := range slices.Sorted(maps.Keys(accepted)) {
+		tf, gn := model.TerraformName(accepted[v]), model.GoName(accepted[v])
+		if other, ok := tfNames[tf]; ok {
+			return wholeLine(fmt.Errorf("keyedBy: values %q and %q both become the attribute %q", other, v, tf))
+		}
+		if other, ok := goNames[gn]; ok {
+			return wholeLine(fmt.Errorf("keyedBy: values %q and %q both become the Go field %q", other, v, gn))
+		}
+		tfNames[tf], goNames[gn] = v, v
+	}
+	groups, err := oneOfArmGroups(item)
+	if err != nil {
+		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
+	}
+	var groupArms []string
+	for _, g := range groups {
+		groupArms = append(groupArms, g.arms...)
+	}
+	// A value without an arm gets an attribute with no arm of the union, so a union that
+	// requires an arm needs one for every value that the resource accepts.
+	for _, g := range groups {
+		if g.allowNone {
+			continue
+		}
+		for _, v := range slices.Sorted(maps.Keys(accepted)) {
+			if !slices.Contains(g.arms, k.Arms[v]) {
+				return wholeLine(fmt.Errorf("keyedBy: %q has no arm in arms, but the items of %q require one of %v", v, line.Field, g.arms))
+			}
+		}
+	}
+	for _, v := range slices.Sorted(maps.Keys(k.Arms)) {
+		if _, ok := accepted[v]; !ok {
+			return wholeLine(fmt.Errorf("keyedBy: arms names %q, which the enums line of %q does not accept", v, k.Key))
+		}
+		if item.Properties.GetOrZero(k.Arms[v]) == nil {
+			return wholeLine(fmt.Errorf("keyedBy: arms names %q, which the items of %q do not have", k.Arms[v], line.Field))
+		}
+		// The keyed object drops every oneOf arm but the one of its value, so an arm must be one.
+		if !slices.Contains(groupArms, k.Arms[v]) {
+			return wholeLine(fmt.Errorf("keyedBy: arms names %q, which is not a oneOf arm of the items of %q", k.Arms[v], line.Field))
+		}
+	}
+	if k.KeyAs != "" && !isString(k.KeyAs) {
+		return wholeLine(fmt.Errorf("keyedBy: keyAs %q is not a string property of the items of %q", k.KeyAs, line.Field))
+	}
+	return nil
+}
+
+// oneOfArmGroup is a oneOf group of a contract schema: its arms, and whether it allows no arm.
+type oneOfArmGroup struct {
+	arms      []string
+	allowNone bool
+}
+
+// oneOfArmGroups returns the oneOf groups of s: its own oneOf, and the oneOf of each allOf
+// entry. An arm is the one required property of a oneOf entry; the "no arm" entry has none, and
+// its presence lets the group have no arm.
+func oneOfArmGroups(s *base.Schema) ([]oneOfArmGroup, error) {
+	schemas := []*base.Schema{s}
+	for _, proxy := range s.AllOf {
+		e, err := proxy.BuildSchema()
+		if err != nil {
+			return nil, err
+		}
+		schemas = append(schemas, e)
+	}
+	var groups []oneOfArmGroup
+	for _, e := range schemas {
+		if len(e.OneOf) == 0 {
+			continue
+		}
+		var g oneOfArmGroup
+		for _, proxy := range e.OneOf {
+			entry, err := proxy.BuildSchema()
+			if err != nil {
+				return nil, err
+			}
+			switch {
+			case entry.Not != nil:
+				g.allowNone = true
+			case len(entry.Required) == 1:
+				g.arms = append(g.arms, entry.Required[0])
+			}
+		}
+		groups = append(groups, g)
+	}
+	return groups, nil
+}
+
+// optionalProblem checks an optional line. The SDK holds a field that the contract requires as a
+// value, which Create would send as its zero value when Terraform leaves the field out. Only a
+// list or a map is nil when it is left out, so only they can be optional.
+func optionalProblem(schema *base.Schema, line overrides.Line) *lineIssue {
+	built, err := schema.Properties.GetOrZero(line.Field).BuildSchema()
+	if err != nil {
+		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
+	}
+	isMap := slices.Equal(built.Type, []string{"object"}) && built.AdditionalProperties != nil && built.AdditionalProperties.A != nil
+	if !slices.Equal(built.Type, []string{"array"}) && !isMap {
+		return wholeLine(fmt.Errorf("optional needs a list or a map, but %q is %v: the SDK holds a required value, which Create sends as its zero value", line.Field, built.Type))
+	}
+	return nil
+}
+
+// nameProblem checks a name line. The name must differ from the name that the JSON name
+// gives, and from the name of every other field of the component.
+func nameProblem(schema *base.Schema, line overrides.Line) *lineIssue {
+	if line.Name == model.TerraformName(line.Field) {
+		return &lineIssue{message: fmt.Sprintf("%q is already the Terraform name of %q", line.Name, line.Field), stale: []string{"name"}}
+	}
+	for field := range schema.Properties.KeysFromOldest() {
+		if field != line.Field && model.TerraformName(field) == line.Name {
+			return wholeLine(fmt.Errorf("name %q is the Terraform name of field %q", line.Name, field))
+		}
+	}
+	return nil
+}
+
+// collectionProblem checks a collection: set line. It needs a list that the contract does not
+// already mark as a set.
+func collectionProblem(schema *base.Schema, line overrides.Line) *lineIssue {
+	built, err := schema.Properties.GetOrZero(line.Field).BuildSchema()
+	if err != nil {
+		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
+	}
+	if !slices.Equal(built.Type, []string{"array"}) {
+		return wholeLine(fmt.Errorf("collection: set needs a list, but %q is %v", line.Field, built.Type))
+	}
+	if n := built.Extensions.GetOrZero("x-coralogix-collection"); n != nil && n.Value == "set" {
+		return &lineIssue{message: fmt.Sprintf("the contract already states that %q is a set", line.Field), stale: []string{"collection"}}
+	}
+	return nil
 }

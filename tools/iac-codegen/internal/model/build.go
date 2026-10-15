@@ -724,6 +724,9 @@ func (r *Resource) readFields(doc *v3.Document, ops map[verb]foundOp) error {
 	if err != nil {
 		return err
 	}
+	if createBody, err = r.Policy.foldCreateBody(r.Name, createBody); err != nil {
+		return err
+	}
 	if err := r.checkBodies(createBody, updateBody, getSchema, ops[opUpdate]); err != nil {
 		return err
 	}
@@ -740,6 +743,10 @@ func (r *Resource) readFields(doc *v3.Document, ops map[verb]foundOp) error {
 		}
 	}
 	for _, n := range names {
+		if r.Policy.skips(r.Name, n) {
+			// The resource does not manage the field, so its lifecycle does not matter.
+			continue
+		}
 		f, err := r.resourceField(n, createBody, updateBody, getSchema)
 		if err != nil {
 			return fmt.Errorf("%s: %w", r.Name, err)
@@ -1000,7 +1007,10 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		return nil, fmt.Errorf("%s: %w", name, err)
 	}
 	// The Get type comes first: Classify ensures that the field is in Get.
-	if f.Type, err = typeOf(gp, name, walk{policy: &r.Policy}); err != nil {
+	if f.Type, err = typeOf(gp, name, walk{policy: &r.Policy}); err == nil {
+		r.Policy.asSet(r.Name, name, f.Type)
+	}
+	if err != nil {
 		return nil, err
 	}
 	getAttrs, err := attrsOf(getSchema, name, gp)
@@ -1021,13 +1031,17 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		if loc.proxy == nil {
 			continue
 		}
-		if requests[i], err = typeOf(loc.proxy, name, walk{policy: &r.Policy}); err != nil {
+		if requests[i], err = typeOf(loc.proxy, name, walk{policy: &r.Policy}); err == nil {
+			r.Policy.asSet(r.Name, name, requests[i])
+		}
+		if err != nil {
 			return nil, fmt.Errorf("%s: %w", loc.name, err)
 		}
 		a, err := attrsOf(loc.body, name, loc.proxy)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %s: %w", name, loc.name, err)
 		}
+		a.Required = slices.Contains(r.Policy.requiredOf(r.Name, loc.body.Required), name)
 		*loc.attrs = &a
 	}
 	if err := mergeRequests(fieldLocation(r.Name, name), f.Type, requests[0], requests[1]); err != nil {
@@ -1279,7 +1293,7 @@ func objectType(t *Type, s *base.Schema, path string, w walk) error {
 	if err := checkRequired(s); err != nil {
 		return fmt.Errorf("%s: %w", path, err)
 	}
-	fields, err := objectFields(s, path, w)
+	fields, err := objectFields(s, path, w, t.Schema)
 	if err != nil {
 		return err
 	}
@@ -1367,11 +1381,13 @@ func oneOfGroups(s *base.Schema, path string, fields []*Field) ([]OneOfGroup, er
 	return groups, nil
 }
 
-func objectFields(s *base.Schema, path string, w walk) ([]*Field, error) {
+func objectFields(s *base.Schema, path string, w walk, component string) ([]*Field, error) {
+	required := w.policy.requiredOf(component, s.Required)
 	var fields []*Field
 	for _, name := range propertyNames(s) {
 		proxy := propertyOf(s, name)
 		ft, err := typeOf(proxy, path+"."+name, w)
+		w.policy.asSet(component, name, ft)
 		if err != nil {
 			if !w.keep(err) {
 				return nil, err
@@ -1381,6 +1397,14 @@ func objectFields(s *base.Schema, path string, w walk) ([]*Field, error) {
 		a, err := attrsOf(s, name, proxy)
 		if err != nil {
 			return nil, fmt.Errorf("%s.%s: %w", path, name, err)
+		}
+		a.Required = slices.Contains(required, name)
+		a.Computed = w.policy.computed(component, name)
+		a.KeepState = w.policy.keepsState(component, name)
+		if w.policy != nil && w.policy.readOnly(component, name) {
+			// A readOnly line states what the contract cannot: the request shares the component
+			// with the response, and the server ignores the value that a request sends.
+			a.ReadOnly = true
 		}
 		d, err := description(proxy)
 		if err != nil {

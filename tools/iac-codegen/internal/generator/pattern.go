@@ -9,8 +9,8 @@ import (
 	"unicode/utf8"
 )
 
-// patternCall matches a pattern validator of a string, as patternValidator writes it.
-var patternCall = regexp.MustCompile("^stringvalidator\\.RegexMatches\\(regexp\\.MustCompile\\((`[^`]*`|\"(?:[^\"\\\\]|\\\\.)*\")\\), \"\"\\)$")
+// patternCall matches a pattern validator of a string, as regexValidator writes it.
+var patternCall = regexp.MustCompile("^stringvalidator\\.RegexMatches\\(regexp\\.MustCompile\\((`[^`]*`|\"(?:[^\"\\\\]|\\\\.)*\")\\), \"(?:[^\"\\\\]|\\\\.)*\"\\)$")
 
 // patternOf returns the pattern of the validators of a string attribute, or nil.
 func patternOf(a *tfAttr) *regexp.Regexp {
