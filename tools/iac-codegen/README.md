@@ -184,6 +184,8 @@ A read-only field inside a component that the request shares with the response i
 
 `enums.<Enum>.readRejected: true` reads a rejected value back as the API spelling. Without it, that value fails the read. A missing enum reads as null. `x-coralogix-presence` means the same thing: the value was not set. A string `default` on the field is the reading of a missing value for that resource, including a missing unwrapped value.
 
+`enums.<Enum>.names` gives an accepted value its released Terraform spelling when `trimPrefix`, `verbatim`, and the lower case do not make it. A name wins over `trimPrefix`, for example `SCHEDULE_OPERATION_ACTIVATE: active` or `DURATION_FREQUENCY_MINUTE: minutes`. The conversion maps and the `enum: true` validator read the same spelling, so they cannot disagree. A name for a value that is not in `values`, an empty name, and two values (the zero value included) with one Terraform spelling are errors.
+
 `unwrap` removes wrapper objects that the API has and the released resource does not show. A wrapper is an object component with exactly one property, for example `LuceneQuery` in `{"query": {"value": "error"}}`. Terraform shows `query = "error"`.
 
 ```yaml

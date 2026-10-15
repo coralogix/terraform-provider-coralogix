@@ -7,9 +7,10 @@ import (
 )
 
 type SuppressedThingModel struct {
-	UniqueIdentifier types.String `tfsdk:"id"`
-	Name             types.String `tfsdk:"name"`
-	Window           *WindowModel `tfsdk:"time_frame"`
+	UniqueIdentifier  types.String `tfsdk:"id"`
+	Name              types.String `tfsdk:"name"`
+	Window            *WindowModel `tfsdk:"time_frame"`
+	ScheduleOperation types.String `tfsdk:"operation"`
 }
 
 type WindowModel struct {

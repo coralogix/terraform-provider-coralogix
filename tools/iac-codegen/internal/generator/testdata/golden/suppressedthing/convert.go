@@ -19,6 +19,20 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/suppressed_things_service"
 )
 
+// thingOperationToAPI maps the Terraform values of the enum to its API values.
+var thingOperationToAPI = map[string]suppressed_things_service.ThingOperation{
+	"unspecified": suppressed_things_service.ThingOperation("THING_OPERATION_UNSPECIFIED"),
+	"mute":        suppressed_things_service.ThingOperation("THING_OPERATION_MUTE"),
+	"active":      suppressed_things_service.ThingOperation("THING_OPERATION_ACTIVATE"),
+}
+
+// thingOperationFromAPI maps the API values of the enum to its Terraform values.
+var thingOperationFromAPI = map[suppressed_things_service.ThingOperation]string{
+	suppressed_things_service.ThingOperation("THING_OPERATION_UNSPECIFIED"): "unspecified",
+	suppressed_things_service.ThingOperation("THING_OPERATION_MUTE"):        "mute",
+	suppressed_things_service.ThingOperation("THING_OPERATION_ACTIVATE"):    "active",
+}
+
 // validateRequestValue accepts every planned value. An unknown value of a computed attribute is
 // left out of the request, and the server supplies it, as the released resource did.
 func validateRequestValue(_ path.Path, _, _ attr.Value, _ bool, _ *diag.Diagnostics) {}
@@ -29,6 +43,7 @@ var createFields = []struct {
 }{
 	{attr: "name", serverDefault: false},
 	{attr: "time_frame", serverDefault: false},
+	{attr: "operation", serverDefault: false},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -231,6 +246,7 @@ func expandSuppressedThingCreate(ctx context.Context, p path.Path, m *Suppressed
 	out := &suppressed_things_service.SuppressedThing{}
 	out.Name = valueOf(expandString(m.Name))
 	out.Window = expandWindow(ctx, p.AtName("time_frame"), m.Window, diags)
+	out.ScheduleOperation = valueOf(expandEnumMapped(p.AtName("operation"), m.ScheduleOperation, thingOperationToAPI, diags))
 	return out
 }
 
@@ -259,6 +275,7 @@ func expandSuppressedThingUpdate(ctx context.Context, p path.Path, m *Suppressed
 	out := &suppressed_things_service.SuppressedThing{}
 	out.Name = valueOf(expandString(m.Name))
 	out.Window = expandWindow(ctx, p.AtName("time_frame"), m.Window, diags)
+	out.ScheduleOperation = valueOf(expandEnumMapped(p.AtName("operation"), m.ScheduleOperation, thingOperationToAPI, diags))
 	return out
 }
 
@@ -270,6 +287,7 @@ func flattenSuppressedThing(ctx context.Context, p path.Path, v *suppressed_thin
 	out.UniqueIdentifier = types.StringPointerValue(v.UniqueIdentifier)
 	out.Name = types.StringPointerValue(&v.Name)
 	out.Window = flattenWindow(ctx, p.AtName("time_frame"), v.Window, diags)
+	out.ScheduleOperation = flattenEnumMapped(p.AtName("operation"), &v.ScheduleOperation, thingOperationFromAPI, diags)
 	return out
 }
 
@@ -417,6 +435,32 @@ func flattenUint64(p path.Path, v *string, diags *diag.Diagnostics) types.Int64 
 		return types.Int64Null()
 	}
 	return types.Int64Value(int64(n))
+}
+
+// expandEnumMapped returns the API value of a Terraform value. A value that the map lacks is an error.
+func expandEnumMapped[T ~string](p path.Path, v types.String, toAPI map[string]T, diags *diag.Diagnostics) *T {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	e, ok := toAPI[v.ValueString()]
+	if !ok {
+		diags.AddAttributeError(p, "Unsupported value", fmt.Sprintf("The value %q is not supported.", v.ValueString()))
+		return nil
+	}
+	return &e
+}
+
+// flattenEnumMapped returns the Terraform value of an API value. A value that the map lacks is an error.
+func flattenEnumMapped[T ~string](p path.Path, v *T, fromAPI map[T]string, diags *diag.Diagnostics) types.String {
+	if v == nil {
+		return types.StringNull()
+	}
+	s, ok := fromAPI[*v]
+	if !ok {
+		diags.AddAttributeError(p, "Unsupported API value", fmt.Sprintf("The API returned %q, which this resource does not support.", string(*v)))
+		return types.StringNull()
+	}
+	return types.StringValue(s)
 }
 
 func flattenEnum[T ~string](v *T, zero string) types.String {
