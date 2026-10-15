@@ -84,6 +84,7 @@ type wrapHelper struct {
 // helpers. Flatten calls the unwrap helpers, then converts the value.
 type fieldWrap struct {
 	Inner string   // qualified Go type of the value that the field conversion writes and reads
+	Outer string   // qualified Go type of the outer wrapper, the SDK type of the field
 	Funcs []string // the helpers, outer first
 }
 
@@ -1430,6 +1431,11 @@ func (b *convBuilder) defaultArms(component string, t *model.Type, fields []*con
 func emptyArm(qualify func(string) string, f *convField) (string, error) {
 	switch {
 	case f.Wrap != nil:
+		// An empty arm is an empty outer wrapper ({}), not a wrapper of an empty value
+		// ({"value": []}), as the released resources send it.
+		if rest, ok := strings.CutPrefix(f.Wrap.Outer, "*"); ok {
+			return "&" + rest + "{}", nil
+		}
 		inner := f.Wrap.Inner
 		if rest, ok := strings.CutPrefix(inner, "*"); ok {
 			return f.Wrap.ExpandOf("&" + rest + "{}"), nil

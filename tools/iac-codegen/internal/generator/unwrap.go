@@ -29,6 +29,7 @@ func (b *convBuilder) wrappedConv(cf *convField, t *model.Type, computed bool) (
 	}
 	// The value can be a list of wrapped items: its helper runs inside this one.
 	cf.Wrap.Funcs = append([]string{helper.Func}, cf.Wrap.Funcs...)
+	cf.Wrap.Outer = helper.Outer
 	return "*" + outer, nil
 }
 

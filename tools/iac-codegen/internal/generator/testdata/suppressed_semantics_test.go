@@ -183,7 +183,8 @@ func TestFilterWithoutArmSendsTheDefaultArm(t *testing.T) {
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
-	if got := body.SuppressedThing.Filter; got == nil || got.Ids == nil || len(got.Ids.Value) != 0 || got.Labels != nil {
+	// The empty arm is the empty wrapper, {} on the wire, and not a wrapper of an empty list.
+	if got := body.SuppressedThing.Filter; got == nil || got.Ids == nil || got.Ids.Value != nil || got.Labels != nil {
 		t.Fatalf("a filter without an arm sent %#v, want the empty ids arm alone", got)
 	}
 

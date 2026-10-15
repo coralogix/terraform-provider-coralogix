@@ -135,6 +135,7 @@
 - FIX: A `names` entry that gives the spelling the enum has anyway (lower case, `trimPrefix`, or `verbatim`) is an error, so a rename that a contract change makes stale does not stay unnoticed.
 - FIX: A `name` line on a `requestValue` field is an error: the field is no Terraform attribute, so the name changes nothing.
 - FEAT: A field line `terraformType: Int64` keeps the released Int64 type of an int32 field, or of a list or set of int32. Expand converts to int32 and reports a value outside its range.
+- FEAT: A field line `defaultArm` sends an empty arm when the configuration sets no arm of a oneOf that the API requires, for example `alertUniqueIds: {}` for a released filter without a selector. An arm in wrapper objects is sent as the empty outer wrapper (`{}`), not as a wrapper of an empty value (`{"value": []}`).
 
 #### resource/coralogix_global_router
 - CHORE: The acceptance test compares imported `rules[*].targets` without their order, because the API returns them in no fixed order and an import has no prior order to keep.

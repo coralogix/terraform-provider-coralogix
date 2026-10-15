@@ -388,7 +388,7 @@ func expandFilter(ctx context.Context, p path.Path, m *FilterModel, diags *diag.
 	out.Labels = expandLabels(ctx, p.AtName("labels"), m.Labels, diags)
 	// No arm is set, so the request sends the empty Ids arm.
 	if out.Ids == nil && out.Labels == nil && !m.Ids.IsUnknown() {
-		out.Ids = wrapIds([]string{})
+		out.Ids = &suppressed_things_service.Ids{}
 	}
 	return out
 }
