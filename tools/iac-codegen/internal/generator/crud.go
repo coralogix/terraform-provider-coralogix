@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/sdkcheck"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
 
@@ -96,7 +97,7 @@ type crudOp struct {
 // Create, Get, and Update must return the resource. Delete must not have a
 // body.
 // buildCRUDWith is buildCRUD for a resource with a behavior-overrides file (nil for a new resource).
-func buildCRUDWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*crudData, error) {
+func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File) (*crudData, error) {
 	ix, err := indexRefs(refs)
 	if err != nil {
 		return nil, err
@@ -171,7 +172,7 @@ func resourceIDData(r *model.Resource, ix *refIndex, out *crudData) error {
 	if r.Singleton {
 		return nil
 	}
-	idGoType, err := valueType(r.IDType)
+	idGoType, err := sdkcheck.ValueType(r.IDType)
 	if err != nil {
 		return fmt.Errorf("resource id: %w", err)
 	}
@@ -191,9 +192,9 @@ func resourceIDData(r *model.Resource, ix *refIndex, out *crudData) error {
 		return err
 	}
 	if id.Want != "*"+idGoType && id.Want != idGoType {
-		return fmt.Errorf("SDK field %s has type %s, the id needs *%s or %s", id.sdkName(), id.Want, idGoType, idGoType)
+		return fmt.Errorf("SDK field %s has type %s, the id needs *%s or %s", id.SDKName(), id.Want, idGoType, idGoType)
 	}
-	out.IDAttr, out.IDField, out.IDValue = r.Policy.TerraformName(r.Name, r.ID()), id.Name, id.Want == idGoType
+	out.IDAttr, out.IDField, out.IDValue = terraformName(r.Policy, r.Name, r.ID()), id.Name, id.Want == idGoType
 	return nil
 }
 
@@ -202,7 +203,7 @@ func resourceIDData(r *model.Resource, ix *refIndex, out *crudData) error {
 // into the resource that the body wraps, whose id field resourceIDData checked, or into the
 // id field of the body itself.
 func updateIDFromState(r *model.Resource, ix *refIndex, out *crudData) error {
-	if serverSetBodyID(r) == nil {
+	if sdkcheck.ServerSetBodyID(r) == nil {
 		return nil
 	}
 	if wrapper := r.Policy.RequestWrapper; wrapper != "" {
@@ -274,7 +275,7 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string) (crudOp, err
 			return out, err
 		}
 		if field.Want != "*"+resource && field.Want != resource {
-			return out, fmt.Errorf("SDK field %s has type %s, want *%s", field.sdkName(), field.Want, resource)
+			return out, fmt.Errorf("SDK field %s has type %s, want *%s", field.SDKName(), field.Want, resource)
 		}
 		out.Response, out.ResponseValue = field.Name, field.Want == resource
 	}
@@ -296,7 +297,7 @@ func providerNames(ix *refIndex, client string, out *crudData) error {
 		return err
 	}
 	if want := "func() *" + ix.pkg.Name + "." + client; accessor.Want != want {
-		return fmt.Errorf("SDK method %s has type %s, want %s", accessor.sdkName(), accessor.Want, want)
+		return fmt.Errorf("SDK method %s has type %s, want %s", accessor.SDKName(), accessor.Want, want)
 	}
 	out.ProviderPkg, out.ProviderName = pkg.Pkg, pkg.Name
 	out.ClientSet, out.Accessor = clientSet.Name, accessor.Name
@@ -335,7 +336,7 @@ func updateOnlyAttrs(r *model.Resource, out *crudData) error {
 		if err != nil {
 			return fmt.Errorf("%s: server default: %w", f.Name, err)
 		}
-		out.UpdateOnly = append(out.UpdateOnly, updateOnlyAttr{Attr: r.Policy.TerraformName(r.Name, f.Name), Default: value})
+		out.UpdateOnly = append(out.UpdateOnly, updateOnlyAttr{Attr: terraformName(r.Policy, r.Name, f.Name), Default: value})
 	}
 	return nil
 }

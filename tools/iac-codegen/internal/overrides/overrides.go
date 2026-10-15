@@ -11,14 +11,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"maps"
 	"regexp"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
+	iacoverrides "github.com/coralogix/coralogix-management-sdk/iac/overrides"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -40,7 +40,7 @@ type File struct {
 	// Schema is the Terraform schema version and how old state is upgraded.
 	Schema Schema `yaml:"schema"`
 	// API describes the parts of the HTTP contract that differ from a new resource.
-	API API `yaml:"api"`
+	API iacoverrides.API `yaml:"api"`
 	// Validators says which validators the generated resource has.
 	Validators Validators `yaml:"validators"`
 	// Types has one entry per OpenAPI component.
@@ -173,54 +173,6 @@ type Validators struct {
 	RejectUnknown bool `yaml:"rejectUnknown"`
 }
 
-// API is the HTTP contract of a released resource.
-type API struct {
-	// RequestWrapper is the property of the Create and Update bodies that holds the resource.
-	RequestWrapper string `yaml:"requestWrapper"`
-	// UpdateIDInBody: Update has no id in its path. The id is a field of the resource.
-	UpdateIDInBody bool `yaml:"updateIDInBody"`
-	// ClientSetID: the client can send the id on Create.
-	ClientSetID bool `yaml:"clientSetID"`
-	// ServerSetID: the server sets the id and returns it in every response, but the Get
-	// response cannot require it, because the request shares the resource schema.
-	ServerSetID bool `yaml:"serverSetID"`
-	// IDProperty is the property of the resource that holds the id when it does not have the name
-	// of the path parameter, for example uniqueIdentifier for /rules/{rule_id}. "" means the
-	// property named like the path parameter.
-	IDProperty string `yaml:"idProperty"`
-	// CustomMethods: Get, Update, and Delete are not the Create path with an id.
-	// Get and Delete each have the same {id} path parameter on their own paths.
-	// Update has no path parameter, and the id stays in the body. New resources
-	// keep the stricter path rules.
-	CustomMethods bool `yaml:"customMethods"`
-	// Operations names the lifecycle operationIds when they do not end in
-	// _Create, _Get, _Update, or _Delete plus the resource name. Generate then
-	// needs no operation flags.
-	Operations *Operations `yaml:"operations"`
-	// Delete names the operation that removes the resource when the API has no DELETE.
-	Delete *Delete `yaml:"delete"`
-	// UpdateMaskInBody: PATCH updateMask is an optional JSON body property.
-	// The generated update sets it to the same changed-field mask a query
-	// parameter would send.
-	UpdateMaskInBody bool `yaml:"updateMaskInBody"`
-}
-
-// Operations names the four lifecycle operationIds. All four are required.
-type Operations struct {
-	Create string `yaml:"create"`
-	Get    string `yaml:"get"`
-	Update string `yaml:"update"`
-	Delete string `yaml:"delete"`
-}
-
-// Delete is how a released resource is removed when the API has no DELETE, for example a
-// POST /things/{id}/archive. It is an object, so that a later key can add a step before the call.
-type Delete struct {
-	// Operation is the operationId of a POST whose path is the Get path plus one segment. It
-	// takes the id path parameter of Get and no request body. Its response is ignored.
-	Operation string `yaml:"operation"`
-}
-
 // Type overrides one OpenAPI object component.
 type Type struct {
 	// Required: [] says that the object declares no required list and means
@@ -262,8 +214,9 @@ type ExtraAttribute struct {
 // Field overrides one field of an object. A field with a line keeps the released
 // behavior that the line states. A field without a line follows the contract.
 type Field struct {
-	// Skip: the resource does not manage the field. It is not sent and not stored.
-	Skip bool `yaml:"skip"`
+	// Field has the keys that describe the API: skip, readOnly, optional, createAs, collection,
+	// keyedBy, and unwrap.
+	iacoverrides.Field `yaml:",inline"`
 	// ValueNames shows a list or set of integers as the names of its values, for example the
 	// weekdays 1 to 7 as Sunday to Saturday. Terraform holds strings; the API holds the numbers.
 	ValueNames map[int64]string `yaml:"valueNames"`
@@ -283,26 +236,10 @@ type Field struct {
 	// string means that the released field had no description.
 	Description         *string `yaml:"description"`
 	MarkdownDescription *string `yaml:"markdownDescription"`
-	// ReadOnly: true says that the server sets the field, although the contract does not mark
-	// it readOnly yet. The field is read and stored, and never sent. Delete this key when the
-	// contract marks the field readOnly.
-	ReadOnly bool `yaml:"readOnly"`
 	// Required: true makes the Terraform attribute Required, although the contract does not
 	// require the field. The SDK type of the field does not change. Delete this key when the
 	// contract requires the field.
 	Required bool `yaml:"required"`
-	// Optional: true makes the Terraform attribute optional, although a request of the contract
-	// requires the field. The released resource lets the user leave it out, and the API accepts
-	// that, but the contract cannot say so: the request shares the component with a response
-	// that always has the field.
-	Optional bool `yaml:"optional"`
-	// CreateAs folds top-level Create fields into this object field: Create sends each
-	// property of the object as the top-level Create field it names, for example
-	// {limit: permutationsLimit}. Update and Get have the object itself.
-	CreateAs map[string]string `yaml:"createAs"`
-	// Collection: set shows an ordered list of the contract as a set, as the released resource
-	// does. The API keeps the order, but the order has no meaning.
-	Collection string `yaml:"collection"`
 	// Name is the Terraform attribute name of the field, when the released resource does not
 	// use the name derived from the JSON name (applications for applicationnameFilters).
 	Name string `yaml:"name"`
@@ -335,10 +272,6 @@ type Field struct {
 	// and Update send when that field is set, for a released resource that derives the value
 	// (type: logsQuery → E2M_TYPE_LOGS2METRICS). The field is not a Terraform attribute.
 	RequestValueBy map[string]string `yaml:"requestValueBy"`
-	// KeyedBy shows a list of objects as a map keyed by a string property of the object, for a
-	// released resource that has the map. With Value, the map value is that one property, and
-	// the object must have only the two.
-	KeyedBy *KeyedBy `yaml:"keyedBy"`
 	// KeepPriorOrder returns the list items in the order of the plan or state, because
 	// the API does not keep the order.
 	KeepPriorOrder bool `yaml:"keepPriorOrder"`
@@ -347,9 +280,6 @@ type Field struct {
 	// Equality: "yaml" or "json" compares a string field as a YAML or JSON document. The API
 	// returns the document normalized, so a change of format alone must not plan a change.
 	Equality string `yaml:"equality"`
-	// Unwrap: true shows the value inside the wrapper of the field, or of its items, in this
-	// place. false keeps the object of a component that the unwrap list names.
-	Unwrap *bool `yaml:"unwrap"`
 }
 
 // Equality values of a field line.
@@ -382,21 +312,6 @@ type Validator struct {
 	AtLeast *float64 `yaml:"atLeast"`
 	// RegexMatches is a released stringvalidator.RegexMatches with its message.
 	RegexMatches *RegexMatches `yaml:"regexMatches"`
-}
-
-// KeyedBy names the key property, and the value property, of a list of objects that a released
-// resource shows as a map.
-type KeyedBy struct {
-	Key   string `yaml:"key"`
-	Value string `yaml:"value"`
-	// Object shows the list as an object with one attribute per accepted value of the key, an
-	// enum with an enums line. The attribute name is the Terraform value of the enum value.
-	Object bool `yaml:"object"`
-	// Arms gives an enum value of the key the oneOf arm of the item that it holds. The other
-	// arms are not in its attribute, and the arm is required in it.
-	Arms map[string]string `yaml:"arms"`
-	// KeyAs is a string property of the item that expand sets to the attribute name.
-	KeyAs string `yaml:"keyAs"`
 }
 
 // RegexMatches is a released pattern validator of a string.
@@ -482,13 +397,13 @@ func (f *File) check() error {
 	if err := f.checkEnums(); err != nil {
 		return err
 	}
-	if err := f.checkUnwrap(); err != nil {
+	if err := iacoverrides.CheckUnwrap(f.Unwrap); err != nil {
 		return err
 	}
 	if err := f.checkGroups(); err != nil {
 		return err
 	}
-	if err := f.API.check(); err != nil {
+	if err := f.API.Check(); err != nil {
 		return err
 	}
 	return f.checkTypes()
@@ -529,26 +444,6 @@ func (f *File) checkTypes() error {
 				return fmt.Errorf("types.%s.extraAttributes.%s: the type already has a field override of that name", name, field)
 			}
 		}
-	}
-	return nil
-}
-
-// check checks that a Delete override names its operation, and that only one line names it.
-func (a API) check() error {
-	if a.ClientSetID && a.ServerSetID {
-		return errors.New("api.clientSetID and api.serverSetID both describe the id: keep the one that states who sets it")
-	}
-	if a.Delete != nil && a.Delete.Operation == "" {
-		return errors.New("api.delete.operation is required")
-	}
-	if a.Operations == nil {
-		return nil
-	}
-	if a.Operations.Create == "" || a.Operations.Get == "" || a.Operations.Update == "" || a.Operations.Delete == "" {
-		return errors.New("api.operations needs create, get, update, and delete")
-	}
-	if a.Delete != nil {
-		return errors.New("api.delete and api.operations both name the Delete operation: keep only api.operations.delete")
 	}
 	return nil
 }
@@ -613,19 +508,6 @@ func (f *File) checkEnums() error {
 				return fmt.Errorf("enums.%s: %q and %s have the same Terraform value %q", name, v, previous, tf)
 			}
 			seen[tf] = strconv.Quote(v)
-		}
-	}
-	return nil
-}
-
-// checkUnwrap checks that the unwrap list names each component once.
-func (f *File) checkUnwrap() error {
-	for i, name := range f.Unwrap {
-		if name == "" {
-			return fmt.Errorf("unwrap[%d] is empty", i)
-		}
-		if slices.Contains(f.Unwrap[:i], name) {
-			return fmt.Errorf("unwrap names %s twice", name)
 		}
 	}
 	return nil
@@ -741,11 +623,8 @@ func (l Field) check() error {
 	if l.Required && l.Optional {
 		return errors.New("set required or optional, not both")
 	}
-	if err := checkCreateAs(l.CreateAs); err != nil {
+	if err := l.Field.Check(); err != nil {
 		return err
-	}
-	if l.Collection != "" && l.Collection != "set" {
-		return fmt.Errorf("collection is %q, want set", l.Collection)
 	}
 	if l.Name != "" && !validAttrName.MatchString(l.Name) {
 		return fmt.Errorf("name %q is not a Terraform attribute name: lower case letters, digits, and _", l.Name)
@@ -786,18 +665,6 @@ func (l Field) checkConflicts() error {
 	}
 	if l.Skip && l.Fixed() {
 		return errors.New("requestValue sends the field, so skip cannot be set")
-	}
-	if l.KeyedBy != nil && (l.KeyedBy.Key == "" || l.KeyedBy.Key == l.KeyedBy.Value) {
-		return errors.New("keyedBy needs a key, and a value other than the key")
-	}
-	if k := l.KeyedBy; k != nil && k.Object && k.Value != "" {
-		return errors.New("keyedBy: object holds the whole item, so value cannot be set")
-	}
-	if k := l.KeyedBy; k != nil && !k.Object && (len(k.Arms) != 0 || k.KeyAs != "") {
-		return errors.New("keyedBy: arms and keyAs need object: true")
-	}
-	if l.KeyedBy != nil && l.Collection != "" {
-		return errors.New("keyedBy makes a map, so collection cannot be set")
 	}
 	if l.RequestValue != "" && len(l.RequestValueBy) != 0 {
 		return errors.New("requestValue and requestValueBy cannot both be set")
@@ -906,98 +773,44 @@ func checkValidators(validators []Validator) error {
 	return nil
 }
 
-// Policy returns the rule set for the model.
+// Policy returns the rule set for the model: the rules that the API keys state, and the
+// exceptions that the Terraform keys cover.
 func (f *File) Policy() model.Policy {
-	p := model.Policy{
-		Existing:         true,
-		RequestWrapper:   f.API.RequestWrapper,
-		UpdateIDInBody:   f.API.UpdateIDInBody,
-		ClientSetID:      f.API.ClientSetID,
-		ServerSetID:      f.API.ServerSetID,
-		IDProperty:       f.API.IDProperty,
-		CustomMethods:    f.API.CustomMethods,
-		UpdateMaskInBody: f.API.UpdateMaskInBody,
-		// Parse checked that the file states validators.inferred.
-		NoInferredValidators: !*f.Validators.Inferred,
-		RejectUnknown:        f.Validators.RejectUnknown,
-	}
-	if f.API.Operations != nil {
-		p.Operations = model.OperationIDs{
-			Create: f.API.Operations.Create,
-			Get:    f.API.Operations.Get,
-			Update: f.API.Operations.Update,
-			Delete: f.API.Operations.Delete,
-		}
-	}
-	if f.API.Delete != nil {
-		p.DeleteOperation = f.API.Delete.Operation
-	}
+	p := f.Exceptions().Policy()
 	p.EnumAnyPrefix = append(p.EnumAnyPrefix, sortedKeys(f.Enums)...)
-	p.Unwrap = slices.Clone(f.Unwrap)
 	for _, name := range sortedKeys(f.Types) {
 		t := f.Types[name]
 		for _, field := range sortedKeys(t.Fields) {
-			if on := t.Fields[field].Unwrap; on != nil {
-				if p.UnwrapFields == nil {
-					p.UnwrapFields = map[string]bool{}
-				}
-				p.UnwrapFields[name+"."+field] = *on
-			}
-			if t.Fields[field].Skip {
-				p.Skip = append(p.Skip, name+"."+field)
-			}
-			if t.Fields[field].Fixed() {
+			line := t.Fields[field]
+			if line.Fixed() {
 				p.FixedRequest = append(p.FixedRequest, name+"."+field)
 			}
-			if t.Fields[field].ReadOnly {
-				p.ReadOnly = append(p.ReadOnly, name+"."+field)
-			}
-			if t.Fields[field].Optional {
-				p.Optional = append(p.Optional, name+"."+field)
-			}
-			if c := t.Fields[field].Computed; c != nil && *c {
+			if c := line.Computed; c != nil && *c {
 				p.Computed = append(p.Computed, name+"."+field)
 			}
-			if t.Fields[field].UseStateForUnknown || t.Fields[field].UseNonNullStateForUnknown {
+			if line.UseStateForUnknown || line.UseNonNullStateForUnknown {
 				p.KeepState = append(p.KeepState, name+"."+field)
 			}
-			if t.Fields[field].Collection == "set" {
-				p.Sets = append(p.Sets, name+"."+field)
-			}
-			if k := t.Fields[field].KeyedBy; k != nil {
-				if p.KeyedBy == nil {
-					p.KeyedBy = map[string]model.KeyedLine{}
-				}
-				p.KeyedBy[name+"."+field] = model.KeyedLine{Key: k.Key, Value: k.Value, Object: k.Object, Arms: maps.Clone(k.Arms), KeyAs: k.KeyAs}
-			}
-			if n := t.Fields[field].Name; n != "" {
+			if n := line.Name; n != "" {
 				if p.Names == nil {
 					p.Names = map[string]string{}
 				}
 				p.Names[name+"."+field] = n
 			}
-			if tt := t.Fields[field].TerraformType; tt != "" {
-				if p.TerraformTypes == nil {
-					p.TerraformTypes = map[string]string{}
-				}
-				p.TerraformTypes[name+"."+field] = tt
+			if line.TerraformType == "Int64" {
+				p.Int64 = append(p.Int64, name+"."+field)
 			}
-			if t.Fields[field].AsBool {
+			if line.AsBool {
 				p.Bools = append(p.Bools, name+"."+field)
 			}
-			if t.Fields[field].DefaultArm {
+			if line.DefaultArm {
 				p.DefaultArms = append(p.DefaultArms, name+"."+field)
 			}
-			if into := t.Fields[field].CreateAs; len(into) != 0 {
-				if p.CreateAs == nil {
-					p.CreateAs = map[string]map[string]string{}
-				}
-				p.CreateAs[name+"."+field] = maps.Clone(into)
-			}
-			if t.Fields[field].statesPresence() {
+			// Exceptions.Policy already lists a skipped or readOnly field.
+			if line.statesPresence() && !line.Skip && !line.ReadOnly {
 				p.Released = append(p.Released, name+"."+field)
 			}
-			if t.Fields[field].replacesServerDefault() {
+			if line.replacesServerDefault() {
 				p.Defaults = append(p.Defaults, name+"."+field)
 			}
 		}
@@ -1008,10 +821,27 @@ func (f *File) Policy() model.Policy {
 			if p.EnumValues == nil {
 				p.EnumValues = map[string][]model.EnumValue{}
 			}
-			p.EnumValues[name] = append(p.EnumValues[name], model.EnumValue{API: v, TF: e.TFValue(v)})
+			p.EnumValues[name] = append(p.EnumValues[name], model.EnumValue{API: v, Name: e.TFValue(v)})
 		}
 	}
 	return p
+}
+
+// Exceptions returns the keys of the file that describe the API.
+func (f *File) Exceptions() iacoverrides.Exceptions {
+	e := iacoverrides.Exceptions{API: f.API, Unwrap: f.Unwrap}
+	for name, t := range f.Types {
+		for field, line := range t.Fields {
+			if e.Fields == nil {
+				e.Fields = map[string]map[string]iacoverrides.Field{}
+			}
+			if e.Fields[name] == nil {
+				e.Fields[name] = map[string]iacoverrides.Field{}
+			}
+			e.Fields[name][field] = line.Field
+		}
+	}
+	return e
 }
 
 // Lines returns one description per line of the file that the contract must match,
@@ -1081,7 +911,7 @@ type Line struct {
 	// RequestValueBy is, for a field line, the API value sent for each object field that is set.
 	RequestValueBy map[string]string
 	// KeyedBy is, for a field line, the key and value properties of a list shown as a map.
-	KeyedBy *KeyedBy
+	KeyedBy *iacoverrides.KeyedBy
 	// Accepted are, for a keyedBy object line, the accepted values of each enum that has an enums
 	// line, with their Terraform values: the attributes that the object can have.
 	Accepted map[string]map[string]string
@@ -1115,25 +945,9 @@ func sortedKeys[V any](m map[string]V) []string {
 
 var validAttrName = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
-// checkCreateAs checks a createAs map: each property names one Create field, and no two
-// properties name the same one.
-func checkCreateAs(into map[string]string) error {
-	seen := map[string]bool{}
-	for nested, flat := range into {
-		if nested == "" || flat == "" {
-			return errors.New("createAs maps a property to a Create field; neither can be empty")
-		}
-		if seen[flat] {
-			return fmt.Errorf("createAs names the Create field %q twice", flat)
-		}
-		seen[flat] = true
-	}
-	return nil
-}
-
 // accepted returns the accepted values of each enum that has an enums line, for a keyedBy object
 // line, and nil for any other line.
-func (f *File) accepted(k *KeyedBy) map[string]map[string]string {
+func (f *File) accepted(k *iacoverrides.KeyedBy) map[string]map[string]string {
 	if k == nil || !k.Object {
 		return nil
 	}

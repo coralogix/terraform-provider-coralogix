@@ -14,9 +14,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/source"
+	"github.com/coralogix/coralogix-management-sdk/iac/issue"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/source"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
 )
 
@@ -25,7 +25,7 @@ var updateGolden = flag.Bool("update", false, "replace the committed golden outp
 // The golden output of a resource that users already have. It uses every key of the
 // behavior-overrides file.
 func TestGoldenOutputExistingResource(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "legacy.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "legacy.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -231,7 +231,7 @@ func TestSharedBodyRuntimeSemantics(t *testing.T) {
 // generateSharedThing generates the synthetic resource whose Create and Update share one body.
 func generateSharedThing(t *testing.T) string {
 	t.Helper()
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "sharedthing.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "sharedthing.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -248,7 +248,7 @@ func generateSharedThing(t *testing.T) string {
 // generateCustomThing generates the synthetic resource with custom-method operations.
 func generateCustomThing(t *testing.T) string {
 	t.Helper()
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "customthing.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "customthing.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,7 +265,7 @@ func generateCustomThing(t *testing.T) string {
 // generateWrapThing generates the synthetic resource whose API holds values in wrapper objects.
 func generateWrapThing(t *testing.T) string {
 	t.Helper()
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "wrapthing.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "wrapthing.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -928,7 +928,7 @@ func TestCheckRejectsMissingSchemasWithoutPanic(t *testing.T) {
 	}
 	for name, spec := range tests {
 		t.Run(name, func(t *testing.T) {
-			_, err := validateOpenAPI([]byte(spec), "Thing", model.OperationIDs{}, input.SDKModule, input.ProviderModule)
+			_, err := validateOpenAPI([]byte(spec), "Thing", model.OperationIDs{}, input.SDKModule, input.Module)
 			var eligibility *EligibilityError
 			if !errors.As(err, &eligibility) || len(eligibility.Report) == 0 {
 				t.Fatalf("error = %v, want a structured eligibility report", err)
@@ -1131,6 +1131,16 @@ func TestExistingNonGeneratedDirectoryIsRejected(t *testing.T) {
 	}
 }
 
+// assertFragments reports each fragment that the generated file does not contain.
+func assertFragments(t *testing.T, file string, data []byte, contract string, fragments ...string) {
+	t.Helper()
+	for _, fragment := range fragments {
+		if !bytes.Contains(data, []byte(fragment)) {
+			t.Errorf("%s lacks %s contract fragment %q", file, contract, fragment)
+		}
+	}
+}
+
 func TestGeneratedPresenceCollectionAndUpdateContract(t *testing.T) {
 	convert, err := os.ReadFile(filepath.Join("testdata", "golden", "thing", "convert.go"))
 	if err != nil {
@@ -1140,7 +1150,7 @@ func TestGeneratedPresenceCollectionAndUpdateContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, fragment := range []string{
+	assertFragments(t, "convert.go", convert, "semantic",
 		"if v.IsNull() || v.IsUnknown() {\n\t\treturn nil",
 		"b := v.ValueBool()\n\treturn &b",
 		"s := v.ValueString()\n\treturn &s",
@@ -1148,36 +1158,24 @@ func TestGeneratedPresenceCollectionAndUpdateContract(t *testing.T) {
 		"types.ListNull(types.StringType)",
 		"types.SetNull(types.StringType)",
 		"types.MapNull(types.StringType)",
-	} {
-		if !bytes.Contains(convert, []byte(fragment)) {
-			t.Errorf("convert.go lacks semantic contract fragment %q", fragment)
-		}
-	}
-	for _, fragment := range []string{
+	)
+	assertFragments(t, "mask.go", mask, "update",
 		"if p.Equal(s)",
 		"return append(mask, at)",
 		"pArm == nil:\n\t\treturn append(mask, at+\".\"+sArm.api)",
 		"if diags.HasError() || len(mask) == 0",
-	} {
-		if !bytes.Contains(mask, []byte(fragment)) {
-			t.Errorf("mask.go lacks update contract fragment %q", fragment)
-		}
-	}
+	)
 	resource, err := os.ReadFile(filepath.Join("testdata", "golden", "thing", "resource.go"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, fragment := range []string{
+	assertFragments(t, "resource.go", resource, "runtime",
 		`req.ProviderData.(*clientset.ClientSet)`,
 		`if cxsdk.IsNotFound(err) {`,
 		`resp.Diagnostics.AddWarning("Resource disappeared during read"`,
 		`resp.Diagnostics.AddError("Resource no longer exists"`,
 		`resp.State.RemoveResource(ctx)`,
-	} {
-		if !bytes.Contains(resource, []byte(fragment)) {
-			t.Errorf("resource.go lacks runtime contract fragment %q", fragment)
-		}
-	}
+	)
 	// The framework fails an Update that removes the resource from state.
 	start := bytes.Index(resource, []byte("func (r *Resource) Update("))
 	end := bytes.Index(resource[start+1:], []byte("\nfunc "))
@@ -1364,7 +1362,7 @@ func TestGeneratedRuntimeSemantics(t *testing.T) {
 // existing-resource output must also compile, for example with an import for
 // the static default of a nested attribute.
 func TestExistingResourceOutputCompiles(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "legacy.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "legacy.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1456,7 +1454,7 @@ func TestWrappedValuesRuntimeSemantics(t *testing.T) {
 // Terraform attribute. Create and Update must not read it. Reading a missing
 // attribute fails every Create and every Update.
 func TestWritableRequestValueIsNotChecked(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "customthing.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "customthing.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1537,7 +1535,7 @@ go 1.26.0
 
 replace example.com/iac-test-sdk => %s
 replace github.com/coralogix/terraform-provider-coralogix => %s
-`, input.SDKDir, input.ProviderRoot)
+`, input.SDKDir, input.ModuleRoot)
 	if err := os.WriteFile(filepath.Join(out, "go.mod"), []byte(module), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -1609,7 +1607,7 @@ func TestOptionalSDKValuesNeedPointers(t *testing.T) {
 
 func TestProviderClientAccessorMustMatchSDKClient(t *testing.T) {
 	input, loadDir := copiedSyntheticInput(t)
-	path := filepath.Join(input.ProviderRoot, "internal", "clientset", "clientset.go")
+	path := filepath.Join(input.ModuleRoot, "internal", "clientset", "clientset.go")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -1686,28 +1684,6 @@ func TestMaskPatternContract(t *testing.T) {
 	}
 }
 
-func TestSDKLoadingIsOffline(t *testing.T) {
-	t.Setenv("GOPROXY", "https://proxy.invalid")
-	t.Setenv("GOSUMDB", "sum.invalid")
-	env := offlineGoEnv()
-	if got := environmentValue(env, "GOPROXY"); got != "off" {
-		t.Fatalf("GOPROXY = %q, want off", got)
-	}
-	if got := environmentValue(env, "GOSUMDB"); got != "off" {
-		t.Fatalf("GOSUMDB = %q, want off", got)
-	}
-}
-
-func environmentValue(env []string, name string) string {
-	prefix := name + "="
-	for _, item := range env {
-		if strings.HasPrefix(item, prefix) {
-			return strings.TrimPrefix(item, prefix)
-		}
-	}
-	return ""
-}
-
 func syntheticInput(t *testing.T) (source.Input, string) {
 	t.Helper()
 	data, err := os.ReadFile(filepath.Join("testdata", "openapi.yaml"))
@@ -1722,7 +1698,7 @@ func syntheticInput(t *testing.T) (source.Input, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return source.Input{ProviderRoot: providerDir, ProviderModule: source.ProviderModule, SDKDir: sdkDir, SDKModule: "example.com/iac-test-sdk", OpenAPI: data}, providerDir
+	return source.Input{ModuleRoot: providerDir, Module: providerModulePath, SDKDir: sdkDir, SDKModule: "example.com/iac-test-sdk", OpenAPI: data}, providerDir
 }
 
 func copiedSyntheticInput(t *testing.T) (source.Input, string) {
@@ -1734,11 +1710,11 @@ func copiedSyntheticInput(t *testing.T) (source.Input, string) {
 	if err := copyTree(input.SDKDir, sdkDir); err != nil {
 		t.Fatal(err)
 	}
-	if err := copyTree(input.ProviderRoot, providerDir); err != nil {
+	if err := copyTree(input.ModuleRoot, providerDir); err != nil {
 		t.Fatal(err)
 	}
 	input.SDKDir = sdkDir
-	input.ProviderRoot = providerDir
+	input.ModuleRoot = providerDir
 	return input, providerDir
 }
 
@@ -1932,7 +1908,7 @@ func TestImmutableValueRejectsOptionalComputedOverride(t *testing.T) {
 // Without a skip line, the id is a computed attribute: flatten reads it, expand does not send
 // it, and the output compiles against the SDK struct that has the field.
 func TestSharedComponentReadOnlyFieldIsFlattenedOnly(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "legacy.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "legacy.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2009,20 +1985,6 @@ func TestFollowUpUpdateSendsTheServerSetID(t *testing.T) {
 	compileGenerated(t, out, input)
 }
 
-// openapi-generator puts "_" between a digit and the letter after it in the constant of an enum
-// value, and keeps the type name as one word.
-func TestEnumConstName(t *testing.T) {
-	for _, test := range []struct{ typ, value, want string }{
-		{"E2MType", "E2M_TYPE_LOGS2METRICS", "E2MTYPE_E2_M_TYPE_LOGS2_METRICS"},
-		{"Logs2metricsV2Severity", "SEVERITY_DEBUG", "LOGS2METRICSV2SEVERITY_SEVERITY_DEBUG"},
-		{"ThingKind", "THING_KIND_P5_OR_UNSPECIFIED", "THINGKIND_THING_KIND_P5_OR_UNSPECIFIED"},
-	} {
-		if got := enumConstName(test.typ, test.value); got != test.want {
-			t.Errorf("enumConstName(%q, %q) = %q, want %q", test.typ, test.value, got, test.want)
-		}
-	}
-}
-
 // The golden output of a resource whose id property has another name than the path parameter,
 // and whose released attributes have other names than the API.
 func TestGoldenOutputIDPropertyAndNames(t *testing.T) {
@@ -2080,7 +2042,7 @@ func TestIDPropertyRuntimeSemantics(t *testing.T) {
 // a server default. edit changes the behavior-overrides file.
 func generateSharedWithUpdateOnly(t *testing.T, edit func(string) string) (string, source.Input) {
 	t.Helper()
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "sharedthing.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "sharedthing.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}

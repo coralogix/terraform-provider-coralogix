@@ -8,9 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/source"
+	"github.com/coralogix/coralogix-management-sdk/iac/issue"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/sdkcheck"
+	"github.com/coralogix/coralogix-management-sdk/iac/source"
 )
 
 const archiveOperation = "ArchivedThingsService_ArchiveArchivedThing"
@@ -73,7 +74,7 @@ func TestDeleteOverrideAcceptsAnArchiveCall(t *testing.T) {
 		t.Fatalf("delete = %+v, want the archive operation", del)
 	}
 	for _, ref := range validated.refs {
-		if ref.Path == "delete" && ref.Kind == kindMethod && ref.Name == "ArchivedThingsServiceArchiveArchivedThing" {
+		if ref.Path == "delete" && ref.Kind == sdkcheck.KindMethod && ref.Name == "ArchivedThingsServiceArchiveArchivedThing" {
 			return
 		}
 	}

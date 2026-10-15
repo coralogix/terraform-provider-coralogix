@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
 )
 
 const valid = `
@@ -42,8 +42,6 @@ func TestParseAndPolicy(t *testing.T) {
 		EnumAnyPrefix:  []string{"Kind"},
 		Skip:           []string{"Target.id"},
 		Released:       []string{"Target.id"},
-
-		NoInferredValidators: true,
 	}
 	if got := f.Policy(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("policy = %+v, want %+v", got, want)
@@ -138,12 +136,6 @@ func TestNameAndIDPropertyPolicy(t *testing.T) {
 	if !reflect.DeepEqual(p.Names, want) {
 		t.Fatalf("Names = %v, want %v", p.Names, want)
 	}
-	if got := p.TerraformName("R", "scheduleOperation"); got != "operation" {
-		t.Fatalf("TerraformName = %q, want operation", got)
-	}
-	if got := p.TerraformName("Other", "scheduleOperation"); got != "schedule_operation" {
-		t.Fatalf("TerraformName of another component = %q, want schedule_operation", got)
-	}
 	if slices.Contains(p.Released, "R.scheduleOperation") {
 		t.Fatal("a name line states no presence: the field must still follow the contract")
 	}
@@ -170,8 +162,8 @@ func TestInferredValidatorsOfAnUnreleasedResource(t *testing.T) {
 		if err != nil {
 			t.Fatalf("inferred %t: %v", inferred, err)
 		}
-		if got := file.Policy().NoInferredValidators; got != !inferred {
-			t.Fatalf("inferred %t: NoInferredValidators = %t", inferred, got)
+		if got := *file.Validators.Inferred; got != inferred {
+			t.Fatalf("inferred %t: Validators.Inferred = %t", inferred, got)
 		}
 	}
 }
@@ -357,8 +349,8 @@ func TestRejectUnknownOfAnUnreleasedResource(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := file.Policy().RejectUnknown; got != reject {
-			t.Fatalf("rejectUnknown %t: Policy().RejectUnknown = %t", reject, got)
+		if got := file.Validators.RejectUnknown; got != reject {
+			t.Fatalf("rejectUnknown %t: Validators.RejectUnknown = %t", reject, got)
 		}
 	}
 }
