@@ -961,12 +961,15 @@ func TestAsBoolNeedsAnEmptyObject(t *testing.T) {
 	}
 }
 
-// defaultArm marks one arm of a oneOf group in a nested object.
+// defaultArm marks one arm of a oneOf group in a nested object: a wrapped list of strings that
+// reads empty as null. An object arm would read back as an object of nulls where the plan has null.
 func TestDefaultArmErrors(t *testing.T) {
 	tests := map[string]struct{ from, to, want string }{
 		"two arms of one group": {"ids: {defaultArm: true, readEmptyAs: \"null\"}", "ids: {defaultArm: true, readEmptyAs: \"null\"}\n      labels: {defaultArm: true}", "ids and labels are arms of one group"},
 		"no arm":                {"timezone: {name: time_zone}", "timezone: {name: time_zone, defaultArm: true}", "timezone is no oneOf arm"},
 		"top level":             {"window: {name: time_frame}", "window: {name: time_frame, defaultArm: true}", "nested object only"},
+		"object arm":            {"ids: {defaultArm: true, readEmptyAs: \"null\"}", "ids: {readEmptyAs: \"null\"}\n      labels: {defaultArm: true}", "defaultArm needs a list of strings in wrapper objects"},
+		"empty list not null":   {"ids: {defaultArm: true, readEmptyAs: \"null\"}", "ids: {defaultArm: true}", "defaultArm needs a list of strings in wrapper objects"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

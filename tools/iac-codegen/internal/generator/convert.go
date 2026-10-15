@@ -1406,7 +1406,7 @@ func (b *convBuilder) defaultArms(component string, t *model.Type, fields []*con
 			return nil, fmt.Errorf("defaultArm %s: an arm in a group of the behavior-overrides file is not supported", arm)
 		}
 		cf := byName[arm]
-		value, err := emptyArm(b.qualify, cf)
+		value, err := emptyArm(cf)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", cf.TFName, err)
 		}
@@ -1426,27 +1426,20 @@ func (b *convBuilder) defaultArms(component string, t *model.Type, fields []*con
 	return out, nil
 }
 
-// emptyArm returns the Go expression of an empty value of the arm f: an empty object, or a
-// wrapper that holds an empty value.
-func emptyArm(qualify func(string) string, f *convField) (string, error) {
-	switch {
-	case f.Wrap != nil:
-		// An empty arm is an empty outer wrapper ({}), not a wrapper of an empty value
-		// ({"value": []}), as the released resources send it.
-		if rest, ok := strings.CutPrefix(f.Wrap.Outer, "*"); ok {
-			return "&" + rest + "{}", nil
-		}
-		inner := f.Wrap.Inner
-		if rest, ok := strings.CutPrefix(inner, "*"); ok {
-			return f.Wrap.ExpandOf("&" + rest + "{}"), nil
-		}
-		return f.Wrap.ExpandOf(inner + "{}"), nil
-	case f.Conv == convObj && !f.Value:
-		return "&" + qualify(f.Object.SDK) + "{}", nil
-	case f.Conv == convEmpty:
-		return "map[string]interface{}{}", nil
+// emptyArm returns the Go expression of the empty arm f: the empty outer wrapper ({}), not a
+// wrapper of an empty value ({"value": []}), as the released resources send it. f must be a list
+// of strings in wrapper objects that reads empty as null, so the empty arm reads back as the null
+// that the plan has. An empty object arm reads back as an object of nulls, which no plan has.
+func emptyArm(f *convField) (string, error) {
+	var rest string
+	ok := false
+	if f.Wrap != nil {
+		rest, ok = strings.CutPrefix(f.Wrap.Outer, "*")
 	}
-	return "", errors.New("defaultArm needs an object arm or a value in wrapper objects")
+	if !ok || f.Conv != convStrings || !f.ReadEmptyAsNull {
+		return "", errors.New(`defaultArm needs a list of strings in wrapper objects with readEmptyAs: "null", which reads the empty arm back as null`)
+	}
+	return "&" + rest + "{}", nil
 }
 
 // injectReadOnly adds the response fields that the request type omitted

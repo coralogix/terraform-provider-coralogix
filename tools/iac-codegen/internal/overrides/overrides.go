@@ -276,7 +276,8 @@ type Field struct {
 	TerraformType string `yaml:"terraformType"`
 	// DefaultArm: when the configuration sets no arm of the oneOf group of this arm, Create and
 	// Update send this arm empty. The group then allows no arm in Terraform, for an API that
-	// requires an arm and reads an empty one as "all", for example alertUniqueIds: {}.
+	// requires an arm and reads an empty one as "all", for example alertUniqueIds: {}. The arm
+	// must be a list of strings in wrapper objects with readEmptyAs: "null".
 	DefaultArm bool `yaml:"defaultArm"`
 	// Description and MarkdownDescription are the released texts of the docs. An empty
 	// string means that the released field had no description.
