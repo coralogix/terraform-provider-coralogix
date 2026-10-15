@@ -304,6 +304,7 @@
             "description": "",
             "enabled": true,
             "filter": {
+              "alertUniqueIds": {},
               "whatExpression": "source logs | filter true"
             },
             "name": "full",

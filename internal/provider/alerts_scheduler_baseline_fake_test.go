@@ -124,7 +124,9 @@ func (f *asFake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_ = json.Unmarshal(raw, &rec.Body)
 	}
 	status, body := f.handle(r.Method, r.URL.Path, rec.Body)
-	rec.Body = dropEmptyCollections(rec.Body)
+	// The raw body: in this API an empty object selects a oneOf arm ("daily": {}), and an empty
+	// wrapper ("alertUniqueIds": {}) differs on the wire from one with an empty list.
+	rec.Body = rawRequestBody(raw)
 	rec.Status = status
 	f.requests = append(f.requests, rec)
 
@@ -408,4 +410,15 @@ func asLocal(s, tz string) string {
 		}
 	}
 	return s
+}
+
+// rawRequestBody decodes the request body again, so the recording shows what the provider sent,
+// not what the fake changed while it handled the request.
+func rawRequestBody(raw []byte) any {
+	if len(raw) == 0 {
+		return nil
+	}
+	var v any
+	_ = json.Unmarshal(raw, &v)
+	return v
 }

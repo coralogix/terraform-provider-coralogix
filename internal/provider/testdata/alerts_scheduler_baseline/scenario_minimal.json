@@ -42,10 +42,14 @@
             "description": "",
             "enabled": true,
             "filter": {
+              "alertUniqueIds": {},
               "whatExpression": "source logs | filter true"
             },
             "name": "minimal",
             "schedule": {
+              "recurring": {
+                "alwaysActive": {}
+              },
               "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
             }
           }

@@ -43,10 +43,16 @@
             "description": "",
             "enabled": true,
             "filter": {
+              "alertUniqueIds": {
+                "value": []
+              },
               "whatExpression": "source logs | filter true"
             },
             "name": "empty-ids",
             "schedule": {
+              "recurring": {
+                "alwaysActive": {}
+              },
               "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
             }
           }

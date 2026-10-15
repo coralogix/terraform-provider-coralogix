@@ -16,12 +16,14 @@ package provider
 
 import (
 	"context"
+	"maps"
 	"slices"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils/schemadump"
 )
 
@@ -36,9 +38,30 @@ const (
 //	UPDATE_GOLDEN=1 go test ./internal/provider -run TestAlertsSchedulerBaseline
 
 func TestAlertsSchedulerBaselineSchema(t *testing.T) {
-	var current resource.SchemaResponse
-	alerts.NewAlertsSchedulerResource().Schema(context.Background(), resource.SchemaRequest{}, &current)
-	checkGoldenAt(t, asGoldenDir, "schema_current.txt", []byte(schemadump.Text(current.Schema)))
+	checkGoldenAt(t, asGoldenDir, "schema_current.txt", []byte(schemadump.Text(registeredResourceSchema(t, asTypeName))))
+}
+
+// registeredResourceSchema returns the schema of the resource that the provider registers as
+// typeName, so the dump follows the constructor that Terraform gets, not a fixed one.
+func registeredResourceSchema(t *testing.T, typeName string) schema.Schema {
+	t.Helper()
+	ctx := context.Background()
+	p := NewCoralogixProvider()
+	var meta provider.MetadataResponse
+	p.Metadata(ctx, provider.MetadataRequest{}, &meta)
+	for _, newResource := range p.Resources(ctx) {
+		r := newResource()
+		var md resource.MetadataResponse
+		r.Metadata(ctx, resource.MetadataRequest{ProviderTypeName: meta.TypeName}, &md)
+		if md.TypeName != typeName {
+			continue
+		}
+		var current resource.SchemaResponse
+		r.Schema(ctx, resource.SchemaRequest{}, &current)
+		return current.Schema
+	}
+	t.Fatalf("the provider registers no %s", typeName)
+	return schema.Schema{}
 }
 
 func TestAlertsSchedulerBaselineScenarios(t *testing.T) {
@@ -166,6 +189,26 @@ var asScenarios = map[string]func(h *grHarness){
 		h.Apply("update: duration instead of end_time", s, asRule("once", j{"operation": "mute", "one_time": j{
 			"time_frame": asTimeFrame(j{"time_zone": "UTC"}),
 		}}))
+	},
+
+	"schedule-branch-switch": func(h *grHarness) {
+		oneTime := asRule("switch", j{"operation": "mute", "one_time": j{"time_frame": asTimeFrame(nil)}})
+		s := h.Apply("create one_time", h.null(), oneTime)
+		s = h.Apply("update: recurring", s, asRule("switch", j{"operation": "mute", "recurring": j{"dynamic": j{
+			"repeat_every": float64(1), "frequency": j{"weekly": j{"days": l{"Monday"}}}, "time_frame": asTimeFrame(nil),
+		}}}))
+		h.Apply("update: one_time again", s, oneTime)
+	},
+
+	"recurring-unset-termination-date": func(h *grHarness) {
+		dyn := func(extra j) j {
+			d := j{"repeat_every": float64(1), "frequency": j{"weekly": j{"days": l{"Tuesday"}}}, "time_frame": asTimeFrame(nil)}
+			maps.Copy(d, extra)
+			return j{"operation": "mute", "recurring": j{"dynamic": d}}
+		}
+		s := h.Apply("create with termination_date", h.null(), asRule("term", dyn(j{"termination_date": "2031-01-01T00:00:00.000"})))
+		s = h.Refresh("refresh", s)
+		h.Apply("update: remove termination_date", s, asRule("term", dyn(nil)))
 	},
 
 	"schedule-start-time-formats": func(h *grHarness) {

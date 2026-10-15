@@ -42,10 +42,14 @@
             "description": "",
             "enabled": true,
             "filter": {
+              "alertUniqueIds": {},
               "whatExpression": "source logs | filter true"
             },
             "name": "gone",
             "schedule": {
+              "recurring": {
+                "alwaysActive": {}
+              },
               "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
             }
           }
@@ -119,10 +123,14 @@
             "description": "changed",
             "enabled": true,
             "filter": {
+              "alertUniqueIds": {},
               "whatExpression": "source logs | filter true"
             },
             "name": "gone",
             "schedule": {
+              "recurring": {
+                "alwaysActive": {}
+              },
               "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
             },
             "uniqueIdentifier": "00000000-0000-4000-8000-000000000001"

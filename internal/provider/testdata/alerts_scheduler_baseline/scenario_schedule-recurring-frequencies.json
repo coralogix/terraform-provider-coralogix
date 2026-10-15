@@ -72,12 +72,14 @@
             "description": "",
             "enabled": true,
             "filter": {
+              "alertUniqueIds": {},
               "whatExpression": "source logs | filter true"
             },
             "name": "freq",
             "schedule": {
               "recurring": {
                 "schedule": {
+                  "daily": {},
                   "repeatEvery": 1,
                   "terminationDate": "",
                   "timeframe": {
@@ -273,6 +275,7 @@
             "description": "",
             "enabled": true,
             "filter": {
+              "alertUniqueIds": {},
               "whatExpression": "source logs | filter true"
             },
             "name": "freq",
@@ -437,6 +440,7 @@
             "description": "",
             "enabled": true,
             "filter": {
+              "alertUniqueIds": {},
               "whatExpression": "source logs | filter true"
             },
             "name": "freq",
@@ -561,10 +565,14 @@
             "description": "",
             "enabled": true,
             "filter": {
+              "alertUniqueIds": {},
               "whatExpression": "source logs | filter true"
             },
             "name": "freq",
             "schedule": {
+              "recurring": {
+                "alwaysActive": {}
+              },
               "scheduleOperation": "SCHEDULE_OPERATION_MUTE"
             },
             "uniqueIdentifier": "00000000-0000-4000-8000-000000000001"

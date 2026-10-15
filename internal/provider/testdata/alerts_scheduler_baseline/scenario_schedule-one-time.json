@@ -50,6 +50,7 @@
             "description": "",
             "enabled": true,
             "filter": {
+              "alertUniqueIds": {},
               "whatExpression": "source logs | filter true"
             },
             "name": "once",
@@ -185,6 +186,7 @@
             "description": "",
             "enabled": true,
             "filter": {
+              "alertUniqueIds": {},
               "whatExpression": "source logs | filter true"
             },
             "name": "once",
