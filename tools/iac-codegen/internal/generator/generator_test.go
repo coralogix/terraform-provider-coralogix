@@ -85,6 +85,42 @@ func generateArchivedThing(t *testing.T) string {
 	return out
 }
 
+// The golden output of a resource whose responses wrap it in allOf, whose Replace sends the
+// required server-set id in its body, and whose Replace echoes a server time and an internal
+// flag that the resource skips.
+func TestGoldenOutputEchoedValues(t *testing.T) {
+	out := generateEchoThing(t)
+	golden := filepath.Join("testdata", "golden", "echothing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputEchoedValues -update:\n%s", diff)
+	}
+}
+
+// generateEchoThing generates the synthetic resource whose Replace echoes server values.
+func generateEchoThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "echoed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "echothing")
+	options := Options{Resource: "EchoThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "echoed-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
 // The golden output of a resource with string fields that hold documents: a JSON field, and a
 // YAML field in a list of objects. A change of format alone plans no change.
 func TestGoldenOutputDocumentEquality(t *testing.T) {
@@ -1464,6 +1500,21 @@ func TestCustomMethodsRuntimeSemantics(t *testing.T) {
 	compileGenerated(t, out, input)
 }
 
+// The generated Replace sends the id from state in its body, and Read takes the resource from a
+// response field that holds it as a value.
+func TestEchoedValuesRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateEchoThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "echothing_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
 // The generated resource with document fields compares them as documents in its plan and its
 // flatten, and plans no change when only the format of a document changes.
 func TestDocumentEqualityRuntimeSemantics(t *testing.T) {
@@ -2132,5 +2183,19 @@ func TestBodyUpdateMaskRejectsARequiredReplacedField(t *testing.T) {
 	_, err := generateBodyMaskResource(t, input, sdkDir, bodyMaskFieldLines)
 	if err == nil || !strings.Contains(err.Error(), "name: api.updateMaskInBody leaves a field that replaces the resource out of the Update body") {
 		t.Fatalf("err = %v, want the required replaced field", err)
+	}
+}
+
+// openapi-generator puts "_" between a digit and the letter after it in the constant of an enum
+// value, and keeps the type name as one word.
+func TestEnumConstName(t *testing.T) {
+	for _, test := range []struct{ typ, value, want string }{
+		{"E2MType", "E2M_TYPE_LOGS2METRICS", "E2MTYPE_E2_M_TYPE_LOGS2_METRICS"},
+		{"Logs2metricsV2Severity", "SEVERITY_DEBUG", "LOGS2METRICSV2SEVERITY_SEVERITY_DEBUG"},
+		{"ThingKind", "THING_KIND_P5_OR_UNSPECIFIED", "THINGKIND_THING_KIND_P5_OR_UNSPECIFIED"},
+	} {
+		if got := enumConstName(test.typ, test.value); got != test.want {
+			t.Errorf("enumConstName(%q, %q) = %q, want %q", test.typ, test.value, got, test.want)
+		}
 	}
 }

@@ -1,0 +1,1736 @@
+{
+  "cases": [
+    {
+      "name": "logs-full-lifecycle",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:18.000Z",
+              "description": "logs2metric",
+              "id": "{{E1}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [
+                  "filter:startsWith:nginx"
+                ],
+                "lucene": "remote_addr_enriched:/.*/",
+                "severityFilters": [
+                  "SEVERITY_DEBUG",
+                  "SEVERITY_ERROR"
+                ],
+                "subsystemnameFilters": [
+                  "api"
+                ]
+              },
+              "metricFields": [
+                {
+                  "aggregations": [
+                    {
+                      "aggType": "AGG_TYPE_AVG",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_avg"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_HISTOGRAM",
+                      "enabled": true,
+                      "histogram": {
+                        "buckets": [
+                          1.5,
+                          2
+                        ]
+                      },
+                      "targetMetricName": "cx_bucket"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_COUNT",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_count"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MAX",
+                      "enabled": false,
+                      "none": {},
+                      "targetMetricName": "cx_max"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MIN",
+                      "enabled": false,
+                      "none": {},
+                      "targetMetricName": "cx_min"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SUM",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_sum"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SAMPLES",
+                      "enabled": true,
+                      "samples": {
+                        "sampleType": "SAMPLE_TYPE_MIN"
+                      },
+                      "targetMetricName": "cx_value"
+                    }
+                  ],
+                  "sourceField": "location_geopoint",
+                  "targetBaseMetricName": "{{B2}}"
+                },
+                {
+                  "aggregations": [
+                    {
+                      "aggType": "AGG_TYPE_AVG",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_avg"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_HISTOGRAM",
+                      "enabled": false,
+                      "histogram": {
+                        "buckets": []
+                      },
+                      "targetMetricName": "cx_bucket"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_COUNT",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_count"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MAX",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_max"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MIN",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_min"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SUM",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_sum"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SAMPLES",
+                      "enabled": true,
+                      "samples": {
+                        "sampleType": "SAMPLE_TYPE_MAX"
+                      },
+                      "targetMetricName": "cx_value"
+                    }
+                  ],
+                  "sourceField": "method",
+                  "targetBaseMetricName": "{{B1}}"
+                }
+              ],
+              "metricLabels": [
+                {
+                  "sourceField": "status",
+                  "targetLabel": "Status"
+                },
+                {
+                  "sourceField": "http_referer",
+                  "targetLabel": "Path"
+                }
+              ],
+              "name": "{{N1}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 20000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:17.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:18.000Z",
+              "description": "logs2metric",
+              "id": "{{E1}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [
+                  "filter:startsWith:nginx"
+                ],
+                "lucene": "remote_addr_enriched:/.*/",
+                "severityFilters": [
+                  "SEVERITY_DEBUG",
+                  "SEVERITY_ERROR"
+                ],
+                "subsystemnameFilters": [
+                  "api"
+                ]
+              },
+              "metricFields": [
+                {
+                  "aggregations": [
+                    {
+                      "aggType": "AGG_TYPE_AVG",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_avg"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_HISTOGRAM",
+                      "enabled": true,
+                      "histogram": {
+                        "buckets": [
+                          1.5,
+                          2
+                        ]
+                      },
+                      "targetMetricName": "cx_bucket"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_COUNT",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_count"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MAX",
+                      "enabled": false,
+                      "none": {},
+                      "targetMetricName": "cx_max"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MIN",
+                      "enabled": false,
+                      "none": {},
+                      "targetMetricName": "cx_min"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SUM",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_sum"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SAMPLES",
+                      "enabled": true,
+                      "samples": {
+                        "sampleType": "SAMPLE_TYPE_MIN"
+                      },
+                      "targetMetricName": "cx_value"
+                    }
+                  ],
+                  "sourceField": "location_geopoint",
+                  "targetBaseMetricName": "{{B2}}"
+                },
+                {
+                  "aggregations": [
+                    {
+                      "aggType": "AGG_TYPE_AVG",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_avg"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_HISTOGRAM",
+                      "enabled": false,
+                      "histogram": {
+                        "buckets": []
+                      },
+                      "targetMetricName": "cx_bucket"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_COUNT",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_count"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MAX",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_max"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MIN",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_min"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SUM",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_sum"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SAMPLES",
+                      "enabled": true,
+                      "samples": {
+                        "sampleType": "SAMPLE_TYPE_MAX"
+                      },
+                      "targetMetricName": "cx_value"
+                    }
+                  ],
+                  "sourceField": "method",
+                  "targetBaseMetricName": "{{B1}}"
+                }
+              ],
+              "metricLabels": [
+                {
+                  "sourceField": "status",
+                  "targetLabel": "Status"
+                },
+                {
+                  "sourceField": "http_referer",
+                  "targetLabel": "Path"
+                }
+              ],
+              "name": "{{N1}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 20000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:17.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:18.000Z",
+              "description": "changed",
+              "id": "{{E1}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [
+                  "filter:startsWith:nginx"
+                ],
+                "lucene": "remote_addr_enriched:/.*/",
+                "severityFilters": [
+                  "SEVERITY_DEBUG",
+                  "SEVERITY_ERROR"
+                ],
+                "subsystemnameFilters": [
+                  "api"
+                ]
+              },
+              "metricFields": [
+                {
+                  "aggregations": [
+                    {
+                      "aggType": "AGG_TYPE_AVG",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_avg"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_HISTOGRAM",
+                      "enabled": true,
+                      "histogram": {
+                        "buckets": [
+                          1.5,
+                          2
+                        ]
+                      },
+                      "targetMetricName": "cx_bucket"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_COUNT",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_count"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MAX",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_max"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MIN",
+                      "enabled": false,
+                      "none": {},
+                      "targetMetricName": "cx_min"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SUM",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_sum"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SAMPLES",
+                      "enabled": true,
+                      "samples": {
+                        "sampleType": "SAMPLE_TYPE_MIN"
+                      },
+                      "targetMetricName": "cx_value"
+                    }
+                  ],
+                  "sourceField": "location_geopoint",
+                  "targetBaseMetricName": "{{B2}}"
+                },
+                {
+                  "aggregations": [
+                    {
+                      "aggType": "AGG_TYPE_AVG",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_avg"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_HISTOGRAM",
+                      "enabled": false,
+                      "histogram": {
+                        "buckets": []
+                      },
+                      "targetMetricName": "cx_bucket"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_COUNT",
+                      "enabled": false,
+                      "none": {},
+                      "targetMetricName": "cx_count"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MAX",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_max"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MIN",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_min"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SUM",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_sum"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SAMPLES",
+                      "enabled": true,
+                      "samples": {
+                        "sampleType": "SAMPLE_TYPE_MAX"
+                      },
+                      "targetMetricName": "cx_value"
+                    }
+                  ],
+                  "sourceField": "method",
+                  "targetBaseMetricName": "{{B1}}"
+                }
+              ],
+              "metricLabels": [
+                {
+                  "sourceField": "status_code",
+                  "targetLabel": "Status"
+                },
+                {
+                  "sourceField": "http_referer",
+                  "targetLabel": "Path"
+                }
+              ],
+              "name": "{{N1}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 20000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:17.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:18.000Z",
+              "description": "changed",
+              "id": "{{E1}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [
+                  "filter:startsWith:nginx"
+                ],
+                "lucene": "remote_addr_enriched:/.*/",
+                "severityFilters": [
+                  "SEVERITY_DEBUG",
+                  "SEVERITY_ERROR"
+                ],
+                "subsystemnameFilters": [
+                  "api"
+                ]
+              },
+              "metricFields": [
+                {
+                  "aggregations": [
+                    {
+                      "aggType": "AGG_TYPE_AVG",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_avg"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_HISTOGRAM",
+                      "enabled": true,
+                      "histogram": {
+                        "buckets": [
+                          1.5,
+                          2
+                        ]
+                      },
+                      "targetMetricName": "cx_bucket"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_COUNT",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_count"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MAX",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_max"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MIN",
+                      "enabled": false,
+                      "none": {},
+                      "targetMetricName": "cx_min"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SUM",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_sum"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SAMPLES",
+                      "enabled": true,
+                      "samples": {
+                        "sampleType": "SAMPLE_TYPE_MIN"
+                      },
+                      "targetMetricName": "cx_value"
+                    }
+                  ],
+                  "sourceField": "location_geopoint",
+                  "targetBaseMetricName": "{{B2}}"
+                },
+                {
+                  "aggregations": [
+                    {
+                      "aggType": "AGG_TYPE_AVG",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_avg"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_HISTOGRAM",
+                      "enabled": false,
+                      "histogram": {
+                        "buckets": []
+                      },
+                      "targetMetricName": "cx_bucket"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_COUNT",
+                      "enabled": false,
+                      "none": {},
+                      "targetMetricName": "cx_count"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MAX",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_max"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MIN",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_min"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SUM",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_sum"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SAMPLES",
+                      "enabled": true,
+                      "samples": {
+                        "sampleType": "SAMPLE_TYPE_MAX"
+                      },
+                      "targetMetricName": "cx_value"
+                    }
+                  ],
+                  "sourceField": "method",
+                  "targetBaseMetricName": "{{B1}}"
+                }
+              ],
+              "metricLabels": [
+                {
+                  "sourceField": "status_code",
+                  "targetLabel": "Status"
+                },
+                {
+                  "sourceField": "http_referer",
+                  "targetLabel": "Path"
+                }
+              ],
+              "name": "{{N1}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 20000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:17.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{E1}}"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: {\"message\":\"NOT_FOUND: Events2Metrics with id {{E1}} not found\",\"status\":5}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"message\":\"Bad Request\",\"status\":400,\"details\":[{\"code\":\"custom\",\"message\":\"L2M does not exist\",\"path\":[\"id\"]}]}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "minimal-and-unset",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:19.000Z",
+              "id": "{{E2}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [],
+              "metricLabels": [],
+              "name": "{{N2}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 30000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:18.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:19.000Z",
+              "id": "{{E2}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [],
+              "metricLabels": [],
+              "name": "{{N2}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 30000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:18.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:19.000Z",
+              "description": "d",
+              "id": "{{E2}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "x",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [],
+              "metricLabels": [],
+              "name": "{{N2}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 10
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:18.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:19.000Z",
+              "description": "d",
+              "id": "{{E2}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [],
+              "metricLabels": [],
+              "name": "{{N2}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 30000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:19.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:19.000Z",
+              "description": "d",
+              "id": "{{E2}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [],
+              "metricLabels": [],
+              "name": "{{N2}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 30000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:19.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:19.000Z",
+              "description": "",
+              "id": "{{E2}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [],
+              "metricLabels": [],
+              "name": "{{N2}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 10
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:19.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:19.000Z",
+              "description": "",
+              "id": "{{E2}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [],
+              "metricLabels": [],
+              "name": "{{N2}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 10
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:19.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{E2}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "permutations",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:20.000Z",
+              "id": "{{E3}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [],
+              "metricLabels": [
+                {
+                  "sourceField": "l",
+                  "targetLabel": "L"
+                }
+              ],
+              "name": "{{N3}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 30000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:20.000Z"
+            }
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"message\":\"Bad Request\",\"status\":400,\"details\":[{\"code\":\"custom\",\"message\":\"Permutation amount needs to be bigger than 1 when \\\"metricLabels\\\" are set\",\"path\":[\"e2m\",\"permutations\",\"limit\"]}]}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:20.000Z",
+              "id": "{{E4}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [],
+              "metricLabels": [],
+              "name": "{{N4}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 0
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:20.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:20.000Z",
+              "id": "{{E3}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [],
+              "metricLabels": [
+                {
+                  "sourceField": "l",
+                  "targetLabel": "L"
+                }
+              ],
+              "name": "{{N3}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 30000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:20.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:20.000Z",
+              "id": "{{E3}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [],
+              "metricLabels": [
+                {
+                  "sourceField": "l",
+                  "targetLabel": "L"
+                }
+              ],
+              "name": "{{N3}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 30000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:20.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{E3}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{E4}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "aggregations-backfill-and-enabled",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:21.000Z",
+              "id": "{{E5}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [
+                {
+                  "aggregations": [
+                    {
+                      "aggType": "AGG_TYPE_AVG",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_avg"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_HISTOGRAM",
+                      "enabled": false,
+                      "histogram": {
+                        "buckets": []
+                      },
+                      "targetMetricName": "cx_bucket"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_COUNT",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_count"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MAX",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_max"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MIN",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_min"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SUM",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_sum"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SAMPLES",
+                      "enabled": true,
+                      "samples": {
+                        "sampleType": "SAMPLE_TYPE_MAX"
+                      },
+                      "targetMetricName": "cx_value"
+                    }
+                  ],
+                  "sourceField": "duration_ms",
+                  "targetBaseMetricName": "{{B5}}"
+                }
+              ],
+              "metricLabels": [],
+              "name": "{{N5}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 30000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:21.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:21.000Z",
+              "id": "{{E5}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [
+                {
+                  "aggregations": [
+                    {
+                      "aggType": "AGG_TYPE_AVG",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_avg"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_HISTOGRAM",
+                      "enabled": false,
+                      "histogram": {
+                        "buckets": []
+                      },
+                      "targetMetricName": "cx_bucket"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_COUNT",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_count"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MAX",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_max"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MIN",
+                      "enabled": false,
+                      "none": {},
+                      "targetMetricName": "cx_min"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SUM",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_sum"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SAMPLES",
+                      "enabled": true,
+                      "samples": {
+                        "sampleType": "SAMPLE_TYPE_MAX"
+                      },
+                      "targetMetricName": "cx_value"
+                    }
+                  ],
+                  "sourceField": "duration_ms",
+                  "targetBaseMetricName": "{{B5}}"
+                }
+              ],
+              "metricLabels": [],
+              "name": "{{N5}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 30000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:21.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:21.000Z",
+              "id": "{{E5}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [
+                {
+                  "aggregations": [
+                    {
+                      "aggType": "AGG_TYPE_AVG",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_avg"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_HISTOGRAM",
+                      "enabled": false,
+                      "histogram": {
+                        "buckets": []
+                      },
+                      "targetMetricName": "cx_bucket"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_COUNT",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_count"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MAX",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_max"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MIN",
+                      "enabled": false,
+                      "none": {},
+                      "targetMetricName": "cx_min"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SUM",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_sum"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SAMPLES",
+                      "enabled": true,
+                      "samples": {
+                        "sampleType": "SAMPLE_TYPE_MAX"
+                      },
+                      "targetMetricName": "cx_value"
+                    }
+                  ],
+                  "sourceField": "duration_ms",
+                  "targetBaseMetricName": "{{B5}}"
+                }
+              ],
+              "metricLabels": [],
+              "name": "{{N5}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 30000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:21.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:21.000Z",
+              "id": "{{E5}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [
+                {
+                  "aggregations": [
+                    {
+                      "aggType": "AGG_TYPE_AVG",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_avg"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_HISTOGRAM",
+                      "enabled": false,
+                      "histogram": {
+                        "buckets": []
+                      },
+                      "targetMetricName": "cx_bucket"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_COUNT",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_count"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MAX",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_max"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MIN",
+                      "enabled": false,
+                      "none": {},
+                      "targetMetricName": "cx_min"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SUM",
+                      "enabled": false,
+                      "none": {},
+                      "targetMetricName": "cx_sum"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SAMPLES",
+                      "enabled": true,
+                      "samples": {
+                        "sampleType": "SAMPLE_TYPE_MAX"
+                      },
+                      "targetMetricName": "cx_value"
+                    }
+                  ],
+                  "sourceField": "duration_ms",
+                  "targetBaseMetricName": "{{B5}}"
+                }
+              ],
+              "metricLabels": [],
+              "name": "{{N5}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 30000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:21.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:21.000Z",
+              "id": "{{E5}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [
+                {
+                  "aggregations": [
+                    {
+                      "aggType": "AGG_TYPE_AVG",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_avg"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_HISTOGRAM",
+                      "enabled": false,
+                      "histogram": {
+                        "buckets": []
+                      },
+                      "targetMetricName": "cx_bucket"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_COUNT",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_count"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MAX",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_max"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MIN",
+                      "enabled": false,
+                      "none": {},
+                      "targetMetricName": "cx_min"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SUM",
+                      "enabled": false,
+                      "none": {},
+                      "targetMetricName": "cx_sum"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SAMPLES",
+                      "enabled": true,
+                      "samples": {
+                        "sampleType": "SAMPLE_TYPE_MAX"
+                      },
+                      "targetMetricName": "cx_value"
+                    }
+                  ],
+                  "sourceField": "duration_ms",
+                  "targetBaseMetricName": "{{B5}}"
+                }
+              ],
+              "metricLabels": [],
+              "name": "{{N5}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 30000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:21.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{E5}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "spans-and-switch-type",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:23.000Z",
+              "id": "{{E6}}",
+              "isInternal": false,
+              "metricFields": [
+                {
+                  "aggregations": [
+                    {
+                      "aggType": "AGG_TYPE_AVG",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_avg"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_HISTOGRAM",
+                      "enabled": false,
+                      "histogram": {
+                        "buckets": []
+                      },
+                      "targetMetricName": "cx_bucket"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_COUNT",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_count"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MAX",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_max"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MIN",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_min"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SUM",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_sum"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SAMPLES",
+                      "enabled": true,
+                      "samples": {
+                        "sampleType": "SAMPLE_TYPE_MAX"
+                      },
+                      "targetMetricName": "cx_value"
+                    }
+                  ],
+                  "sourceField": "duration",
+                  "targetBaseMetricName": "{{B6}}"
+                }
+              ],
+              "metricLabels": [],
+              "name": "{{N6}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 100
+              },
+              "spansQuery": {
+                "actionFilters": [
+                  "act"
+                ],
+                "applicationnameFilters": [
+                  "a"
+                ],
+                "lucene": "x",
+                "serviceFilters": [
+                  "svc"
+                ],
+                "subsystemnameFilters": []
+              },
+              "type": "E2M_TYPE_SPANS2METRICS",
+              "updateTime": "2026-10-13T13:25:22.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:23.000Z",
+              "id": "{{E6}}",
+              "isInternal": false,
+              "metricFields": [
+                {
+                  "aggregations": [
+                    {
+                      "aggType": "AGG_TYPE_AVG",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_avg"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_HISTOGRAM",
+                      "enabled": false,
+                      "histogram": {
+                        "buckets": []
+                      },
+                      "targetMetricName": "cx_bucket"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_COUNT",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_count"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MAX",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_max"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_MIN",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_min"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SUM",
+                      "enabled": true,
+                      "none": {},
+                      "targetMetricName": "cx_sum"
+                    },
+                    {
+                      "aggType": "AGG_TYPE_SAMPLES",
+                      "enabled": true,
+                      "samples": {
+                        "sampleType": "SAMPLE_TYPE_MAX"
+                      },
+                      "targetMetricName": "cx_value"
+                    }
+                  ],
+                  "sourceField": "duration",
+                  "targetBaseMetricName": "{{B6}}"
+                }
+              ],
+              "metricLabels": [],
+              "name": "{{N6}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 100
+              },
+              "spansQuery": {
+                "actionFilters": [
+                  "act"
+                ],
+                "applicationnameFilters": [
+                  "a"
+                ],
+                "lucene": "x",
+                "serviceFilters": [
+                  "svc"
+                ],
+                "subsystemnameFilters": []
+              },
+              "type": "E2M_TYPE_SPANS2METRICS",
+              "updateTime": "2026-10-13T13:25:22.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:23.000Z",
+              "id": "{{E6}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [],
+              "metricLabels": [],
+              "name": "{{N6}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 100
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:23.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:23.000Z",
+              "id": "{{E6}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [],
+              "metricLabels": [],
+              "name": "{{N6}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 100
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:23.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{E6}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "severities-unspecified",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:24.000Z",
+              "id": "{{E7}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [
+                  "SEVERITY_UNSPECIFIED",
+                  "SEVERITY_CRITICAL"
+                ],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [],
+              "metricLabels": [],
+              "name": "{{N7}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 30000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:23.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:24.000Z",
+              "id": "{{E7}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [
+                  "SEVERITY_UNSPECIFIED",
+                  "SEVERITY_CRITICAL"
+                ],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [],
+              "metricLabels": [],
+              "name": "{{N7}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 30000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:23.000Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{E7}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "rejected-requests",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"message\":\"Bad Request\",\"status\":400,\"details\":[{\"code\":\"invalid_union_discriminator\",\"options\":[1,2],\"path\":[\"type\"],\"message\":\"Invalid discriminator value. Expected 1 | 2\"}]}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"message\":\"Bad Request\",\"status\":400,\"details\":[{\"received\":\"logsQuery\",\"code\":\"invalid_literal\",\"expected\":\"spansQuery\",\"path\":[\"query\",\"$case\"],\"message\":\"Invalid literal value, expected \\\"spansQuery\\\"\"}]}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "e2m": {
+              "createTime": "2026-10-13T13:25:24.000Z",
+              "id": "{{E8}}",
+              "isInternal": false,
+              "logsQuery": {
+                "applicationnameFilters": [],
+                "lucene": "",
+                "severityFilters": [],
+                "subsystemnameFilters": []
+              },
+              "metricFields": [],
+              "metricLabels": [],
+              "name": "{{N8}}",
+              "permutations": {
+                "hasExceededLimit": false,
+                "limit": 30000
+              },
+              "type": "E2M_TYPE_LOGS2METRICS",
+              "updateTime": "2026-10-13T13:25:24.000Z"
+            }
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"message\":\"Bad Request\",\"status\":400,\"details\":[{\"code\":\"custom\",\"path\":[\"e2m\",\"name\"],\"message\":\"Name ({{N8}}) is not unique\"}]}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"message\":\"Bad Request\",\"status\":400,\"details\":[{\"code\":\"custom\",\"message\":\"L2M does not exist\",\"path\":[\"id\"]}]}"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: {\"message\":\"NOT_FOUND: Events2Metrics with id {{MISSING}} not found\",\"status\":5}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\"message\":\"Bad Request\",\"status\":400,\"details\":[{\"code\":\"custom\",\"message\":\"L2M does not exist\",\"path\":[\"id\"]}]}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{E8}}"
+          }
+        }
+      ]
+    }
+  ]
+}

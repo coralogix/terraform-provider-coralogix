@@ -349,3 +349,99 @@ func TestReadRejectedLowerNeedsReadRejected(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestOptionalAndCreateAsPolicy(t *testing.T) {
+	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: {createAs: {limit: limitValue}}\n  Quota:\n    fields:\n      limit: {computed: true}\n  Item:\n    fields:\n      values: {optional: true}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := f.Policy()
+	if want := map[string]map[string]string{"R.quota": {"limit": "limitValue"}}; !reflect.DeepEqual(p.CreateAs, want) {
+		t.Errorf("createAs = %v, want %v", p.CreateAs, want)
+	}
+	if !reflect.DeepEqual(p.Optional, []string{"Item.values"}) {
+		t.Errorf("optional = %v", p.Optional)
+	}
+	if !reflect.DeepEqual(p.Computed, []string{"Quota.limit"}) {
+		t.Errorf("computed = %v", p.Computed)
+	}
+	for _, line := range f.Lines() {
+		if line.Field == "values" && !line.Optional {
+			t.Errorf("line %s does not say optional", line)
+		}
+	}
+}
+
+func TestOptionalAndCreateAsAreChecked(t *testing.T) {
+	for name, field := range map[string]string{
+		"required and optional":        "{required: true, optional: true}",
+		"skip and optional":            "{skip: true, optional: true}",
+		"skip and createAs":            "{skip: true, createAs: {limit: limitValue}}",
+		"createAs with an empty field": "{createAs: {limit: ''}}",
+		"createAs names a field twice": "{createAs: {limit: limitValue, max: limitValue}}",
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: " + field + "\n")); err == nil {
+				t.Fatalf("%s: want an error", field)
+			}
+		})
+	}
+}
+
+func TestCollectionAndNameAreChecked(t *testing.T) {
+	for name, field := range map[string]string{
+		"collection other than set":                 "{collection: list}",
+		"name with upper case":                      "{name: Applications}",
+		"name with a dash":                          "{name: has-limit}",
+		"skip and name":                             "{skip: true, name: limits}",
+		"atLeast and regexMatches in one validator": "{validators: [{atLeast: 0, regexMatches: {pattern: x}}]}",
+		"requestValue and requestValueBy":           "{requestValue: A, requestValueBy: {b: B}}",
+		"requestValueBy with an empty value":        "{requestValueBy: {b: ''}}",
+		"skip and requestValueBy":                   "{skip: true, requestValueBy: {b: B}}",
+		"keyedBy without a key":                     "{keyedBy: {value: v}}",
+		"keyedBy with the key as value":             "{keyedBy: {key: k, value: k}}",
+		"keyedBy and collection":                    "{keyedBy: {key: k}, collection: set}",
+		"keyedBy object with a value":               "{keyedBy: {key: k, value: v, object: true}}",
+		"keyedBy arms without object":               "{keyedBy: {key: k, arms: {A: a}}}",
+		"keyedBy keyAs without object":              "{keyedBy: {key: k, keyAs: n}}",
+		"regexMatches without a pattern":            "{validators: [{regexMatches: {message: m}}]}",
+		"regexMatches that Go cannot compile":       "{validators: [{regexMatches: {pattern: '(?=x)'}}]}",
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: " + field + "\n")); err == nil {
+				t.Fatalf("%s: want an error", field)
+			}
+		})
+	}
+}
+
+func TestEnumNamesAreChecked(t *testing.T) {
+	for name, enum := range map[string]string{
+		"a name for a value that is not accepted": "{values: [A_ONE], names: {A_TWO: Two}}",
+		"an empty name":                  "{values: [A_ONE], names: {A_ONE: ''}}",
+		"two values with one name":       "{values: [A_ONE, A_TWO], names: {A_ONE: Same, A_TWO: Same}}",
+		"a name equal to the zero value": "{zero: Unspecified, values: [A_ONE], names: {A_ONE: Unspecified}}",
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  A: " + enum + "\n")); err == nil {
+				t.Fatalf("%s: want an error", enum)
+			}
+		})
+	}
+}
+
+func TestCreateAsAndNamesAreCheckedAcrossLines(t *testing.T) {
+	for name, types := range map[string]string{
+		"createAs on a nested component": "  Quota:\n    fields:\n      limit: {createAs: {max: maxValue}}\n",
+		"two fields with one name":       "  R:\n    fields:\n      applicationFilters: {name: apps}\n      appFilters: {name: apps}\n",
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n" + types)); err == nil {
+				t.Fatal("want an error")
+			}
+		})
+	}
+	if _, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: {createAs: {limit: limitValue}}\n")); err != nil {
+		t.Fatalf("createAs on the resource component: %v", err)
+	}
+}

@@ -1,0 +1,501 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "description": "spans2metric",
+      "metric_fields": {
+        "duration": {
+          "source_field": "duration"
+        }
+      },
+      "metric_labels": {
+        "Service": "tags.service"
+      },
+      "name": "spans",
+      "permutations": {
+        "limit": 100
+      },
+      "spans_query": {
+        "actions": [
+          "action-name"
+        ],
+        "applications": [
+          "filter:startsWith:nginx"
+        ],
+        "lucene": "remote_addr_enriched:/.*/",
+        "services": [
+          "service-name"
+        ],
+        "subsystems": [
+          "api"
+        ]
+      }
+    },
+    "plan": {
+      "data_source": null,
+      "description": "spans2metric",
+      "id": "(unknown)",
+      "logs_query": null,
+      "metric_fields": {
+        "duration": {
+          "aggregations": "(unknown)",
+          "source_field": "duration"
+        }
+      },
+      "metric_labels": {
+        "Service": "tags.service"
+      },
+      "name": "spans",
+      "permutations": {
+        "has_exceed_limit": "(unknown)",
+        "limit": 100
+      },
+      "spans_query": {
+        "actions": [
+          "action-name"
+        ],
+        "applications": [
+          "filter:startsWith:nginx"
+        ],
+        "lucene": "remote_addr_enriched:/.*/",
+        "services": [
+          "service-name"
+        ],
+        "subsystems": [
+          "api"
+        ]
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
+        "body": {
+          "description": "spans2metric",
+          "metricFields": [
+            {
+              "aggregations": [],
+              "sourceField": "duration",
+              "targetBaseMetricName": "duration"
+            }
+          ],
+          "metricLabels": [
+            {
+              "sourceField": "tags.service",
+              "targetLabel": "Service"
+            }
+          ],
+          "name": "spans",
+          "permutationsLimit": 100,
+          "spansQuery": {
+            "actionFilters": [
+              "action-name"
+            ],
+            "applicationnameFilters": [
+              "filter:startsWith:nginx"
+            ],
+            "lucene": "remote_addr_enriched:/.*/",
+            "serviceFilters": [
+              "service-name"
+            ],
+            "subsystemnameFilters": [
+              "api"
+            ]
+          },
+          "type": "E2M_TYPE_SPANS2METRICS"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "data_source": null,
+      "description": "spans2metric",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": null,
+      "metric_fields": {
+        "duration": {
+          "aggregations": {
+            "avg": {
+              "enable": true,
+              "target_metric_name": "cx_avg"
+            },
+            "count": {
+              "enable": true,
+              "target_metric_name": "cx_count"
+            },
+            "histogram": {
+              "buckets": [],
+              "enable": false,
+              "target_metric_name": "cx_bucket"
+            },
+            "max": {
+              "enable": true,
+              "target_metric_name": "cx_max"
+            },
+            "min": {
+              "enable": true,
+              "target_metric_name": "cx_min"
+            },
+            "samples": {
+              "enable": true,
+              "target_metric_name": "cx_value",
+              "type": "Max"
+            },
+            "sum": {
+              "enable": true,
+              "target_metric_name": "cx_sum"
+            }
+          },
+          "source_field": "duration"
+        }
+      },
+      "metric_labels": {
+        "Service": "tags.service"
+      },
+      "name": "spans",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 100
+      },
+      "spans_query": {
+        "actions": [
+          "action-name"
+        ],
+        "applications": [
+          "filter:startsWith:nginx"
+        ],
+        "lucene": "remote_addr_enriched:/.*/",
+        "services": [
+          "service-name"
+        ],
+        "subsystems": [
+          "api"
+        ]
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "data_source": null,
+      "description": "spans2metric",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": null,
+      "metric_fields": {
+        "duration": {
+          "aggregations": {
+            "avg": {
+              "enable": true,
+              "target_metric_name": "cx_avg"
+            },
+            "count": {
+              "enable": true,
+              "target_metric_name": "cx_count"
+            },
+            "histogram": {
+              "buckets": [],
+              "enable": false,
+              "target_metric_name": "cx_bucket"
+            },
+            "max": {
+              "enable": true,
+              "target_metric_name": "cx_max"
+            },
+            "min": {
+              "enable": true,
+              "target_metric_name": "cx_min"
+            },
+            "samples": {
+              "enable": true,
+              "target_metric_name": "cx_value",
+              "type": "Max"
+            },
+            "sum": {
+              "enable": true,
+              "target_metric_name": "cx_sum"
+            }
+          },
+          "source_field": "duration"
+        }
+      },
+      "metric_labels": {
+        "Service": "tags.service"
+      },
+      "name": "spans",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 100
+      },
+      "spans_query": {
+        "actions": [
+          "action-name"
+        ],
+        "applications": [
+          "filter:startsWith:nginx"
+        ],
+        "lucene": "remote_addr_enriched:/.*/",
+        "services": [
+          "service-name"
+        ],
+        "subsystems": [
+          "api"
+        ]
+      }
+    }
+  },
+  {
+    "step": "update: change filters",
+    "config": {
+      "description": "spans2metric",
+      "metric_fields": {
+        "duration": {
+          "source_field": "duration"
+        }
+      },
+      "metric_labels": {
+        "Service": "tags.service"
+      },
+      "name": "spans",
+      "permutations": {
+        "limit": 100
+      },
+      "spans_query": {
+        "actions": [
+          "other-action"
+        ],
+        "services": [
+          "a",
+          "b"
+        ]
+      }
+    },
+    "plan": {
+      "data_source": null,
+      "description": "spans2metric",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": null,
+      "metric_fields": {
+        "duration": {
+          "aggregations": {
+            "avg": {
+              "enable": true,
+              "target_metric_name": "cx_avg"
+            },
+            "count": {
+              "enable": true,
+              "target_metric_name": "cx_count"
+            },
+            "histogram": {
+              "buckets": [],
+              "enable": false,
+              "target_metric_name": "cx_bucket"
+            },
+            "max": {
+              "enable": true,
+              "target_metric_name": "cx_max"
+            },
+            "min": {
+              "enable": true,
+              "target_metric_name": "cx_min"
+            },
+            "samples": {
+              "enable": true,
+              "target_metric_name": "cx_value",
+              "type": "Max"
+            },
+            "sum": {
+              "enable": true,
+              "target_metric_name": "cx_sum"
+            }
+          },
+          "source_field": "duration"
+        }
+      },
+      "metric_labels": {
+        "Service": "tags.service"
+      },
+      "name": "spans",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 100
+      },
+      "spans_query": {
+        "actions": [
+          "other-action"
+        ],
+        "applications": null,
+        "lucene": "remote_addr_enriched:/.*/",
+        "services": [
+          "a",
+          "b"
+        ],
+        "subsystems": null
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2",
+        "body": {
+          "description": "spans2metric",
+          "id": "00000000-0000-4000-8000-000000000001",
+          "metricFields": [
+            {
+              "aggregations": [
+                {
+                  "aggType": "AGG_TYPE_MIN",
+                  "enabled": true,
+                  "targetMetricName": "min"
+                },
+                {
+                  "aggType": "AGG_TYPE_MAX",
+                  "enabled": true,
+                  "targetMetricName": "max"
+                },
+                {
+                  "aggType": "AGG_TYPE_COUNT",
+                  "enabled": true,
+                  "targetMetricName": "count"
+                },
+                {
+                  "aggType": "AGG_TYPE_AVG",
+                  "enabled": true,
+                  "targetMetricName": "avg"
+                },
+                {
+                  "aggType": "AGG_TYPE_SUM",
+                  "enabled": true,
+                  "targetMetricName": "sum"
+                },
+                {
+                  "aggType": "AGG_TYPE_SAMPLES",
+                  "enabled": true,
+                  "samples": {
+                    "sampleType": "SAMPLE_TYPE_MAX"
+                  },
+                  "targetMetricName": "samples"
+                },
+                {
+                  "aggType": "AGG_TYPE_HISTOGRAM",
+                  "enabled": false,
+                  "histogram": {
+                    "buckets": []
+                  },
+                  "targetMetricName": "histogram"
+                }
+              ],
+              "sourceField": "duration",
+              "targetBaseMetricName": "duration"
+            }
+          ],
+          "metricLabels": [
+            {
+              "sourceField": "tags.service",
+              "targetLabel": "Service"
+            }
+          ],
+          "name": "spans",
+          "permutations": {
+            "hasExceededLimit": false,
+            "limit": 100
+          },
+          "spansQuery": {
+            "actionFilters": [
+              "other-action"
+            ],
+            "lucene": "remote_addr_enriched:/.*/",
+            "serviceFilters": [
+              "a",
+              "b"
+            ]
+          },
+          "type": "E2M_TYPE_SPANS2METRICS"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "data_source": null,
+      "description": "spans2metric",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "logs_query": null,
+      "metric_fields": {
+        "duration": {
+          "aggregations": {
+            "avg": {
+              "enable": true,
+              "target_metric_name": "cx_avg"
+            },
+            "count": {
+              "enable": true,
+              "target_metric_name": "cx_count"
+            },
+            "histogram": {
+              "buckets": [],
+              "enable": false,
+              "target_metric_name": "cx_bucket"
+            },
+            "max": {
+              "enable": true,
+              "target_metric_name": "cx_max"
+            },
+            "min": {
+              "enable": true,
+              "target_metric_name": "cx_min"
+            },
+            "samples": {
+              "enable": true,
+              "target_metric_name": "cx_value",
+              "type": "Max"
+            },
+            "sum": {
+              "enable": true,
+              "target_metric_name": "cx_sum"
+            }
+          },
+          "source_field": "duration"
+        }
+      },
+      "metric_labels": {
+        "Service": "tags.service"
+      },
+      "name": "spans",
+      "permutations": {
+        "has_exceed_limit": false,
+        "limit": 100
+      },
+      "spans_query": {
+        "actions": [
+          "other-action"
+        ],
+        "applications": null,
+        "lucene": "remote_addr_enriched:/.*/",
+        "services": [
+          "a",
+          "b"
+        ],
+        "subsystems": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

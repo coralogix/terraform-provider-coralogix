@@ -408,16 +408,16 @@ func TestComputedFalseOnAServerOwnedFieldIsRejected(t *testing.T) {
 
 // An enums line maps Terraform values to API values for a single enum field. A list, set, or map of
 // the enum casts the strings as they are, so the generator rejects the combination.
-func TestEnumLineOnACollectionIsRejected(t *testing.T) {
+func TestEnumLineOnAMapIsRejected(t *testing.T) {
 	spec := strings.Replace(string(thingSpec(t)), "        tags:\n          type: array\n          uniqueItems: true",
-		"        kinds:\n          type: array\n          items: {$ref: '#/components/schemas/ThingKind'}\n          x-coralogix-presence: true\n        tags:\n          type: array\n          uniqueItems: true", 1)
+		"        kinds:\n          type: object\n          additionalProperties: {$ref: '#/components/schemas/ThingKind'}\n          x-coralogix-presence: true\n        tags:\n          type: array\n          uniqueItems: true", 1)
 	if spec == string(thingSpec(t)) {
 		t.Fatal("the test contract did not change: update the replaced text")
 	}
 	file := mustParse(t, "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  ThingKind:\n    zero: unspecified\n    values: [THING_KIND_STANDARD, THING_KIND_ADVANCED]\n    rejected: [THING_KIND_P5_OR_UNSPECIFIED]\n")
 	_, err := validateOpenAPIWith([]byte(spec), "Thing", model.OperationIDs{}, "sdk", "provider", file)
-	if err == nil || !strings.Contains(err.Error(), "applies to a single enum field") {
-		t.Fatalf("err = %v, want an error about an enums line on a collection", err)
+	if err == nil || !strings.Contains(err.Error(), "not to a map of it") {
+		t.Fatalf("err = %v, want an error about an enums line on a map", err)
 	}
 }
 
@@ -1115,5 +1115,22 @@ func TestSiblingValidatorTargetsMustExist(t *testing.T) {
 		if (err != nil) != test.fail {
 			t.Errorf("checkSiblingTargets(%+v) = %v, want error %v", test.v, err, test.fail)
 		}
+	}
+}
+
+// A requestValueBy value is not an attribute, so an update mask cannot hold it: switching the
+// object that sets it would send the new value in the body and leave it out of the mask.
+// The generator refuses the line on a resource that Update patches with a mask.
+func TestRequestValueByIsRefusedWithAnUpdateMask(t *testing.T) {
+	text := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Thing:\n    fields:\n      kind: {requestValueBy: {config: THING_KIND_STANDARD, spec: THING_KIND_ADVANCED}}\n"
+	// The update body also takes kind, so Update sends the derived value.
+	spec := strings.Replace(string(thingSpec(t)), "              title: UpdateThingRequest\n              type: object\n              required: []\n              properties:\n",
+		"              title: UpdateThingRequest\n              type: object\n              required: []\n              properties:\n                kind:\n                  $ref: '#/components/schemas/ThingKind'\n", 1)
+	if spec == string(thingSpec(t)) {
+		t.Fatal("the test spec did not change: update the replaced text")
+	}
+	_, err := validateOpenAPIWith([]byte(spec), "Thing", model.OperationIDs{}, "sdk", "provider", mustParse(t, text))
+	if err == nil || !strings.Contains(err.Error(), "requestValueBy needs an Update that replaces the resource") {
+		t.Fatalf("err = %v, want requestValueBy refused for a masked Update", err)
 	}
 }

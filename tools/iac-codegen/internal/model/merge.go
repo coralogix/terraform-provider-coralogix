@@ -241,12 +241,12 @@ func classifyField(at string, f *Field, create, update bool) error {
 		}
 	}
 	f.Behavior = behavior
-	if inCreate && inUpdate && !f.Create.Required && f.Update.Required {
+	if inCreate && inUpdate && !f.Create.Required && f.Update.Required && !(f.Attrs.Required && f.Attrs.Computed && f.Attrs.KeepState) {
 		return &contractError{
 			code:        "FIELD_REQUIREDNESS_UNSUPPORTED",
 			location:    at,
 			message:     "The field is optional in Create but required in Update.",
-			remediation: "Make the field optional in Update, or require it in Create so Terraform always has a value to send.",
+			remediation: "Make the field optional in Update, or require it in Create so Terraform always has a value to send. A released resource that keeps the value Get returned states it with computed: true and useStateForUnknown (or useNonNullStateForUnknown) on the field line.",
 		}
 	}
 	return nil

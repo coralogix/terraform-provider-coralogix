@@ -11,9 +11,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
@@ -258,10 +260,21 @@ type Field struct {
 	// require the field. The SDK type of the field does not change. Delete this key when the
 	// contract requires the field.
 	Required bool `yaml:"required"`
-	// Collection: "set" makes a list a Terraform set, although the contract does
-	// not mark it x-coralogix-collection: set. The SDK type of the field does not
-	// change. Delete this key when the contract marks the field.
+	// Optional: true makes the Terraform attribute optional, although a request of the contract
+	// requires the field. The released resource lets the user leave it out, and the API accepts
+	// that, but the contract cannot say so: the request shares the component with a response
+	// that always has the field.
+	Optional bool `yaml:"optional"`
+	// CreateAs folds top-level Create fields into this object field: Create sends each
+	// property of the object as the top-level Create field it names, for example
+	// {limit: permutationsLimit}. Update and Get have the object itself.
+	CreateAs map[string]string `yaml:"createAs"`
+	// Collection: set shows an ordered list of the contract as a set, as the released resource
+	// does. The API keeps the order, but the order has no meaning.
 	Collection string `yaml:"collection"`
+	// Name is the Terraform attribute name of the field, when the released resource does not
+	// use the name derived from the JSON name (applications for applicationnameFilters).
+	Name string `yaml:"name"`
 	// Deprecation is the released deprecation message.
 	Deprecation string `yaml:"deprecation"`
 	// Computed: true makes an optional field Optional+Computed. false makes it Optional.
@@ -287,6 +300,14 @@ type Field struct {
 	// RequestValue is an API value that Create and Update always send. The field
 	// is not a Terraform attribute.
 	RequestValue string `yaml:"requestValue"`
+	// RequestValueBy maps an object field of the same component to the API value that Create
+	// and Update send when that field is set, for a released resource that derives the value
+	// (type: logsQuery → E2M_TYPE_LOGS2METRICS). The field is not a Terraform attribute.
+	RequestValueBy map[string]string `yaml:"requestValueBy"`
+	// KeyedBy shows a list of objects as a map keyed by a string property of the object, for a
+	// released resource that has the map. With Value, the map value is that one property, and
+	// the object must have only the two.
+	KeyedBy *KeyedBy `yaml:"keyedBy"`
 	// KeepPriorOrder returns the list items in the order of the plan or state, because
 	// the API does not keep the order.
 	KeepPriorOrder bool `yaml:"keepPriorOrder"`
@@ -331,10 +352,39 @@ type Validator struct {
 	// released ExactlyOneOf or AtLeastOneOf validator.
 	ExactlyOneOf []string `yaml:"exactlyOneOf"`
 	AtLeastOneOf []string `yaml:"atLeastOneOf"`
+	// AtLeast is a released AtLeast validator of a number.
+	AtLeast *float64 `yaml:"atLeast"`
+	// RegexMatches is a released stringvalidator.RegexMatches with its message.
+	RegexMatches *RegexMatches `yaml:"regexMatches"`
 }
 
-// TFValue is the Terraform value of the API value v of the enum.
+// KeyedBy names the key property, and the value property, of a list of objects that a released
+// resource shows as a map.
+type KeyedBy struct {
+	Key   string `yaml:"key"`
+	Value string `yaml:"value"`
+	// Object shows the list as an object with one attribute per accepted value of the key, an
+	// enum with an enums line. The attribute name is the Terraform value of the enum value.
+	Object bool `yaml:"object"`
+	// Arms gives an enum value of the key the oneOf arm of the item that it holds. The other
+	// arms are not in its attribute, and the arm is required in it.
+	Arms map[string]string `yaml:"arms"`
+	// KeyAs is a string property of the item that expand sets to the attribute name.
+	KeyAs string `yaml:"keyAs"`
+}
+
+// RegexMatches is a released pattern validator of a string.
+type RegexMatches struct {
+	Pattern string `yaml:"pattern"`
+	Message string `yaml:"message"`
+}
+
+// TFValue is the Terraform value of the API value v of the enum: its names entry, or the value
+// without trimPrefix, in lower case unless the line is verbatim.
 func (e Enum) TFValue(v string) string {
+	if tf, ok := e.Names[v]; ok {
+		return tf
+	}
 	v = strings.TrimPrefix(v, e.TrimPrefix)
 	if e.Verbatim {
 		return v
@@ -356,6 +406,10 @@ type Enum struct {
 	// TrimPrefix is removed from each value before the Terraform value is made, for example
 	// SLO_TIME_FRAME_ for SLO_TIME_FRAME_7_DAYS, which is 7_days in Terraform.
 	TrimPrefix string `yaml:"trimPrefix"`
+	// Names gives an accepted API value its Terraform value, for a released resource that
+	// spells it in another way (SEVERITY_DEBUG is Debug). It overrides the lower case and
+	// Verbatim.
+	Names map[string]string `yaml:"names"`
 	// Rejected are the values of the contract that the resource does not accept. The generator
 	// reports a value of the contract that is in neither list, so a new API value needs a decision.
 	Rejected []string `yaml:"rejected"`
@@ -421,10 +475,23 @@ func (f *File) checkTypes() error {
 		if err := t.check(name); err != nil {
 			return err
 		}
-		for field, line := range t.Fields {
+		names := map[string]string{}
+		for _, field := range sortedKeys(t.Fields) {
+			line := t.Fields[field]
 			if err := line.check(); err != nil {
 				return fmt.Errorf("types.%s.fields.%s: %w", name, field, err)
 			}
+			if len(line.CreateAs) != 0 && name != f.Resource {
+				// Only the Create body of the resource has top-level fields to fold.
+				return fmt.Errorf("types.%s.fields.%s: createAs works on a field of the resource component %s only", name, field, f.Resource)
+			}
+			if line.Name == "" {
+				continue
+			}
+			if other, ok := names[line.Name]; ok {
+				return fmt.Errorf("types.%s.fields.%s: name %q is also the name of %s", name, field, line.Name, other)
+			}
+			names[line.Name] = field
 		}
 		for field, extra := range t.ExtraAttributes {
 			if err := extra.check(field); err != nil {
@@ -471,7 +538,8 @@ func (s Schema) checkUpgrades() error {
 	return nil
 }
 
-// checkEnums checks that no value is accepted and rejected at the same time.
+// checkEnums checks that no value is accepted and rejected at the same time, and that names
+// gives accepted values distinct Terraform values.
 func (f *File) checkEnums() error {
 	for _, name := range sortedKeys(f.Enums) {
 		e := f.Enums[name]
@@ -483,13 +551,31 @@ func (f *File) checkEnums() error {
 				return fmt.Errorf("enums.%s: %q is in values and in rejected", name, v)
 			}
 		}
-		if e.TrimPrefix == "" {
-			continue
+		if e.TrimPrefix != "" {
+			for _, v := range e.Values {
+				if !strings.HasPrefix(v, e.TrimPrefix) || v == e.TrimPrefix {
+					return fmt.Errorf("enums.%s: trimPrefix %q is not a prefix of %q", name, e.TrimPrefix, v)
+				}
+			}
+		}
+		for _, v := range sortedKeys(e.Names) {
+			if !slices.Contains(e.Values, v) {
+				return fmt.Errorf("enums.%s.names: %q is not in values", name, v)
+			}
+			if e.Names[v] == "" {
+				return fmt.Errorf("enums.%s.names: %q has an empty name", name, v)
+			}
+		}
+		seen := map[string]string{}
+		if e.Zero != "" {
+			seen[e.Zero] = "zero"
 		}
 		for _, v := range e.Values {
-			if !strings.HasPrefix(v, e.TrimPrefix) || v == e.TrimPrefix {
-				return fmt.Errorf("enums.%s: trimPrefix %q is not a prefix of %q", name, e.TrimPrefix, v)
+			tf := e.TFValue(v)
+			if previous, ok := seen[tf]; ok {
+				return fmt.Errorf("enums.%s: %q and %s have the same Terraform value %q", name, v, previous, tf)
 			}
+			seen[tf] = strconv.Quote(v)
 		}
 	}
 	return nil
@@ -521,6 +607,10 @@ func (l Field) keys() []string {
 	add(l.MarkdownDescription != nil, "markdownDescription")
 	add(l.ReadOnly, "readOnly")
 	add(l.Required, "required")
+	add(l.Optional, "optional")
+	add(len(l.CreateAs) != 0, "createAs")
+	add(l.Collection != "", "collection")
+	add(l.Name != "", "name")
 	add(l.Deprecation != "", "deprecation")
 	add(l.Computed != nil, "computed")
 	add(l.UseStateForUnknown, "useStateForUnknown")
@@ -531,6 +621,8 @@ func (l Field) keys() []string {
 	add(l.SendNullAsEmpty, "sendNullAsEmpty")
 	add(l.RequireOne, "requireOne")
 	add(l.RequestValue != "", "requestValue")
+	add(len(l.RequestValueBy) != 0, "requestValueBy")
+	add(l.KeyedBy != nil, "keyedBy")
 	add(l.KeepPriorOrder, "keepPriorOrder")
 	add(len(l.Validators) != 0, "validators")
 	add(l.Equality != "", "equality")
@@ -543,8 +635,12 @@ func (l Field) keys() []string {
 // statesPresence reports whether the line says how an omitted value behaves. A line that only
 // changes a text, a validator, or the order does not: the contract must still state presence.
 func (l Field) statesPresence() bool {
-	return l.Skip || l.ReadOnly || l.Required || l.Computed != nil || l.Default != nil || l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequestValue != ""
+	return l.Skip || l.ReadOnly || l.Required || l.Computed != nil || l.Default != nil || l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.Fixed()
 }
+
+// Fixed reports whether Create and Update send a value that the line states, so the field is
+// not a Terraform attribute.
+func (l Field) Fixed() bool { return l.RequestValue != "" || len(l.RequestValueBy) != 0 }
 
 // replacesServerDefault reports whether the line states a mode that a server default of the
 // contract cannot have: its own default, or no computed value. required: true needs no check:
@@ -604,14 +700,13 @@ func (l Field) empty() bool {
 }
 
 func (l Field) emptyMode() bool {
-	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && l.Deprecation == "" &&
+	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && l.Name == "" && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown
 }
 
 func (l Field) emptyValue() bool {
-	return l.Default == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && l.RequestValue == "" &&
-		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && !l.RequiresReplace &&
-		l.Collection == ""
+	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.KeyedBy == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() &&
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && !l.RequiresReplace
 }
 
 func (l Field) check() error {
@@ -631,6 +726,18 @@ func (l Field) check() error {
 	}
 	if l.RequiresReplace && l.Computed != nil && *l.Computed {
 		return errors.New("requiresReplace cannot be combined with computed: true")
+	}
+	if l.Required && l.Optional {
+		return errors.New("set required or optional, not both")
+	}
+	if err := checkCreateAs(l.CreateAs); err != nil {
+		return err
+	}
+	if l.Collection != "" && l.Collection != "set" {
+		return fmt.Errorf("collection is %q, want set", l.Collection)
+	}
+	if l.Name != "" && !validAttrName.MatchString(l.Name) {
+		return fmt.Errorf("name %q is not a Terraform attribute name: lower case letters, digits, and _", l.Name)
 	}
 	if l.Description != nil && l.MarkdownDescription != nil {
 		return errors.New("set description or markdownDescription, not both")
@@ -660,8 +767,28 @@ func (l Field) checkConflicts() error {
 	if l.SendNullAsEmpty && l.ReadEmptyAs != "null" {
 		return errors.New("sendNullAsEmpty needs readEmptyAs: \"null\", or the stored \"\" reads back as \"\"")
 	}
-	if l.Skip && l.RequestValue != "" {
+	if l.Skip && l.Fixed() {
 		return errors.New("requestValue sends the field, so skip cannot be set")
+	}
+	if l.KeyedBy != nil && (l.KeyedBy.Key == "" || l.KeyedBy.Key == l.KeyedBy.Value) {
+		return errors.New("keyedBy needs a key, and a value other than the key")
+	}
+	if k := l.KeyedBy; k != nil && k.Object && k.Value != "" {
+		return errors.New("keyedBy: object holds the whole item, so value cannot be set")
+	}
+	if k := l.KeyedBy; k != nil && !k.Object && (len(k.Arms) != 0 || k.KeyAs != "") {
+		return errors.New("keyedBy: arms and keyAs need object: true")
+	}
+	if l.KeyedBy != nil && l.Collection != "" {
+		return errors.New("keyedBy makes a map, so collection cannot be set")
+	}
+	if l.RequestValue != "" && len(l.RequestValueBy) != 0 {
+		return errors.New("requestValue and requestValueBy cannot both be set")
+	}
+	for _, field := range sortedKeys(l.RequestValueBy) {
+		if field == "" || l.RequestValueBy[field] == "" {
+			return errors.New("requestValueBy maps a field name to an API value")
+		}
 	}
 	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON {
 		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
@@ -671,9 +798,9 @@ func (l Field) checkConflicts() error {
 
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
 func (l Field) hasBehavior() bool {
-	return l.ReadOnly || l.Computed != nil || l.Required || l.Default != nil || l.KeepPriorOrder ||
-		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.RequestValue != "" ||
-		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || l.RequiresReplace || l.Collection != ""
+	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
+		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.Fixed() ||
+		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || l.RequiresReplace
 }
 
 func checkValidators(validators []Validator) error {
@@ -706,8 +833,17 @@ func checkValidators(validators []Validator) error {
 		if len(v.AtLeastOneOf) != 0 {
 			set++
 		}
+		if v.AtLeast != nil {
+			set++
+		}
+		if v.RegexMatches != nil {
+			set++
+			if _, err := regexp.Compile(v.RegexMatches.Pattern); err != nil || v.RegexMatches.Pattern == "" {
+				return fmt.Errorf("regexMatches needs a pattern that Go compiles: %q", v.RegexMatches.Pattern)
+			}
+		}
 		if set != 1 {
-			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, enum, enumExceptZero, between, exactlyOneOf, and atLeastOneOf")
+			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, enum, enumExceptZero, between, exactlyOneOf, atLeastOneOf, atLeast, and regexMatches")
 		}
 	}
 	return nil
@@ -753,11 +889,41 @@ func (f *File) Policy() model.Policy {
 			if t.Fields[field].Skip {
 				p.Skip = append(p.Skip, name+"."+field)
 			}
-			if t.Fields[field].RequestValue != "" {
+			if t.Fields[field].Fixed() {
 				p.FixedRequest = append(p.FixedRequest, name+"."+field)
 			}
 			if t.Fields[field].ReadOnly {
 				p.ReadOnly = append(p.ReadOnly, name+"."+field)
+			}
+			if t.Fields[field].Optional {
+				p.Optional = append(p.Optional, name+"."+field)
+			}
+			if c := t.Fields[field].Computed; c != nil && *c {
+				p.Computed = append(p.Computed, name+"."+field)
+			}
+			if t.Fields[field].UseStateForUnknown || t.Fields[field].UseNonNullStateForUnknown {
+				p.KeepState = append(p.KeepState, name+"."+field)
+			}
+			if t.Fields[field].Collection == "set" {
+				p.Sets = append(p.Sets, name+"."+field)
+			}
+			if k := t.Fields[field].KeyedBy; k != nil {
+				if p.KeyedBy == nil {
+					p.KeyedBy = map[string]model.KeyedLine{}
+				}
+				p.KeyedBy[name+"."+field] = model.KeyedLine{Key: k.Key, Value: k.Value, Object: k.Object, Arms: maps.Clone(k.Arms), KeyAs: k.KeyAs}
+			}
+			if n := t.Fields[field].Name; n != "" {
+				if p.Names == nil {
+					p.Names = map[string]string{}
+				}
+				p.Names[name+"."+field] = n
+			}
+			if into := t.Fields[field].CreateAs; len(into) != 0 {
+				if p.CreateAs == nil {
+					p.CreateAs = map[string]map[string]string{}
+				}
+				p.CreateAs[name+"."+field] = maps.Clone(into)
 			}
 			if t.Fields[field].statesPresence() {
 				p.Released = append(p.Released, name+"."+field)
@@ -788,12 +954,22 @@ func (f *File) Policy() model.Policy {
 			p.UnsupportedDetail[name] = t.UnsupportedDetail
 		}
 	}
+	for _, name := range sortedKeys(f.Enums) {
+		e := f.Enums[name]
+		for _, v := range e.Values {
+			if p.EnumValues == nil {
+				p.EnumValues = map[string][]model.EnumValue{}
+			}
+			p.EnumValues[name] = append(p.EnumValues[name], model.EnumValue{API: v, TF: e.TFValue(v)})
+		}
+	}
 	return p
 }
 
 // Lines returns one description per line of the file that the contract must match,
 // in a stable order. The generator uses it to report a line that matches nothing.
 func (f *File) Lines() []Line {
+	file := f
 	var out []Line
 	for _, name := range sortedKeys(f.Enums) {
 		out = append(out, Line{Kind: KindEnum, Component: name, EnumZero: f.Enums[name].Zero, EnumValues: f.Enums[name].Values, EnumRejected: f.Enums[name].Rejected})
@@ -805,7 +981,7 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Collection: f.Collection, Equality: f.Equality, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Accepted: file.accepted(f.KeyedBy), Equality: f.Equality, Keys: f.keys()})
 		}
 	}
 	return out
@@ -829,11 +1005,20 @@ type Line struct {
 	EnumZero   string   // for an enum line: the Terraform value of the zero value
 	// EnumRejected are the values of the contract that the resource does not accept.
 	EnumRejected []string
-	ReadOnly     bool     // for a field line: the file says that the server sets the field
-	Equality     string   // for a field line: "yaml" or "json" when the line compares the value as a document
-	Required     bool     // for a field line: the file says that the field is required
-	Collection   string   // for a field line: "set" says that the list is unordered
-	Keys         []string // for a field line: every key that the line sets
+	ReadOnly     bool   // for a field line: the file says that the server sets the field
+	Equality     string // for a field line: "yaml" or "json" when the line compares the value as a document
+	Required     bool   // for a field line: the file says that the field is required
+	Optional     bool   // for a field line: the file says that the field is optional
+	Collection   string // for a field line: "set" when the file shows a list as a set
+	Name         string // for a field line: the Terraform attribute name
+	// RequestValueBy is, for a field line, the API value sent for each object field that is set.
+	RequestValueBy map[string]string
+	// KeyedBy is, for a field line, the key and value properties of a list shown as a map.
+	KeyedBy *KeyedBy
+	// Accepted are, for a keyedBy object line, the accepted values of each enum that has an enums
+	// line, with their Terraform values: the attributes that the object can have.
+	Accepted map[string]map[string]string
+	Keys     []string // for a field line: every key that the line sets
 }
 
 // String names the line as it is written in the file.
@@ -855,4 +1040,38 @@ func sortedKeys[V any](m map[string]V) []string {
 	}
 	sort.Strings(keys)
 	return slices.Clip(keys)
+}
+
+var validAttrName = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
+
+// checkCreateAs checks a createAs map: each property names one Create field, and no two
+// properties name the same one.
+func checkCreateAs(into map[string]string) error {
+	seen := map[string]bool{}
+	for nested, flat := range into {
+		if nested == "" || flat == "" {
+			return errors.New("createAs maps a property to a Create field; neither can be empty")
+		}
+		if seen[flat] {
+			return fmt.Errorf("createAs names the Create field %q twice", flat)
+		}
+		seen[flat] = true
+	}
+	return nil
+}
+
+// accepted returns the accepted values of each enum that has an enums line, for a keyedBy object
+// line, and nil for any other line.
+func (f *File) accepted(k *KeyedBy) map[string]map[string]string {
+	if k == nil || !k.Object {
+		return nil
+	}
+	out := map[string]map[string]string{}
+	for name, e := range f.Enums {
+		out[name] = map[string]string{}
+		for _, v := range e.Values {
+			out[name][v] = e.TFValue(v)
+		}
+	}
+	return out
 }

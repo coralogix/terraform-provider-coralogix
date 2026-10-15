@@ -69,9 +69,6 @@ type Policy struct {
 	// Unsupported lists "Component.field" of oneOf arms the resource does not
 	// configure. Flatten reports a response that selects one.
 	Unsupported []string
-	// Sets lists "Component.field" of lists that are Terraform sets, although
-	// the contract does not mark them x-coralogix-collection: set.
-	Sets []string
 	// UnsupportedSummary and UnsupportedDetail are the diagnostic for those
 	// arms, keyed by the component name.
 	UnsupportedSummary map[string]string
@@ -82,6 +79,26 @@ type Policy struct {
 	// EmptyRequired lists the object components that declare no required list
 	// and mean "no field is required".
 	EmptyRequired []string
+	// Optional lists "Component.field" of fields that a request of the contract requires and the
+	// released resource treats as optional.
+	Optional []string
+	// Computed lists "Component.field" of fields that a computed: true line makes computed.
+	Computed []string
+	// KeepState lists "Component.field" of fields whose line keeps the state value for an unknown
+	// plan value (useStateForUnknown or useNonNullStateForUnknown).
+	KeepState []string
+	// Sets lists "Component.field" of ordered lists of the contract that the resource shows as sets.
+	Sets []string
+	// Names maps "Component.field" to the Terraform attribute name of the field.
+	Names map[string]string
+	// KeyedBy maps "Component.field" of a list of objects to the keyedBy line of the field.
+	KeyedBy map[string]KeyedLine
+	// EnumValues are the accepted values of each enum that has an enums line, with their
+	// Terraform values, in the order of the line.
+	EnumValues map[string][]EnumValue
+	// CreateAs maps "Component.field" of a top-level object field to the flat Create fields that
+	// hold its properties: property name to Create field name.
+	CreateAs map[string]map[string]string
 	// Skip lists "Component.field" of fields that the resource does not manage.
 	// The generator does not send them and does not store them.
 	Skip []string
@@ -251,6 +268,9 @@ func (r *Resource) pruneSkipped() {
 		return
 	}
 	r.Fields = slices.DeleteFunc(r.Fields, func(f *ResourceField) bool { return r.Policy.skips(r.Name, f.Name) })
+	// A skipped top-level arm leaves its group too, or the resource validator names an
+	// attribute that the schema does not have.
+	r.Groups = r.Policy.pruneGroups(r.Name, r.Groups)
 	seen := map[*Type]bool{}
 	for _, f := range r.Fields {
 		r.Policy.pruneType(f.Type, seen)
@@ -269,7 +289,204 @@ func (p Policy) pruneType(t *Type, seen map[*Type]bool) {
 		return
 	}
 	t.Fields = slices.DeleteFunc(t.Fields, func(f *Field) bool { return p.skips(t.Schema, f.Name) })
+	for i := range t.Groups {
+		// A skipped arm is one that skippedArmIssues allows: the group allows no arm.
+		t.Groups[i].Arms = slices.DeleteFunc(slices.Clone(t.Groups[i].Arms), func(arm string) bool { return p.skips(t.Schema, arm) })
+	}
 	for _, f := range t.Fields {
 		p.pruneType(f.Type, seen)
 	}
+}
+
+// pruneGroups returns the groups of component without the arms that the policy skips. A group
+// with no arm left is dropped: it has nothing to check.
+func (p Policy) pruneGroups(component string, groups []OneOfGroup) []OneOfGroup {
+	var out []OneOfGroup
+	for _, g := range groups {
+		g.Arms = slices.DeleteFunc(slices.Clone(g.Arms), func(arm string) bool { return p.skips(component, arm) })
+		if len(g.Arms) != 0 {
+			out = append(out, g)
+		}
+	}
+	return out
+}
+
+// requiredOf returns the required list of a component without the fields that the policy
+// makes optional.
+func (p *Policy) requiredOf(component string, required []string) []string {
+	if p == nil || component == "" || len(p.Optional) == 0 {
+		return required
+	}
+	return slices.DeleteFunc(slices.Clone(required), func(field string) bool {
+		return slices.Contains(p.Optional, component+"."+field)
+	})
+}
+
+// withOptional returns s with the required list of the component after the policy, so the
+// contract checks treat the fields that the policy makes optional as optional.
+func (p *Policy) withOptional(component string, s *base.Schema) *base.Schema {
+	if s == nil {
+		return nil
+	}
+	required := p.requiredOf(component, s.Required)
+	if len(required) == len(s.Required) {
+		return s
+	}
+	out := *s
+	out.Required = required
+	return &out
+}
+
+// ComputedLine reports whether a computed: true line makes component.field computed. The
+// model holds such an object as a types.Object, which can be unknown in a plan.
+func (p Policy) ComputedLine(component, field string) bool { return p.computed(component, field) }
+
+// OptionalLine reports whether an optional line relaxes component.field, a list or a map that the
+// contract requires. The request still has the key, so expand sends an empty value, not null.
+func (p Policy) OptionalLine(component, field string) bool {
+	return component != "" && slices.Contains(p.Optional, component+"."+field)
+}
+
+// keepsState reports whether a line keeps the state value of component.field when the plan has
+// none, so Update can send the value that Get returned.
+func (p *Policy) keepsState(component, field string) bool {
+	return p != nil && component != "" && slices.Contains(p.KeepState, component+"."+field)
+}
+
+func (p *Policy) computed(component, field string) bool {
+	return p != nil && component != "" && slices.Contains(p.Computed, component+"."+field)
+}
+
+// asSet makes t, the type of component.field, a set when a collection: set line says so, and a
+// map when a keyedBy line says so.
+func (p *Policy) asSet(component, field string, t *Type) {
+	if p != nil && t != nil && t.Kind == List && component != "" && slices.Contains(p.Sets, component+"."+field) {
+		t.Kind = Set
+	}
+	p.asMap(component, field, t)
+}
+
+// KeyedLine is a keyedBy line: the property that keys the list, and the property that is the
+// value ("" for the rest of the item). Object shows the list as an object with an attribute per
+// value of an enum key. Arms gives a value the oneOf arm that its item holds. KeyAs is the string
+// property that expand sets to the attribute name.
+type KeyedLine struct {
+	Key, Value string
+	Object     bool
+	Arms       map[string]string
+	KeyAs      string
+}
+
+// EnumValue is an accepted API value of an enum and its Terraform value.
+type EnumValue struct {
+	API, TF string
+}
+
+// asMap makes t, a list of objects, a map keyed by a string property of the object when a
+// keyedBy line says so. The map value is the rest of the object, or one property of it. A line
+// that does not fit leaves t a list: the generator reports the line.
+func (p *Policy) asMap(component, field string, t *Type) {
+	if p == nil || t == nil || component == "" || t.Kind != List || t.Elem == nil || t.Elem.Kind != Object {
+		return
+	}
+	line, ok := p.KeyedBy[component+"."+field]
+	if !ok {
+		return
+	}
+	if line.Object {
+		p.asKeyedObject(line, t)
+		return
+	}
+	keyed := [2]string{line.Key, line.Value}
+	item := t.Elem
+	key := slices.IndexFunc(item.Fields, func(f *Field) bool { return f.Name == keyed[0] })
+	if key < 0 || item.Fields[key].Type.Kind != String {
+		return
+	}
+	elem := *item
+	elem.Fields = slices.Delete(slices.Clone(item.Fields), key, key+1)
+	t.Elem = &elem
+	if keyed[1] != "" {
+		value := slices.IndexFunc(item.Fields, func(f *Field) bool { return f.Name == keyed[1] })
+		if value < 0 || len(item.Fields) != 2 {
+			t.Elem = item
+			return
+		}
+		t.Elem = item.Fields[value].Type
+	}
+	t.Kind, t.Keyed = Map, &Keyed{Key: keyed[0], Value: keyed[1], Item: item}
+}
+
+// TerraformName returns the Terraform attribute name of field of component: the name of a
+// name line, or the name derived from the JSON name.
+func (p Policy) TerraformName(component, field string) string {
+	if n, ok := p.Names[component+"."+field]; ok {
+		return n
+	}
+	return TerraformName(field)
+}
+
+// ComponentOf returns the response component of a type: a request view names its request
+// component and keeps the response component in Model. Field lines name the response component.
+func ComponentOf(t *Type) string {
+	if t.Model != "" {
+		return t.Model
+	}
+	return t.Schema
+}
+
+// asKeyedObject makes t, a list of objects keyed by an enum property, an object with one
+// attribute per accepted value of the enum. Each attribute is the item without the key, and with
+// only the oneOf arm that the line gives the value, which is required there. The attributes are
+// optional and computed: the API can return an item that the configuration does not have.
+func (p *Policy) asKeyedObject(line KeyedLine, t *Type) {
+	item := t.Elem
+	key := slices.IndexFunc(item.Fields, func(f *Field) bool { return f.Name == line.Key })
+	if key < 0 || item.Fields[key].Type.Kind != Enum {
+		return
+	}
+	values := p.EnumValues[item.Fields[key].Type.Schema]
+	if len(values) == 0 {
+		return
+	}
+	arms := map[string]bool{}
+	for _, arm := range line.Arms {
+		arms[arm] = true
+	}
+	// The object has its own component name: its attributes are named after the enum values, and
+	// must not meet the lines of the item fields.
+	container := Type{Kind: Object, Schema: item.Schema + ".keyed"}
+	keyed := &Keyed{Key: line.Key, Item: item, Object: true, KeyAs: line.KeyAs}
+	for _, v := range values {
+		variant := *item
+		variant.Variant, variant.Groups, variant.AllowNone, variant.Fields = GoName(v.TF), nil, false, nil
+		for i, f := range item.Fields {
+			switch {
+			case i == key:
+				continue
+			case f.Name == line.Arms[v.API]:
+				own := *f
+				own.Attrs.Required = true
+				variant.Fields = append(variant.Fields, &own)
+			case arms[f.Name] || inGroup(item.Groups, f.Name):
+				continue
+			default:
+				variant.Fields = append(variant.Fields, f)
+			}
+		}
+		container.Fields = append(container.Fields, &Field{Name: v.TF, Type: &variant, Attrs: Attrs{Computed: true}})
+		keyed.Values = append(keyed.Values, KeyedValue{API: v.API, Field: v.TF})
+	}
+	container.Keyed = keyed
+	*t = container
+}
+
+// inGroup reports whether name is an arm of a oneOf group.
+func inGroup(groups []OneOfGroup, name string) bool {
+	for _, g := range groups {
+		if slices.Contains(g.Arms, name) {
+			return true
+		}
+	}
+	return false
 }

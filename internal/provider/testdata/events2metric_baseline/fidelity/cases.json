@@ -1,0 +1,108 @@
+{
+  "comment": "Requests that a recorder sends to the real backend, and the offline test sends to the fake. Paths are relative to /events2metrics/events2metrics/v2. Tokens: {{E1}}..{{E9}} events2metric ids that the server made (set by 'capture'); {{N1}}..{{N9}} names and {{B1}}..{{B9}} metric base names, unique per run because the API keeps them unique per company; {{MISSING}} an id that was never created.",
+  "cases": [
+    {
+      "name": "logs-full-lifecycle",
+      "steps": [
+        {"method": "POST", "path": "", "capture": "E1", "body": {
+          "name": "{{N1}}", "description": "logs2metric", "type": "E2M_TYPE_LOGS2METRICS",
+          "logsQuery": {"lucene": "remote_addr_enriched:/.*/", "applicationnameFilters": ["filter:startsWith:nginx"], "subsystemnameFilters": ["api"], "severityFilters": ["SEVERITY_DEBUG", "SEVERITY_ERROR"]},
+          "metricFields": [
+            {"targetBaseMetricName": "{{B1}}", "sourceField": "method"},
+            {"targetBaseMetricName": "{{B2}}", "sourceField": "location_geopoint", "aggregations": [
+              {"aggType": "AGG_TYPE_MAX", "enabled": false, "targetMetricName": "max"},
+              {"aggType": "AGG_TYPE_MIN", "enabled": false, "targetMetricName": "min"},
+              {"aggType": "AGG_TYPE_AVG", "enabled": true, "targetMetricName": "avg"},
+              {"aggType": "AGG_TYPE_SAMPLES", "enabled": true, "targetMetricName": "samples", "samples": {"sampleType": "SAMPLE_TYPE_MIN"}},
+              {"aggType": "AGG_TYPE_HISTOGRAM", "enabled": true, "targetMetricName": "histogram", "histogram": {"buckets": [1.5, 2]}}
+            ]}
+          ],
+          "metricLabels": [{"targetLabel": "Status", "sourceField": "status"}, {"targetLabel": "Path", "sourceField": "http_referer"}],
+          "permutationsLimit": 20000
+        }},
+        {"method": "GET", "path": "/{{E1}}"},
+        {"method": "PUT", "path": "", "body": {
+          "id": "{{E1}}", "name": "{{N1}}", "description": "changed", "type": "E2M_TYPE_LOGS2METRICS",
+          "logsQuery": {"lucene": "remote_addr_enriched:/.*/", "applicationnameFilters": ["filter:startsWith:nginx"], "subsystemnameFilters": ["api"], "severityFilters": ["SEVERITY_DEBUG", "SEVERITY_ERROR"]},
+          "metricFields": [
+            {"targetBaseMetricName": "{{B1}}", "sourceField": "method", "aggregations": [{"aggType": "AGG_TYPE_COUNT", "enabled": false, "targetMetricName": "count"}]},
+            {"targetBaseMetricName": "{{B2}}", "sourceField": "location_geopoint", "aggregations": [{"aggType": "AGG_TYPE_MAX", "enabled": true, "targetMetricName": "max"}]}
+          ],
+          "metricLabels": [{"targetLabel": "Status", "sourceField": "status_code"}, {"targetLabel": "Path", "sourceField": "http_referer"}],
+          "permutations": {"limit": 20000, "hasExceededLimit": false}
+        }},
+        {"method": "GET", "path": "/{{E1}}"},
+        {"method": "DELETE", "path": "/{{E1}}"},
+        {"method": "GET", "path": "/{{E1}}"},
+        {"method": "DELETE", "path": "/{{E1}}"}
+      ]
+    },
+    {
+      "name": "minimal-and-unset",
+      "steps": [
+        {"method": "POST", "path": "", "capture": "E2", "body": {"name": "{{N2}}", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": {}}},
+        {"method": "GET", "path": "/{{E2}}"},
+        {"method": "PUT", "path": "", "body": {"id": "{{E2}}", "name": "{{N2}}", "description": "d", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": {"lucene": "x"}, "permutations": {"limit": 10, "hasExceededLimit": false}}},
+        {"method": "PUT", "path": "", "body": {"id": "{{E2}}", "name": "{{N2}}", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": {}}},
+        {"method": "GET", "path": "/{{E2}}"},
+        {"method": "PUT", "path": "", "body": {"id": "{{E2}}", "name": "{{N2}}", "description": "", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": {"lucene": ""}, "permutations": {"limit": 10, "hasExceededLimit": false}}},
+        {"method": "GET", "path": "/{{E2}}"},
+        {"method": "DELETE", "path": "/{{E2}}"}
+      ]
+    },
+    {
+      "name": "permutations",
+      "steps": [
+        {"method": "POST", "path": "", "capture": "E3", "body": {"name": "{{N3}}", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": {}, "metricLabels": [{"targetLabel": "L", "sourceField": "l"}]}},
+        {"method": "POST", "path": "", "body": {"name": "{{N4}}", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": {}, "metricLabels": [{"targetLabel": "L", "sourceField": "l"}], "permutationsLimit": 0}},
+        {"method": "POST", "path": "", "capture": "E4", "body": {"name": "{{N4}}", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": {}, "permutationsLimit": 0}},
+        {"method": "PUT", "path": "", "body": {"id": "{{E3}}", "name": "{{N3}}", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": {}, "metricLabels": [{"targetLabel": "L", "sourceField": "l"}]}},
+        {"method": "GET", "path": "/{{E3}}"},
+        {"method": "DELETE", "path": "/{{E3}}"},
+        {"method": "DELETE", "path": "/{{E4}}"}
+      ]
+    },
+    {
+      "name": "aggregations-backfill-and-enabled",
+      "steps": [
+        {"method": "POST", "path": "", "capture": "E5", "body": {"name": "{{N5}}", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": {}, "metricFields": [{"targetBaseMetricName": "{{B5}}", "sourceField": "duration_ms"}]}},
+        {"method": "PUT", "path": "", "body": {"id": "{{E5}}", "name": "{{N5}}", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": {}, "metricFields": [{"targetBaseMetricName": "{{B5}}", "sourceField": "duration_ms", "aggregations": [{"aggType": "AGG_TYPE_MIN", "enabled": false, "targetMetricName": "min"}]}], "permutations": {"limit": 30000, "hasExceededLimit": false}}},
+        {"method": "GET", "path": "/{{E5}}"},
+        {"method": "PUT", "path": "", "body": {"id": "{{E5}}", "name": "{{N5}}", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": {}, "metricFields": [{"targetBaseMetricName": "{{B5}}", "sourceField": "duration_ms", "aggregations": [{"aggType": "AGG_TYPE_SUM", "targetMetricName": "sum"}]}], "permutations": {"limit": 30000, "hasExceededLimit": false}}},
+        {"method": "GET", "path": "/{{E5}}"},
+        {"method": "DELETE", "path": "/{{E5}}"}
+      ]
+    },
+    {
+      "name": "spans-and-switch-type",
+      "steps": [
+        {"method": "POST", "path": "", "capture": "E6", "body": {"name": "{{N6}}", "type": "E2M_TYPE_SPANS2METRICS", "spansQuery": {"lucene": "x", "applicationnameFilters": ["a"], "actionFilters": ["act"], "serviceFilters": ["svc"]}, "metricFields": [{"targetBaseMetricName": "{{B6}}", "sourceField": "duration"}], "permutationsLimit": 100}},
+        {"method": "GET", "path": "/{{E6}}"},
+        {"method": "PUT", "path": "", "body": {"id": "{{E6}}", "name": "{{N6}}", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": {}, "permutations": {"limit": 100, "hasExceededLimit": false}}},
+        {"method": "GET", "path": "/{{E6}}"},
+        {"method": "DELETE", "path": "/{{E6}}"}
+      ]
+    },
+    {
+      "name": "severities-unspecified",
+      "steps": [
+        {"method": "POST", "path": "", "capture": "E7", "body": {"name": "{{N7}}", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": {"severityFilters": ["SEVERITY_UNSPECIFIED", "SEVERITY_CRITICAL"]}}},
+        {"method": "GET", "path": "/{{E7}}"},
+        {"method": "DELETE", "path": "/{{E7}}"}
+      ]
+    },
+    {
+      "name": "rejected-requests",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"name": "{{N8}}", "logsQuery": {}}},
+        {"method": "POST", "path": "", "body": {"name": "{{N8}}", "type": "E2M_TYPE_SPANS2METRICS", "logsQuery": {}}},
+        {"method": "POST", "path": "", "capture": "E8", "body": {"name": "{{N8}}", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": {}}},
+        {"method": "POST", "path": "", "body": {"name": "{{N8}}", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": {}}},
+        {"method": "PUT", "path": "", "body": {"id": "{{MISSING}}", "name": "{{N9}}", "type": "E2M_TYPE_LOGS2METRICS", "logsQuery": {}}},
+        {"method": "GET", "path": "/{{MISSING}}"},
+        {"method": "DELETE", "path": "/{{MISSING}}"},
+        {"method": "DELETE", "path": "/{{E8}}"}
+      ]
+    }
+  ]
+}

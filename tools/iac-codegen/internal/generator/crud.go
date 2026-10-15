@@ -193,7 +193,7 @@ func resourceIDData(r *model.Resource, ix *refIndex, out *crudData) error {
 	if id.Want != "*"+idGoType && id.Want != idGoType {
 		return fmt.Errorf("SDK field %s has type %s, the id needs *%s or %s", id.sdkName(), id.Want, idGoType, idGoType)
 	}
-	out.IDAttr, out.IDField, out.IDValue = tfName(r.IDParam), id.Name, id.Want == idGoType
+	out.IDAttr, out.IDField, out.IDValue = r.Policy.TerraformName(r.Name, r.IDParam), id.Name, id.Want == idGoType
 	return nil
 }
 
@@ -335,7 +335,7 @@ func updateOnlyAttrs(r *model.Resource, out *crudData) error {
 		if err != nil {
 			return fmt.Errorf("%s: server default: %w", f.Name, err)
 		}
-		out.UpdateOnly = append(out.UpdateOnly, updateOnlyAttr{Attr: tfName(f.Name), Default: value})
+		out.UpdateOnly = append(out.UpdateOnly, updateOnlyAttr{Attr: r.Policy.TerraformName(r.Name, f.Name), Default: value})
 	}
 	return nil
 }

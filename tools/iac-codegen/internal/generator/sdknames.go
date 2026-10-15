@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"unicode"
 
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
 
@@ -172,6 +173,15 @@ func (s *resolver) bodyFields(r *model.Resource, resource string) error {
 		return nil
 	}
 	for _, f := range r.Fields {
+		if folds := r.CreateFolds(f); folds != nil {
+			// Create sends the properties of the object as top-level fields.
+			for _, fd := range folds {
+				if err := s.requestField("create.body."+fd.Field, s.bodies["create"], fd.Field, fd.Type, fd.Required); err != nil {
+					return err
+				}
+			}
+			continue
+		}
 		if f.Create != nil {
 			if err := s.requestField("create.body."+f.Name, s.bodies["create"], f.Name, f.Type.CreateType(), f.Create.Required); err != nil {
 				return err
@@ -323,6 +333,10 @@ func (s *resolver) nested(path string, t *model.Type) error {
 	if len(t.Wrappers) != 0 {
 		return s.wrappers(path, t)
 	}
+	if t.Keyed != nil {
+		// The SDK holds the list of whole items, the key and the value too.
+		return s.nested(path, t.Keyed.Item)
+	}
 	switch t.Kind {
 	case model.List, model.Set, model.Map:
 		return s.nested(path, t.Elem)
@@ -334,11 +348,11 @@ func (s *resolver) nested(path string, t *model.Type) error {
 		name := goTypeName(t.Schema)
 		s.add(sdkRef{Path: path, Kind: kindType, Name: name, Rule: ruleComponent, Schema: t.Schema})
 		for _, v := range t.Values {
-			s.add(sdkRef{Path: path + "." + v, Kind: kindConst, Name: strings.ToUpper(name) + "_" + v, Rule: ruleEnumValue})
+			s.add(sdkRef{Path: path + "." + v, Kind: kindConst, Name: enumConstName(name, v), Rule: ruleEnumValue})
 		}
 		if s.policy.EnumOverride(t.Schema) && t.EnumZero != "" {
 			// The overrides map the zero value to a Terraform value, so the SDK must have it.
-			s.add(sdkRef{Path: path + "." + t.EnumZero, Kind: kindConst, Name: strings.ToUpper(name) + "_" + t.EnumZero, Rule: ruleEnumValue})
+			s.add(sdkRef{Path: path + "." + t.EnumZero, Kind: kindConst, Name: enumConstName(name, t.EnumZero), Rule: ruleEnumValue})
 		}
 	case model.Object, model.OneOf:
 		// An object with no fields has no SDK type (F16).
@@ -399,6 +413,9 @@ func fieldType(t *model.Type) (string, rule, error) {
 	if (t.Kind == model.Object || t.Kind == model.OneOf) && len(t.Fields) == 0 {
 		return "map[string]interface{}", ruleEmptyObject, nil
 	}
+	if t.Keyed != nil {
+		return "[]" + goTypeName(t.Keyed.Item.Schema), ruleProperty, nil
+	}
 	if t.Kind == model.List || t.Kind == model.Set || t.Kind == model.Map {
 		elem, _, err := fieldType(t.Elem)
 		if err != nil {
@@ -452,6 +469,20 @@ func valueType(t *model.Type) (string, error) {
 		return goTypeName(t.Schema), nil
 	}
 	return "", fmt.Errorf("%s with format %q is not supported", t.Kind, t.Format)
+}
+
+// enumConstName is the SDK constant of an enum value: the upper-case type name, "_", and the
+// value with "_" between a digit and the letter after it, as openapi-generator writes it
+// (E2MType, E2M_TYPE_LOGS2METRICS → E2MTYPE_E2_M_TYPE_LOGS2_METRICS).
+func enumConstName(typeName, value string) string {
+	var b strings.Builder
+	for i, r := range value {
+		if i > 0 && unicode.IsLetter(r) && unicode.IsDigit(rune(value[i-1])) {
+			b.WriteByte('_')
+		}
+		b.WriteRune(r)
+	}
+	return strings.ToUpper(typeName) + "_" + b.String()
 }
 
 // goTypeName is the SDK type for a component name: "v3.FilterOperator" → "V3FilterOperator".
