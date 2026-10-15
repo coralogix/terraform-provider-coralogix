@@ -495,6 +495,29 @@ func TestScalarsWithoutPresence(t *testing.T) {
 	}
 }
 
+// An import has no prior state. spec holds a configured "" (mode has presence) and the zero
+// default of weight. The contract declares no default in spec, so the service does not fill an
+// omitted spec: the read keeps the object, and the plan after the import is empty.
+func TestImportKeepsAnObjectWithOnlyZeroValues(t *testing.T) {
+	ctx := context.Background()
+	s := Schema()
+	root := s.Type().TerraformType(ctx).(tftypes.Object)
+	specType := root.AttributeTypes["spec"].(tftypes.Object)
+	spec := nullTFValues(specType)
+	spec["mode"] = tftypes.NewValue(tftypes.String, "")
+	spec["weight"] = tftypes.NewValue(tftypes.Number, 0)
+	response := nullTFValues(root)
+	response["spec"] = tftypes.NewValue(specType, spec)
+	state := tfsdk.State{Schema: s, Raw: tftypes.NewValue(root, response)}
+	imported := tfsdk.State{Schema: s, Raw: tftypes.NewValue(root, nullTFValues(root))}
+	if diags := keepPriorEmpty(ctx, imported, &state); diags.HasError() {
+		t.Fatal(diags)
+	}
+	if want := tftypes.NewValue(root, response); !state.Raw.Equal(want) {
+		t.Fatalf("state = %s, want the API object", state.Raw)
+	}
+}
+
 func TestEmptyObjectRules(t *testing.T) {
 	ctx := context.Background()
 	httpType := map[string]attr.Type{"endpoint": types.StringType}

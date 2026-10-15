@@ -200,6 +200,10 @@ type Type struct {
 	// ReadZeroAsNull: a request sends the scalar without presence or a default, and its zero value
 	// is not valid, so a configuration never holds it. A read of the zero value is an omitted one.
 	ReadZeroAsNull bool
+	// ImplicitDefault: the contract declares no default. The default is the zero value that a
+	// request scalar without presence reads back as. The service does not fill an omitted object
+	// that holds it.
+	ImplicitDefault bool
 
 	MinLength, MaxLength *int64
 	// Pattern is the regular expression that a String must match, "" for

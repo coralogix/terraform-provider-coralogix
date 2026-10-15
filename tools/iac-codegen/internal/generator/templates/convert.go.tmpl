@@ -125,6 +125,8 @@ var defaultAttrs = map[string]attr.Value{
 	{{printf "%q" .Path}}: {{.Value}},
 {{- end}}
 }
+{{- end}}
+{{- if $.DefaultObjects}}
 
 // defaultObjects are the objects that hold an attribute with a server default, by path.
 var defaultObjects = map[string]bool{
@@ -433,7 +435,7 @@ func priorEmptyMap(ctx context.Context, at string, v, prior types.Map, diags *di
 
 // emptyValue reports whether v is null, an empty list, set, or map, or an
 // object outside a oneOf arm whose attributes are all empty.
-{{- if $.DefaultPaths}} The service fills
+{{- if $.DefaultObjects}} The service fills
 // an omitted object that holds an attribute with a server default, so an
 // attribute that is "" or that equals its declared server default is empty
 // inside that object.
@@ -457,7 +459,7 @@ func emptyValue(at string, v attr.Value) bool {
 			return false
 		}
 		for name, child := range v.Attributes() {
-			if !emptyValue(at+"."+name, child){{if $.DefaultPaths}} && !(defaultObjects[at] && defaultValue(at+"."+name, child)){{end}} {
+			if !emptyValue(at+"."+name, child){{if $.DefaultObjects}} && !(defaultObjects[at] && defaultValue(at+"."+name, child)){{end}} {
 				return false
 			}
 		}
@@ -465,7 +467,7 @@ func emptyValue(at string, v attr.Value) bool {
 	}
 	return false
 }
-{{- if $.DefaultPaths}}
+{{- if $.DefaultObjects}}
 
 // defaultValue reports whether child, an attribute of an object at path at, is
 // "" or its declared server default.

@@ -75,4 +75,5 @@ func zeroDefault(t *Type, create, update, get *Attrs) {
 			a.Default = &zero
 		}
 	}
+	t.ImplicitDefault = true
 }

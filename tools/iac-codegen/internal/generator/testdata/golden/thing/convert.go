@@ -99,11 +99,6 @@ var defaultAttrs = map[string]attr.Value{
 	"spec.weight": types.Int32Value(0),
 }
 
-// defaultObjects are the objects that hold an attribute with a server default, by path.
-var defaultObjects = map[string]bool{
-	"spec": true,
-}
-
 // requestValue returns v with a null value for each attribute that the server
 // sets. When the resource changes, Terraform plans these attributes as
 // unknown. A request does not send them, so a change check and an
@@ -391,10 +386,7 @@ func priorEmptyMap(ctx context.Context, at string, v, prior types.Map, diags *di
 }
 
 // emptyValue reports whether v is null, an empty list, set, or map, or an
-// object outside a oneOf arm whose attributes are all empty. The service fills
-// an omitted object that holds an attribute with a server default, so an
-// attribute that is "" or that equals its declared server default is empty
-// inside that object.
+// object outside a oneOf arm whose attributes are all empty.
 func emptyValue(at string, v attr.Value) bool {
 	if v.IsNull() {
 		return true
@@ -414,23 +406,13 @@ func emptyValue(at string, v attr.Value) bool {
 			return false
 		}
 		for name, child := range v.Attributes() {
-			if !emptyValue(at+"."+name, child) && !(defaultObjects[at] && defaultValue(at+"."+name, child)) {
+			if !emptyValue(at+"."+name, child) {
 				return false
 			}
 		}
 		return true
 	}
 	return false
-}
-
-// defaultValue reports whether child, an attribute of an object at path at, is
-// "" or its declared server default.
-func defaultValue(at string, child attr.Value) bool {
-	if d := defaultAttrs[at]; d != nil && child.Equal(d) {
-		return true
-	}
-	s, ok := child.(types.String)
-	return ok && !s.IsNull() && !s.IsUnknown() && s.ValueString() == ""
 }
 
 func expandCreateThingRequest(ctx context.Context, p path.Path, m *ThingModel, diags *diag.Diagnostics) *things_service.CreateThingRequest {
