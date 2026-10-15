@@ -1005,7 +1005,7 @@ func (r *Resource) resourceField(name string, createBody, updateBody, getSchema 
 		return nil, fmt.Errorf("update body: %w", err)
 	}
 	gp := propertyOf(getSchema, name)
-	behavior, err := classifyTopLevel(r.Policy, r.IDParam, name, cp != nil, up != nil, gp != nil, schemaDefault(up) != nil)
+	behavior, err := classifyTopLevel(r.Policy, r.ID(), name, cp != nil, up != nil, gp != nil, schemaDefault(up) != nil)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", name, err)
 	}

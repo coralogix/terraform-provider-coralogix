@@ -1338,6 +1338,10 @@ func (b *convBuilder) defaultArms(component string, t *model.Type, fields []*con
 	if len(lines) == 0 {
 		return nil, nil
 	}
+	if !b.resource.Replace {
+		// A PATCH mask names the arm that the plan selects, which is not the arm that expand adds.
+		return nil, fmt.Errorf("defaultArm %s needs a full-replace Update (PUT)", strings.Join(lines, ", "))
+	}
 	groups := t.Groups
 	if t.Kind == model.OneOf {
 		group := model.OneOfGroup{AllowNone: t.AllowNone}

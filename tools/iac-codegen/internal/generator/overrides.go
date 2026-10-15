@@ -597,13 +597,13 @@ func optionalProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 }
 
 // nameProblem checks a name line. The name must differ from the name that the JSON name
-// gives, and from the name of every other field of the component that the file does not skip.
+// gives, and from the name of every other field of the component that has an attribute.
 func nameProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	if line.Name == model.TerraformName(line.Field) {
 		return &lineIssue{message: fmt.Sprintf("%q is already the Terraform name of %q", line.Name, line.Field), stale: []string{"name"}}
 	}
 	for field := range schema.Properties.KeysFromOldest() {
-		if field != line.Field && model.TerraformName(field) == line.Name && !slices.Contains(line.Skipped, field) {
+		if field != line.Field && model.TerraformName(field) == line.Name && !slices.Contains(line.NoAttribute, field) {
 			return wholeLine(fmt.Errorf("name %q is the Terraform name of field %q", line.Name, field))
 		}
 	}

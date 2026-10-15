@@ -1003,3 +1003,85 @@ func generateSuppressedWith(t *testing.T, from, to string) error {
 	options := Options{Resource: "SuppressedThing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: overridesPath}
 	return generateFromInput(options, input, loadDir)
 }
+
+// The name collision check leaves out a fixed request value, which has no attribute.
+func TestNameLineCollisionsFollowTheRenderedFields(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const head = "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  serverSetID: true\n  idProperty: uniqueIdentifier\ntypes:\n  SuppressedThing:\n    fields:\n      uniqueIdentifier: {readOnly: true, name: id}\n      id: {skip: true}\n"
+	fixed := head + "      scheduleOperation: {requestValue: THING_OPERATION_MUTE}\n      name: {name: schedule_operation}\n"
+	_, err = validateOpenAPIWith(spec, "SuppressedThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, fixed))
+	if err != nil && (strings.Contains(err.Error(), "NAME_COLLISION") || strings.Contains(err.Error(), "is the Terraform name of field")) {
+		t.Fatalf("a fixed request value has no attribute, so it collides with nothing: %v", err)
+	}
+}
+
+// An idProperty that names the Get path parameter changes nothing.
+func TestIDPropertyThatIsThePathParameterIsUnneeded(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := mustParse(t, "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  idProperty: thing_id\n")
+	_, err = validateOpenAPIWith(spec, "SuppressedThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err == nil || !strings.Contains(err.Error(), "ID_PROPERTY_UNNEEDED") {
+		t.Fatalf("err = %v, want ID_PROPERTY_UNNEEDED", err)
+	}
+}
+
+// An id property that Create does not send, and that Update and Get have, is the server-set id:
+// computed, as for an id named like the path parameter.
+func TestIDPropertyMissingFromCreateIsComputed(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec := string(data)
+	createRef := "                suppressedThing: {$ref: '#/components/schemas/SuppressedThing'}\n"
+	if i := strings.Index(spec, createRef); i < 0 {
+		t.Fatal("no Create body ref in suppressed.yaml")
+	} else {
+		spec = spec[:i] + strings.Replace(createRef, "SuppressedThing'", "SuppressedThingDraft'", 1) + spec[i+len(createRef):]
+	}
+	// Without serverSetID, Get must require the id.
+	spec = strings.Replace(spec, "      required: [name, scheduleOperation]\n      properties:\n        uniqueIdentifier:", "      required: [uniqueIdentifier, name, scheduleOperation]\n      properties:\n        uniqueIdentifier:", 1)
+	spec = strings.Replace(spec, "uniqueIdentifier: {type: string, x-coralogix-presence: true,", "uniqueIdentifier: {type: string, minLength: 1, x-coralogix-presence: true,", 1)
+	spec += `    SuppressedThingDraft:
+      type: object
+      required: [name, scheduleOperation]
+      properties:
+        id: {type: string, x-coralogix-presence: true, description: The version id of the thing.}
+        name: {type: string, minLength: 1}
+        window: {$ref: '#/components/schemas/Window'}
+        repeat: {$ref: '#/components/schemas/Repeat'}
+        filter: {$ref: '#/components/schemas/Filter'}
+        scheduleOperation: {$ref: '#/components/schemas/ThingOperation'}
+`
+	file := mustParse(t, "resource: SuppressedThing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrapper: suppressedThing\n  updateIDInBody: true\n  idProperty: uniqueIdentifier\nunwrap: [Ids]\ntypes:\n  SuppressedThing:\n    fields:\n      uniqueIdentifier: {name: id}\n      id: {skip: true}\n  SuppressedThingDraft:\n    fields:\n      id: {skip: true}\n")
+	validated, err := validateOpenAPIWith([]byte(spec), "SuppressedThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err != nil {
+		t.Fatalf("an id property that only Update and Get have must be computed: %v", err)
+	}
+	for _, f := range validated.resource.Fields {
+		if f.Name == "uniqueIdentifier" && f.Behavior != model.Computed {
+			t.Fatalf("uniqueIdentifier is %s, want computed", f.Behavior)
+		}
+	}
+}
+
+// The update mask of a PATCH names the arm that the plan selects, not the arm that expand adds, so a
+// default arm needs a full replace.
+func TestDefaultArmNeedsAFullReplace(t *testing.T) {
+	overridesPath := filepath.Join(t.TempDir(), "overrides.yaml")
+	text := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  ThingConfig:\n    fields:\n      http: {defaultArm: true}\n"
+	if err := os.WriteFile(overridesPath, []byte(text), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	err := generateFromInput(Options{Resource: "Thing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: overridesPath}, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "needs a full-replace Update") {
+		t.Fatalf("err = %v, want defaultArm needs a full-replace Update", err)
+	}
+}

@@ -559,6 +559,12 @@ func (f *File) checkEnums() error {
 		if e.Zero != "" {
 			seen[e.Zero] = "zero"
 		}
+		if e.ReadRejected {
+			// A rejected value reads back as its API spelling, so no accepted value can have it.
+			for _, v := range e.Rejected {
+				seen[v] = "the rejected " + strconv.Quote(v)
+			}
+		}
 		for _, v := range e.Values {
 			tf := e.TFValue(v)
 			if previous, ok := seen[tf]; ok {
@@ -968,17 +974,18 @@ func (f *File) Lines() []Line {
 		}
 		for _, field := range sortedKeys(t.Fields) {
 			f := t.Fields[field]
-			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, Skipped: t.skipped(), RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Accepted: file.accepted(f.KeyedBy), Equality: f.Equality, Keys: f.keys()})
+			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, NoAttribute: t.noAttribute(), RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Accepted: file.accepted(f.KeyedBy), Equality: f.Equality, Keys: f.keys()})
 		}
 	}
 	return out
 }
 
-// skipped returns the fields of the type that the file skips, in order.
-func (t Type) skipped() []string {
+// noAttribute returns the fields of the type that have no Terraform attribute, in order: skipped
+// fields and requestValue fields.
+func (t Type) noAttribute() []string {
 	var out []string
 	for _, field := range sortedKeys(t.Fields) {
-		if t.Fields[field].Skip {
+		if t.Fields[field].Skip || t.Fields[field].RequestValue != "" {
 			out = append(out, field)
 		}
 	}
@@ -1009,9 +1016,9 @@ type Line struct {
 	Optional     bool   // for a field line: the file says that the field is optional
 	Collection   string // for a field line: "set" when the file shows a list as a set
 	Name         string // for a field line: the Terraform attribute name
-	// Skipped are, for a field line, the fields of the component that the file skips. They have
-	// no attribute, so a name line can take their name.
-	Skipped []string
+	// NoAttribute are, for a field line, the fields of the component without a Terraform
+	// attribute: skipped fields and requestValue fields. A name line can take their name.
+	NoAttribute []string
 	// RequestValueBy is, for a field line, the API value sent for each object field that is set.
 	RequestValueBy map[string]string
 	// KeyedBy is, for a field line, the key and value properties of a list shown as a map.

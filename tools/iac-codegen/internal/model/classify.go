@@ -11,8 +11,9 @@ import "fmt"
 // a server default in Update (updateDefault), is managed: Create stores the
 // default, and the generated Create follows with an Update when the
 // configuration sets another value.
-func classifyTopLevel(p Policy, idParam, field string, inCreate, inUpdate, inGet, updateDefault bool) (Behavior, error) {
-	if p.UpdateIDInBody && idParam != "" && field == idParam && !inCreate && inUpdate && inGet {
+// id is the id property: the id path parameter of Get, or the property that api.idProperty names.
+func classifyTopLevel(p Policy, id, field string, inCreate, inUpdate, inGet, updateDefault bool) (Behavior, error) {
+	if p.UpdateIDInBody && id != "" && field == id && !inCreate && inUpdate && inGet {
 		return Computed, nil
 	}
 	if !inCreate && inUpdate && inGet && updateDefault {
