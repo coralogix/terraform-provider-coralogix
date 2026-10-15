@@ -27,7 +27,9 @@ import (
 	e2ms "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/events2metrics_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var _ datasource.DataSourceWithConfigure = &Events2MetricDataSource{}
@@ -99,11 +101,26 @@ func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadR
 		return
 	}
 
-	data, diags := events2metric.Flatten(ctx, &getResp.E2m)
+	data, diags := flattenDataSource(ctx, &getResp.E2m)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// flattenDataSource is the data source model of an events2metric. It uses the resource's
+// Flatten, but shows the description as the API stores it: the resource reads a stored "" as
+// null so that a removed description plans no change, while the data source has no
+// configuration and showed "" before the resource was generated.
+func flattenDataSource(ctx context.Context, v *e2ms.E2M) (*events2metric.E2MModel, diag.Diagnostics) {
+	data, diags := events2metric.Flatten(ctx, v)
+	if diags.HasError() || data == nil {
+		return data, diags
+	}
+	if v.Description != nil {
+		data.Description = types.StringValue(*v.Description)
+	}
+	return data, diags
 }

@@ -129,7 +129,7 @@
 - CHORE: Migration tests also start from provider 3.21.0, and the generated acceptance and 3.21.0 upgrade tests are added.
 
 #### data-source/coralogix_events2metric
-- CHORE: Uses the schema and the conversion of the generated resource.
+- CHORE: Uses the schema and the conversion of the generated resource. `description` still shows the stored value, `""` included, as before.
 
 # Release 3.21.0
 
