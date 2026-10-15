@@ -160,6 +160,12 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string) *lineIs
 		return wholeLine(fmt.Errorf("component %q: a missing required list already means that no field is required, so no override is needed", line.Component))
 	case overrides.KindField:
 		return fieldLineProblem(schema, line, line.Component != resource)
+	case overrides.KindGroup:
+		for _, field := range line.GroupFields {
+			if schema.Properties == nil || schema.Properties.GetOrZero(field) == nil {
+				return wholeLine(fmt.Errorf("component %q has no field %q", line.Component, field))
+			}
+		}
 	}
 	return nil
 }

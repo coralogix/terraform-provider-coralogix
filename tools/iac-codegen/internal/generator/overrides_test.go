@@ -1092,8 +1092,9 @@ func TestDefaultArmNeedsAFullReplace(t *testing.T) {
 func TestNestedGroupErrors(t *testing.T) {
 	const from = "        fields: [daily, weekly]\n"
 	tests := map[string]struct{ to, want string }{
-		"no such field": {"        fields: [daily, weekly, monthly]\n", "monthly is no field of Dynamic"},
-		"split oneOf":   {"        fields: [daily]\n", "must all be in one group, or in none"},
+		"no such field":      {"        fields: [daily, weekly, monthly]\n", `component "Dynamic" has no field "monthly"`},
+		"split oneOf":        {"        fields: [daily]\n", "must all be in one group, or in none"},
+		"requireOne non-arm": {"        fields: [every, daily, weekly]\n        requireOne: true\n", "types.Dynamic.groups.frequency: requireOne needs the arms of one oneOf of Dynamic"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -1103,6 +1104,32 @@ func TestNestedGroupErrors(t *testing.T) {
 			}
 		})
 	}
+	t.Run("misspelled type", func(t *testing.T) {
+		err := generateSuppressedWith(t, "  Dynamic:\n    groups:\n", "  Dyanmic:\n    groups:\n")
+		if err == nil || !strings.Contains(err.Error(), `no component "Dyanmic"`) {
+			t.Fatalf("err = %v, want no component Dyanmic", err)
+		}
+	})
+	t.Run("type of no object of the resource", func(t *testing.T) {
+		// The component is in the contract, so only the builder sees that the groups go nowhere.
+		data, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		spec := strings.Replace(string(data), "    Daily:\n", "    Unused:\n      type: object\n      properties:\n        a: {type: string}\n    Daily:\n", 1)
+		text, err := os.ReadFile(filepath.Join("testdata", "suppressed-overrides.yaml"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		changed := strings.Replace(string(text), "  Dynamic:\n    groups:\n", "  Unused:\n    groups:\n      g: {fields: [a]}\n  Dynamic:\n    groups:\n", 1)
+		validated, err := validateOpenAPIWith([]byte(spec), "SuppressedThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, changed))
+		if err == nil {
+			_, err = buildTFResourceWith(validated.resource, "generated", validated.overrides)
+		}
+		if err == nil || !strings.Contains(err.Error(), "types.Unused.groups: no object of the resource is Unused") {
+			t.Fatalf("err = %v, want the unused groups reported", err)
+		}
+	})
 	t.Run("named as a field", func(t *testing.T) {
 		err := generateSuppressedWith(t, "      frequency:\n", "      every:\n")
 		if err == nil || !strings.Contains(err.Error(), "the name is also the attribute every") {

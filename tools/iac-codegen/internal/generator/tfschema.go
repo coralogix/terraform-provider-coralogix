@@ -3,6 +3,7 @@ package generator
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"math"
 	"slices"
 	"strconv"
@@ -151,6 +152,9 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 		return nil, err
 	}
 	if err := groups.check(out.Attributes); err != nil {
+		return nil, err
+	}
+	if err := b.checkNestedGroupsUsed(); err != nil {
 		return nil, err
 	}
 	out.ConfigValidators = b.validators
@@ -766,6 +770,7 @@ type tfBuilder struct {
 	policy       model.Policy      // names the attributes that a name line renames
 	replace      bool              // Update is a full replace, so a group can hold nested fields
 	owners       map[string]string // model struct name to what makes it: the resource, a component, or a group
+	grouped      map[string]bool   // components whose types.<Type>.groups the builder applied
 }
 
 // claimModel records that owner makes the model struct name. Two owners of one name would share
@@ -1687,7 +1692,27 @@ func newNestedGroups(b *tfBuilder, component string) *nestedGroups {
 	if b.file != nil {
 		g.lines = b.file.Types[component].Groups
 	}
+	if len(g.lines) != 0 {
+		if b.grouped == nil {
+			b.grouped = map[string]bool{}
+		}
+		b.grouped[component] = true
+	}
 	return g
+}
+
+// checkNestedGroupsUsed reports types.<Type>.groups of a type that no object of the resource
+// has, such as a misspelled type name: the groups would be dropped without a word.
+func (b *tfBuilder) checkNestedGroupsUsed() error {
+	if b.file == nil {
+		return nil
+	}
+	for _, name := range slices.Sorted(maps.Keys(b.file.Types)) {
+		if len(b.file.Types[name].Groups) != 0 && !b.grouped[name] {
+			return fmt.Errorf("types.%s.groups: no object of the resource is %s", name, name)
+		}
+	}
+	return nil
 }
 
 // of returns the group that holds field, or "".
@@ -1777,6 +1802,11 @@ func (g *nestedGroups) check(attrs []*tfAttr) error {
 			if !slices.ContainsFunc(g.attrs[name].attrsOrNil(), func(a *tfAttr) bool { return a.Property == field }) {
 				return fmt.Errorf("types.%s.groups.%s: %s is no field of %s that Terraform shows", g.component, name, field, g.component)
 			}
+		}
+		if g.lines[name].RequireOne && !oneOfArmsOnly(g.attrs[name].attrsOrNil()) {
+			// Flatten checks that the response has one of the fields of the group, so every
+			// field must be an arm of the same oneOf.
+			return fmt.Errorf("types.%s.groups.%s: requireOne needs the arms of one oneOf of %s, and no other field", g.component, name, g.component)
 		}
 	}
 	return nil

@@ -1030,6 +1030,9 @@ func (f *File) Lines() []Line {
 			f := t.Fields[field]
 			out = append(out, Line{Kind: KindField, Component: name, Field: field, ReadOnly: f.ReadOnly, Required: f.Required, Optional: f.Optional, Collection: f.Collection, Name: f.Name, NoAttribute: t.noAttribute(), RequestValueBy: f.RequestValueBy, KeyedBy: f.KeyedBy, Accepted: file.accepted(f.KeyedBy), Equality: f.Equality, Keys: f.keys()})
 		}
+		for _, group := range sortedKeys(t.Groups) {
+			out = append(out, Line{Kind: KindGroup, Component: name, Field: group, GroupFields: t.Groups[group].Fields})
+		}
 	}
 	return out
 }
@@ -1053,6 +1056,7 @@ const (
 	KindEnum          Kind = "enum"
 	KindEmptyRequired Kind = "empty-required"
 	KindField         Kind = "field"
+	KindGroup         Kind = "group"
 )
 
 // Line is one place in the contract that the file refers to.
@@ -1081,6 +1085,8 @@ type Line struct {
 	// line, with their Terraform values: the attributes that the object can have.
 	Accepted map[string]map[string]string
 	Keys     []string // for a field line: every key that the line sets
+	// GroupFields are, for a group line (Field is the group name), the fields that the group holds.
+	GroupFields []string
 }
 
 // String names the line as it is written in the file.
@@ -1090,6 +1096,8 @@ func (l Line) String() string {
 		return "enums." + l.Component
 	case KindEmptyRequired:
 		return "types." + l.Component + ".required"
+	case KindGroup:
+		return "types." + l.Component + ".groups." + l.Field
 	default:
 		return "types." + l.Component + ".fields." + l.Field
 	}
