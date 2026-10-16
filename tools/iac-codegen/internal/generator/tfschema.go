@@ -176,6 +176,11 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 		if err := checkImmutableValues(out.Attributes, ""); err != nil {
 			return nil, err
 		}
+		if file.SingletonID {
+			if err := checkSingletonIDAttribute(out.Attributes); err != nil {
+				return nil, err
+			}
+		}
 	}
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
 	out.DefaultPkgs = defaultPackages(out.Attributes)
@@ -238,6 +243,18 @@ func defaultPackages(attrs []*tfAttr) []string {
 		}
 	}
 	return packages
+}
+
+// checkSingletonIDAttribute checks that the id attribute of a singleton with singletonID is still
+// computed-only after the field lines: a line that makes it required, optional, or a configured
+// default would let the user set a value that flatten replaces with the id of the server.
+func checkSingletonIDAttribute(attrs []*tfAttr) error {
+	for _, a := range attrs {
+		if a.Name == "id" && !computedOnly(a) {
+			return errors.New("singletonID says that only the server sets the id: the id attribute must stay computed-only, so its line cannot set required, optional, computed: false, or a default")
+		}
+	}
+	return nil
 }
 
 // addSingletonID adds the fixed id attribute of a singleton (D18). With singletonID, the resource has

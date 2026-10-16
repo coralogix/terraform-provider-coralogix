@@ -1913,7 +1913,7 @@ func TestSingletonWithServerSetID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(resource), "the API returned no id") || strings.Contains(string(resource), "a singleton has a fixed id") {
+	if !strings.Contains(string(resource), "the API returned no id") || !strings.Contains(string(resource), "keep the id that the plan or the state has") || strings.Contains(string(resource), "a singleton has a fixed id") {
 		t.Fatalf("flatten must keep the id of the API and fall back to the type name:\n%s", resource)
 	}
 	semantics := `package settings
@@ -1968,6 +1968,23 @@ func TestSingletonIDRejectsAWritableID(t *testing.T) {
 	withLine := string(overrides) + "\ntypes:\n  Settings:\n    fields:\n      id: {readOnly: true}\n"
 	if err := generateSingleton(t, []byte(open), withLine); err != nil {
 		t.Fatalf("error with a readOnly line = %v, want none", err)
+	}
+}
+
+// A field line cannot make the id of a singleton configurable after the checks of the contract.
+func TestSingletonIDStaysComputedAfterTheFieldLines(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overrides, err := os.ReadFile(filepath.Join("testdata", "singleton-id-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	line := string(overrides) + "\ntypes:\n  Settings:\n    fields:\n      id: {required: true, computed: false}\n"
+	err = generateSingleton(t, spec, line)
+	if err == nil || !strings.Contains(err.Error(), "must stay computed-only") {
+		t.Fatalf("error = %v, want the id to stay computed-only", err)
 	}
 }
 
