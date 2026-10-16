@@ -40,7 +40,7 @@ type File struct {
 	// Schema is the Terraform schema version and how old state is upgraded.
 	Schema Schema `yaml:"schema"`
 	// API describes the parts of the HTTP contract that differ from a new resource.
-	API iacoverrides.API `yaml:"api"`
+	API API `yaml:"api"`
 	// Validators says which validators the generated resource has.
 	Validators Validators `yaml:"validators"`
 	// Types has one entry per OpenAPI component.
@@ -882,6 +882,7 @@ func checkValidators(validators []Validator) error {
 // exceptions that the Terraform keys cover.
 func (f *File) Policy() model.Policy {
 	p := f.Exceptions().Policy()
+	p.CreateResponseID = f.API.CreateResponseID
 	p.EnumAnyPrefix = append(p.EnumAnyPrefix, sortedKeys(f.Enums)...)
 	for _, name := range sortedKeys(f.Types) {
 		t := f.Types[name]
@@ -932,9 +933,19 @@ func (f *File) Policy() model.Policy {
 	return p
 }
 
+// API is the HTTP contract of a released resource: the keys of the SDK iac module, which every tool
+// reads the same way, and the keys that only Terraform needs.
+type API struct {
+	iacoverrides.API `yaml:",inline"`
+	// CreateResponseID is the property of the Create response that holds only the id of the new
+	// resource, when the response does not return the resource. The generated Create then reads
+	// the resource with Get. Only Terraform reads the key; the model reads Policy.CreateResponseID.
+	CreateResponseID string `yaml:"createResponseID"`
+}
+
 // Exceptions returns the keys of the file that describe the API.
 func (f *File) Exceptions() iacoverrides.Exceptions {
-	e := iacoverrides.Exceptions{API: f.API, Unwrap: f.Unwrap}
+	e := iacoverrides.Exceptions{API: f.API.API, Unwrap: f.Unwrap}
 	for name, t := range f.Types {
 		for field, line := range t.Fields {
 			if e.Fields == nil {

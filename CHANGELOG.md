@@ -80,7 +80,7 @@
 
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.34`.
-- FEAT: The generated Create of a resource whose API returns only the id of the new resource (`api.createResponseID`, read by the SDK `iac` module) reads the resource with Get, and keeps the id in the state when that read fails, so Terraform marks the resource as tainted.
+- FEAT: The generated Create of a resource whose API returns only the id of the new resource (`api.createResponseID`, a Terraform key; the SDK `iac` module reads the response shape) reads the resource with Get, and keeps the id in the state when that read fails, so Terraform marks the resource as tainted.
 - FEAT: The generated Update reads the resource with Get when the API answers it with an object that has no fields (existing mode).
 - FEAT: `Hooks.UpdateGone` and `Hooks.DeleteGone` (existing mode) say that the error of a failed Update or Delete means that the resource is gone, for an API that answers a call on a missing resource with another status than 404.
 - CHORE: Bump the generator to `v0.1.0-beta.33`.
