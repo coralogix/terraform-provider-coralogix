@@ -105,8 +105,9 @@ func TestAccCoralogixResourceAIEvaluationGeneratedUpgrade(t *testing.T) {
 	}
 
 	for _, tc := range cases {
+		// The cases run one after another: a tenant with one AI application has
+		// only a prompt and a response slot, and three parallel cases need three.
 		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
 			testAccAIEvaluationRetryOnCollision(t, func(testT *aiEvaluationTestT) {
 				testAccPreCheck(t)
 				application, target := testAccFirstAIApplication(t, tc.evaluationType, tc.targetCandidates)
