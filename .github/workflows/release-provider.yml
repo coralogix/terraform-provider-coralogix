@@ -3,30 +3,33 @@
 # 1. Run this workflow from master with `version` (for example 3.22.0). It opens a
 #    release PR that bumps internal/clientset/version.go and turns "# Unreleased" in
 #    CHANGELOG.md into "# Release 3.22.0".
-# 2. Review and merge the PR. The merge changes version.go on master, which starts
-#    this workflow again. It waits for the `build` workflow on the merge commit, tags
-#    it, runs goreleaser (release.yml) with GitHub's generated notes, waits until the
-#    Terraform Registry serves the version, and posts a summary to Slack.
+# 2. Someone other than the person who started the release approves the PR, and it is
+#    merged. The merge changes version.go on master, which starts this workflow again.
+#    It waits for `build` and `Acceptance Tests` on the merge commit, tags it, runs
+#    goreleaser (release.yml) with GitHub's generated notes, and waits until the
+#    Terraform Registry serves the version.
 #
-# If version.go on master already has the version, step 1 is skipped and the run
-# publishes directly. A failed job can be re-run from the Actions UI: tagging is
-# idempotent, and the Registry check polls again.
+# A push publishes only the merge of a PR that this workflow opened, and only when it
+# was approved by someone other than the person who started the release
+# (.github/scripts/release/check-release-pr.sh). Otherwise, dispatch the workflow with
+# the version that version.go already has: step 1 is skipped and the run publishes. A
+# dispatch by a different maintainer counts as the second person. A failed job can be
+# re-run from the Actions UI: tagging is idempotent, and the Registry check polls again.
+#
+# The Slack announcement stays manual: not every release is announced.
 #
 # Dry run (`dry_run: true`, with the real next version): runs both phases in one run
 # and writes nothing. It plans with the real version checks, cuts the changelog and
-# bumps version.go in the runner, waits for `build`, generates the release notes,
-# builds and GPG-signs with goreleaser --snapshot, checks the Registry for the latest
-# released version, and renders the Slack message into the run summary. It creates no
-# branch, commit, PR, tag, or release, and posts nothing. The environment gates apply
-# as in a real run.
+# bumps version.go in the runner, waits for `build` and `Acceptance Tests`, generates
+# the release notes, builds and GPG-signs with goreleaser --snapshot, and checks the
+# Registry for the latest released version. It creates no branch, commit, PR, tag, or
+# release. The environment gate applies as in a real run.
 #
 # Setup:
-# - secrets.SLACK_TERRAFORM_FORUM_WEBHOOK_URL: incoming webhook for the forum channel.
 # - secrets.RELEASE_PR_TOKEN (optional): a token that opens the release PR. Pull
 #   requests opened with GITHUB_TOKEN do not start other workflows, so without it the
-#   PR shows no checks; the publish job still waits for `build` on master.
-# - Environments `provider-release` and `provider-release-announce`: add required
-#   reviewers to gate publishing and the Slack post.
+#   PR shows no checks; the publish job still waits for the checks on master.
+# - Environment `provider-release`: add required reviewers to gate publishing.
 name: release-provider
 
 on:
@@ -62,6 +65,10 @@ jobs:
     name: Plan the release
     runs-on: ubuntu-latest
     if: github.repository == 'coralogix/terraform-provider-coralogix'
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
     outputs:
       version: ${{ steps.plan.outputs.version }}
       latest: ${{ steps.plan.outputs.latest }}
@@ -116,6 +123,9 @@ jobs:
             mode=publish
             # Release the commit that set the version, not later commits on master.
             sha=$(git log -1 --format=%H -- internal/clientset/version.go)
+            rc=0; bash .github/scripts/release/check-release-pr.sh "$version" "$sha" || rc=$?
+            if [ "$rc" = 3 ]; then echo "mode=none" >> "$GITHUB_OUTPUT"; exit 0; fi
+            [ "$rc" = 0 ] || exit 1
           else
             highest=$(printf '%s\n%s\n' "$current" "$version" | sort -V | tail -1)
             if [ "$highest" != "$version" ]; then
@@ -199,10 +209,14 @@ jobs:
           - \`internal/clientset/version.go\`: \`TF_PROVIDER_VERSION\` goes from \`$current\` to \`$VERSION\`.
 
           Check that the changelog is accurate before merging. Merging starts the
-          \`release-provider\` workflow, which tags the merge commit, publishes the release,
-          waits for the Terraform Registry, and posts to Slack.
+          \`release-provider\` workflow, which waits for \`build\` and \`Acceptance Tests\`,
+          tags the merge commit, publishes the release, and waits for the Terraform Registry.
+
+          @$GITHUB_TRIGGERING_ACTOR started this release, so **another maintainer must approve
+          it**. Without that approval, the merge does not publish.
 
           Opened by $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID.
+          <!-- release-provider-run: $GITHUB_RUN_ID -->
 
           ### Release Note
 
@@ -229,7 +243,7 @@ jobs:
     if: needs.plan.outputs.mode == 'publish' || (needs.plan.outputs.mode == 'prepare' && needs.plan.outputs.dry_run == 'true')
     runs-on: ubuntu-latest
     environment: provider-release
-    timeout-minutes: 60
+    timeout-minutes: 200
     permissions:
       contents: write
       actions: read
@@ -250,25 +264,31 @@ jobs:
           # In a dry run before the release PR, check the changelog as the PR would cut it.
           [ "$MODE" = prepare ] && python3 .github/scripts/release/changelog.py cut "$VERSION"
           python3 .github/scripts/release/changelog.py check "$VERSION"
-      - name: Wait for the build workflow
+      - name: Wait for build and acceptance tests
         run: |
-          # The merge starts `build` and this workflow at the same time, so wait for it.
-          deadline=$((SECONDS + 50 * 60))
-          while :; do
-            run=$(gh run list --workflow build.yml --commit "$SHA" --event push --limit 1 \
-              --json databaseId,status,conclusion,url --jq '.[0] // empty')
-            if [ -n "$run" ] && [ "$(jq -r .status <<<"$run")" = completed ]; then
-              conclusion=$(jq -r .conclusion <<<"$run")
-              if [ "$conclusion" = success ]; then
-                echo "build succeeded: $(jq -r .url <<<"$run")"; break
+          # The merge starts these workflows and this one at the same time, so wait for them.
+          # Acceptance runs share one queue, where a newer run cancels a queued one: a
+          # cancelled run fails the release, as any result other than success does.
+          deadline=$((SECONDS + 180 * 60))
+          for workflow in build.yml acceptance-tests.yml; do
+            while :; do
+              run=$(gh run list --workflow "$workflow" --commit "$SHA" --event push --limit 1 \
+                --json status,conclusion,url --jq '.[0] // empty')
+              if [ -n "$run" ] && [ "$(jq -r .status <<<"$run")" = completed ]; then
+                conclusion=$(jq -r .conclusion <<<"$run")
+                url=$(jq -r .url <<<"$run")
+                if [ "$conclusion" = success ]; then
+                  echo "$workflow succeeded on $SHA: $url" | tee -a "$GITHUB_STEP_SUMMARY"; break
+                fi
+                echo "::error::$workflow on $SHA ended with '$conclusion': $url. Re-run it, then re-run this job."
+                exit 1
               fi
-              echo "::error::build on $SHA ended with '$conclusion': $(jq -r .url <<<"$run")"; exit 1
-            fi
-            if [ $SECONDS -ge $deadline ]; then
-              echo "::error::No successful build on $SHA within 50 minutes"; exit 1
-            fi
-            echo "Waiting for build on $SHA (${run:+$(jq -r .status <<<"$run")}${run:-not started})"
-            sleep 30
+              if [ $SECONDS -ge $deadline ]; then
+                echo "::error::$workflow did not succeed on $SHA within 180 minutes"; exit 1
+              fi
+              echo "Waiting for $workflow on $SHA (${run:+$(jq -r .status <<<"$run")}${run:-not started})"
+              sleep 60
+            done
           done
       - name: Create the tag
         run: |
@@ -334,28 +354,3 @@ jobs:
           done
           echo "### :white_check_mark: v$VERSION is on the Terraform Registry" | tee -a "$GITHUB_STEP_SUMMARY"
 
-  announce:
-    name: Post to Slack
-    needs: [plan, registry]
-    runs-on: ubuntu-latest
-    environment: provider-release-announce
-    env:
-      VERSION: ${{ needs.plan.outputs.version }}
-      MODE: ${{ needs.plan.outputs.mode }}
-      DRY_RUN: ${{ needs.plan.outputs.dry_run }}
-      WEBHOOK: ${{ secrets.SLACK_TERRAFORM_FORUM_WEBHOOK_URL }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.plan.outputs.sha }}
-      - name: Post the changelog summary
-        run: |
-          [ -n "$WEBHOOK" ] || { echo "::error::secrets.SLACK_TERRAFORM_FORUM_WEBHOOK_URL is not set"; exit 1; }
-          [ "$MODE" = prepare ] && python3 .github/scripts/release/changelog.py cut "$VERSION"
-          python3 .github/scripts/release/changelog.py slack "$VERSION" \
-            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/v$VERSION" \
-            "https://registry.terraform.io/providers/$REGISTRY_PROVIDER/$VERSION/docs" > payload.json
-          [ "$DRY_RUN" = true ] && echo "### Dry run: would post to Slack" >> "$GITHUB_STEP_SUMMARY"
-          jq -r .text payload.json >> "$GITHUB_STEP_SUMMARY"
-          [ "$DRY_RUN" = true ] && exit 0
-          curl -fsS -X POST -H 'Content-Type: application/json' --data @payload.json "$WEBHOOK"
