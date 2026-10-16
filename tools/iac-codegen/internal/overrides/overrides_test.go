@@ -485,19 +485,24 @@ func TestUnsupportedArmsKeys(t *testing.T) {
 	}
 }
 
-func TestReadRejectedLowerNeedsReadRejected(t *testing.T) {
+func TestReadRejectedLower(t *testing.T) {
 	base := "resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    values: [A]\n    rejected: [B]\n"
-	for _, extra := range []string{"    readRejectedLower: true\n", "    verbatim: true\n    readRejected: true\n    readRejectedLower: true\n"} {
-		if _, err := Parse([]byte(base + extra)); err == nil || !strings.Contains(err.Error(), "readRejectedLower needs readRejected and excludes verbatim") {
-			t.Fatalf("%q: err = %v, want the readRejectedLower error", extra, err)
+	for extra, want := range map[string]string{
+		"    verbatim: true\n    readRejected: lower\n": "readRejected: lower excludes verbatim",
+		"    readRejected: upper\n":                     `readRejected is "upper", want true, false, or lower`,
+	} {
+		if _, err := Parse([]byte(base + extra)); err == nil || !strings.Contains(err.Error(), want) {
+			t.Fatalf("%q: err = %v, want %q", extra, err, want)
 		}
 	}
-	f, err := Parse([]byte(base + "    readRejected: true\n    readRejectedLower: true\n"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := f.Enums["E"].RejectedTFValue("B"); got != "b" {
-		t.Fatalf("RejectedTFValue = %q, want b", got)
+	for extra, want := range map[string]string{"    readRejected: lower\n": "b", "    readRejected: true\n": "B"} {
+		f, err := Parse([]byte(base + extra))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := f.Enums["E"].RejectedTFValue("B"); got != want {
+			t.Fatalf("%q: RejectedTFValue = %q, want %q", extra, got, want)
+		}
 	}
 }
 

@@ -919,7 +919,7 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 	for _, v := range over.Values {
 		m.Values = append(m.Values, enumMapValue{TF: over.TFValue(v), API: v})
 	}
-	if over.ReadRejected {
+	if over.ReadRejected.On() {
 		for _, v := range over.Rejected {
 			m.Read = append(m.Read, enumMapValue{TF: over.RejectedTFValue(v), API: v})
 		}
