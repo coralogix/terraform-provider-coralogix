@@ -734,6 +734,9 @@ func (l Field) checkConflicts() error {
 	if l.Skip && l.Fixed() {
 		return errors.New("requestValue sends the field, so skip cannot be set")
 	}
+	if l.RequiresReplace && l.Fixed() {
+		return errors.New("a requestValue field is no Terraform attribute and Update always sends it, so requiresReplace cannot be set")
+	}
 	if l.RequestValue != "" && len(l.RequestValueBy) != 0 {
 		return errors.New("requestValue and requestValueBy cannot both be set")
 	}

@@ -481,7 +481,8 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if err := derivedValuesInMask(b.file); err != nil {
 		return nil, err
 	}
-	if err := buildMask(r, out, fixed); err != nil {
+	omit := b.file != nil && b.file.UpdateMask == overrides.UpdateMaskOmit
+	if err := buildMask(r, out, fixed, omit); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -748,7 +749,7 @@ func derivedValuesInMask(file *overrides.File) error {
 
 // buildMask sets the update mask data. Only the Update fields can be in the
 // mask, so application, subsystem, and target never are (D9).
-func buildMask(r *model.Resource, out *convData, fixed func(string) bool) error {
+func buildMask(r *model.Resource, out *convData, fixed func(string) bool, omit bool) error {
 	valid, leaf, err := maskRule(r.UpdateMaskPattern)
 	if err != nil {
 		return err
@@ -763,8 +764,12 @@ func buildMask(r *model.Resource, out *convData, fixed func(string) bool) error 
 			mf = maskTree(r.Policy, r.Name, f.Name, f.Type.UpdateType())
 		}
 		mf.ServerDefault = serverDefault(r, f)
-		if err := checkMaskPaths(mf, "", valid); err != nil {
-			return err
+		// With updateMask: omit, Update sends no mask, so its paths need not be valid entries.
+		// The mask fields still decide whether a value changed.
+		if !omit {
+			if err := checkMaskPaths(mf, "", valid); err != nil {
+				return err
+			}
 		}
 		out.MaskFields = append(out.MaskFields, mf)
 	}

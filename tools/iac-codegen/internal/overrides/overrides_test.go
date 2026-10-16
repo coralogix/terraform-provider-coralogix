@@ -458,6 +458,13 @@ func TestRequiresReplaceCannotBeComputed(t *testing.T) {
 	}
 }
 
+func TestRequiresReplaceCannotBeFixed(t *testing.T) {
+	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {requiresReplace: true, requestValue: X}\n"))
+	if err == nil || !strings.Contains(err.Error(), "requiresReplace cannot be set") {
+		t.Fatalf("err = %v, want an error about requiresReplace and requestValue", err)
+	}
+}
+
 func TestUnsupportedArmsKeys(t *testing.T) {
 	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  C:\n"
 	tests := map[string]struct{ text, want string }{

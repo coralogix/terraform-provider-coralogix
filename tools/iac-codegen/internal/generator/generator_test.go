@@ -2208,6 +2208,14 @@ func TestReleasedShapeErrors(t *testing.T) {
 			lines: replace("      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        markdownDescription: Whether the thing is enabled.\n"),
 			want:  "enabled: updateMask: omit sends no mask, so removing this optional attribute would not clear it",
 		},
+		"a renamed optional field that the omitted mask cannot clear": {
+			lines: replace("      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        name: is_on\n        markdownDescription: Whether the thing is enabled.\n"),
+			want:  "is_on: updateMask: omit sends no mask, so removing this optional attribute would not clear it",
+		},
+		"unsupported arms of the resource itself": {
+			lines: replace("  EvalThing:\n    fields:\n", "  EvalThing:\n    unsupportedArms: [config]\n    unsupportedSummary: Unsupported\n    unsupportedDetail: Not supported.\n    fields:\n"),
+			want:  "types.EvalThing.unsupportedArms: the oneOf arms of the resource itself are not supported",
+		},
 		"a body mask that names the arm without updateMask: omit": {
 			lines: replace("updateMask: omit\n", ""),
 			want:  "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED",
@@ -2223,10 +2231,36 @@ func TestReleasedShapeErrors(t *testing.T) {
 }
 
 // A field that keeps its state value is always in the Update body, so updateMask: omit accepts it
-// as optional.
+// as optional. A field that keeps only a non-null state value has nothing to clear when it is null.
 func TestOmittedMaskAcceptsAStateKeptField(t *testing.T) {
-	lines := strings.Replace(evalThingLines(t), "      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        computed: true\n        useStateForUnknown: true\n", 1)
-	if err := generateEvalThingWith(t, lines, nil); err != nil {
+	for _, modifier := range []string{"useStateForUnknown", "useNonNullStateForUnknown"} {
+		t.Run(modifier, func(t *testing.T) {
+			lines := strings.Replace(evalThingLines(t), "      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        computed: true\n        "+modifier+": true\n", 1)
+			if err := generateEvalThingWith(t, lines, nil); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+// updateMask: omit sends no mask, so a mask pattern that cannot name an Update field path is no
+// error. This pattern accepts dotted paths but no name with an x, such as config.topics.context.
+func TestOmittedMaskIgnoresTheMaskPattern(t *testing.T) {
+	edit := func(spec string) string {
+		return strings.Replace(spec, `pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'`, `pattern: '^[a-wyzA-Z_]+(\.[a-wyzA-Z_]+)*(,[a-wyzA-Z_]+(\.[a-wyzA-Z_]+)*)*$'`, 1)
+	}
+	if err := generateEvalThingWith(t, evalThingLines(t), edit); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// The discriminator of a oneOf is no arm, so unsupportedArms cannot remove it.
+func TestDropArmsRejectsTheDiscriminator(t *testing.T) {
+	typ := &model.Type{Kind: model.OneOf, Discriminator: "kind", Fields: []*model.Field{{Name: "kind"}, {Name: "a"}, {Name: "b"}}}
+	if _, err := dropArms(typ, []string{"kind"}); err == nil || !strings.Contains(err.Error(), `"kind" is not a oneOf arm`) {
+		t.Fatalf("err = %v, want the discriminator rejected", err)
+	}
+	if _, err := dropArms(typ, []string{"a"}); err != nil {
+		t.Fatalf("dropping an arm: %v", err)
 	}
 }

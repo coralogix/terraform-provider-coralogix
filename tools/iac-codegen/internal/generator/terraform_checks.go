@@ -173,7 +173,8 @@ func terraformNameRune(r rune) rune {
 
 // omittedMaskIssues drops the contract issues about the update mask paths when the resource sends
 // no update mask (updateMask: omit). The body then holds the whole value of each field it sends,
-// a changed oneOf arm included, so no mask path has to name the arm.
+// a changed oneOf arm included, so no mask path has to name the arm. buildMask skips the path
+// checks for the same reason.
 func omittedMaskIssues(report issue.Report, file *overrides.File) issue.Report {
 	if file == nil || file.UpdateMask != overrides.UpdateMaskOmit {
 		return report
