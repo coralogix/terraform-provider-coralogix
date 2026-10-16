@@ -27,6 +27,8 @@ type crudData struct {
 	// Singleton: no id in the path (D18). The id attribute is the fixed value
 	// TypeName, and the API calls take no id.
 	Singleton bool
+	// SingletonID: the id attribute is the id field of the API resource, not the fixed value.
+	SingletonID bool
 	// Replace: Update is a full replace (PUT, E11) with no update mask.
 	Replace bool
 	// UpdateIDInBody: the Update call takes no id. The id is a field of the body.
@@ -111,14 +113,15 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		return nil, err
 	}
 	out := &crudData{
-		TypeName:   tfName(r.Name),
-		Model:      modelTypeName(r.Name),
-		IDAttr:     "id",
-		IDGoType:   "string",
-		IDTFType:   "String",
-		Singleton:  r.Singleton,
-		Replace:    r.Replace,
-		MaskInBody: r.MaskInBody,
+		TypeName:    tfName(r.Name),
+		Model:       modelTypeName(r.Name),
+		IDAttr:      "id",
+		IDGoType:    "string",
+		IDTFType:    "String",
+		Singleton:   r.Singleton,
+		SingletonID: file != nil && file.SingletonID,
+		Replace:     r.Replace,
+		MaskInBody:  r.MaskInBody,
 
 		UpdateIDInBody: r.Policy.UpdateIDInBody,
 		Existing:       r.Policy.Existing,
