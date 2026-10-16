@@ -144,7 +144,8 @@
       "subsystem": "tf-baseline-subsystem",
       "target": "response",
       "threshold": 0.5
-    }
+    },
+    "replanEmpty": true
   },
   {
     "step": "update: topics, threshold, and is_enabled",
