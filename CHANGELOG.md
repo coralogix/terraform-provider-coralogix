@@ -79,6 +79,7 @@
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
 
 #### tools/iac-codegen
+- FIX: The generated Create keeps the id that the API returned when the follow-up Get leaves the id out, and a response component that Update shares with another operation (a Delete) is no longer changed for the read-back.
 - CHORE: Bump the generator to `v0.1.0-beta.34`.
 - FEAT: The generated Create of a resource whose API returns only the id of the new resource (`api.createResponseID`, a Terraform key) reads the resource with Get, and keeps the id in the state when that read fails, so Terraform marks the resource as tainted.
 - FEAT: The generated Update reads the resource with Get when the API answers it with an object that has no fields (existing mode).

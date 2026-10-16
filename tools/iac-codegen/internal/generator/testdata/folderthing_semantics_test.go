@@ -186,3 +186,26 @@ func TestUpdateGoneHook(t *testing.T) {
 		t.Fatalf("update with a hook that says gone: summary = %q, want Resource no longer exists", got)
 	}
 }
+
+// Create returns the id, and Get leaves it out: the state still has the id that Create returned.
+func TestCreateKeepsTheReturnedIDWhenGetOmitsIt(t *testing.T) {
+	ctx := context.Background()
+	name := "stored"
+	folder_things_service.Stored = folder_things_service.FolderThing{Name: &name}
+	r, schemaResp, root := thingSchema(t)
+	plan := thingValue(root, tftypes.NewValue(tftypes.String, tftypes.UnknownValue), tftypes.NewValue(tftypes.String, "a"))
+	config := thingValue(root, tftypes.NewValue(tftypes.String, nil), tftypes.NewValue(tftypes.String, "a"))
+	resp := &frameworkresource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(root, nil)}}
+	r.Create(ctx, frameworkresource.CreateRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: config},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan},
+	}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	var id types.String
+	resp.State.GetAttribute(ctx, path.Root("id"), &id)
+	if id.ValueString() != folder_things_service.CreatedID {
+		t.Fatalf("state id = %q, want %q", id.ValueString(), folder_things_service.CreatedID)
+	}
+}

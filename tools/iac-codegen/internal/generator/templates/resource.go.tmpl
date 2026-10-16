@@ -454,6 +454,10 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBod
 	if v == nil {
 		return &{{$sdk}}.{{.Resource}}{ {{.IDField}}: {{if not .IDValue}}&{{end}}id}, fmt.Errorf("created %s with id %v, but the API returned no resource", TypeName, id)
 	}
+	// The id that Create returned is the id of the resource, also when Get leaves it out.
+	if {{if .IDValue}}v.{{.IDField}} == ""{{else}}v.{{.IDField}} == nil || *v.{{.IDField}} == ""{{end}} {
+		v.{{.IDField}} = {{if not .IDValue}}&{{end}}id
+	}
 	return v, nil
 }
 {{- else}}

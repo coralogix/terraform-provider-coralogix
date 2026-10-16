@@ -1,6 +1,6 @@
 # A released resource like the dashboards folder. The path parameter is thing_id and the
 # resource field is id. Create and Replace take an inline body that wraps the resource next to an idempotency key. Create
-# returns only the id of the new thing, and Replace returns an object with no fields. The thing
+# returns only the id of the new thing, and Replace returns an object with no fields, and Delete returns the same component. The thing
 # in the Get response is allOf a reference, as the OpenAPI fork writes a field with a description.
 openapi: 3.1.0
 info: {title: folder, version: 1.0.0}
@@ -68,7 +68,7 @@ paths:
           description: ok
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/DeleteFolderThingResponse'}
+              schema: {$ref: '#/components/schemas/ReplaceFolderThingResponse'}
 components:
   schemas:
     CreateFolderThingResponse:
@@ -83,8 +83,6 @@ components:
         thing:
           description: The thing.
           allOf: [{$ref: '#/components/schemas/FolderThing'}]
-    DeleteFolderThingResponse:
-      type: object
     FolderThing:
       type: object
       properties:
