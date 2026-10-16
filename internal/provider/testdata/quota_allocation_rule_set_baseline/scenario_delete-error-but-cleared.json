@@ -61,11 +61,6 @@
     "step": "destroy: the API answers 500 and clears the rules",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
-        "status": 200
-      },
-      {
         "method": "DELETE",
         "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
         "status": 500
