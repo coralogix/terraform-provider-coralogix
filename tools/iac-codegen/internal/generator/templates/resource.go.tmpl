@@ -65,6 +65,13 @@ type Hooks struct {
 	// BeforeFlatten mutates the API value before flatten, for a value that only an older
 	// record has, such as a deprecated field that a newer one replaces.
 	BeforeFlatten func(context.Context, *{{$sdk}}.{{.Resource}}) diag.Diagnostics
+	// UpdateGone reports whether the error of a failed Update call means that the resource is
+	// gone, for an API that answers an update of a missing resource with another status than 404.
+	// It can read the resource to tell that case from a real failure.
+	UpdateGone func(context.Context, *{{$sdk}}.{{.Client}}, {{.IDGoType}}, error) bool
+	// DeleteGone is UpdateGone for a Delete call, for an API that answers a delete of a missing
+	// resource with another status than 404.
+	DeleteGone func(context.Context, *{{$sdk}}.{{.Client}}, {{.IDGoType}}, error) bool
 }
 
 // NewResource returns the resource. Use it in provider.Resources.
@@ -158,6 +165,13 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	v, err := r.create(ctx, body)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create "+TypeName, err.Error())
+{{- if .Create.ResponseID}}
+		if v != nil {
+			// The resource exists, but reading it failed. Keep the id, so Terraform marks the
+			// resource as tainted and can delete it.
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), {{if not .IDValue}}*{{end}}v.{{.IDField}})...)
+		}
+{{- end}}
 		return
 	}
 	diags = r.setState(ctx, v, req.Plan, &resp.State)
@@ -371,8 +385,14 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		body.{{.UpdateBodyID}} = {{if not .UpdateBodyIDValue}}&{{end}}id
 {{- end}}
 		v, err = r.update(ctx{{if not .UpdateIDInBody}}, id{{end}}, body{{if and (not .Replace) (not .MaskInBody)}}, mask{{end}})
+{{- if .Update.Empty}}
+		if err == nil {
+			// The Update response has no fields. Read the resource that it changed.
+			v, err = r.get(ctx, id)
+		}
+{{- end}}
 	}
-	if {{$cx}}.{{.APINotFound}}(err) {
+	if {{$cx}}.{{.APINotFound}}(err){{if .Existing}} || err != nil && r.hooks.UpdateGone != nil && r.hooks.UpdateGone(ctx, r.client, id, err){{end}} {
 		// The framework does not allow Update to remove the resource from state.
 		// The next refresh removes it through Read.
 		resp.Diagnostics.AddError("Resource no longer exists",
@@ -395,6 +415,11 @@ func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp 
 		return
 	}
 	err := r.delete(ctx, id)
+{{- if .Existing}}
+	if err != nil && !{{$cx}}.{{.APINotFound}}(err) && r.hooks.DeleteGone != nil && r.hooks.DeleteGone(ctx, r.client, id, err) {
+		return
+	}
+{{- end}}
 	if err != nil && !{{$cx}}.{{.APINotFound}}(err) {
 		resp.Diagnostics.AddError("Unable to delete "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 	}
@@ -407,11 +432,33 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBod
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 	}
+{{- if .Create.ResponseID}}
+	if out == nil || {{if not .Create.ResponseIDValue}}out.{{.Create.ResponseID}} == nil || *out.{{.Create.ResponseID}} == ""{{else}}out.{{.Create.ResponseID}} == ""{{end}} {
+		return nil, fmt.Errorf("the API did not return the id of the new resource")
+	}
+	id := {{if not .Create.ResponseIDValue}}*{{end}}out.{{.Create.ResponseID}}
+	// The Create response holds only the id. Read the resource that it created.
+	v, err := r.get(ctx, id)
+	if err != nil {
+		// Return the id with the error, so Create can keep it in the state.
+		return &{{$sdk}}.{{.Resource}}{ {{.IDField}}: {{if not .IDValue}}&{{end}}id}, fmt.Errorf("created %s with id %v, but could not read it: %w", TypeName, id, err)
+	}
+	if v == nil {
+		return &{{$sdk}}.{{.Resource}}{ {{.IDField}}: {{if not .IDValue}}&{{end}}id}, fmt.Errorf("created %s with id %v, but the API returned no resource", TypeName, id)
+	}
+	// The id that Create returned is the id of the resource, also when Get leaves it out.
+	if {{if .IDValue}}v.{{.IDField}} == ""{{else}}v.{{.IDField}} == nil || *v.{{.IDField}} == ""{{end}} {
+		v.{{.IDField}} = {{if not .IDValue}}&{{end}}id
+	}
+	return v, nil
+}
+{{- else}}
 	if out == nil {
 		return nil, nil
 	}
 	return {{if .Create.Response}}{{if .Create.ResponseValue}}&{{end}}out.{{.Create.Response}}{{else}}out{{end}}, nil
 }
+{{- end}}
 
 func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Resource}}, error) {
 	out, httpResp, err := r.client.{{.Get.Method}}(ctx{{if not .Singleton}}, id{{end}}).Execute()
@@ -425,6 +472,13 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 }
 
 func (r *Resource) update(ctx context.Context{{if not .UpdateIDInBody}}, id {{.IDGoType}}{{end}}, body *{{$sdk}}.{{$.Conv.UpdateBody}}{{if and (not .Replace) (not .MaskInBody)}}, mask string{{end}}) (*{{$sdk}}.{{.Resource}}, error) {
+{{- if .Update.Empty}}
+	_, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}(*body){{if and (not .Replace) (not .MaskInBody)}}.{{.UpdateMask}}(mask){{end}}.Execute()
+	if err != nil {
+		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
+	}
+	return nil, nil
+{{- else}}
 	out, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}(*body){{if and (not .Replace) (not .MaskInBody)}}.{{.UpdateMask}}(mask){{end}}.Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
@@ -433,6 +487,7 @@ func (r *Resource) update(ctx context.Context{{if not .UpdateIDInBody}}, id {{.I
 		return nil, nil
 	}
 	return {{if .Update.Response}}{{if .Update.ResponseValue}}&{{end}}out.{{.Update.Response}}{{else}}out{{end}}, nil
+{{- end}}
 }
 
 func (r *Resource) delete(ctx context.Context, id {{.IDGoType}}) error {

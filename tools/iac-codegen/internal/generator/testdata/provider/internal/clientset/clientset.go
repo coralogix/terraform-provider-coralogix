@@ -5,6 +5,7 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/config_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/custom_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/echo_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/folder_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/legacy_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/settings_service"
 	"example.com/iac-test-sdk/go/openapi/gen/shared_things_service"
@@ -14,6 +15,7 @@ import (
 )
 
 type ClientSet struct {
+	Folder         *folder_things_service.FolderThingsServiceAPIService
 	Client         *things_service.ThingsServiceAPIService
 	SettingsClient *settings_service.SettingsServiceAPIService
 	Legacy         *legacy_things_service.LegacyThingsServiceAPIService
@@ -60,4 +62,8 @@ func (c *ClientSet) EchoThings() *echo_things_service.EchoThingsServiceAPIServic
 
 func (c *ClientSet) SuppressedThings() *suppressed_things_service.SuppressedThingsServiceAPIService {
 	return c.Suppressed
+}
+
+func (c *ClientSet) FolderThings() *folder_things_service.FolderThingsServiceAPIService {
+	return c.Folder
 }
