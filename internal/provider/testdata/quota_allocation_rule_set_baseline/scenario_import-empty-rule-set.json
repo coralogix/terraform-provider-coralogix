@@ -14,10 +14,11 @@
     ],
     "state": {
       "id": "00000000-0000-4000-8000-000000000001",
-      "rules": null
+      "rules": []
     },
     "drift": [
-      "AttributeName(\"id\")"
+      "AttributeName(\"id\")",
+      "AttributeName(\"rules\")"
     ]
   }
 ]

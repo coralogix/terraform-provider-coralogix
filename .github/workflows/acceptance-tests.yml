@@ -90,7 +90,14 @@ jobs:
           PD_INTEGRATION_ID: ${{ secrets.PD_INTEGRATION_ID }}
           CORALOGIX_SLO_V2_APM_SERVICE: ${{ secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
         run: |
-          bash .github/scripts/run-tests-with-summary.sh make testacc "TESTARGS=-run '${{ matrix.pattern }}'"
+          # The quota allocation rule set is one per account, and its tests sit in two packages. Run
+          # the packages of the data-processing shard one after the other, so that they do not
+          # replace and delete the same rule set at the same time.
+          testargs="-run '${{ matrix.pattern }}'"
+          if [ "${{ matrix.shard }}" = "data-processing" ]; then
+            testargs="$testargs -p 1"
+          fi
+          bash .github/scripts/run-tests-with-summary.sh make testacc "TESTARGS=$testargs"
 
   test-unsharded:
     name: Non-dashboard acceptance tests (unsharded catch-all)
