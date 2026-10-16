@@ -298,6 +298,12 @@ func (r *Resource) setState(ctx context.Context, v *quota_allocation_rule_set_se
 	}
 	if m.Id.IsNull() || m.Id.ValueString() == "" {
 		m.Id = types.StringValue(TypeName) // the API returned no id
+		if prior != nil {
+			var id types.String
+			if !prior.GetAttribute(ctx, path.Root("id"), &id).HasError() && !id.IsNull() && !id.IsUnknown() && id.ValueString() != "" {
+				m.Id = id // keep the id that the plan or the state has
+			}
+		}
 	}
 	diags.Append(state.Set(ctx, m)...)
 	if diags.HasError() {

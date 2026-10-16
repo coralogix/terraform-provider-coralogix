@@ -23,6 +23,7 @@ import (
 	quotaRules "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/quota_allocation_rule_set_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/quotaallocationruleset"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -38,6 +39,7 @@ func NewQuotaAllocationRuleSetResource() resource.Resource {
 		BeforeFlatten:     dropCxManagedQuotaAllocationRules,
 		ValidateConfig:    validateQuotaAllocationRulesConfig,
 		BeforeWrite:       validateQuotaAllocationRulesBeforeWrite,
+		AfterRead:         keepQuotaAllocationRulesKnown,
 		ModifyPlan:        normalizeUnspecifiedQuotaAllocationTypes,
 		CreateFallback:    adoptQuotaAllocationRuleSetOnConflict,
 		IgnoreDeleteError: quotaAllocationRuleSetClearedAfterDeleteError,
@@ -109,6 +111,24 @@ func quotaRulesFromConfig(raw tftypes.Value) []quotaRuleConfig {
 		out = append(out, rule)
 	}
 	return out
+}
+
+// keepQuotaAllocationRulesKnown reads a rule set without rules of the customer as the empty set, which
+// is the documented way to clear the rules. The API returns an empty list, and a read without a prior
+// value, such as an import, would otherwise state null.
+func keepQuotaAllocationRulesKnown(ctx context.Context, state *tfsdk.State, _ any) diag.Diagnostics {
+	var rules types.Set
+	diags := state.GetAttribute(ctx, path.Root("rules"), &rules)
+	if diags.HasError() || !rules.IsNull() {
+		return diags
+	}
+	empty, emptyDiags := types.SetValue(rules.ElementType(ctx), []attr.Value{})
+	diags.Append(emptyDiags...)
+	if diags.HasError() {
+		return diags
+	}
+	diags.Append(state.SetAttribute(ctx, path.Root("rules"), empty)...)
+	return diags
 }
 
 // validateQuotaAllocationRulesBeforeWrite runs the checks again on the resolved configuration: a
