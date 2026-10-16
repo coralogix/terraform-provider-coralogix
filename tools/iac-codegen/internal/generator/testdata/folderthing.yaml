@@ -1,0 +1,93 @@
+# A released resource like the dashboards folder. The path parameter is thing_id and the
+# resource field is id. Create and Replace take an inline body that wraps the resource next to an idempotency key. Create
+# returns only the id of the new thing, and Replace returns an object with no fields. The thing
+# in the Get response is allOf a reference, as the OpenAPI fork writes a field with a description.
+openapi: 3.1.0
+info: {title: folder, version: 1.0.0}
+paths:
+  /folder/v1/things:
+    post:
+      tags: [Folder Things Service]
+      operationId: FolderThingsService_CreateFolderThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CreateFolderThingBody
+              type: object
+              properties:
+                requestId: {type: string, x-coralogix-presence: true}
+                thing:
+                  description: The thing.
+                  allOf: [{$ref: '#/components/schemas/FolderThing'}]
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreateFolderThingResponse'}
+    put:
+      tags: [Folder Things Service]
+      operationId: FolderThingsService_ReplaceFolderThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: ReplaceFolderThingBody
+              type: object
+              properties:
+                requestId: {type: string, x-coralogix-presence: true}
+                thing:
+                  description: The thing.
+                  allOf: [{$ref: '#/components/schemas/FolderThing'}]
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReplaceFolderThingResponse'}
+  /folder/v1/things/{thing_id}:
+    parameters:
+      - {name: thing_id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Folder Things Service]
+      operationId: FolderThingsService_GetFolderThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetFolderThingResponse'}
+    delete:
+      tags: [Folder Things Service]
+      operationId: FolderThingsService_DeleteFolderThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteFolderThingResponse'}
+components:
+  schemas:
+    CreateFolderThingResponse:
+      type: object
+      properties:
+        thingId: {type: string, x-coralogix-presence: true}
+    ReplaceFolderThingResponse:
+      type: object
+    GetFolderThingResponse:
+      type: object
+      properties:
+        thing:
+          description: The thing.
+          allOf: [{$ref: '#/components/schemas/FolderThing'}]
+    DeleteFolderThingResponse:
+      type: object
+    FolderThing:
+      type: object
+      properties:
+        id: {type: string, x-coralogix-presence: true}
+        name: {type: string, x-coralogix-presence: true}
+        parentId: {type: string, x-coralogix-presence: true}
