@@ -15,7 +15,6 @@
         "path": "/mgmt/openapi/5/dashboards/folders/v1",
         "body": {
           "folder": {
-            "id": "<generated-id-1>",
             "name": "first"
           }
         },
@@ -23,12 +22,12 @@
       },
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-1>",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
         "status": 200
       }
     ],
     "state": {
-      "id": "<generated-id-1>",
+      "id": "00000000-0000-4000-8000-000000000001",
       "name": "first",
       "parent_id": null
     },
@@ -50,7 +49,6 @@
         "path": "/mgmt/openapi/5/dashboards/folders/v1",
         "body": {
           "folder": {
-            "id": "<generated-id-2>",
             "name": "second"
           }
         },
@@ -58,12 +56,12 @@
       },
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-2>",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000002",
         "status": 200
       }
     ],
     "state": {
-      "id": "<generated-id-2>",
+      "id": "00000000-0000-4000-8000-000000000002",
       "name": "second",
       "parent_id": null
     },
@@ -75,7 +73,7 @@
       "name": "first"
     },
     "plan": {
-      "id": "<generated-id-2>",
+      "id": "00000000-0000-4000-8000-000000000002",
       "name": "first",
       "parent_id": null
     },
@@ -85,18 +83,23 @@
         "path": "/mgmt/openapi/5/dashboards/folders/v1",
         "body": {
           "folder": {
-            "id": "<generated-id-2>",
+            "id": "00000000-0000-4000-8000-000000000002",
             "name": "first"
           }
         },
         "status": 400
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000002",
+        "status": 200
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_dashboard_folder | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: folder with path /first already exists\"}\noperation - Replace"
+      "error: Unable to update dashboards_folder | id 00000000-0000-4000-8000-000000000002: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: folder with path /first already exists\"}"
     ],
     "state": {
-      "id": "<generated-id-2>",
+      "id": "00000000-0000-4000-8000-000000000002",
       "name": "second",
       "parent_id": null
     }
@@ -106,12 +109,12 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-2>",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000002",
         "status": 200
       }
     ],
     "state": {
-      "id": "<generated-id-2>",
+      "id": "00000000-0000-4000-8000-000000000002",
       "name": "second",
       "parent_id": null
     }

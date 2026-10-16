@@ -15,7 +15,6 @@
         "path": "/mgmt/openapi/5/dashboards/folders/v1",
         "body": {
           "folder": {
-            "id": "<generated-id-1>",
             "name": "gone"
           }
         },
@@ -23,12 +22,12 @@
       },
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-1>",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
         "status": 200
       }
     ],
     "state": {
-      "id": "<generated-id-1>",
+      "id": "00000000-0000-4000-8000-000000000001",
       "name": "gone",
       "parent_id": null
     },
@@ -40,7 +39,7 @@
       "name": "gone-renamed"
     },
     "plan": {
-      "id": "<generated-id-1>",
+      "id": "00000000-0000-4000-8000-000000000001",
       "name": "gone-renamed",
       "parent_id": null
     },
@@ -50,18 +49,23 @@
         "path": "/mgmt/openapi/5/dashboards/folders/v1",
         "body": {
           "folder": {
-            "id": "<generated-id-1>",
+            "id": "00000000-0000-4000-8000-000000000001",
             "name": "gone-renamed"
           }
         },
         "status": 400
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
+        "status": 404
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_dashboard_folder | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: folder with id DashboardFolderId(<generated-id-1>) does not exist\"}\noperation - Replace"
+      "error: Resource no longer exists | The API did not find dashboards_folder with id 00000000-0000-4000-8000-000000000001. Run terraform apply without -refresh=false: the refresh removes it from state, and the plan creates it again."
     ],
     "state": {
-      "id": "<generated-id-1>",
+      "id": "00000000-0000-4000-8000-000000000001",
       "name": "gone",
       "parent_id": null
     }

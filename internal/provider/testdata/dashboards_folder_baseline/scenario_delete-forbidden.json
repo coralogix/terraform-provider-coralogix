@@ -1,0 +1,59 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": "kept"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "name": "kept",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "name": "kept"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "kept",
+      "parent_id": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy: the API answers 403 for a folder that exists",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
+        "status": 403
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to delete dashboards_folder | id 00000000-0000-4000-8000-000000000001: 403 Forbidden — {\"code\":403,\"message\":\"Permission Denied: dont have permissions to delete folder DashboardFolderId(00000000-0000-4000-8000-000000000001)\"}"
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "kept",
+      "parent_id": null
+    }
+  }
+]

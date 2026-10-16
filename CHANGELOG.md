@@ -43,13 +43,25 @@
 - CHORE: Add a protocol baseline of the resource (schema and lifecycle scenarios against an in-memory API), checked against a recording of the real API. Test-only; no behavior change.
 
 #### provider
+<<<<<<< HEAD
 - CHORE: Build with Go 1.26.10.
+=======
+- CHORE: Bump `coralogix-management-sdk` to the version with the dashboard folders contract (`name` is required).
+>>>>>>> ebab8b27 ([CX-63628] feat(dashboards_folder): generate coralogix_dashboards_folder from the API contract)
 - CHORE: Bump `coralogix-management-sdk` to the version with the alert suppression rule contract. The SDK holds required fields as values; `coralogix_alerts_scheduler`, `coralogix_events2metric`, and `coralogix_slo_v2` adapt, with no change to plans.
 - CHORE: Bump `google.golang.org/grpc` to v1.83.2 to clear open security advisories (GHSA-vp52-pcj8-j9qc, GHSA-qc2q-p7wx-3px3, GHSA-2v4p-qf9q-27wj). Indirect `golang.org/x/*` and `google.golang.org/genproto` modules move up with it. No change to provider behavior.
 - CHORE: Bump `golang.org/x/net` to v0.61.0 and `golang.org/x/crypto` to v0.58.0 to clear govulncheck findings. The provider does not call the affected code. No change to provider behavior.
 
 #### resource/coralogix_dashboards_folder
+- CHORE: The resource and the data source are generated from the API contract. Schema version stays 1, and existing state upgrades with no plan change.
+- CHORE: `name` is required, and between 1 and 100 characters, as the API enforces: it rejects a folder without a name, with an empty name, or with a longer name. `parent_id` must be 36 characters, a UUID: the API rejects anything else.
+- CHORE: Create no longer sends an id that the provider made up: the server assigns it, and Create reads the folder with that id. If that read fails, the folder stays in the state, and Terraform marks it as tainted.
+- FIX: Destroying a folder that was already deleted outside Terraform succeeds. The API answers that delete with 403, so the provider reads the folder: only a 404 there means that it is gone, and a 403 for a folder that exists is still an error.
+- FIX: An update of a folder that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. The API answers that update with 400, so the provider reads the folder to tell it from an invalid request.
 - CHORE: Add protocol baseline golden files against an in-memory dashboard folders API, checked against answers recorded from a real tenant.
+
+#### data-source/coralogix_dashboards_folder
+- FIX: A folder that is not found by `id` or `name` ends with an error and returns. Before, a folder without a name could stop the provider with a nil pointer, and the data source went on to write an empty state.
 
 #### resource/coralogix_view
 - FEAT: Add `coralogix_view` for a saved Explore view. `name` and `time_selection` are required, and `time_selection` needs exactly one of `quick_selection` or `custom_selection`. `search_query`, `filters`, `folder_id`, `view_type`, and `is_compact_mode` can be set, changed, and removed. An omitted `view_type`, `is_compact_mode`, or `search_query.syntax_type` reads back as the server default (`VIEW_TYPE_LOGS`, `false`, `SYNTAX_TYPE_LUCENE`), and removing one restores that default. A configured `is_compact_mode` is applied with a replace right after create, because create does not take it. `time_selection.quick_selection.caption` is computed. The API stores `time_selection.quick_selection.seconds` as the nearest preset, so set one of the listed presets.
