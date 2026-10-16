@@ -1,0 +1,32 @@
+[
+  {
+    "step": "missing bucket",
+    "config": {},
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"bucket\")] | Must set a configuration value for the bucket attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "set id",
+    "config": {
+      "bucket": "archive-bucket",
+      "id": "mine"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Configuration for Read-Only Attribute [AttributeName(\"id\")] | Cannot set value for this attribute as the provider has marked it as read-only. Remove the configuration line setting the value.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable and read-only attributes that are supported."
+    ],
+    "state": null
+  },
+  {
+    "step": "set enable_tags",
+    "config": {
+      "bucket": "archive-bucket",
+      "enable_tags": true
+    },
+    "validateDiagnostics": [
+      "error: Invalid Configuration for Read-Only Attribute [AttributeName(\"enable_tags\")] | Cannot set value for this attribute as the provider has marked it as read-only. Remove the configuration line setting the value.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable and read-only attributes that are supported."
+    ],
+    "state": null
+  }
+]

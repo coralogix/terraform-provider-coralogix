@@ -1,0 +1,33 @@
+[
+  {
+    "step": "create: the API rejects the bucket",
+    "config": {
+      "bucket": "Invalid_Bucket"
+    },
+    "plan": {
+      "active": true,
+      "archiving_format_id": "(unknown)",
+      "bucket": "Invalid_Bucket",
+      "enable_tags": "(unknown)",
+      "id": "(unknown)",
+      "region": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "body": {
+          "isActive": true,
+          "s3": {
+            "bucket": "Invalid_Bucket"
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error replacing coralogix_archive_logs | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: \\\"targetSpec\\\" does not match any of the allowed types\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

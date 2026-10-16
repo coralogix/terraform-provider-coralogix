@@ -1,0 +1,69 @@
+[
+  {
+    "step": "import a target with tags enabled",
+    "state": null
+  },
+  {
+    "step": "import a target with tags enabled (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "archiving_format_id": "cx_data_v1",
+      "bucket": "seeded-bucket",
+      "enable_tags": true,
+      "id": "archive-logs-settings",
+      "region": "eu-north-1"
+    },
+    "drift": [
+      "AttributeName(\"active\")",
+      "AttributeName(\"archiving_format_id\")",
+      "AttributeName(\"bucket\")",
+      "AttributeName(\"enable_tags\")",
+      "AttributeName(\"region\")"
+    ]
+  },
+  {
+    "step": "update: the API keeps enable_tags",
+    "config": {
+      "active": false,
+      "bucket": "seeded-bucket"
+    },
+    "plan": {
+      "active": false,
+      "archiving_format_id": "cx_data_v1",
+      "bucket": "seeded-bucket",
+      "enable_tags": true,
+      "id": "archive-logs-settings",
+      "region": "eu-north-1"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "body": {
+          "isActive": false,
+          "s3": {
+            "bucket": "seeded-bucket",
+            "region": "eu-north-1"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": false,
+      "archiving_format_id": "cx_data_v1",
+      "bucket": "seeded-bucket",
+      "enable_tags": true,
+      "id": "archive-logs-settings",
+      "region": "eu-north-1"
+    },
+    "replanEmpty": true
+  }
+]

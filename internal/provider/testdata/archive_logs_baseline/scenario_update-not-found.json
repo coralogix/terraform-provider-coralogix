@@ -1,0 +1,79 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "bucket": "archive-bucket"
+    },
+    "plan": {
+      "active": true,
+      "archiving_format_id": "(unknown)",
+      "bucket": "archive-bucket",
+      "enable_tags": "(unknown)",
+      "id": "(unknown)",
+      "region": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "body": {
+          "isActive": true,
+          "s3": {
+            "bucket": "archive-bucket"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "archiving_format_id": "cx_data_v1",
+      "bucket": "archive-bucket",
+      "enable_tags": false,
+      "id": "archive-logs-settings",
+      "region": "eu-north-1"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: the API does not find the target",
+    "config": {
+      "active": false,
+      "bucket": "archive-bucket"
+    },
+    "plan": {
+      "active": false,
+      "archiving_format_id": "cx_data_v1",
+      "bucket": "archive-bucket",
+      "enable_tags": false,
+      "id": "archive-logs-settings",
+      "region": "eu-north-1"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "body": {
+          "isActive": false,
+          "s3": {
+            "bucket": "archive-bucket",
+            "region": "eu-north-1"
+          }
+        },
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: coralogix_archive_logs {<nil> false {archive-bucket <nil> 0xPTR <nil> map[] false} map[] false} is in state, but no longer exists in Coralogix backend | {<nil> false {archive-bucket <nil> 0xPTR <nil> map[] false} map[] false} will be recreated when you apply",
+      "error: Missing Resource State After Update | The Terraform Provider unexpectedly returned no resource state after having no errors in the resource update. This is always an issue in the Terraform Provider and should be reported to the provider developers."
+    ],
+    "state": {
+      "active": true,
+      "archiving_format_id": "cx_data_v1",
+      "bucket": "archive-bucket",
+      "enable_tags": false,
+      "id": "archive-logs-settings",
+      "region": "eu-north-1"
+    }
+  }
+]

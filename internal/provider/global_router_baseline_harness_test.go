@@ -670,7 +670,7 @@ func diagStrings(ds []*tfprotov6.Diagnostic) []string {
 		if d.Severity == tfprotov6.DiagnosticSeverityWarning {
 			severity = "warning"
 		}
-		s := severity + ": " + d.Summary
+		s := severity + ": " + pointerPattern.ReplaceAllString(d.Summary, "0xPTR")
 		if d.Attribute != nil {
 			s += " [" + d.Attribute.String() + "]"
 		}
