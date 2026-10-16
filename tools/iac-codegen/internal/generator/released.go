@@ -44,9 +44,10 @@ func applyReleasedShape(r *model.Resource, file *overrides.File, full []sdkcheck
 }
 
 // applyRequiresReplace marks the requiresReplace fields immutable. Only a top-level field that
-// Create, Update, and Get all have can replace the resource while Update accepts it. A field that
-// the Update body requires cannot be left out of it: the SDK holds it as a value, so the body
-// would send its zero value.
+// Create, Update, and Get all have can replace the resource while Update accepts it. A PATCH
+// leaves the field out of the Update body, so the field the Update body requires cannot be one:
+// the SDK holds it as a value, so the body would send its zero value. A PUT replaces the whole
+// resource, so its body keeps the field: without it, an update of another field would clear it.
 func applyRequiresReplace(r *model.Resource, file *overrides.File) error {
 	for _, component := range slices.Sorted(maps.Keys(file.Types)) {
 		for _, name := range slices.Sorted(maps.Keys(file.Types[component].Fields)) {
@@ -61,13 +62,17 @@ func applyRequiresReplace(r *model.Resource, file *overrides.File) error {
 			if f.Behavior != model.Normal || f.Create == nil || f.Update == nil || f.Get == nil {
 				return fmt.Errorf("%s: requiresReplace needs a field that Create, Update, and Get all have", tfName(name))
 			}
+			if r.Replace {
+				f.Behavior = model.Immutable
+				continue
+			}
 			if f.Update.Required {
 				return fmt.Errorf("%s: requiresReplace leaves the field out of the Update body, but the Update body requires it", tfName(name))
 			}
 			f.Behavior, f.Update = model.Immutable, nil
 		}
 	}
-	if !slices.ContainsFunc(r.Fields, func(f *model.ResourceField) bool {
+	if !r.Replace && !slices.ContainsFunc(r.Fields, func(f *model.ResourceField) bool {
 		return f.Update != nil && !file.Types[r.Name].Fields[f.Name].Fixed()
 	}) {
 		return fmt.Errorf("requiresReplace leaves no field that Update can change: a resource without an in-place update is not supported")

@@ -96,8 +96,7 @@ enums:
     values: [PROMPT, RESPONSE]
     rejected: [CONVERSATION]
     # The released resource read CONVERSATION into state as "conversation" but did not accept it in a configuration.
-    readRejected: true
-    readRejectedLower: true
+    readRejected: lower
   # The first value of the list items is a business value, not a zero value.
   PiiCategory:
     verbatim: true

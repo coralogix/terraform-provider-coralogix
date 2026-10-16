@@ -60,7 +60,10 @@ type File struct {
 	Groups map[string]Group `yaml:"groups"`
 	// UpdateMask: "omit" sends no updateMask in the Update body (api.updateMaskInBody), as a
 	// released resource that never sent one did. The server then updates every field present in
-	// the body, so removing an optional attribute from the configuration cannot clear it.
+	// the body, so removing an optional attribute from the configuration cannot clear it. The key
+	// also states that the server replaces the whole value of each field in the body, nested
+	// objects included: a removed nested attribute is cleared. A server that merged nested
+	// objects would keep it, and the generator cannot check that.
 	UpdateMask string `yaml:"updateMask"`
 }
 
@@ -336,12 +339,10 @@ type RegexMatches struct {
 	Message string `yaml:"message"`
 }
 
-// TFValue is the Terraform value of the API value v of the enum: its names entry, or the value
-// without trimPrefix, in lower case unless the line is verbatim.
 // RejectedTFValue is the Terraform value that a rejected value reads back as: its API spelling,
-// or the lower case with ReadRejectedLower.
+// or the lower case with readRejected: lower.
 func (e Enum) RejectedTFValue(v string) string {
-	if e.ReadRejectedLower {
+	if e.ReadRejected == ReadRejectedLower {
 		return strings.ToLower(v)
 	}
 	return v
@@ -367,6 +368,8 @@ func (t Type) checkUnsupported() error {
 	return nil
 }
 
+// TFValue is the Terraform value of the API value v of the enum: its names entry, or the value
+// without trimPrefix, in lower case unless the line is verbatim.
 func (e Enum) TFValue(v string) string {
 	if tf, ok := e.Names[v]; ok {
 		return tf
@@ -404,12 +407,41 @@ type Enum struct {
 	// Rejected are the values of the contract that the resource does not accept. The generator
 	// reports a value of the contract that is in neither list, so a new API value needs a decision.
 	Rejected []string `yaml:"rejected"`
-	// ReadRejected: a rejected value still reads back as the API spelling. The write map and the
-	// schema validator do not accept it. Without this key, a rejected value fails the read.
-	ReadRejected bool `yaml:"readRejected"`
-	// ReadRejectedLower reads a rejected value back in lower case instead, as a released resource
-	// that lowercased an unknown API value did. It needs ReadRejected and excludes Verbatim.
-	ReadRejectedLower bool `yaml:"readRejectedLower"`
+	// ReadRejected: a rejected value still reads back, as the API spelling (true) or in lower
+	// case (lower, as a released resource that lowercased an unknown API value did). The write
+	// map and the schema validator do not accept it. Without this key, a rejected value fails
+	// the read.
+	ReadRejected ReadRejected `yaml:"readRejected"`
+}
+
+// ReadRejected is how a rejected enum value reads back: not at all (""), as the API spelling
+// (ReadRejectedAPI, from true), or in lower case (ReadRejectedLower, from lower).
+type ReadRejected string
+
+const (
+	ReadRejectedAPI   ReadRejected = "api"
+	ReadRejectedLower ReadRejected = "lower"
+)
+
+// On reports whether a rejected value reads back.
+func (r ReadRejected) On() bool { return r != "" }
+
+// UnmarshalYAML accepts true, false, or lower.
+func (r *ReadRejected) UnmarshalYAML(n *yaml.Node) error {
+	if n.Kind == yaml.ScalarNode {
+		switch n.Value {
+		case "true":
+			*r = ReadRejectedAPI
+			return nil
+		case "false":
+			*r = ""
+			return nil
+		case "lower":
+			*r = ReadRejectedLower
+			return nil
+		}
+	}
+	return fmt.Errorf("line %d: readRejected is %q, want true, false, or lower", n.Line, n.Value)
 }
 
 // Parse reads the file. An unknown key or a wrong value is an error.
@@ -551,10 +583,10 @@ func (f *File) checkEnums() error {
 		if e.Zero != "" {
 			seen[e.Zero] = "zero"
 		}
-		if e.ReadRejectedLower && (!e.ReadRejected || e.Verbatim) {
-			return fmt.Errorf("enums.%s: readRejectedLower needs readRejected and excludes verbatim", name)
+		if e.ReadRejected == ReadRejectedLower && e.Verbatim {
+			return fmt.Errorf("enums.%s: readRejected: lower excludes verbatim", name)
 		}
-		if e.ReadRejected {
+		if e.ReadRejected.On() {
 			// A rejected value reads back as its read spelling, so no accepted value can have it.
 			for _, v := range e.Rejected {
 				tf := e.RejectedTFValue(v)

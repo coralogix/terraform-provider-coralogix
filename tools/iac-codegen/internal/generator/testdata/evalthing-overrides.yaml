@@ -40,5 +40,4 @@ enums:
   EvalTarget:
     values: [PROMPT, RESPONSE]
     rejected: [CONVERSATION]
-    readRejected: true
-    readRejectedLower: true
+    readRejected: lower

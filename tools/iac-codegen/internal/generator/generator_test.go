@@ -106,7 +106,7 @@ func TestGoldenOutputEchoedValues(t *testing.T) {
 }
 
 // The golden output of a released resource like the AI evaluation API: updateMask: omit,
-// requiresReplace, unsupportedArms, and readRejectedLower.
+// requiresReplace, unsupportedArms, and readRejected: lower.
 func TestGoldenOutputEvalThing(t *testing.T) {
 	out := generateEvalThing(t)
 	golden := filepath.Join("testdata", "golden", "evalthing")
@@ -2146,6 +2146,14 @@ func TestRenamedUpdateOnlyFieldUsesItsName(t *testing.T) {
 // nil, another spec.
 func generateEvalThingWith(t *testing.T, lines string, edit func(string) string) error {
 	t.Helper()
+	_, err := generateEvalThingInto(t, lines, edit, filepath.Join(t.TempDir(), "evalthing"))
+	return err
+}
+
+// generateEvalThingInto generates EvalThing into out, and returns the synthetic input to compile
+// it with.
+func generateEvalThingInto(t *testing.T, lines string, edit func(string) string, out string) (source.Input, error) {
+	t.Helper()
 	spec, err := os.ReadFile(filepath.Join("testdata", "evalthing.yaml"))
 	if err != nil {
 		t.Fatal(err)
@@ -2159,7 +2167,7 @@ func generateEvalThingWith(t *testing.T, lines string, edit func(string) string)
 	}
 	input, loadDir := syntheticInput(t)
 	input.OpenAPI = spec
-	return generateFromInput(Options{Resource: "EvalThing", OutputDir: filepath.Join(t.TempDir(), "evalthing"), OverridesPath: path}, input, loadDir)
+	return input, generateFromInput(Options{Resource: "EvalThing", OutputDir: out, OverridesPath: path}, input, loadDir)
 }
 
 // evalThingLines are the overrides of EvalThing without the keys that a test varies.
@@ -2224,6 +2232,14 @@ func TestReleasedShapeErrors(t *testing.T) {
 		"a line that only an unsupported arm reaches": {
 			lines: replace("  TopicsEvalConfig:\n", "  LegacyEvalConfig:\n    fields:\n      limit:\n        markdownDescription: The limit.\n  TopicsEvalConfig:\n"),
 			want:  "types.LegacyEvalConfig: only unsupported arms reach the component, so the line changes nothing",
+		},
+		"an optional and computed field that the contract makes immutable": {
+			lines: replace("      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        computed: true\n"),
+			edit: func(spec string) string {
+				// Only Create has enabled, so the contract makes it immutable.
+				return strings.Replace(spec, "                enabled: {type: boolean, x-coralogix-presence: true}\n                updateMask:", "                updateMask:", 1)
+			},
+			want: "enabled: an optional and computed attribute cannot require replacement",
 		},
 		"a body mask that names the arm without updateMask: omit": {
 			lines: replace("updateMask: omit\n", ""),
@@ -2304,4 +2320,43 @@ func TestCheckReachableLinesUnwrap(t *testing.T) {
 	if err := checkReachableLines(file, reachableComponents(with), reachableComponents(with)); err != nil {
 		t.Fatalf("a reachable wrapper: %v", err)
 	}
+}
+
+// A PUT replaces the whole resource, so its body keeps a requiresReplace field: without it, an
+// update of another field would clear the field on the server.
+func TestRequiresReplaceKeepsTheFieldInAPut(t *testing.T) {
+	edit := func(spec string) string {
+		spec = strings.Replace(spec, "    patch:\n", "    put:\n", 1)
+		return strings.Replace(spec, "                updateMask: {type: string, pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'}\n", "", 1)
+	}
+	lines := evalThingLines(t)
+	for _, old := range []string{"api:\n  updateMaskInBody: true\n", "updateMask: omit\n"} {
+		if !strings.Contains(lines, old) {
+			t.Fatalf("the overrides lack %q", old)
+		}
+		lines = strings.Replace(lines, old, "", 1)
+	}
+	out := filepath.Join(t.TempDir(), "evalthing")
+	input, err := generateEvalThingInto(t, lines, edit, out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	convert, err := os.ReadFile(filepath.Join(out, "convert.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := functionBody(t, string(convert), "func expandUpdateEvalThingRequest(")
+	for _, want := range []string{"out.Name =", "out.Target =", "out.Config ="} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the PUT body lacks %q:\n%s", want, body)
+		}
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Count(string(schema), "planmodifier.RequiresReplace()"); got < 2 {
+		t.Errorf("schema.go has %d RequiresReplace modifiers, want name and target", got)
+	}
+	compileGenerated(t, out, input)
 }
