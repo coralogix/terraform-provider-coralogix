@@ -252,11 +252,15 @@ func TestRecordAIEvaluationFidelity(t *testing.T) {
 		}
 		out.Cases = append(out.Cases, rc)
 	}
-	raw, err := json.MarshalIndent(out, "", "  ")
-	if err != nil {
+	// Without HTML escaping, "<company>" stays readable in the file.
+	var raw bytes.Buffer
+	enc := json.NewEncoder(&raw)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(out); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(aiEvaluationGoldenDir, "fidelity", "recorded.json"), append(raw, '\n'), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(aiEvaluationGoldenDir, "fidelity", "recorded.json"), raw.Bytes(), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }

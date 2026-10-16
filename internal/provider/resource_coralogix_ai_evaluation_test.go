@@ -233,50 +233,74 @@ func TestAccCoralogixResourceAIEvaluation(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			testAccAIEvaluationRetryOnCollision(t, func(testT *aiEvaluationTestT) {
+			const maxCreateAttempts = 5
+			for attempt := 1; attempt <= maxCreateAttempts; attempt++ {
 				application := &aiEvaluationApplication{}
 				target := new(string)
 				configDir := t.TempDir()
 				createConfigFile := filepath.Join(configDir, "create.tf")
 				updateConfigFile := filepath.Join(configDir, "update.tf")
-				resource.Test(testT, resource.TestCase{
-					PreCheck: func() {
-						testAccPreCheck(t)
-						selectedApplication, selectedTarget := testAccFirstAIApplication(t, testCase.evaluationType, testCase.targetCandidates)
-						*application = selectedApplication
-						*target = selectedTarget
-					},
-					ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-					CheckDestroy:             testAccCheckAIEvaluationDestroy,
-					Steps: []resource.TestStep{
-						{
-							ConfigFile: testAccAIEvaluationConfigFile(t, createConfigFile, application, target, "0.8", true, testCase.createConfig),
-							Check: testAccAIEvaluationCheck(
-								application,
-								target,
-								"0.8",
-								true,
-								testCase.createChecks...,
-							),
+				testT := &aiEvaluationTestT{T: t}
+
+				func() {
+					defer func() {
+						if recovered := recover(); recovered != nil {
+							if _, ok := recovered.(aiEvaluationTestFatal); !ok {
+								panic(recovered)
+							}
+						}
+					}()
+
+					resource.Test(testT, resource.TestCase{
+						PreCheck: func() {
+							testAccPreCheck(t)
+							selectedApplication, selectedTarget := testAccFirstAIApplication(t, testCase.evaluationType, testCase.targetCandidates)
+							*application = selectedApplication
+							*target = selectedTarget
 						},
-						{
-							ResourceName:      aiEvaluationResourceName,
-							ImportState:       true,
-							ImportStateVerify: true,
+						ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+						CheckDestroy:             testAccCheckAIEvaluationDestroy,
+						Steps: []resource.TestStep{
+							{
+								ConfigFile: testAccAIEvaluationConfigFile(t, createConfigFile, application, target, "0.8", true, testCase.createConfig),
+								Check: testAccAIEvaluationCheck(
+									application,
+									target,
+									"0.8",
+									true,
+									testCase.createChecks...,
+								),
+							},
+							{
+								ResourceName:      aiEvaluationResourceName,
+								ImportState:       true,
+								ImportStateVerify: true,
+							},
+							{
+								ConfigFile: testAccAIEvaluationConfigFile(t, updateConfigFile, application, target, "0.9", false, testCase.updateConfig),
+								Check: testAccAIEvaluationCheck(
+									application,
+									target,
+									"0.9",
+									false,
+									testCase.updateChecks...,
+								),
+							},
 						},
-						{
-							ConfigFile: testAccAIEvaluationConfigFile(t, updateConfigFile, application, target, "0.9", false, testCase.updateConfig),
-							Check: testAccAIEvaluationCheck(
-								application,
-								target,
-								"0.9",
-								false,
-								testCase.updateChecks...,
-							),
-						},
-					},
-				})
-			})
+					})
+				}()
+
+				if testT.fatalMessage == "" {
+					return
+				}
+				if !strings.Contains(testT.fatalMessage, "Already Exists: An evaluation with these parameters already exists") {
+					t.Fatalf("AI evaluation acceptance test failed: %s", testT.fatalMessage)
+				}
+
+				t.Logf("AI evaluation slot collided on attempt %d; retrying with another application", attempt)
+			}
+
+			t.Fatalf("AI evaluation acceptance test collided %d times; no free application slot remained", maxCreateAttempts)
 		})
 	}
 }
