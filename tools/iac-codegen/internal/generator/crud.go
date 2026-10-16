@@ -47,6 +47,9 @@ type crudData struct {
 	// MaskInBody: updateMask is an optional JSON body property. Update sets it
 	// to the same changed-field mask a query parameter would send.
 	MaskInBody bool
+	// OmitMask: Update sends no body mask (updateMask: omit). The server updates every field
+	// present in the body.
+	OmitMask bool
 	// UpdateMask is the SDK request-builder method for the PATCH updateMask
 	// query parameter. It is empty for a full replace and for MaskInBody.
 	UpdateMask string
@@ -119,6 +122,7 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		Singleton:  r.Singleton,
 		Replace:    r.Replace,
 		MaskInBody: r.MaskInBody,
+		OmitMask:   file != nil && file.UpdateMask == overrides.UpdateMaskOmit,
 
 		UpdateIDInBody: r.Policy.UpdateIDInBody,
 		Existing:       r.Policy.Existing,
