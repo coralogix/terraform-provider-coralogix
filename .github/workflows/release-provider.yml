@@ -15,7 +15,7 @@
 # Dry run (`dry_run: true`, with the real next version): runs both phases in one run
 # and writes nothing. It plans with the real version checks, cuts the changelog and
 # bumps version.go in the runner, waits for `build`, generates the release notes,
-# builds and GPG-signs with goreleaser --snapshot, checks the Registry for the current
+# builds and GPG-signs with goreleaser --snapshot, checks the Registry for the latest
 # released version, and renders the Slack message into the run summary. It creates no
 # branch, commit, PR, tag, or release, and posts nothing. The environment gates apply
 # as in a real run.
@@ -64,7 +64,7 @@ jobs:
     if: github.repository == 'coralogix/terraform-provider-coralogix'
     outputs:
       version: ${{ steps.plan.outputs.version }}
-      current: ${{ steps.plan.outputs.current }}
+      latest: ${{ steps.plan.outputs.latest }}
       mode: ${{ steps.plan.outputs.mode }}
       sha: ${{ steps.plan.outputs.sha }}
       dry_run: ${{ steps.plan.outputs.dry_run }}
@@ -102,6 +102,16 @@ jobs:
             exit 1
           fi
 
+          # Every mode must move forward from the highest released tag. On a push, version and
+          # current both come from the new version.go, so comparing them proves nothing.
+          # Equal is allowed: the tag exists but its release does not, so a failed run resumes.
+          semver='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+          latest=$(git tag -l 'v*' | grep -E "$semver" | sed 's/^v//' | sort -V | tail -1)
+          [ -n "$latest" ] || { echo "::error::No vMAJOR.MINOR.PATCH tag found"; exit 1; }
+          if [ "$(printf '%s\n%s\n' "$latest" "$version" | sort -V | tail -1)" != "$version" ]; then
+            echo "::error::Version $version is lower than the latest tag v$latest"; exit 1
+          fi
+
           if [ "$version" = "$current" ]; then
             mode=publish
             # Release the commit that set the version, not later commits on master.
@@ -118,7 +128,7 @@ jobs:
           [ "$DRY_RUN" = true ] && echo "### Dry run: nothing is written or published" >> "$GITHUB_STEP_SUMMARY"
           echo "Current version $current, release $version: $mode at $sha" | tee -a "$GITHUB_STEP_SUMMARY"
           {
-            echo "version=$version"; echo "current=$current"; echo "mode=$mode"; echo "sha=$sha"
+            echo "version=$version"; echo "latest=$latest"; echo "mode=$mode"; echo "sha=$sha"
             echo "dry_run=$DRY_RUN"
           } >> "$GITHUB_OUTPUT"
 
@@ -293,8 +303,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 75
     env:
-      # A dry run checks the current released version, which the Registry already serves.
-      VERSION: ${{ needs.plan.outputs.dry_run == 'true' && needs.plan.outputs.current || needs.plan.outputs.version }}
+      # A dry run checks the latest released version, which the Registry already serves.
+      VERSION: ${{ needs.plan.outputs.dry_run == 'true' && needs.plan.outputs.latest || needs.plan.outputs.version }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Check the GitHub release
