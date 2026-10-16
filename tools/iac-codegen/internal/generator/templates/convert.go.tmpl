@@ -515,6 +515,13 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$s
 	if v == nil {
 		return nil
 	}
+{{- $model := .Model}}
+{{- range .Unsupported}}
+	if v.{{.SDK}} != nil {
+		diags.AddError({{printf "%q" .Summary}}, {{printf "%q" .Detail}})
+		return &{{$model}}{}
+	}
+{{- end}}
 	out := &{{.Model}}{}
 {{- range .Fields}}
 {{- template "flattenField" .}}

@@ -450,3 +450,59 @@ func TestCreateAsAndNamesAreCheckedAcrossLines(t *testing.T) {
 		t.Fatalf("createAs on the resource component: %v", err)
 	}
 }
+
+func TestRequiresReplaceCannotBeComputed(t *testing.T) {
+	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {requiresReplace: true, computed: true}\n"))
+	if err == nil || !strings.Contains(err.Error(), "requiresReplace cannot be combined with computed: true") {
+		t.Fatalf("err = %v, want an error about requiresReplace and computed", err)
+	}
+}
+
+func TestUnsupportedArmsKeys(t *testing.T) {
+	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  C:\n"
+	tests := map[string]struct{ text, want string }{
+		"no summary":       {"    unsupportedArms: [queue]\n    unsupportedDetail: D\n", "set together"},
+		"arm twice":        {"    unsupportedArms: [queue, queue]\n    unsupportedSummary: S\n    unsupportedDetail: D\n", "twice"},
+		"field line":       {"    unsupportedArms: [queue]\n    unsupportedSummary: S\n    unsupportedDetail: D\n    fields:\n      queue: {computed: true}\n", `"queue" also has a field line`},
+		"text without arm": {"    unsupportedSummary: S\n    unsupportedDetail: D\n", "set together"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte(head + test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+	if _, err := Parse([]byte(head + "    unsupportedArms: [queue]\n    unsupportedSummary: S\n    unsupportedDetail: D\n")); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestReadRejectedLowerNeedsReadRejected(t *testing.T) {
+	base := "resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    values: [A]\n    rejected: [B]\n"
+	for _, extra := range []string{"    readRejectedLower: true\n", "    verbatim: true\n    readRejected: true\n    readRejectedLower: true\n"} {
+		if _, err := Parse([]byte(base + extra)); err == nil || !strings.Contains(err.Error(), "readRejectedLower needs readRejected and excludes verbatim") {
+			t.Fatalf("%q: err = %v, want the readRejectedLower error", extra, err)
+		}
+	}
+	f, err := Parse([]byte(base + "    readRejected: true\n    readRejectedLower: true\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := f.Enums["E"].RejectedTFValue("B"); got != "b" {
+		t.Fatalf("RejectedTFValue = %q, want b", got)
+	}
+}
+
+func TestUpdateMaskOmit(t *testing.T) {
+	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\n"
+	if _, err := Parse([]byte(head + "updateMask: omit\n")); err == nil || !strings.Contains(err.Error(), "needs api.updateMaskInBody") {
+		t.Fatalf("err = %v, want an error that asks for a body mask", err)
+	}
+	if _, err := Parse([]byte(head + "api:\n  updateMaskInBody: true\nupdateMask: send\n")); err == nil || !strings.Contains(err.Error(), `want "omit"`) {
+		t.Fatalf("err = %v, want an error about the value", err)
+	}
+	if _, err := Parse([]byte(head + "api:\n  updateMaskInBody: true\nupdateMask: omit\n")); err != nil {
+		t.Fatal(err)
+	}
+}
