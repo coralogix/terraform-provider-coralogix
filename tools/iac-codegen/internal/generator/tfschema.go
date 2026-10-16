@@ -140,9 +140,11 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	}
 	b.models = append(b.models, root)
 	if r.Singleton {
-		if err := addSingletonID(out, root, r); err != nil {
+		if err := addSingletonID(out, root, r, file != nil && file.SingletonID); err != nil {
 			return nil, err
 		}
+	} else if file != nil && file.SingletonID {
+		return nil, errors.New("singletonID is for a singleton: Get of this resource has a path parameter")
 	}
 	groups := &tfGroups{file: file, resource: r.Name, attrs: map[string]*tfAttr{}, models: map[string]*tfModel{}}
 	if err := b.rootAttributes(out, root, r, file, groups); err != nil {
@@ -241,12 +243,28 @@ func defaultPackages(attrs []*tfAttr) []string {
 	return packages
 }
 
-// addSingletonID adds the fixed id attribute of a singleton (D18).
-func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
+// addSingletonID adds the fixed id attribute of a singleton (D18). With singletonID, the resource has
+// an id field that the server sets, and the generic field pipeline builds the attribute.
+func addSingletonID(out *tfResource, root *tfModel, r *model.Resource, singletonID bool) error {
 	for _, f := range r.Fields {
-		if terraformName(r.Policy, r.Name, f.Name) == "id" {
+		if terraformName(r.Policy, r.Name, f.Name) != "id" {
+			continue
+		}
+		if !singletonID {
 			return fmt.Errorf("%s: a singleton with an id field is not supported: the id attribute is fixed", f.Name)
 		}
+		// The fixed fallback and the import are strings, and a request that sets the id would let the
+		// user configure a value that flatten replaces.
+		if f.Type == nil || f.Type.Kind != model.String {
+			return fmt.Errorf("singletonID: the id field %s must be a string, not %s", f.Name, typeName(f.Type))
+		}
+		if f.Behavior != model.Computed {
+			return fmt.Errorf("singletonID says that only the server sets the id, but the Create or Update body of %s lets a caller set %q: add readOnly: true to its line, or mark it read-only in the contract", r.Name, f.Name)
+		}
+		return nil
+	}
+	if singletonID {
+		return fmt.Errorf("singletonID says that %s has an id field, and it has none", r.Name)
 	}
 	// A static default puts the fixed id in the plan, so Create does not
 	// show it as unknown. The user still cannot set it.
@@ -334,6 +352,21 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 			if file.Validators.Inferred != nil && !*file.Validators.Inferred {
 				// No limit of the contract becomes a validator. A oneOf group validator is not a limit.
 				a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return !slices.Contains(a.GroupValidators, v) })
+			} else if _, mapped := file.Enums[a.EnumSchema]; mapped && a.EnumSchema != "" && (a.ValueKind == "String" || a.ValueKind == "List" || a.ValueKind == "Set") {
+				// The contract limit of an enum lists the API values, which the enums line renames
+				// and filters. The validator takes the Terraform values of that line instead.
+				expr, err := enumValidatorExpr(a, file, false)
+				if err != nil {
+					return err
+				}
+				inferred := "stringvalidator.OneOf("
+				if a.ValueKind != "String" {
+					inferred = strings.ToLower(a.ValueKind) + "validator.ValueStringsAre(stringvalidator.OneOf("
+				}
+				a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool {
+					return strings.HasPrefix(v, inferred) && !slices.Contains(a.GroupValidators, v)
+				})
+				a.Validators = append(a.Validators, expr)
 			}
 			if line, ok := file.Types[a.Component].Fields[a.Property]; ok {
 				if serverOwned(a) && settable[a.Component+"."+a.Property] {

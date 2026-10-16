@@ -28,6 +28,8 @@ var (
 	_ resource.ResourceWithConfigure        = (*Resource)(nil)
 	_ resource.ResourceWithConfigValidators = (*Resource)(nil)
 	_ resource.ResourceWithImportState      = (*Resource)(nil)
+	_ resource.ResourceWithValidateConfig   = (*Resource)(nil)
+	_ resource.ResourceWithModifyPlan       = (*Resource)(nil)
 )
 
 // Resource is the Terraform resource. The provider data must be a
@@ -48,6 +50,19 @@ type Hooks struct {
 	// BeforeFlatten mutates the API value before flatten, for a value that only an older
 	// record has, such as a deprecated field that a newer one replaces.
 	BeforeFlatten func(context.Context, *views_service.View) diag.Diagnostics
+	// ValidateConfig adds checks that no attribute validator expresses, such as a rule over
+	// the items of a set.
+	ValidateConfig func(context.Context, tfsdk.Config) diag.Diagnostics
+	// ModifyPlan changes the plan after the plan modifiers of the attributes ran, for a rule
+	// over several attributes, such as an alias that the plan normalizes.
+	ModifyPlan func(context.Context, resource.ModifyPlanRequest, *resource.ModifyPlanResponse)
+	// CreateFallback runs when the Create call fails. It returns the resource and true when it
+	// created or adopted the resource in another way, for an API that refuses a create next to
+	// a resource that exists. It returns false to report the error of the Create call.
+	CreateFallback func(context.Context, *views_service.ViewsServiceAPIService, *views_service.ViewFolder, error) (*views_service.View, bool, diag.Diagnostics)
+	// IgnoreDeleteError reports whether the error of a failed Delete call can be ignored, for an
+	// API that clears the resource and still answers with an error.
+	IgnoreDeleteError func(context.Context, *views_service.ViewsServiceAPIService, error) bool
 }
 
 // NewResource returns the resource. Use it in provider.Resources.
@@ -70,6 +85,18 @@ func (r *Resource) Schema(_ context.Context, _ resource.SchemaRequest, resp *res
 
 func (r *Resource) ConfigValidators(context.Context) []resource.ConfigValidator {
 	return ConfigValidators()
+}
+
+func (r *Resource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	if r.hooks.ValidateConfig != nil {
+		resp.Diagnostics.Append(r.hooks.ValidateConfig(ctx, req.Config)...)
+	}
+}
+
+func (r *Resource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if r.hooks.ModifyPlan != nil {
+		r.hooks.ModifyPlan(ctx, req, resp)
+	}
 }
 
 func (r *Resource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -121,6 +148,16 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 		return
 	}
 	v, err := r.create(ctx, body)
+	if err != nil && r.hooks.CreateFallback != nil {
+		fallback, handled, fallbackDiags := r.hooks.CreateFallback(ctx, r.client, body, err)
+		resp.Diagnostics.Append(fallbackDiags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if handled {
+			v, err = fallback, nil
+		}
+	}
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create "+TypeName, err.Error())
 		return
@@ -305,6 +342,9 @@ func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp 
 		return
 	}
 	err := r.delete(ctx, id)
+	if err != nil && r.hooks.IgnoreDeleteError != nil && r.hooks.IgnoreDeleteError(ctx, r.client, err) {
+		return
+	}
 	if err != nil && !cxsdk.IsNotFound(err) {
 		resp.Diagnostics.AddError("Unable to delete "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 	}

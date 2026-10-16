@@ -304,6 +304,39 @@ func generateCustomThing(t *testing.T) string {
 	return out
 }
 
+// With validators.inferred: true, the contract limit of an enum that an enums line renames lists the
+// API values. The validator takes the Terraform values of the line instead, once.
+func TestInferredEnumValidatorUsesTheEnumsLine(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "customthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := os.ReadFile(filepath.Join("testdata", "customthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(file), "inferred: false") {
+		t.Fatal("customthing-overrides.yaml no longer has inferred: false")
+	}
+	overridesPath := filepath.Join(t.TempDir(), "behavior-overrides.yaml")
+	if err := os.WriteFile(overridesPath, []byte(strings.Replace(string(file), "inferred: false", "inferred: true", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "customthing")
+	if err := generateFromInput(Options{Resource: "CustomThing", OutputDir: out, OverridesPath: overridesPath}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(schema), `"SYSTEM"`) || strings.Count(string(schema), "stringvalidator.OneOf(") == 0 {
+		t.Fatalf("the enum validator must list the Terraform values, not the API values:\n%s", schema)
+	}
+}
+
 // generateWrapThing generates the synthetic resource whose API holds values in wrapper objects.
 func generateWrapThing(t *testing.T) string {
 	t.Helper()
@@ -1895,6 +1928,137 @@ func TestSingletonIDIsStatic(t *testing.T) {
 		t.Fatal(err)
 	}
 	compileGenerated(t, out, input)
+}
+
+// A singleton whose API resource has a server-set id holds that id in its id attribute, and
+// falls back to the type name when the API returns none.
+func TestSingletonWithServerSetID(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "settings")
+	options := Options{Resource: "settings", OutputDir: out, OverridesPath: filepath.Join("testdata", "singleton-id-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(schema), "stringdefault.StaticString(TypeName)") {
+		t.Fatalf("the id must be the id of the API, not the fixed value:\n%s", schema)
+	}
+	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(resource), "the API returned no id") || strings.Contains(string(resource), "a singleton has a fixed id") {
+		t.Fatalf("flatten must keep the id of the API and fall back to the type name:\n%s", resource)
+	}
+	semantics := `package settings
+
+import (
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+)
+
+func TestSingletonIDIsFromTheAPI(t *testing.T) {
+	id, ok := Schema().Attributes["id"].(schema.StringAttribute)
+	if !ok || !id.Computed || id.Optional || id.Default != nil {
+		t.Fatalf("id attribute = %#v, want computed-only with no default", Schema().Attributes["id"])
+	}
+}
+`
+	if err := os.WriteFile(filepath.Join(out, "singleton_id_test.go"), []byte(semantics), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// singletonID needs an id that only the server sets: a Create body that lets the user set it would
+// make a value that flatten replaces.
+func TestSingletonIDRejectsAWritableID(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	writable := strings.Replace(string(spec), "              properties:\n                retentionDays:", "              properties:\n                id: {type: string}\n                retentionDays:", 1)
+	if writable == string(spec) {
+		t.Fatal("the fixture no longer has the Create body that this test changes")
+	}
+	overrides, err := os.ReadFile(filepath.Join("testdata", "singleton-id-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Without a readOnly line, the id is a field that the Create body sets.
+	err = generateSingleton(t, []byte(writable), string(overrides))
+	if err == nil || !strings.Contains(err.Error(), "lets a caller set") {
+		t.Fatalf("error = %v, want the id to be refused as writable", err)
+	}
+	// A readOnly line makes the id server-owned, when the contract does not say so.
+	open := strings.Replace(writable, "          description: Identifier that the server sets.\n          readOnly: true\n", "          description: Identifier that the server sets.\n", 1)
+	if open == writable {
+		t.Fatal("the fixture no longer has the read-only id that this test changes")
+	}
+	if err := generateSingleton(t, []byte(open), string(overrides)); err == nil || !strings.Contains(err.Error(), "lets a caller set") {
+		t.Fatalf("error without a readOnly line = %v, want the id to be refused as writable", err)
+	}
+	withLine := string(overrides) + "\ntypes:\n  Settings:\n    fields:\n      id: {readOnly: true}\n"
+	if err := generateSingleton(t, []byte(open), withLine); err != nil {
+		t.Fatalf("error with a readOnly line = %v, want none", err)
+	}
+}
+
+// singletonID needs an id field.
+func TestSingletonIDNeedsAnIDField(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overrides, err := os.ReadFile(filepath.Join("testdata", "singleton-id-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = generateSingleton(t, spec, string(overrides))
+	if err == nil || !strings.Contains(err.Error(), "has none") {
+		t.Fatalf("error = %v, want the resource to need an id field", err)
+	}
+}
+
+// generateSingleton generates the Settings singleton from a spec and an overrides text.
+func generateSingleton(t *testing.T, spec []byte, overrides string) error {
+	t.Helper()
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	path := filepath.Join(t.TempDir(), "behavior-overrides.yaml")
+	if err := os.WriteFile(path, []byte(overrides), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	options := Options{Resource: "settings", OutputDir: filepath.Join(t.TempDir(), "settings"), OverridesPath: path}
+	return generateFromInput(options, input, loadDir)
+}
+
+// api.singletonID supports a string id: the fallback to the type name and the import are strings.
+func TestSingletonIDRejectsANumericID(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	numeric := strings.Replace(string(spec), "          type: string\n          description: Identifier that the server sets.", "          type: integer\n          format: int32\n          description: Identifier that the server sets.", 1)
+	if numeric == string(spec) {
+		t.Fatal("the fixture no longer has the id that this test changes")
+	}
+	input.OpenAPI = []byte(numeric)
+	options := Options{Resource: "settings", OutputDir: filepath.Join(t.TempDir(), "settings"), OverridesPath: filepath.Join("testdata", "singleton-id-overrides.yaml")}
+	err = generateFromInput(options, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "must be a string") {
+		t.Fatalf("error = %v, want the id must be a string", err)
+	}
 }
 
 // An immutable value that holds a value that the server sets compares only the
