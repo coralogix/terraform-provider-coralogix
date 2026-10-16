@@ -369,6 +369,44 @@
           }
         }
       ]
+    },
+    {
+      "name": "an empty parent id",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: invalid uuid"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "folderId": "{{id}}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: invalid uuid"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "folder": {
+              "id": "{{id}}",
+              "name": "tf-fidelity-i1"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
     }
   ]
 }

@@ -414,6 +414,50 @@
           }
         }
       ]
+    },
+    {
+      "name": "an empty parent id",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "tf-fidelity-i0",
+              "parentId": ""
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "tf-fidelity-i1"
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "folder": {
+              "id": "{{id}}",
+              "name": "tf-fidelity-i1",
+              "parentId": ""
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
     }
   ]
 }

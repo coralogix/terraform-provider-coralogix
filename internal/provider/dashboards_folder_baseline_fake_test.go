@@ -165,7 +165,7 @@ func (f *dashboardsFolderFake) write(body any, replace bool) (int, any) {
 		return dashboardsFolderFail(http.StatusBadRequest, "invalid uuid")
 	}
 	name, hasName := in["name"].(string)
-	parent, _ := in["parentId"].(string)
+	parent, hasParent := in["parentId"].(string)
 	switch {
 	case replace && id == "":
 		return dashboardsFolderFail(http.StatusBadRequest, "folder id is required")
@@ -175,7 +175,8 @@ func (f *dashboardsFolderFake) write(body any, replace bool) (int, any) {
 		return dashboardsFolderFail(http.StatusBadRequest, "folder name cannot be empty")
 	case len([]rune(name)) > 100:
 		return dashboardsFolderFail(http.StatusBadRequest, "folder name length is bigger than 100")
-	case parent != "" && !folderIDPattern.MatchString(parent):
+	// An empty parentId is sent as it is, and the API rejects it like any other malformed id.
+	case hasParent && !folderIDPattern.MatchString(parent):
 		return dashboardsFolderFail(http.StatusBadRequest, "invalid uuid")
 	case replace && parent == id:
 		return dashboardsFolderFail(http.StatusBadRequest, fmt.Sprintf("folder_id and parent_id can't be equal (%s)", id))
