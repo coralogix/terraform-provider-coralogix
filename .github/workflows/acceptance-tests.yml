@@ -120,6 +120,7 @@ jobs:
             pattern: *non_dashboard_shard_alerts_and_integrations
           - shard: data-processing
             pattern: *non_dashboard_shard_data_processing
+            procs: 1
           - shard: user-group-membership
             pattern: *non_dashboard_shard_user_group_membership
           - shard: user-data-source
@@ -155,10 +156,18 @@ jobs:
           PD_INTEGRATION_ID: ${{ secrets.PD_INTEGRATION_ID }}
           CORALOGIX_SLO_V2_APM_SERVICE: ${{ secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
           RUN_PATTERN: ${{ matrix.pattern }}
+          PROCS: ${{ matrix.procs }}
         run: |
           # make reads `$` as a variable, so a pattern that ends in `$'` lost its
           # closing quote. `$$` reaches the shell as one `$`.
-          bash .github/scripts/run-tests-with-summary.sh make testacc "TESTARGS=-run '${RUN_PATTERN//\$/\$\$}'"
+          # The quota allocation rule set is one per account, and its tests sit in two packages. The
+          # data-processing shard runs its packages one after the other (procs: 1), so that they do
+          # not replace and delete the same rule set at the same time.
+          testargs="-run '${RUN_PATTERN//\$/\$\$}'"
+          if [ -n "$PROCS" ]; then
+            testargs="$testargs -p $PROCS"
+          fi
+          bash .github/scripts/run-tests-with-summary.sh make testacc "TESTARGS=$testargs"
       # Uploads on pass too (an empty file) and overwrites the earlier attempt,
       # so after any re-run each shard has one file for its latest result.
       - name: Upload failed test names
