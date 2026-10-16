@@ -27,7 +27,9 @@ const readBackProperty = "tfgenReadBack"
 type readBackShapes struct {
 	createSchema string // the Create response, when it holds only the id
 	createID     string // its property that holds the id
+	createOp     string // the operation id of Create
 	updateSchema string // the Update response, when it has no fields
+	updateOp     string // the operation id of Update
 }
 
 func (s readBackShapes) any() bool { return s.createSchema != "" || s.updateSchema != "" }
@@ -41,7 +43,7 @@ func findReadBackShapes(doc *v3.Document, component string, ids model.OperationI
 		return s, nil
 	}
 	if key := file.API.CreateResponseID; key != "" {
-		name := lifecycleResponse(doc, component, firstNonEmpty(ids.Create, operationID(file, "create")), "_Create")
+		name, op := lifecycleResponse(doc, component, firstNonEmpty(ids.Create, operationID(file, "create")), "_Create")
 		if name == "" {
 			return s, readBackIssue("The Create operation has no 200 response that is a component, so api.createResponseID has nothing to read.")
 		}
@@ -53,11 +55,11 @@ func findReadBackShapes(doc *v3.Document, component string, ids model.OperationI
 		if types := property.Schema().Type; len(types) != 1 || types[0] != "string" {
 			return s, readBackIssue(fmt.Sprintf("The Create response property %s.%s has type %v, want a string id.", name, key, types))
 		}
-		s.createSchema, s.createID = name, key
+		s.createSchema, s.createID, s.createOp = name, key, op
 	}
-	if name := lifecycleResponse(doc, component, firstNonEmpty(ids.Update, operationID(file, "update")), "_Update", "_Replace"); name != "" && name != component {
+	if name, op := lifecycleResponse(doc, component, firstNonEmpty(ids.Update, operationID(file, "update")), "_Update", "_Replace"); name != "" && name != component {
 		if schema := doc.Components.Schemas.GetOrZero(name).Schema(); schema != nil && (schema.Properties == nil || schema.Properties.Len() == 0) {
-			s.updateSchema = name
+			s.updateSchema, s.updateOp = name, op
 		}
 	}
 	return s, nil
@@ -89,11 +91,11 @@ func firstNonEmpty(values ...string) string {
 }
 
 // lifecycleResponse returns the component of the 200 response of the operation with the given
-// operation id, or with an id that ends in one of the suffixes plus the resource component. It
-// returns "" when there is none, or the response is not a component.
-func lifecycleResponse(doc *v3.Document, component, operationID string, suffixes ...string) string {
+// operation id, or with an id that ends in one of the suffixes plus the resource component, and
+// the operation id. It returns "" when there is none, or the response is not a component.
+func lifecycleResponse(doc *v3.Document, component, operationID string, suffixes ...string) (string, string) {
 	if doc.Paths == nil || doc.Paths.PathItems == nil {
-		return ""
+		return "", ""
 	}
 	for _, item := range doc.Paths.PathItems.FromOldest() {
 		for _, op := range item.GetOperations().FromOldest() {
@@ -101,24 +103,24 @@ func lifecycleResponse(doc *v3.Document, component, operationID string, suffixes
 				continue
 			}
 			if op.Responses == nil || op.Responses.Codes == nil {
-				return ""
+				return "", ""
 			}
 			ok := op.Responses.Codes.GetOrZero("200")
 			if ok == nil || ok.Content == nil || ok.Content.GetOrZero("application/json") == nil {
-				return ""
+				return "", ""
 			}
 			proxy := ok.Content.GetOrZero("application/json").Schema
 			if proxy == nil || !proxy.IsReference() {
-				return ""
+				return "", ""
 			}
 			name, found := strings.CutPrefix(proxy.GetReference(), "#/components/schemas/")
 			if !found {
-				return ""
+				return "", ""
 			}
-			return name
+			return name, op.OperationId
 		}
 	}
-	return ""
+	return "", ""
 }
 
 func matchesOperation(id, explicit, component string, suffixes []string) bool {
@@ -133,8 +135,10 @@ func matchesOperation(id, explicit, component string, suffixes []string) bool {
 	return false
 }
 
-// withReadBackProperty returns the document with the extra property in each response component to
-// read back. The property refers to the resource, so the model sees a response that wraps it.
+// withReadBackProperty returns the document with a copy of each response component to read back.
+// The copy has one extra property that refers to the resource, so the model sees a response that
+// wraps it, and only the Create or Update operation refers to it: another operation, such as a
+// Delete, can share the original component and keeps it unchanged.
 func withReadBackProperty(data []byte, component string, s readBackShapes) ([]byte, error) {
 	var root yaml.Node
 	if err := yaml.Unmarshal(data, &root); err != nil {
@@ -143,23 +147,68 @@ func withReadBackProperty(data []byte, component string, s readBackShapes) ([]by
 	if len(root.Content) == 0 {
 		return nil, errors.New("empty OpenAPI document")
 	}
-	for _, name := range []string{s.createSchema, s.updateSchema} {
-		if name == "" {
+	for _, shape := range []struct{ schema, operation string }{{s.createSchema, s.createOp}, {s.updateSchema, s.updateOp}} {
+		if shape.schema == "" {
 			continue
 		}
-		schema := yamlPath(root.Content[0], "components", "schemas", name)
-		if schema == nil || schema.Kind != yaml.MappingNode {
-			return nil, fmt.Errorf("response component %s is not a mapping", name)
+		if err := copyResponseWithProperty(root.Content[0], component, shape.schema, shape.operation); err != nil {
+			return nil, err
 		}
-		properties := yamlGet(schema, "properties")
-		if properties == nil {
-			schema.Content = append(schema.Content, yamlScalar("properties"), &yaml.Node{Kind: yaml.MappingNode})
-			properties = schema.Content[len(schema.Content)-1]
-		}
-		reference := &yaml.Node{Kind: yaml.MappingNode, Content: []*yaml.Node{yamlScalar("$ref"), yamlScalar("#/components/schemas/" + component)}}
-		properties.Content = append(properties.Content, yamlScalar(readBackProperty), reference)
 	}
 	return yaml.Marshal(&root)
+}
+
+// readBackCopy is the name of the copy of a response component.
+func readBackCopy(schema string) string { return schema + "TfgenReadBack" }
+
+// copyResponseWithProperty adds the copy of the response component, with the property, and points
+// the 200 response of the operation at it.
+func copyResponseWithProperty(doc *yaml.Node, component, schema, operation string) error {
+	schemas := yamlPath(doc, "components", "schemas")
+	original := yamlGet(schemas, schema)
+	if original == nil || original.Kind != yaml.MappingNode {
+		return fmt.Errorf("response component %s is not a mapping", schema)
+	}
+	copied := *original
+	copied.Content = append([]*yaml.Node(nil), original.Content...)
+	properties := yamlGet(&copied, "properties")
+	if properties == nil {
+		copied.Content = append(copied.Content, yamlScalar("properties"), &yaml.Node{Kind: yaml.MappingNode})
+		properties = copied.Content[len(copied.Content)-1]
+	} else {
+		clone := *properties
+		clone.Content = append([]*yaml.Node(nil), properties.Content...)
+		for i := 0; i+1 < len(copied.Content); i += 2 {
+			if copied.Content[i].Value == "properties" {
+				copied.Content[i+1] = &clone
+			}
+		}
+		properties = &clone
+	}
+	reference := &yaml.Node{Kind: yaml.MappingNode, Content: []*yaml.Node{yamlScalar("$ref"), yamlScalar("#/components/schemas/" + component)}}
+	properties.Content = append(properties.Content, yamlScalar(readBackProperty), reference)
+	schemas.Content = append(schemas.Content, yamlScalar(readBackCopy(schema)), &copied)
+
+	for _, item := range yamlGet(doc, "paths").Content {
+		if item.Kind != yaml.MappingNode {
+			continue
+		}
+		for _, op := range item.Content {
+			if op.Kind != yaml.MappingNode {
+				continue
+			}
+			if id := yamlGet(op, "operationId"); id == nil || id.Value != operation {
+				continue
+			}
+			ref := yamlPath(op, "responses", "200", "content", "application/json", "schema", "$ref")
+			if ref == nil {
+				return fmt.Errorf("operation %s has no 200 response that is a component", operation)
+			}
+			ref.Value = "#/components/schemas/" + readBackCopy(schema)
+			return nil
+		}
+	}
+	return fmt.Errorf("operation %s not found", operation)
 }
 
 func yamlScalar(v string) *yaml.Node { return &yaml.Node{Kind: yaml.ScalarNode, Value: v} }

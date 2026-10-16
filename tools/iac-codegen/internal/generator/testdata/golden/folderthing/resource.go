@@ -239,6 +239,10 @@ func (r *Resource) create(ctx context.Context, body *folder_things_service.Creat
 	if v == nil {
 		return &folder_things_service.FolderThing{Id: &id}, fmt.Errorf("created %s with id %v, but the API returned no resource", TypeName, id)
 	}
+	// The id that Create returned is the id of the resource, also when Get leaves it out.
+	if v.Id == nil || *v.Id == "" {
+		v.Id = &id
+	}
 	return v, nil
 }
 
