@@ -17,6 +17,7 @@ import (
 	"github.com/coralogix/coralogix-management-sdk/iac/issue"
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
 	"github.com/coralogix/coralogix-management-sdk/iac/source"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
 )
 
@@ -2286,5 +2287,21 @@ func TestDropArmsRejectsTheDiscriminator(t *testing.T) {
 	}
 	if _, err := dropArms(typ, []string{"b"}); err == nil || !strings.Contains(err.Error(), "removes every arm") {
 		t.Fatalf("err = %v, want removing the last arm next to the discriminator rejected", err)
+	}
+}
+
+// An unwrap entry whose wrapper only a removed arm reached changes nothing, so it is an error.
+func TestCheckReachableLinesUnwrap(t *testing.T) {
+	wrapped := &model.Type{Kind: model.String, Wrappers: []model.Wrapper{{Schema: "LimitWrapper", Field: "value"}}}
+	arm := &model.Type{Kind: model.Object, Schema: "Legacy", Fields: []*model.Field{{Name: "limit", Type: wrapped}}}
+	with := &model.Resource{Name: "R", Fields: []*model.ResourceField{{Name: "legacy", Type: arm}}}
+	without := &model.Resource{Name: "R"}
+	file := &overrides.File{Unwrap: []string{"LimitWrapper"}}
+	err := checkReachableLines(file, reachableComponents(with), reachableComponents(without))
+	if err == nil || !strings.Contains(err.Error(), "unwrap.LimitWrapper: only unsupported arms reach the wrapper") {
+		t.Fatalf("err = %v, want the unwrap entry reported", err)
+	}
+	if err := checkReachableLines(file, reachableComponents(with), reachableComponents(with)); err != nil {
+		t.Fatalf("a reachable wrapper: %v", err)
 	}
 }

@@ -204,7 +204,8 @@ type unsupportedArm struct {
 	SDK, Summary, Detail string
 }
 
-// reachableComponents returns the components that the fields of r reach, the resource included.
+// reachableComponents returns the components that the fields of r reach, the resource included,
+// with the wrapper components that an unwrap line collapses.
 func reachableComponents(r *model.Resource) map[string]bool {
 	out := map[string]bool{r.Name: true}
 	seen := map[*model.Type]bool{}
@@ -214,7 +215,11 @@ func reachableComponents(r *model.Resource) map[string]bool {
 			return
 		}
 		seen[t] = true
-		for _, name := range []string{t.Schema, t.CreateSchema, t.UpdateSchema} {
+		names := []string{t.Schema, t.CreateSchema, t.UpdateSchema}
+		for _, w := range t.Wrappers {
+			names = append(names, w.Schema, w.CreateSchema, w.UpdateSchema)
+		}
+		for _, name := range names {
 			if name != "" {
 				out[name] = true
 			}
@@ -230,8 +235,8 @@ func reachableComponents(r *model.Resource) map[string]bool {
 	return out
 }
 
-// checkReachableLines reports a types or enums line whose component only removed unsupported
-// arms reached: the line would change nothing.
+// checkReachableLines reports a types, enums, or unwrap line whose component only removed
+// unsupported arms reached: the line would change nothing.
 func checkReachableLines(file *overrides.File, before, after map[string]bool) error {
 	for _, component := range slices.Sorted(maps.Keys(file.Types)) {
 		if before[component] && !after[component] {
@@ -241,6 +246,11 @@ func checkReachableLines(file *overrides.File, before, after map[string]bool) er
 	for _, enum := range slices.Sorted(maps.Keys(file.Enums)) {
 		if before[enum] && !after[enum] {
 			return fmt.Errorf("enums.%s: only unsupported arms reach the enum, so the line changes nothing", enum)
+		}
+	}
+	for _, wrapper := range file.Unwrap {
+		if before[wrapper] && !after[wrapper] {
+			return fmt.Errorf("unwrap.%s: only unsupported arms reach the wrapper, so the entry changes nothing", wrapper)
 		}
 	}
 	return nil
