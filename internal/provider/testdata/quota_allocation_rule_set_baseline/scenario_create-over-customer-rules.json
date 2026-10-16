@@ -1,0 +1,60 @@
+[
+  {
+    "step": "create: the rule set already has customer rules, and the API replaces them",
+    "config": {
+      "rules": [
+        {
+          "allocation": 60,
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "rules": [
+        {
+          "allocation": 60,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
+        "body": {
+          "ruleSet": {
+            "rules": [
+              {
+                "allocation": 60,
+                "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                "canOverflow": false,
+                "enabled": true,
+                "entityType": "logs"
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "rules": [
+        {
+          "allocation": 60,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "replanEmpty": true
+  }
+]
