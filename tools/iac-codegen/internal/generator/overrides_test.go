@@ -1200,7 +1200,7 @@ func TestFolderBodyIDOverrides(t *testing.T) {
 		"no lines":            {"", "RESOURCE_LIFECYCLE_INCOMPLETE"},
 		"no id property":      {"  createResponseID: thingId\n", "UPDATE_ID_NOT_IN_BODY"},
 		"unknown id property": {"  idProperty: key\n  createResponseID: thingId\n", "RESOURCE_LIFECYCLE_INCOMPLETE"},
-		"unknown response id": {"  idProperty: id\n  createResponseID: key\n", "RESOURCE_LIFECYCLE_INCOMPLETE"},
+		"unknown response id": {"  idProperty: id\n  createResponseID: key\n", "READ_BACK_UNSUPPORTED"},
 		"valid lines":         {"  idProperty: id\n  createResponseID: thingId\n", ""},
 	}
 	for name, test := range tests {
@@ -1216,5 +1216,22 @@ func TestFolderBodyIDOverrides(t *testing.T) {
 				t.Fatalf("err = %v, want %s", err, test.want)
 			}
 		})
+	}
+}
+
+// The id of a Create response that holds only the id is a string.
+func TestCreateResponseIDMustBeAString(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "folderthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := strings.Replace(string(spec), "thingId: {type: string, x-coralogix-presence: true}", "thingId: {type: integer, format: int32, x-coralogix-presence: true}", 1)
+	if changed == string(spec) {
+		t.Fatal("the test contract did not change: update the replaced text")
+	}
+	file := mustParse(t, "resource: FolderThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  FolderThing:\n    fields:\n      id: {readOnly: true}\napi:\n  requestWrapper: thing\n  updateIDInBody: true\n  idProperty: id\n  serverSetID: true\n  createResponseID: thingId\n")
+	_, err = validateOpenAPIWith([]byte(changed), "FolderThing", model.OperationIDs{}, "sdk", "provider", file)
+	if !slices.Contains(eligibilityCodes(t, err), "READ_BACK_UNSUPPORTED") {
+		t.Fatalf("err = %v, want READ_BACK_UNSUPPORTED", err)
 	}
 }

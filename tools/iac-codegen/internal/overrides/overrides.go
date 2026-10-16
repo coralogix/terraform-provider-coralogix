@@ -882,7 +882,6 @@ func checkValidators(validators []Validator) error {
 // exceptions that the Terraform keys cover.
 func (f *File) Policy() model.Policy {
 	p := f.Exceptions().Policy()
-	p.CreateResponseID = f.API.CreateResponseID
 	p.EnumAnyPrefix = append(p.EnumAnyPrefix, sortedKeys(f.Enums)...)
 	for _, name := range sortedKeys(f.Types) {
 		t := f.Types[name]

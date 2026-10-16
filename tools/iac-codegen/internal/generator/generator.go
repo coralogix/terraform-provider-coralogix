@@ -254,6 +254,20 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	if len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}
+	shapes, report := findReadBackShapes(doc, component, operationIDs, file)
+	if len(report) != 0 {
+		return nil, &EligibilityError{Report: report}
+	}
+	if shapes.any() {
+		// The model reads a response that wraps the resource. See readback.go.
+		patched, err := withReadBackProperty(data, component, shapes)
+		if err != nil {
+			return nil, fmt.Errorf("prepare the responses to read back: %w", err)
+		}
+		if doc, err = model.Load(patched); err != nil {
+			return nil, fmt.Errorf("load the responses to read back: %w", err)
+		}
+	}
 	if file != nil {
 		if report = overrideIssues(doc, component, file); len(report) != 0 {
 			return nil, &EligibilityError{Report: report}
@@ -265,6 +279,9 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	resource, err := model.BuildWithPolicy(doc, component, operationIDs, policy)
 	if err != nil {
 		return nil, fmt.Errorf("build validated resource: %w", err)
+	}
+	if err := shapes.restore(resource); err != nil {
+		return nil, eligibilityIssue("READ_BACK_UNSUPPORTED", "paths", err, "Correct api.createResponseID, or the Create and Update responses of the source API contract.")
 	}
 	if report = unwrapUsageIssues(resource, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
@@ -289,6 +306,7 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 		}
 		refs = append(refs, armRefs...)
 	}
+	refs = shapes.refs(refs)
 	if report = rendererIssues(resource, refs, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report.Normalize()}
 	}
