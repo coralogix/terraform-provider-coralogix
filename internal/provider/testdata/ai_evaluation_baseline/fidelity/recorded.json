@@ -188,7 +188,7 @@
           "response": {
             "aiEvaluation": {
               "application": "{{application}}",
-              "companyId": "4015638",
+              "companyId": "<company>",
               "config": {
                 "toxicity": {}
               },
@@ -208,7 +208,7 @@
           "response": {
             "aiEvaluation": {
               "application": "{{application}}",
-              "companyId": "4015638",
+              "companyId": "<company>",
               "config": {
                 "toxicity": {}
               },
@@ -246,7 +246,7 @@
           "response": {
             "aiEvaluation": {
               "application": "{{application}}",
-              "companyId": "4015638",
+              "companyId": "<company>",
               "config": {
                 "sexism": {}
               },
@@ -265,7 +265,7 @@
           "response": {
             "aiEvaluation": {
               "application": "{{application}}",
-              "companyId": "4015638",
+              "companyId": "<company>",
               "config": {
                 "sexism": {}
               },
@@ -295,7 +295,7 @@
           "response": {
             "aiEvaluation": {
               "application": "{{application}}",
-              "companyId": "4015638",
+              "companyId": "<company>",
               "config": {
                 "toxicity": {}
               },
@@ -333,7 +333,7 @@
           "response": {
             "aiEvaluation": {
               "application": "{{application}}",
-              "companyId": "4015638",
+              "companyId": "<company>",
               "config": {
                 "allowedTopics": {
                   "topics": [
@@ -359,7 +359,7 @@
           "response": {
             "aiEvaluation": {
               "application": "{{application}}",
-              "companyId": "4015638",
+              "companyId": "<company>",
               "config": {
                 "allowedTopics": {
                   "topics": [
@@ -385,7 +385,7 @@
           "response": {
             "aiEvaluation": {
               "application": "{{application}}",
-              "companyId": "4015638",
+              "companyId": "<company>",
               "config": {
                 "promptInjection": {
                   "additionalContext": ""
@@ -407,7 +407,7 @@
           "response": {
             "aiEvaluation": {
               "application": "{{application}}",
-              "companyId": "4015638",
+              "companyId": "<company>",
               "config": {
                 "promptInjection": {
                   "additionalContext": ""
@@ -440,7 +440,7 @@
           "response": {
             "aiEvaluation": {
               "application": "{{application}}",
-              "companyId": "4015638",
+              "companyId": "<company>",
               "config": {
                 "pii": {
                   "categories": [
@@ -465,7 +465,7 @@
           "response": {
             "aiEvaluation": {
               "application": "{{application}}",
-              "companyId": "4015638",
+              "companyId": "<company>",
               "config": {
                 "pii": {
                   "categories": [
@@ -490,7 +490,7 @@
           "response": {
             "aiEvaluation": {
               "application": "{{application}}",
-              "companyId": "4015638",
+              "companyId": "<company>",
               "config": {
                 "competition": {
                   "competitors": [
@@ -514,7 +514,7 @@
           "response": {
             "aiEvaluation": {
               "application": "{{application}}",
-              "companyId": "4015638",
+              "companyId": "<company>",
               "config": {
                 "toxicity": {}
               },
@@ -534,7 +534,7 @@
           "response": {
             "aiEvaluation": {
               "application": "{{application}}",
-              "companyId": "4015638",
+              "companyId": "<company>",
               "config": {
                 "toxicity": {}
               },
@@ -565,7 +565,7 @@
           "response": {
             "aiEvaluation": {
               "application": "{{application}}",
-              "companyId": "4015638",
+              "companyId": "<company>",
               "config": {
                 "sqlReadOnly": {}
               },

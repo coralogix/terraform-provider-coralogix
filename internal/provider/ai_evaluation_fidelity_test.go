@@ -159,6 +159,30 @@ func normalizeAIEvaluation(v any) any {
 	return v
 }
 
+// redactAICompany writes "<company>" in place of every companyId, so that a
+// recording does not publish the id of the tenant it was made on.
+func redactAICompany(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		out := map[string]any{}
+		for k, e := range x {
+			if k == "companyId" {
+				out[k] = "<company>"
+				continue
+			}
+			out[k] = redactAICompany(e)
+		}
+		return out
+	case []any:
+		out := make([]any, len(x))
+		for i, e := range x {
+			out[i] = redactAICompany(e)
+		}
+		return out
+	}
+	return v
+}
+
 // TestRecordAIEvaluationFidelity sends fidelity/cases.json to a real tenant and
 // writes fidelity/recorded.json. Set RECORD_AI_EVALUATION_FIDELITY=1 with
 // CORALOGIX_API_KEY and CORALOGIX_ENV (or CX_REGION). The cases that create an
@@ -224,7 +248,7 @@ func TestRecordAIEvaluationFidelity(t *testing.T) {
 			rc.Steps = append(rc.Steps, struct {
 				Status   int `json:"status"`
 				Response any `json:"response"`
-			}{Status: status, Response: got})
+			}{Status: status, Response: redactAICompany(got)})
 		}
 		out.Cases = append(out.Cases, rc)
 	}
