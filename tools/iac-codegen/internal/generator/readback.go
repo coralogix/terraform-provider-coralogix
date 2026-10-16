@@ -55,14 +55,37 @@ func findReadBackShapes(doc *v3.Document, component string, ids model.OperationI
 		if types := property.Schema().Type; len(types) != 1 || types[0] != "string" {
 			return s, readBackIssue(fmt.Sprintf("The Create response property %s.%s has type %v, want a string id.", name, key, types))
 		}
+		if report := readBackCollision(doc, name); len(report) != 0 {
+			return s, report
+		}
 		s.createSchema, s.createID, s.createOp = name, key, op
 	}
 	if name, op := lifecycleResponse(doc, component, firstNonEmpty(ids.Update, operationID(file, "update")), "_Update", "_Replace"); name != "" && name != component {
 		if schema := doc.Components.Schemas.GetOrZero(name).Schema(); schema != nil && (schema.Properties == nil || schema.Properties.Len() == 0) {
+			if report := readBackCollision(doc, name); len(report) != 0 {
+				return s, report
+			}
 			s.updateSchema, s.updateOp = name, op
 		}
 	}
 	return s, nil
+}
+
+// readBackCollision reports a contract that already has one of the names that the read-back adds:
+// the property readBackProperty in the response component, or the component readBackCopy(name).
+// The names are internal, and a duplicate key would leave the patched document wrong.
+func readBackCollision(doc *v3.Document, name string) issue.Report {
+	if schema := doc.Components.Schemas.GetOrZero(name).Schema(); schema != nil && schema.Properties != nil && schema.Properties.GetOrZero(readBackProperty) != nil {
+		return issue.Report{{Code: "READ_BACK_NAME_COLLISION", Location: "components.schemas." + name + "." + readBackProperty,
+			Message:     fmt.Sprintf("The response %s has a property named %q, which the generator uses to read the response back.", name, readBackProperty),
+			Remediation: "Rename the property in the source API contract."}}
+	}
+	if doc.Components.Schemas.GetOrZero(readBackCopy(name)) != nil {
+		return issue.Report{{Code: "READ_BACK_NAME_COLLISION", Location: "components.schemas." + readBackCopy(name),
+			Message:     fmt.Sprintf("The contract has a component named %q, which the generator uses to read the response %s back.", readBackCopy(name), name),
+			Remediation: "Rename the component in the source API contract."}}
+	}
+	return nil
 }
 
 func readBackIssue(message string) issue.Report {

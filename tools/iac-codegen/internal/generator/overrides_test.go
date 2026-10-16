@@ -1235,3 +1235,28 @@ func TestCreateResponseIDMustBeAString(t *testing.T) {
 		t.Fatalf("err = %v, want READ_BACK_UNSUPPORTED", err)
 	}
 }
+
+// A contract that already has a name that the read-back adds is reported, not patched.
+func TestReadBackNameCollisions(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "folderthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := mustParse(t, "resource: FolderThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  FolderThing:\n    fields:\n      id: {readOnly: true}\napi:\n  requestWrapper: thing\n  updateIDInBody: true\n  idProperty: id\n  serverSetID: true\n  createResponseID: thingId\n")
+	tests := map[string]struct{ old, new string }{
+		"property":  {"        thingId: {type: string, x-coralogix-presence: true}\n", "        thingId: {type: string, x-coralogix-presence: true}\n        tfgenReadBack: {type: string}\n"},
+		"component": {"    ReplaceFolderThingResponse:\n      type: object\n", "    ReplaceFolderThingResponse:\n      type: object\n    ReplaceFolderThingResponseTfgenReadBack:\n      type: object\n"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			changed := strings.Replace(string(spec), test.old, test.new, 1)
+			if changed == string(spec) {
+				t.Fatal("the test contract did not change: update the replaced text")
+			}
+			_, err := validateOpenAPIWith([]byte(changed), "FolderThing", model.OperationIDs{}, "sdk", "provider", file)
+			if !slices.Contains(eligibilityCodes(t, err), "READ_BACK_NAME_COLLISION") {
+				t.Fatalf("err = %v, want READ_BACK_NAME_COLLISION", err)
+			}
+		})
+	}
+}
