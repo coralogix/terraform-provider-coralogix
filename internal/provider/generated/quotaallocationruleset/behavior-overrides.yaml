@@ -10,11 +10,12 @@ markdownDescription: "Manages the account-level Coralogix quota allocation rule 
 validators:
   inferred: true
 
+# The rule set has the id of the API, and it is a singleton: no call takes an id.
+singletonID: true
+
 api:
   # Create and Replace send {"ruleSet": {...}}.
   requestWrapper: ruleSet
-  # The rule set has the id of the API, and it is a singleton: no call takes an id.
-  singletonID: true
   operations:
     create: QuotaAllocationRuleSetService_CreateQuotaAllocationRuleSet
     get: QuotaAllocationRuleSetService_GetQuotaAllocationRuleSet
