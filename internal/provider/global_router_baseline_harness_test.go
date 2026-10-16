@@ -90,6 +90,19 @@ func newPresetHarness(t *testing.T) *grHarness {
 	return newProtocolHarness(t, presetTypeName, newPresetFake(t))
 }
 
+func newAIEvalHarness(t *testing.T) *grHarness {
+	return newProtocolHarness(t, aiEvalTypeName, newAIEvalFake(t))
+}
+
+func (h *grHarness) aiEvals() *aiEvalFake {
+	h.t.Helper()
+	f, ok := h.api.(*aiEvalFake)
+	if !ok {
+		h.t.Fatal("expected *aiEvalFake")
+	}
+	return f
+}
+
 func (h *grHarness) routers() *grFake {
 	h.t.Helper()
 	f, ok := h.api.(*grFake)
@@ -203,7 +216,11 @@ func (h *grHarness) validate(cfg tftypes.Value) []*tfprotov6.Diagnostic {
 // Validate records the diagnostics of a config without planning it.
 func (h *grHarness) Validate(name string, cfg map[string]any) {
 	ds := h.validate(h.config(cfg))
-	h.record(grStep{Step: name, Config: cfg, ValidateDiags: diagStrings(ds), State: nil})
+	// The framework runs the validators of nested attributes in map order, so
+	// several diagnostics of one config come in a different order on every run.
+	diags := diagStrings(ds)
+	slices.Sort(diags)
+	h.record(grStep{Step: name, Config: cfg, ValidateDiags: diags, State: nil})
 }
 
 func (h *grHarness) plan(prior, cfg tftypes.Value) (tftypes.Value, []string, []*tfprotov6.Diagnostic) {
