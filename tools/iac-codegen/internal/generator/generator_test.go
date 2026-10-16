@@ -2023,10 +2023,12 @@ func TestSingletonIDStaysComputedAfterTheFieldLines(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	line := string(overrides) + "\ntypes:\n  Settings:\n    fields:\n      id: {required: true, computed: false}\n"
-	err = generateSingleton(t, spec, line)
-	if err == nil || !strings.Contains(err.Error(), "must stay computed-only") {
-		t.Fatalf("error = %v, want the id to stay computed-only", err)
+	for _, field := range []string{"{required: true, computed: false}", `{computed: true, default: "fixed"}`} {
+		line := string(overrides) + "\ntypes:\n  Settings:\n    fields:\n      id: " + field + "\n"
+		err = generateSingleton(t, spec, line)
+		if err == nil || !strings.Contains(err.Error(), "must stay computed-only") {
+			t.Fatalf("error with %s = %v, want the id to stay computed-only", field, err)
+		}
 	}
 }
 
