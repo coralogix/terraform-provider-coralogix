@@ -5,13 +5,12 @@ id  StringAttribute computed
 rules  SetNestedAttribute required
     markdown: "Complete set of customer-managed quota allocation rules. Because the backend stores a single account-level rule set, Terraform replaces the full customer-managed set during update. Set `rules = []` to clear all customer-managed rules."
 rules[]  NestedObject
-rules[].allocation  Float64Attribute required
+rules[].allocation  Float32Attribute required
     markdown: "Quota allocation value for this entity type. For `percentage`, must be between 0 and 100. For `locked_units`, must be non-negative. The sum of enabled locked units plus any Coralogix bundle units must fit within the team daily quota."
-    validator: float64validator.atLeastValidator value must be at least 0.000000
+    validator: float32validator.atLeastValidator value must be at least 0.000000
 rules[].allocation_type  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to percentage
     markdown: "How the allocation value is interpreted. Valid values are `percentage` (default) and `locked_units`. `unspecified` is accepted as a compatible alias of `percentage` and is normalized to `percentage` during planning. Locked units are reserved first from the team daily quota; percentage rules share the remaining pool and their enabled allocations must sum to at most 100."
-    plan modifier: dataplans.normalizeUnspecifiedQuotaAllocationTypeModifier Normalizes allocation_type "unspecified" to "percentage".
     validator: stringvalidator.oneOfValidator value must be one of: ["locked_units" "percentage" "unspecified"]
 rules[].can_overflow  BoolAttribute required
     markdown: "Whether this entity type can overflow beyond its allocation."

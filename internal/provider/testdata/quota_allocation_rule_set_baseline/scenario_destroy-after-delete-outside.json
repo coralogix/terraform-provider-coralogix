@@ -61,7 +61,7 @@
     "step": "destroy: the rule set was deleted outside Terraform",
     "requests": [
       {
-        "method": "GET",
+        "method": "DELETE",
         "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
         "status": 200
       }
