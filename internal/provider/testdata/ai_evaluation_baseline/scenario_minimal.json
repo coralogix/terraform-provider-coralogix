@@ -118,7 +118,8 @@
       "subsystem": "tf-baseline-subsystem",
       "target": "response",
       "threshold": 0.5
-    }
+    },
+    "replanEmpty": true
   },
   {
     "step": "destroy",
