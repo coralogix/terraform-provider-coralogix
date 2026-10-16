@@ -35,6 +35,8 @@ type EvalThing struct {
 	Target  *EvalTarget
 	Config  *EvalConfig
 	Enabled *bool
+	// Kind is a field that only a test of requestValueBy adds to the contract.
+	Kind *EvalTarget
 }
 
 type CreateEvalThingRequest struct {
@@ -42,6 +44,7 @@ type CreateEvalThingRequest struct {
 	Target  *EvalTarget
 	Config  *EvalConfig
 	Enabled *bool
+	Kind    *EvalTarget
 }
 
 // UpdateEvalThingRequest has an UpdateMask, which the released resource never sent.
@@ -50,6 +53,7 @@ type UpdateEvalThingRequest struct {
 	Target     *EvalTarget
 	Config     *EvalConfig
 	Enabled    *bool
+	Kind       *EvalTarget
 	UpdateMask *string
 }
 

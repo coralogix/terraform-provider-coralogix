@@ -23,8 +23,12 @@ func applyReleasedShape(r *model.Resource, file *overrides.File, full []sdkcheck
 	if err := applyRequiresReplace(r, file); err != nil {
 		return nil, err
 	}
+	before := reachableComponents(r)
 	paths, err := removeUnsupportedArms(r, file)
 	if err != nil {
+		return nil, err
+	}
+	if err := checkReachableLines(file, before, reachableComponents(r)); err != nil {
 		return nil, err
 	}
 	var refs []sdkcheck.Ref
@@ -62,6 +66,11 @@ func applyRequiresReplace(r *model.Resource, file *overrides.File) error {
 			}
 			f.Behavior, f.Update = model.Immutable, nil
 		}
+	}
+	if !slices.ContainsFunc(r.Fields, func(f *model.ResourceField) bool {
+		return f.Update != nil && !file.Types[r.Name].Fields[f.Name].Fixed()
+	}) {
+		return fmt.Errorf("requiresReplace leaves no field that Update can change: a resource without an in-place update is not supported")
 	}
 	return nil
 }
@@ -145,7 +154,7 @@ func dropArms(t *model.Type, arms []string) ([]string, error) {
 		}
 		return false
 	})
-	if t.Kind == model.OneOf && len(t.Fields) == 0 {
+	if t.Kind == model.OneOf && !slices.ContainsFunc(t.Fields, func(f *model.Field) bool { return f.Name != t.Discriminator }) {
 		return nil, fmt.Errorf("it removes every arm")
 	}
 	groups := t.Groups[:0]
@@ -193,4 +202,46 @@ func (b *convBuilder) unsupportedArms(t *model.Type, at string) ([]unsupportedAr
 // diagnostic that flatten reports when a response selects it.
 type unsupportedArm struct {
 	SDK, Summary, Detail string
+}
+
+// reachableComponents returns the components that the fields of r reach, the resource included.
+func reachableComponents(r *model.Resource) map[string]bool {
+	out := map[string]bool{r.Name: true}
+	seen := map[*model.Type]bool{}
+	var walk func(t *model.Type)
+	walk = func(t *model.Type) {
+		if t == nil || seen[t] {
+			return
+		}
+		seen[t] = true
+		for _, name := range []string{t.Schema, t.CreateSchema, t.UpdateSchema} {
+			if name != "" {
+				out[name] = true
+			}
+		}
+		walk(t.Elem)
+		for _, f := range t.Fields {
+			walk(f.Type)
+		}
+	}
+	for _, f := range r.Fields {
+		walk(f.Type)
+	}
+	return out
+}
+
+// checkReachableLines reports a types or enums line whose component only removed unsupported
+// arms reached: the line would change nothing.
+func checkReachableLines(file *overrides.File, before, after map[string]bool) error {
+	for _, component := range slices.Sorted(maps.Keys(file.Types)) {
+		if before[component] && !after[component] {
+			return fmt.Errorf("types.%s: only unsupported arms reach the component, so the line changes nothing", component)
+		}
+	}
+	for _, enum := range slices.Sorted(maps.Keys(file.Enums)) {
+		if before[enum] && !after[enum] {
+			return fmt.Errorf("enums.%s: only unsupported arms reach the enum, so the line changes nothing", enum)
+		}
+	}
+	return nil
 }
