@@ -19,6 +19,30 @@ on:
       - 'CLAUDE.md'
       - '**/*.md'
   workflow_dispatch:
+  # Called by release-provider.yml with the tag it created. GitHub's generated
+  # notes become the release body. With `snapshot`, goreleaser builds and signs
+  # but publishes nothing, and the tag does not have to exist.
+  workflow_call:
+    inputs:
+      tag:
+        description: Tag to release, for example v3.22.0.
+        required: true
+        type: string
+      ref:
+        description: Commit to build. Defaults to the tag.
+        required: false
+        type: string
+        default: ''
+      snapshot:
+        description: Build and sign without publishing (dry run).
+        required: false
+        type: boolean
+        default: false
+      version:
+        description: With snapshot, the TF_PROVIDER_VERSION to build, as the release PR sets it.
+        required: false
+        type: string
+        default: ''
   workflow_run:
     workflows: ["semantic-release"]
     types:
@@ -36,6 +60,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          # Empty keeps checkout's default: the commit of the triggering event.
+          ref: ${{ inputs.ref || inputs.tag || '' }}
       - name: Unshallow
         run: git fetch --prune --unshallow
       - name: Set up Go
@@ -56,12 +83,57 @@ jobs:
           version: "~> v2"
           args: release --snapshot --clean --skip=sign
 
+      - name: Generate release notes
+        if: inputs.tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          # target_commitish lets a dry run generate notes for a tag that does not exist yet.
+          gh api "repos/${GITHUB_REPOSITORY}/releases/generate-notes" -f tag_name="$TAG" \
+            -f target_commitish="$(git rev-parse HEAD)" --jq .body \
+            > "${RUNNER_TEMP}/release-notes.md"
+
       - name: Run GoReleaser
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && !inputs.snapshot
         uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
-          args: release --clean
+          args: release --clean ${{ inputs.tag != '' && format('--release-notes={0}/release-notes.md', runner.temp) || '' }}
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set the release version (dry run)
+        # A dry run before the release PR builds master, which still has the previous
+        # version. Build what the release will build.
+        if: inputs.snapshot && inputs.version != ''
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          sed -i "s/^const TF_PROVIDER_VERSION = \".*\"$/const TF_PROVIDER_VERSION = \"$VERSION\"/" internal/clientset/version.go
+          grep -qx "const TF_PROVIDER_VERSION = \"$VERSION\"" internal/clientset/version.go
+          echo "Building with TF_PROVIDER_VERSION $VERSION" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run GoReleaser (dry run – snapshot, signed)
+        if: inputs.snapshot
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: release --snapshot --clean --release-notes=${{ runner.temp }}/release-notes.md
+        env:
+          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
+
+      - name: List the dry-run artifacts
+        if: inputs.snapshot
+        run: |
+          {
+            echo "### Dry run: goreleaser built and signed, nothing published"
+            echo '```'
+            (cd dist && printf '%s\n' *.zip *SHA256SUMS*)
+            echo '```'
+            echo "<details><summary>Release notes</summary>"
+            echo
+            cat "${RUNNER_TEMP}/release-notes.md"
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
