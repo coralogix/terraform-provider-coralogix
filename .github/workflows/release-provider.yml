@@ -315,6 +315,7 @@ jobs:
       tag: ${{ needs.publish.outputs.tag }}
       ref: ${{ needs.plan.outputs.sha }}
       snapshot: ${{ needs.plan.outputs.dry_run == 'true' }}
+      version: ${{ needs.plan.outputs.version }}
     secrets: inherit
 
   registry:
