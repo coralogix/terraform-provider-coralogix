@@ -12,6 +12,14 @@
 # publishes directly. A failed job can be re-run from the Actions UI: tagging is
 # idempotent, and the Registry check polls again.
 #
+# Dry run (`dry_run: true`, with the real next version): runs both phases in one run
+# and writes nothing. It plans with the real version checks, cuts the changelog and
+# bumps version.go in the runner, waits for `build`, generates the release notes,
+# builds and GPG-signs with goreleaser --snapshot, checks the Registry for the current
+# released version, and renders the Slack message into the run summary. It creates no
+# branch, commit, PR, tag, or release, and posts nothing. The environment gates apply
+# as in a real run.
+#
 # Setup:
 # - secrets.SLACK_TERRAFORM_FORUM_WEBHOOK_URL: incoming webhook for the forum channel.
 # - secrets.RELEASE_PR_TOKEN (optional): a token that opens the release PR. Pull
@@ -28,6 +36,11 @@ on:
         description: Version to release, MAJOR.MINOR.PATCH without "v" (for example 3.22.0).
         required: true
         type: string
+      dry_run:
+        description: Run every step that does not write, and publish nothing.
+        required: false
+        type: boolean
+        default: false
   push:
     branches:
       - master
@@ -51,8 +64,10 @@ jobs:
     if: github.repository == 'coralogix/terraform-provider-coralogix'
     outputs:
       version: ${{ steps.plan.outputs.version }}
+      current: ${{ steps.plan.outputs.current }}
       mode: ${{ steps.plan.outputs.mode }}
       sha: ${{ steps.plan.outputs.sha }}
+      dry_run: ${{ steps.plan.outputs.dry_run }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,6 +77,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           INPUT_VERSION: ${{ inputs.version }}
+          DRY_RUN: ${{ inputs.dry_run == true }}
         run: |
           current=$(sed -n 's/^const TF_PROVIDER_VERSION = "\(.*\)"$/\1/p' internal/clientset/version.go)
           [ -n "$current" ] || { echo "::error::Cannot read TF_PROVIDER_VERSION from version.go"; exit 1; }
@@ -98,8 +114,12 @@ jobs:
             sha=$(git rev-parse HEAD)
           fi
 
+          [ "$DRY_RUN" = true ] && echo "### Dry run: nothing is written or published" >> "$GITHUB_STEP_SUMMARY"
           echo "Current version $current, release $version: $mode at $sha" | tee -a "$GITHUB_STEP_SUMMARY"
-          { echo "version=$version"; echo "mode=$mode"; echo "sha=$sha"; } >> "$GITHUB_OUTPUT"
+          {
+            echo "version=$version"; echo "current=$current"; echo "mode=$mode"; echo "sha=$sha"
+            echo "dry_run=$DRY_RUN"
+          } >> "$GITHUB_OUTPUT"
 
   prepare:
     name: Open the release PR
@@ -113,6 +133,7 @@ jobs:
       VERSION: ${{ needs.plan.outputs.version }}
       BASE_SHA: ${{ needs.plan.outputs.sha }}
       BRANCH: release/v${{ needs.plan.outputs.version }}
+      DRY_RUN: ${{ needs.plan.outputs.dry_run }}
       GH_TOKEN: ${{ secrets.RELEASE_PR_TOKEN || github.token }}
     steps:
       - uses: actions/checkout@v4
@@ -123,14 +144,21 @@ jobs:
           python3 .github/scripts/release/changelog.py cut "$VERSION"
           sed -i "s/^const TF_PROVIDER_VERSION = \".*\"$/const TF_PROVIDER_VERSION = \"$VERSION\"/" internal/clientset/version.go
           grep -qx "const TF_PROVIDER_VERSION = \"$VERSION\"" internal/clientset/version.go
+          changed=$(git diff --name-only | sort | tr '\n' ' ')
+          if [ "$changed" != "CHANGELOG.md internal/clientset/version.go " ]; then
+            echo "::error::Expected changes to CHANGELOG.md and version.go only, got: $changed"; exit 1
+          fi
           git diff
-      - name: Commit to the release branch
-        # master requires signed commits. createCommitOnBranch commits through the API,
-        # and GitHub signs the commit.
+      - name: Check the release branch is free
         run: |
           if gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$BRANCH" >/dev/null 2>&1; then
             echo "::error::Branch $BRANCH already exists. Close its PR and delete the branch, then run again."; exit 1
           fi
+      - name: Commit to the release branch
+        if: env.DRY_RUN != 'true'
+        # master requires signed commits. createCommitOnBranch commits through the API,
+        # and GitHub signs the commit.
+        run: |
           gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$BASE_SHA" >/dev/null
 
           jq -n \
@@ -171,6 +199,14 @@ jobs:
           NONE
           \`\`\`
           EOF
+          if [ "$DRY_RUN" = true ]; then
+            {
+              echo "### Dry run: would open \"Release $VERSION\" from $BRANCH"
+              echo; cat "$RUNNER_TEMP/body.md"
+              echo; echo '```diff'; git diff; echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           url=$(gh pr create --base master --head "$BRANCH" --title "Release $VERSION" --body-file "$RUNNER_TEMP/body.md")
           echo "Release PR: $url. Merge it to publish v$VERSION." | tee -a "$GITHUB_STEP_SUMMARY"
           echo "::notice::Merge $url to publish v$VERSION"
@@ -178,7 +214,8 @@ jobs:
   publish:
     name: Tag the release
     needs: plan
-    if: needs.plan.outputs.mode == 'publish'
+    # A dry run checks this phase too, on master as it is.
+    if: needs.plan.outputs.mode == 'publish' || (needs.plan.outputs.mode == 'prepare' && needs.plan.outputs.dry_run == 'true')
     runs-on: ubuntu-latest
     environment: provider-release
     timeout-minutes: 60
@@ -188,6 +225,8 @@ jobs:
     env:
       VERSION: ${{ needs.plan.outputs.version }}
       SHA: ${{ needs.plan.outputs.sha }}
+      MODE: ${{ needs.plan.outputs.mode }}
+      DRY_RUN: ${{ needs.plan.outputs.dry_run }}
       GH_TOKEN: ${{ github.token }}
     outputs:
       tag: v${{ needs.plan.outputs.version }}
@@ -196,7 +235,10 @@ jobs:
         with:
           ref: ${{ needs.plan.outputs.sha }}
       - name: Check CHANGELOG.md
-        run: python3 .github/scripts/release/changelog.py check "$VERSION"
+        run: |
+          # In a dry run before the release PR, check the changelog as the PR would cut it.
+          [ "$MODE" = prepare ] && python3 .github/scripts/release/changelog.py cut "$VERSION"
+          python3 .github/scripts/release/changelog.py check "$VERSION"
       - name: Wait for the build workflow
         run: |
           # The merge starts `build` and this workflow at the same time, so wait for it.
@@ -221,7 +263,9 @@ jobs:
         run: |
           tag="v$VERSION"
           existing=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --jq .object.sha 2>/dev/null || true)
-          if [ -z "$existing" ]; then
+          if [ -z "$existing" ] && [ "$DRY_RUN" = true ]; then
+            echo "Dry run: would tag $SHA as $tag" | tee -a "$GITHUB_STEP_SUMMARY"
+          elif [ -z "$existing" ]; then
             gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$tag" -f sha="$SHA" >/dev/null
             echo "Tagged $SHA as $tag" | tee -a "$GITHUB_STEP_SUMMARY"
           elif [ "$existing" = "$SHA" ]; then
@@ -232,12 +276,14 @@ jobs:
 
   goreleaser:
     name: Build and publish
-    needs: publish
+    needs: [plan, publish]
     permissions:
       contents: write
     uses: ./.github/workflows/release.yml
     with:
       tag: ${{ needs.publish.outputs.tag }}
+      ref: ${{ needs.plan.outputs.sha }}
+      snapshot: ${{ needs.plan.outputs.dry_run == 'true' }}
     secrets: inherit
 
   registry:
@@ -246,7 +292,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 75
     env:
-      VERSION: ${{ needs.plan.outputs.version }}
+      # A dry run checks the current released version, which the Registry already serves.
+      VERSION: ${{ needs.plan.outputs.dry_run == 'true' && needs.plan.outputs.current || needs.plan.outputs.version }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Check the GitHub release
@@ -283,6 +330,8 @@ jobs:
     environment: provider-release-announce
     env:
       VERSION: ${{ needs.plan.outputs.version }}
+      MODE: ${{ needs.plan.outputs.mode }}
+      DRY_RUN: ${{ needs.plan.outputs.dry_run }}
       WEBHOOK: ${{ secrets.SLACK_TERRAFORM_FORUM_WEBHOOK_URL }}
     steps:
       - uses: actions/checkout@v4
@@ -291,8 +340,11 @@ jobs:
       - name: Post the changelog summary
         run: |
           [ -n "$WEBHOOK" ] || { echo "::error::secrets.SLACK_TERRAFORM_FORUM_WEBHOOK_URL is not set"; exit 1; }
+          [ "$MODE" = prepare ] && python3 .github/scripts/release/changelog.py cut "$VERSION"
           python3 .github/scripts/release/changelog.py slack "$VERSION" \
             "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/v$VERSION" \
             "https://registry.terraform.io/providers/$REGISTRY_PROVIDER/$VERSION/docs" > payload.json
+          [ "$DRY_RUN" = true ] && echo "### Dry run: would post to Slack" >> "$GITHUB_STEP_SUMMARY"
           jq -r .text payload.json >> "$GITHUB_STEP_SUMMARY"
+          [ "$DRY_RUN" = true ] && exit 0
           curl -fsS -X POST -H 'Content-Type: application/json' --data @payload.json "$WEBHOOK"
