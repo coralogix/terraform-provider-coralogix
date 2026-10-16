@@ -3,7 +3,9 @@
 id  StringAttribute computed
     markdown: "Unique identifier for the folder."
     plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
-name  StringAttribute optional
-    markdown: "Display name of the folder."
+name  StringAttribute required
+    markdown: "Display name of the folder. Between 1 and 100 characters; folder names are unique in the company."
+    validator: stringvalidator.lengthBetweenValidator string length must be between 1 and 100
 parent_id  StringAttribute optional
     markdown: "Parent folder id."
+    validator: stringvalidator.lengthBetweenValidator string length must be between 36 and 36

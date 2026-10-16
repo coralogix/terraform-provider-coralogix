@@ -1,0 +1,14 @@
+# Generated acceptance test for coralogix_dashboards_folder. A nested folder needs a parent that
+# exists.
+resource: DashboardFolder
+
+prerequisites: |
+  resource "coralogix_dashboards_folder" "parent" {
+    name = "@{run}-parent"
+  }
+
+values:
+  name: '"@{run}-folder"'
+  parent_id: coralogix_dashboards_folder.parent.id
+
+upgradeFrom: "3.21.0"

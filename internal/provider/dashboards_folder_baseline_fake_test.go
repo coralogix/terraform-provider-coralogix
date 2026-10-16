@@ -41,6 +41,8 @@ type dashboardsFolderFake struct {
 	// seeded are the ids of folders that exist and that a test does not list, so a folder can
 	// name them as its parent.
 	seeded map[string]bool
+	// forbidDelete makes a delete of a folder that exists answer 403, as a missing permission does.
+	forbidDelete bool
 }
 
 func newDashboardsFolderFake(t *testing.T) *dashboardsFolderFake {
@@ -145,7 +147,7 @@ func (f *dashboardsFolderFake) handle(method, path string, body any) (int, any) 
 		return http.StatusOK, map[string]any{"folder": folder}
 	case method == http.MethodDelete && id != "":
 		// The API answers 403, not 404, for a folder that does not exist.
-		if _, ok := f.folders[id]; !ok {
+		if _, ok := f.folders[id]; !ok || f.forbidDelete {
 			return dashboardsFolderFail(http.StatusForbidden, "dont have permissions to delete folder "+folderMissing(id))
 		}
 		delete(f.folders, id)
