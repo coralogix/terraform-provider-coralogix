@@ -58,7 +58,7 @@
     "replanEmpty": true
   },
   {
-    "step": "refresh: the rule set was deleted outside Terraform",
+    "step": "refresh: the API answers 404",
     "requests": [
       {
         "method": "GET",

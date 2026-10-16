@@ -70,7 +70,11 @@
       {
         "method": "PUT",
         "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
-        "body": {},
+        "body": {
+          "ruleSet": {
+            "rules": []
+          }
+        },
         "status": 200
       }
     ],

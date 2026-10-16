@@ -205,7 +205,7 @@
     "state": null
   },
   {
-    "step": "refresh after destroy: state is gone",
+    "step": "refresh after destroy: the rule set reads back with no rules",
     "requests": [
       {
         "method": "GET",

@@ -58,7 +58,7 @@
     "replanEmpty": true
   },
   {
-    "step": "destroy: the rule set is gone",
+    "step": "destroy: the API answers 404",
     "requests": [
       {
         "method": "GET",

@@ -98,23 +98,21 @@
             ]
           }
         },
-        "status": 404
+        "status": 200
       }
-    ],
-    "applyDiagnostics": [
-      "error: Missing Resource State After Update | The Terraform Provider unexpectedly returned no resource state after having no errors in the resource update. This is always an issue in the Terraform Provider and should be reported to the provider developers."
     ],
     "state": {
       "id": "00000000-0000-4000-8000-000000000001",
       "rules": [
         {
-          "allocation": 10,
+          "allocation": 20,
           "allocation_type": "percentage",
           "can_overflow": false,
           "enabled": true,
           "entity_type": "logs"
         }
       ]
-    }
+    },
+    "replanEmpty": true
   }
 ]

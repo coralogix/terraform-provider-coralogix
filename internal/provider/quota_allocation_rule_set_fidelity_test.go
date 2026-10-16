@@ -41,7 +41,6 @@ func TestQuotaAllocationRuleSetFakeMatchesRecordedBackend(t *testing.T) {
 	if first := recorded.Cases[0].Steps[0]; first.Status == http.StatusOK {
 		fake.seedManaged(quotaManagedRules(first.Response)...)
 	}
-	_ = fake
 	for ci, c := range cases.Cases {
 		t.Run(c.Name, func(t *testing.T) {
 			rc := recorded.Cases[ci]

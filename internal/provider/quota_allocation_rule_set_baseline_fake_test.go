@@ -46,13 +46,18 @@ func (h *grHarness) quota() *quotaFake {
 	return f
 }
 
-// quotaFake follows the quota allocation service as recorded in fidelity/recorded.json,
-// not the Go client. The account has one rule set. It holds the rules that Coralogix manages
-// (cxManaged: true) next to the rules of the customer. Create answers 409 when the rule set
-// exists, replace and delete answer 404 when it does not. Replace and delete change only the
-// customer rules and keep the managed ones. The server sets the id, stores every allocation as
-// a float32, and stores a rule with no allocationType, or an unspecified one, as percentage, and answers a write in the order of the request and a read by entity type.
-// cxManaged is left out of a rule that Coralogix does not manage.
+// quotaFake follows the quota allocation service as recorded in fidelity/recorded.json, not the
+// Go client. The account always has one rule set: a read answers it, empty, before anything is
+// written, and a delete clears the rules of the customer and keeps the set. It holds the rules
+// that Coralogix manages (cxManaged: true) next to the rules of the customer, and every rule has
+// cxManaged, false for the customer. A create or a replace replaces the customer rules and keeps
+// the managed ones. The server sets the id, stores every allocation as a float32, stores a rule with
+// no allocationType, or an unspecified one, as percentage, ignores the id query, and answers a
+// write in the order of the request and a read by entity type.
+//
+// Two answers are not recorded, because the tenant has no Coralogix-managed rules and the API
+// never answered 404: a create next to managed rules answers 409, as the provider expects, and
+// notFound makes a read, replace, or delete answer 404, as the contract documents.
 type quotaFake struct {
 	mu       sync.Mutex
 	set      map[string]any
@@ -62,6 +67,8 @@ type quotaFake struct {
 	// A failed delete still clears the customer rules when deleteClears is true.
 	deleteStatus int
 	deleteClears bool
+	// notFound makes a read, replace, or delete answer 404. The recording never shows it.
+	notFound bool
 	// writeStatus is the status of a create or replace that fails. 0 means that a write works.
 	writeStatus int
 }
@@ -109,11 +116,12 @@ func (f *quotaFake) seedCustomer(rules ...map[string]any) {
 	}
 }
 
-// forget removes the rule set, as if somebody deleted it outside Terraform.
-func (f *quotaFake) forget() {
+// clearOutside clears the rules of the customer, as if somebody deleted the rule set outside
+// Terraform: the rule set stays and reads back empty.
+func (f *quotaFake) clearOutside() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.set = nil
+	f.set["rules"] = quotaManagedOnly(f.set["rules"].([]any))
 }
 
 func (f *quotaFake) takeRequests() []grRequest {
@@ -133,11 +141,8 @@ func (f *quotaFake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if q := r.URL.RawQuery; q != "" {
 		rec.Path += "?" + q
 	}
-	if len(raw) > 0 {
-		_ = json.Unmarshal(raw, &rec.Body)
-	}
+	rec.Body = rawRequestBody(raw)
 	status, body := f.handle(r.Method, r.URL.Path, r.URL.Query().Get("id"), rec.Body)
-	rec.Body = dropEmptyCollections(rec.Body)
 	rec.Status = status
 	f.requests = append(f.requests, rec)
 
@@ -154,7 +159,7 @@ func (f *quotaFake) handle(method, path, id string, body any) (int, any) {
 	switch method {
 	case http.MethodGet:
 		// The id query parameter is ignored.
-		if f.set == nil {
+		if f.notFound {
 			return quotaFail(http.StatusNotFound, "quota allocation rule set not found")
 		}
 		return http.StatusOK, map[string]any{"ruleSet": f.set}
@@ -173,12 +178,12 @@ func (f *quotaFake) handle(method, path, id string, body any) (int, any) {
 		if f.writeStatus != 0 {
 			return quotaFail(f.writeStatus, "quota allocation rule set could not be written")
 		}
-		if f.set == nil {
+		if f.notFound {
 			return quotaFail(http.StatusNotFound, "quota allocation rule set not found")
 		}
 		return f.write(in)
 	case http.MethodDelete:
-		if f.set == nil {
+		if f.notFound {
 			return quotaFail(http.StatusNotFound, "quota allocation rule set not found")
 		}
 		// A delete clears the customer rules and keeps the rule set, also when it is empty.

@@ -128,7 +128,7 @@ var quotaScenarios = map[string]func(h *grHarness){
 		s = h.Refresh("refresh", s)
 		s = h.Apply("update", s, quotaConfig(quotaRule("logs", 50), quotaRule("metrics", 10)))
 		h.Destroy("destroy keeps the managed rules", s)
-		h.Refresh("refresh after destroy: state is gone", s)
+		h.Refresh("refresh after destroy: the rule set reads back with no rules", s)
 	},
 
 	// The real API replaces the rule set when a create finds customer rules, so there is no conflict.
@@ -193,27 +193,49 @@ var quotaScenarios = map[string]func(h *grHarness){
 		h.Import("import an id that does not exist", "does-not-exist")
 	},
 
-	"import-nothing-to-import": func(h *grHarness) {
-		h.quota().forget()
-		h.Import("import when the account has no rule set", "quota-allocation-rule-set")
+	// The account always has a rule set. Without customer rules it reads back empty.
+	"import-empty-rule-set": func(h *grHarness) {
+		h.Import("import when the rule set has no rules", "quota-allocation-rule-set")
 	},
 
-	"read-not-found": func(h *grHarness) {
+	// Somebody deletes the rule set outside Terraform. The API clears the rules and keeps the
+	// rule set, so it reads back empty, and a write and a delete still work.
+	"read-after-delete-outside": func(h *grHarness) {
 		s := h.Apply("create", h.null(), quotaConfig(quotaRule("logs", 10)))
-		h.quota().forget()
-		h.Refresh("refresh: the rule set was deleted outside Terraform", s)
+		h.quota().clearOutside()
+		h.Refresh("refresh: the rule set was deleted outside Terraform and reads back empty", s)
 	},
 
-	"update-not-found": func(h *grHarness) {
+	"update-after-delete-outside": func(h *grHarness) {
 		s := h.Apply("create", h.null(), quotaConfig(quotaRule("logs", 10)))
-		h.quota().forget()
+		h.quota().clearOutside()
 		h.Apply("update: the rule set was deleted outside Terraform", s, quotaConfig(quotaRule("logs", 20)))
 	},
 
-	"delete-not-found": func(h *grHarness) {
+	"destroy-after-delete-outside": func(h *grHarness) {
 		s := h.Apply("create", h.null(), quotaConfig(quotaRule("logs", 10)))
-		h.quota().forget()
-		h.Destroy("destroy: the rule set is gone", s)
+		h.quota().clearOutside()
+		h.Destroy("destroy: the rule set was deleted outside Terraform", s)
+	},
+
+	// The contract documents a 404 "Rule set not found". The recording never shows it, so these
+	// three make the fake answer it, to record how the provider treats it.
+	"read-api-404": func(h *grHarness) {
+		s := h.Apply("create", h.null(), quotaConfig(quotaRule("logs", 10)))
+		h.quota().notFound = true
+		h.Refresh("refresh: the API answers 404", s)
+	},
+
+	"update-api-404": func(h *grHarness) {
+		s := h.Apply("create", h.null(), quotaConfig(quotaRule("logs", 10)))
+		h.quota().notFound = true
+		h.Apply("update: the API answers 404", s, quotaConfig(quotaRule("logs", 20)))
+	},
+
+	"delete-api-404": func(h *grHarness) {
+		s := h.Apply("create", h.null(), quotaConfig(quotaRule("logs", 10)))
+		h.quota().notFound = true
+		h.Destroy("destroy: the API answers 404", s)
 	},
 
 	"delete-already-empty": func(h *grHarness) {
