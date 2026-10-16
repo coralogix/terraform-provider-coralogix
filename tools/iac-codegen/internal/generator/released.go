@@ -99,6 +99,11 @@ func removeUnsupportedArms(r *model.Resource, file *overrides.File) ([]string, e
 		}
 		return nil
 	}
+	if arms := file.Types[r.Name].UnsupportedArms; len(arms) != 0 {
+		// Flatten checks the arms of a nested object only: the resource's own fields have no
+		// object to report from.
+		return nil, fmt.Errorf("types.%s.unsupportedArms: the oneOf arms of the resource itself are not supported, only those of a nested object", r.Name)
+	}
 	for _, f := range r.Fields {
 		if err := walk("fields."+f.Name, f.Type); err != nil {
 			return nil, err
@@ -122,7 +127,10 @@ func dropArms(t *model.Type, arms []string) ([]string, error) {
 		groupArms = append(groupArms, g.Arms...)
 	}
 	isArm := func(name string) bool {
-		return t.Kind == model.OneOf || slices.Contains(groupArms, name)
+		if t.Kind == model.OneOf {
+			return name != t.Discriminator
+		}
+		return slices.Contains(groupArms, name)
 	}
 	for _, arm := range arms {
 		if !slices.ContainsFunc(t.Fields, func(f *model.Field) bool { return f.Name == arm }) || !isArm(arm) {

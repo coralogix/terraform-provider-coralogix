@@ -1199,9 +1199,16 @@ func checkOmittedMaskClears(r *model.Resource, attrs []*tfAttr, file *overrides.
 		if f.Update == nil || f.Behavior != model.Normal {
 			continue
 		}
-		name := tfName(f.Name)
+		if file.Types[r.Name].Fields[f.Name].Fixed() {
+			// A requestValue field has no attribute, and Update always sends it.
+			continue
+		}
+		name := terraformName(r.Policy, r.Name, f.Name)
 		i := slices.IndexFunc(attrs, func(a *tfAttr) bool { return a.Name == name })
-		if i < 0 || attrs[i].Required || attrs[i].Default != "" || keepsState(attrs[i]) {
+		if i < 0 {
+			return fmt.Errorf("%s: updateMask: omit found no attribute for the Update field", name)
+		}
+		if attrs[i].Required || attrs[i].Default != "" || keepsAnyState(attrs[i]) {
 			continue
 		}
 		return fmt.Errorf("%s: updateMask: omit sends no mask, so removing this optional attribute would not clear it. Make it required or give it a default", name)
@@ -1213,6 +1220,15 @@ func checkOmittedMaskClears(r *model.Resource, attrs []*tfAttr, file *overrides.
 func keepsState(a *tfAttr) bool {
 	return slices.ContainsFunc(a.Modifiers, func(m string) bool {
 		return strings.HasSuffix(m, "planmodifier.UseStateForUnknown()")
+	})
+}
+
+// keepsAnyState reports whether an omitted value is planned as the prior state, or as the prior
+// non-null state. Either keeps the field in an Update without a mask: a null prior value has
+// nothing to clear.
+func keepsAnyState(a *tfAttr) bool {
+	return keepsState(a) || slices.ContainsFunc(a.Modifiers, func(m string) bool {
+		return strings.HasSuffix(m, "planmodifier.UseNonNullStateForUnknown()")
 	})
 }
 

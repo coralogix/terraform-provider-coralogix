@@ -19,11 +19,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
@@ -189,14 +187,20 @@ func redactAITenant(v any) any {
 	return v
 }
 
-// unsubstAIValues writes "{{name}}" in place of each string value that equals
-// a variable. It leaves keys and longer strings alone, so a short application
-// name such as "app" cannot rewrite the key "application".
+// unsubstAIValues writes "{{name}}" in place of the value of each key "name"
+// whose value equals the variable of that name. It leaves other keys and
+// strings alone, so a short application name such as "app" cannot rewrite the
+// key "application", and an application and subsystem of the same name keep
+// their own placeholders.
 func unsubstAIValues(v any, vars map[string]string) any {
 	switch x := v.(type) {
 	case map[string]any:
 		out := map[string]any{}
 		for k, e := range x {
+			if value, ok := vars[k]; ok && value != "" && e == value {
+				out[k] = "{{" + k + "}}"
+				continue
+			}
 			out[k] = unsubstAIValues(e, vars)
 		}
 		return out
@@ -206,12 +210,6 @@ func unsubstAIValues(v any, vars map[string]string) any {
 			out[i] = unsubstAIValues(e, vars)
 		}
 		return out
-	case string:
-		for _, name := range slices.Sorted(maps.Keys(vars)) {
-			if vars[name] != "" && x == vars[name] {
-				return "{{" + name + "}}"
-			}
-		}
 	}
 	return v
 }
@@ -275,6 +273,11 @@ func TestRecordAIEvaluationFidelity(t *testing.T) {
 		vars := map[string]string{"application": application, "subsystem": subsystem}
 		for _, s := range c.Steps {
 			status, got := rec.step(s, vars)
+			if s.Capture != "" && status != http.StatusOK {
+				// Later steps would send an unresolved "{{id}}", and the recording
+				// could not match the empty fake. Stop before writing it.
+				t.Fatalf("%q: the create step answered %d. The application %q may already have an evaluation of this type and target: delete it, or set CORALOGIX_AI_APPLICATION and CORALOGIX_AI_SUBSYSTEM to an application with free slots", c.Name, status, application)
+			}
 			if status == http.StatusUnauthorized || status == http.StatusForbidden {
 				t.Fatalf("the API answered %d: the key cannot manage AI evaluations", status)
 			}
@@ -410,6 +413,10 @@ func TestAIEvaluationRecorderValues(t *testing.T) {
 			"message":     "the app was not found",
 		},
 		"list": []any{map[string]any{"createdBy": ""}},
+	}
+	if got, want := unsubstAIValues(map[string]any{"application": "same", "subsystem": "same"}, map[string]string{"application": "same", "subsystem": "same"}),
+		(map[string]any{"application": "{{application}}", "subsystem": "{{subsystem}}"}); fmt.Sprint(got) != fmt.Sprint(want) {
+		t.Fatalf("same names: got %v, want %v", got, want)
 	}
 	gotJSON, _ := json.Marshal(got)
 	wantJSON, _ := json.Marshal(want)
