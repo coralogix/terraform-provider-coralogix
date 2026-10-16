@@ -115,10 +115,10 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	}
 	diags = r.setState(ctx, v, req.Plan, &resp.State)
 	resp.Diagnostics.Append(diags...)
-	if diags.HasError() && v != nil && v.Id != nil {
+	if diags.HasError() && v != nil {
 		// The resource exists, but the state is not complete. Keep the id, so
 		// Terraform marks the resource as tainted and can delete it.
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), *v.Id)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), v.Id)...)
 	}
 }
 
@@ -209,7 +209,7 @@ func (r *Resource) create(ctx context.Context, body *ai_evaluations_service.AiEv
 	if out == nil {
 		return nil, nil
 	}
-	return out.AiEvaluation, nil
+	return &out.AiEvaluation, nil
 }
 
 func (r *Resource) get(ctx context.Context, id string) (*ai_evaluations_service.AiEvaluation, error) {
@@ -220,7 +220,7 @@ func (r *Resource) get(ctx context.Context, id string) (*ai_evaluations_service.
 	if out == nil {
 		return nil, nil
 	}
-	return out.AiEvaluation, nil
+	return &out.AiEvaluation, nil
 }
 
 func (r *Resource) update(ctx context.Context, id string, body *ai_evaluations_service.AiEvaluationsServiceUpdateAiEvaluationRequest) (*ai_evaluations_service.AiEvaluation, error) {
@@ -231,7 +231,7 @@ func (r *Resource) update(ctx context.Context, id string, body *ai_evaluations_s
 	if out == nil {
 		return nil, nil
 	}
-	return out.AiEvaluation, nil
+	return &out.AiEvaluation, nil
 }
 
 func (r *Resource) delete(ctx context.Context, id string) error {

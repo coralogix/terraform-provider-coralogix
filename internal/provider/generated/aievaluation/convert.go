@@ -107,9 +107,6 @@ func flatten(ctx context.Context, v *ai_evaluations_service.AiEvaluation) (*AiEv
 		return nil, diags
 	}
 	out := flattenAiEvaluation(ctx, path.Empty(), v, &diags)
-	if out.Id.IsNull() {
-		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
-	}
 	return out, diags
 }
 
@@ -285,11 +282,11 @@ func expandAiEvaluationsServiceCreateAiEvaluationRequest(ctx context.Context, p 
 		return nil
 	}
 	out := &ai_evaluations_service.AiEvaluationsServiceCreateAiEvaluationRequest{}
-	out.Application = expandString(m.Application)
-	out.Config = expandEvaluationConfig(ctx, p.AtName("config"), m.Config, diags)
+	out.Application = valueOf(expandString(m.Application))
+	out.Config = valueOf(expandEvaluationConfig(ctx, p.AtName("config"), m.Config, diags))
 	out.IsEnabled = expandBool(m.IsEnabled)
-	out.Subsystem = expandString(m.Subsystem)
-	out.Target = expandEnumMapped(p.AtName("target"), m.Target, evaluationTargetToAPI, diags)
+	out.Subsystem = valueOf(expandString(m.Subsystem))
+	out.Target = valueOf(expandEnumMapped(p.AtName("target"), m.Target, evaluationTargetToAPI, diags))
 	out.Threshold = expandFloat64(m.Threshold)
 	return out
 }
@@ -536,12 +533,22 @@ func flattenAiEvaluation(ctx context.Context, p path.Path, v *ai_evaluations_ser
 	out := &AiEvaluationModel{}
 	out.Application = types.StringPointerValue(v.Application)
 	out.Config = flattenEvaluationConfig(ctx, p.AtName("config"), v.Config, diags)
-	out.Id = types.StringPointerValue(v.Id)
+	out.Id = types.StringPointerValue(&v.Id)
 	out.IsEnabled = types.BoolPointerValue(v.IsEnabled)
 	out.Subsystem = types.StringPointerValue(v.Subsystem)
 	out.Target = flattenEnumMapped(p.AtName("target"), v.Target, evaluationTargetFromAPI, diags)
 	out.Threshold = types.Float64PointerValue(v.Threshold)
 	return out
+}
+
+// valueOf returns the value of p, or the zero value for nil. It fills an SDK
+// field that is a value, not a pointer.
+func valueOf[T any](p *T) T {
+	var zero T
+	if p == nil {
+		return zero
+	}
+	return *p
 }
 
 // elements is a types.Set or a types.List.
