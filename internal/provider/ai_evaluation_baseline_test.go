@@ -68,13 +68,13 @@ func aiEvalConfig(config j, extra ...j) j {
 var aiEvaluationScenarios = map[string]func(h *grHarness){
 	"minimal": func(h *grHarness) {
 		s := h.Apply("create", h.null(), aiEvalConfig(j{"toxicity": j{}}))
-		s = h.Refresh("refresh", s)
+		s = h.RefreshPlan("refresh", s)
 		h.Destroy("destroy", s)
 	},
 
 	"full-lifecycle": func(h *grHarness) {
 		s := h.Apply("create", h.null(), aiEvalConfig(j{"allowed_topics": j{"topics": l{"billing", "returns"}}}, j{"is_enabled": false}))
-		s = h.Refresh("refresh", s)
+		s = h.RefreshPlan("refresh", s)
 		s = h.Apply("update: topics, threshold, and is_enabled", s, aiEvalConfig(j{"allowed_topics": j{"topics": l{"returns", "shipping"}}}, j{"threshold": 0.9, "is_enabled": true}))
 		s = h.Apply("update: switch to pii", s, aiEvalConfig(j{"pii": j{"categories": l{"EMAIL_ADDRESS", "US_SSN"}}}, j{"threshold": 0.9}))
 		s = h.Apply("update: switch to an empty variant", s, aiEvalConfig(j{"sexism": j{}}, j{"threshold": 0.0}))
@@ -84,14 +84,14 @@ var aiEvaluationScenarios = map[string]func(h *grHarness){
 	"unset-is-enabled": func(h *grHarness) {
 		s := h.Apply("create disabled", h.null(), aiEvalConfig(j{"toxicity": j{}}, j{"is_enabled": false}))
 		s = h.Apply("update: remove is_enabled", s, aiEvalConfig(j{"toxicity": j{}}))
-		h.Refresh("refresh", s)
+		h.RefreshPlan("refresh", s)
 	},
 
 	"prompt-injection-context": func(h *grHarness) {
 		s := h.Apply("create without additional_context", h.null(), aiEvalConfig(j{"prompt_injection": j{}}))
 		s = h.Apply("update: set additional_context", s, aiEvalConfig(j{"prompt_injection": j{"additional_context": "an assistant for refunds"}}))
 		s = h.Apply("update: remove additional_context", s, aiEvalConfig(j{"prompt_injection": j{}}))
-		h.Refresh("refresh", s)
+		h.RefreshPlan("refresh", s)
 	},
 
 	"every-config-variant": func(h *grHarness) {
@@ -179,7 +179,7 @@ var aiEvaluationScenarios = map[string]func(h *grHarness){
 			"isEnabled": true, "threshold": 0.5, "config": j{"toxicity": j{}},
 		})
 		s := h.Import("import", id)
-		h.Refresh("refresh", s)
+		h.RefreshPlan("refresh", s)
 	},
 
 	"import-not-a-uuid": func(h *grHarness) {
@@ -193,7 +193,7 @@ var aiEvaluationScenarios = map[string]func(h *grHarness){
 	"read-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), aiEvalConfig(j{"toxicity": j{}}))
 		h.aiEvals().forget(idOf(s))
-		h.Refresh("refresh: evaluation was deleted outside Terraform", s)
+		h.RefreshPlan("refresh: evaluation was deleted outside Terraform", s)
 	},
 
 	"delete-not-found": func(h *grHarness) {
