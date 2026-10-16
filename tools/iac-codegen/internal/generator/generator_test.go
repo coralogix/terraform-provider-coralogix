@@ -2216,6 +2216,14 @@ func TestReleasedShapeErrors(t *testing.T) {
 			lines: replace("  EvalThing:\n    fields:\n", "  EvalThing:\n    unsupportedArms: [config]\n    unsupportedSummary: Unsupported\n    unsupportedDetail: Not supported.\n    fields:\n"),
 			want:  "types.EvalThing.unsupportedArms: the oneOf arms of the resource itself are not supported",
 		},
+		"requiresReplace on every Update field": {
+			lines: replace("      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        requiresReplace: true\n      config:\n        requiresReplace: true\n"),
+			want:  "requiresReplace leaves no field that Update can change",
+		},
+		"a line that only an unsupported arm reaches": {
+			lines: replace("  TopicsEvalConfig:\n", "  LegacyEvalConfig:\n    fields:\n      limit:\n        markdownDescription: The limit.\n  TopicsEvalConfig:\n"),
+			want:  "types.LegacyEvalConfig: only unsupported arms reach the component, so the line changes nothing",
+		},
 		"a body mask that names the arm without updateMask: omit": {
 			lines: replace("updateMask: omit\n", ""),
 			want:  "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED",
@@ -2254,6 +2262,19 @@ func TestOmittedMaskIgnoresTheMaskPattern(t *testing.T) {
 	}
 }
 
+// Without a mask the Update body holds a requestValueBy value, so updateMask: omit accepts it.
+func TestOmittedMaskAcceptsADerivedValue(t *testing.T) {
+	edit := func(spec string) string {
+		const field = "                enabled: {type: boolean, x-coralogix-presence: true}\n"
+		spec = strings.ReplaceAll(spec, field, field+"                kind: {$ref: '#/components/schemas/EvalTarget'}\n")
+		return strings.Replace(spec, "        enabled: {type: boolean}\n", "        enabled: {type: boolean}\n        kind: {$ref: '#/components/schemas/EvalTarget'}\n", 1)
+	}
+	lines := strings.Replace(evalThingLines(t), "      enabled:\n", "      kind:\n        requestValueBy: {config: PROMPT}\n      enabled:\n", 1)
+	if err := generateEvalThingWith(t, lines, edit); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // The discriminator of a oneOf is no arm, so unsupportedArms cannot remove it.
 func TestDropArmsRejectsTheDiscriminator(t *testing.T) {
 	typ := &model.Type{Kind: model.OneOf, Discriminator: "kind", Fields: []*model.Field{{Name: "kind"}, {Name: "a"}, {Name: "b"}}}
@@ -2262,5 +2283,8 @@ func TestDropArmsRejectsTheDiscriminator(t *testing.T) {
 	}
 	if _, err := dropArms(typ, []string{"a"}); err != nil {
 		t.Fatalf("dropping an arm: %v", err)
+	}
+	if _, err := dropArms(typ, []string{"b"}); err == nil || !strings.Contains(err.Error(), "removes every arm") {
+		t.Fatalf("err = %v, want removing the last arm next to the discriminator rejected", err)
 	}
 }

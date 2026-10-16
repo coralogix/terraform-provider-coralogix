@@ -478,10 +478,13 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if r.Replace {
 		return out, replaceFields(r, out, fixed, b.file)
 	}
-	if err := derivedValuesInMask(b.file); err != nil {
-		return nil, err
-	}
+	// Without a mask the Update body holds a derived value, and the server updates it.
 	omit := b.file != nil && b.file.UpdateMask == overrides.UpdateMaskOmit
+	if !omit {
+		if err := derivedValuesInMask(b.file); err != nil {
+			return nil, err
+		}
+	}
 	if err := buildMask(r, out, fixed, omit); err != nil {
 		return nil, err
 	}
