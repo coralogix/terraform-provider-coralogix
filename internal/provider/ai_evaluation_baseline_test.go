@@ -170,16 +170,9 @@ var aiEvaluationScenarios = map[string]func(h *grHarness){
 		h.Apply("plan with a threshold", s, aiEvalConfig(j{"toxicity": j{}}))
 	},
 
-	"import-unsupported-config": func(h *grHarness) {
-		id := h.aiEvals().seed(j{
-			"application": aiEvalFakeApplication, "subsystem": aiEvalFakeSubsystem, "target": "RESPONSE", "isEnabled": true,
-			"config": j{"sqlLoad": j{"joinLimit": "3", "cteLimit": "2", "allowRecursiveCte": true}},
-		})
-		h.Import("import a sqlLoad evaluation", id)
-	},
-
 	// A CONVERSATION target reads into state as "conversation", although a
-	// configuration cannot set it.
+	// configuration cannot set it. The fidelity case "create and read a
+	// conversation evaluation" records that the API stores and returns it.
 	"import-conversation-target": func(h *grHarness) {
 		id := h.aiEvals().seed(j{
 			"application": aiEvalFakeApplication, "subsystem": aiEvalFakeSubsystem, "target": "CONVERSATION",

@@ -9,7 +9,7 @@
 - CHORE: The `evalthing` golden fixture covers the four keys.
 
 #### resource/coralogix_ai_evaluation
-- CHORE: Add protocol baseline golden files against an in-memory evaluation API, checked against answers recorded from a real tenant, and an upgrade test that creates evaluations with provider 3.21.0 and plans them with this build.
+- CHORE: Add protocol baseline golden files against an in-memory evaluation API, checked against answers recorded from a real tenant.
 
 #### resource/coralogix_alerts_scheduler
 - CHORE: The resource is generated from the API contract. Schema version stays 0, every attribute keeps its type, and plans and state keep their values: `start_time` and `time_zone` keep their configured form (with or without `Z`, `UTC` or `UTC+0`), and `UTC` is sent as `UTC+0`.
