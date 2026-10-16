@@ -1,0 +1,63 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": "minimal"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "name": "minimal",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "id": "<generated-id-1>",
+            "name": "minimal"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-1>",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "<generated-id-1>",
+      "name": "minimal",
+      "parent_id": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-1>",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "<generated-id-1>",
+      "name": "minimal",
+      "parent_id": null
+    }
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-1>",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

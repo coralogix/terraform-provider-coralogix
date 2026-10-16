@@ -1,0 +1,119 @@
+[
+  {
+    "step": "create the first folder",
+    "config": {
+      "name": "first"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "name": "first",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "id": "<generated-id-1>",
+            "name": "first"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-1>",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "<generated-id-1>",
+      "name": "first",
+      "parent_id": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create the second folder",
+    "config": {
+      "name": "second"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "name": "second",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "id": "<generated-id-2>",
+            "name": "second"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-2>",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "<generated-id-2>",
+      "name": "second",
+      "parent_id": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: rename to the name of the first",
+    "config": {
+      "name": "first"
+    },
+    "plan": {
+      "id": "<generated-id-2>",
+      "name": "first",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "id": "<generated-id-2>",
+            "name": "first"
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error replacing coralogix_dashboard_folder | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: folder with path /first already exists\"}\noperation - Replace"
+    ],
+    "state": {
+      "id": "<generated-id-2>",
+      "name": "second",
+      "parent_id": null
+    }
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-2>",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "<generated-id-2>",
+      "name": "second",
+      "parent_id": null
+    }
+  }
+]
