@@ -7,16 +7,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/source"
+	"github.com/coralogix/coralogix-management-sdk/iac/issue"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
 )
 
 // Gadget declares server defaults on a top-level enum next to its $ref, on a field that only
 // replace sets, and on a nested enum. Each is Optional and Computed with the server-default plan
 // modifier, and only the nested one is a request path that drops an unknown value.
 func TestGadgetServerDefaultAttributes(t *testing.T) {
-	data, err := os.ReadFile(filepath.Join("..", "model", "testdata", "gadget.yaml"))
+	data, err := os.ReadFile(filepath.Join("testdata", "gadget.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +63,7 @@ func TestGadgetServerDefaultAttributes(t *testing.T) {
 // required list. A required integer without presence there needs a line: required: true says
 // that Terraform sends it every time, and the line is not stale.
 func TestRequiredLineStatesPresenceOfASharedComponent(t *testing.T) {
-	data, err := os.ReadFile(filepath.Join("..", "model", "testdata", "gadget.yaml"))
+	data, err := os.ReadFile(filepath.Join("testdata", "gadget.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +80,7 @@ func TestRequiredLineStatesPresenceOfASharedComponent(t *testing.T) {
 		"required line": {head + "types:\n  GadgetSearch:\n    fields:\n      count: {required: true}\n", ""},
 	} {
 		t.Run(name, func(t *testing.T) {
-			_, err := validateOpenAPIWith([]byte(spec), "Gadget", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, mustParse(t, test.file))
+			_, err := validateOpenAPIWith([]byte(spec), "Gadget", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", providerModulePath, mustParse(t, test.file))
 			if test.code == "" {
 				if err != nil {
 					t.Fatalf("err = %v, want none", err)
@@ -98,7 +97,7 @@ func TestRequiredLineStatesPresenceOfASharedComponent(t *testing.T) {
 // Flatten cannot match a set element that the API returns without a nested default to the
 // configured element, so a nested server default inside a set is an error. In a list it works.
 func TestNestedServerDefaultInsideASetIsAnError(t *testing.T) {
-	data, err := os.ReadFile(filepath.Join("..", "model", "testdata", "gadget.yaml"))
+	data, err := os.ReadFile(filepath.Join("testdata", "gadget.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}

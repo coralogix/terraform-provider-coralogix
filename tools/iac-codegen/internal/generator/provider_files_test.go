@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/coralogix/coralogix-management-sdk/iac/source"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/source"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
 )
 
@@ -17,7 +17,7 @@ import (
 func inProvider(t *testing.T, name string) (source.Input, string, string) {
 	t.Helper()
 	input, loadDir := copiedSyntheticInput(t)
-	return input, loadDir, filepath.Join(input.ProviderRoot, "internal", "provider", "generated", name)
+	return input, loadDir, filepath.Join(input.ModuleRoot, "internal", "provider", "generated", name)
 }
 
 func readFile(t *testing.T, path string) string {
@@ -48,8 +48,8 @@ func TestGoldenProviderFiles(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	compileRegistry(t, input.ProviderRoot, out)
-	examples := filepath.Join(input.ProviderRoot, "examples", "resources", "coralogix_thing")
+	compileRegistry(t, input.ModuleRoot, out)
+	examples := filepath.Join(input.ModuleRoot, "examples", "resources", "coralogix_thing")
 	got := map[string]string{
 		registryFileName: readFile(t, filepath.Join(filepath.Dir(out), registryFileName)),
 		"resource.tf":    readFile(t, filepath.Join(examples, "resource.tf")),
@@ -130,7 +130,7 @@ func TestExistingResourceGetsNoDocsFiles(t *testing.T) {
 	if err := generateFromInput(Options{Resource: "ArchivedThing", OutputDir: out}, input, loadDir); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(input.ProviderRoot, "examples")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(input.ModuleRoot, "examples")); !os.IsNotExist(err) {
 		t.Errorf("examples written for an existing resource: %v", err)
 	}
 	if registry := readFile(t, filepath.Join(filepath.Dir(out), registryFileName)); strings.Contains(registry, "archivedthing") {
@@ -173,7 +173,7 @@ func TestProviderFilesKeepHandwrittenFiles(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			input, loadDir, out := inProvider(t, "thing")
-			path := test.path(input.ProviderRoot, out)
+			path := test.path(input.ModuleRoot, out)
 			writeFile(t, path, "handwritten\n")
 			err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, loadDir)
 			if err == nil || !strings.Contains(err.Error(), test.want) {
@@ -196,7 +196,7 @@ func TestExampleOfAnotherResourceStays(t *testing.T) {
 	if err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, loadDir); err != nil {
 		t.Fatal(err)
 	}
-	example := filepath.Join(input.ProviderRoot, "examples", "resources", "coralogix_thing", "resource.tf")
+	example := filepath.Join(input.ModuleRoot, "examples", "resources", "coralogix_thing", "resource.tf")
 	writeFile(t, example, "handwritten\n")
 	resource := filepath.Join(out, "resource.go")
 	writeFile(t, resource, strings.Replace(readFile(t, resource), `const TypeName = "thing"`, `const TypeName = "other"`, 1))
@@ -218,7 +218,7 @@ func TestFailedRunRemovesTheExampleDirectory(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "not generator-owned") {
 		t.Fatalf("err = %v, want the output refused", err)
 	}
-	if _, err := os.Stat(filepath.Join(input.ProviderRoot, "examples")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(input.ModuleRoot, "examples")); !os.IsNotExist(err) {
 		t.Fatalf("a failed run left the examples directory: %v", err)
 	}
 	if err := os.RemoveAll(out); err != nil {

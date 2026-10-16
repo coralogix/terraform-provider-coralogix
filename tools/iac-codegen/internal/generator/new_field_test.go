@@ -9,8 +9,8 @@ import (
 
 	"go.yaml.in/yaml/v4"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/source"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/source"
 )
 
 // A field that a later contract adds to a released resource flows from the contract into the
@@ -26,14 +26,14 @@ func TestReleasedResourceTakesANewFieldWithoutOverrides(t *testing.T) {
 		}
 		t.Skipf("the pinned SDK is not in the module cache: %v", err)
 	}
-	overridesPath := filepath.Join(input.ProviderRoot, "internal", "provider", "generated", "alertsscheduler", "behavior-overrides.yaml")
+	overridesPath := filepath.Join(input.ModuleRoot, "internal", "provider", "generated", "alertsscheduler", "behavior-overrides.yaml")
 	file, err := readOverrides(overridesPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	render := func(spec []byte) map[string][]byte {
 		t.Helper()
-		validated, err := validateOpenAPIWith(spec, "AlertSchedulerRule", model.OperationIDs{}, input.SDKModule, input.ProviderModule, file)
+		validated, err := validateOpenAPIWith(spec, "AlertSchedulerRule", model.OperationIDs{}, input.SDKModule, input.Module, file)
 		if err != nil {
 			t.Fatal(err)
 		}
