@@ -140,9 +140,11 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	}
 	b.models = append(b.models, root)
 	if r.Singleton {
-		if err := addSingletonID(out, root, r); err != nil {
+		if err := addSingletonID(out, root, r, file != nil && file.SingletonID); err != nil {
 			return nil, err
 		}
+	} else if file != nil && file.SingletonID {
+		return nil, errors.New("singletonID is for a singleton: Get of this resource has a path parameter")
 	}
 	groups := &tfGroups{file: file, resource: r.Name, attrs: map[string]*tfAttr{}, models: map[string]*tfModel{}}
 	if err := b.rootAttributes(out, root, r, file, groups); err != nil {
@@ -173,6 +175,11 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 		}
 		if err := checkImmutableValues(out.Attributes, ""); err != nil {
 			return nil, err
+		}
+		if file.SingletonID {
+			if err := checkSingletonIDAttribute(out.Attributes); err != nil {
+				return nil, err
+			}
 		}
 	}
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
@@ -238,12 +245,40 @@ func defaultPackages(attrs []*tfAttr) []string {
 	return packages
 }
 
-// addSingletonID adds the fixed id attribute of a singleton (D18).
-func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
+// checkSingletonIDAttribute checks that the id attribute of a singleton with singletonID is still
+// computed-only after the field lines: a line that makes it required, optional, or a configured
+// default would let the user set a value that flatten replaces with the id of the server.
+func checkSingletonIDAttribute(attrs []*tfAttr) error {
+	for _, a := range attrs {
+		if a.Name == "id" && (!computedOnly(a) || a.Default != "") {
+			return errors.New("singletonID says that only the server sets the id: the id attribute must stay computed-only with no default, so its line cannot set required, optional, computed: false, or a default")
+		}
+	}
+	return nil
+}
+
+// addSingletonID adds the fixed id attribute of a singleton (D18). With singletonID, the resource has
+// an id field that the server sets, and the generic field pipeline builds the attribute.
+func addSingletonID(out *tfResource, root *tfModel, r *model.Resource, singletonID bool) error {
 	for _, f := range r.Fields {
-		if terraformName(r.Policy, r.Name, f.Name) == "id" {
+		if terraformName(r.Policy, r.Name, f.Name) != "id" {
+			continue
+		}
+		if !singletonID {
 			return fmt.Errorf("%s: a singleton with an id field is not supported: the id attribute is fixed", f.Name)
 		}
+		// The fixed fallback and the import are strings, and a request that sets the id would let the
+		// user configure a value that flatten replaces.
+		if f.Type == nil || f.Type.Kind != model.String {
+			return fmt.Errorf("singletonID: the id field %s must be a string, not %s", f.Name, typeName(f.Type))
+		}
+		if f.Behavior != model.Computed {
+			return fmt.Errorf("singletonID says that only the server sets the id, but the Create or Update body of %s lets a caller set %q: add readOnly: true to its line, or mark it read-only in the contract", r.Name, f.Name)
+		}
+		return nil
+	}
+	if singletonID {
+		return fmt.Errorf("singletonID says that %s has an id field, and it has none", r.Name)
 	}
 	// A static default puts the fixed id in the plan, so Create does not
 	// show it as unknown. The user still cannot set it.
@@ -330,6 +365,31 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 			if file.Validators.Inferred != nil && !*file.Validators.Inferred {
 				// No limit of the contract becomes a validator. A oneOf group validator is not a limit.
 				a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return !slices.Contains(a.GroupValidators, v) })
+			} else if _, mapped := file.Enums[a.EnumSchema]; mapped && a.EnumSchema != "" && (a.ValueKind == "String" || a.ValueKind == "List" || a.ValueKind == "Set") {
+				// The contract limit of an enum lists the API values, which the enums line renames
+				// and filters. The validator takes the Terraform values of that line instead.
+				expr, err := enumValidatorExpr(a, file, false)
+				if err != nil {
+					return err
+				}
+				inferred := "stringvalidator.OneOf("
+				if a.ValueKind != "String" {
+					inferred = strings.ToLower(a.ValueKind) + "validator.ValueStringsAre(stringvalidator.OneOf("
+				}
+				a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool {
+					return strings.HasPrefix(v, inferred) && !slices.Contains(a.GroupValidators, v)
+				})
+				a.Validators = append(a.Validators, expr)
+				if a.ValueKind != "String" {
+					// The acceptance test picks the value of an element from its validators, so they
+					// name the Terraform values too.
+					oneOf, err := enumOneOf(a, file, false)
+					if err != nil {
+						return err
+					}
+					a.ElemValidators = slices.DeleteFunc(a.ElemValidators, func(v string) bool { return strings.HasPrefix(v, "stringvalidator.OneOf(") })
+					a.ElemValidators = append(a.ElemValidators, oneOf)
+				}
 			}
 			if line, ok := file.Types[a.Component].Fields[a.Property]; ok {
 				if serverOwned(a) && settable[a.Component+"."+a.Property] {
@@ -574,6 +634,19 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 // They come from the enums line, so the validator and the conversion maps cannot disagree.
 // exceptZero leaves the zero value out of the validator. The conversion maps still contain it.
 func enumValidatorExpr(a *tfAttr, file *overrides.File, exceptZero bool) (string, error) {
+	oneOf, err := enumOneOf(a, file, exceptZero)
+	if err != nil {
+		return "", err
+	}
+	if a.ValueKind == "List" || a.ValueKind == "Set" {
+		return strings.ToLower(a.ValueKind) + "validator.ValueStringsAre(" + oneOf + ")", nil
+	}
+	return oneOf, nil
+}
+
+// enumOneOf is the OneOf validator of one value of the enum of the attribute: the validator of a
+// scalar, and the validator of each element of a list or set.
+func enumOneOf(a *tfAttr, file *overrides.File, exceptZero bool) (string, error) {
 	enum, ok := file.Enums[a.EnumSchema]
 	collection := a.ValueKind == "List" || a.ValueKind == "Set"
 	if a.EnumSchema == "" || !ok || a.ValueKind != "String" && !collection {
@@ -591,11 +664,7 @@ func enumValidatorExpr(a *tfAttr, file *overrides.File, exceptZero bool) (string
 	for _, v := range values {
 		quoted = append(quoted, strconv.Quote(v))
 	}
-	oneOf := "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")"
-	if collection {
-		return strings.ToLower(a.ValueKind) + "validator.ValueStringsAre(" + oneOf + ")", nil
-	}
-	return oneOf, nil
+	return "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")", nil
 }
 
 // markComputed makes a server-owned attribute and every nested attribute

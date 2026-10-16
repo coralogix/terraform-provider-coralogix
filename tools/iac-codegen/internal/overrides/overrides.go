@@ -54,6 +54,11 @@ type File struct {
 	// TypeName is the released resource type name without the provider prefix, for example
 	// "slo_v2" for coralogix_slo_v2. "" names the resource after its OpenAPI component.
 	TypeName string `yaml:"typeName"`
+	// SingletonID: the resource is a singleton (Get has no path parameter) whose component has an id
+	// field that only the server sets. The id attribute then holds that value, and Create, Get,
+	// Update, and Delete still take no id. Without the key, a singleton has the fixed id. Mark the
+	// field readOnly. The id must be a string.
+	SingletonID bool `yaml:"singletonID"`
 	// Groups are required Terraform objects that the API does not have. Each holds top-level
 	// fields of the resource, for example sli = {request_based_metric_sli = ...} for the
 	// requestBasedMetricSli field of the API.
@@ -405,6 +410,9 @@ func (f *File) check() error {
 	}
 	if err := f.API.Check(); err != nil {
 		return err
+	}
+	if f.SingletonID && (f.API.ClientSetID || f.API.ServerSetID || f.API.UpdateIDInBody) {
+		return errors.New("singletonID is for a singleton, which has no id in a path: it cannot be combined with api.clientSetID, api.serverSetID, or api.updateIDInBody")
 	}
 	return f.checkTypes()
 }
