@@ -44,7 +44,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_quota_allocation_rule_set | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: quota allocation rule set could not be written\"}\noperation - Create"
+      "error: Unable to create quota_allocation_rule_set | 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: quota allocation rule set could not be written\"}"
     ],
     "state": null
   }

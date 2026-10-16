@@ -88,7 +88,7 @@
     "step": "destroy: the rule set has no customer rules",
     "requests": [
       {
-        "method": "GET",
+        "method": "DELETE",
         "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
         "status": 200
       }

@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strconv"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	quotaRules "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/quota_allocation_rule_set_service"
@@ -30,6 +31,48 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
+
+const quotaAllocationRuleSetImportID = "quota-allocation-rule-set"
+
+const (
+	quotaAllocationTypePercentage = "percentage"
+)
+
+// Known allocatable entity types verified against the API. The list is additive; the API may accept more values over time.
+const quotaAllocationKnownEntityTypesDoc = "`logs`, `spans`, `metrics`, `cpuProfiles`, `memoryProfiles`, `browserLogs`, `browserLogs/v2`, `sessionRecordings`, `olly`, `auditEvents`, `alerts`, `quotaEvents`, `engineQueries`, `engineSchemaFields`, `labsLimitViolations`, and `notificationDeliveries`"
+
+// API UNSPECIFIED reads as percentage (same effective default the API applies on write).
+var quotaAllocationTypeAPIToSchema = map[quotaRules.QuotaAllocationType]string{
+	quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_UNSPECIFIED:  quotaAllocationTypePercentage,
+	quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_PERCENTAGE:   quotaAllocationTypePercentage,
+	quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_LOCKED_UNITS: "locked_units",
+}
+
+func getQuotaAllocationRuleSet(ctx context.Context, client *quotaRules.QuotaAllocationRuleSetServiceAPIService, id string) (*quotaRules.GetQuotaAllocationRuleSetResponse, *http.Response, error) {
+	request := client.QuotaAllocationRuleSetServiceGetQuotaAllocationRuleSet(ctx)
+	if id != "" && id != quotaAllocationRuleSetImportID {
+		request = request.Id(id)
+	}
+
+	return request.Execute()
+}
+
+func float32ToSchemaFloat64Allocation(value float32) float64 {
+	parsed, err := strconv.ParseFloat(strconv.FormatFloat(float64(value), 'f', -1, 32), 64)
+	if err != nil {
+		return float64(value)
+	}
+
+	return parsed
+}
+
+func responseStatus(response *http.Response) int {
+	if response == nil {
+		return 0
+	}
+
+	return response.StatusCode
+}
 
 var _ datasource.DataSourceWithConfigure = &QuotaAllocationRuleSetDataSource{}
 
@@ -176,7 +219,7 @@ func flattenQuotaAllocationRuleSetDataSource(ruleSet *quotaRules.QuotaAllocation
 
 		stateRules = append(stateRules, QuotaAllocationRuleDataSourceModel{
 			EntityType:     types.StringValue(rule.GetEntityType()),
-			Allocation:     types.Float64Value(float32ToSchemaFloat64(rule.GetAllocation())),
+			Allocation:     types.Float64Value(float32ToSchemaFloat64Allocation(rule.GetAllocation())),
 			AllocationType: allocationType,
 			Enabled:        types.BoolValue(rule.GetEnabled()),
 			CanOverflow:    types.BoolValue(rule.GetCanOverflow()),
