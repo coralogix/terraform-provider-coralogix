@@ -250,8 +250,8 @@ func defaultPackages(attrs []*tfAttr) []string {
 // default would let the user set a value that flatten replaces with the id of the server.
 func checkSingletonIDAttribute(attrs []*tfAttr) error {
 	for _, a := range attrs {
-		if a.Name == "id" && !computedOnly(a) {
-			return errors.New("singletonID says that only the server sets the id: the id attribute must stay computed-only, so its line cannot set required, optional, computed: false, or a default")
+		if a.Name == "id" && (!computedOnly(a) || a.Default != "") {
+			return errors.New("singletonID says that only the server sets the id: the id attribute must stay computed-only with no default, so its line cannot set required, optional, computed: false, or a default")
 		}
 	}
 	return nil
