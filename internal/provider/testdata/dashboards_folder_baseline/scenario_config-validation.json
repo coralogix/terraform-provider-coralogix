@@ -1,0 +1,21 @@
+[
+  {
+    "step": "empty config",
+    "config": {},
+    "state": null
+  },
+  {
+    "step": "empty name",
+    "config": {
+      "name": ""
+    },
+    "state": null
+  },
+  {
+    "step": "name longer than 100 characters",
+    "config": {
+      "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "state": null
+  }
+]

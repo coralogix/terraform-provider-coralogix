@@ -9,7 +9,7 @@
 - CHORE: The `evalthing` golden fixture covers the four keys.
 
 #### provider
-- CHORE: Bump `coralogix-management-sdk` to the version with the AI evaluations contract. `coralogix_dashboards_folder` and `coralogix_dashboard` adapt to its types: the folder name is a required string, and the dashboard of a replace request is optional.
+- CHORE: Bump `coralogix-management-sdk` to the version with the AI evaluations contract. `coralogix_dashboards_folder` and `coralogix_dashboard` adapt to its types: the folder name is a required string, and the dashboard of a replace request is optional. A `coralogix_dashboards_folder` without `name` now sends an empty name: the API still rejects it, now with "folder name cannot be empty".
 
 #### resource/coralogix_ai_evaluation
 - CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Update still sends `config`, `is_enabled`, and `threshold` without an update mask, and `application`, `subsystem`, and `target` still replace the evaluation. An evaluation whose target is `CONVERSATION` still reads as `conversation`, and one with an unsupported config still fails the read with the released error.
@@ -36,6 +36,9 @@
 
 #### provider
 - CHORE: Bump `coralogix-management-sdk` to the version with the alert suppression rule contract. The SDK holds required fields as values; `coralogix_alerts_scheduler`, `coralogix_events2metric`, and `coralogix_slo_v2` adapt, with no change to plans.
+
+#### resource/coralogix_dashboards_folder
+- CHORE: Add protocol baseline golden files against an in-memory dashboard folders API, checked against answers recorded from a real tenant.
 
 #### resource/coralogix_view
 - FEAT: Add `coralogix_view` for a saved Explore view. `name` and `time_selection` are required, and `time_selection` needs exactly one of `quick_selection` or `custom_selection`. `search_query`, `filters`, `folder_id`, `view_type`, and `is_compact_mode` can be set, changed, and removed. An omitted `view_type`, `is_compact_mode`, or `search_query.syntax_type` reads back as the server default (`VIEW_TYPE_LOGS`, `false`, `SYNTAX_TYPE_LUCENE`), and removing one restores that default. A configured `is_compact_mode` is applied with a replace right after create, because create does not take it. `time_selection.quick_selection.caption` is computed. The API stores `time_selection.quick_selection.seconds` as the nearest preset, so set one of the listed presets.

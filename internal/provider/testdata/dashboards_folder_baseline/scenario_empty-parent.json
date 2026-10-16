@@ -1,0 +1,101 @@
+[
+  {
+    "step": "create with parent_id = \"\"",
+    "config": {
+      "name": "empty-parent",
+      "parent_id": ""
+    },
+    "plan": {
+      "id": "(unknown)",
+      "name": "empty-parent",
+      "parent_id": ""
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "id": "<generated-id-1>",
+            "name": "empty-parent",
+            "parentId": ""
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_dashboard_folder | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: invalid uuid\"}\noperation - Create"
+    ],
+    "state": null
+  },
+  {
+    "step": "create without a parent",
+    "config": {
+      "name": "no-parent"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "name": "no-parent",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "id": "<generated-id-2>",
+            "name": "no-parent"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-2>",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "<generated-id-2>",
+      "name": "no-parent",
+      "parent_id": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: set parent_id = \"\"",
+    "config": {
+      "name": "no-parent",
+      "parent_id": ""
+    },
+    "plan": {
+      "id": "<generated-id-2>",
+      "name": "no-parent",
+      "parent_id": ""
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "id": "<generated-id-2>",
+            "name": "no-parent",
+            "parentId": ""
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error replacing coralogix_dashboard_folder | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: invalid uuid\"}\noperation - Replace"
+    ],
+    "state": {
+      "id": "<generated-id-2>",
+      "name": "no-parent",
+      "parent_id": null
+    }
+  }
+]

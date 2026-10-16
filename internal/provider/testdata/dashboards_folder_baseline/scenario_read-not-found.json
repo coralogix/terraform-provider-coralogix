@@ -1,0 +1,51 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": "gone"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "name": "gone",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "id": "<generated-id-1>",
+            "name": "gone"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-1>",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "<generated-id-1>",
+      "name": "gone",
+      "parent_id": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: folder was deleted outside Terraform",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-1>",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: coralogix_dashboard_folder \"<generated-id-1>\" is in state, but no longer exists in Coralogix backend | <generated-id-1> will be recreated when you apply"
+    ],
+    "state": null
+  }
+]

@@ -1,0 +1,534 @@
+{
+  "cases": [
+    {
+      "name": "lifecycle: create, read, replace, clear, delete",
+      "steps": [
+        {
+          "method": "GET",
+          "path": ""
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "logs",
+                  "allocation": 60,
+                  "enabled": true,
+                  "canOverflow": true,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                },
+                {
+                  "entityType": "metrics",
+                  "allocation": 40,
+                  "enabled": true,
+                  "canOverflow": false
+                }
+              ]
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": ""
+        },
+        {
+          "method": "GET",
+          "path": "?id={{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "logs",
+                  "allocation": 55,
+                  "enabled": false,
+                  "canOverflow": true,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                },
+                {
+                  "entityType": "metrics",
+                  "allocation": 45,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                }
+              ],
+              "id": "{{id}}"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": ""
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [],
+              "id": "{{id}}"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": ""
+        },
+        {
+          "method": "DELETE",
+          "path": ""
+        },
+        {
+          "method": "GET",
+          "path": ""
+        },
+        {
+          "method": "DELETE",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "name": "create twice",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "logs",
+                  "allocation": 10,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "metrics",
+                  "allocation": 10,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "name": "validation",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "",
+                  "allocation": 10,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "logs",
+                  "allocation": 101,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "logs",
+                  "allocation": 101,
+                  "enabled": true,
+                  "canOverflow": false
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "logs",
+                  "allocation": 10,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                },
+                {
+                  "entityType": "logs",
+                  "allocation": 20,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "logs",
+                  "allocation": -1,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "logs",
+                  "allocation": 101,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_LOCKED_UNITS"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "logs",
+                  "allocation": 60,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                },
+                {
+                  "entityType": "metrics",
+                  "allocation": 60,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "logs",
+                  "allocation": 60,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                },
+                {
+                  "entityType": "metrics",
+                  "allocation": 60,
+                  "enabled": false,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "logs",
+                  "allocation": 60,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                },
+                {
+                  "entityType": "metrics",
+                  "allocation": 30,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_UNSPECIFIED"
+                },
+                {
+                  "entityType": "spans",
+                  "allocation": 30,
+                  "enabled": true,
+                  "canOverflow": false
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "logs",
+                  "allocation": 10,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "BAD"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {}
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {}
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "name": "allocation type and float values",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "logs",
+                  "allocation": 10,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_UNSPECIFIED"
+                },
+                {
+                  "entityType": "metrics",
+                  "allocation": 9.2,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                },
+                {
+                  "entityType": "spans",
+                  "allocation": 0.123456789,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_LOCKED_UNITS"
+                },
+                {
+                  "entityType": "browserLogs",
+                  "allocation": 12.5,
+                  "enabled": true,
+                  "canOverflow": false
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": ""
+        },
+        {
+          "method": "DELETE",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "name": "replace with an id that is not the id of the rule set",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "logs",
+                  "allocation": 10,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "logs",
+                  "allocation": 20,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                }
+              ],
+              "id": "bogus"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "?id=bogus"
+        },
+        {
+          "method": "GET",
+          "path": ""
+        },
+        {
+          "method": "DELETE",
+          "path": ""
+        }
+      ]
+    },
+    {
+      "name": "float values",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "logs",
+                  "allocation": 99.2,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": ""
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "ruleSet": {
+              "rules": [
+                {
+                  "entityType": "logs",
+                  "allocation": 0.1,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                },
+                {
+                  "entityType": "metrics",
+                  "allocation": 12.5,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                },
+                {
+                  "entityType": "spans",
+                  "allocation": 33.33,
+                  "enabled": true,
+                  "canOverflow": false,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": ""
+        },
+        {
+          "method": "DELETE",
+          "path": ""
+        }
+      ]
+    }
+  ]
+}

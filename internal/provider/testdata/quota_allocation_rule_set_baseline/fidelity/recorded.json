@@ -1,0 +1,654 @@
+{
+  "cases": [
+    {
+      "name": "lifecycle: create, read, replace, clear, delete",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 60,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": true,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "logs"
+                },
+                {
+                  "allocation": 40,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "metrics"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 60,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": true,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "logs"
+                },
+                {
+                  "allocation": 40,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "metrics"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 60,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": true,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "logs"
+                },
+                {
+                  "allocation": 40,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "metrics"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 55,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": true,
+                  "cxManaged": false,
+                  "enabled": false,
+                  "entityType": "logs"
+                },
+                {
+                  "allocation": 45,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "metrics"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 55,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": true,
+                  "cxManaged": false,
+                  "enabled": false,
+                  "entityType": "logs"
+                },
+                {
+                  "allocation": 45,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "metrics"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003cid\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003cid\u003e"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create twice",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 10,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "logs"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 10,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "metrics"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003cid\u003e"
+          }
+        }
+      ]
+    },
+    {
+      "name": "validation",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Invalid entity type."
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Invalid allocation rules: Quota allocation must be in range [0, 100] while it is 101"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Invalid allocation rules: Quota allocation must be in range [0, 100] while it is 101"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Duplicate rule found for Logs"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Invalid allocation rules: Quota allocation must be in range [0, 100] while it is -1"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 101,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_LOCKED_UNITS",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "logs"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Quota allocation must be in range [0, 100] while it is 120"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 60,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "logs"
+                },
+                {
+                  "allocation": 60,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": false,
+                  "entityType": "metrics"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Quota allocation must be in range [0, 100] while it is 120"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: proto: (line 1:56): invalid value for enum field allocationType: \"BAD\""
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: rule_set is required"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003cid\u003e"
+          }
+        }
+      ]
+    },
+    {
+      "name": "allocation type and float values",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 10,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "logs"
+                },
+                {
+                  "allocation": 9.2,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "metrics"
+                },
+                {
+                  "allocation": 0.12345679,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_LOCKED_UNITS",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "spans"
+                },
+                {
+                  "allocation": 12.5,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "browserLogs"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 12.5,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "browserLogs"
+                },
+                {
+                  "allocation": 10,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "logs"
+                },
+                {
+                  "allocation": 9.2,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "metrics"
+                },
+                {
+                  "allocation": 0.12345679,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_LOCKED_UNITS",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "spans"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003cid\u003e"
+          }
+        }
+      ]
+    },
+    {
+      "name": "replace with an id that is not the id of the rule set",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 10,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "logs"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 20,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "logs"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 20,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "logs"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 20,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "logs"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003cid\u003e"
+          }
+        }
+      ]
+    },
+    {
+      "name": "float values",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 99.2,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "logs"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 99.2,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "logs"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 0.1,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "logs"
+                },
+                {
+                  "allocation": 12.5,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "metrics"
+                },
+                {
+                  "allocation": 33.33,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "spans"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleSet": {
+              "id": "\u003cid\u003e",
+              "rules": [
+                {
+                  "allocation": 0.1,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "logs"
+                },
+                {
+                  "allocation": 12.5,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "metrics"
+                },
+                {
+                  "allocation": 33.33,
+                  "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                  "canOverflow": false,
+                  "cxManaged": false,
+                  "enabled": true,
+                  "entityType": "spans"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "\u003cid\u003e"
+          }
+        }
+      ]
+    }
+  ]
+}

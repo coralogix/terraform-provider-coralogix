@@ -1,0 +1,412 @@
+{
+  "cases": [
+    {
+      "name": "create without an id, read, replace, delete",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "folderId": "{{pid}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "folderId": "{{id}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "folder": {
+              "id": "{{id}}",
+              "name": "tf-fidelity-a",
+              "parentId": "{{pid}}"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "folder": {
+              "id": "{{id}}",
+              "name": "tf-fidelity-a2",
+              "parentId": "{{pid}}"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "folder": {
+              "id": "{{id}}",
+              "name": "tf-fidelity-a2"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: dashboard folder with id DashboardFolderId({{id}}) does not exist"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "create with a client id",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "folderId": "{{id}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "folder": {
+              "id": "{{id}}",
+              "name": "tf-fidelity-b"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "create with a name only",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "folderId": "{{id}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "create without a name",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: folder name not found"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: folder name cannot be empty"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with a name of 100 and 101 characters",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "folderId": "{{id}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: folder name length is bigger than 100"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with a malformed parent and a missing parent",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: invalid uuid"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: parent folder id DashboardFolderId(\u003cid\u003e) for company CompanyId(\u003ccompany\u003e) does not exist"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: invalid uuid"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: invalid uuid"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with a duplicate name",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "folderId": "{{id}}"
+          }
+        },
+        {
+          "status": 409,
+          "response": {
+            "code": 409,
+            "message": "Already Exists: folder with id DashboardFolderId(\u003cid\u003e) or name tf-fidelity-e already exist in your company"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: invalid uuid"
+          }
+        }
+      ]
+    },
+    {
+      "name": "replace with a parent that is the folder itself",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "folderId": "{{id}}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: folder_id and parent_id can't be equal ({{id}})"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "replace a folder that does not exist",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: folder with id DashboardFolderId(\u003cid\u003e) does not exist"
+          }
+        }
+      ]
+    },
+    {
+      "name": "replace without an id",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: folder id is required"
+          }
+        }
+      ]
+    },
+    {
+      "name": "get and delete a folder that does not exist",
+      "steps": [
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: dashboard folder with id DashboardFolderId(\u003cid\u003e) does not exist"
+          }
+        },
+        {
+          "status": 403,
+          "response": {
+            "code": 403,
+            "message": "Permission Denied: dont have permissions to delete folder DashboardFolderId(\u003cid\u003e)"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: invalid uuid"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: invalid uuid"
+          }
+        }
+      ]
+    },
+    {
+      "name": "delete twice",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "folderId": "{{id}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 403,
+          "response": {
+            "code": 403,
+            "message": "Permission Denied: dont have permissions to delete folder DashboardFolderId({{id}})"
+          }
+        }
+      ]
+    },
+    {
+      "name": "replace to a name that another folder has",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "folderId": "{{id}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "folderId": "{{id2}}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: folder with path /tf-fidelity-h1 already exists"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "name of 100 and 101 non-ASCII characters",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "folderId": "{{id}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: folder name length is bigger than 100"
+          }
+        }
+      ]
+    },
+    {
+      "name": "an empty parent id",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: invalid uuid"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "folderId": "{{id}}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: invalid uuid"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "folder": {
+              "id": "{{id}}",
+              "name": "tf-fidelity-i1"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    }
+  ]
+}
