@@ -141,6 +141,12 @@ var dashboardsFolderScenarios = map[string]func(h *grHarness){
 		h.Destroy("destroy: the API answers 403 for a folder that does not exist", s)
 	},
 
+	"delete-forbidden": func(h *grHarness) {
+		s := h.Apply("create", h.null(), j{"name": "kept"})
+		h.dashboardsFolders().forbidDelete = true
+		h.Destroy("destroy: the API answers 403 for a folder that exists", s)
+	},
+
 	"update-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), j{"name": "gone"})
 		h.dashboardsFolders().forget(idOf(s))

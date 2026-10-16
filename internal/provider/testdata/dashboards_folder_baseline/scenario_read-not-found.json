@@ -15,7 +15,6 @@
         "path": "/mgmt/openapi/5/dashboards/folders/v1",
         "body": {
           "folder": {
-            "id": "<generated-id-1>",
             "name": "gone"
           }
         },
@@ -23,12 +22,12 @@
       },
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-1>",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
         "status": 200
       }
     ],
     "state": {
-      "id": "<generated-id-1>",
+      "id": "00000000-0000-4000-8000-000000000001",
       "name": "gone",
       "parent_id": null
     },
@@ -39,12 +38,12 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-1>",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
         "status": 404
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_dashboard_folder \"<generated-id-1>\" is in state, but no longer exists in Coralogix backend | <generated-id-1> will be recreated when you apply"
+      "warning: Resource disappeared during read | dashboards_folder with id 00000000-0000-4000-8000-000000000001 was not found. Terraform removed it from state."
     ],
     "state": null
   }
