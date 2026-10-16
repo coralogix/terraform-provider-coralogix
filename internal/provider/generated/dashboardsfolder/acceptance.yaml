@@ -8,7 +8,6 @@ prerequisites: |
   }
 
 values:
-  name: '"@{run}-folder"'
   parent_id: coralogix_dashboards_folder.parent.id
 
 upgradeFrom: "3.21.0"

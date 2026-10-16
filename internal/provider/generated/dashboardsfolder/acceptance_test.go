@@ -63,22 +63,22 @@ const prerequisites = `resource "coralogix_dashboards_folder" "parent" {
 }`
 
 const fullConfig = `resource "coralogix_dashboards_folder" "test" {
-  name = "@{run}-folder"
+  name = "@{run}-name"
   parent_id = coralogix_dashboards_folder.parent.id
 }`
 
 const updatedConfig = `resource "coralogix_dashboards_folder" "test" {
-  name = "@{run}-folder"
+  name = "@{run}-name-updated"
   parent_id = coralogix_dashboards_folder.parent.id
 }`
 
 const minimalConfig = `resource "coralogix_dashboards_folder" "test" {
-  name = "@{run}-folder"
+  name = "@{run}-name"
 }`
 
 // upgradeMinimalConfig is the minimal config plus the fields that the released provider needs.
 const upgradeMinimalConfig = `resource "coralogix_dashboards_folder" "test" {
-  name = "@{run}-folder"
+  name = "@{run}-name"
 }`
 
 func config(run, resourceBlock string) string {
@@ -86,21 +86,28 @@ func config(run, resourceBlock string) string {
 }
 
 func fullChecks(run string) resource.TestCheckFunc {
-	return resource.ComposeAggregateTestCheckFunc()
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+	)
 }
 
 func updatedChecks(run string) resource.TestCheckFunc {
-	return resource.ComposeAggregateTestCheckFunc()
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name-updated")),
+	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 		resource.TestCheckNoResourceAttr(resourceAddress, "parent_id"),
 	)
 }
 
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
-	return resource.ComposeAggregateTestCheckFunc()
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+	)
 }
 
 func newRun() string { return "acc-" + uuid.NewString()[:8] }
@@ -225,7 +232,7 @@ func TestAccCoralogixResourceDashboardFolderGeneratedUpgrade(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
 			Steps: upgradeSteps(run, fullConfig, fullChecks(run),
-				updatedConfig, updatedChecks(run), []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionNoop)}),
+				updatedConfig, updatedChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
 		})
 	})
 
