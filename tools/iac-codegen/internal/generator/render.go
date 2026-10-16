@@ -13,8 +13,9 @@ import (
 
 	"golang.org/x/tools/go/ast/astutil"
 
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/sdkcheck"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/acceptance"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
 
@@ -36,7 +37,7 @@ var formatGenerated = formatSource
 
 // render returns the generated files of the resource, by file name.
 // renderWith is render for a resource with a behavior-overrides file (nil for a new resource).
-func renderWith(r *model.Resource, refs []sdkRef, pkg string, file *overrides.File) (map[string][]byte, error) {
+func renderWith(r *model.Resource, refs []sdkcheck.Ref, pkg string, file *overrides.File) (map[string][]byte, error) {
 	return renderAll(r, refs, pkg, file, nil, nil, "")
 }
 
@@ -44,7 +45,7 @@ func renderWith(r *model.Resource, refs []sdkRef, pkg string, file *overrides.Fi
 // attributes file of its upgrade test. prior is that file of the last run, or nil. providerModule
 // is the module path of the provider; the test imports its provider package. For a new resource,
 // it also writes the docs example and import command under exampleKey and importKey.
-func renderAll(r *model.Resource, refs []sdkRef, pkg string, file *overrides.File, acc *acceptance.File, prior *acceptance.UpgradeAttributes, providerModule string) (map[string][]byte, error) {
+func renderAll(r *model.Resource, refs []sdkcheck.Ref, pkg string, file *overrides.File, acc *acceptance.File, prior *acceptance.UpgradeAttributes, providerModule string) (map[string][]byte, error) {
 	data, err := buildTFResourceWith(r, pkg, file)
 	if err != nil {
 		return nil, err

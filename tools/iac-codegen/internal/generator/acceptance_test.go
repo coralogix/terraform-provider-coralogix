@@ -480,7 +480,7 @@ func TestAcceptanceFailsClosedOnWhatItCannotMake(t *testing.T) {
 
 // The acceptance file may name only things that the schema has, so a stale line cannot stay.
 func TestAcceptanceFileMustMatchTheSchema(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "legacy.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "legacy.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -669,7 +669,7 @@ func TestAcceptanceUpgradeComparesTypes(t *testing.T) {
 
 // generate keeps the upgrade attributes file of the last run while upgradeFrom stays the same.
 func TestGenerateKeepsTheUpgradeAttributes(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "legacy.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "legacy.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -757,7 +757,7 @@ func legacyOutputWithAcceptance(t *testing.T) string {
 // An acceptance file with upgradeFrom must sit in the output directory, next to the upgrade
 // attributes file, so that check and generate read the same list.
 func TestUpgradeAcceptanceFileMustBeInTheOutput(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "legacy.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "legacy.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}

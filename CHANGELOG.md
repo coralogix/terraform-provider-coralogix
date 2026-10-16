@@ -1,7 +1,35 @@
 # Unreleased
 
+#### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.34`.
+- FEAT: `requiresReplace: true` on a top-level field replaces the resource when the field changes, although Update accepts it. Update does not send the field. Combined with `computed: true`, or on a field that the Update body requires, it is an error.
+- FEAT: `types.<Type>.unsupportedArms` with `unsupportedSummary` and `unsupportedDetail` keeps oneOf arms that a released resource never configured out of the schema and the requests, and flatten reports a response that selects one. Naming no arm, or removing every arm of a group that requires one, is an error.
+- FEAT: `updateMask: omit` with `api.updateMaskInBody` sends no update mask, for a released resource that never sent one. An optional Update field that the body cannot clear is an error.
+- FEAT: `enums.<Enum>.readRejectedLower: true` reads a rejected value in lower case instead of the API spelling.
+- CHORE: The `evalthing` golden fixture covers the four keys.
+
+#### resource/coralogix_ai_evaluation
+- CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Update still sends `config`, `is_enabled`, and `threshold` without an update mask, and `application`, `subsystem`, and `target` still replace the evaluation. An evaluation whose target is `CONVERSATION` still reads as `conversation`, and one with an unsupported config still fails the read with the released error.
+- CHANGE: Plan-time checks for upper limits are gone: 256 characters for `application`, `subsystem`, and list items, 1024 list items, and 65536 characters for `additional_context`. The API still rejects those values at apply. `threshold` keeps its 0 to 1 range, and `pii.categories` keeps its value check.
+- CHANGE: A config with no variant, or with two, reports the error on each variant instead of once. Error messages of failed API calls changed wording, and the attribute descriptions follow the API contract.
+- CHORE: Add protocol baseline golden files against an in-memory evaluation API, checked against answers recorded from a real tenant, and an upgrade test that creates evaluations with provider 3.21.0 and plans them with this build.
+
+#### resource/coralogix_alerts_scheduler
+- CHORE: The resource is generated from the API contract. Schema version stays 0, every attribute keeps its type, and plans and state keep their values: `start_time` and `time_zone` keep their configured form (with or without `Z`, `UTC` or `UTC+0`), and `UTC` is sent as `UTC+0`.
+- FIX: `schedule.recurring.dynamic.frequency.daily = {}` no longer fails with "inconsistent result after apply". The state keeps `daily = {}`, and the plan after a refresh is empty.
+- FIX: `filter.alerts_unique_ids = []` no longer fails with "inconsistent result after apply". The state keeps `[]`; a filter without a selector still sends an empty `alertUniqueIds` and reads back as null.
+- FIX: Update of a rule deleted outside Terraform (with `-refresh=false`) returns an error that says to apply with a refresh, which removes the rule from state. Before, it returned the raw API 404.
+- FIX: `id` stays known in the plan of an update. Before, every update planned it as unknown, so resources that reference it planned a change too. The API keeps the id on update.
+- FEAT: Validation requires `weekly.days` and `monthly.days`, and exactly one of `daily`, `weekly`, or `monthly` in `frequency`. Before, the API rejected such a rule at apply.
+- CHORE: Update reads the rule from the replace response instead of a second read; the two differ only in a field that the resource does not manage. Attributes without a description show the API description.
+- CHORE: Add the generated acceptance test, with an upgrade test that creates a rule with provider 3.21.0 and plans it with this build.
+
+#### data-source/coralogix_alerts_scheduler
+- CHORE: Uses the schema and the conversion of the generated resource.
+
 #### resource/coralogix_alerts_scheduler
 - CHORE: Add a protocol baseline of the resource (schema and lifecycle scenarios against an in-memory API), checked against a recording of the real API. Test-only; no behavior change.
+
 #### provider
 - CHORE: Bump `coralogix-management-sdk` to the version with the alert suppression rule contract. The SDK holds required fields as values; `coralogix_alerts_scheduler`, `coralogix_events2metric`, and `coralogix_slo_v2` adapt, with no change to plans.
 
@@ -24,13 +52,6 @@
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
 - FIX: An imported SLO with a threshold, a percentile, or a target that a float32 cannot hold exactly, such as `0.2`, plans no change. Before, the import stored `0.20000000298023224`, and the next plan sent an update.
 
-#### resource/coralogix_ai_evaluation
-- CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Update still sends `config`, `is_enabled`, and `threshold` without an update mask, and changing `application`, `subsystem`, or `target` still recreates the evaluation.
-- CHANGE: Plan-time checks for upper limits are gone: 256 characters for `application`, `subsystem`, and list items, 1024 list items, 65536 characters for `additional_context`, `threshold` between 0 and 1, and the PII category values. The API still rejects those values on apply.
-- CHANGE: A config with no variant, or with two, reports the error on each variant instead of once. Error messages of failed API calls changed wording.
-- FIX: An evaluation whose target is `CONVERSATION` still reads into state as `conversation`, as in the released resource; a configuration still cannot set it.
-- CHORE: Add protocol baseline golden files against an in-memory evaluation API, checked against answers recorded from a real tenant.
-
 #### data-source/coralogix_slo_v2
 - CHORE: Uses the schema and the conversion of the generated resource.
 
@@ -48,24 +69,12 @@
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.33`.
 - CHORE: Bump the generator to `v0.1.0-beta.32`.
+- FEAT: An optional request scalar needs `x-coralogix-presence` only when it declares a default that is not its zero value and the zero value is valid, for example `false` next to a default of `true`. An enum never needs it. Without presence or a default, a scalar whose zero value is valid is handled as if it declared that zero value as its server default: it is `Optional + Computed`, and removing it resets it to zero. A scalar whose zero value is not valid, such as an integer with `minimum: 1`, reads zero as null.
 - CHORE: Bump the generator to `v0.1.0-beta.31`.
-- CHORE: Bump the generator to `v0.1.0-beta.30`.
-- CHORE: The `evalthing` golden fixture covers `collection: set`, `requiresReplace`, `unsupportedArms`, a mask-less `updateMaskInBody`, an enum that starts with a business value, and a Get response written as `allOf: [$ref]`.
-- FEAT: `requiresReplace: true` on a top-level field forces a new resource when that field changes, although Update accepts it.
-- FIX: `requiresReplace: true` together with `computed: true` is rejected. That pair is Optional+Computed with RequiresReplace, so omitting the field replaces the resource whenever something else changes.
-- FEAT: `unsupportedArms` keeps a oneOf arm out of the schema and reports it when a response selects it, also for a oneOf group of an object that has other fields.
-- FIX: `unsupportedArms` renders. Before, generation failed with `no SDK field` for the unsupported arm.
-- FIX: An unsupported arm can be missing from the Create and Update components; only the response needs it. A field line on an unsupported arm is an error, because the arm is not in the schema.
-- FIX: The generator does not read the value of an unsupported arm, so that value can use a shape the generator does not support, and the fields inside it need no `x-coralogix-presence`.
-- FEAT: `enums.<Enum>.readRejectedLower: true` reads a rejected value in lower case instead of the API spelling that `readRejected` keeps.
-- FIX: `unsupportedArms` that remove every arm of a oneOf group that requires one are an error. An unsupported arm defined inline with fields needs a component `$ref`; an empty inline arm is accepted.
-- FIX: A client-set id keeps `RequiresReplace`. The check against Optional+Computed with RequiresReplace skips an attribute with `UseStateForUnknown`, which plans an omitted value as its prior state.
-- FEAT: Existing mode accepts an enum whose first value is a business value, such as `PROMPT`, also without an `enums` line, for example the items of a list.
-- FEAT: `api.topLevelMaskReplacesOneOf: true` lets a top-level query-parameter update mask change a nested oneOf when the server replaces the whole value of that path.
-- CHANGE: `api.updateMaskInBody: true` sends no mask, as a released resource that never sent one did. The server updates every field present in the body. An immutable field, also a `requiresReplace` field, stays out of the body. Every field that Update sends must be required, have a static default, or keep its state value, because without a mask removing it cannot clear it. A field that replaces the resource and that the Update body requires is an error, because the body would send its zero value.
-- CHORE: Bump the generator to `v0.1.0-beta.26`.
 - FEAT: `readEmptyAs: "null"` on a `keyedBy` map reads an empty API list as null.
+- CHORE: A test renders the alerts scheduler from the pinned contract with a new top-level and nested field, and checks that the new attributes reach the schema, the model, expand, and flatten while every other generated line stays. The IaC generator CI job downloads the pinned SDK for it.
 - FIX: A skipped empty arm of a top-level oneOf also leaves the resource validator. Before, the validator named an attribute that the schema did not have.
 - FIX: `requestValueBy` is refused on a resource that Update patches with an update mask: the mask cannot hold a derived value, so a switch of the object that sets it could be ignored.
 - FIX: `keyedBy` with `object: true` needs an arm for every accepted value when the items' oneOf requires an arm. Before, a value without one produced items without their required arm.
@@ -138,6 +147,25 @@
 - FIX: A nested server default inside a set is an error. Flatten cannot match a set element that a read returns without the default to the configured element, so it could not keep the configured default.
 - FIX: The unknown-value check and the change check drop server-set values inside a set of objects, as they do in a list or map. Before, an unknown server-set child of a set element blocked Create and Update.
 - FIX: A generated Update that gets a resource-not-found 404 returns an error that says the resource no longer exists and that a refresh removes it from state. A state upgrade that reads the resource returns an error that names `terraform state rm`, because a refresh runs the upgrade first. Neither calls `RemoveResource` any more, which the Framework does not allow there. Read still warns and removes the resource, and Delete still treats the 404 as deleted.
+- FEAT: `api.idProperty` names the property that holds the id when it is not named like the path parameter, for example `uniqueIdentifier` for `{alert_scheduler_rule_id}`.
+- FIX: The SDK check expects a snake_case path parameter in lower camel case, as the Go SDK writes it. Before, it rejected the SDK of any resource with such a parameter.
+- FEAT: A field line `valueNames` keeps released names for the numbers of an integer list or set, for example `Sunday` for day `1`.
+- FEAT: A field line `asBool` keeps a released bool for an object without fields, for example `always_active = true` for the oneOf arm `alwaysActive: {}`.
+- FIX: With `api.idProperty`, an id property that Create does not send is classified as the server-set id, as a path-parameter id is. Before, it was an unsupported field lifecycle. An `idProperty` that names the path parameter is reported as unneeded.
+- FIX: A `name` line can take the name of a field without an attribute (skipped, or a `requestValue`), and such fields take part in no name collision.
+- FEAT: `types.<Type>.groups` makes required Terraform objects that hold fields of a nested component, as `groups` does for top-level fields, for example `frequency` around the daily, weekly, and monthly arms of a recurring schedule.
+- FIX: A renamed top-level field with a server default or an Update-only value keeps its released name in the omitted-default and follow-up Update paths, and in the merged request and response conversion.
+- FEAT: `readEmptyAs: "null"` also works on a list or set of strings inside wrapper objects (`unwrap`), for example `alertUniqueIds: {value: []}`.
+- FIX: `enums.<Enum>.names` and `zero` cannot give a value the spelling of a rejected value that `readRejected` reads back. `defaultArm` needs a full-replace Update, and expand does not send the default arm while another arm is unknown.
+- FIX: A nested group whose model struct name is also the model of a component, the resource, or another group is an error. Before, the group used the other model, and the generated code did not compile.
+- FIX: `types.<Type>.groups` of a type that is no component, or no object of the resource, is an error. Before, a misspelled type name dropped the group without a word. `requireOne` on a nested group needs the arms of one oneOf, as on a top-level group; before, it was accepted and the next read failed.
+- FIX: A `names` entry that gives the spelling the enum has anyway (lower case, `trimPrefix`, or `verbatim`) is an error, so a rename that a contract change makes stale does not stay unnoticed.
+- FIX: A `name` line on a `requestValue` field is an error: the field is no Terraform attribute, so the name changes nothing.
+- FEAT: A field line `terraformType: Int64` keeps the released Int64 type of an int32 field, or of a list or set of int32. Expand converts to int32 and reports a value outside its range.
+- FEAT: A field line `defaultArm` sends an empty arm when the configuration sets no arm of a oneOf that the API requires, for example `alertUniqueIds: {}` for a released filter without a selector. The arm must be a list of strings in wrapper objects with `readEmptyAs: "null"`, and is sent as the empty outer wrapper (`{}`), not as a wrapper of an empty value (`{"value": []}`). An object arm is refused: it would read back as an object of nulls where the plan has null.
+
+#### resource/coralogix_global_router
+- CHORE: The acceptance test compares imported `rules[*].targets` without their order, because the API returns them in no fixed order and an import has no prior order to keep.
 
 #### resource/coralogix_events2metric
 - CHORE: Add protocol baseline golden files against an in-memory events2metrics API, checked against answers recorded from a real tenant.

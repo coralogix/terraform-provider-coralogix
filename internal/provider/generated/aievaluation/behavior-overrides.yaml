@@ -7,10 +7,12 @@ validators:
   inferred: false
 
 api:
-  # Update sends no updateMask, as the released resource did: the server
-  # updates every field present in the body.
   updateMaskInBody: true
   serverSetID: true # PINNED-SDK: the next API contract requires id in the response
+
+# Update sends no updateMask, as the released resource did: the server updates
+# every field present in the body.
+updateMask: omit
 
 types:
   AiEvaluation:
@@ -32,6 +34,7 @@ types:
         validators: [{enum: true}]
       threshold:
         required: true
+        validators: [{between: [0, 1]}]
       isEnabled:
         markdownDescription: "Whether the evaluation is active."
         computed: true
@@ -47,7 +50,7 @@ types:
   EvaluationConfig:
     unsupportedArms: [sqlLoad, customEvaluation]
     unsupportedSummary: "Unsupported AI evaluation config"
-    unsupportedDetail: "This AI evaluation type is not supported by coralogix_ai_evaluation."
+    unsupportedDetail: "Only Allowed Topics, Competition, Hallucination Completeness, Hallucination Context Adherence, Hallucination Context Relevance, Hallucination Correctness, Hallucination Task Adherence, Language Mismatch, PII, Prompt Injection, Restricted Topics, Sexism, SQL Allowed Tables, SQL Hallucination, SQL Read Only, SQL Restricted Tables, and Toxicity AI evaluation configs are currently supported by this resource."
   AllowedTopicsConfig:
     fields:
       topics: {required: true, collection: set, validators: [{sizeAtLeast: 1}]} # required and collection are PINNED-SDK: the next API contract requires the list and marks it UNORDERED_LIST
@@ -59,7 +62,7 @@ types:
       competitors: {required: true, collection: set, validators: [{sizeAtLeast: 1}]} # required and collection are PINNED-SDK: the next API contract requires the list and marks it UNORDERED_LIST
   PiiConfig:
     fields:
-      categories: {required: true, collection: set, validators: [{sizeAtLeast: 1}]} # required and collection are PINNED-SDK: the next API contract requires the list and marks it UNORDERED_LIST
+      categories: {required: true, collection: set, validators: [{sizeAtLeast: 1}, {enum: true}]} # required and collection are PINNED-SDK: the next API contract requires the list and marks it UNORDERED_LIST
   SqlAllowedTablesConfig:
     fields:
       tables: {required: true, collection: set, validators: [{sizeAtLeast: 1}]} # required and collection are PINNED-SDK: the next API contract requires the list and marks it UNORDERED_LIST
@@ -80,3 +83,7 @@ enums:
     # The released resource read CONVERSATION into state as "conversation" but did not accept it in a configuration.
     readRejected: true
     readRejectedLower: true
+  # The first value of the list items is a business value, not a zero value.
+  PiiCategory:
+    verbatim: true
+    values: [PHONE_NUMBER, EMAIL_ADDRESS, CREDIT_CARD, IBAN_CODE, US_SSN]

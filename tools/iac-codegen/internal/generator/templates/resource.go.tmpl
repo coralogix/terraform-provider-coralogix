@@ -231,8 +231,9 @@ func (r *Resource) applyUpdateOnly(ctx context.Context, config tfsdk.Config, pla
 {{- end}}
 {{- if .Replace}}
 	body, d := updateRequest(ctx, config, &next, state)
-{{- else if .MaskInBody}}
-	// The released API call sends no updateMask.
+{{- else if .OmitMask}}
+	// The released API call sends no updateMask. The server updates every
+	// field present in the body.
 	body, _, d := updateRequest(ctx, config, &next, state)
 {{- else}}
 	body, mask, d := updateRequest(ctx, config, &next, state)
@@ -249,6 +250,13 @@ func (r *Resource) applyUpdateOnly(ctx context.Context, config tfsdk.Config, pla
 			return diags
 		}
 	}
+{{- end}}
+{{- if and .MaskInBody (not .OmitMask)}}
+	{{- if $.Conv.UpdateMaskPointer}}
+	body.{{$.Conv.UpdateMaskField}} = &mask
+	{{- else}}
+	body.{{$.Conv.UpdateMaskField}} = mask
+	{{- end}}
 {{- end}}
 {{- if .UpdateBodyID}}
 	// Only the server sets the id, so no Update field sends it. The body names the resource by it.
@@ -335,7 +343,7 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 	}
 {{- if .Replace}}
 	body, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
-{{- else if .MaskInBody}}
+{{- else if .OmitMask}}
 	// The released API call sends no updateMask. The server updates every
 	// field present in the body.
 	body, _, diags := updateRequest(ctx, req.Config, req.Plan, req.State)
@@ -359,6 +367,13 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 	if body == nil {
 		v, err = r.get(ctx, id)
 	} else {
+{{- if and .MaskInBody (not .OmitMask)}}
+		{{- if $.Conv.UpdateMaskPointer}}
+		body.{{$.Conv.UpdateMaskField}} = &mask
+		{{- else}}
+		body.{{$.Conv.UpdateMaskField}} = mask
+		{{- end}}
+{{- end}}
 {{- if .UpdateBodyID}}
 		// Only the server sets the id, so no Update field sends it. The body names the resource by it.
 		body.{{.UpdateBodyID}} = {{if not .UpdateBodyIDValue}}&{{end}}id

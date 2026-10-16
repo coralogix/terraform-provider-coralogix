@@ -16,14 +16,11 @@ package alerts
 
 import (
 	"context"
-	"slices"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-
 	alertscheduler "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_scheduler_rule_service"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 )
 
 func TestNormalizeStartTimeFromAPI(t *testing.T) {
@@ -125,92 +122,28 @@ func TestStartTimeSemanticallyEqual(t *testing.T) {
 	}
 }
 
-func TestFlattenFilterTreatsNilOrEmptyAlertIDsAsAllAlerts(t *testing.T) {
-	ctx := context.Background()
-	tests := []struct {
-		name string
-		ids  []string
-	}{
-		{name: "nil ids", ids: nil},
-		{name: "empty ids", ids: []string{}},
+// Both request bodies send time_zone UTC as UTC+0. Another body type is an error, so a renamed SDK
+// type cannot skip the conversion silently.
+func TestSendUTCAsUTCPlus0(t *testing.T) {
+	rule := func() alertscheduler.AlertSchedulerRule {
+		return alertscheduler.AlertSchedulerRule{Schedule: alertscheduler.Schedule{
+			OneTime: &alertscheduler.OneTime{Timeframe: alertscheduler.Timeframe{Timezone: "UTC"}},
+		}}
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			filter := &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
-				WhatExpression: "source logs | filter true",
-				AlertUniqueIds: &alertscheduler.AlertUniqueIds{Value: tt.ids},
-			}
-
-			got, diags := flattenFilter(ctx, filter)
-			if diags.HasError() {
-				t.Fatalf("flattenFilter returned diagnostics: %v", diags)
-			}
-
-			var model FilterModel
-			if diags := got.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
-				t.Fatalf("converting flattened filter returned diagnostics: %v", diags)
-			}
-
-			if got := model.WhatExpression.ValueString(); got != "source logs | filter true" {
-				t.Fatalf("what_expression = %q, want source logs | filter true", got)
-			}
-			if !model.AlertsUniqueIDs.IsNull() {
-				t.Fatalf("alerts_unique_ids should be null for all-alert backend filter, got %#v", model.AlertsUniqueIDs)
-			}
-			if !model.MetaLabels.IsNull() {
-				t.Fatalf("meta_labels should be null for all-alert backend filter, got %#v", model.MetaLabels)
-			}
-		})
+	create := &alertscheduler.CreateAlertSchedulerRuleRequestDataStructure{AlertSchedulerRule: rule()}
+	update := &alertscheduler.UpdateAlertSchedulerRuleRequestDataStructure{AlertSchedulerRule: rule()}
+	for _, body := range []any{create, update} {
+		if diags := sendUTCAsUTCPlus0(context.Background(), tfsdk.Config{}, body); diags.HasError() {
+			t.Fatal(diags)
+		}
 	}
-}
-
-func TestFlattenFilterPreservesDirectAlertIDs(t *testing.T) {
-	ctx := context.Background()
-	filter := &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
-		WhatExpression: "source logs | filter true",
-		AlertUniqueIds: &alertscheduler.AlertUniqueIds{Value: []string{"alert-id-1", "alert-id-2"}},
+	if got := create.AlertSchedulerRule.Schedule.OneTime.Timeframe.Timezone; got != "UTC+0" {
+		t.Fatalf("create sent %q, want UTC+0", got)
 	}
-
-	got, diags := flattenFilter(ctx, filter)
-	if diags.HasError() {
-		t.Fatalf("flattenFilter returned diagnostics: %v", diags)
+	if got := update.AlertSchedulerRule.Schedule.OneTime.Timeframe.Timezone; got != "UTC+0" {
+		t.Fatalf("update sent %q, want UTC+0", got)
 	}
-
-	var model FilterModel
-	if diags := got.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
-		t.Fatalf("converting flattened filter returned diagnostics: %v", diags)
-	}
-
-	var ids []string
-	if diags := model.AlertsUniqueIDs.ElementsAs(ctx, &ids, false); diags.HasError() {
-		t.Fatalf("converting alert IDs returned diagnostics: %v", diags)
-	}
-	slices.Sort(ids)
-	if len(ids) != 2 || ids[0] != "alert-id-1" || ids[1] != "alert-id-2" {
-		t.Fatalf("alerts_unique_ids = %#v, want [alert-id-1 alert-id-2]", ids)
-	}
-}
-
-func TestExtractFilterOmitsAlertIDsForAllAlerts(t *testing.T) {
-	ctx := context.Background()
-	filter, diags := types.ObjectValueFrom(ctx, filterModelAttr(), FilterModel{
-		WhatExpression:  types.StringValue("source logs | filter true"),
-		MetaLabels:      types.SetNull(types.ObjectType{AttrTypes: labelModelAttr()}),
-		AlertsUniqueIDs: types.SetNull(types.StringType),
-	})
-	if diags.HasError() {
-		t.Fatalf("creating filter object returned diagnostics: %v", diags)
-	}
-
-	got, diags := extractFilter(ctx, filter)
-	if diags.HasError() {
-		t.Fatalf("extractFilter returned diagnostics: %v", diags)
-	}
-	if got.AlertUniqueIds == nil {
-		t.Fatal("extractFilter did not produce alert unique IDs filter for all-alert config")
-	}
-	if ids := got.AlertUniqueIds.Value; ids != nil {
-		t.Fatalf("all-alert config should extract nil alert IDs, got %#v", ids)
+	if diags := sendUTCAsUTCPlus0(context.Background(), tfsdk.Config{}, &struct{}{}); !diags.HasError() {
+		t.Fatal("another body type must be an error")
 	}
 }

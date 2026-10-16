@@ -14,9 +14,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/source"
+	"github.com/coralogix/coralogix-management-sdk/iac/issue"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/source"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
 )
 
@@ -25,7 +25,7 @@ var updateGolden = flag.Bool("update", false, "replace the committed golden outp
 // The golden output of a resource that users already have. It uses every key of the
 // behavior-overrides file.
 func TestGoldenOutputExistingResource(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "legacy.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "legacy.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,6 +102,47 @@ func TestGoldenOutputEchoedValues(t *testing.T) {
 	if diff := compareDirectories(golden, out); diff != "" {
 		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputEchoedValues -update:\n%s", diff)
 	}
+}
+
+// The golden output of a released resource like the AI evaluation API: updateMask: omit,
+// requiresReplace, unsupportedArms, and readRejectedLower.
+func TestGoldenOutputEvalThing(t *testing.T) {
+	out := generateEvalThing(t)
+	golden := filepath.Join("testdata", "golden", "evalthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputEvalThing -update:\n%s", diff)
+	}
+}
+
+// The generated EvalThing compiles against its SDK.
+func TestEvalThingCompiles(t *testing.T) {
+	input, _ := syntheticInput(t)
+	compileGenerated(t, generateEvalThing(t), input)
+}
+
+// generateEvalThing generates the synthetic resource like the AI evaluation API.
+func generateEvalThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "evalthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "evalthing")
+	options := Options{Resource: "EvalThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "evalthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
 }
 
 // generateEchoThing generates the synthetic resource whose Replace echoes server values.
@@ -228,52 +269,10 @@ func TestSharedBodyRuntimeSemantics(t *testing.T) {
 	compileGenerated(t, out, input)
 }
 
-// The golden output of a released resource like the AI evaluation API: Update sends no mask,
-// a field line forces replace, an unsupported oneOf arm, a list that is a set by a line, an
-// enum that starts with a business value, and a Get response that wraps the resource in allOf.
-func TestGoldenOutputEvalThing(t *testing.T) {
-	out := generateEvalThing(t)
-	golden := filepath.Join("testdata", "golden", "evalthing")
-	if *updateGolden {
-		if err := os.RemoveAll(golden); err != nil {
-			t.Fatal(err)
-		}
-		if err := copyDirectory(out, golden); err != nil {
-			t.Fatal(err)
-		}
-	}
-	if diff := compareDirectories(golden, out); diff != "" {
-		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputEvalThing -update:\n%s", diff)
-	}
-}
-
-// The generated EvalThing compiles against its SDK.
-func TestEvalThingCompiles(t *testing.T) {
-	input, _ := syntheticInput(t)
-	compileGenerated(t, generateEvalThing(t), input)
-}
-
-// generateEvalThing generates the synthetic resource like the AI evaluation API.
-func generateEvalThing(t *testing.T) string {
-	t.Helper()
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "evalthing.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	input, loadDir := syntheticInput(t)
-	input.OpenAPI = spec
-	out := filepath.Join(t.TempDir(), "evalthing")
-	options := Options{Resource: "EvalThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "evalthing-overrides.yaml")}
-	if err := generateFromInput(options, input, loadDir); err != nil {
-		t.Fatal(err)
-	}
-	return out
-}
-
 // generateSharedThing generates the synthetic resource whose Create and Update share one body.
 func generateSharedThing(t *testing.T) string {
 	t.Helper()
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "sharedthing.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "sharedthing.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -290,7 +289,7 @@ func generateSharedThing(t *testing.T) string {
 // generateCustomThing generates the synthetic resource with custom-method operations.
 func generateCustomThing(t *testing.T) string {
 	t.Helper()
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "customthing.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "customthing.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -307,7 +306,7 @@ func generateCustomThing(t *testing.T) string {
 // generateWrapThing generates the synthetic resource whose API holds values in wrapper objects.
 func generateWrapThing(t *testing.T) string {
 	t.Helper()
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "wrapthing.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "wrapthing.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -412,43 +411,12 @@ func TestGeneratedUpdateMaskUsesQueryParameter(t *testing.T) {
 
 // A released PATCH that puts updateMask in the JSON body uses the same update
 // as a query-parameter mask, then sets that mask on the body.
-func TestBodyUpdateMaskIsNotSent(t *testing.T) {
+func TestBodyUpdateMaskSetsTheSameMask(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
 	input.OpenAPI = []byte(moveUpdateMaskIntoBody(t, string(input.OpenAPI)))
-	out, err := generateBodyMaskResource(t, input, sdkDir, bodyMaskFieldLines)
-	if err != nil {
-		t.Fatal(err)
-	}
+	out := generateBodyMaskResource(t, input, sdkDir)
 	assertBodyUpdateMask(t, out)
 	compileGenerated(t, out, input)
-}
-
-// bodyMaskFieldLines make every Thing field that Update sends required or give
-// it a static default, so that a body without a mask can still set each one.
-const bodyMaskFieldLines = `types:
-  Thing:
-    fields:
-      name: {requiresReplace: true}
-      description: {required: true}
-      enabled: {computed: true, default: true}
-      spec: {required: true}
-      destinations: {required: true}
-      tags: {required: true}
-      details: {required: true}
-      labels: {required: true}
-      expireTime: {required: true}
-      windows: {required: true}
-`
-
-// Without a mask, the server keeps a field that the body omits, so an optional
-// field could not be cleared.
-func TestBodyUpdateMaskRejectsAClearableField(t *testing.T) {
-	input, sdkDir := syntheticInput(t)
-	input.OpenAPI = []byte(moveUpdateMaskIntoBody(t, string(input.OpenAPI)))
-	_, err := generateBodyMaskResource(t, input, sdkDir, "")
-	if err == nil || !strings.Contains(err.Error(), "description: api.updateMaskInBody sends no mask") {
-		t.Fatalf("err = %v, want the clearable description field", err)
-	}
 }
 
 func moveUpdateMaskIntoBody(t *testing.T, text string) string {
@@ -472,62 +440,36 @@ func moveUpdateMaskIntoBody(t *testing.T, text string) string {
 	return text[:start] + tail
 }
 
-// The body holds the whole config, and no mask is sent, so a top-level pattern
-// does not stop a change of the oneOf arm.
-func TestTopLevelBodyMaskAcceptsNestedOneOf(t *testing.T) {
-	input, sdkDir := syntheticInput(t)
-	spec := moveUpdateMaskIntoBody(t, string(input.OpenAPI))
-	top := "pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'"
-	dotted := "pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'"
-	spec = strings.Replace(spec, dotted, top, 1)
-	if spec == moveUpdateMaskIntoBody(t, string(input.OpenAPI)) {
-		t.Fatal("cannot replace the body mask pattern")
-	}
-	input.OpenAPI = []byte(spec)
-	if _, err := generateBodyMaskResource(t, input, sdkDir, bodyMaskFieldLines); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func generateBodyMaskResource(t *testing.T, input source.Input, sdkDir, lines string) (string, error) {
+func generateBodyMaskResource(t *testing.T, input source.Input, sdkDir string) string {
 	t.Helper()
 	dir := t.TempDir()
 	overrides := filepath.Join(dir, "behavior-overrides.yaml")
-	file := `resource: Thing
+	const file = `resource: Thing
 mode: existing
 validators:
   inferred: false
 api:
   updateMaskInBody: true
-` + lines
+`
 	if err := os.WriteFile(overrides, []byte(file), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	out := filepath.Join(dir, "thing")
-	return out, generateFromInput(Options{Resource: "Thing", OutputDir: out, OverridesPath: overrides}, input, sdkDir)
+	if err := generateFromInput(Options{Resource: "Thing", OutputDir: out, OverridesPath: overrides}, input, sdkDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
 }
 
 func assertBodyUpdateMask(t *testing.T, out string) {
 	t.Helper()
 	resource := mustRead(t, filepath.Join(out, "resource.go"))
-	if bytes.Contains(resource, []byte("UpdateMask")) || !bytes.Contains(resource, []byte("body, _, diags := updateRequest(")) {
-		t.Fatalf("resource.go sends a mask:\n%s", resource)
+	if bytes.Contains(resource, []byte("UpdateMask(")) || !bytes.Contains(resource, []byte("body.UpdateMask = &mask")) {
+		t.Fatalf("resource.go does not set the mask on the body:\n%s", resource)
 	}
 	mask := mustRead(t, filepath.Join(out, "mask.go"))
 	if bytes.Contains(mask, []byte("keepChanged")) || bytes.Contains(mask, []byte("body.UpdateMask")) {
 		t.Fatalf("mask.go does not reuse the query-parameter update:\n%s", mask)
-	}
-	// A requiresReplace field stays out of the body: a change of it replaces
-	// the resource, and the server would update every field in the body.
-	convert := string(mustRead(t, filepath.Join(out, "convert.go")))
-	start := strings.Index(convert, "func expandUpdateThingRequest(")
-	if start < 0 {
-		t.Fatalf("convert.go has no Update body expand:\n%s", convert)
-	}
-	update := convert[start:]
-	update = update[:strings.Index(update, "\n}\n")]
-	if strings.Contains(update, "out.Name =") || !strings.Contains(update, "out.Description =") {
-		t.Fatalf("the Update body sends the replacing name, or misses description:\n%s", update)
 	}
 	schema := mustRead(t, filepath.Join(out, "schema.go"))
 	if bytes.Contains(schema, []byte("update_mask")) || bytes.Contains(schema, []byte("updateMask")) {
@@ -632,7 +574,7 @@ func TestObjectCollectionAttrTypeFollowsSetOrList(t *testing.T) {
 
 func TestEligibilityFailurePreservesOutput(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
-	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("x-coralogix-presence: true"), nil, 2)
+	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("default: true\n                  x-coralogix-presence: true"), []byte("default: true"), 1)
 	out := filepath.Join(t.TempDir(), "thing")
 	if err := os.Mkdir(out, 0o755); err != nil {
 		t.Fatal(err)
@@ -654,7 +596,7 @@ func TestEligibilityFailurePreservesOutput(t *testing.T) {
 
 func TestCheckUsesGenerateEligibilityAndWritesNothing(t *testing.T) {
 	input, sdkDir := syntheticInput(t)
-	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("x-coralogix-presence: true"), nil, 2)
+	input.OpenAPI = bytes.Replace(input.OpenAPI, []byte("default: true\n                  x-coralogix-presence: true"), []byte("default: true"), 1)
 	work := t.TempDir()
 	candidate := filepath.Join(work, "candidate.yaml")
 	if err := os.WriteFile(candidate, input.OpenAPI, 0o644); err != nil {
@@ -705,6 +647,12 @@ func TestContractGapsUseSharedFailClosedValidation(t *testing.T) {
 		"invalid enum zero": {
 			spec: strings.Replace(base, "THING_KIND_UNSPECIFIED", "THING_KIND_NOT_SET", 1),
 			code: "ENUM_ZERO_INVALID",
+		},
+		"top-level mask for nested oneOf": {
+			spec: strings.Replace(base,
+				"pattern: '^[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*(,[a-z][A-Za-z0-9]*(\\.[a-z][A-Za-z0-9]*)*)*$'",
+				"pattern: '^[a-z][A-Za-z0-9]*(,[a-z][A-Za-z0-9]*)*$'", 1),
+			code: "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED",
 		},
 	}
 	for name, test := range tests {
@@ -1021,7 +969,7 @@ func TestCheckRejectsMissingSchemasWithoutPanic(t *testing.T) {
 	}
 	for name, spec := range tests {
 		t.Run(name, func(t *testing.T) {
-			_, err := validateOpenAPI([]byte(spec), "Thing", model.OperationIDs{}, input.SDKModule, input.ProviderModule)
+			_, err := validateOpenAPI([]byte(spec), "Thing", model.OperationIDs{}, input.SDKModule, input.Module)
 			var eligibility *EligibilityError
 			if !errors.As(err, &eligibility) || len(eligibility.Report) == 0 {
 				t.Fatalf("error = %v, want a structured eligibility report", err)
@@ -1224,6 +1172,16 @@ func TestExistingNonGeneratedDirectoryIsRejected(t *testing.T) {
 	}
 }
 
+// assertFragments reports each fragment that the generated file does not contain.
+func assertFragments(t *testing.T, file string, data []byte, contract string, fragments ...string) {
+	t.Helper()
+	for _, fragment := range fragments {
+		if !bytes.Contains(data, []byte(fragment)) {
+			t.Errorf("%s lacks %s contract fragment %q", file, contract, fragment)
+		}
+	}
+}
+
 func TestGeneratedPresenceCollectionAndUpdateContract(t *testing.T) {
 	convert, err := os.ReadFile(filepath.Join("testdata", "golden", "thing", "convert.go"))
 	if err != nil {
@@ -1233,7 +1191,7 @@ func TestGeneratedPresenceCollectionAndUpdateContract(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, fragment := range []string{
+	assertFragments(t, "convert.go", convert, "semantic",
 		"if v.IsNull() || v.IsUnknown() {\n\t\treturn nil",
 		"b := v.ValueBool()\n\treturn &b",
 		"s := v.ValueString()\n\treturn &s",
@@ -1241,36 +1199,24 @@ func TestGeneratedPresenceCollectionAndUpdateContract(t *testing.T) {
 		"types.ListNull(types.StringType)",
 		"types.SetNull(types.StringType)",
 		"types.MapNull(types.StringType)",
-	} {
-		if !bytes.Contains(convert, []byte(fragment)) {
-			t.Errorf("convert.go lacks semantic contract fragment %q", fragment)
-		}
-	}
-	for _, fragment := range []string{
+	)
+	assertFragments(t, "mask.go", mask, "update",
 		"if p.Equal(s)",
 		"return append(mask, at)",
 		"pArm == nil:\n\t\treturn append(mask, at+\".\"+sArm.api)",
 		"if diags.HasError() || len(mask) == 0",
-	} {
-		if !bytes.Contains(mask, []byte(fragment)) {
-			t.Errorf("mask.go lacks update contract fragment %q", fragment)
-		}
-	}
+	)
 	resource, err := os.ReadFile(filepath.Join("testdata", "golden", "thing", "resource.go"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, fragment := range []string{
+	assertFragments(t, "resource.go", resource, "runtime",
 		`req.ProviderData.(*clientset.ClientSet)`,
 		`if cxsdk.IsNotFound(err) {`,
 		`resp.Diagnostics.AddWarning("Resource disappeared during read"`,
 		`resp.Diagnostics.AddError("Resource no longer exists"`,
 		`resp.State.RemoveResource(ctx)`,
-	} {
-		if !bytes.Contains(resource, []byte(fragment)) {
-			t.Errorf("resource.go lacks runtime contract fragment %q", fragment)
-		}
-	}
+	)
 	// The framework fails an Update that removes the resource from state.
 	start := bytes.Index(resource, []byte("func (r *Resource) Update("))
 	end := bytes.Index(resource[start+1:], []byte("\nfunc "))
@@ -1457,7 +1403,7 @@ func TestGeneratedRuntimeSemantics(t *testing.T) {
 // existing-resource output must also compile, for example with an import for
 // the static default of a nested attribute.
 func TestExistingResourceOutputCompiles(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "legacy.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "legacy.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1549,7 +1495,7 @@ func TestWrappedValuesRuntimeSemantics(t *testing.T) {
 // Terraform attribute. Create and Update must not read it. Reading a missing
 // attribute fails every Create and every Update.
 func TestWritableRequestValueIsNotChecked(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "customthing.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "customthing.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1630,7 +1576,7 @@ go 1.26.0
 
 replace example.com/iac-test-sdk => %s
 replace github.com/coralogix/terraform-provider-coralogix => %s
-`, input.SDKDir, input.ProviderRoot)
+`, input.SDKDir, input.ModuleRoot)
 	if err := os.WriteFile(filepath.Join(out, "go.mod"), []byte(module), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -1702,7 +1648,7 @@ func TestOptionalSDKValuesNeedPointers(t *testing.T) {
 
 func TestProviderClientAccessorMustMatchSDKClient(t *testing.T) {
 	input, loadDir := copiedSyntheticInput(t)
-	path := filepath.Join(input.ProviderRoot, "internal", "clientset", "clientset.go")
+	path := filepath.Join(input.ModuleRoot, "internal", "clientset", "clientset.go")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -1779,28 +1725,6 @@ func TestMaskPatternContract(t *testing.T) {
 	}
 }
 
-func TestSDKLoadingIsOffline(t *testing.T) {
-	t.Setenv("GOPROXY", "https://proxy.invalid")
-	t.Setenv("GOSUMDB", "sum.invalid")
-	env := offlineGoEnv()
-	if got := environmentValue(env, "GOPROXY"); got != "off" {
-		t.Fatalf("GOPROXY = %q, want off", got)
-	}
-	if got := environmentValue(env, "GOSUMDB"); got != "off" {
-		t.Fatalf("GOSUMDB = %q, want off", got)
-	}
-}
-
-func environmentValue(env []string, name string) string {
-	prefix := name + "="
-	for _, item := range env {
-		if strings.HasPrefix(item, prefix) {
-			return strings.TrimPrefix(item, prefix)
-		}
-	}
-	return ""
-}
-
 func syntheticInput(t *testing.T) (source.Input, string) {
 	t.Helper()
 	data, err := os.ReadFile(filepath.Join("testdata", "openapi.yaml"))
@@ -1815,7 +1739,7 @@ func syntheticInput(t *testing.T) (source.Input, string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return source.Input{ProviderRoot: providerDir, ProviderModule: source.ProviderModule, SDKDir: sdkDir, SDKModule: "example.com/iac-test-sdk", OpenAPI: data}, providerDir
+	return source.Input{ModuleRoot: providerDir, Module: providerModulePath, SDKDir: sdkDir, SDKModule: "example.com/iac-test-sdk", OpenAPI: data}, providerDir
 }
 
 func copiedSyntheticInput(t *testing.T) (source.Input, string) {
@@ -1827,11 +1751,11 @@ func copiedSyntheticInput(t *testing.T) (source.Input, string) {
 	if err := copyTree(input.SDKDir, sdkDir); err != nil {
 		t.Fatal(err)
 	}
-	if err := copyTree(input.ProviderRoot, providerDir); err != nil {
+	if err := copyTree(input.ModuleRoot, providerDir); err != nil {
 		t.Fatal(err)
 	}
 	input.SDKDir = sdkDir
-	input.ProviderRoot = providerDir
+	input.ModuleRoot = providerDir
 	return input, providerDir
 }
 
@@ -2021,29 +1945,11 @@ func TestImmutableValueRejectsOptionalComputedOverride(t *testing.T) {
 	}
 }
 
-// requiresReplace on an optional field that an override also marks computed
-// emits Optional+Computed with the stock RequiresReplace. Omitting the field
-// plans it unknown on any other change, which replaces the resource.
-func TestRequiresReplaceRejectsOptionalComputed(t *testing.T) {
-	resource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{
-		{Name: "name", Type: &model.Type{Kind: model.String}, Behavior: model.Immutable, Create: &model.Attrs{}, Get: &model.Attrs{}, InGet: true},
-	}}
-	base := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\n"
-	if _, err := buildTFResourceWith(resource, "thing", mustParse(t, base)); err != nil {
-		t.Fatalf("requiresReplace without computed: %v", err)
-	}
-	file := mustParse(t, base+"types:\n  Thing:\n    fields:\n      name: {computed: true}\n")
-	_, err := buildTFResourceWith(resource, "thing", file)
-	if err == nil || !strings.Contains(err.Error(), "name: an optional and computed attribute cannot require replacement") {
-		t.Fatalf("err = %v, want the optional and computed attribute name", err)
-	}
-}
-
 // LegacyTarget is one component in the request and the response, and its id is readOnly.
 // Without a skip line, the id is a computed attribute: flatten reads it, expand does not send
 // it, and the output compiles against the SDK struct that has the field.
 func TestSharedComponentReadOnlyFieldIsFlattenedOnly(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "legacy.yaml"))
+	spec, err := os.ReadFile(filepath.Join("testdata", "legacy.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2102,11 +2008,82 @@ func functionBody(t *testing.T, source, signature string) string {
 	return source[start : start+end]
 }
 
+func TestFollowUpUpdateSendsTheServerSetID(t *testing.T) {
+	out, input := generateSharedWithUpdateOnly(t, func(s string) string { return s })
+	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	src := string(resource)
+	start := strings.Index(src, "func (r *Resource) applyUpdateOnly(")
+	if start < 0 {
+		t.Fatal("resource.go has no applyUpdateOnly")
+	}
+	end := strings.Index(src[start:], "\n}\n")
+	if !strings.Contains(src[start:start+end], "body.Id = &id") {
+		t.Fatalf("applyUpdateOnly does not send the state id:\n%s", src[start:start+end])
+	}
+	compileGenerated(t, out, input)
+}
+
+// The golden output of a resource whose id property has another name than the path parameter,
+// and whose released attributes have other names than the API.
+func TestGoldenOutputIDPropertyAndNames(t *testing.T) {
+	out := generateSuppressedThing(t)
+	golden := filepath.Join("testdata", "golden", "suppressedthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputIDPropertyAndNames -update:\n%s", diff)
+	}
+}
+
+// generateSuppressedThing generates the synthetic resource modeled on alert suppression rules.
+func generateSuppressedThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "suppressedthing")
+	options := Options{Resource: "SuppressedThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "suppressed-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// The generated resource whose id property has another name than the path parameter sends no id on
+// Create, sends the id property on Update, and reads it back as the id attribute.
+func TestIDPropertyRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateSuppressedThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "suppressed_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
 // An Update-only field with a default makes Create follow with an Update. When only the server
 // sets the id and Update finds the resource by the id in the body, that follow-up Update sends
 // the state id as the normal Update does.
-func TestFollowUpUpdateSendsTheServerSetID(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("..", "model", "testdata", "sharedthing.yaml"))
+// generateSharedWithUpdateOnly generates sharedthing with an Update-only field, compact, that has
+// a server default. edit changes the behavior-overrides file.
+func generateSharedWithUpdateOnly(t *testing.T, edit func(string) string) (string, source.Input) {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "sharedthing.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2131,71 +2108,125 @@ func TestFollowUpUpdateSendsTheServerSetID(t *testing.T) {
 	}
 	n := c + strings.Index(text[c:], componentName) + len(componentName)
 	text = text[:n] + "        compact: {type: boolean, x-coralogix-presence: true}\n" + text[n:]
+	overrides, err := os.ReadFile(filepath.Join("testdata", "sharedthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overridesPath := filepath.Join(t.TempDir(), "overrides.yaml")
+	if err := os.WriteFile(overridesPath, []byte(edit(string(overrides))), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	input, loadDir := syntheticInput(t)
 	input.OpenAPI = []byte(text)
 	out := filepath.Join(t.TempDir(), "sharedthing")
-	options := Options{Resource: "SharedThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "sharedthing-overrides.yaml")}
+	options := Options{Resource: "SharedThing", OutputDir: out, OverridesPath: overridesPath}
 	if err := generateFromInput(options, input, loadDir); err != nil {
 		t.Fatal(err)
 	}
+	return out, input
+}
+
+// A renamed Update-only field keeps its released name in the follow-up Update.
+func TestRenamedUpdateOnlyFieldUsesItsName(t *testing.T) {
+	out, input := generateSharedWithUpdateOnly(t, func(s string) string {
+		return strings.Replace(s, "  SharedThing:\n    fields:\n", "  SharedThing:\n    fields:\n      compact: {name: compact_mode}\n", 1)
+	})
 	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	src := string(resource)
-	start := strings.Index(src, "func (r *Resource) applyUpdateOnly(")
-	if start < 0 {
-		t.Fatal("resource.go has no applyUpdateOnly")
-	}
-	end := strings.Index(src[start:], "\n}\n")
-	if !strings.Contains(src[start:start+end], "body.Id = &id") {
-		t.Fatalf("applyUpdateOnly does not send the state id:\n%s", src[start:start+end])
+	if !strings.Contains(string(resource), `{attr: "compact_mode",`) || strings.Contains(string(resource), `{attr: "compact",`) {
+		t.Fatalf("updateOnlyFields does not name compact_mode:\n%s", functionBody(t, string(resource), "var updateOnlyFields"))
 	}
 	compileGenerated(t, out, input)
 }
 
-// A field that keeps its state value is sent with that value, so the body
-// mask guard accepts it.
-func TestBodyUpdateMaskAcceptsAStateKeptField(t *testing.T) {
-	input, sdkDir := syntheticInput(t)
-	input.OpenAPI = []byte(moveUpdateMaskIntoBody(t, string(input.OpenAPI)))
-	lines := strings.Replace(bodyMaskFieldLines, "      description: {required: true}\n", "      description: {computed: true, useStateForUnknown: true}\n", 1)
-	if lines == bodyMaskFieldLines {
-		t.Fatal("cannot change the description line")
-	}
-	if _, err := generateBodyMaskResource(t, input, sdkDir, lines); err != nil {
+// generateEvalThingWith generates EvalThing with another overrides file and, when edit is not
+// nil, another spec.
+func generateEvalThingWith(t *testing.T, lines string, edit func(string) string) error {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "evalthing.yaml"))
+	if err != nil {
 		t.Fatal(err)
 	}
+	if edit != nil {
+		spec = []byte(edit(string(spec)))
+	}
+	path := filepath.Join(t.TempDir(), "behavior-overrides.yaml")
+	if err := os.WriteFile(path, []byte(lines), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	return generateFromInput(Options{Resource: "EvalThing", OutputDir: filepath.Join(t.TempDir(), "evalthing"), OverridesPath: path}, input, loadDir)
 }
 
-// A field that Update requires is a value in the SDK, so leaving a
-// requiresReplace field out of a mask-less body would still send its zero
-// value. The generator rejects it.
-func TestBodyUpdateMaskRejectsARequiredReplacedField(t *testing.T) {
-	input, sdkDir := syntheticInput(t)
-	spec := moveUpdateMaskIntoBody(t, string(input.OpenAPI))
-	required := strings.Replace(spec, "              title: UpdateThingRequest\n              type: object\n              required: []\n",
-		"              title: UpdateThingRequest\n              type: object\n              required: [name]\n", 1)
-	if required == spec {
-		t.Fatal("cannot require name in the Update body")
+// evalThingLines are the overrides of EvalThing without the keys that a test varies.
+func evalThingLines(t *testing.T) string {
+	t.Helper()
+	lines, err := os.ReadFile(filepath.Join("testdata", "evalthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
 	}
-	input.OpenAPI = []byte(required)
-	_, err := generateBodyMaskResource(t, input, sdkDir, bodyMaskFieldLines)
-	if err == nil || !strings.Contains(err.Error(), "name: api.updateMaskInBody leaves a field that replaces the resource out of the Update body") {
-		t.Fatalf("err = %v, want the required replaced field", err)
-	}
+	return string(lines)
 }
 
-// openapi-generator puts "_" between a digit and the letter after it in the constant of an enum
-// value, and keeps the type name as one word.
-func TestEnumConstName(t *testing.T) {
-	for _, test := range []struct{ typ, value, want string }{
-		{"E2MType", "E2M_TYPE_LOGS2METRICS", "E2MTYPE_E2_M_TYPE_LOGS2_METRICS"},
-		{"Logs2metricsV2Severity", "SEVERITY_DEBUG", "LOGS2METRICSV2SEVERITY_SEVERITY_DEBUG"},
-		{"ThingKind", "THING_KIND_P5_OR_UNSPECIFIED", "THINGKIND_THING_KIND_P5_OR_UNSPECIFIED"},
-	} {
-		if got := enumConstName(test.typ, test.value); got != test.want {
-			t.Errorf("enumConstName(%q, %q) = %q, want %q", test.typ, test.value, got, test.want)
+func TestReleasedShapeErrors(t *testing.T) {
+	base := evalThingLines(t)
+	replace := func(old, new string) string {
+		t.Helper()
+		if !strings.Contains(base, old) {
+			t.Fatalf("the overrides lack %q", old)
 		}
+		return strings.Replace(base, old, new, 1)
+	}
+	tests := map[string]struct {
+		lines string
+		edit  func(string) string
+		want  string
+	}{
+		"requiresReplace below the top level": {
+			lines: replace("      context:\n        computed: true\n        default: \"\"\n", "      context:\n        requiresReplace: true\n"),
+			want:  "requiresReplace works on a top-level field of EvalThing only",
+		},
+		"requiresReplace on a field that Update requires": {
+			lines: base,
+			edit: func(spec string) string {
+				return strings.Replace(spec, "              title: UpdateEvalThingRequest\n              type: object\n", "              title: UpdateEvalThingRequest\n              type: object\n              required: [name]\n", 1)
+			},
+			want: "requiresReplace leaves the field out of the Update body, but the Update body requires it",
+		},
+		"an unsupported arm that is no arm": {
+			lines: replace("    unsupportedArms: [legacy]\n", "    unsupportedArms: [missing]\n"),
+			want:  `"missing" is not a oneOf arm`,
+		},
+		"unsupported arms that remove every arm": {
+			lines: replace("    unsupportedArms: [legacy]\n", "    unsupportedArms: [legacy, topics, toxicity]\n"),
+			want:  "removes every arm",
+		},
+		"an optional field that the omitted mask cannot clear": {
+			lines: replace("      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        markdownDescription: Whether the thing is enabled.\n"),
+			want:  "enabled: updateMask: omit sends no mask, so removing this optional attribute would not clear it",
+		},
+		"a body mask that names the arm without updateMask: omit": {
+			lines: replace("updateMask: omit\n", ""),
+			want:  "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if err := generateEvalThingWith(t, test.lines, test.edit); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}
+
+// A field that keeps its state value is always in the Update body, so updateMask: omit accepts it
+// as optional.
+func TestOmittedMaskAcceptsAStateKeptField(t *testing.T) {
+	lines := strings.Replace(evalThingLines(t), "      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        computed: true\n        useStateForUnknown: true\n", 1)
+	if err := generateEvalThingWith(t, lines, nil); err != nil {
+		t.Fatal(err)
 	}
 }

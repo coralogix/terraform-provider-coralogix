@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
 )
 
 // errUnwrapCombination reports a field line that cannot work with a wrapped value yet: the prior
@@ -29,6 +29,7 @@ func (b *convBuilder) wrappedConv(cf *convField, t *model.Type, computed bool) (
 	}
 	// The value can be a list of wrapped items: its helper runs inside this one.
 	cf.Wrap.Funcs = append([]string{helper.Func}, cf.Wrap.Funcs...)
+	cf.Wrap.Outer = helper.Outer
 	return "*" + outer, nil
 }
 
@@ -97,7 +98,7 @@ func (b *convBuilder) wrapHelperFor(wrappers []model.Wrapper, inner string) (str
 		case strings.HasPrefix(want, "*") && field.Want == want[1:]:
 			step.Value = true
 		default:
-			return "", nil, fmt.Errorf("SDK field %s has type %s, the wrapped value needs %s", field.sdkName(), field.Want, want)
+			return "", nil, fmt.Errorf("SDK field %s has type %s, the wrapped value needs %s", field.SDKName(), field.Want, want)
 		}
 		steps = append(steps, step)
 		names = append(names, camelize(w.Schema))

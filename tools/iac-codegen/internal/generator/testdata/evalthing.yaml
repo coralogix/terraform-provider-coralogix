@@ -1,8 +1,8 @@
 # A released resource like the AI evaluation API. PATCH has an optional updateMask in the JSON
 # body, and the released resource never sent it: the server updates the fields in the body.
 # Get wraps the resource in a field with a description (allOf: [$ref]). The target enum starts
-# with a business value. The config oneOf has an arm the resource does not configure, whose value
-# the generator cannot model. The topic list is unordered, though the contract does not say so.
+# with a business value. The config oneOf has an arm the resource does not configure. The topic
+# list is unordered, though the contract does not say so.
 openapi: 3.1.0
 info: {title: eval, version: 1.0.0}
 paths:
@@ -131,4 +131,4 @@ components:
       required: []
       properties:
         limit:
-          anyOf: [{type: string}, {type: integer}]
+          type: string

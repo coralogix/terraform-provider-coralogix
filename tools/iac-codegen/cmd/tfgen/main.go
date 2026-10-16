@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/generator"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
 )
 

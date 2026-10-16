@@ -16,4 +16,6 @@ plan, diags = flattenGlobalRouter(ctx, result.Router)
 
 Do not change a released list to `SetNestedAttribute` for this: it needs a new schema version and breaks index references like `targets[0]`. For a new attribute, prefer a set.
 
+An import has no prior list, so it keeps the API order. In an acceptance test, skip the list in `ImportStateVerifyIgnore` and compare it as a multiset in `ImportStateCheck` against targets saved in the apply step, see `ruleTargets` in `internal/provider/resource_coralogix_global_router_test.go`. Skip `.#`/`.%` entries equal to `"0"`, as `ImportStateVerify` does.
+
 **Why:** A Terraform list is ordered, so any order change counts as a change, even when the backend treats the items as a set.

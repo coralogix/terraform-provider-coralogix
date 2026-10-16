@@ -10,8 +10,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/issue"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
+	iacoverrides "github.com/coralogix/coralogix-management-sdk/iac/overrides"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
@@ -160,6 +161,12 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string) *lineIs
 		return wholeLine(fmt.Errorf("component %q: a missing required list already means that no field is required, so no override is needed", line.Component))
 	case overrides.KindField:
 		return fieldLineProblem(schema, line, line.Component != resource)
+	case overrides.KindGroup:
+		for _, field := range line.GroupFields {
+			if schema.Properties == nil || schema.Properties.GetOrZero(field) == nil {
+				return wholeLine(fmt.Errorf("component %q has no field %q", line.Component, field))
+			}
+		}
 	}
 	return nil
 }
@@ -227,7 +234,7 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared bool) *li
 		return problem
 	}
 	var stale []string
-	if line.ReadOnly && contractReadOnly(schema, line.Field) {
+	if line.ReadOnly && iacoverrides.ContractReadOnly(schema, line.Field) {
 		stale = append(stale, "readOnly")
 	}
 	if line.Required && slices.Contains(schema.Required, line.Field) && !(shared && requiredLineStatesPresence(schema, line.Field)) {
@@ -239,13 +246,7 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared bool) *li
 		stale = append(stale, "optional")
 	}
 	if line.Collection != "" {
-		problem := collectionProblem(schema, line)
-		switch {
-		case problem == nil:
-		case slices.Equal(problem.stale, []string{"collection"}):
-			// Reported with the other stale keys of the line.
-			stale = append(stale, "collection")
-		default:
+		if problem := collectionProblem(schema, line); problem != nil {
 			return problem
 		}
 	}
@@ -273,7 +274,7 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared bool) *li
 		return nil
 	}
 	return &lineIssue{
-		message: fmt.Sprintf("the contract already states that %q is %s", line.Field, strings.Join(staleFacts(stale), " and ")),
+		message: fmt.Sprintf("the contract already states that %q is %s", line.Field, strings.Join(stale, " and ")),
 		stale:   stale,
 	}
 }
@@ -385,25 +386,8 @@ func requiredLineStatesPresence(schema *base.Schema, field string) bool {
 	return false
 }
 
-func contractReadOnly(schema *base.Schema, field string) bool {
-	built, err := schema.Properties.GetOrZero(field).BuildSchema()
-	return err == nil && built.ReadOnly != nil && *built.ReadOnly
-}
-
 func hasNoRequiredList(schema *base.Schema) bool {
 	return schema.GoLow() == nil || schema.GoLow().Required.IsEmpty()
-}
-
-// staleFacts names the facts of stale keys: collection says "a set".
-func staleFacts(keys []string) []string {
-	out := make([]string, len(keys))
-	for i, k := range keys {
-		out[i] = k
-		if k == "collection" {
-			out[i] = "a set"
-		}
-	}
-	return out
 }
 
 // requestValueByProblem checks a requestValueBy line. The field is a string, each key is an
@@ -511,7 +495,7 @@ func keyedObjectProblem(item *base.Schema, line overrides.Line, isString func(st
 	// Each value becomes an attribute and a Go field, so two values must not normalize to one name.
 	tfNames, goNames := map[string]string{}, map[string]string{}
 	for _, v := range slices.Sorted(maps.Keys(accepted)) {
-		tf, gn := model.TerraformName(accepted[v]), model.GoName(accepted[v])
+		tf, gn := TerraformName(accepted[v]), model.GoName(accepted[v])
 		if other, ok := tfNames[tf]; ok {
 			return wholeLine(fmt.Errorf("keyedBy: values %q and %q both become the attribute %q", other, v, tf))
 		}
@@ -615,13 +599,13 @@ func optionalProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 }
 
 // nameProblem checks a name line. The name must differ from the name that the JSON name
-// gives, and from the name of every other field of the component.
+// gives, and from the name of every other field of the component that has an attribute.
 func nameProblem(schema *base.Schema, line overrides.Line) *lineIssue {
-	if line.Name == model.TerraformName(line.Field) {
+	if line.Name == TerraformName(line.Field) {
 		return &lineIssue{message: fmt.Sprintf("%q is already the Terraform name of %q", line.Name, line.Field), stale: []string{"name"}}
 	}
 	for field := range schema.Properties.KeysFromOldest() {
-		if field != line.Field && model.TerraformName(field) == line.Name {
+		if field != line.Field && TerraformName(field) == line.Name && !slices.Contains(line.NoAttribute, field) {
 			return wholeLine(fmt.Errorf("name %q is the Terraform name of field %q", line.Name, field))
 		}
 	}

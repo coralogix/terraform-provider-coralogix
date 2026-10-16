@@ -7,7 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/sdkcheck"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
 
@@ -61,6 +62,10 @@ type convData struct {
 	// AcceptUnknown: the resource has users. An unknown planned value of a computed attribute
 	// is left out of the request, and the server supplies it, as the released resource did.
 	AcceptUnknown bool
+	// UpdateMaskField is the SDK field of the JSON-body update mask.
+	// UpdateMaskPointer is true when that field is *string.
+	UpdateMaskField   string
+	UpdateMaskPointer bool
 }
 
 // wrapHelper is one pair of generated functions, wrap<Func> and unwrap<Func>. They convert a value
@@ -80,6 +85,7 @@ type wrapHelper struct {
 // helpers. Flatten calls the unwrap helpers, then converts the value.
 type fieldWrap struct {
 	Inner string   // qualified Go type of the value that the field conversion writes and reads
+	Outer string   // qualified Go type of the outer wrapper, the SDK type of the field
 	Funcs []string // the helpers, outer first
 }
 
@@ -163,16 +169,22 @@ type convObject struct {
 	ExtraFlatten []extraFlatten
 	// Local: SDK is a struct of the generated package, not of the SDK (keyedBy object).
 	Local bool
-	// Unsupported are oneOf arms the schema does not configure. Flatten reports
-	// a response that sets one, using UnsupportedSummary and UnsupportedDetail.
-	Unsupported        []unsupportedArm
-	UnsupportedSummary string
-	UnsupportedDetail  string
+	// DefaultArms are the arms that expand sends empty when the configuration sets no arm of
+	// their oneOf group (defaultArm).
+	DefaultArms []defaultArm
+	// Unsupported are the oneOf arms that the resource does not configure (unsupportedArms).
+	// Flatten reports a response that selects one.
+	Unsupported []unsupportedArm
 }
 
-// unsupportedArm is an SDK field of a oneOf arm the resource does not configure.
-type unsupportedArm struct {
-	SDK string
+// defaultArm is an arm that expand sends empty when no arm of its group is set.
+type defaultArm struct {
+	Field string   // SDK field of the arm
+	Value string   // Go expression of the empty arm
+	Arms  []string // SDK fields of every arm of the group
+	// Unknown are the model fields of the arms that can be unknown. An unknown arm is no missing
+	// arm, so expand does not send the default arm then.
+	Unknown []string
 }
 
 type convAttrType struct {
@@ -192,13 +204,21 @@ const (
 	convEnum    = "enum"    // types.String ↔ *<enum type> (D12)
 	convObj     = "object"  // *<Model> ↔ *<SDK type>
 	convEmpty   = "empty"   // *<Model> ↔ map[string]interface{} (F16)
-	convStrings = "strings" // types.Set/List ↔ []string or []<enum type>
-	convObjects = "objects" // types.List ↔ []<SDK type>
+	// convEmptyBool shows an object without fields as a bool (asBool): true ↔ a non-nil empty map.
+	convEmptyBool = "emptybool"
+	convStrings   = "strings" // types.Set/List ↔ []string or []<enum type>
+	convObjects   = "objects" // types.List ↔ []<SDK type>
 
 	convInt32   = "int32"   // types.Int32 ↔ *int32
 	convInt64   = "int64"   // types.Int64 ↔ *int64 (signed, a JSON number)
 	convFloat32 = "float32" // types.Float32 ↔ *float32, read as its shortest decimal
 	convScalars = "scalars" // types.List/Set ↔ []bool, []int32, []int64, []float32, []float64
+	// convNamedInts is a list or set of integers that Terraform shows as names (valueNames).
+	convNamedInts = "namedints" // types.List/Set of types.String ↔ []int32, []int64
+	// convInt32AsInt64 and convInts32AsInt64 keep the released Int64 type of an int32 field
+	// (terraformType: Int64).
+	convInt32AsInt64  = "int32asint64"  // types.Int64 ↔ *int32
+	convInts32AsInt64 = "ints32asint64" // types.List/Set of types.Int64Type ↔ []int32
 
 	convStringMap = "stringmap" // types.Map ↔ map[string]string or map[string]<enum type>
 	convScalarMap = "scalarmap" // types.Map ↔ map[string]bool, int32, int64, float32, float64
@@ -228,6 +248,8 @@ type convField struct {
 	// ElemType is the Terraform element type of scalars and scalarmap, for
 	// example "types.Int32Type".
 	ElemType string
+	// ValueNames are the numbers of a namedints field and their Terraform names, in ascending order.
+	ValueNames []overrides.ValueName
 	// Enum is true for a collection or map whose string values are enum
 	// values. Response conversion then rejects protobuf zero sentinels.
 	Enum     bool
@@ -236,6 +258,10 @@ type convField struct {
 	// ReadEmptyAsNull: flatten reads an empty string, an empty list, or an object
 	// with no value, as null.
 	ReadEmptyAsNull bool
+	// ReadZeroAsNull: flatten reads the zero value of a string or a number as null. The
+	// contract sends the scalar without presence, and a configuration cannot hold zero.
+	ReadZeroAsNull bool
+	Zero           string // the zero value that ReadZeroAsNull compares, as model.Type.Zero
 	// ReadNullAsEmpty: flatten reads a missing list or set as an empty collection.
 	ReadNullAsEmpty bool
 	// SendNullAsEmpty: expand sends "" for a null string, so the API clears the stored value.
@@ -368,6 +394,26 @@ func (d *convData) HasValue() bool {
 	return false
 }
 
+// setBodyMask records the SDK field that carries a JSON-body update mask.
+func (d *convData) setBodyMask(ix *refIndex, r *model.Resource) error {
+	if !r.MaskInBody {
+		return nil
+	}
+	ref, err := ix.fieldRef("update.body." + r.UpdateMask)
+	if err != nil {
+		return err
+	}
+	d.UpdateMaskField = ref.Name
+	d.UpdateMaskPointer = strings.HasPrefix(ref.Want, "*")
+	return nil
+}
+
+// acceptUnknown reports whether Create and Update leave an unknown value out of the request, as a
+// released resource did, instead of stopping before the API call.
+func acceptUnknown(r *model.Resource, file *overrides.File) bool {
+	return r.Policy.Existing && (file == nil || !file.Validators.RejectUnknown)
+}
+
 // buildConv maps the model and its SDK names to the conversion data. Rules:
 //   - A null Terraform value → nil. nil → a null Terraform value. So
 //     false, 0, "", [] and {} are sent and read as values.
@@ -377,18 +423,26 @@ func (d *convData) HasValue() bool {
 //     subsystem, and target are never set (D9).
 //
 // file is the behavior-overrides file of a resource that users already have (nil for a new resource).
-func buildConvWith(r *model.Resource, refs []sdkRef, file *overrides.File) (*convData, error) {
+func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File) (*convData, error) {
 	ix, err := indexRefs(refs)
 	if err != nil {
 		return nil, err
 	}
 	b := &convBuilder{ix: ix, bySchema: map[string]*convObject{}, file: file, resource: r, sent: sentFields(r)}
-	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, AcceptUnknown: r.Policy.Existing && !r.Policy.RejectUnknown}
+	out := &convData{SDKPkg: ix.pkg.Pkg, SDKName: ix.pkg.Name, AcceptUnknown: acceptUnknown(r, file)}
+	if err := out.setBodyMask(ix, r); err != nil {
+		return nil, err
+	}
 	out.IDGuard = idGuard(r)
+	for _, f := range r.Fields {
+		if r.Policy.DefaultArm(r.Name, f.Name) {
+			return nil, fmt.Errorf("%s: defaultArm is supported on an arm of a nested object only", f.Name)
+		}
+	}
 
 	roots := []convRoot{
 		{&out.Create, "create.body", true, func(f *model.ResourceField) bool { return f.Create != nil }},
-		{&out.Update, "update.body", true, func(f *model.ResourceField) bool { return sentOnUpdate(r, f) }},
+		{&out.Update, "update.body", true, func(f *model.ResourceField) bool { return f.Update != nil }},
 		{&out.Resource, "fields", false, func(f *model.ResourceField) bool { return f.InGet }},
 	}
 	for _, root := range roots {
@@ -439,23 +493,23 @@ func oneOfArmPaths(r *model.Resource, file *overrides.File) []string {
 	var out []string
 	for _, g := range r.Groups {
 		for _, arm := range g.Arms {
-			out = append(out, rootPath(file.GroupOf(arm), r.Policy.TerraformName(r.Name, arm)).dotted())
+			out = append(out, rootPath(file.GroupOf(arm), terraformName(r.Policy, r.Name, arm)).dotted())
 		}
 	}
 	for _, f := range r.Fields {
-		out = typeArmPaths(r.Policy, out, rootPath(file.GroupOf(f.Name), r.Policy.TerraformName(r.Name, f.Name)).dotted(), f.Type, map[*model.Type]bool{})
+		out = typeArmPaths(r.Policy, file, out, rootPath(file.GroupOf(f.Name), terraformName(r.Policy, r.Name, f.Name)).dotted(), f.Type, map[*model.Type]bool{})
 	}
 	return out
 }
 
-func typeArmPaths(p model.Policy, out []string, at string, t *model.Type, seen map[*model.Type]bool) []string {
+func typeArmPaths(p model.Policy, file *overrides.File, out []string, at string, t *model.Type, seen map[*model.Type]bool) []string {
 	if t == nil || seen[t] {
 		return out
 	}
 	seen[t] = true
 	defer delete(seen, t)
 	if t.Elem != nil {
-		return typeArmPaths(p, out, at, t.Elem, seen)
+		return typeArmPaths(p, file, out, at, t.Elem, seen)
 	}
 	arms := map[string]bool{}
 	for _, g := range t.Groups {
@@ -464,11 +518,14 @@ func typeArmPaths(p model.Policy, out []string, at string, t *model.Type, seen m
 		}
 	}
 	for _, f := range t.Fields {
-		child := at + "." + p.TerraformName(model.ComponentOf(t), f.Name)
+		child := at + "." + terraformName(p, model.ComponentOf(t), f.Name)
+		if group := nestedGroupOf(file, model.ComponentOf(t), f.Name); group != "" {
+			child = at + "." + group + "." + terraformName(p, model.ComponentOf(t), f.Name)
+		}
 		if t.Kind == model.OneOf && f.Name != t.Discriminator || arms[f.Name] {
 			out = append(out, child)
 		}
-		out = typeArmPaths(p, out, child, f.Type, seen)
+		out = typeArmPaths(p, file, out, child, f.Type, seen)
 	}
 	return out
 }
@@ -547,7 +604,7 @@ func rootType(path string, f *model.ResourceField) *model.Type {
 
 // rootObject returns the object of a root and the SDK path of its fields. A request body that
 // wraps the resource is expanded as the resource type, and expandCreate and expandUpdate wrap it.
-func (b *convBuilder) rootObject(out *convData, root convRoot, ref sdkRef) (*convObject, string, error) {
+func (b *convBuilder) rootObject(out *convData, root convRoot, ref sdkcheck.Ref) (*convObject, string, error) {
 	r := b.resource
 	switch {
 	case root.path == "fields":
@@ -593,11 +650,26 @@ func checkReadEmptyAs(cf *convField) error {
 	if !cf.ReadEmptyAsNull {
 		return nil
 	}
-	if cf.Conv == convString || (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects || (cf.Conv == convStrings && cf.Wrap == nil) ||
+	if cf.Conv == convString || (cf.Conv == convObj && !cf.ObjectValue) || cf.Conv == convObjects || cf.Conv == convStrings ||
 		cf.Conv == convKeyedObjects || cf.Conv == convKeyedValues {
 		return nil
 	}
 	return fmt.Errorf("readEmptyAs: \"null\" is supported for a string, an object, a list or set of strings or objects, and a keyedBy map, not for the %s field %s", cf.Conv, cf.TFName)
+}
+
+// ValueKind is the Terraform value kind of a string or number field, for example "Int32".
+func (f *convField) ValueKind() string {
+	switch f.Conv {
+	case convString:
+		return "String"
+	case convInt32:
+		return "Int32"
+	case convFloat32:
+		return "Float32"
+	case convFloat64:
+		return "Float64"
+	}
+	return "Int64" // int64, uint64
 }
 
 // markComputedObjectValue makes a directly nested computed field capable of
@@ -615,13 +687,6 @@ func (b *convBuilder) markComputedObjectValue(cf *convField, f *model.ResourceFi
 	if cf.Conv == convObj && !contains(b.listed, cf.Object) {
 		b.listed = append(b.listed, cf.Object)
 	}
-}
-
-// sentOnUpdate reports whether the Update body has field f. Without a mask the
-// server updates every field in the body, so an immutable field stays out, as
-// the mask would have kept it out: a change of it replaces the resource.
-func sentOnUpdate(r *model.Resource, f *model.ResourceField) bool {
-	return f.Update != nil && !(r.MaskInBody && f.Behavior == model.Immutable)
 }
 
 // appendCreateField adds a Create field to the unknown-value check. requestValue
@@ -643,7 +708,7 @@ func appendCheckField(fields []*maskField, r *model.Resource, f *model.ResourceF
 		}
 		return append(fields, &maskField{TFName: group})
 	}
-	return append(fields, &maskField{TFName: r.Policy.TerraformName(r.Name, f.Name), ServerDefault: serverDefault(r, f)})
+	return append(fields, &maskField{TFName: terraformName(r.Policy, r.Name, f.Name), ServerDefault: serverDefault(r, f)})
 }
 
 // replaceFields sets the Update fields of a full replace. The body has all of
@@ -684,12 +749,7 @@ func derivedValuesInMask(file *overrides.File) error {
 // buildMask sets the update mask data. Only the Update fields can be in the
 // mask, so application, subsystem, and target never are (D9).
 func buildMask(r *model.Resource, out *convData, fixed func(string) bool) error {
-	pattern := r.UpdateMaskPattern
-	if r.MaskInBody {
-		// No mask is sent. It only tells whether a top-level field changed.
-		pattern = ""
-	}
-	valid, leaf, err := maskRule(pattern)
+	valid, leaf, err := maskRule(r.UpdateMaskPattern)
 	if err != nil {
 		return err
 	}
@@ -698,7 +758,7 @@ func buildMask(r *model.Resource, out *convData, fixed func(string) bool) error 
 		if f.Update == nil || fixed(f.Name) {
 			continue
 		}
-		mf := &maskField{TFName: r.Policy.TerraformName(r.Name, f.Name), API: f.Name}
+		mf := &maskField{TFName: terraformName(r.Policy, r.Name, f.Name), API: f.Name}
 		if leaf {
 			mf = maskTree(r.Policy, r.Name, f.Name, f.Type.UpdateType())
 		}
@@ -721,7 +781,7 @@ func groupNames(p model.Policy, component string, groups []model.OneOfGroup) [][
 	for _, g := range groups {
 		var arms []string
 		for _, a := range g.Arms {
-			arms = append(arms, p.TerraformName(component, a))
+			arms = append(arms, terraformName(p, component, a))
 		}
 		out = append(out, arms)
 	}
@@ -751,7 +811,7 @@ func maskRule(pattern string) (valid func(string) bool, leaf bool, err error) {
 
 // maskTree returns the mask node of the Update field name of type t.
 func maskTree(p model.Policy, component, name string, t *model.Type) *maskField {
-	n := &maskField{TFName: p.TerraformName(component, name), API: name, OneOf: t.Kind == model.OneOf}
+	n := &maskField{TFName: terraformName(p, component, name), API: name, OneOf: t.Kind == model.OneOf}
 	if t.Kind != model.Object && t.Kind != model.OneOf {
 		return n
 	}
@@ -824,7 +884,7 @@ func (b *convBuilder) bodyWrapper(bodyPath, wrapper string) (string, *bodyWrap, 
 	case resource.Name:
 		return body.Name, &bodyWrap{Field: field.Name, Value: true}, nil
 	}
-	return "", nil, fmt.Errorf("SDK field %s has type %s, want *%s", field.sdkName(), field.Want, resource.Name)
+	return "", nil, fmt.Errorf("SDK field %s has type %s, want *%s", field.SDKName(), field.Want, resource.Name)
 }
 
 // enumMapFor returns the mapping of the enum, or nil when the overrides do not state it.
@@ -853,11 +913,7 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 	}
 	if over.ReadRejected {
 		for _, v := range over.Rejected {
-			tf := v
-			if over.ReadRejectedLower {
-				tf = strings.ToLower(v)
-			}
-			m.Read = append(m.Read, enumMapValue{TF: tf, API: v})
+			m.Read = append(m.Read, enumMapValue{TF: over.RejectedTFValue(v), API: v})
 		}
 	}
 	b.enumMaps = append(b.enumMaps, m)
@@ -865,7 +921,7 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 }
 
 // object adds the convObject of a component schema, without fields.
-func (b *convBuilder) object(schema string, ref sdkRef) *convObject {
+func (b *convBuilder) object(schema string, ref sdkcheck.Ref) *convObject {
 	obj := &convObject{Func: camelize(schema), Model: modelTypeName(schema), SDK: ref.Name}
 	obj.AttrTypesFunc = lowerFirst(obj.Func) + "AttrTypes"
 	b.bySchema[schema] = obj
@@ -923,6 +979,38 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	}
 }
 
+// applyTerraformType converts an int32 field, or a list or set of int32, to the released Int64.
+func (b *convBuilder) applyTerraformType(cf *convField, component, name string) error {
+	if terraformType(b.resource.Policy, component, name) == "" {
+		return nil
+	}
+	switch {
+	case cf.Conv == convInt32:
+		cf.Conv = convInt32AsInt64
+	case cf.Conv == convScalars && cf.SDKType == "int32":
+		cf.Conv, cf.ElemType = convInts32AsInt64, "types.Int64Type"
+	default:
+		return fmt.Errorf("%s: terraformType Int64 needs an int32 field, or a list or set of int32", cf.TFName)
+	}
+	return nil
+}
+
+// applyValueNames converts a list or set of integers to the names of its values and back.
+func (b *convBuilder) applyValueNames(cf *convField, component, name string) error {
+	if b.file == nil {
+		return nil
+	}
+	line := b.file.Types[component].Fields[name]
+	if len(line.ValueNames) == 0 {
+		return nil
+	}
+	if cf.Conv != convScalars || cf.SDKType != "int32" && cf.SDKType != "int64" {
+		return fmt.Errorf("%s: valueNames needs a list or set of integers", cf.TFName)
+	}
+	cf.Conv, cf.ElemType, cf.ValueNames = convNamedInts, "types.StringType", line.SortedValueNames()
+	return nil
+}
+
 func (b *convBuilder) applyFixedRequest(cf *convField) {
 	if cf.RequestValue == "" && len(cf.RequestValueBy) == 0 {
 		return
@@ -961,7 +1049,7 @@ func (b *convBuilder) field(owner, component, name string, t *model.Type, comput
 // fields (createAs). Each property keeps the field lines of the object component and writes
 // the SDK field of its top-level Create field.
 func (b *convBuilder) foldField(owner string, f *model.ResourceField, folds []model.CreateFold) (*convField, error) {
-	cf := &convField{TFName: b.resource.Policy.TerraformName(b.resource.Name, f.Name), Model: camelize(f.Name), Conv: convFold}
+	cf := &convField{TFName: terraformName(b.resource.Policy, b.resource.Name, f.Name), Model: camelize(f.Name), Conv: convFold}
 	if b.resource.Policy.ComputedLine(b.resource.Name, f.Name) {
 		// The model holds the object as a types.Object, which is unknown when Create
 		// leaves the value to the server.
@@ -987,8 +1075,9 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	if err != nil {
 		return nil, err
 	}
-	cf := &convField{TFName: b.resource.Policy.TerraformName(component, name), Model: camelize(name), SDK: ref.Name}
+	cf := &convField{TFName: terraformName(b.resource.Policy, component, name), Model: camelize(name), SDK: ref.Name}
 	b.applyFieldLine(cf, component, name)
+	cf.ReadZeroAsNull, cf.Zero = t.ReadZeroAsNull, t.Zero
 	if b.resource.Policy.OptionalLine(component, name) && (strings.HasPrefix(ref.Want, "[]") || strings.HasPrefix(ref.Want, "map[")) {
 		cf.SendEmpty, cf.SDKSliceType = true, b.qualifyType(ref.Want)
 	}
@@ -998,6 +1087,18 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	}
 	if cf.Wrap != nil && (cf.KeepPriorOrder || cf.Equality != "") {
 		return nil, fmt.Errorf("%s: %w", cf.TFName, errUnwrapCombination)
+	}
+	if err := b.applyValueNames(cf, component, name); err != nil {
+		return nil, err
+	}
+	if err := b.applyTerraformType(cf, component, name); err != nil {
+		return nil, err
+	}
+	if b.resource.Policy.AsBool(component, name) {
+		if cf.Conv != convEmpty {
+			return nil, fmt.Errorf("%s: asBool needs an object without fields", cf.TFName)
+		}
+		cf.Conv, cf.Object = convEmptyBool, nil
 	}
 	b.applyFixedRequest(cf)
 	b.applyMissingEnum(cf, component, name, presence)
@@ -1023,14 +1124,14 @@ func (b *convBuilder) releaseEnumMap(m *enumMap) {
 	b.enumMaps = slices.DeleteFunc(b.enumMaps, func(e *enumMap) bool { return e == m })
 }
 
-func checkFieldType(cf *convField, ref sdkRef, want string) (*convField, error) {
+func checkFieldType(cf *convField, ref sdkcheck.Ref, want string) (*convField, error) {
 	// The SDK type must be the one the conversion writes, or its value type.
 	switch {
 	case ref.Want == want:
 	case strings.HasPrefix(want, "*") && ref.Want == want[1:]:
 		cf.Value = true
 	default:
-		return nil, fmt.Errorf("SDK field %s has type %s, the %s conversion needs %s", ref.sdkName(), ref.Want, cf.Conv, want)
+		return nil, fmt.Errorf("SDK field %s has type %s, the %s conversion needs %s", ref.SDKName(), ref.Want, cf.Conv, want)
 	}
 	return cf, nil
 }
@@ -1097,7 +1198,7 @@ func (b *convBuilder) keyedConv(cf *convField, t *model.Type) (string, error) {
 		return "", err
 	}
 	if key.Want != "string" && key.Want != "*string" {
-		return "", fmt.Errorf("keyedBy: the key %s has type %s, want a string", key.sdkName(), key.Want)
+		return "", fmt.Errorf("keyedBy: the key %s has type %s, want a string", key.SDKName(), key.Want)
 	}
 	cf.Keyed = &keyedFields{Key: key.Name, KeyValue: key.Want == "string"}
 	cf.SDKType = b.qualify(item.Name)
@@ -1107,7 +1208,7 @@ func (b *convBuilder) keyedConv(cf *convField, t *model.Type) (string, error) {
 			return "", err
 		}
 		if t.Elem.Kind != model.String || value.Want != "string" && value.Want != "*string" {
-			return "", fmt.Errorf("keyedBy: the value %s has type %s, want a string", value.sdkName(), value.Want)
+			return "", fmt.Errorf("keyedBy: the value %s has type %s, want a string", value.SDKName(), value.Want)
 		}
 		cf.Keyed.Value, cf.Keyed.ValueValue = value.Name, value.Want == "string"
 		cf.Conv = convKeyedValues
@@ -1247,15 +1348,6 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	if err := b.addMissingFields(obj, ref.Path, component, t); err != nil {
 		return nil, err
 	}
-	for _, f := range t.Unsupported {
-		field, err := b.ix.fieldRef(ref.Path + "." + f.Name)
-		if err != nil {
-			return nil, fmt.Errorf("%s: %w", f.Name, err)
-		}
-		obj.Unsupported = append(obj.Unsupported, unsupportedArm{SDK: field.Name})
-	}
-	obj.UnsupportedSummary = t.UnsupportedSummary
-	obj.UnsupportedDetail = t.UnsupportedDetail
 	// A read-only field is absent from the request fields. A requestValue is
 	// still sent, as the root loop sends it, or Create and Update drop the value
 	// the override promised. In a component that the request shares with the
@@ -1264,7 +1356,103 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	if err := b.injectReadOnly(obj, ref.Path, t); err != nil {
 		return nil, err
 	}
+	arms, err := b.defaultArms(component, t, obj.Fields)
+	if err != nil {
+		return nil, err
+	}
+	obj.DefaultArms = arms
+	if obj.Unsupported, err = b.unsupportedArms(t, ref.Path); err != nil {
+		return nil, err
+	}
 	return obj, nil
+}
+
+// defaultArms returns the arms of t that expand sends empty when the configuration sets no arm of
+// their group. fields are the conversions of the object, which hold the fields of t.
+func (b *convBuilder) defaultArms(component string, t *model.Type, fields []*convField) ([]defaultArm, error) {
+	byName := map[string]*convField{}
+	var lines []string
+	for _, f := range t.Fields {
+		cf := findField(fields, terraformName(b.resource.Policy, component, f.Name))
+		if cf == nil {
+			return nil, fmt.Errorf("%s: no conversion of the field", f.Name)
+		}
+		byName[f.Name] = cf
+		if b.resource.Policy.DefaultArm(component, f.Name) {
+			lines = append(lines, f.Name)
+		}
+	}
+	if len(lines) == 0 {
+		return nil, nil
+	}
+	if !b.resource.Replace {
+		// A PATCH mask names the arm that the plan selects, which is not the arm that expand adds.
+		return nil, fmt.Errorf("defaultArm %s needs a full-replace Update (PUT)", strings.Join(lines, ", "))
+	}
+	groups := t.Groups
+	if t.Kind == model.OneOf {
+		group := model.OneOfGroup{AllowNone: t.AllowNone}
+		for _, f := range t.Fields {
+			if f.Name != t.Discriminator {
+				group.Arms = append(group.Arms, f.Name)
+			}
+		}
+		groups = append(groups, group)
+	}
+	var out []defaultArm
+	for _, g := range groups {
+		var arm string
+		for _, name := range g.Arms {
+			if !slices.Contains(lines, name) {
+				continue
+			}
+			if arm != "" {
+				return nil, fmt.Errorf("defaultArm: %s and %s are arms of one group", arm, name)
+			}
+			arm = name
+		}
+		if arm == "" {
+			continue
+		}
+		lines = slices.DeleteFunc(lines, func(name string) bool { return name == arm })
+		if nestedGroupOf(b.file, component, arm) != "" {
+			return nil, fmt.Errorf("defaultArm %s: an arm in a group of the behavior-overrides file is not supported", arm)
+		}
+		cf := byName[arm]
+		value, err := emptyArm(cf)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", cf.TFName, err)
+		}
+		d := defaultArm{Field: cf.SDK, Value: value}
+		for _, name := range g.Arms {
+			arm := byName[name]
+			d.Arms = append(d.Arms, arm.SDK)
+			if arm.Conv != convObj && arm.Conv != convEmpty || arm.ObjectValue {
+				d.Unknown = append(d.Unknown, arm.Model)
+			}
+		}
+		out = append(out, d)
+	}
+	if len(lines) != 0 {
+		return nil, fmt.Errorf("defaultArm: %s is no oneOf arm", strings.Join(lines, ", "))
+	}
+	return out, nil
+}
+
+// emptyArm returns the Go expression of the empty arm f: the empty outer wrapper ({}), not a
+// wrapper of an empty value ({"value": []}), as the released resources send it. f must be a list
+// of strings in wrapper objects that reads empty as null, so the empty arm reads back as the null
+// that the plan has. An empty object arm reads back as an object of nulls, which no plan has.
+func emptyArm(f *convField) (string, error) {
+	var rest string
+	ok := false
+	if f.Wrap != nil {
+		rest, ok = strings.CutPrefix(f.Wrap.Outer, "*")
+	}
+	if !ok || f.Conv != convStrings || !f.ReadEmptyAsNull {
+		return "", errors.New(`defaultArm needs a list of strings in wrapper objects with readEmptyAs: "null", which reads the empty arm back as null`)
+	}
+	return "&" + rest + "{}", nil
 }
 
 // injectReadOnly adds the response fields that the request type omitted
@@ -1287,7 +1475,7 @@ func (b *convBuilder) injectReadOnly(obj *convObject, owner string, t *model.Typ
 	shared := t.Model == t.Schema
 	for _, f := range schemaFields(b.resource, t.Model) {
 		fixed := b.fixedRequest(t.Model, f.Name)
-		if present[f.Name] || added[b.resource.Policy.TerraformName(t.Model, f.Name)] || !fixed && !shared {
+		if present[f.Name] || added[terraformName(b.resource.Policy, t.Model, f.Name)] || !fixed && !shared {
 			continue
 		}
 		cf, err := b.field(owner, t.Model, f.Name, f.Type, b.sent.responseOnly(t.Model, f), f.Attrs.Presence)
@@ -1381,8 +1569,8 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 var scalarAttrTypes = map[string]string{
 	convString: "types.StringType", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
 	convBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
-	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type",
-	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}",
+	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
+	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
 }
 
 // attrType returns the Terraform attribute type expression of field f.
@@ -1395,7 +1583,7 @@ func (b *convBuilder) attrType(obj *convObject, f *convField) (string, error) {
 		return "types." + f.Collection + "Type{ElemType: types.StringType}", nil
 	case convTimes:
 		return "types." + f.Collection + "Type{ElemType: " + rfc3339Type + "}", nil
-	case convScalars:
+	case convScalars, convNamedInts, convInts32AsInt64:
 		return "types." + f.Collection + "Type{ElemType: " + f.ElemType + "}", nil
 	case convScalarMap:
 		return "types.MapType{ElemType: " + f.ElemType + "}", nil
@@ -1511,35 +1699,35 @@ func contains(objs []*convObject, obj *convObject) bool {
 
 // refIndex finds sdkRefs by SDK name path and by component schema.
 type refIndex struct {
-	pkg      sdkRef              // the SDK package of the resource
-	pkgs     map[string]sdkRef   // package refs by path
-	types    map[string]sdkRef   // type refs by path
-	fields   map[string]sdkRef   // field refs by path
-	methods  map[string][]sdkRef // method refs by path
-	funcs    map[string]sdkRef   // func refs by path and name
-	bySchema map[string]sdkRef   // component type refs by schema name
+	pkg      sdkcheck.Ref              // the SDK package of the resource
+	pkgs     map[string]sdkcheck.Ref   // package refs by path
+	types    map[string]sdkcheck.Ref   // type refs by path
+	fields   map[string]sdkcheck.Ref   // field refs by path
+	methods  map[string][]sdkcheck.Ref // method refs by path
+	funcs    map[string]sdkcheck.Ref   // func refs by path and name
+	bySchema map[string]sdkcheck.Ref   // component type refs by schema name
 }
 
-func indexRefs(refs []sdkRef) (*refIndex, error) {
-	ix := &refIndex{pkgs: map[string]sdkRef{}, types: map[string]sdkRef{}, fields: map[string]sdkRef{},
-		methods: map[string][]sdkRef{}, funcs: map[string]sdkRef{}, bySchema: map[string]sdkRef{}}
+func indexRefs(refs []sdkcheck.Ref) (*refIndex, error) {
+	ix := &refIndex{pkgs: map[string]sdkcheck.Ref{}, types: map[string]sdkcheck.Ref{}, fields: map[string]sdkcheck.Ref{},
+		methods: map[string][]sdkcheck.Ref{}, funcs: map[string]sdkcheck.Ref{}, bySchema: map[string]sdkcheck.Ref{}}
 	for _, ref := range refs {
 		switch ref.Kind {
-		case kindPackage:
+		case sdkcheck.KindPackage:
 			if _, ok := ix.pkgs[ref.Path]; ok {
 				return nil, fmt.Errorf("more than one SDK package for %s", ref.Path)
 			}
 			ix.pkgs[ref.Path] = ref
-		case kindType:
+		case sdkcheck.KindType:
 			ix.types[ref.Path] = ref
 			if ref.Schema != "" {
 				ix.bySchema[ref.Schema] = ref
 			}
-		case kindField:
+		case sdkcheck.KindField:
 			ix.fields[ref.Path] = ref
-		case kindMethod:
+		case sdkcheck.KindMethod:
 			ix.methods[ref.Path] = append(ix.methods[ref.Path], ref)
-		case kindFunc:
+		case sdkcheck.KindFunc:
 			ix.funcs[ref.Path+"."+ref.Name] = ref
 		}
 	}
@@ -1551,53 +1739,53 @@ func indexRefs(refs []sdkRef) (*refIndex, error) {
 	return ix, nil
 }
 
-func (ix *refIndex) pkgRef(path string) (sdkRef, error) {
+func (ix *refIndex) pkgRef(path string) (sdkcheck.Ref, error) {
 	ref, ok := ix.pkgs[path]
 	if !ok {
-		return sdkRef{}, fmt.Errorf("no SDK package for %s", path)
+		return sdkcheck.Ref{}, fmt.Errorf("no SDK package for %s", path)
 	}
 	return ref, nil
 }
 
 // methodRef returns the method of owner at path.
-func (ix *refIndex) methodRef(path, owner string) (sdkRef, error) {
+func (ix *refIndex) methodRef(path, owner string) (sdkcheck.Ref, error) {
 	for _, ref := range ix.methods[path] {
 		if ref.Owner == owner {
 			return ref, nil
 		}
 	}
-	return sdkRef{}, fmt.Errorf("no SDK method of %s for %s", owner, path)
+	return sdkcheck.Ref{}, fmt.Errorf("no SDK method of %s for %s", owner, path)
 }
 
 // funcRef returns the func name at path.
-func (ix *refIndex) funcRef(path, name string) (sdkRef, error) {
+func (ix *refIndex) funcRef(path, name string) (sdkcheck.Ref, error) {
 	ref, ok := ix.funcs[path+"."+name]
 	if !ok {
-		return sdkRef{}, fmt.Errorf("no SDK func %s for %s", name, path)
+		return sdkcheck.Ref{}, fmt.Errorf("no SDK func %s for %s", name, path)
 	}
 	return ref, nil
 }
 
-func (ix *refIndex) typeRef(path string) (sdkRef, error) {
+func (ix *refIndex) typeRef(path string) (sdkcheck.Ref, error) {
 	ref, ok := ix.types[path]
 	if !ok {
-		return sdkRef{}, fmt.Errorf("no SDK type for %s", path)
+		return sdkcheck.Ref{}, fmt.Errorf("no SDK type for %s", path)
 	}
 	return ref, nil
 }
 
-func (ix *refIndex) fieldRef(path string) (sdkRef, error) {
+func (ix *refIndex) fieldRef(path string) (sdkcheck.Ref, error) {
 	ref, ok := ix.fields[path]
 	if !ok {
-		return sdkRef{}, fmt.Errorf("no SDK field for %s", path)
+		return sdkcheck.Ref{}, fmt.Errorf("no SDK field for %s", path)
 	}
 	return ref, nil
 }
 
-func (ix *refIndex) schemaRef(schema string) (sdkRef, error) {
+func (ix *refIndex) schemaRef(schema string) (sdkcheck.Ref, error) {
 	ref, ok := ix.bySchema[schema]
 	if !ok {
-		return sdkRef{}, fmt.Errorf("no SDK type for component %s", schema)
+		return sdkcheck.Ref{}, fmt.Errorf("no SDK type for component %s", schema)
 	}
 	return ref, nil
 }
@@ -1753,7 +1941,7 @@ func sameCheck(f *convField) (string, error) {
 			break
 		}
 		return "slices.EqualFunc(" + a + ", " + b + ", time.Time.Equal)", nil
-	case convString, convBool, convFloat64, convFloat32, convInt32, convInt64, convUint64, convEnum, convTime:
+	case convString, convBool, convFloat64, convFloat32, convInt32, convInt32AsInt64, convInt64, convUint64, convEnum, convTime:
 		if !value {
 			a, b = "pointerValue("+a+")", "pointerValue("+b+")"
 		}
@@ -1764,7 +1952,7 @@ func sameCheck(f *convField) (string, error) {
 		return a + " == " + b, nil
 	case convStringMap, convScalarMap, convUint64Map:
 		return "maps.Equal(" + a + ", " + b + ")", nil
-	case convStrings, convScalars:
+	case convStrings, convScalars, convNamedInts, convInts32AsInt64:
 		if f.Collection == "Set" {
 			break
 		}
@@ -1856,7 +2044,7 @@ func idGuard(r *model.Resource) string {
 	if r.Singleton || !r.Policy.ClientSetID && !r.Policy.ServerSetID {
 		return ""
 	}
-	return camelize(r.IDParam)
+	return camelize(r.ID())
 }
 
 // addToGroup puts the field cf of the root object in its group. The group is an object of its
@@ -1877,7 +2065,8 @@ func (b *convBuilder) addToGroup(root *convObject, groups map[string]*convObject
 // sends is FlattenOnly: expand leaves it out, and flatten reads it.
 func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component string, t *model.Type) error {
 	for _, f := range t.Fields {
-		if slices.ContainsFunc(obj.Fields, func(cf *convField) bool { return cf.TFName == b.resource.Policy.TerraformName(component, f.Name) }) {
+		name := terraformName(b.resource.Policy, component, f.Name)
+		if findField(obj.Fields, name) != nil {
 			// The field is there, but an object inside it can still miss fields.
 			if err := b.mergeNested(f.Type); err != nil {
 				return fmt.Errorf("%s: %w", f.Name, err)
@@ -1898,7 +2087,52 @@ func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component strin
 				b.listed = append(b.listed, cf.Object)
 			}
 		}
+		if group := nestedGroupOf(b.file, component, f.Name); group != "" {
+			g := b.nestedGroup(obj, component, group)
+			g.Fields = append(g.Fields, cf)
+			continue
+		}
 		obj.Fields = append(obj.Fields, cf)
+	}
+	return nil
+}
+
+// nestedGroupOf returns the group of the behavior-overrides file that holds field of component, or "".
+func nestedGroupOf(file *overrides.File, component, field string) string {
+	if file == nil {
+		return ""
+	}
+	return file.Types[component].GroupOf(field)
+}
+
+// nestedGroup returns the group object of obj that holds fields of component in group, and makes it
+// on first use. As a top-level group, it is an object of its own in Terraform, and its fields are
+// fields of the SDK struct of obj.
+func (b *convBuilder) nestedGroup(obj *convObject, component, group string) *convObject {
+	for _, cf := range obj.Fields {
+		if cf.Conv == convGroup && cf.TFName == group {
+			return cf.Object
+		}
+	}
+	g := &convObject{Func: obj.Func + camelize(group), Model: groupModelName(component, group), SDK: obj.SDK, Group: true,
+		RequireOne: b.file.Types[component].Groups[group].RequireOne}
+	g.AttrTypesFunc = lowerFirst(g.Func) + "AttrTypes"
+	b.objects = append(b.objects, g)
+	obj.Fields = append(obj.Fields, &convField{TFName: group, Model: camelize(group), Conv: convGroup, Object: g})
+	return g
+}
+
+// findField returns the field of fields with the Terraform name, also inside a group, or nil.
+func findField(fields []*convField, name string) *convField {
+	for _, cf := range fields {
+		if cf.TFName == name {
+			return cf
+		}
+		if cf.Conv == convGroup {
+			if found := findField(cf.Object.Fields, name); found != nil {
+				return found
+			}
+		}
 	}
 	return nil
 }
@@ -1972,7 +2206,7 @@ func (b *convBuilder) keyedObjectConv(cf *convField, t *model.Type) (string, err
 			return "", err
 		}
 		if as.Want != "string" && as.Want != "*string" {
-			return "", fmt.Errorf("keyedBy: keyAs %s has type %s, want a string", as.sdkName(), as.Want)
+			return "", fmt.Errorf("keyedBy: keyAs %s has type %s, want a string", as.SDKName(), as.Want)
 		}
 		ko.KeyAs, ko.KeyAsValue = as.Name, as.Want == "string"
 	}
@@ -1994,7 +2228,7 @@ func (b *convBuilder) keyedObjectConv(cf *convField, t *model.Type) (string, err
 			return "", fmt.Errorf("%s: %w", f.Name, err)
 		}
 		field := camelize(f.Name)
-		fc := &convField{TFName: b.resource.Policy.TerraformName(t.Schema, f.Name), Model: field, SDK: field, Conv: convObj, Object: vobj}
+		fc := &convField{TFName: terraformName(b.resource.Policy, t.Schema, f.Name), Model: field, SDK: field, Conv: convObj, Object: vobj}
 		if f.Attrs.Computed {
 			fc.ObjectValue = true
 			if !contains(b.listed, vobj) {

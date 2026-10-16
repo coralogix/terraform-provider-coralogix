@@ -10,11 +10,12 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/coralogix/coralogix-management-sdk/iac/issue"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/sdkcheck"
+	"github.com/coralogix/coralogix-management-sdk/iac/source"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/acceptance"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/issue"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/source"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
 	"golang.org/x/tools/go/packages"
 )
@@ -46,7 +47,7 @@ type CheckOptions struct {
 
 type validatedResource struct {
 	resource  *model.Resource
-	refs      []sdkRef
+	refs      []sdkcheck.Ref
 	overrides *overrides.File // nil for a new resource
 	// withoutDelete is the resource validated without the Delete override of the overrides, when
 	// that also passes every OpenAPI and renderer check. The override is then stale unless the SDK
@@ -59,7 +60,9 @@ type EligibilityError struct {
 	Report issue.Report
 }
 
-func (e *EligibilityError) Error() string { return e.Report.Error() }
+func (e *EligibilityError) Error() string {
+	return e.Report.Text("Resource is not eligible for Terraform generation")
+}
 
 // Generate resolves the provider's pinned SDK and publishes one resource.
 func Generate(start string, options Options) error {
@@ -70,10 +73,10 @@ func Generate(start string, options Options) error {
 	if err != nil {
 		return err
 	}
-	if err := checkOutputLocation(input.ProviderRoot, options.OutputDir); err != nil {
+	if err := checkOutputLocation(input.ModuleRoot, options.OutputDir); err != nil {
 		return err
 	}
-	return generateFromInput(options, input, input.ProviderRoot)
+	return generateFromInput(options, input, input.ModuleRoot)
 }
 
 // Check validates a local candidate OpenAPI document without rendering files.
@@ -92,7 +95,7 @@ func Check(options CheckOptions) error {
 	if err != nil {
 		return err
 	}
-	validated, err := validateOpenAPIWith(data, options.Resource, options.OperationIDs, "candidate.invalid/coralogix-management-sdk", source.ProviderModule, file)
+	validated, err := validateOpenAPIWith(data, options.Resource, options.OperationIDs, "candidate.invalid/coralogix-management-sdk", providerModulePath, file)
 	if err != nil {
 		return err
 	}
@@ -115,7 +118,7 @@ func Check(options CheckOptions) error {
 			return err
 		}
 	}
-	if _, err := renderAll(validated.resource, validated.refs, "generated", validated.overrides, acc, prior, source.ProviderModule); err != nil {
+	if _, err := renderAll(validated.resource, validated.refs, "generated", validated.overrides, acc, prior, providerModulePath); err != nil {
 		return eligibilityIssue("ACCEPTANCE_INVALID", "renderer.acceptance", err,
 			"Fix the acceptance file, or set the value that the test cannot make up.")
 	}
@@ -133,7 +136,7 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 	if err != nil {
 		return err
 	}
-	validated, err := validateOpenAPIWith(input.OpenAPI, options.Resource, options.OperationIDs, input.SDKModule, input.ProviderModule, file)
+	validated, err := validateOpenAPIWith(input.OpenAPI, options.Resource, options.OperationIDs, input.SDKModule, input.Module, file)
 	if err != nil {
 		return err
 	}
@@ -152,7 +155,7 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 	if err != nil {
 		return err
 	}
-	files, err := renderAll(validated.resource, validated.refs, pkg, validated.overrides, accFile, prior, input.ProviderModule)
+	files, err := renderAll(validated.resource, validated.refs, pkg, validated.overrides, accFile, prior, input.Module)
 	if err != nil {
 		return fmt.Errorf("render resource: %w", err)
 	}
@@ -171,8 +174,8 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 		return fmt.Errorf("resolve output directory: %w", err)
 	}
 	// The test seam can write a resource outside the provider. Generate cannot.
-	if inGeneratedDir(input.ProviderRoot, output) {
-		if extras, err = providerFiles(options, input.ProviderRoot, input.ProviderModule, validated.overrides == nil, tfName(validated.resource.Name), files); err != nil {
+	if inGeneratedDir(input.ModuleRoot, output) {
+		if extras, err = providerFiles(options, input.ModuleRoot, input.Module, validated.overrides == nil, tfName(validated.resource.Name), files); err != nil {
 			return err
 		}
 	}
@@ -197,7 +200,7 @@ func checkSDK(validated *validatedResource, input source.Input, loadDir string) 
 	if validated.withoutDelete != nil {
 		refs = slices.Concat(refs, validated.withoutDelete.refs)
 	}
-	loaded, err := loadSDK(refs, loadDir)
+	loaded, err := sdkcheck.Load(refs, loadDir)
 	if err != nil {
 		return err
 	}
@@ -247,7 +250,7 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 		}
 		return nil, &EligibilityError{Report: issue.Report{{Code: code, Location: "openapi", Message: err.Error(), Remediation: "Correct the source OpenAPI document."}}}
 	}
-	component, report := model.ResolveResource(doc, resourceName)
+	component, report := resolveResource(doc, resourceName)
 	if len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}
@@ -256,7 +259,7 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 			return nil, &EligibilityError{Report: report}
 		}
 	}
-	if report = model.ValidateWithPolicy(doc, component, operationIDs, policy); len(report) != 0 {
+	if report = terraformContractIssues(doc, component, operationIDs, policy, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}
 	resource, err := model.BuildWithPolicy(doc, component, operationIDs, policy)
@@ -266,13 +269,25 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	if report = unwrapUsageIssues(resource, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}
-	tag, err := resourceTag(doc, resource)
+	tag, err := sdkcheck.ResourceTag(doc, resource)
 	if err != nil {
 		return nil, eligibilityIssue("OPERATION_TAG_INCOMPATIBLE", "paths", err, "Give every lifecycle operation exactly one matching SDK package tag.")
 	}
 	refs, err := resolveSDKNames(resource, tag, sdkModule, providerModule)
 	if err != nil {
 		return nil, eligibilityIssue("SDK_SHAPE_UNSUPPORTED", "resource", err, "Use OpenAPI shapes that have deterministic generated Go SDK names and types.")
+	}
+	if file != nil {
+		// The Terraform keys of a released resource change the built model. The SDK names of
+		// the model before the change still hold the fields of the removed oneOf arms.
+		armRefs, err := applyReleasedShape(resource, file, refs)
+		if err != nil {
+			return nil, eligibilityIssue("OVERRIDE_INVALID", overrides.FileName, err, "Fix the requiresReplace or unsupportedArms line.")
+		}
+		if refs, err = resolveSDKNames(resource, tag, sdkModule, providerModule); err != nil {
+			return nil, eligibilityIssue("SDK_SHAPE_UNSUPPORTED", "resource", err, "Use OpenAPI shapes that have deterministic generated Go SDK names and types.")
+		}
+		refs = append(refs, armRefs...)
 	}
 	if report = rendererIssues(resource, refs, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report.Normalize()}
@@ -312,7 +327,7 @@ func unneededDeleteOverrideError(validated *validatedResource) error {
 // rendererIssues runs the same builders that generate uses, without rendering
 // or writing files. This keeps candidate checks aligned with generation when a
 // valid model or deterministic SDK shape still cannot become Terraform code.
-func rendererIssues(resource *model.Resource, refs []sdkRef, file *overrides.File) issue.Report {
+func rendererIssues(resource *model.Resource, refs []sdkcheck.Ref, file *overrides.File) issue.Report {
 	checks := []struct {
 		location string
 		run      func() error
@@ -378,35 +393,15 @@ func eligibilityIssue(code, location string, err error, remediation string) erro
 	return &EligibilityError{Report: issue.Report{{Code: code, Location: location, Message: err.Error(), Remediation: remediation}}}
 }
 
-func sdkIssues(refs []sdkRef, loaded map[string]*packages.Package, input source.Input) issue.Report {
-	var report issue.Report
-	seenPackages := map[string]bool{}
-	for _, ref := range refs {
-		if seenPackages[ref.Pkg] {
-			continue
-		}
-		seenPackages[ref.Pkg] = true
-		pkg := loaded[ref.Pkg]
-		if pkg == nil || pkg.Module == nil {
-			continue
-		}
-		expectedModule, expectedVersion, expectedDir := input.SDKModule, input.SDKVersion, input.SDKDir
-		remediation := "Load the Go SDK and OpenAPI from the same provider-pinned module version."
+// sdkIssues checks that every name exists, and that each package comes from the pinned SDK or,
+// for the clientset, from the same provider checkout.
+func sdkIssues(refs []sdkcheck.Ref, loaded map[string]*packages.Package, input source.Input) issue.Report {
+	return sdkcheck.Issues(refs, loaded, func(ref sdkcheck.Ref) sdkcheck.Source {
 		if ref.Rule == ruleProviderClientSet {
-			expectedModule, expectedVersion, expectedDir = input.ProviderModule, "", input.ProviderRoot
-			remediation = "Load the provider clientset from the same provider checkout."
+			return sdkcheck.Source{Module: input.Module, Dir: input.ModuleRoot, Remediation: "Load the provider clientset from the same provider checkout."}
 		}
-		if pkg.Module.Path != expectedModule || expectedVersion != "" && pkg.Module.Version != expectedVersion || expectedDir != "" && !samePath(pkg.Module.Dir, expectedDir) {
-			report = append(report, issue.Issue{Code: "SDK_SOURCE_MISMATCH", Location: ref.Pkg, Message: fmt.Sprintf("The loaded package comes from module %s %s at %s; expected %s %s at %s.", pkg.Module.Path, pkg.Module.Version, pkg.Module.Dir, expectedModule, expectedVersion, expectedDir), Remediation: remediation})
-		}
-	}
-	for index := range refs {
-		ref := &refs[index]
-		if err := checkRef(ref, loaded[ref.Pkg]); err != nil {
-			report = append(report, issue.Issue{Code: "SDK_SYMBOL_MISSING", Location: ref.Path, Message: fmt.Sprintf("SDK %s %s: %s", ref.Kind, ref.sdkName(), err), Remediation: "Regenerate and publish the SDK from the same OpenAPI contract, then pin that SDK version."})
-		}
-	}
-	return report
+		return sdkcheck.Source{Module: input.SDKModule, Version: input.SDKVersion, Dir: input.SDKDir, Remediation: "Load the Go SDK and OpenAPI from the same provider-pinned module version."}
+	})
 }
 
 func checkVersionHeaders(files map[string][]byte) error {
@@ -419,10 +414,4 @@ func checkVersionHeaders(files map[string][]byte) error {
 		}
 	}
 	return nil
-}
-
-func samePath(a, b string) bool {
-	a, aErr := filepath.EvalSymlinks(a)
-	b, bErr := filepath.EvalSymlinks(b)
-	return aErr == nil && bErr == nil && filepath.Clean(a) == filepath.Clean(b)
 }

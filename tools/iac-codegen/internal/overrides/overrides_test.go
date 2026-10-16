@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
 )
 
 const valid = `
@@ -42,8 +42,6 @@ func TestParseAndPolicy(t *testing.T) {
 		EnumAnyPrefix:  []string{"Kind"},
 		Skip:           []string{"Target.id"},
 		Released:       []string{"Target.id"},
-
-		NoInferredValidators: true,
 	}
 	if got := f.Policy(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("policy = %+v, want %+v", got, want)
@@ -80,23 +78,38 @@ func TestParseIsStrict(t *testing.T) {
 		text string
 		want string
 	}{
-		"empty file":      {"", "empty"},
-		"unknown key":     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nbogus: 1\n", "bogus"},
-		"unknown nested":  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrappr: x\n", "requestWrappr"},
-		"no resource":     {"mode: existing\n", "resource is required"},
-		"wrong mode":      {"resource: Thing\nmode: new\n", `mode is "new"`},
-		"no mode":         {"resource: Thing\n", `mode is ""`},
-		"no validators":   {"resource: Thing\nmode: existing\n", "validators.inferred is required"},
-		"bad readEmptyAs": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {readEmptyAs: zero}\n", "readEmptyAs"},
-		"bad default":     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {default: [a]}\n", "default is"},
-		"two validators":  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {validators: [{oneOf: [a], sizeAtLeast: 1}]}\n", "exactly one"},
-		"empty line":      {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {}\n", "sets nothing"},
-		"skip and more":   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, computed: true}\n", "skipped field"},
-		"required list":   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    required: [a]\n", "only the empty list"},
-		"type with no op": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T: {}\n", "has no override"},
-		"bad extra type":  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      token_wo:\n        elementType: bool\n        markdownDescription: x\n", "elementType"},
-		"unwrap twice":    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nunwrap: [A, A]\n", "names A twice"},
-		"skip and unwrap": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, unwrap: true}\n", "skipped field"},
+		"empty file":                        {"", "empty"},
+		"unknown key":                       {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nbogus: 1\n", "bogus"},
+		"unknown nested":                    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrappr: x\n", "requestWrappr"},
+		"no resource":                       {"mode: existing\n", "resource is required"},
+		"wrong mode":                        {"resource: Thing\nmode: new\n", `mode is "new"`},
+		"no mode":                           {"resource: Thing\n", `mode is ""`},
+		"no validators":                     {"resource: Thing\nmode: existing\n", "validators.inferred is required"},
+		"bad readEmptyAs":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {readEmptyAs: zero}\n", "readEmptyAs"},
+		"bad default":                       {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {default: [a]}\n", "default is"},
+		"two validators":                    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {validators: [{oneOf: [a], sizeAtLeast: 1}]}\n", "exactly one"},
+		"empty line":                        {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {}\n", "sets nothing"},
+		"skip and more":                     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, computed: true}\n", "skipped field"},
+		"required list":                     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    required: [a]\n", "only the empty list"},
+		"type with no op":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T: {}\n", "has no override"},
+		"bad extra type":                    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      token_wo:\n        elementType: bool\n        markdownDescription: x\n", "elementType"},
+		"unwrap twice":                      {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nunwrap: [A, A]\n", "names A twice"},
+		"skip and unwrap":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, unwrap: true}\n", "skipped field"},
+		"requestValue and name":             {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {requestValue: X, name: g}\n", "requestValue field is no Terraform attribute"},
+		"terraformType other than Int64":    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {terraformType: Int16}\n", "want \"Int64\""},
+		"skip and terraformType":            {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, terraformType: Int64}\n", "skipped field"},
+		"skip and name":                     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, name: g}\n", "skipped field"},
+		"bad name":                          {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {name: Time-Frame}\n", "is not a Terraform attribute name"},
+		"empty value name":                  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {valueNames: {1: Sunday, 2: \"\"}}\n", "2 has an empty name"},
+		"skip and asBool":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, asBool: true}\n", "skipped field"},
+		"same value name":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {valueNames: {1: Sunday, 7: Sunday}}\n", "1 and 7 both have the name"},
+		"name of a readable rejected value": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    zero: unspecified\n    values: [E_ONE]\n    rejected: [E_TWO]\n    readRejected: true\n    names: {E_ONE: E_TWO}\n", "have the same Terraform value"},
+		"bad nested group name":             {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    groups:\n      Bad-Name: {fields: [a]}\n", "types.T.groups.Bad-Name: the name is not a Terraform name"},
+		"field in two nested groups":        {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    groups:\n      a: {fields: [x]}\n      b: {fields: [x]}\n", "field x is also in types.T.groups.a"},
+		"zero spelling of a readable rejected value": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    zero: E_TWO\n    values: [E_ONE]\n    rejected: [E_TWO]\n    readRejected: true\n", "zero and the rejected \"E_TWO\" have the same Terraform value"},
+		"name that is the lower case":                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    values: [E_ONE]\n    names: {E_ONE: e_one}\n", "already the Terraform value"},
+		"name that trimPrefix makes":                 {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    trimPrefix: E_\n    values: [E_ONE]\n    names: {E_ONE: one}\n", "already the Terraform value"},
+		"name that verbatim makes":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    verbatim: true\n    values: [E_ONE]\n    names: {E_ONE: E_ONE}\n", "already the Terraform value"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -105,6 +118,26 @@ func TestParseIsStrict(t *testing.T) {
 				t.Fatalf("err = %v, want it to contain %q", err, test.want)
 			}
 		})
+	}
+}
+
+// A name line renames the Terraform attribute of a field, and idProperty names the field that
+// holds the id. The policy keeps both.
+func TestNameAndIDPropertyPolicy(t *testing.T) {
+	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\napi:\n  updateIDInBody: true\n  idProperty: uniqueIdentifier\ntypes:\n  R:\n    fields:\n      uniqueIdentifier: {name: id}\n      scheduleOperation: {name: operation, markdownDescription: The operation.}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := f.Policy()
+	if p.IDProperty != "uniqueIdentifier" {
+		t.Fatalf("IDProperty = %q, want uniqueIdentifier", p.IDProperty)
+	}
+	want := map[string]string{"R.uniqueIdentifier": "id", "R.scheduleOperation": "operation"}
+	if !reflect.DeepEqual(p.Names, want) {
+		t.Fatalf("Names = %v, want %v", p.Names, want)
+	}
+	if slices.Contains(p.Released, "R.scheduleOperation") {
+		t.Fatal("a name line states no presence: the field must still follow the contract")
 	}
 }
 
@@ -122,13 +155,6 @@ func TestAValidatorSetsExactlyOneKey(t *testing.T) {
 	}
 }
 
-func TestRequiresReplaceCannotBeComputed(t *testing.T) {
-	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {requiresReplace: true, computed: true}\n"))
-	if err == nil || !strings.Contains(err.Error(), "requiresReplace cannot be combined with computed: true") {
-		t.Fatalf("err = %v, want an error about requiresReplace and computed", err)
-	}
-}
-
 // A resource without a released version may keep the limits of the contract as validators.
 func TestInferredValidatorsOfAnUnreleasedResource(t *testing.T) {
 	for _, inferred := range []bool{true, false} {
@@ -136,8 +162,8 @@ func TestInferredValidatorsOfAnUnreleasedResource(t *testing.T) {
 		if err != nil {
 			t.Fatalf("inferred %t: %v", inferred, err)
 		}
-		if got := file.Policy().NoInferredValidators; got != !inferred {
-			t.Fatalf("inferred %t: NoInferredValidators = %t", inferred, got)
+		if got := *file.Validators.Inferred; got != inferred {
+			t.Fatalf("inferred %t: Validators.Inferred = %t", inferred, got)
 		}
 	}
 }
@@ -284,15 +310,6 @@ func TestUnwrapPolicy(t *testing.T) {
 	}
 }
 
-func TestAnUnsupportedArmHasNoFieldLine(t *testing.T) {
-	for _, line := range []string{"{skip: true}", "{description: A queue.}", "{computed: true}"} {
-		_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  C:\n    unsupportedArms: [queue]\n    unsupportedSummary: S\n    unsupportedDetail: D\n    fields:\n      queue: " + line + "\n"))
-		if err == nil || !strings.Contains(err.Error(), `"queue" also has a field line`) {
-			t.Fatalf("%s: err = %v, want an error about the field line", line, err)
-		}
-	}
-}
-
 // The keys that a resource generated in the released shape of a handwritten one needs: its type
 // name, groups of top-level fields, and enum values with their prefix removed.
 func TestReleasedShapeKeys(t *testing.T) {
@@ -332,21 +349,9 @@ func TestRejectUnknownOfAnUnreleasedResource(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if got := file.Policy().RejectUnknown; got != reject {
-			t.Fatalf("rejectUnknown %t: Policy().RejectUnknown = %t", reject, got)
+		if got := file.Validators.RejectUnknown; got != reject {
+			t.Fatalf("rejectUnknown %t: Validators.RejectUnknown = %t", reject, got)
 		}
-	}
-}
-
-func TestReadRejectedLowerNeedsReadRejected(t *testing.T) {
-	base := "resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    values: [A]\n    rejected: [B]\n"
-	for _, extra := range []string{"    readRejectedLower: true\n", "    verbatim: true\n    readRejected: true\n    readRejectedLower: true\n"} {
-		if _, err := Parse([]byte(base + extra)); err == nil || !strings.Contains(err.Error(), "readRejectedLower needs readRejected and excludes verbatim") {
-			t.Fatalf("%q: err = %v, want the readRejectedLower error", extra, err)
-		}
-	}
-	if _, err := Parse([]byte(base + "    readRejected: true\n    readRejectedLower: true\n")); err != nil {
-		t.Fatal(err)
 	}
 }
 
@@ -443,5 +448,61 @@ func TestCreateAsAndNamesAreCheckedAcrossLines(t *testing.T) {
 	}
 	if _, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: {createAs: {limit: limitValue}}\n")); err != nil {
 		t.Fatalf("createAs on the resource component: %v", err)
+	}
+}
+
+func TestRequiresReplaceCannotBeComputed(t *testing.T) {
+	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {requiresReplace: true, computed: true}\n"))
+	if err == nil || !strings.Contains(err.Error(), "requiresReplace cannot be combined with computed: true") {
+		t.Fatalf("err = %v, want an error about requiresReplace and computed", err)
+	}
+}
+
+func TestUnsupportedArmsKeys(t *testing.T) {
+	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  C:\n"
+	tests := map[string]struct{ text, want string }{
+		"no summary":       {"    unsupportedArms: [queue]\n    unsupportedDetail: D\n", "set together"},
+		"arm twice":        {"    unsupportedArms: [queue, queue]\n    unsupportedSummary: S\n    unsupportedDetail: D\n", "twice"},
+		"field line":       {"    unsupportedArms: [queue]\n    unsupportedSummary: S\n    unsupportedDetail: D\n    fields:\n      queue: {computed: true}\n", `"queue" also has a field line`},
+		"text without arm": {"    unsupportedSummary: S\n    unsupportedDetail: D\n", "set together"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte(head + test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+	if _, err := Parse([]byte(head + "    unsupportedArms: [queue]\n    unsupportedSummary: S\n    unsupportedDetail: D\n")); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestReadRejectedLowerNeedsReadRejected(t *testing.T) {
+	base := "resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    values: [A]\n    rejected: [B]\n"
+	for _, extra := range []string{"    readRejectedLower: true\n", "    verbatim: true\n    readRejected: true\n    readRejectedLower: true\n"} {
+		if _, err := Parse([]byte(base + extra)); err == nil || !strings.Contains(err.Error(), "readRejectedLower needs readRejected and excludes verbatim") {
+			t.Fatalf("%q: err = %v, want the readRejectedLower error", extra, err)
+		}
+	}
+	f, err := Parse([]byte(base + "    readRejected: true\n    readRejectedLower: true\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := f.Enums["E"].RejectedTFValue("B"); got != "b" {
+		t.Fatalf("RejectedTFValue = %q, want b", got)
+	}
+}
+
+func TestUpdateMaskOmit(t *testing.T) {
+	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\n"
+	if _, err := Parse([]byte(head + "updateMask: omit\n")); err == nil || !strings.Contains(err.Error(), "needs api.updateMaskInBody") {
+		t.Fatalf("err = %v, want an error that asks for a body mask", err)
+	}
+	if _, err := Parse([]byte(head + "api:\n  updateMaskInBody: true\nupdateMask: send\n")); err == nil || !strings.Contains(err.Error(), `want "omit"`) {
+		t.Fatalf("err = %v, want an error about the value", err)
+	}
+	if _, err := Parse([]byte(head + "api:\n  updateMaskInBody: true\nupdateMask: omit\n")); err != nil {
+		t.Fatal(err)
 	}
 }

@@ -60,14 +60,11 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "filter.alerts_unique_ids"
-    ],
     "state": {
       "description": "",
       "enabled": true,
       "filter": {
-        "alerts_unique_ids": null,
+        "alerts_unique_ids": [],
         "meta_labels": null,
         "what_expression": "source logs | filter true"
       },
@@ -83,10 +80,6 @@
         }
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"filter\").AttributeName(\"alerts_unique_ids\")",
-      "AttributeName(\"id\")"
-    ]
+    "replanEmpty": true
   }
 ]

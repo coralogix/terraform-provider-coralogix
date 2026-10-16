@@ -105,6 +105,9 @@
       "target": "response",
       "threshold": 1.5
     },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"threshold\")] | Attribute threshold value must be between 0.000000 and 1.000000, got: 1.500000"
+    ],
     "state": null
   },
   {
@@ -140,6 +143,9 @@
       "target": "response",
       "threshold": 0.5
     },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"config\").AttributeName(\"pii\").AttributeName(\"categories\").ElementKeyValue(tftypes.String<\"email_address\">)] | Attribute config.pii.categories[Value(\"email_address\")] value must be one of: [\"CREDIT_CARD\" \"EMAIL_ADDRESS\" \"IBAN_CODE\" \"PHONE_NUMBER\" \"US_SSN\"], got: \"email_address\""
+    ],
     "state": null
   },
   {

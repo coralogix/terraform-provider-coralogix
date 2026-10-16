@@ -15,6 +15,14 @@ const (
 	THINGKIND_THING_KIND_P5_OR_UNSPECIFIED ThingKind = "THING_KIND_P5_OR_UNSPECIFIED"
 )
 
+type ThingPriority string
+
+const (
+	THINGPRIORITY_THING_PRIORITY_UNSPECIFIED ThingPriority = "THING_PRIORITY_UNSPECIFIED"
+	THINGPRIORITY_THING_PRIORITY_LOW         ThingPriority = "THING_PRIORITY_LOW"
+	THINGPRIORITY_THING_PRIORITY_HIGH        ThingPriority = "THING_PRIORITY_HIGH"
+)
+
 type ThingConfig struct {
 	Http  *HttpThingConfig
 	Queue *QueueThingConfig
@@ -37,6 +45,7 @@ type ThingSpec struct {
 	Mode     *string
 	Region   *string
 	Revision string
+	Weight   *int32
 	Source   *ThingSource
 	Items    []ThingItem
 	Targets  []ThingTarget
@@ -44,14 +53,16 @@ type ThingSpec struct {
 
 type ThingSpecCreate struct {
 	Mode    *string
+	Weight  *int32
 	Region  *string
 	Items   []ThingItemCreate
 	Targets []ThingTargetInput
 }
 
 type ThingSpecUpdate struct {
-	Mode  *string
-	Items []ThingItemUpdate
+	Mode   *string
+	Weight *int32
+	Items  []ThingItemUpdate
 }
 
 type ThingItem struct {
@@ -107,6 +118,11 @@ type Thing struct {
 	UpdateTime   *time.Time
 	ExpireTime   *time.Time
 	Windows      []time.Time
+	Paused       *bool
+	Retries      *int32
+	Priority     *ThingPriority
+	Limit        *int32
+	Label        *string
 }
 
 type CreateThingRequest struct {
@@ -122,6 +138,11 @@ type CreateThingRequest struct {
 	Labels       map[string]string
 	ExpireTime   *time.Time
 	Windows      []time.Time
+	Paused       *bool
+	Retries      *int32
+	Priority     *ThingPriority
+	Limit        *int32
+	Label        *string
 }
 
 type UpdateThingRequest struct {
@@ -137,6 +158,11 @@ type UpdateThingRequest struct {
 	Labels       map[string]string
 	ExpireTime   *time.Time
 	Windows      []time.Time
+	Paused       *bool
+	Retries      *int32
+	Priority     *ThingPriority
+	Limit        *int32
+	Label        *string
 	UpdateMask   *string
 }
 

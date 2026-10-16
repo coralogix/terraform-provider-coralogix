@@ -6,8 +6,10 @@ validators:
   inferred: false
 
 api:
-  # Update sends no updateMask: the server updates the fields in the body.
   updateMaskInBody: true
+
+# Update sends no updateMask: the server updates the fields in the body.
+updateMask: omit
 
 types:
   EvalThing:
@@ -38,3 +40,5 @@ enums:
   EvalTarget:
     values: [PROMPT, RESPONSE]
     rejected: [CONVERSATION]
+    readRejected: true
+    readRejectedLower: true

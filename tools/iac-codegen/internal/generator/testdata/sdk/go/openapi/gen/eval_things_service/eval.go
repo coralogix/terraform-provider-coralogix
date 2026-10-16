@@ -20,7 +20,7 @@ type TopicsEvalConfig struct {
 
 // LegacyEvalConfig is the arm the resource does not configure. Flatten only reports it.
 type LegacyEvalConfig struct {
-	Limit interface{}
+	Limit *string
 }
 
 type EvalConfig struct {

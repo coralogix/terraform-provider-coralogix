@@ -3,12 +3,13 @@ package generator
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"math"
 	"slices"
 	"strconv"
 	"strings"
 
-	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/model"
+	"github.com/coralogix/coralogix-management-sdk/iac/model"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
 )
@@ -97,6 +98,8 @@ type tfAttr struct {
 	Default            string // Go expression of a static default, or ""
 	// WriteOnly: Terraform sends the value and does not store it. Only extraAttributes set this.
 	WriteOnly bool
+	// TrueOnly: a bool that shows an object without fields (asBool). Only true is a valid value.
+	TrueOnly bool
 	// Extra: the attribute is from types.<Type>.extraAttributes, not the API. The generated
 	// acceptance test leaves it out unless values or an upgrade case supplies the map: a made-up
 	// map key is not a valid API field.
@@ -129,9 +132,12 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // buildTFResourceWith is buildTFResource for a resource with a behavior-overrides file
 // (nil for a new resource).
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
-	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy}
+	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: r.Name + "Model"}
 	root := &tfModel{Name: out.Model}
+	if err := b.claimModel(root.Name, "the resource "+r.Name); err != nil {
+		return nil, err
+	}
 	b.models = append(b.models, root)
 	if r.Singleton {
 		if err := addSingletonID(out, root, r); err != nil {
@@ -146,6 +152,9 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 		return nil, err
 	}
 	if err := groups.check(out.Attributes); err != nil {
+		return nil, err
+	}
+	if err := b.checkNestedGroupsUsed(); err != nil {
 		return nil, err
 	}
 	out.ConfigValidators = b.validators
@@ -165,7 +174,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 		if err := checkImmutableValues(out.Attributes, ""); err != nil {
 			return nil, err
 		}
-		if err := checkBodyMaskClears(r, out.Attributes); err != nil {
+		if err := checkOmittedMaskClears(r, out.Attributes, file); err != nil {
 			return nil, err
 		}
 	}
@@ -235,7 +244,7 @@ func defaultPackages(attrs []*tfAttr) []string {
 // addSingletonID adds the fixed id attribute of a singleton (D18).
 func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
 	for _, f := range r.Fields {
-		if r.Policy.TerraformName(r.Name, f.Name) == "id" {
+		if terraformName(r.Policy, r.Name, f.Name) == "id" {
 			return fmt.Errorf("%s: a singleton with an id field is not supported: the id attribute is fixed", f.Name)
 		}
 	}
@@ -251,7 +260,7 @@ func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
 // resourceAttribute builds the attribute of a top-level field: its type, its server default, a
 // client-set id, and the plan modifiers of its behavior.
 func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *model.ResourceField, group string) (*tfAttr, error) {
-	a, err := b.attribute(rootPath(group, r.Policy.TerraformName(r.Name, f.Name)), r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), responseOnly(f.Behavior))
+	a, err := b.attribute(rootPath(group, terraformName(r.Policy, r.Name, f.Name)), r.Name, f.Name, f.Description, f.Type, fieldAttrs(f), responseOnly(f.Behavior))
 	if err != nil {
 		return nil, err
 	}
@@ -268,13 +277,13 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 		a.Modifiers = append(a.Modifiers, "serverDefaultModifier{value: "+value+"}")
 		out.HasServerDefaults = true
 		if !f.Get.Required {
-			out.OmittedDefaults = append(out.OmittedDefaults, defaultPath{Path: r.Policy.TerraformName(r.Name, f.Name), Value: value})
+			out.OmittedDefaults = append(out.OmittedDefaults, defaultPath{Path: terraformName(r.Policy, r.Name, f.Name), Value: value})
 		}
 		if !containsString(out.ServerDefaultKinds, a.ValueKind) {
 			out.ServerDefaultKinds = append(out.ServerDefaultKinds, a.ValueKind)
 		}
 	}
-	clientSetID := r.Policy.ClientSetID && f.Name == r.IDParam
+	clientSetID := r.Policy.ClientSetID && f.Name == r.ID()
 	if clientSetID {
 		// The user can set the id. Without a value, the server makes one.
 		// The id names the resource, so a new id replaces it: Update cannot
@@ -286,7 +295,7 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 	switch {
 	case f.Behavior == model.Computed:
 		markComputed(a)
-		if f.Name == r.IDParam {
+		if f.Name == r.ID() {
 			a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
 		}
 	case f.Behavior == model.Immutable || clientSetID:
@@ -398,6 +407,12 @@ func requestValue(file *overrides.File, component, field string) bool {
 }
 
 func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
+	if err := applyValueNames(a, l); err != nil {
+		return err
+	}
+	if err := applyTerraformType(a, l); err != nil {
+		return err
+	}
 	if l.RequireOne {
 		// On an arm of a top-level oneOf, the resource validator becomes ExactlyOneOf. Elsewhere,
 		// the line names the field that holds the oneOf.
@@ -755,7 +770,20 @@ type tfBuilder struct {
 	defaultKinds []string        // ServerDefaultKinds of nested attributes
 	defaultPaths []defaultPath   // DefaultPaths
 	file         *overrides.File
-	policy       model.Policy
+	policy       model.Policy      // names the attributes that a name line renames
+	replace      bool              // Update is a full replace, so a group can hold nested fields
+	owners       map[string]string // model struct name to what makes it: the resource, a component, or a group
+	grouped      map[string]bool   // components whose types.<Type>.groups the builder applied
+}
+
+// claimModel records that owner makes the model struct name. Two owners of one name would share
+// one struct, which holds the fields of only one of them, so the generator reports it.
+func (b *tfBuilder) claimModel(name, owner string) error {
+	if previous, ok := b.owners[name]; ok && previous != owner {
+		return fmt.Errorf("the model struct %s is made by %s and by %s: rename the group", name, previous, owner)
+	}
+	b.owners[name] = owner
+	return nil
 }
 
 // requireOneArm turns a oneOf that allows no arm into ExactlyOneOf. The contract
@@ -812,7 +840,14 @@ func (p attrPath) expr() string {
 }
 
 func (b *tfBuilder) attribute(p attrPath, component, name, desc string, t *model.Type, attrs model.Attrs, computed bool) (*tfAttr, error) {
-	a := &tfAttr{Name: b.policy.TerraformName(component, name), Description: desc, Required: attrs.Required, Optional: !attrs.Required, Component: component, Property: name}
+	a := &tfAttr{Name: terraformName(b.policy, component, name), Description: desc, Required: attrs.Required, Optional: !attrs.Required, Component: component, Property: name}
+	if b.policy.AsBool(component, name) {
+		if !emptyObject(t) {
+			return nil, fmt.Errorf("%s.%s: asBool needs an object without fields", component, name)
+		}
+		a.Kind, a.ValueKind, a.TrueOnly = "Bool", "Bool", true
+		return a, nil
+	}
 	if err := b.setType(a, p, t, computed); err != nil {
 		return nil, err
 	}
@@ -893,6 +928,58 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 	return nil
 }
 
+// applyTerraformType keeps the released Terraform type of an int32 attribute, or of a list or set
+// of int32: Int64. The validators follow the type.
+func applyTerraformType(a *tfAttr, l overrides.Field) error {
+	if l.TerraformType == "" {
+		return nil
+	}
+	retype := func(vs []string) []string {
+		out := make([]string, 0, len(vs))
+		for _, v := range vs {
+			out = append(out, strings.NewReplacer("int32validator.", "int64validator.", "ValueInt32sAre(", "ValueInt64sAre(").Replace(v))
+		}
+		return out
+	}
+	switch {
+	case a.Kind == "Int32":
+		a.Kind, a.ValueKind = "Int64", "Int64"
+	case (a.Kind == "Set" || a.Kind == "List") && a.ElementType == "types.Int32Type":
+		a.ElementType = "types.Int64Type"
+		a.ElemValidators = retype(a.ElemValidators)
+	default:
+		return fmt.Errorf("terraformType Int64 needs an int32 attribute, or a list or set of int32, not a %s", a.Kind)
+	}
+	a.Validators, a.GroupValidators = retype(a.Validators), retype(a.GroupValidators)
+	return nil
+}
+
+// applyValueNames makes a list or set of integers a list or set of the names of its values. Only
+// the names are valid, so the line also brings their OneOf validator.
+func applyValueNames(a *tfAttr, l overrides.Field) error {
+	if len(l.ValueNames) == 0 {
+		return nil
+	}
+	if a.Kind != "Set" && a.Kind != "List" || a.ElementType != "types.Int32Type" && a.ElementType != "types.Int64Type" {
+		return fmt.Errorf("valueNames needs a list or set of integers, not a %s of %s", a.Kind, a.ElementType)
+	}
+	names := make([]string, 0, len(l.ValueNames))
+	for _, v := range l.SortedValueNames() {
+		names = append(names, v.Name)
+	}
+	slices.Sort(names)
+	quoted := make([]string, 0, len(names))
+	for _, n := range names {
+		quoted = append(quoted, strconv.Quote(n))
+	}
+	oneOf := "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")"
+	pkg := strings.ToLower(a.Kind) + "validator"
+	a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return strings.Contains(v, ".ValueInt") })
+	a.ElementType, a.ElemValidators = "types.StringType", []string{oneOf}
+	a.Validators = append(a.Validators, pkg+".ValueStringsAre("+oneOf+")")
+	return nil
+}
+
 // objectAttributes returns the attributes of an object or of the arms of a
 // oneOf, and adds its model struct.
 func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, error) {
@@ -901,11 +988,16 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	}
 	var attrs []*tfAttr
 	var fields []tfModelField
+	groups := newNestedGroups(b, t.Schema)
 	for _, f := range t.Fields {
 		if requestValue(b.file, t.Schema, f.Name) {
 			continue
 		}
-		child := append(append(attrPath{}, p...), b.policy.TerraformName(t.Schema, f.Name))
+		group := groups.of(f.Name)
+		child := append(append(attrPath{}, p...), terraformName(b.policy, t.Schema, f.Name))
+		if group != "" {
+			child = append(append(attrPath{}, p...), group, terraformName(b.policy, t.Schema, f.Name))
+		}
 		only := b.sent.responseOnly(t.Schema, f)
 		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f), only)
 		if err != nil {
@@ -924,19 +1016,42 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		if err := b.nestedServerDefault(a, child, t.Schema, f); err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
+		field := b.modelField(t.Schema, f.Name, f.Type, f.Behavior, only, f.Attrs.Computed)
+		if group != "" {
+			if err := groups.add(group, f, a, field); err != nil {
+				return nil, err
+			}
+			a, field, ok, err := groups.first(group)
+			if err != nil {
+				return nil, err
+			}
+			if ok {
+				attrs = append(attrs, a)
+				fields = append(fields, field)
+			}
+			continue
+		}
 		attrs = append(attrs, a)
-		fields = append(fields, b.modelField(t.Schema, f.Name, f.Type, f.Behavior, only, f.Attrs.Computed))
+		fields = append(fields, field)
 	}
-	groups := t.Groups
+	oneOfs := t.Groups
 	if t.Kind == model.OneOf {
 		group := model.OneOfGroup{AllowNone: t.AllowNone}
 		for _, f := range t.Fields {
 			group.Arms = append(group.Arms, f.Name)
 		}
-		groups = append(groups, group)
+		oneOfs = append(oneOfs, group)
 	}
-	addGroupValidators(attrs, groups, func(arm string) string { return b.policy.TerraformName(t.Schema, arm) })
+	if err := groups.addValidators(attrs, b.policy.WithDefaultArms(t.Schema, oneOfs)); err != nil {
+		return nil, err
+	}
+	if err := groups.check(attrs); err != nil {
+		return nil, err
+	}
 	name := typeModelName(t)
+	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
+		return nil, err
+	}
 	if !b.seen[name] {
 		b.seen[name] = true
 		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
@@ -980,7 +1095,7 @@ func (b *tfBuilder) nestedServerDefault(a *tfAttr, p attrPath, component string,
 	}
 	a.Computed = true
 	a.Modifiers = append(a.Modifiers, "serverDefaultModifier{value: "+value+"}")
-	b.defaultPaths = append(b.defaultPaths, defaultPath{Path: p.dotted(), Value: value})
+	b.defaultPaths = append(b.defaultPaths, defaultPath{Path: p.dotted(), Value: value, Implicit: f.Type.ImplicitDefault})
 	if !containsString(b.defaultKinds, a.ValueKind) {
 		b.defaultKinds = append(b.defaultKinds, a.ValueKind)
 	}
@@ -988,14 +1103,22 @@ func (b *tfBuilder) nestedServerDefault(a *tfAttr, p attrPath, component string,
 }
 
 // defaultPath is a nested attribute with a server default: its path in the form of
-// ComputedPaths, and the Go expression of the default.
-type defaultPath struct{ Path, Value string }
+// ComputedPaths, and the Go expression of the default. Implicit is true for the zero value of a
+// scalar without presence, which the contract does not declare.
+type defaultPath struct {
+	Path, Value string
+	Implicit    bool
+}
 
-// DefaultObjects are the paths of the objects that hold a nested attribute with a server
-// default, sorted. Only these objects read "" or a declared default as empty.
+// DefaultObjects are the paths of the objects that hold a nested attribute with a declared server
+// default, sorted. Only these objects read "" or a declared default as empty: the service fills
+// such an object when a request omits it. An implicit zero default states no such thing.
 func (r *tfResource) DefaultObjects() []string {
 	var out []string
 	for _, d := range r.DefaultPaths {
+		if d.Implicit {
+			continue
+		}
 		if i := strings.LastIndex(d.Path, "."); i > 0 && !slices.Contains(out, d.Path[:i]) {
 			out = append(out, d.Path[:i])
 		}
@@ -1046,10 +1169,10 @@ func checkImmutableValues(attrs []*tfAttr, parent string) error {
 			at = parent + "." + a.Name
 		}
 		if replaces(a) {
-			// The attribute itself, not only a descendant. Optional+Computed
-			// plans an omitted value as unknown, and the stock RequiresReplace
-			// treats that unknown as a change. UseStateForUnknown runs first and
-			// plans the prior value instead, as for a client-set id.
+			// The attribute itself, not only a descendant. Optional+Computed plans an omitted
+			// value as unknown, and the stock RequiresReplace treats that unknown as a change.
+			// UseStateForUnknown runs first and plans the prior value instead, as for a
+			// client-set id.
 			if a.Optional && a.Computed && !keepsState(a) {
 				return fmt.Errorf("%s: an optional and computed attribute cannot require replacement. Omitting it plans the value as unknown and replaces the resource when something else changes", at)
 			}
@@ -1064,31 +1187,24 @@ func checkImmutableValues(attrs []*tfAttr, parent string) error {
 	return nil
 }
 
-// replaces reports whether a change of a replaces the resource.
-// checkBodyMaskClears rejects api.updateMaskInBody when a field that Update
-// sends could be removed from the configuration. Update sends no mask, and the
-// server keeps a field that the body omits, so removing it would not clear it.
-func checkBodyMaskClears(r *model.Resource, attrs []*tfAttr) error {
-	if !r.MaskInBody {
+// checkOmittedMaskClears rejects updateMask: omit when a field that Update sends could be removed
+// from the configuration: Update sends no mask, and the server keeps a field that the body omits,
+// so removing it would not clear it. A required field, a field with a default, and a field that
+// keeps its state value are always in the body.
+func checkOmittedMaskClears(r *model.Resource, attrs []*tfAttr, file *overrides.File) error {
+	if file == nil || file.UpdateMask != overrides.UpdateMaskOmit {
 		return nil
 	}
 	for _, f := range r.Fields {
-		if f.Update != nil && f.Update.Required && f.Behavior == model.Immutable {
-			// The SDK holds a field that Update requires as a value, so leaving
-			// it out of the body would still send its zero value.
-			return fmt.Errorf("%s: api.updateMaskInBody leaves a field that replaces the resource out of the Update body, but the Update body requires it", tfName(f.Name))
-		}
-		if !sentOnUpdate(r, f) {
+		if f.Update == nil || f.Behavior != model.Normal {
 			continue
 		}
 		name := tfName(f.Name)
 		i := slices.IndexFunc(attrs, func(a *tfAttr) bool { return a.Name == name })
-		// UseStateForUnknown plans the prior value, so the body sends it, and
-		// removing the field from the configuration does not clear it by design.
 		if i < 0 || attrs[i].Required || attrs[i].Default != "" || keepsState(attrs[i]) {
 			continue
 		}
-		return fmt.Errorf("%s: api.updateMaskInBody sends no mask, so removing this optional attribute would not clear it. Make it required or give it a default", name)
+		return fmt.Errorf("%s: updateMask: omit sends no mask, so removing this optional attribute would not clear it. Make it required or give it a default", name)
 	}
 	return nil
 }
@@ -1100,6 +1216,7 @@ func keepsState(a *tfAttr) bool {
 	})
 }
 
+// replaces reports whether a change of a replaces the resource.
 func replaces(a *tfAttr) bool {
 	return slices.ContainsFunc(a.Modifiers, func(m string) bool {
 		return strings.HasSuffix(m, "planmodifier.RequiresReplace()") || strings.HasPrefix(m, "requestReplaceModifier{")
@@ -1161,7 +1278,7 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 		}
 	case model.Integer:
 		goType = "types.Int64"
-		if t.Format == "int32" {
+		if t.Format == "int32" && terraformType(b.policy, component, name) == "" {
 			goType = "types.Int32"
 		}
 	case model.Set:
@@ -1171,13 +1288,20 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 	case model.Map:
 		goType = "types.Map"
 	case model.Object, model.OneOf:
-		if behavior == model.Computed || computed {
+		if b.policy.AsBool(component, name) {
+			goType = "types.Bool"
+		} else if behavior == model.Computed || computed {
 			goType = "types.Object"
 		} else {
 			goType = "*" + typeModelName(t)
 		}
 	}
-	return tfModelField{Name: camelize(name), Type: goType, TFName: b.policy.TerraformName(component, name)}
+	return tfModelField{Name: camelize(name), Type: goType, TFName: terraformName(b.policy, component, name)}
+}
+
+// emptyObject reports whether t is an object without fields, which the SDK holds as a map.
+func emptyObject(t *model.Type) bool {
+	return (t.Kind == model.Object || t.Kind == model.OneOf) && len(t.Fields) == 0
 }
 
 // modelTypeName is the Terraform model struct of a component schema.
@@ -1345,7 +1469,7 @@ func formatInt(f float64) string   { return strconv.FormatInt(int64(f), 10) }
 
 // tfName is the Terraform name for a property name: "sqlReadOnly" → "sql_read_only".
 func tfName(property string) string {
-	return model.TerraformName(property)
+	return TerraformName(property)
 }
 
 // rootPath is the attribute path of a top-level attribute with the Terraform name name: below
@@ -1443,7 +1567,7 @@ func checkGroupField(r *model.Resource, f *model.ResourceField, group string) er
 		return nil
 	case !r.Replace:
 		return fmt.Errorf("groups.%s: a group needs a full-replace Update (PUT): a PATCH mask names the API fields", group)
-	case f.Name == r.IDParam:
+	case f.Name == r.ID():
 		return fmt.Errorf("groups.%s: the resource id %s cannot be in a group", group, f.Name)
 	case f.Behavior != model.Normal:
 		return fmt.Errorf("groups.%s: %s is %s; a group holds only fields that the user sets and Update sends", group, f.Name, f.Behavior)
@@ -1543,6 +1667,9 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 			continue
 		}
 		if groups.add(group, a, field) {
+			if err := b.claimModel(groups.models[group].Name, "groups."+group); err != nil {
+				return err
+			}
 			out.Attributes = append(out.Attributes, groups.attrs[group])
 			root.Fields = append(root.Fields, tfModelField{Name: camelize(group), Type: "*" + groups.models[group].Name, TFName: group})
 			b.models = append(b.models, groups.models[group])
@@ -1559,7 +1686,7 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 			return err
 		} else if group != "" {
 			// The arms are in one group, which is an object: they check each other inside it.
-			addGroupValidators(groups.attrs[group].Attributes, []model.OneOfGroup{g}, func(arm string) string { return r.Policy.TerraformName(r.Name, arm) })
+			addGroupValidators(groups.attrs[group].Attributes, []model.OneOfGroup{g}, func(arm string) string { return terraformName(r.Policy, r.Name, arm) })
 			if file.Groups[group].RequireOne {
 				requireOneArm(groups.attrs[group])
 			}
@@ -1567,7 +1694,7 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 		}
 		var arms []string
 		for _, arm := range g.Arms {
-			name := r.Policy.TerraformName(r.Name, arm)
+			name := terraformName(r.Policy, r.Name, arm)
 			arms = append(arms, rootPath(file.GroupOf(arm), name).expr())
 			if file.Types[r.Name].Fields[arm].RequireOne {
 				// The released resource required one arm although the contract allows none.
@@ -1575,7 +1702,7 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 			}
 		}
 		for _, arm := range g.Arms {
-			name := r.Policy.TerraformName(r.Name, arm)
+			name := terraformName(r.Policy, r.Name, arm)
 			for _, a := range out.Attributes {
 				if a.Name == name {
 					// The resource validator checks the arms; the acceptance test sets one of them.
@@ -1586,4 +1713,149 @@ func (b *tfBuilder) rootOneOfs(out *tfResource, r *model.Resource, file *overrid
 		b.validators = append(b.validators, groupValidator("resourcevalidator", g, true)+"(\n"+strings.Join(arms, ",\n")+",\n)")
 	}
 	return nil
+}
+
+// nestedGroups builds the groups of a nested component (types.<Type>.groups): required objects
+// that hold fields of the component and that the API does not have.
+type nestedGroups struct {
+	b         *tfBuilder
+	component string
+	lines     map[string]overrides.Group
+	attrs     map[string]*tfAttr
+	models    map[string]*tfModel
+	fresh     map[string]bool // the group attribute was made by the last add
+}
+
+func newNestedGroups(b *tfBuilder, component string) *nestedGroups {
+	g := &nestedGroups{b: b, component: component, attrs: map[string]*tfAttr{}, models: map[string]*tfModel{}, fresh: map[string]bool{}}
+	if b.file != nil {
+		g.lines = b.file.Types[component].Groups
+	}
+	if len(g.lines) != 0 {
+		if b.grouped == nil {
+			b.grouped = map[string]bool{}
+		}
+		b.grouped[component] = true
+	}
+	return g
+}
+
+// checkNestedGroupsUsed reports types.<Type>.groups of a type that no object of the resource
+// has, such as a misspelled type name: the groups would be dropped without a word.
+func (b *tfBuilder) checkNestedGroupsUsed() error {
+	if b.file == nil {
+		return nil
+	}
+	for _, name := range slices.Sorted(maps.Keys(b.file.Types)) {
+		if len(b.file.Types[name].Groups) != 0 && !b.grouped[name] {
+			return fmt.Errorf("types.%s.groups: no object of the resource is %s", name, name)
+		}
+	}
+	return nil
+}
+
+// of returns the group that holds field, or "".
+func (g *nestedGroups) of(field string) string {
+	for name, line := range g.lines {
+		if slices.Contains(line.Fields, field) {
+			return name
+		}
+	}
+	return ""
+}
+
+// add puts the attribute and the model field of field f in its group. A group holds fields that
+// the user sets and that a full replace sends, as a top-level group does.
+func (g *nestedGroups) add(group string, f *model.Field, a *tfAttr, field tfModelField) error {
+	switch {
+	case !g.b.replace:
+		return fmt.Errorf("types.%s.groups.%s: a group needs a full-replace Update (PUT): a PATCH mask names the API fields", g.component, group)
+	case f.Behavior != model.Normal:
+		return fmt.Errorf("types.%s.groups.%s: %s is %s; a group holds only fields that the user sets and Update sends", g.component, group, f.Name, f.Behavior)
+	case slices.ContainsFunc(a.Modifiers, func(m string) bool { return strings.HasPrefix(m, "serverDefaultModifier") }):
+		return fmt.Errorf("types.%s.groups.%s: %s has a server default; a group cannot hold it", g.component, group, f.Name)
+	}
+	attr, found := g.attrs[group]
+	g.fresh[group] = !found
+	if !found {
+		attr = &tfAttr{Name: group, Kind: "SingleNested", ValueKind: "Object", Required: true, Component: g.component,
+			Description: g.lines[group].MarkdownDescription}
+		g.attrs[group] = attr
+		g.models[group] = &tfModel{Name: groupModelName(g.component, group)}
+	}
+	attr.Attributes = append(attr.Attributes, a)
+	g.models[group].Fields = append(g.models[group].Fields, field)
+	return nil
+}
+
+// first returns the group attribute and its model field when the last add made the group, so the
+// caller adds them once, in the place of the first field of the group.
+func (g *nestedGroups) first(group string) (*tfAttr, tfModelField, bool, error) {
+	if !g.fresh[group] {
+		return nil, tfModelField{}, false, nil
+	}
+	model := g.models[group]
+	if err := g.b.claimModel(model.Name, "types."+g.component+".groups."+group); err != nil {
+		return nil, tfModelField{}, false, err
+	}
+	if !g.b.seen[model.Name] {
+		g.b.seen[model.Name] = true
+		g.b.models = append(g.b.models, model)
+	}
+	return g.attrs[group], tfModelField{Name: camelize(group), Type: "*" + model.Name, TFName: group}, true, nil
+}
+
+// addValidators adds the oneOf validators: inside a group when the group holds every arm, else to
+// the attributes of the component. A group cannot hold some of the arms only.
+func (g *nestedGroups) addValidators(attrs []*tfAttr, oneOfs []model.OneOfGroup) error {
+	name := func(arm string) string { return terraformName(g.b.policy, g.component, arm) }
+	for _, o := range oneOfs {
+		group := g.of(o.Arms[0])
+		for _, arm := range o.Arms[1:] {
+			if g.of(arm) != group {
+				return fmt.Errorf("types.%s.groups: the oneOf arms %s must all be in one group, or in none", g.component, strings.Join(o.Arms, ", "))
+			}
+		}
+		if group == "" {
+			addGroupValidators(attrs, []model.OneOfGroup{o}, name)
+			continue
+		}
+		addGroupValidators(g.attrs[group].Attributes, []model.OneOfGroup{o}, name)
+		if g.lines[group].RequireOne {
+			requireOneArm(g.attrs[group])
+		}
+	}
+	return nil
+}
+
+// check reports a group field that is no field of the component, and a group whose Terraform or
+// Go name is also the name of another attribute.
+func (g *nestedGroups) check(attrs []*tfAttr) error {
+	for _, name := range sortedGroupNames(g.lines) {
+		for _, a := range attrs {
+			if a != g.attrs[name] && (a.Name == name || camelize(a.Name) == camelize(name)) {
+				return fmt.Errorf("types.%s.groups.%s: the name is also the attribute %s", g.component, name, a.Name)
+			}
+		}
+		for _, field := range g.lines[name].Fields {
+			if !slices.ContainsFunc(g.attrs[name].attrsOrNil(), func(a *tfAttr) bool { return a.Property == field }) {
+				return fmt.Errorf("types.%s.groups.%s: %s is no field of %s that Terraform shows", g.component, name, field, g.component)
+			}
+		}
+		if g.lines[name].RequireOne && !oneOfArmsOnly(g.attrs[name].attrsOrNil()) {
+			// Flatten checks that the response has one of the fields of the group, so every
+			// field must be an arm of the same oneOf.
+			return fmt.Errorf("types.%s.groups.%s: requireOne needs the arms of one oneOf of %s, and no other field", g.component, name, g.component)
+		}
+	}
+	return nil
+}
+
+func sortedGroupNames(groups map[string]overrides.Group) []string {
+	names := make([]string, 0, len(groups))
+	for name := range groups {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
 }
