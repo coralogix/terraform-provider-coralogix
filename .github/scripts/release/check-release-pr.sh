@@ -7,9 +7,11 @@
 # Exit 0: publish. Exit 3: skip without an error (push of a PR that release-provider did
 # not open). Exit 1: refuse.
 #
-# A release PR from release-provider needs an approval from someone other than the person
-# who started the release, because the bot is its author and branch protection does not
-# stop that person from approving it. A dispatch by a different maintainer also counts.
+# A release PR from release-provider needs an approval from a maintainer (write access or
+# more) other than the person who started the release, because the bot is its author and
+# branch protection does not stop that person from approving it. Anyone can review a PR
+# in a public repository, so other approvals do not count. A dispatch by a different
+# maintainer also counts.
 # A hand-made PR publishes only on dispatch; branch protection already kept its author
 # from approving it.
 #
@@ -54,19 +56,30 @@ if [ -z "$starter" ]; then
 fi
 
 # The latest approving or blocking review of each user counts; comments do not change it.
-approvers=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$number/reviews" \
+approved=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$number/reviews" \
     --jq '.[] | select(.user.type != "Bot") | [.user.login, .state] | @tsv' |
   awk -F'\t' '$2 != "COMMENTED" && $2 != "PENDING" { last[$1] = $2 }
     END { for (u in last) if (last[u] == "APPROVED") print u }' |
-  grep -vxF "$starter" | sort | paste -sd, - || true)
+  { grep -vxF "$starter" || true; } | sort)
+
+# Only maintainers count. The API reports maintain as write and triage as read.
+approvers="" outsiders=""
+for user in $approved; do
+  permission=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$user/permission" --jq .permission)
+  case $permission in
+    admin|write) approvers="${approvers:+$approvers,}$user" ;;
+    *) outsiders="${outsiders:+$outsiders,}$user ($permission)" ;;
+  esac
+done
+[ -z "$outsiders" ] || echo "Approvals without write access do not count: $outsiders"
 
 if [ -n "$approvers" ]; then
   echo "#$number: $starter started the release, $approvers approved it."
   exit 0
 fi
 if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] && [ "$GITHUB_TRIGGERING_ACTOR" != "$starter" ]; then
-  echo "#$number has no approval from anyone but $starter, who started the release; $GITHUB_TRIGGERING_ACTOR dispatched the publish."
+  echo "#$number has no approval from a maintainer other than $starter, who started the release; $GITHUB_TRIGGERING_ACTOR dispatched the publish."
   exit 0
 fi
-echo "::error::#$number has no approval from anyone other than $starter, who started the release. Another maintainer can publish $dispatch."
+echo "::error::#$number has no approval from a maintainer other than $starter, who started the release. Another maintainer can publish $dispatch."
 exit 1

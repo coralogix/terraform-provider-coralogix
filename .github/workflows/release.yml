@@ -38,6 +38,11 @@ on:
         required: false
         type: boolean
         default: false
+      version:
+        description: With snapshot, the TF_PROVIDER_VERSION to build, as the release PR sets it.
+        required: false
+        type: string
+        default: ''
   workflow_run:
     workflows: ["semantic-release"]
     types:
@@ -98,6 +103,17 @@ jobs:
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set the release version (dry run)
+        # A dry run before the release PR builds master, which still has the previous
+        # version. Build what the release will build.
+        if: inputs.snapshot && inputs.version != ''
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          sed -i "s/^const TF_PROVIDER_VERSION = \".*\"$/const TF_PROVIDER_VERSION = \"$VERSION\"/" internal/clientset/version.go
+          grep -qx "const TF_PROVIDER_VERSION = \"$VERSION\"" internal/clientset/version.go
+          echo "Building with TF_PROVIDER_VERSION $VERSION" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Run GoReleaser (dry run – snapshot, signed)
         if: inputs.snapshot
