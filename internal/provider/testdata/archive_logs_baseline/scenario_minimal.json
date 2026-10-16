@@ -9,7 +9,7 @@
       "archiving_format_id": "(unknown)",
       "bucket": "archive-bucket",
       "enable_tags": "(unknown)",
-      "id": "(unknown)",
+      "id": "archive-logs-settings",
       "region": "(unknown)"
     },
     "requests": [
@@ -56,6 +56,9 @@
   },
   {
     "step": "destroy",
+    "applyDiagnostics": [
+      "warning: Resource not deleted | The API cannot delete archive_logs. Terraform removed it from state, and the API keeps its last configuration."
+    ],
     "state": null
   }
 ]
