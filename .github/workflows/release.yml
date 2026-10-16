@@ -19,6 +19,14 @@ on:
       - 'CLAUDE.md'
       - '**/*.md'
   workflow_dispatch:
+  # Called by release-provider.yml with the tag it created. GitHub's generated
+  # notes become the release body.
+  workflow_call:
+    inputs:
+      tag:
+        description: Tag to release, for example v3.22.0.
+        required: true
+        type: string
   workflow_run:
     workflows: ["semantic-release"]
     types:
@@ -36,6 +44,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: ${{ inputs.tag || github.ref }}
       - name: Unshallow
         run: git fetch --prune --unshallow
       - name: Set up Go
@@ -56,12 +66,21 @@ jobs:
           version: "~> v2"
           args: release --snapshot --clean --skip=sign
 
+      - name: Generate release notes
+        if: inputs.tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/releases/generate-notes" -f tag_name="$TAG" --jq .body \
+            > "${RUNNER_TEMP}/release-notes.md"
+
       - name: Run GoReleaser
         if: github.event_name != 'pull_request'
         uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
-          args: release --clean
+          args: release --clean ${{ inputs.tag != '' && format('--release-notes={0}/release-notes.md', runner.temp) || '' }}
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
