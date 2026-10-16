@@ -56,7 +56,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          ref: ${{ inputs.ref || inputs.tag || github.ref }}
+          # Empty keeps checkout's default: the commit of the triggering event.
+          ref: ${{ inputs.ref || inputs.tag || '' }}
       - name: Unshallow
         run: git fetch --prune --unshallow
       - name: Set up Go

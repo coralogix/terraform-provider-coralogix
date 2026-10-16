@@ -118,7 +118,7 @@ def main():
             p.add_argument("release_url")
             p.add_argument("registry_url")
     args = parser.parse_args()
-    if not re.fullmatch(r"\d+\.\d+\.\d+", args.version):
+    if not re.fullmatch(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)", args.version):
         sys.exit(f"version {args.version!r} is not MAJOR.MINOR.PATCH")
     if args.command == "cut":
         cut(args.file, args.version)
