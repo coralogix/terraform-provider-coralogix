@@ -493,6 +493,35 @@
           "path": "/{{id}}"
         }
       ]
+    },
+    {
+      "name": "create and read a conversation evaluation",
+      "needsApplication": true,
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "CONVERSATION",
+            "isEnabled": true,
+            "threshold": 0.5,
+            "config": {
+              "toxicity": {}
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
     }
   ]
 }
