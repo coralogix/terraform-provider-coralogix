@@ -25,8 +25,17 @@ type crudData struct {
 	IDTFType string // String, Int32, or Int64
 	IDBits   int    // 0 for string; 32 or 64 for integer import parsing
 	// Singleton: no id in the path (D18). The id attribute is the fixed value
-	// TypeName, and the API calls take no id.
+	// SingletonID, and the API calls take no id.
 	Singleton bool
+	// SingletonID is the Go expression of the fixed id of a singleton: TypeName, or the id of
+	// the upsert in the behavior-overrides file.
+	SingletonID string
+	// Upsert: Create and Update are one Set call, and Delete makes no call. The API cannot remove
+	// the resource.
+	Upsert bool
+	// Arms are the Go fields of the hoisted oneOf arms of the resource. Read treats a response
+	// without one as a resource that does not exist.
+	Arms []string
 	// Replace: Update is a full replace (PUT, E11) with no update mask.
 	Replace bool
 	// UpdateIDInBody: the Update call takes no id. The id is a field of the body.
@@ -117,6 +126,7 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		IDGoType:   "string",
 		IDTFType:   "String",
 		Singleton:  r.Singleton,
+		Upsert:     file.Upserts(),
 		Replace:    r.Replace,
 		MaskInBody: r.MaskInBody,
 
@@ -137,6 +147,18 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	}
 	if err := updateIDFromState(r, ix, out); err != nil {
 		return nil, err
+	}
+	if out.SingletonID, err = singletonID(r, file); err != nil {
+		return nil, err
+	}
+	for _, parent := range hoistedParents(r, file) {
+		if parent.Arm {
+			ref, err := ix.fieldRef("fields." + parent.Field)
+			if err != nil {
+				return nil, err
+			}
+			out.Arms = append(out.Arms, ref.Name)
+		}
 	}
 	if file != nil {
 		for _, version := range sortedVersions(file) {
@@ -161,11 +183,26 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		{"delete", r.Delete, &out.Delete, false, false},
 	}
 	for _, o := range ops {
+		if o.name == "delete" && file.Upserts() {
+			continue // the API cannot remove an upsert, so Delete makes no call
+		}
 		if *o.out, err = buildCRUDOp(ix, o, client.Name, resource.Name); err != nil {
 			return nil, err
 		}
 	}
 	return out, nil
+}
+
+// singletonID is the Go expression of the fixed id of a singleton: the fixedID of the
+// behavior-overrides file, or TypeName.
+func singletonID(r *model.Resource, file *overrides.File) (string, error) {
+	if file == nil || file.FixedID == "" {
+		return "TypeName", nil
+	}
+	if !r.Singleton {
+		return "", fmt.Errorf("fixedID %q: only a singleton has a fixed id, and %s has an id path parameter", file.FixedID, r.Name)
+	}
+	return fmt.Sprintf("%q", file.FixedID), nil
 }
 
 func resourceIDData(r *model.Resource, ix *refIndex, out *crudData) error {

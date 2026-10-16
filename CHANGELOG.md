@@ -61,6 +61,12 @@
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.34`.
+- FEAT: `api.upsert` in `behavior-overrides.yaml` generates a singleton that a GET reads and a POST on the same path sets. `fixedID` gives the released value of its `id` attribute. Create and Update send the whole resource with the POST, and Delete makes no call and warns that the API keeps the resource.
+- FEAT: A `hoist: true` field line shows the fields of an object of the resource as top-level attributes. A response arm that is hoisted, with the other arms skipped, means that the resource exists: Read removes a resource whose response has another arm. It needs `api.upsert`.
+- FIX: A `default` field line without `computed: true` is an error. Before, the generated schema had a default on an attribute that is not computed, which Terraform rejects. With `computed: true`, a field that the contract requires becomes `Optional` and `Computed`.
+- FEAT: A generated singleton exports its fixed id as `SingletonID`, so a data source can use the same value.
+- CHORE: The generated acceptance test is named after the Terraform resource type: `TestAccCoralogixResourceSloV2Generated`, `TestAccCoralogixResourceEvents2metricGenerated`, and `TestAccCoralogixResourceAlertsSchedulerGenerated` (and their `Upgrade` tests) replace the names taken from the API component.
 - CHORE: Bump the generator to `v0.1.0-beta.33`.
 - CHORE: Bump the generator to `v0.1.0-beta.32`.
 - FEAT: An optional request scalar needs `x-coralogix-presence` only when it declares a default that is not its zero value and the zero value is valid, for example `false` next to a default of `true`. An enum never needs it. Without presence or a default, a scalar whose zero value is valid is handled as if it declared that zero value as its server default: it is `Optional + Computed`, and removing it resets it to zero. A scalar whose zero value is not valid, such as an integer with `minimum: 1`, reads zero as null.

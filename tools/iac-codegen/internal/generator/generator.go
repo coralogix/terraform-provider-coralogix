@@ -258,6 +258,17 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 		if report = overrideIssues(doc, component, file); len(report) != 0 {
 			return nil, &EligibilityError{Report: report}
 		}
+		// The upsert and hoist keys change the contract that the model reads (reshape.go).
+		reshaped, ids, report := reshape(data, component, operationIDs, file)
+		if len(report) != 0 {
+			return nil, &EligibilityError{Report: report}
+		}
+		if file.Hoisted != nil {
+			if doc, err = model.Load(reshaped); err != nil {
+				return nil, fmt.Errorf("read the reshaped contract: %w", err)
+			}
+			operationIDs = ids
+		}
 	}
 	if report = terraformContractIssues(doc, component, operationIDs, policy); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
@@ -277,6 +288,7 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	if err != nil {
 		return nil, eligibilityIssue("SDK_SHAPE_UNSUPPORTED", "resource", err, "Use OpenAPI shapes that have deterministic generated Go SDK names and types.")
 	}
+	refs = hoistSDKNames(upsertSDKNames(refs, file), file)
 	if report = rendererIssues(resource, refs, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report.Normalize()}
 	}

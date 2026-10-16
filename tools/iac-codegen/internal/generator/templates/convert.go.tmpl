@@ -277,6 +277,13 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}{{if .HasPrior}},
 		diags.AddError("Missing resource", "The API response has no {{.Resource.SDK}}.")
 		return nil, diags
 	}
+{{- range .Arms}}
+	if v.{{.SDK}} == nil {
+		// The top-level attributes are fields of this object, so a response without it has no resource.
+		diags.AddError("Missing resource", "The API response has no {{.API}}.")
+		return nil, diags
+	}
+{{- end}}
 	out := flatten{{.Resource.Func}}(ctx, path.Empty(), v, {{if .HasPrior}}prior, {{end}}&diags)
 {{- if .IDGuard}}
 	if out.{{.IDGuard}}.IsNull() {
@@ -496,6 +503,9 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 		return nil
 	}
 	out := &{{if not .Local}}{{$sdk}}.{{end}}{{.SDK}}{}
+{{- range .Parents}}
+	out.{{.SDK}} = &{{.Type}}{} // a hoisted object: its fields are top-level attributes
+{{- end}}
 {{- range .Fields}}
 {{- if not .FlattenOnly}}
 {{- template "expandField" .}}
