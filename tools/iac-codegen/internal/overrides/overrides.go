@@ -58,7 +58,14 @@ type File struct {
 	// fields of the resource, for example sli = {request_based_metric_sli = ...} for the
 	// requestBasedMetricSli field of the API.
 	Groups map[string]Group `yaml:"groups"`
+	// UpdateMask: "omit" sends no updateMask in the Update body (api.updateMaskInBody), as a
+	// released resource that never sent one did. The server then updates every field present in
+	// the body, so removing an optional attribute from the configuration cannot clear it.
+	UpdateMask string `yaml:"updateMask"`
 }
+
+// UpdateMaskOmit is the updateMask value that sends no update mask.
+const UpdateMaskOmit = "omit"
 
 // Group is a required Terraform object that holds top-level fields of the resource.
 type Group struct {
@@ -189,6 +196,12 @@ type Type struct {
 	// each holding fields of this object, for example frequency = {daily = ...} for the daily
 	// field of a recurring schedule.
 	Groups map[string]Group `yaml:"groups"`
+	// UnsupportedArms are oneOf arms of this object that the released resource does not
+	// configure. They stay out of the schema, and flatten reports a response that selects one
+	// with UnsupportedSummary and UnsupportedDetail. The three keys are set together.
+	UnsupportedArms    []string `yaml:"unsupportedArms"`
+	UnsupportedSummary string   `yaml:"unsupportedSummary"`
+	UnsupportedDetail  string   `yaml:"unsupportedDetail"`
 }
 
 // GroupOf returns the group of the type that holds field, or "".
@@ -280,6 +293,9 @@ type Field struct {
 	// Equality: "yaml" or "json" compares a string field as a YAML or JSON document. The API
 	// returns the document normalized, so a change of format alone must not plan a change.
 	Equality string `yaml:"equality"`
+	// RequiresReplace: a change of this top-level field replaces the resource, although Update
+	// accepts it, as the released resource did. Update does not send the field.
+	RequiresReplace bool `yaml:"requiresReplace"`
 }
 
 // Equality values of a field line.
@@ -322,6 +338,35 @@ type RegexMatches struct {
 
 // TFValue is the Terraform value of the API value v of the enum: its names entry, or the value
 // without trimPrefix, in lower case unless the line is verbatim.
+// RejectedTFValue is the Terraform value that a rejected value reads back as: its API spelling,
+// or the lower case with ReadRejectedLower.
+func (e Enum) RejectedTFValue(v string) string {
+	if e.ReadRejectedLower {
+		return strings.ToLower(v)
+	}
+	return v
+}
+
+// checkUnsupported checks the unsupported arm keys: the three keys are set together, no arm is
+// listed twice, and no unsupported arm has a field line, because the arm is not in the schema.
+func (t Type) checkUnsupported() error {
+	if len(t.UnsupportedArms) == 0 && t.UnsupportedSummary == "" && t.UnsupportedDetail == "" {
+		return nil
+	}
+	if len(t.UnsupportedArms) == 0 || t.UnsupportedSummary == "" || t.UnsupportedDetail == "" {
+		return errors.New("unsupportedArms, unsupportedSummary, and unsupportedDetail are set together")
+	}
+	for i, arm := range t.UnsupportedArms {
+		if arm == "" || slices.Contains(t.UnsupportedArms[:i], arm) {
+			return fmt.Errorf("unsupportedArms names %q twice or empty", arm)
+		}
+		if _, ok := t.Fields[arm]; ok {
+			return fmt.Errorf("unsupported arm %q also has a field line, which changes nothing", arm)
+		}
+	}
+	return nil
+}
+
 func (e Enum) TFValue(v string) string {
 	if tf, ok := e.Names[v]; ok {
 		return tf
@@ -362,6 +407,9 @@ type Enum struct {
 	// ReadRejected: a rejected value still reads back as the API spelling. The write map and the
 	// schema validator do not accept it. Without this key, a rejected value fails the read.
 	ReadRejected bool `yaml:"readRejected"`
+	// ReadRejectedLower reads a rejected value back in lower case instead, as a released resource
+	// that lowercased an unknown API value did. It needs ReadRejected and excludes Verbatim.
+	ReadRejectedLower bool `yaml:"readRejectedLower"`
 }
 
 // Parse reads the file. An unknown key or a wrong value is an error.
@@ -406,6 +454,12 @@ func (f *File) check() error {
 	if err := f.API.Check(); err != nil {
 		return err
 	}
+	if f.UpdateMask != "" && f.UpdateMask != UpdateMaskOmit {
+		return fmt.Errorf("updateMask is %q, want %q", f.UpdateMask, UpdateMaskOmit)
+	}
+	if f.UpdateMask != "" && !f.API.UpdateMaskInBody {
+		return errors.New("updateMask: omit needs api.updateMaskInBody: only a body mask can be left out")
+	}
 	return f.checkTypes()
 }
 
@@ -415,8 +469,12 @@ func (f *File) checkTypes() error {
 		if t.Required != nil && len(*t.Required) != 0 {
 			return fmt.Errorf("types.%s.required: only the empty list [] is allowed", name)
 		}
-		if t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 && len(t.Groups) == 0 {
+		if t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 && len(t.Groups) == 0 && len(t.UnsupportedArms) == 0 &&
+			t.UnsupportedSummary == "" && t.UnsupportedDetail == "" {
 			return fmt.Errorf("types.%s has no override", name)
+		}
+		if err := t.checkUnsupported(); err != nil {
+			return fmt.Errorf("types.%s: %w", name, err)
 		}
 		names := map[string]string{}
 		for _, field := range sortedKeys(t.Fields) {
@@ -493,13 +551,17 @@ func (f *File) checkEnums() error {
 		if e.Zero != "" {
 			seen[e.Zero] = "zero"
 		}
+		if e.ReadRejectedLower && (!e.ReadRejected || e.Verbatim) {
+			return fmt.Errorf("enums.%s: readRejectedLower needs readRejected and excludes verbatim", name)
+		}
 		if e.ReadRejected {
-			// A rejected value reads back as its API spelling, so no accepted value can have it.
+			// A rejected value reads back as its read spelling, so no accepted value can have it.
 			for _, v := range e.Rejected {
-				if previous, ok := seen[v]; ok {
-					return fmt.Errorf("enums.%s: %s and the rejected %q have the same Terraform value %q", name, previous, v, v)
+				tf := e.RejectedTFValue(v)
+				if previous, ok := seen[tf]; ok {
+					return fmt.Errorf("enums.%s: %s and the rejected %q have the same Terraform value %q", name, previous, v, tf)
 				}
-				seen[v] = "the rejected " + strconv.Quote(v)
+				seen[tf] = "the rejected " + strconv.Quote(v)
 			}
 		}
 		for _, v := range e.Values {
@@ -550,6 +612,7 @@ func (l Field) keys() []string {
 	add(len(l.Validators) != 0, "validators")
 	add(l.Equality != "", "equality")
 	add(l.Unwrap != nil, "unwrap")
+	add(l.RequiresReplace, "requiresReplace")
 	return keys
 }
 
@@ -597,7 +660,7 @@ func (l Field) empty() bool {
 
 func (l Field) emptyMode() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && l.Name == "" && len(l.ValueNames) == 0 && !l.AsBool && l.TerraformType == "" && !l.DefaultArm && l.Deprecation == "" &&
-		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown
+		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown && !l.RequiresReplace
 }
 
 func (l Field) emptyValue() bool {
@@ -622,6 +685,11 @@ func (l Field) check() error {
 	}
 	if l.Required && l.Optional {
 		return errors.New("set required or optional, not both")
+	}
+	if l.RequiresReplace && l.Computed != nil && *l.Computed {
+		// Optional+Computed with RequiresReplace: when the field is omitted, any other change
+		// plans its value as unknown, and the unknown value replaces the resource.
+		return errors.New("requiresReplace cannot be combined with computed: true")
 	}
 	if err := l.Field.Check(); err != nil {
 		return err
@@ -724,7 +792,8 @@ func sortedIntKeys[V any](m map[int64]V) []int64 {
 func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.Fixed() ||
-		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.AsBool || l.TerraformType != "" || l.DefaultArm
+		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.AsBool || l.TerraformType != "" || l.DefaultArm ||
+		l.RequiresReplace
 }
 
 func checkValidators(validators []Validator) error {

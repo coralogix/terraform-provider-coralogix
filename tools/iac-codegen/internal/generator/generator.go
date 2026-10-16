@@ -259,7 +259,7 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 			return nil, &EligibilityError{Report: report}
 		}
 	}
-	if report = terraformContractIssues(doc, component, operationIDs, policy); len(report) != 0 {
+	if report = terraformContractIssues(doc, component, operationIDs, policy, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}
 	resource, err := model.BuildWithPolicy(doc, component, operationIDs, policy)
@@ -276,6 +276,18 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	refs, err := resolveSDKNames(resource, tag, sdkModule, providerModule)
 	if err != nil {
 		return nil, eligibilityIssue("SDK_SHAPE_UNSUPPORTED", "resource", err, "Use OpenAPI shapes that have deterministic generated Go SDK names and types.")
+	}
+	if file != nil {
+		// The Terraform keys of a released resource change the built model. The SDK names of
+		// the model before the change still hold the fields of the removed oneOf arms.
+		armRefs, err := applyReleasedShape(resource, file, refs)
+		if err != nil {
+			return nil, eligibilityIssue("OVERRIDE_INVALID", overrides.FileName, err, "Fix the requiresReplace or unsupportedArms line.")
+		}
+		if refs, err = resolveSDKNames(resource, tag, sdkModule, providerModule); err != nil {
+			return nil, eligibilityIssue("SDK_SHAPE_UNSUPPORTED", "resource", err, "Use OpenAPI shapes that have deterministic generated Go SDK names and types.")
+		}
+		refs = append(refs, armRefs...)
 	}
 	if report = rendererIssues(resource, refs, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report.Normalize()}

@@ -1,0 +1,44 @@
+# The behavior-overrides file of the synthetic released resource like the AI evaluation API.
+resource: EvalThing
+mode: existing
+
+validators:
+  inferred: false
+
+api:
+  updateMaskInBody: true
+
+# Update sends no updateMask: the server updates the fields in the body.
+updateMask: omit
+
+types:
+  EvalThing:
+    fields:
+      name:
+        requiresReplace: true
+      target:
+        required: true
+        requiresReplace: true
+        validators: [{enum: true}]
+      enabled:
+        computed: true
+        default: true
+  EvalConfig:
+    unsupportedArms: [legacy]
+    unsupportedSummary: Unsupported config
+    unsupportedDetail: The legacy config is not supported.
+  TopicsEvalConfig:
+    fields:
+      topics:
+        required: true
+        collection: set
+      context:
+        computed: true
+        default: ""
+
+enums:
+  EvalTarget:
+    values: [PROMPT, RESPONSE]
+    rejected: [CONVERSATION]
+    readRejected: true
+    readRejectedLower: true
