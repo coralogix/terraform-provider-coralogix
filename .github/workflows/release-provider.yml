@@ -1,0 +1,298 @@
+# Releases the provider end to end from one version input.
+#
+# 1. Run this workflow from master with `version` (for example 3.22.0). It opens a
+#    release PR that bumps internal/clientset/version.go and turns "# Unreleased" in
+#    CHANGELOG.md into "# Release 3.22.0".
+# 2. Review and merge the PR. The merge changes version.go on master, which starts
+#    this workflow again. It waits for the `build` workflow on the merge commit, tags
+#    it, runs goreleaser (release.yml) with GitHub's generated notes, waits until the
+#    Terraform Registry serves the version, and posts a summary to Slack.
+#
+# If version.go on master already has the version, step 1 is skipped and the run
+# publishes directly. A failed job can be re-run from the Actions UI: tagging is
+# idempotent, and the Registry check polls again.
+#
+# Setup:
+# - secrets.SLACK_TERRAFORM_FORUM_WEBHOOK_URL: incoming webhook for the forum channel.
+# - secrets.RELEASE_PR_TOKEN (optional): a token that opens the release PR. Pull
+#   requests opened with GITHUB_TOKEN do not start other workflows, so without it the
+#   PR shows no checks; the publish job still waits for `build` on master.
+# - Environments `provider-release` and `provider-release-announce`: add required
+#   reviewers to gate publishing and the Slack post.
+name: release-provider
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, MAJOR.MINOR.PATCH without "v" (for example 3.22.0).
+        required: true
+        type: string
+  push:
+    branches:
+      - master
+    paths:
+      - internal/clientset/version.go
+
+concurrency:
+  group: release-provider
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY_PROVIDER: coralogix/coralogix
+
+jobs:
+  plan:
+    name: Plan the release
+    runs-on: ubuntu-latest
+    if: github.repository == 'coralogix/terraform-provider-coralogix'
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      mode: ${{ steps.plan.outputs.mode }}
+      sha: ${{ steps.plan.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+      - id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          current=$(sed -n 's/^const TF_PROVIDER_VERSION = "\(.*\)"$/\1/p' internal/clientset/version.go)
+          [ -n "$current" ] || { echo "::error::Cannot read TF_PROVIDER_VERSION from version.go"; exit 1; }
+
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            version=${INPUT_VERSION#v}
+          else
+            version=$current
+          fi
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version '$version' is not MAJOR.MINOR.PATCH"; exit 1
+          fi
+
+          tag="v$version"
+          if gh release view "$tag" --json isDraft --jq '.isDraft' 2>/dev/null | grep -qx false; then
+            if [ "$GITHUB_EVENT_NAME" = push ]; then
+              echo "::notice::$tag is already released; nothing to do"
+              echo "mode=none" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+            echo "::error::$tag is already released. To retry a failed step, re-run the failed jobs of the original run."
+            exit 1
+          fi
+
+          if [ "$version" = "$current" ]; then
+            mode=publish
+            # Release the commit that set the version, not later commits on master.
+            sha=$(git log -1 --format=%H -- internal/clientset/version.go)
+          else
+            highest=$(printf '%s\n%s\n' "$current" "$version" | sort -V | tail -1)
+            if [ "$highest" != "$version" ]; then
+              echo "::error::Version $version is lower than the current version $current"; exit 1
+            fi
+            mode=prepare
+            sha=$(git rev-parse HEAD)
+          fi
+
+          echo "Current version $current, release $version: $mode at $sha" | tee -a "$GITHUB_STEP_SUMMARY"
+          { echo "version=$version"; echo "mode=$mode"; echo "sha=$sha"; } >> "$GITHUB_OUTPUT"
+
+  prepare:
+    name: Open the release PR
+    needs: plan
+    if: needs.plan.outputs.mode == 'prepare'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+      BASE_SHA: ${{ needs.plan.outputs.sha }}
+      BRANCH: release/v${{ needs.plan.outputs.version }}
+      GH_TOKEN: ${{ secrets.RELEASE_PR_TOKEN || github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+      - name: Bump version.go and CHANGELOG.md
+        run: |
+          python3 .github/scripts/release/changelog.py cut "$VERSION"
+          sed -i "s/^const TF_PROVIDER_VERSION = \".*\"$/const TF_PROVIDER_VERSION = \"$VERSION\"/" internal/clientset/version.go
+          grep -qx "const TF_PROVIDER_VERSION = \"$VERSION\"" internal/clientset/version.go
+          git diff
+      - name: Commit to the release branch
+        # master requires signed commits. createCommitOnBranch commits through the API,
+        # and GitHub signs the commit.
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$BRANCH" >/dev/null 2>&1; then
+            echo "::error::Branch $BRANCH already exists. Close its PR and delete the branch, then run again."; exit 1
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$BASE_SHA" >/dev/null
+
+          jq -n \
+            --arg repo "$GITHUB_REPOSITORY" --arg branch "$BRANCH" --arg head "$BASE_SHA" \
+            --arg headline "Release $VERSION" \
+            --arg changelog "$(base64 -w0 CHANGELOG.md)" \
+            --arg version "$(base64 -w0 internal/clientset/version.go)" \
+            '{query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }",
+              variables: {input: {
+                branch: {repositoryNameWithOwner: $repo, branchName: $branch},
+                expectedHeadOid: $head,
+                message: {headline: $headline},
+                fileChanges: {additions: [
+                  {path: "CHANGELOG.md", contents: $changelog},
+                  {path: "internal/clientset/version.go", contents: $version}]}}}}' \
+            > "$RUNNER_TEMP/commit.json"
+          gh api graphql --input "$RUNNER_TEMP/commit.json" --jq .data.createCommitOnBranch.commit.oid
+      - name: Open the PR
+        run: |
+          current=$(git show HEAD:internal/clientset/version.go | sed -n 's/^const TF_PROVIDER_VERSION = "\(.*\)"$/\1/p')
+          cat > "$RUNNER_TEMP/body.md" <<EOF
+          ### Description
+
+          Cuts the release **$VERSION**.
+
+          - \`CHANGELOG.md\`: \`# Unreleased\` becomes \`# Release $VERSION\`, with a fresh empty \`# Unreleased\` above it.
+          - \`internal/clientset/version.go\`: \`TF_PROVIDER_VERSION\` goes from \`$current\` to \`$VERSION\`.
+
+          Check that the changelog is accurate before merging. Merging starts the
+          \`release-provider\` workflow, which tags the merge commit, publishes the release,
+          waits for the Terraform Registry, and posts to Slack.
+
+          Opened by $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID.
+
+          ### Release Note
+
+          \`\`\`release-note
+          NONE
+          \`\`\`
+          EOF
+          url=$(gh pr create --base master --head "$BRANCH" --title "Release $VERSION" --body-file "$RUNNER_TEMP/body.md")
+          echo "Release PR: $url. Merge it to publish v$VERSION." | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "::notice::Merge $url to publish v$VERSION"
+
+  publish:
+    name: Tag the release
+    needs: plan
+    if: needs.plan.outputs.mode == 'publish'
+    runs-on: ubuntu-latest
+    environment: provider-release
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      actions: read
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+      SHA: ${{ needs.plan.outputs.sha }}
+      GH_TOKEN: ${{ github.token }}
+    outputs:
+      tag: v${{ needs.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+      - name: Check CHANGELOG.md
+        run: python3 .github/scripts/release/changelog.py check "$VERSION"
+      - name: Wait for the build workflow
+        run: |
+          # The merge starts `build` and this workflow at the same time, so wait for it.
+          deadline=$((SECONDS + 50 * 60))
+          while :; do
+            run=$(gh run list --workflow build.yml --commit "$SHA" --event push --limit 1 \
+              --json databaseId,status,conclusion,url --jq '.[0] // empty')
+            if [ -n "$run" ] && [ "$(jq -r .status <<<"$run")" = completed ]; then
+              conclusion=$(jq -r .conclusion <<<"$run")
+              if [ "$conclusion" = success ]; then
+                echo "build succeeded: $(jq -r .url <<<"$run")"; break
+              fi
+              echo "::error::build on $SHA ended with '$conclusion': $(jq -r .url <<<"$run")"; exit 1
+            fi
+            if [ $SECONDS -ge $deadline ]; then
+              echo "::error::No successful build on $SHA within 50 minutes"; exit 1
+            fi
+            echo "Waiting for build on $SHA (${run:+$(jq -r .status <<<"$run")}${run:-not started})"
+            sleep 30
+          done
+      - name: Create the tag
+        run: |
+          tag="v$VERSION"
+          existing=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --jq .object.sha 2>/dev/null || true)
+          if [ -z "$existing" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$tag" -f sha="$SHA" >/dev/null
+            echo "Tagged $SHA as $tag" | tee -a "$GITHUB_STEP_SUMMARY"
+          elif [ "$existing" = "$SHA" ]; then
+            echo "$tag already points to $SHA"
+          else
+            echo "::error::Tag $tag already exists at $existing, not at $SHA"; exit 1
+          fi
+
+  goreleaser:
+    name: Build and publish
+    needs: publish
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ needs.publish.outputs.tag }}
+    secrets: inherit
+
+  registry:
+    name: Wait for the Terraform Registry
+    needs: [plan, goreleaser]
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check the GitHub release
+        run: |
+          gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" --json isDraft,assets \
+            --jq '"draft: \(.isDraft), assets: \(.assets | length)"'
+          if [ "$(gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != false ]; then
+            echo "::error::Release v$VERSION is not published"; exit 1
+          fi
+      - name: Poll the Registry
+        run: |
+          # The Registry usually lists a new version within 30 minutes. Sometimes it
+          # never does; fail then instead of reporting success.
+          url="https://registry.terraform.io/v1/providers/$REGISTRY_PROVIDER/$VERSION/download/linux/amd64"
+          deadline=$((SECONDS + 60 * 60))
+          until curl -fsS -o /dev/null "$url" 2>/dev/null; do
+            if [ $SECONDS -ge $deadline ]; then
+              {
+                echo "::error::The Terraform Registry does not serve $REGISTRY_PROVIDER $VERSION after 60 minutes."
+                echo "::error::Re-run this job to poll again. If the version is still missing, trigger a resync in the Registry, or release the next patch version."
+              }
+              echo "### :x: v$VERSION is not on the Terraform Registry after 60 minutes" >> "$GITHUB_STEP_SUMMARY"
+              exit 1
+            fi
+            echo "v$VERSION is not on the Registry yet ($(( SECONDS / 60 )) min)"
+            sleep 60
+          done
+          echo "### :white_check_mark: v$VERSION is on the Terraform Registry" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  announce:
+    name: Post to Slack
+    needs: [plan, registry]
+    runs-on: ubuntu-latest
+    environment: provider-release-announce
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+      WEBHOOK: ${{ secrets.SLACK_TERRAFORM_FORUM_WEBHOOK_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+      - name: Post the changelog summary
+        run: |
+          [ -n "$WEBHOOK" ] || { echo "::error::secrets.SLACK_TERRAFORM_FORUM_WEBHOOK_URL is not set"; exit 1; }
+          python3 .github/scripts/release/changelog.py slack "$VERSION" \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/v$VERSION" \
+            "https://registry.terraform.io/providers/$REGISTRY_PROVIDER/$VERSION/docs" > payload.json
+          jq -r .text payload.json >> "$GITHUB_STEP_SUMMARY"
+          curl -fsS -X POST -H 'Content-Type: application/json' --data @payload.json "$WEBHOOK"
