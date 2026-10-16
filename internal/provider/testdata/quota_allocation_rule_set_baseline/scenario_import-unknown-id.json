@@ -8,7 +8,7 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1?id=does-not-exist",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
         "status": 200
       }
     ],
