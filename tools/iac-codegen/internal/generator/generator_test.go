@@ -104,6 +104,47 @@ func TestGoldenOutputEchoedValues(t *testing.T) {
 	}
 }
 
+// The golden output of a released resource like the AI evaluation API: updateMask: omit,
+// requiresReplace, unsupportedArms, and readRejectedLower.
+func TestGoldenOutputEvalThing(t *testing.T) {
+	out := generateEvalThing(t)
+	golden := filepath.Join("testdata", "golden", "evalthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputEvalThing -update:\n%s", diff)
+	}
+}
+
+// The generated EvalThing compiles against its SDK.
+func TestEvalThingCompiles(t *testing.T) {
+	input, _ := syntheticInput(t)
+	compileGenerated(t, generateEvalThing(t), input)
+}
+
+// generateEvalThing generates the synthetic resource like the AI evaluation API.
+func generateEvalThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "evalthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "evalthing")
+	options := Options{Resource: "EvalThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "evalthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
 // generateEchoThing generates the synthetic resource whose Replace echoes server values.
 func generateEchoThing(t *testing.T) string {
 	t.Helper()
@@ -2098,4 +2139,94 @@ func TestRenamedUpdateOnlyFieldUsesItsName(t *testing.T) {
 		t.Fatalf("updateOnlyFields does not name compact_mode:\n%s", functionBody(t, string(resource), "var updateOnlyFields"))
 	}
 	compileGenerated(t, out, input)
+}
+
+// generateEvalThingWith generates EvalThing with another overrides file and, when edit is not
+// nil, another spec.
+func generateEvalThingWith(t *testing.T, lines string, edit func(string) string) error {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "evalthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if edit != nil {
+		spec = []byte(edit(string(spec)))
+	}
+	path := filepath.Join(t.TempDir(), "behavior-overrides.yaml")
+	if err := os.WriteFile(path, []byte(lines), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	return generateFromInput(Options{Resource: "EvalThing", OutputDir: filepath.Join(t.TempDir(), "evalthing"), OverridesPath: path}, input, loadDir)
+}
+
+// evalThingLines are the overrides of EvalThing without the keys that a test varies.
+func evalThingLines(t *testing.T) string {
+	t.Helper()
+	lines, err := os.ReadFile(filepath.Join("testdata", "evalthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(lines)
+}
+
+func TestReleasedShapeErrors(t *testing.T) {
+	base := evalThingLines(t)
+	replace := func(old, new string) string {
+		t.Helper()
+		if !strings.Contains(base, old) {
+			t.Fatalf("the overrides lack %q", old)
+		}
+		return strings.Replace(base, old, new, 1)
+	}
+	tests := map[string]struct {
+		lines string
+		edit  func(string) string
+		want  string
+	}{
+		"requiresReplace below the top level": {
+			lines: replace("      context:\n        computed: true\n        default: \"\"\n", "      context:\n        requiresReplace: true\n"),
+			want:  "requiresReplace works on a top-level field of EvalThing only",
+		},
+		"requiresReplace on a field that Update requires": {
+			lines: base,
+			edit: func(spec string) string {
+				return strings.Replace(spec, "              title: UpdateEvalThingRequest\n              type: object\n", "              title: UpdateEvalThingRequest\n              type: object\n              required: [name]\n", 1)
+			},
+			want: "requiresReplace leaves the field out of the Update body, but the Update body requires it",
+		},
+		"an unsupported arm that is no arm": {
+			lines: replace("    unsupportedArms: [legacy]\n", "    unsupportedArms: [missing]\n"),
+			want:  `"missing" is not a oneOf arm`,
+		},
+		"unsupported arms that remove every arm": {
+			lines: replace("    unsupportedArms: [legacy]\n", "    unsupportedArms: [legacy, topics, toxicity]\n"),
+			want:  "removes every arm",
+		},
+		"an optional field that the omitted mask cannot clear": {
+			lines: replace("      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        markdownDescription: Whether the thing is enabled.\n"),
+			want:  "enabled: updateMask: omit sends no mask, so removing this optional attribute would not clear it",
+		},
+		"a body mask that names the arm without updateMask: omit": {
+			lines: replace("updateMask: omit\n", ""),
+			want:  "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if err := generateEvalThingWith(t, test.lines, test.edit); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}
+
+// A field that keeps its state value is always in the Update body, so updateMask: omit accepts it
+// as optional.
+func TestOmittedMaskAcceptsAStateKeptField(t *testing.T) {
+	lines := strings.Replace(evalThingLines(t), "      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        computed: true\n        useStateForUnknown: true\n", 1)
+	if err := generateEvalThingWith(t, lines, nil); err != nil {
+		t.Fatal(err)
+	}
 }

@@ -172,6 +172,9 @@ type convObject struct {
 	// DefaultArms are the arms that expand sends empty when the configuration sets no arm of
 	// their oneOf group (defaultArm).
 	DefaultArms []defaultArm
+	// Unsupported are the oneOf arms that the resource does not configure (unsupportedArms).
+	// Flatten reports a response that selects one.
+	Unsupported []unsupportedArm
 }
 
 // defaultArm is an arm that expand sends empty when no arm of its group is set.
@@ -910,7 +913,7 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 	}
 	if over.ReadRejected {
 		for _, v := range over.Rejected {
-			m.Read = append(m.Read, enumMapValue{TF: v, API: v})
+			m.Read = append(m.Read, enumMapValue{TF: over.RejectedTFValue(v), API: v})
 		}
 	}
 	b.enumMaps = append(b.enumMaps, m)
@@ -1358,6 +1361,9 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		return nil, err
 	}
 	obj.DefaultArms = arms
+	if obj.Unsupported, err = b.unsupportedArms(t, ref.Path); err != nil {
+		return nil, err
+	}
 	return obj, nil
 }
 
