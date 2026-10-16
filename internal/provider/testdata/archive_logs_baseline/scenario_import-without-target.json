@@ -1,0 +1,17 @@
+[
+  {
+    "step": "import when the company has no target",
+    "state": null
+  },
+  {
+    "step": "import when the company has no target (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

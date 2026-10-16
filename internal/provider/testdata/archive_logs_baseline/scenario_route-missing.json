@@ -1,0 +1,52 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "bucket": "archive-bucket"
+    },
+    "plan": {
+      "active": true,
+      "archiving_format_id": "(unknown)",
+      "bucket": "archive-bucket",
+      "enable_tags": "(unknown)",
+      "id": "(unknown)",
+      "region": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "body": {
+          "isActive": true,
+          "s3": {
+            "bucket": "archive-bucket"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "archiving_format_id": "cx_data_v1",
+      "bucket": "archive-bucket",
+      "enable_tags": false,
+      "id": "archive-logs-settings",
+      "region": "eu-north-1"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: the gateway has no such route",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: coralogix_archive_logs \"archive-logs-settings\" is in state, but no longer exists in Coralogix backend | archive-logs-settings will be recreated when you apply"
+    ],
+    "state": null
+  }
+]

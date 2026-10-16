@@ -1,0 +1,97 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "active": false,
+      "bucket": "archive-bucket",
+      "region": "eu-north-1"
+    },
+    "plan": {
+      "active": false,
+      "archiving_format_id": "(unknown)",
+      "bucket": "archive-bucket",
+      "enable_tags": "(unknown)",
+      "id": "(unknown)",
+      "region": "eu-north-1"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "body": {
+          "isActive": false,
+          "s3": {
+            "bucket": "archive-bucket",
+            "region": "eu-north-1"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": false,
+      "archiving_format_id": "cx_data_v1",
+      "bucket": "archive-bucket",
+      "enable_tags": false,
+      "id": "archive-logs-settings",
+      "region": "eu-north-1"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: only bucket is left",
+    "config": {
+      "bucket": "archive-bucket"
+    },
+    "plan": {
+      "active": true,
+      "archiving_format_id": "cx_data_v1",
+      "bucket": "archive-bucket",
+      "enable_tags": false,
+      "id": "archive-logs-settings",
+      "region": "eu-north-1"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "body": {
+          "isActive": true,
+          "s3": {
+            "bucket": "archive-bucket",
+            "region": "eu-north-1"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "archiving_format_id": "cx_data_v1",
+      "bucket": "archive-bucket",
+      "enable_tags": false,
+      "id": "archive-logs-settings",
+      "region": "eu-north-1"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "archiving_format_id": "cx_data_v1",
+      "bucket": "archive-bucket",
+      "enable_tags": false,
+      "id": "archive-logs-settings",
+      "region": "eu-north-1"
+    },
+    "replanEmpty": true
+  }
+]
