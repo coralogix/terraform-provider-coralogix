@@ -19,9 +19,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -120,7 +122,7 @@ func runAIEvaluationFidelityStep(t *testing.T, fake *aiEvalFake, s fidelityStep,
 	if s.Capture != "" && status == http.StatusOK {
 		vars[s.Capture] = aiEvaluationID(got)
 	}
-	return status, unsubstJSON(t, got, vars)
+	return status, unsubstAIValues(got, vars)
 }
 
 func aiEvaluationID(v any) string {
@@ -159,26 +161,57 @@ func normalizeAIEvaluation(v any) any {
 	return v
 }
 
-// redactAICompany writes "<company>" in place of every companyId, so that a
-// recording does not publish the id of the tenant it was made on.
-func redactAICompany(v any) any {
+// redactAITenant writes "<company>" in place of every companyId and "<user>"
+// in place of every nonempty createdBy, so that a recording does not publish
+// the tenant or the user it was made with.
+func redactAITenant(v any) any {
 	switch x := v.(type) {
 	case map[string]any:
 		out := map[string]any{}
 		for k, e := range x {
-			if k == "companyId" {
+			switch {
+			case k == "companyId":
 				out[k] = "<company>"
-				continue
+			case k == "createdBy" && e != "":
+				out[k] = "<user>"
+			default:
+				out[k] = redactAITenant(e)
 			}
-			out[k] = redactAICompany(e)
 		}
 		return out
 	case []any:
 		out := make([]any, len(x))
 		for i, e := range x {
-			out[i] = redactAICompany(e)
+			out[i] = redactAITenant(e)
 		}
 		return out
+	}
+	return v
+}
+
+// unsubstAIValues writes "{{name}}" in place of each string value that equals
+// a variable. It leaves keys and longer strings alone, so a short application
+// name such as "app" cannot rewrite the key "application".
+func unsubstAIValues(v any, vars map[string]string) any {
+	switch x := v.(type) {
+	case map[string]any:
+		out := map[string]any{}
+		for k, e := range x {
+			out[k] = unsubstAIValues(e, vars)
+		}
+		return out
+	case []any:
+		out := make([]any, len(x))
+		for i, e := range x {
+			out[i] = unsubstAIValues(e, vars)
+		}
+		return out
+	case string:
+		for _, name := range slices.Sorted(maps.Keys(vars)) {
+			if vars[name] != "" && x == vars[name] {
+				return "{{" + name + "}}"
+			}
+		}
 	}
 	return v
 }
@@ -248,7 +281,7 @@ func TestRecordAIEvaluationFidelity(t *testing.T) {
 			rc.Steps = append(rc.Steps, struct {
 				Status   int `json:"status"`
 				Response any `json:"response"`
-			}{Status: status, Response: redactAICompany(got)})
+			}{Status: status, Response: redactAITenant(got)})
 		}
 		out.Cases = append(out.Cases, rc)
 	}
@@ -338,7 +371,7 @@ func (r *aiEvaluationRecorder) step(s fidelityStep, vars map[string]string) (int
 			r.created = append(r.created, id)
 		}
 	}
-	return status, unsubstJSON(r.t, got, vars)
+	return status, unsubstAIValues(got, vars)
 }
 
 func (r *aiEvaluationRecorder) cleanup() {
@@ -354,5 +387,33 @@ func (r *aiEvaluationRecorder) cleanup() {
 		}
 		_, _ = io.Copy(io.Discard, resp.Body)
 		_ = resp.Body.Close()
+	}
+}
+
+func TestAIEvaluationRecorderValues(t *testing.T) {
+	got := unsubstAIValues(redactAITenant(map[string]any{
+		"aiEvaluation": map[string]any{
+			"application": "app",
+			"subsystem":   "sub",
+			"companyId":   "1234",
+			"createdBy":   "someone",
+			"message":     "the app was not found",
+		},
+		"list": []any{map[string]any{"createdBy": ""}},
+	}), map[string]string{"application": "app", "subsystem": "sub"})
+	want := map[string]any{
+		"aiEvaluation": map[string]any{
+			"application": "{{application}}",
+			"subsystem":   "{{subsystem}}",
+			"companyId":   "<company>",
+			"createdBy":   "<user>",
+			"message":     "the app was not found",
+		},
+		"list": []any{map[string]any{"createdBy": ""}},
+	}
+	gotJSON, _ := json.Marshal(got)
+	wantJSON, _ := json.Marshal(want)
+	if string(gotJSON) != string(wantJSON) {
+		t.Fatalf("got %s\nwant %s", gotJSON, wantJSON)
 	}
 }
