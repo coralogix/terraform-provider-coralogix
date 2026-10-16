@@ -363,6 +363,16 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 					return strings.HasPrefix(v, inferred) && !slices.Contains(a.GroupValidators, v)
 				})
 				a.Validators = append(a.Validators, expr)
+				if a.ValueKind != "String" {
+					// The acceptance test picks the value of an element from its validators, so they
+					// name the Terraform values too.
+					oneOf, err := enumOneOf(a, file, false)
+					if err != nil {
+						return err
+					}
+					a.ElemValidators = slices.DeleteFunc(a.ElemValidators, func(v string) bool { return strings.HasPrefix(v, "stringvalidator.OneOf(") })
+					a.ElemValidators = append(a.ElemValidators, oneOf)
+				}
 			}
 			if line, ok := file.Types[a.Component].Fields[a.Property]; ok {
 				if serverOwned(a) && settable[a.Component+"."+a.Property] {
@@ -607,6 +617,19 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 // They come from the enums line, so the validator and the conversion maps cannot disagree.
 // exceptZero leaves the zero value out of the validator. The conversion maps still contain it.
 func enumValidatorExpr(a *tfAttr, file *overrides.File, exceptZero bool) (string, error) {
+	oneOf, err := enumOneOf(a, file, exceptZero)
+	if err != nil {
+		return "", err
+	}
+	if a.ValueKind == "List" || a.ValueKind == "Set" {
+		return strings.ToLower(a.ValueKind) + "validator.ValueStringsAre(" + oneOf + ")", nil
+	}
+	return oneOf, nil
+}
+
+// enumOneOf is the OneOf validator of one value of the enum of the attribute: the validator of a
+// scalar, and the validator of each element of a list or set.
+func enumOneOf(a *tfAttr, file *overrides.File, exceptZero bool) (string, error) {
 	enum, ok := file.Enums[a.EnumSchema]
 	collection := a.ValueKind == "List" || a.ValueKind == "Set"
 	if a.EnumSchema == "" || !ok || a.ValueKind != "String" && !collection {
@@ -624,11 +647,7 @@ func enumValidatorExpr(a *tfAttr, file *overrides.File, exceptZero bool) (string
 	for _, v := range values {
 		quoted = append(quoted, strconv.Quote(v))
 	}
-	oneOf := "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")"
-	if collection {
-		return strings.ToLower(a.ValueKind) + "validator.ValueStringsAre(" + oneOf + ")", nil
-	}
-	return oneOf, nil
+	return "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")", nil
 }
 
 // markComputed makes a server-owned attribute and every nested attribute
