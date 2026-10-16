@@ -19,7 +19,7 @@
 - DOCS: Describe `phantom_mode`: the alert sends no notifications and opens no incident of its own, and the API rejects a phantom alert whose `notification_group` sets a notification target.
 
 #### provider
-- CHORE: Bump `coralogix-management-sdk` to the version with the quota allocation rule set contract. The client type of the dashboard folder `name` changed with it, and the resource follows. No behavior change.
+- CHORE: Bump `coralogix-management-sdk` to the version with the quota allocation rule set contract. The client type of the dashboard folder `name` changed with it, and the resource follows. A dashboard folder without a `name` is sent with an empty name instead of no name, and the API still answers 400.
 
 #### resource/coralogix_quota_allocation_rule_set
 - CHORE: The resource is generated from the API contract. The schema, the import ids (`quota-allocation-rule-set` or the id of the rule set), the `unspecified` alias of `allocation_type`, and the handling of Coralogix-managed (`cx_managed`) rules are unchanged. The data source stays as it is.
