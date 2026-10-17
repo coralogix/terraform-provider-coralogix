@@ -174,6 +174,9 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 		if err := checkImmutableValues(out.Attributes, ""); err != nil {
 			return nil, err
 		}
+		if err := checkOmittedMaskClears(r, out.Attributes, file); err != nil {
+			return nil, err
+		}
 	}
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
 	out.DefaultPkgs = defaultPackages(out.Attributes)
@@ -1166,6 +1169,13 @@ func checkImmutableValues(attrs []*tfAttr, parent string) error {
 			at = parent + "." + a.Name
 		}
 		if replaces(a) {
+			// The attribute itself, not only a descendant. Optional+Computed plans an omitted
+			// value as unknown, and the stock RequiresReplace treats that unknown as a change.
+			// UseStateForUnknown runs first and plans the prior value instead, as for a
+			// client-set id.
+			if a.Optional && a.Computed && !keepsState(a) {
+				return fmt.Errorf("%s: an optional and computed attribute cannot require replacement. Omitting it plans the value as unknown and replaces the resource when something else changes", at)
+			}
 			if child := optionalComputed(a.Attributes, at); child != "" {
 				return fmt.Errorf("%s: the immutable value holds the optional and computed attribute %s. A change of another attribute would plan it as unknown and replace the resource", at, child)
 			}
@@ -1175,6 +1185,51 @@ func checkImmutableValues(attrs []*tfAttr, parent string) error {
 		}
 	}
 	return nil
+}
+
+// checkOmittedMaskClears rejects updateMask: omit when a field that Update sends could be removed
+// from the configuration: Update sends no mask, and the server keeps a field that the body omits,
+// so removing it would not clear it. A required field, a field with a default, and a field that
+// keeps its state value are always in the body.
+func checkOmittedMaskClears(r *model.Resource, attrs []*tfAttr, file *overrides.File) error {
+	if file == nil || file.UpdateMask != overrides.UpdateMaskOmit {
+		return nil
+	}
+	for _, f := range r.Fields {
+		if f.Update == nil || f.Behavior != model.Normal {
+			continue
+		}
+		if file.Types[r.Name].Fields[f.Name].Fixed() {
+			// A requestValue field has no attribute, and Update always sends it.
+			continue
+		}
+		name := terraformName(r.Policy, r.Name, f.Name)
+		i := slices.IndexFunc(attrs, func(a *tfAttr) bool { return a.Name == name })
+		if i < 0 {
+			return fmt.Errorf("%s: updateMask: omit found no attribute for the Update field", name)
+		}
+		if attrs[i].Required || attrs[i].Default != "" || keepsAnyState(attrs[i]) {
+			continue
+		}
+		return fmt.Errorf("%s: updateMask: omit sends no mask, so removing this optional attribute would not clear it. Make it required or give it a default", name)
+	}
+	return nil
+}
+
+// keepsState reports whether an omitted value is planned as the prior state.
+func keepsState(a *tfAttr) bool {
+	return slices.ContainsFunc(a.Modifiers, func(m string) bool {
+		return strings.HasSuffix(m, "planmodifier.UseStateForUnknown()")
+	})
+}
+
+// keepsAnyState reports whether an omitted value is planned as the prior state, or as the prior
+// non-null state. Either keeps the field in an Update without a mask: a null prior value has
+// nothing to clear.
+func keepsAnyState(a *tfAttr) bool {
+	return keepsState(a) || slices.ContainsFunc(a.Modifiers, func(m string) bool {
+		return strings.HasSuffix(m, "planmodifier.UseNonNullStateForUnknown()")
+	})
 }
 
 // replaces reports whether a change of a replaces the resource.

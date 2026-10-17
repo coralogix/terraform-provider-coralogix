@@ -17,6 +17,7 @@ import (
 	"github.com/coralogix/coralogix-management-sdk/iac/issue"
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
 	"github.com/coralogix/coralogix-management-sdk/iac/source"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
 )
 
@@ -102,6 +103,47 @@ func TestGoldenOutputEchoedValues(t *testing.T) {
 	if diff := compareDirectories(golden, out); diff != "" {
 		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputEchoedValues -update:\n%s", diff)
 	}
+}
+
+// The golden output of a released resource like the AI evaluation API: updateMask: omit,
+// requiresReplace, unsupportedArms, and readRejected: lower.
+func TestGoldenOutputEvalThing(t *testing.T) {
+	out := generateEvalThing(t)
+	golden := filepath.Join("testdata", "golden", "evalthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputEvalThing -update:\n%s", diff)
+	}
+}
+
+// The generated EvalThing compiles against its SDK.
+func TestEvalThingCompiles(t *testing.T) {
+	input, _ := syntheticInput(t)
+	compileGenerated(t, generateEvalThing(t), input)
+}
+
+// generateEvalThing generates the synthetic resource like the AI evaluation API.
+func generateEvalThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "evalthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "evalthing")
+	options := Options{Resource: "EvalThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "evalthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
 }
 
 // generateEchoThing generates the synthetic resource whose Replace echoes server values.
@@ -2096,6 +2138,225 @@ func TestRenamedUpdateOnlyFieldUsesItsName(t *testing.T) {
 	}
 	if !strings.Contains(string(resource), `{attr: "compact_mode",`) || strings.Contains(string(resource), `{attr: "compact",`) {
 		t.Fatalf("updateOnlyFields does not name compact_mode:\n%s", functionBody(t, string(resource), "var updateOnlyFields"))
+	}
+	compileGenerated(t, out, input)
+}
+
+// generateEvalThingWith generates EvalThing with another overrides file and, when edit is not
+// nil, another spec.
+func generateEvalThingWith(t *testing.T, lines string, edit func(string) string) error {
+	t.Helper()
+	_, err := generateEvalThingInto(t, lines, edit, filepath.Join(t.TempDir(), "evalthing"))
+	return err
+}
+
+// generateEvalThingInto generates EvalThing into out, and returns the synthetic input to compile
+// it with.
+func generateEvalThingInto(t *testing.T, lines string, edit func(string) string, out string) (source.Input, error) {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "evalthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if edit != nil {
+		spec = []byte(edit(string(spec)))
+	}
+	path := filepath.Join(t.TempDir(), "behavior-overrides.yaml")
+	if err := os.WriteFile(path, []byte(lines), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	return input, generateFromInput(Options{Resource: "EvalThing", OutputDir: out, OverridesPath: path}, input, loadDir)
+}
+
+// evalThingLines are the overrides of EvalThing without the keys that a test varies.
+func evalThingLines(t *testing.T) string {
+	t.Helper()
+	lines, err := os.ReadFile(filepath.Join("testdata", "evalthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(lines)
+}
+
+func TestReleasedShapeErrors(t *testing.T) {
+	base := evalThingLines(t)
+	replace := func(old, new string) string {
+		t.Helper()
+		if !strings.Contains(base, old) {
+			t.Fatalf("the overrides lack %q", old)
+		}
+		return strings.Replace(base, old, new, 1)
+	}
+	tests := map[string]struct {
+		lines string
+		edit  func(string) string
+		want  string
+	}{
+		"requiresReplace below the top level": {
+			lines: replace("      context:\n        computed: true\n        default: \"\"\n", "      context:\n        requiresReplace: true\n"),
+			want:  "requiresReplace works on a top-level field of EvalThing only",
+		},
+		"requiresReplace on a field that Update requires": {
+			lines: base,
+			edit: func(spec string) string {
+				return strings.Replace(spec, "              title: UpdateEvalThingRequest\n              type: object\n", "              title: UpdateEvalThingRequest\n              type: object\n              required: [name]\n", 1)
+			},
+			want: "requiresReplace leaves the field out of the Update body, but the Update body requires it",
+		},
+		"an unsupported arm that is no arm": {
+			lines: replace("    unsupportedArms: [legacy]\n", "    unsupportedArms: [missing]\n"),
+			want:  `"missing" is not a oneOf arm`,
+		},
+		"unsupported arms that remove every arm": {
+			lines: replace("    unsupportedArms: [legacy]\n", "    unsupportedArms: [legacy, topics, toxicity]\n"),
+			want:  "removes every arm",
+		},
+		"an optional field that the omitted mask cannot clear": {
+			lines: replace("      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        markdownDescription: Whether the thing is enabled.\n"),
+			want:  "enabled: updateMask: omit sends no mask, so removing this optional attribute would not clear it",
+		},
+		"a renamed optional field that the omitted mask cannot clear": {
+			lines: replace("      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        name: is_on\n        markdownDescription: Whether the thing is enabled.\n"),
+			want:  "is_on: updateMask: omit sends no mask, so removing this optional attribute would not clear it",
+		},
+		"unsupported arms of the resource itself": {
+			lines: replace("  EvalThing:\n    fields:\n", "  EvalThing:\n    unsupportedArms: [config]\n    unsupportedSummary: Unsupported\n    unsupportedDetail: Not supported.\n    fields:\n"),
+			want:  "types.EvalThing.unsupportedArms: the oneOf arms of the resource itself are not supported",
+		},
+		"requiresReplace on every Update field": {
+			lines: replace("      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        requiresReplace: true\n      config:\n        requiresReplace: true\n"),
+			want:  "requiresReplace leaves no field that Update can change",
+		},
+		"a line that only an unsupported arm reaches": {
+			lines: replace("  TopicsEvalConfig:\n", "  LegacyEvalConfig:\n    fields:\n      limit:\n        markdownDescription: The limit.\n  TopicsEvalConfig:\n"),
+			want:  "types.LegacyEvalConfig: only unsupported arms reach the component, so the line changes nothing",
+		},
+		"an optional and computed field that the contract makes immutable": {
+			lines: replace("      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        computed: true\n"),
+			edit: func(spec string) string {
+				// Only Create has enabled, so the contract makes it immutable.
+				return strings.Replace(spec, "                enabled: {type: boolean, x-coralogix-presence: true}\n                updateMask:", "                updateMask:", 1)
+			},
+			want: "enabled: an optional and computed attribute cannot require replacement",
+		},
+		"a body mask that names the arm without updateMask: omit": {
+			lines: replace("updateMask: omit\n", ""),
+			want:  "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if err := generateEvalThingWith(t, test.lines, test.edit); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}
+
+// A field that keeps its state value is always in the Update body, so updateMask: omit accepts it
+// as optional. A field that keeps only a non-null state value has nothing to clear when it is null.
+func TestOmittedMaskAcceptsAStateKeptField(t *testing.T) {
+	for _, modifier := range []string{"useStateForUnknown", "useNonNullStateForUnknown"} {
+		t.Run(modifier, func(t *testing.T) {
+			lines := strings.Replace(evalThingLines(t), "      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        computed: true\n        "+modifier+": true\n", 1)
+			if err := generateEvalThingWith(t, lines, nil); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+// updateMask: omit sends no mask, so a mask pattern that cannot name an Update field path is no
+// error. This pattern accepts dotted paths but no name with an x, such as config.topics.context.
+func TestOmittedMaskIgnoresTheMaskPattern(t *testing.T) {
+	edit := func(spec string) string {
+		return strings.Replace(spec, `pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'`, `pattern: '^[a-wyzA-Z_]+(\.[a-wyzA-Z_]+)*(,[a-wyzA-Z_]+(\.[a-wyzA-Z_]+)*)*$'`, 1)
+	}
+	if err := generateEvalThingWith(t, evalThingLines(t), edit); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Without a mask the Update body holds a requestValueBy value, so updateMask: omit accepts it.
+func TestOmittedMaskAcceptsADerivedValue(t *testing.T) {
+	edit := func(spec string) string {
+		const field = "                enabled: {type: boolean, x-coralogix-presence: true}\n"
+		spec = strings.ReplaceAll(spec, field, field+"                kind: {$ref: '#/components/schemas/EvalTarget'}\n")
+		return strings.Replace(spec, "        enabled: {type: boolean}\n", "        enabled: {type: boolean}\n        kind: {$ref: '#/components/schemas/EvalTarget'}\n", 1)
+	}
+	lines := strings.Replace(evalThingLines(t), "      enabled:\n", "      kind:\n        requestValueBy: {config: PROMPT}\n      enabled:\n", 1)
+	if err := generateEvalThingWith(t, lines, edit); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// The discriminator of a oneOf is no arm, so unsupportedArms cannot remove it.
+func TestDropArmsRejectsTheDiscriminator(t *testing.T) {
+	typ := &model.Type{Kind: model.OneOf, Discriminator: "kind", Fields: []*model.Field{{Name: "kind"}, {Name: "a"}, {Name: "b"}}}
+	if _, err := dropArms(typ, []string{"kind"}); err == nil || !strings.Contains(err.Error(), `"kind" is not a oneOf arm`) {
+		t.Fatalf("err = %v, want the discriminator rejected", err)
+	}
+	if _, err := dropArms(typ, []string{"a"}); err != nil {
+		t.Fatalf("dropping an arm: %v", err)
+	}
+	if _, err := dropArms(typ, []string{"b"}); err == nil || !strings.Contains(err.Error(), "removes every arm") {
+		t.Fatalf("err = %v, want removing the last arm next to the discriminator rejected", err)
+	}
+}
+
+// An unwrap entry whose wrapper only a removed arm reached changes nothing, so it is an error.
+func TestCheckReachableLinesUnwrap(t *testing.T) {
+	wrapped := &model.Type{Kind: model.String, Wrappers: []model.Wrapper{{Schema: "LimitWrapper", Field: "value"}}}
+	arm := &model.Type{Kind: model.Object, Schema: "Legacy", Fields: []*model.Field{{Name: "limit", Type: wrapped}}}
+	with := &model.Resource{Name: "R", Fields: []*model.ResourceField{{Name: "legacy", Type: arm}}}
+	without := &model.Resource{Name: "R"}
+	file := &overrides.File{Unwrap: []string{"LimitWrapper"}}
+	err := checkReachableLines(file, reachableComponents(with), reachableComponents(without))
+	if err == nil || !strings.Contains(err.Error(), "unwrap.LimitWrapper: only unsupported arms reach the wrapper") {
+		t.Fatalf("err = %v, want the unwrap entry reported", err)
+	}
+	if err := checkReachableLines(file, reachableComponents(with), reachableComponents(with)); err != nil {
+		t.Fatalf("a reachable wrapper: %v", err)
+	}
+}
+
+// A PUT replaces the whole resource, so its body keeps a requiresReplace field: without it, an
+// update of another field would clear the field on the server.
+func TestRequiresReplaceKeepsTheFieldInAPut(t *testing.T) {
+	edit := func(spec string) string {
+		spec = strings.Replace(spec, "    patch:\n", "    put:\n", 1)
+		return strings.Replace(spec, "                updateMask: {type: string, pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'}\n", "", 1)
+	}
+	lines := evalThingLines(t)
+	for _, old := range []string{"api:\n  updateMaskInBody: true\n", "updateMask: omit\n"} {
+		if !strings.Contains(lines, old) {
+			t.Fatalf("the overrides lack %q", old)
+		}
+		lines = strings.Replace(lines, old, "", 1)
+	}
+	out := filepath.Join(t.TempDir(), "evalthing")
+	input, err := generateEvalThingInto(t, lines, edit, out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	convert, err := os.ReadFile(filepath.Join(out, "convert.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := functionBody(t, string(convert), "func expandUpdateEvalThingRequest(")
+	for _, want := range []string{"out.Name =", "out.Target =", "out.Config ="} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the PUT body lacks %q:\n%s", want, body)
+		}
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Count(string(schema), "planmodifier.RequiresReplace()"); got < 2 {
+		t.Errorf("schema.go has %d RequiresReplace modifiers, want name and target", got)
 	}
 	compileGenerated(t, out, input)
 }

@@ -522,6 +522,48 @@
           "path": "/{{id}}"
         }
       ]
+    },
+    {
+      "name": "update without a mask replaces a nested object",
+      "needsApplication": true,
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "PROMPT",
+            "isEnabled": true,
+            "threshold": 0.5,
+            "config": {
+              "promptInjection": {
+                "additionalContext": "an assistant for refunds"
+              }
+            }
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/{{id}}",
+          "body": {
+            "config": {
+              "promptInjection": {}
+            },
+            "isEnabled": true,
+            "threshold": 0.5
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
     }
   ]
 }

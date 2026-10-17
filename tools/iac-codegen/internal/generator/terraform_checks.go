@@ -9,6 +9,8 @@ import (
 	"github.com/coralogix/coralogix-management-sdk/iac/issue"
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
+
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
 
 // providerModulePath is the Go module of the provider that the generated code is part of.
@@ -21,8 +23,8 @@ const terraformInt64SafeDecimalDigits int64 = 18
 // terraformContractIssues runs the contract checks of the iac model and the checks that only
 // Terraform needs, and returns one sorted report. The Terraform checks read the type that the
 // contract checks survey, so both see the same resource.
-func terraformContractIssues(doc *v3.Document, component string, ids model.OperationIDs, p model.Policy) issue.Report {
-	report := model.ValidateWithPolicy(doc, component, ids, p)
+func terraformContractIssues(doc *v3.Document, component string, ids model.OperationIDs, p model.Policy, file *overrides.File) issue.Report {
+	report := omittedMaskIssues(model.ValidateWithPolicy(doc, component, ids, p), file)
 	if t, _ := model.SurveyWithPolicy(doc, component, p); t != nil {
 		report = append(report, terraformNameCollisions(p, "components.schemas."+component, t)...)
 		report = append(report, uint64RangeIssues(component, t)...)
@@ -167,4 +169,21 @@ func terraformNameRune(r rune) rune {
 		return r
 	}
 	return '_'
+}
+
+// omittedMaskIssues drops the contract issues about the update mask paths when the resource sends
+// no update mask (updateMask: omit). The body then holds the whole value of each field it sends,
+// a changed oneOf arm included, so no mask path has to name the arm. buildMask skips the path
+// checks for the same reason.
+func omittedMaskIssues(report issue.Report, file *overrides.File) issue.Report {
+	if file == nil || file.UpdateMask != overrides.UpdateMaskOmit {
+		return report
+	}
+	var out issue.Report
+	for _, i := range report {
+		if i.Code != "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED" {
+			out = append(out, i)
+		}
+	}
+	return out
 }
