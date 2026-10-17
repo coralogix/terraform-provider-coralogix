@@ -297,7 +297,8 @@ type Field struct {
 	// returns the document normalized, so a change of format alone must not plan a change.
 	Equality string `yaml:"equality"`
 	// RequiresReplace: a change of this top-level field replaces the resource, although Update
-	// accepts it, as the released resource did. Update does not send the field.
+	// accepts it, as the released resource did. A PATCH Update does not send the field. A PUT
+	// Update still sends it, so an update of another field does not clear it.
 	RequiresReplace bool `yaml:"requiresReplace"`
 }
 
