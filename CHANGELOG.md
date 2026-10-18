@@ -174,15 +174,12 @@
 - CHORE: Uses the schema and the conversion of the generated resource. `description` still shows the stored value, `""` included, as before.
 
 #### resource/coralogix_scope
-- FIX: `Read` no longer panics when the scopes API call fails. The error was checked alongside the response body (`err != nil && len(result.Scopes) == 0`), so the nil response model was dereferenced on exactly the failure paths the guard was meant to cover. The error is now handled on its own, and the response is checked separately, so a successful-but-empty response no longer indexes an empty list.
-- FIX: A scope deleted outside Terraform is detected and planned for recreation instead of crashing the provider. The lookup is a collection route that takes the ids as a query parameter, so a successful response carrying no match for the requested id is what says the scope is gone: that warns and removes the resource from state. Every error, 404 included, describes the route rather than the scope, so it surfaces as an error and leaves the resource in state — a transient routing failure cannot discard state and plan a duplicate.
-- FIX: `Read` no longer looks up an empty id when the state entry carries no scope id. It warns and removes the entry from state instead, so the next apply recreates the scope.
-- FIX: `Update` reports the errors raised while building the request instead of returning without a diagnostic, which left the apply with no explanation of what was wrong.
-- FIX: `Create` and `Update` report an error instead of panicking when the API answers with an empty response body, and now also reject a 2xx response that decodes cleanly but carries no scope id, rather than writing an unusable empty id into state. `Read` applies the same check.
-- FIX: `Update` reports a failed call as an error and leaves prior state in place. Before, it treated a 404 as proof that the scope was gone and removed the resource from state itself, which left the Framework with no state to persist and failed the apply with "Missing Resource State After Update".
+- FIX: The provider no longer crashes when a scope can't be read. A scope deleted outside Terraform is removed from state and recreated on the next apply; other API errors are reported and the scope stays in state.
+- FIX: `Create`, `Update` and `Read` report an error instead of writing an empty id to state when the API returns no scope id.
+- FIX: `Update` reports API errors instead of removing the scope from state, which failed the apply with "Missing Resource State After Update". Errors from building the request are no longer dropped.
 
 #### data-source/coralogix_scope
-- FIX: `Read` no longer panics on a failed or empty scopes API response, same root cause as the resource. A scope that cannot be resolved is now a hard error, whether the call failed or came back successful with no match; the data source no longer calls `RemoveResource`, which it must never do.
+- FIX: No longer crashes on a failed lookup. A missing scope is an error.
 
 # Release 3.21.0
 

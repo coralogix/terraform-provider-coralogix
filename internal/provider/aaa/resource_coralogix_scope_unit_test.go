@@ -69,6 +69,14 @@ func scopeRawResponseHandler(status int, body string) http.HandlerFunc {
 	}
 }
 
+func scopeTextResponseHandler(status int, body string) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(status)
+		_, _ = w.Write([]byte(body))
+	}
+}
+
 // scopeErrorText joins the summary and detail of every error diagnostic, so a
 // test can assert that the API's own message survived into what the user sees.
 func scopeErrorText(errs []diag.Diagnostic) string {
@@ -180,8 +188,8 @@ func readScopeDataSource(t *testing.T, ctx context.Context, client *scopess.Scop
 // usable response model. The client leaves *GetScopesResponse nil on every error
 // path, and can also answer 200 with an empty scopes list, so each of these used
 // to dereference nil and crash the provider process; the expected behaviour is a
-// diagnostic instead, and for the resource, state removal only when a successful
-// lookup comes back with no match for the id that was asked for.
+// diagnostic instead, and for the resource, state removal only when the API says
+// the scope itself is gone.
 func TestScopeReadDoesNotPanicOnAPIFailure(t *testing.T) {
 	ctx := context.Background()
 
@@ -218,20 +226,24 @@ func TestScopeReadDoesNotPanicOnAPIFailure(t *testing.T) {
 			wantErrorContains:    "permission denied",
 		},
 		{
-			// The lookup is a collection route keyed by a query parameter, so a 404
-			// says the route is missing, not the scope. Keeping state is what stops
-			// a transient routing failure from planning a duplicate.
-			name:                 "404_is_a_route_error_and_keeps_the_resource_in_state",
-			handler:              scopeRawResponseHandler(http.StatusNotFound, `{"message":"not found"}`),
+			// Real EU2 reply for a scope id that does not exist.
+			name:                 "404_no_scopes_found_removes_the_resource_and_errors_the_data_source",
+			handler:              scopeTextResponseHandler(http.StatusNotFound, "Not Found: No scopes found"),
+			wantResourceWarnings: 1,
+			wantResourceError:    false,
+			wantResourceGone:     true,
+			wantDataSourceError:  true,
+		},
+		{
+			// Real EU2 reply for a route that does not exist.
+			name:                 "404_missing_route_keeps_the_resource_in_state",
+			handler:              scopeTextResponseHandler(http.StatusNotFound, "Not Found: Not Found"),
 			wantResourceWarnings: 0,
 			wantResourceError:    true,
 			wantResourceGone:     false,
 			wantDataSourceError:  true,
 		},
 		{
-			// Exactly one id was requested, and a successful response came back
-			// carrying no match for it. That is the only answer this route has for
-			// "the scope is gone", so the resource is dropped and recreated.
 			name:                 "200_with_an_empty_scopes_list_removes_the_resource",
 			handler:              scopeRawResponseHandler(http.StatusOK, `{"scopes":[]}`),
 			wantResourceWarnings: 1,
@@ -528,7 +540,7 @@ func TestScopeRejectsResponsesWithoutAnID(t *testing.T) {
 func TestScopeUpdateOn404ErrorsAndKeepsState(t *testing.T) {
 	ctx := context.Background()
 
-	r := &ScopeResource{client: scopeClientForHandler(t, scopeRawResponseHandler(http.StatusNotFound, `{"message":"scope not found"}`))}
+	r := &ScopeResource{client: scopeClientForHandler(t, scopeTextResponseHandler(http.StatusNotFound, "Not Found: No scopes found"))}
 
 	schemaResp := &resource.SchemaResponse{}
 	r.Schema(ctx, resource.SchemaRequest{}, schemaResp)

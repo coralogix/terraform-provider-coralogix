@@ -16,6 +16,7 @@ package aaa
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -263,10 +264,15 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	result, httpResponse, err := rq.
 		Execute()
 
-	// GET /aaa/team-scopes/v1 is a collection route that takes the ids as a query
-	// parameter, so no status code on it is addressed at one scope: a 404 means the
-	// route is missing, not the scope. Absence is read off a successful response.
 	if err != nil {
+		if isScopeNotFound(httpResponse, err) {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("coralogix_scope %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
+			)
+			resp.State.RemoveResource(ctx)
+			return
+		}
 		resp.Diagnostics.AddError("Error reading coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
 		return
 	}
@@ -313,9 +319,6 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		UpdateScopeRequest(*rq).
 		Execute()
 
-	// The update route carries the id in the body rather than the path, so a 404
-	// from it describes the route and not the scope. It stays an error that leaves
-	// prior state in place; a refresh is what establishes that the scope is gone.
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
 		return
@@ -382,4 +385,11 @@ func (r *ScopeResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		)
 		return
 	}
+}
+
+// A missing route also answers 404, so only the scopes service's own message means the scope is gone.
+func isScopeNotFound(httpResponse *http.Response, err error) bool {
+	var apiErr *scopess.GenericOpenAPIError
+	return isNotFoundResponse(httpResponse) && errors.As(err, &apiErr) &&
+		strings.Contains(string(apiErr.Body()), "No scopes found")
 }
