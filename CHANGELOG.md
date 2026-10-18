@@ -173,6 +173,14 @@
 #### data-source/coralogix_events2metric
 - CHORE: Uses the schema and the conversion of the generated resource. `description` still shows the stored value, `""` included, as before.
 
+#### resource/coralogix_scope
+- FIX: The provider no longer crashes when a scope can't be read. A scope deleted outside Terraform is removed from state and recreated on the next apply; other API errors are reported and the scope stays in state.
+- FIX: `Create`, `Update` and `Read` report an error instead of writing an empty id to state when the API returns no scope id.
+- FIX: `Update` reports API errors instead of removing the scope from state, which failed the apply with "Missing Resource State After Update". Errors from building the request are no longer dropped.
+
+#### data-source/coralogix_scope
+- FIX: No longer crashes on a failed lookup. A missing scope is an error.
+
 # Release 3.21.0
 
 #### resource/coralogix_configuration_group
