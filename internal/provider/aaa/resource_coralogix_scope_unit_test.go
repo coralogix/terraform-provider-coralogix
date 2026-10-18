@@ -180,7 +180,8 @@ func readScopeDataSource(t *testing.T, ctx context.Context, client *scopess.Scop
 // usable response model. The client leaves *GetScopesResponse nil on every error
 // path, and can also answer 200 with an empty scopes list, so each of these used
 // to dereference nil and crash the provider process; the expected behaviour is a
-// diagnostic instead, and for the resource, state removal only on a confirmed 404.
+// diagnostic instead, and for the resource, state removal only when a successful
+// lookup comes back with no match for the id that was asked for.
 func TestScopeReadDoesNotPanicOnAPIFailure(t *testing.T) {
 	ctx := context.Background()
 
@@ -217,23 +218,25 @@ func TestScopeReadDoesNotPanicOnAPIFailure(t *testing.T) {
 			wantErrorContains:    "permission denied",
 		},
 		{
-			name:                 "404_removes_the_resource_and_errors_the_data_source",
+			// The lookup is a collection route keyed by a query parameter, so a 404
+			// says the route is missing, not the scope. Keeping state is what stops
+			// a transient routing failure from planning a duplicate.
+			name:                 "404_is_a_route_error_and_keeps_the_resource_in_state",
 			handler:              scopeRawResponseHandler(http.StatusNotFound, `{"message":"not found"}`),
-			wantResourceWarnings: 1,
-			wantResourceError:    false,
-			wantResourceGone:     true,
-			wantDataSourceError:  true,
-		},
-		{
-			// An empty list is not a confirmed deletion — it can also be a
-			// permission-filtered lookup — so the resource is kept in state and
-			// the ambiguity is reported, rather than silently dropping a scope
-			// that may still exist. Only a 404 above removes it.
-			name:                 "200_with_an_empty_scopes_list_keeps_the_resource_in_state",
-			handler:              scopeRawResponseHandler(http.StatusOK, `{"scopes":[]}`),
 			wantResourceWarnings: 0,
 			wantResourceError:    true,
 			wantResourceGone:     false,
+			wantDataSourceError:  true,
+		},
+		{
+			// Exactly one id was requested, and a successful response came back
+			// carrying no match for it. That is the only answer this route has for
+			// "the scope is gone", so the resource is dropped and recreated.
+			name:                 "200_with_an_empty_scopes_list_removes_the_resource",
+			handler:              scopeRawResponseHandler(http.StatusOK, `{"scopes":[]}`),
+			wantResourceWarnings: 1,
+			wantResourceError:    false,
+			wantResourceGone:     true,
 			wantDataSourceError:  true,
 		},
 		{
@@ -518,11 +521,11 @@ func TestScopeRejectsResponsesWithoutAnID(t *testing.T) {
 	})
 }
 
-// A scope deleted outside Terraform reaches Update when the apply runs with
-// -refresh=false. Update must report that rather than dropping state: removing
-// state here leaves the Framework with no resource to persist and it aborts
-// with "Missing Resource State After Update".
-func TestScopeUpdateOnADeletedScopeErrorsAndKeepsState(t *testing.T) {
+// An apply running with -refresh=false reaches Update with a scope that may no
+// longer exist. Whatever the route answers, Update must report it rather than
+// drop state: removing state here leaves the Framework with no resource to
+// persist and it aborts with "Missing Resource State After Update".
+func TestScopeUpdateOn404ErrorsAndKeepsState(t *testing.T) {
 	ctx := context.Background()
 
 	r := &ScopeResource{client: scopeClientForHandler(t, scopeRawResponseHandler(http.StatusNotFound, `{"message":"scope not found"}`))}

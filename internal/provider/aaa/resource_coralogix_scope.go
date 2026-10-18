@@ -263,28 +263,20 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	result, httpResponse, err := rq.
 		Execute()
 
+	// GET /aaa/team-scopes/v1 is a collection route that takes the ids as a query
+	// parameter, so no status code on it is addressed at one scope: a 404 means the
+	// route is missing, not the scope. Absence is read off a successful response.
 	if err != nil {
-		if isNotFoundResponse(httpResponse) {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("coralogix_scope %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
-			)
-			resp.State.RemoveResource(ctx)
-			return
-		}
 		resp.Diagnostics.AddError("Error reading coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
 		return
 	}
 
 	if result == nil || len(result.Scopes) == 0 {
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("Unable to read coralogix_scope %q", id),
-			fmt.Sprintf("The read succeeded but returned no scopes for %s. That can mean the scope was deleted "+
-				"outside Terraform, but an empty result is not a confirmed deletion — the lookup may also have been "+
-				"filtered by the permissions of the API key in use. The scope is kept in state rather than dropped. "+
-				"If it really was deleted, remove it with `terraform state rm`; otherwise check that the API key is "+
-				"permitted to read scopes.", id),
+		resp.Diagnostics.AddWarning(
+			fmt.Sprintf("coralogix_scope %q is in state, but no longer exists in Coralogix backend", id),
+			fmt.Sprintf("%s will be recreated when you apply", id),
 		)
+		resp.State.RemoveResource(ctx)
 		return
 	}
 
@@ -321,15 +313,10 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		UpdateScopeRequest(*rq).
 		Execute()
 
+	// The update route carries the id in the body rather than the path, so a 404
+	// from it describes the route and not the scope. It stays an error that leaves
+	// prior state in place; a refresh is what establishes that the scope is gone.
 	if err != nil {
-		if isNotFoundResponse(httpResponse) {
-			resp.Diagnostics.AddError(
-				fmt.Sprintf("coralogix_scope %q no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s could not be updated because it is gone. Apply with a refresh to remove it from state; "+
-					"it will be recreated on the next apply.", id),
-			)
-			return
-		}
 		resp.Diagnostics.AddError("Error updating coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
 		return
 	}

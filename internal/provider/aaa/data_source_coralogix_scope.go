@@ -91,14 +91,10 @@ func (d *ScopeDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	result, httpResponse, err := rq.
 		Execute()
 
+	// The lookup is a collection route keyed by a query parameter, so its status
+	// codes describe the route, not the scope. Only a successful response that
+	// carries no match tells us the scope is absent.
 	if err != nil {
-		if isNotFoundResponse(httpResponse) {
-			resp.Diagnostics.AddError(
-				fmt.Sprintf("coralogix_scope %q does not exist in Coralogix backend", id),
-				"Check the id, and that the API key is permitted to read scopes.",
-			)
-			return
-		}
 		resp.Diagnostics.AddError("Error reading coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
 		return
 	}
