@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -528,10 +527,18 @@ func TestAccCoralogixResourceParsingRules_parse(t *testing.T) {
 	})
 }
 
+// Only keep_source_field = "true" is accepted for source "text". Deleting it needs a
+// deletable sub-field, so the backend rejects it. Cover both destination values.
 func TestAccCoralogixResourceParsingRules_parseJsonField(t *testing.T) {
+	for _, keepDestinationField := range []string{"true", "false"} {
+		t.Run("keep_destination_field_"+keepDestinationField, func(t *testing.T) {
+			checkParseJsonField(t, "true", keepDestinationField)
+		})
+	}
+}
+
+func checkParseJsonField(t *testing.T, keepSourceField, keepDestinationField string) {
 	r := getRandomParsingRule()
-	keepSourceField := utils.SelectRandomlyFromSlice([]string{"true", "false"})
-	keepDestinationField := utils.SelectRandomlyFromSlice([]string{"true", "false"})
 	resourceName := "coralogix_parsing_rules.test"
 
 	resource.Test(t, resource.TestCase{
