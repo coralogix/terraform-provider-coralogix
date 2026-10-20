@@ -305,7 +305,7 @@ func TestAccCoralogixResourceTCOPoliciesLogs_targets(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "Example tco_policy with per-target priorities"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.#", "1"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataset", "logs"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataset", "cicd"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.priority", "medium"),
 				),
 			},
@@ -321,7 +321,8 @@ func testAccCoralogixResourceTCOPoliciesLogsTargetsPerTargetPriority() string {
       severities = ["info", "warning"]
       targets = [
         {
-          dataset  = "logs"
+          dataset   = "cicd"
+          dataspace = "default"
           priority = "medium"
         },
       ]
@@ -347,7 +348,7 @@ func TestAccCoralogixResourceTCOPoliciesLogs_mixedTargets(t *testing.T) {
 					// Policy 0: has targets, each with its own priority.
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "policy-with-targets"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.#", "1"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataset", "logs"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataset", "cicd"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataspace", "default"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.priority", "medium"),
 					// Policy 1: no targets configured — the backend's injected default must not
@@ -369,7 +370,8 @@ func testAccCoralogixResourceTCOPoliciesLogsMixedTargets() string {
       severities = ["info"]
       targets = [
         {
-          dataset  = "logs"
+          dataset   = "cicd"
+          dataspace = "default"
           priority = "medium"
         },
       ]
