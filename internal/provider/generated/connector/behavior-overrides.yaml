@@ -5,7 +5,7 @@
 resource: Connector
 mode: existing
 
-markdownDescription: "Coralogix Notification Center Connector. For more info please review - https://coralogix.com/docs/user-guides/notification-center/connectors/. **Note:** This resource is in Beta stage."
+markdownDescription: "Coralogix Notification Center Connector. For more info please review - https://coralogix.com/docs/user-guides/notification-center/connectors/."
 
 schema:
   version: 0
