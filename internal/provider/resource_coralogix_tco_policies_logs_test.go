@@ -304,9 +304,14 @@ func TestAccCoralogixResourceTCOPoliciesLogs_targets(t *testing.T) {
 				Config: testAccCoralogixResourceTCOPoliciesLogsTargetsPerTargetPriority(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "Example tco_policy with per-target priorities"),
-					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.#", "1"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.#", "2"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.dataset", "cicd"),
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.0.priority", "medium"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.1.dataset", "logs"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.1.priority", "block"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.1.priority_override.usage_tiers.#", "1"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.1.priority_override.usage_tiers.0.daily_quota_percentage", "80"),
+					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.targets.1.priority_override.usage_tiers.0.priority", "low"),
 				),
 			},
 		},
@@ -324,6 +329,16 @@ func testAccCoralogixResourceTCOPoliciesLogsTargetsPerTargetPriority() string {
           dataset   = "cicd"
           dataspace = "default"
           priority = "medium"
+        },
+        {
+          dataset   = "logs"
+          dataspace = "default"
+          priority  = "block"
+          priority_override = {
+            usage_tiers = [
+              { daily_quota_percentage = 80, priority = "low" },
+            ]
+          }
         },
       ]
     },
