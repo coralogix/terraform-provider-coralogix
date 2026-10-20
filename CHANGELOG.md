@@ -21,6 +21,7 @@
 
 #### provider
 - CHORE: Bump `coralogix-management-sdk` to the version with the alert suppression rule contract. The SDK holds required fields as values; `coralogix_alerts_scheduler`, `coralogix_events2metric`, and `coralogix_slo_v2` adapt, with no change to plans.
+- CHORE: Bump `google.golang.org/grpc` to v1.83.2 to clear open security advisories (GHSA-vp52-pcj8-j9qc, GHSA-qc2q-p7wx-3px3, GHSA-2v4p-qf9q-27wj). Indirect `golang.org/x/*` and `google.golang.org/genproto` modules move up with it. No change to provider behavior.
 
 #### resource/coralogix_dashboards_folder
 - CHORE: Add protocol baseline golden files against an in-memory dashboard folders API, checked against answers recorded from a real tenant.
