@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_connector, resource/coralogix_global_router, resource/coralogix_preset
+- DOCS: Remove the "This resource is in Beta stage" note from the resource and data source descriptions. Notification Center connectors, global routers, and presets are generally available.
+
 #### resource/coralogix_ai_evaluation
 - CHORE: Add protocol baseline golden files against an in-memory evaluation API, checked against answers recorded from a real tenant.
 

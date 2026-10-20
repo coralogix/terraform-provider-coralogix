@@ -1,5 +1,5 @@
 (schema)  version=0
-    markdown: "Coralogix Notification Center Connector. For more info please review - https://coralogix.com/docs/user-guides/notification-center/connectors/. **Note:** This resource is in Beta stage."
+    markdown: "Coralogix Notification Center Connector. For more info please review - https://coralogix.com/docs/user-guides/notification-center/connectors/."
 config_overrides  ListNestedAttribute optional computed
     markdown: "The config overrides. Removing this block keeps the value until another attribute changes. Set `config_overrides = []` to clear it."
 config_overrides[]  NestedObject
