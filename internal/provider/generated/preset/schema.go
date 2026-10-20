@@ -129,7 +129,7 @@ func Schema() schema.Schema {
 				MarkdownDescription: "",
 			},
 		},
-		MarkdownDescription: "Coralogix Notification Center Preset. For more info please review - https://coralogix.com/docs/user-guides/notification-center/presets/introduction/. **NOTE:** This resource is in Beta stage.",
+		MarkdownDescription: "Coralogix Notification Center Preset. For more info please review - https://coralogix.com/docs/user-guides/notification-center/presets/introduction/.",
 	}
 }
 

@@ -3,12 +3,12 @@
 page_title: "coralogix_preset Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix Notification Center Preset. For more info please review - https://coralogix.com/docs/user-guides/notification-center/presets/introduction/. NOTE: This resource is in Beta stage.
+  Coralogix Notification Center Preset. For more info please review - https://coralogix.com/docs/user-guides/notification-center/presets/introduction/.
 ---
 
 # coralogix_preset (Resource)
 
-Coralogix Notification Center Preset. For more info please review - https://coralogix.com/docs/user-guides/notification-center/presets/introduction/. **NOTE:** This resource is in Beta stage.
+Coralogix Notification Center Preset. For more info please review - https://coralogix.com/docs/user-guides/notification-center/presets/introduction/.
 
 ## Example Usage
 

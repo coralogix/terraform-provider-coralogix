@@ -203,7 +203,7 @@ func Schema() schema.Schema {
 				MarkdownDescription: "Timestamp of the last update. Set by the server; a value sent by the client is ignored.",
 			},
 		},
-		MarkdownDescription: "Coralogix Notification Center Global Router. For more info please review - https://coralogix.com/docs/user-guides/notification-center/routing/introduction/. **Note:** This resource is in Beta stage.",
+		MarkdownDescription: "Coralogix Notification Center Global Router. For more info please review - https://coralogix.com/docs/user-guides/notification-center/routing/introduction/.",
 	}
 }
 
