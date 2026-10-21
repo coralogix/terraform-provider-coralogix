@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_alert
+- DOCS: Describe `phantom_mode`, including that the API rejects a phantom alert whose `notification_group` sets a notification target.
+
 #### resource/coralogix_connector, resource/coralogix_global_router, resource/coralogix_preset
 - DOCS: Remove the "This resource is in Beta stage" note from the resource and data source descriptions. Notification Center connectors, global routers, and presets are generally available.
 
