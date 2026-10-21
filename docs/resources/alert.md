@@ -894,7 +894,7 @@ resource "coralogix_alert" "test" {
 - `incidents_settings` (Attributes) (see [below for nested schema](#nestedatt--incidents_settings))
 - `labels` (Map of String) Key-value labels on the alert definition. Use them to categorize the alert and to match Notification Center routers and alert-scheduler mute rules. Omit the attribute to clear all labels. An empty map is rejected.
 - `notification_group` (Attributes) (see [below for nested schema](#nestedatt--notification_group))
-- `phantom_mode` (Boolean)
+- `phantom_mode` (Boolean) When `true` the alert is evaluated as usual but sends no notifications. Mutually exclusive with a `notification_group` that names a target: `group_by_keys`, `webhooks_settings`, `destinations` or `router` must all be unset, though an omitted or empty `notification_group` block is accepted. Defaults to `false`.
 - `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"]. This field will be removed in the future in favor of the 'override' property where possible.
 - `schedule` (Attributes) Alert schedule. Will be activated all the time if not specified. (see [below for nested schema](#nestedatt--schedule))
 

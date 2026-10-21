@@ -1,5 +1,9 @@
 # Unreleased
 
+#### resource/coralogix_alert
+- FIX: `phantom_mode = true` together with a `notification_group` that names a target (`group_by_keys`, `webhooks_settings`, `destinations` or `router`) is now rejected at plan time with a message naming the offending attributes. Before, the configuration planned cleanly and failed mid-apply with a 400 from the alerts API. An omitted or empty `notification_group` block stays accepted.
+- DOCS: `phantom_mode` describes that the alert is evaluated but sends no notifications, and that it is mutually exclusive with a populated `notification_group`.
+
 #### resource/coralogix_connector, resource/coralogix_global_router, resource/coralogix_preset
 - DOCS: Remove the "This resource is in Beta stage" note from the resource and data source descriptions. Notification Center connectors, global routers, and presets are generally available.
 

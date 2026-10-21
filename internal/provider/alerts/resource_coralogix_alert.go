@@ -21,6 +21,7 @@ import (
 	"math/big"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -49,8 +50,9 @@ const OFFSET_FORMAT = "Z0700"
 const DEFAULT_TIMEZONE_OFFSET = "+0000"
 
 var (
-	_ resource.ResourceWithConfigure   = &AlertResource{}
-	_ resource.ResourceWithImportState = &AlertResource{}
+	_ resource.ResourceWithConfigure        = &AlertResource{}
+	_ resource.ResourceWithImportState      = &AlertResource{}
+	_ resource.ResourceWithConfigValidators = &AlertResource{}
 )
 
 func NewAlertResource() resource.Resource {
@@ -84,6 +86,82 @@ func (r *AlertResource) Configure(_ context.Context, req resource.ConfigureReque
 
 func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = alertschema.V3()
+}
+
+func (r *AlertResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		phantomModeNotificationGroupValidator{},
+	}
+}
+
+type phantomModeNotificationGroupValidator struct{}
+
+func (v phantomModeNotificationGroupValidator) Description(ctx context.Context) string {
+	return v.MarkdownDescription(ctx)
+}
+
+func (v phantomModeNotificationGroupValidator) MarkdownDescription(_ context.Context) string {
+	return "Rejects `phantom_mode = true` combined with a `notification_group` that names a notification target."
+}
+
+func (v phantomModeNotificationGroupValidator) ValidateResource(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var config *alerttypes.AlertResourceModel
+	if diags := req.Config.Get(ctx, &config); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	if config == nil || config.PhantomMode.IsNull() || config.PhantomMode.IsUnknown() || !config.PhantomMode.ValueBool() {
+		return
+	}
+
+	if utils.ObjIsNullOrUnknown(config.NotificationGroup) {
+		return
+	}
+
+	var notificationGroup alerttypes.NotificationGroupModel
+	if diags := config.NotificationGroup.As(ctx, &notificationGroup, basetypes.ObjectAsOptions{}); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	var targets []string
+	if collectionIsPopulated(notificationGroup.GroupByKeys) {
+		targets = append(targets, "group_by_keys")
+	}
+	if collectionIsPopulated(notificationGroup.WebhooksSettings) {
+		targets = append(targets, "webhooks_settings")
+	}
+	if collectionIsPopulated(notificationGroup.Destinations) {
+		targets = append(targets, "destinations")
+	}
+	if !utils.ObjIsNullOrUnknown(notificationGroup.Router) {
+		targets = append(targets, "router")
+	}
+
+	if len(targets) == 0 {
+		return
+	}
+
+	resp.Diagnostics.AddAttributeError(
+		path.Root("notification_group"),
+		"Invalid Attribute Combination",
+		fmt.Sprintf("A phantom alert evaluates but never notifies, so it cannot name a notification target, "+
+			"but notification_group sets %s. The Coralogix API rejects this combination at apply time with "+
+			"\"Phantom alerts must not have notification group set\". Remove %s from notification_group "+
+			"(an omitted or empty notification_group block is accepted), or set phantom_mode = false.",
+			strings.Join(targets, ", "), strings.Join(targets, ", ")),
+	)
+}
+
+// Any element makes the group differ from the API's default group, even when
+// the element's own value is still unknown.
+func collectionIsPopulated(collection interface {
+	IsNull() bool
+	IsUnknown() bool
+	Elements() []attr.Value
+}) bool {
+	return !collection.IsNull() && !collection.IsUnknown() && len(collection.Elements()) > 0
 }
 
 func (r AlertResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {

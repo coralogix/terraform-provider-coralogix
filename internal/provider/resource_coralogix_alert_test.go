@@ -5335,3 +5335,110 @@ func testAccCoralogixResourceAlertRouterId(description, router string) string {
 }
 `, description, router)
 }
+
+// TestAccCoralogixResourceAlert_phantom_mode_notification_group covers the
+// plan-time rejection of phantom_mode = true combined with a notification
+// group that names a target. Before the fix each error step below planned
+// cleanly and only failed mid-apply, with a 400 from the alerts API. The error
+// steps are PlanOnly so they never reach the API, and are kept ahead of the
+// valid ones — a trailing invalid config would make the framework's post-test
+// destroy plan run against it and fail.
+func TestAccCoralogixResourceAlert_phantom_mode_notification_group(t *testing.T) {
+	emptyPlan := resource.ConfigPlanChecks{
+		PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+	}
+	// \s+ (not a literal space) because Terraform wraps the diagnostic detail,
+	// so "notification_group sets router" can arrive split across lines.
+	conflictOn := func(attribute string) *regexp.Regexp {
+		return regexp.MustCompile(`(?s)Invalid\s+Attribute\s+Combination.*notification_group\s+sets\s+` + attribute)
+	}
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertPhantomMode(`  notification_group = {
+    webhooks_settings = [{
+      retriggering_period = { minutes = 1 }
+      notify_on           = "Triggered Only"
+      recipients          = ["example@coralogix.com"]
+    }]
+  }`),
+				PlanOnly:    true,
+				ExpectError: conflictOn("webhooks_settings"),
+			},
+			// group_by_keys alone is enough: the API compares the whole group
+			// against its default, in which groupByKeys is [].
+			{
+				Config: testAccCoralogixResourceAlertPhantomMode(`  notification_group = {
+    group_by_keys = ["coralogix.metadata.sdkId"]
+  }`),
+				PlanOnly:    true,
+				ExpectError: conflictOn("group_by_keys"),
+			},
+			{
+				Config: testAccCoralogixResourceAlertPhantomMode(`  notification_group = {
+    router = {
+      id = "router_default"
+    }
+  }`),
+				PlanOnly:    true,
+				ExpectError: conflictOn("router"),
+			},
+			{
+				Config: testAccCoralogixResourceAlertPhantomMode(`  notification_group = {
+    destinations = [{
+      connector_id = "11111111-1111-1111-1111-111111111111"
+      preset_id    = "22222222-2222-2222-2222-222222222222"
+      notify_on    = "Triggered Only"
+    }]
+  }`),
+				PlanOnly:    true,
+				ExpectError: conflictOn("destinations"),
+			},
+			// Non-regression: a phantom alert with no notification_group block
+			// still plans and applies — the schema default serializes to exactly
+			// the empty group the API accepts.
+			{
+				Config:           testAccCoralogixResourceAlertPhantomMode(""),
+				Check:            resource.TestCheckResourceAttr(alertResourceName, "phantom_mode", "true"),
+				ConfigPlanChecks: emptyPlan,
+			},
+			// Non-regression: an empty notification_group block is equivalent and
+			// must stay accepted.
+			{
+				Config:           testAccCoralogixResourceAlertPhantomMode("  notification_group = {}"),
+				Check:            resource.TestCheckResourceAttr(alertResourceName, "phantom_mode", "true"),
+				ConfigPlanChecks: emptyPlan,
+			},
+			{
+				ResourceName:      alertResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceAlertPhantomMode(notificationGroup string) string {
+	return fmt.Sprintf(`resource "coralogix_alert" "test" {
+  name         = "phantom mode notification group alert"
+  description  = "Covers phantom_mode together with a notification_group"
+  priority     = "P3"
+  phantom_mode = true
+
+%s
+
+  type_definition = {
+    logs_immediate = {
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"phantom\""
+        }
+      }
+    }
+  }
+}
+`, notificationGroup)
+}

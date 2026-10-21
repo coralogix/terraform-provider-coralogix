@@ -698,6 +698,10 @@ func V3() schema.Schema {
 				Optional: true,
 				Computed: true,
 				Default:  booldefault.StaticBool(false),
+				MarkdownDescription: "When `true` the alert is evaluated as usual but sends no notifications. " +
+					"Mutually exclusive with a `notification_group` that names a target: `group_by_keys`, " +
+					"`webhooks_settings`, `destinations` or `router` must all be unset, though an omitted or " +
+					"empty `notification_group` block is accepted. Defaults to `false`.",
 			},
 			"deleted": schema.BoolAttribute{
 				Computed: true,
