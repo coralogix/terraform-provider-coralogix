@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_alert
+- FIX: Changing `type_definition` in place to `metric_threshold` or `logs_threshold` with `no_data_policy` or `logs_filter` left out no longer fails with "inconsistent result after apply". Both attributes stay unknown in the plan when the previous type had no such block; alerts that already hold those objects in state keep planning no change.
+
 #### resource/coralogix_connector, resource/coralogix_global_router, resource/coralogix_preset
 - DOCS: Remove the "This resource is in Beta stage" note from the resource and data source descriptions. Notification Center connectors, global routers, and presets are generally available.
 
