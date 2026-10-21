@@ -16,6 +16,7 @@ package aaa
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -170,6 +171,15 @@ func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, 
 		)
 		return
 	}
+
+	if result == nil || result.Scope.GetId() == "" {
+		resp.Diagnostics.AddError("Error creating coralogix_scope",
+			"the Coralogix API reported success but returned no scope id. Nothing is written to state, because a scope "+
+				"without an id can be neither read nor deleted. The scope may still have been created — check Coralogix "+
+				"before retrying.")
+		return
+	}
+
 	state := flattenScope(result.Scope)
 
 	diags = resp.State.Set(ctx, state)
@@ -238,12 +248,15 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	id := plan.ID.ValueString()
-
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
+	if plan == nil || plan.ID.IsNull() || plan.ID.IsUnknown() || plan.ID.ValueString() == "" {
+		resp.Diagnostics.AddWarning(
+			"coralogix_scope has no id in state",
+			"The state entry carries no scope id, so it cannot be read back; it will be recreated when you apply.",
+		)
+		resp.State.RemoveResource(ctx)
 		return
 	}
+	id := plan.ID.ValueString()
 
 	rq := r.client.
 		ScopesServiceGetTeamScopesByIds(ctx).Ids([]string{id})
@@ -251,18 +264,36 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	result, httpResponse, err := rq.
 		Execute()
 
-	if err != nil && len(result.Scopes) == 0 {
-		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
+	if err != nil {
+		if isScopeNotFound(httpResponse, err) {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("coralogix_scope %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError("Error reading coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
+			return
 		}
+		resp.Diagnostics.AddError("Error reading coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
 		return
 	}
+
+	if result == nil || len(result.Scopes) == 0 {
+		resp.Diagnostics.AddWarning(
+			fmt.Sprintf("coralogix_scope %q is in state, but no longer exists in Coralogix backend", id),
+			fmt.Sprintf("%s will be recreated when you apply", id),
+		)
+		resp.State.RemoveResource(ctx)
+		return
+	}
+
+	if result.Scopes[0].GetId() == "" {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Unable to read coralogix_scope %q", id),
+			"The read returned a scope with no id. State is left unchanged rather than overwritten with an empty id.",
+		)
+		return
+	}
+
 	state := flattenScope(result.Scopes[0])
 
 	diags = resp.State.Set(ctx, state)
@@ -280,6 +311,7 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 	rq, diags := extractUpdateScope(plan)
 	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 	result, httpResponse, err := r.client.
@@ -288,15 +320,14 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		Execute()
 
 	if err != nil {
-		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("coralogix_scope %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
-			)
-			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError("Error updating coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
-		}
+		resp.Diagnostics.AddError("Error updating coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
+		return
+	}
+
+	if result == nil || result.Scope.GetId() == "" {
+		resp.Diagnostics.AddError("Error updating coralogix_scope",
+			fmt.Sprintf("the Coralogix API reported success but returned no scope id for %s. State is left unchanged "+
+				"rather than overwritten with an empty id; re-run to refresh it.", id))
 		return
 	}
 
@@ -354,4 +385,11 @@ func (r *ScopeResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		)
 		return
 	}
+}
+
+// A missing route also answers 404, so only the scopes service's own message means the scope is gone.
+func isScopeNotFound(httpResponse *http.Response, err error) bool {
+	var apiErr *scopess.GenericOpenAPIError
+	return isNotFoundResponse(httpResponse) && errors.As(err, &apiErr) &&
+		strings.Contains(string(apiErr.Body()), "No scopes found")
 }

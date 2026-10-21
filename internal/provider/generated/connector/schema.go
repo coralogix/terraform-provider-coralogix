@@ -112,7 +112,7 @@ func Schema() schema.Schema {
 				MarkdownDescription: "Connector type. Valid values are: unspecified, slack, generic_https, pagerduty, pagerduty_incidents, email, service_now, microsoft_teams, eventbridge, incident_io. `incident_io` is a preview type.",
 			},
 		},
-		MarkdownDescription: "Coralogix Notification Center Connector. For more info please review - https://coralogix.com/docs/user-guides/notification-center/connectors/. **Note:** This resource is in Beta stage.",
+		MarkdownDescription: "Coralogix Notification Center Connector. For more info please review - https://coralogix.com/docs/user-guides/notification-center/connectors/.",
 	}
 }
 

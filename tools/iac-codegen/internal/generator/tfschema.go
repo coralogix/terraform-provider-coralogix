@@ -299,7 +299,8 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 			a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
 		}
 	case f.Behavior == model.Immutable || clientSetID:
-		b.requiresReplace(a, a.Name)
+		// The path holds the group, as the server paths of the request do.
+		b.requiresReplace(a, rootPath(group, a.Name).dotted())
 	}
 	return a, nil
 }
@@ -1203,6 +1204,12 @@ func checkOmittedMaskClears(r *model.Resource, attrs []*tfAttr, file *overrides.
 			// A requestValue field has no attribute, and Update always sends it.
 			continue
 		}
+		if file.Types[r.Name].Fields[f.Name].SendNullAsEmpty {
+			// Expand sends "" for a removed value, so the server clears it.
+			continue
+		}
+		// No field is in a groups object: a group needs a full-replace Update, and
+		// updateMask: omit a PATCH.
 		name := terraformName(r.Policy, r.Name, f.Name)
 		i := slices.IndexFunc(attrs, func(a *tfAttr) bool { return a.Name == name })
 		if i < 0 {

@@ -2360,3 +2360,30 @@ func TestRequiresReplaceKeepsTheFieldInAPut(t *testing.T) {
 	}
 	compileGenerated(t, out, input)
 }
+
+// A sendNullAsEmpty field sends "" when the configuration removes it, so updateMask: omit
+// accepts it as clearable.
+func TestOmittedMaskAcceptsSendNullAsEmpty(t *testing.T) {
+	edit := func(spec string) string {
+		spec = strings.Replace(spec, "required: [name, target, config]", "required: [target, config]", 1)
+		return strings.Replace(spec, "required: [id, name, config]", "required: [id, config]", 1)
+	}
+	lines := strings.Replace(evalThingLines(t), "      name:\n        requiresReplace: true\n", "      name:\n        sendNullAsEmpty: true\n        readEmptyAs: \"null\"\n", 1)
+	if err := generateEvalThingWith(t, lines, edit); err != nil {
+		t.Fatal(err)
+	}
+	plain := strings.Replace(evalThingLines(t), "      name:\n        requiresReplace: true\n", "", 1)
+	if err := generateEvalThingWith(t, plain, edit); err == nil || !strings.Contains(err.Error(), "name: updateMask: omit sends no mask") {
+		t.Fatalf("err = %v, want a plain optional name rejected", err)
+	}
+}
+
+// updateMask: omit sends no mask, so a mask pattern that generated masks cannot use is no error.
+func TestOmittedMaskIgnoresAnUnsafePattern(t *testing.T) {
+	edit := func(spec string) string {
+		return strings.Replace(spec, `pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'`, `pattern: '^.*$'`, 1)
+	}
+	if err := generateEvalThingWith(t, evalThingLines(t), edit); err != nil {
+		t.Fatal(err)
+	}
+}

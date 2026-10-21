@@ -11,6 +11,9 @@
 #### provider
 - CHORE: Bump `coralogix-management-sdk` to the version with the AI evaluations contract. `coralogix_dashboards_folder` and `coralogix_dashboard` adapt to its types: the folder name is a required string, and the dashboard of a replace request is optional. A `coralogix_dashboards_folder` without `name` now sends an empty name: the API still rejects it, now with "folder name cannot be empty".
 
+#### resource/coralogix_connector, resource/coralogix_global_router, resource/coralogix_preset
+- DOCS: Remove the "This resource is in Beta stage" note from the resource and data source descriptions. Notification Center connectors, global routers, and presets are generally available.
+
 #### resource/coralogix_ai_evaluation
 - CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Update still sends `config`, `is_enabled`, and `threshold` without an update mask, and `application`, `subsystem`, and `target` still replace the evaluation. An evaluation whose target is `CONVERSATION` still reads as `conversation`, and one with an unsupported config still fails the read with the released error.
 - CHANGE: Plan-time checks for upper limits are gone: 256 characters for `application`, `subsystem`, and list items, 1024 list items, and 65536 characters for `additional_context`. The API still rejects those values at apply. `threshold` keeps its 0 to 1 range, and `pii.categories` keeps its value check.
@@ -187,6 +190,14 @@
 
 #### data-source/coralogix_events2metric
 - CHORE: Uses the schema and the conversion of the generated resource. `description` still shows the stored value, `""` included, as before.
+
+#### resource/coralogix_scope
+- FIX: The provider no longer crashes when a scope can't be read. A scope deleted outside Terraform is removed from state and recreated on the next apply; other API errors are reported and the scope stays in state.
+- FIX: `Create`, `Update` and `Read` report an error instead of writing an empty id to state when the API returns no scope id.
+- FIX: `Update` reports API errors instead of removing the scope from state, which failed the apply with "Missing Resource State After Update". Errors from building the request are no longer dropped.
+
+#### data-source/coralogix_scope
+- FIX: No longer crashes on a failed lookup. A missing scope is an error.
 
 # Release 3.21.0
 
