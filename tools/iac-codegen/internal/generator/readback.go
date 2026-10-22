@@ -48,6 +48,11 @@ func findReadBackShapes(doc *v3.Document, component string, ids model.OperationI
 		if name == "" {
 			return s, readBackIssue("The Create operation has no 200 response that is a component, so api.createResponseID has nothing to read.")
 		}
+		if name == component || responseHoldsResource(doc, name, component) {
+			return s, issue.Report{{Code: "READ_BACK_UNNEEDED", Location: "components.schemas." + name,
+				Message:     fmt.Sprintf("The Create response %s already holds the resource, so api.createResponseID has nothing to read back.", name),
+				Remediation: "Delete api.createResponseID from the overrides."}}
+		}
 		var property *base.SchemaProxy
 		if proxy := doc.Components.Schemas.GetOrZero(name); proxy != nil {
 			if schema := proxy.Schema(); schema != nil && schema.Properties != nil {
@@ -91,6 +96,28 @@ func readBackCollision(doc *v3.Document, name string) issue.Report {
 			Remediation: "Rename the component in the source API contract."}}
 	}
 	return nil
+}
+
+// responseHoldsResource reports whether a property of the response component refers to the
+// resource component, directly or as allOf: [$ref].
+func responseHoldsResource(doc *v3.Document, response, component string) bool {
+	schema := componentSchema(doc, response)
+	if schema == nil || schema.Properties == nil {
+		return false
+	}
+	want := "#/components/schemas/" + component
+	for _, property := range schema.Properties.FromOldest() {
+		if property == nil {
+			continue
+		}
+		if property.GetReference() == want {
+			return true
+		}
+		if inner := property.Schema(); inner != nil && len(inner.AllOf) == 1 && inner.AllOf[0].GetReference() == want {
+			return true
+		}
+	}
+	return false
 }
 
 // componentSchema is the schema of a component, or nil.

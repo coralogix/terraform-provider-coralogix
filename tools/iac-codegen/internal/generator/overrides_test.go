@@ -1302,3 +1302,20 @@ func TestCreateResponseIDOfAResponseWithoutProperties(t *testing.T) {
 		t.Fatalf("err = %v, want READ_BACK_UNSUPPORTED", err)
 	}
 }
+
+// An override that names the id of a Create response that now returns the resource is stale.
+func TestCreateResponseIDOfAResponseThatHoldsTheResource(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "folderthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := strings.Replace(string(spec), "        thingId: {type: string, x-coralogix-presence: true}\n", "        thingId: {type: string, x-coralogix-presence: true}\n        thing:\n          allOf: [{$ref: '#/components/schemas/FolderThing'}]\n", 1)
+	if changed == string(spec) {
+		t.Fatal("the test contract did not change: update the replaced text")
+	}
+	file := mustParse(t, "resource: FolderThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  FolderThing:\n    fields:\n      id: {readOnly: true}\napi:\n  requestWrapper: thing\n  updateIDInBody: true\n  idProperty: id\n  serverSetID: true\n  createResponseID: thingId\n")
+	_, err = validateOpenAPIWith([]byte(changed), "FolderThing", model.OperationIDs{}, "sdk", "provider", file)
+	if !slices.Contains(eligibilityCodes(t, err), "READ_BACK_UNNEEDED") {
+		t.Fatalf("err = %v, want READ_BACK_UNNEEDED", err)
+	}
+}
