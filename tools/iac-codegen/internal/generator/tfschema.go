@@ -1215,12 +1215,32 @@ func checkOmittedMaskClears(r *model.Resource, attrs []*tfAttr, file *overrides.
 		if i < 0 {
 			return fmt.Errorf("%s: updateMask: omit found no attribute for the Update field", name)
 		}
+		if attrs[i].Default != "" && isZeroDefault(file.Types[r.Name].Fields[f.Name].Default) && !f.Update.Presence {
+			// Removing the value plans the zero, but a field without presence does not send it,
+			// and with no mask the server keeps the old value.
+			return fmt.Errorf("%s: updateMask: omit cannot clear this attribute: its default is the zero value, which Update does not send without x-coralogix-presence", name)
+		}
 		if attrs[i].Required || attrs[i].Default != "" || keepsAnyState(attrs[i]) {
 			continue
 		}
 		return fmt.Errorf("%s: updateMask: omit sends no mask, so removing this optional attribute would not clear it. Make it required or give it a default", name)
 	}
 	return nil
+}
+
+// isZeroDefault reports whether the default of a field line is the zero value of its kind.
+func isZeroDefault(v any) bool {
+	switch x := v.(type) {
+	case bool:
+		return !x
+	case int:
+		return x == 0
+	case float64:
+		return x == 0
+	case string:
+		return x == ""
+	}
+	return false
 }
 
 // keepsState reports whether an omitted value is planned as the prior state.
