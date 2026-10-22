@@ -1,0 +1,25 @@
+# The behavior-overrides file of a singleton with a set of rules: the generic checks of a released
+# resource. uniqueBy reports a duplicate entity type, validators.inferred: true adds the float32
+# precision check, and the alias is planned as its target.
+resource: Rulebook
+mode: existing
+
+validators:
+  inferred: true
+
+singletonID: true
+
+types:
+  Rulebook:
+    fields:
+      rules: {collection: set, uniqueBy: entityType}
+  RulebookRule:
+    fields:
+      mode: {computed: true, default: one}
+
+enums:
+  RulebookMode:
+    zero: unspecified
+    trimPrefix: RULEBOOK_MODE_
+    values: [RULEBOOK_MODE_ONE, RULEBOOK_MODE_TWO]
+    aliases: {unspecified: one}
