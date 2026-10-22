@@ -21,7 +21,11 @@ type TopicsEvalConfig struct {
 // LegacyEvalConfig is the arm the resource does not configure. Flatten only reports it.
 type LegacyEvalConfig struct {
 	Limit *string
+	// Mode is a field that only a test of an enum below an unsupported arm adds to the contract.
+	Mode *LegacyMode
 }
+
+type LegacyMode string
 
 type EvalConfig struct {
 	Topics   *TopicsEvalConfig

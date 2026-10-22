@@ -240,17 +240,13 @@ func reachableComponents(r *model.Resource) map[string]bool {
 	return out
 }
 
-// checkReachableLines reports a types, enums, or unwrap line whose component only removed
-// unsupported arms reached: the line would change nothing.
+// checkReachableLines reports a types or unwrap line whose component only removed unsupported
+// arms reached: the line would change nothing. An enums line is not checked: the contract check
+// runs before the arms are removed and requires a decision for every value of every enum.
 func checkReachableLines(file *overrides.File, before, after map[string]bool) error {
 	for _, component := range slices.Sorted(maps.Keys(file.Types)) {
 		if before[component] && !after[component] {
 			return fmt.Errorf("types.%s: only unsupported arms reach the component, so the line changes nothing", component)
-		}
-	}
-	for _, enum := range slices.Sorted(maps.Keys(file.Enums)) {
-		if before[enum] && !after[enum] {
-			return fmt.Errorf("enums.%s: only unsupported arms reach the enum, so the line changes nothing", enum)
 		}
 	}
 	for _, wrapper := range file.Unwrap {
