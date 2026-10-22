@@ -40,30 +40,6 @@
             ]
           }
         },
-        "status": 409
-      },
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
-        "status": 200
-      },
-      {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
-        "body": {
-          "ruleSet": {
-            "id": "00000000-0000-4000-8000-000000000002",
-            "rules": [
-              {
-                "allocation": 60,
-                "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
-                "canOverflow": false,
-                "enabled": true,
-                "entityType": "logs"
-              }
-            ]
-          }
-        },
         "status": 200
       }
     ],
@@ -86,7 +62,7 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1?id=00000000-0000-4000-8000-000000000002",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
         "status": 200
       }
     ],
@@ -192,11 +168,6 @@
     "step": "destroy keeps the managed rules",
     "requests": [
       {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
-        "status": 200
-      },
-      {
         "method": "DELETE",
         "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
         "status": 200
@@ -209,7 +180,7 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1?id=00000000-0000-4000-8000-000000000002",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
         "status": 200
       }
     ],

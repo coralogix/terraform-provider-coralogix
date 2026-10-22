@@ -1,0 +1,12 @@
+# Generated acceptance test for coralogix_quota_allocation_rule_set. The account has one rule set, so
+# the test replaces the rules of the customer in the test account. The API refuses an entity type that
+# it does not know, the percentages of the enabled rules must sum to at most 100, and the locked units
+# must fit the daily quota of the test account (about 1 unit), so the test uses percentages.
+resource: QuotaAllocationEntityTypeRuleSet
+
+values:
+  rules[].entity_type: '"logs"'
+  rules[].allocation: "10"
+  rules[].allocation_type: '"percentage"'
+
+upgradeFrom: "3.21.0"

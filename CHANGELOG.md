@@ -17,6 +17,19 @@
 
 #### resource/coralogix_alert
 - DOCS: Describe `phantom_mode`: the alert sends no notifications and opens no incident of its own, and the API rejects a phantom alert whose `notification_group` sets a notification target.
+
+#### provider
+- CHORE: Bump `coralogix-management-sdk` to the version with the quota allocation rule set contract. The client type of the dashboard folder `name` changed with it, and the resource follows. A dashboard folder without a `name` is sent with an empty name instead of no name, and the API still answers 400.
+
+#### resource/coralogix_quota_allocation_rule_set
+- CHORE: The resource is generated from the API contract. The schema, the import ids (`quota-allocation-rule-set` or the id of the rule set), the `unspecified` alias of `allocation_type`, and the handling of Coralogix-managed (`cx_managed`) rules are unchanged. The data source stays as it is.
+- FIX: Planning `allocation_type = "unspecified"` no longer plans `id` as known after apply on every run, and no longer sends an update when the stored rules already match.
+- FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
+- CHORE: A destroy whose API call fails reports the error. The released resource ignored it when no rules of the customer remained, but the backend deletes in one transaction, so a failed call clears nothing.
+- CHORE: A create over rules that the customer already has replaces them, as before. The released resource had an "import it first" error for a 409, but the API answers a create as a replace and never answers 409, so the error never showed.
+- CHORE: The duplicate `entity_type` and `allocation` precision errors come from the generated checks, with a new text. The checks and their cases are the same.
+- CHORE: `rules[*].allocation` is a float32 attribute. Configurations and state are the same numbers.
+
 # Release 3.22.0
 
 #### resource/coralogix_connector, resource/coralogix_global_router, resource/coralogix_preset
