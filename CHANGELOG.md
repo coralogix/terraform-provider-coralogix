@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.22.0
+
 #### resource/coralogix_connector, resource/coralogix_global_router, resource/coralogix_preset
 - DOCS: Remove the "This resource is in Beta stage" note from the resource and data source descriptions. Notification Center connectors, global routers, and presets are generally available.
 
