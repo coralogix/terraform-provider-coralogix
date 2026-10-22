@@ -698,6 +698,11 @@ func V3() schema.Schema {
 				Optional: true,
 				Computed: true,
 				Default:  booldefault.StaticBool(false),
+				MarkdownDescription: "When `true`, the alert is evaluated but stays silent: it sends no notifications " +
+					"and opens no incident of its own. Use it for alerts that serve as building blocks of a flow alert, " +
+					"which then notifies and opens the incident. The Coralogix API rejects a phantom alert whose `notification_group` sets `group_by_keys`, " +
+					"`webhooks_settings`, `destinations` or `router`. Omit `notification_group` or leave it empty. " +
+					"Defaults to `false`.",
 			},
 			"deleted": schema.BoolAttribute{
 				Computed: true,

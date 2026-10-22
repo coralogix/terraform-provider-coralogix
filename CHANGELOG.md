@@ -17,6 +17,8 @@
 - CHANGE: A config with no variant, or with two, reports the error on each variant instead of once. Error messages of failed API calls changed wording.
 - CHORE: Add an upgrade test that creates evaluations with provider 3.21.0 and plans them with this build.
 
+#### resource/coralogix_alert
+- DOCS: Describe `phantom_mode`: the alert sends no notifications and opens no incident of its own, and the API rejects a phantom alert whose `notification_group` sets a notification target.
 # Release 3.22.0
 
 #### resource/coralogix_connector, resource/coralogix_global_router, resource/coralogix_preset
