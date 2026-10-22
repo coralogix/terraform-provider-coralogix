@@ -1,12 +1,19 @@
 # Unreleased
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.39`.
 - CHORE: Bump the generator to `v0.1.0-beta.34`.
 - FEAT: `requiresReplace: true` on a top-level field replaces the resource when the field changes, although Update accepts it. A PATCH Update does not send the field; a PUT Update still sends it, so an update of another field does not clear it. Combined with `computed: true`, or on a field that a PATCH Update body requires, it is an error.
 - FEAT: `types.<Type>.unsupportedArms` with `unsupportedSummary` and `unsupportedDetail` keeps oneOf arms that a released resource never configured out of the schema and the requests, and flatten reports a response that selects one. Naming no arm, or removing every arm of a group that requires one, is an error.
 - FEAT: `updateMask: omit` with `api.updateMaskInBody` sends no update mask, for a released resource that never sent one. An optional Update field that the body cannot clear is an error.
 - FEAT: `enums.<Enum>.readRejected: lower` reads a rejected value in lower case instead of the API spelling.
 - CHORE: The `evalthing` golden fixture covers the four keys.
+- FEAT: `singletonID: true` for a singleton whose API resource has a server-set `id`: the id attribute holds that id, and a `Get` without an id falls back to the type name. A writable or numeric id, a default on it, or one that is not named `id` is an error.
+- FEAT: `uniqueBy: <property>` on a top-level list or set of objects reports an item that repeats a string property, at validation and again before the write. A property whose enum has aliases is an error, because an alias and its target would count as two keys.
+- FEAT: With `validators.inferred: true`, a float attribute, or a list, set, or map of floats, that the API would return as another float32 is reported before the write.
+- FEAT: `enums.<Enum>.aliases` plans an accepted value as another value, for an alias that the API stores as its target, in the items of a set only (Terraform rejects a changed configured value elsewhere). A plan that equals the state after that plans no change.
+- FEAT: `Hooks.ValidateConfig` adds checks that no key expresses.
+- FIX: `validators.inferred` on an enum that has an `enums` line takes the Terraform values of that line, also for a list or set of the enum.
 
 #### resource/coralogix_alert
 - DOCS: Describe `phantom_mode`: the alert sends no notifications and opens no incident of its own, and the API rejects a phantom alert whose `notification_group` sets a notification target.
