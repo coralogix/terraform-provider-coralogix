@@ -9,6 +9,7 @@ import (
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
 	"github.com/coralogix/coralogix-management-sdk/iac/sdkcheck"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
+	"github.com/pb33f/libopenapi/datamodel/high/base"
 	v3 "github.com/pb33f/libopenapi/datamodel/high/v3"
 	"go.yaml.in/yaml/v4"
 )
@@ -47,9 +48,13 @@ func findReadBackShapes(doc *v3.Document, component string, ids model.OperationI
 		if name == "" {
 			return s, readBackIssue("The Create operation has no 200 response that is a component, so api.createResponseID has nothing to read.")
 		}
-		schema := doc.Components.Schemas.GetOrZero(name).Schema()
-		property := schema.Properties.GetOrZero(key)
-		if property == nil {
+		var property *base.SchemaProxy
+		if proxy := doc.Components.Schemas.GetOrZero(name); proxy != nil {
+			if schema := proxy.Schema(); schema != nil && schema.Properties != nil {
+				property = schema.Properties.GetOrZero(key)
+			}
+		}
+		if property == nil || property.Schema() == nil {
 			return s, readBackIssue(fmt.Sprintf("The Create response %s has no property %q (api.createResponseID).", name, key))
 		}
 		if types := property.Schema().Type; len(types) != 1 || types[0] != "string" {
@@ -61,7 +66,7 @@ func findReadBackShapes(doc *v3.Document, component string, ids model.OperationI
 		s.createSchema, s.createID, s.createOp = name, key, op
 	}
 	if name, op := lifecycleResponse(doc, component, firstNonEmpty(ids.Update, operationID(file, "update")), "_Update", "_Replace"); name != "" && name != component {
-		if schema := doc.Components.Schemas.GetOrZero(name).Schema(); schema != nil && (schema.Properties == nil || schema.Properties.Len() == 0) {
+		if schema := componentSchema(doc, name); schema != nil && (schema.Properties == nil || schema.Properties.Len() == 0) {
 			if report := readBackCollision(doc, name); len(report) != 0 {
 				return s, report
 			}
@@ -75,7 +80,7 @@ func findReadBackShapes(doc *v3.Document, component string, ids model.OperationI
 // the property readBackProperty in the response component, or the component readBackCopy(name).
 // The names are internal, and a duplicate key would leave the patched document wrong.
 func readBackCollision(doc *v3.Document, name string) issue.Report {
-	if schema := doc.Components.Schemas.GetOrZero(name).Schema(); schema != nil && schema.Properties != nil && schema.Properties.GetOrZero(readBackProperty) != nil {
+	if schema := componentSchema(doc, name); schema != nil && schema.Properties != nil && schema.Properties.GetOrZero(readBackProperty) != nil {
 		return issue.Report{{Code: "READ_BACK_NAME_COLLISION", Location: "components.schemas." + name + "." + readBackProperty,
 			Message:     fmt.Sprintf("The response %s has a property named %q, which the generator uses to read the response back.", name, readBackProperty),
 			Remediation: "Rename the property in the source API contract."}}
@@ -84,6 +89,14 @@ func readBackCollision(doc *v3.Document, name string) issue.Report {
 		return issue.Report{{Code: "READ_BACK_NAME_COLLISION", Location: "components.schemas." + readBackCopy(name),
 			Message:     fmt.Sprintf("The contract has a component named %q, which the generator uses to read the response %s back.", readBackCopy(name), name),
 			Remediation: "Rename the component in the source API contract."}}
+	}
+	return nil
+}
+
+// componentSchema is the schema of a component, or nil.
+func componentSchema(doc *v3.Document, name string) *base.Schema {
+	if proxy := doc.Components.Schemas.GetOrZero(name); proxy != nil {
+		return proxy.Schema()
 	}
 	return nil
 }
