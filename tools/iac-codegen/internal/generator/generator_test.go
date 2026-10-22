@@ -2406,3 +2406,20 @@ func TestOmittedMaskRejectsAnUnsentZeroDefault(t *testing.T) {
 		t.Fatalf("without presence in Update: err = %v, want the zero default rejected", err)
 	}
 }
+
+// An enum that only an unsupported arm reaches still needs its enums line: the contract check
+// runs before the arm is removed. So the line is not reported as unreachable afterwards.
+func TestUnsupportedArmKeepsItsEnumLine(t *testing.T) {
+	edit := func(spec string) string {
+		const legacy = "    LegacyEvalConfig:\n      type: object\n      required: []\n      properties:\n"
+		if !strings.Contains(spec, legacy) {
+			t.Fatal("the spec lacks LegacyEvalConfig")
+		}
+		spec = strings.Replace(spec, legacy, legacy+"        mode: {$ref: '#/components/schemas/LegacyMode'}\n", 1)
+		return strings.Replace(spec, "    EvalThing:\n", "    LegacyMode:\n      type: string\n      enum: [LEGACY_MODE_UNSPECIFIED, LEGACY_MODE_ON]\n    EvalThing:\n", 1)
+	}
+	lines := evalThingLines(t) + "  LegacyMode:\n    zero: unspecified\n    values: [LEGACY_MODE_ON]\n"
+	if err := generateEvalThingWith(t, lines, edit); err != nil {
+		t.Fatal(err)
+	}
+}
