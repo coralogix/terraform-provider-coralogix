@@ -1,6 +1,6 @@
 module github.com/coralogix/terraform-provider-coralogix
 
-go 1.26.0
+go 1.26.10
 
 replace github.com/grpc-ecosystem/grpc-gateway/v2 => github.com/coralogix/grpc-gateway/v2 v2.0.0-20251017075809-7f84c876b2e5
 
