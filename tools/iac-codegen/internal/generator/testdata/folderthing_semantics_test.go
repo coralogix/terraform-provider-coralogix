@@ -209,3 +209,28 @@ func TestCreateKeepsTheReturnedIDWhenGetOmitsIt(t *testing.T) {
 		t.Fatalf("state id = %q, want %q", id.ValueString(), folder_things_service.CreatedID)
 	}
 }
+
+// Update reads the thing with Get, and Get leaves the id out: the state keeps the id of the state.
+func TestUpdateKeepsTheIDWhenGetOmitsIt(t *testing.T) {
+	ctx := context.Background()
+	name := "new"
+	folder_things_service.Stored = folder_things_service.FolderThing{Name: &name}
+	r, schemaResp, root := thingSchema(t)
+	idValue := tftypes.NewValue(tftypes.String, "folder-1")
+	state := thingValue(root, idValue, tftypes.NewValue(tftypes.String, "old"))
+	plan := thingValue(root, idValue, tftypes.NewValue(tftypes.String, "new"))
+	resp := &frameworkresource.UpdateResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: state}}
+	r.Update(ctx, frameworkresource.UpdateRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: thingValue(root, tftypes.NewValue(tftypes.String, nil), tftypes.NewValue(tftypes.String, "new"))},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan},
+		State:  tfsdk.State{Schema: schemaResp.Schema, Raw: state},
+	}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	var id types.String
+	resp.State.GetAttribute(ctx, path.Root("id"), &id)
+	if id.ValueString() != "folder-1" {
+		t.Fatalf("state id = %q, want folder-1", id.ValueString())
+	}
+}

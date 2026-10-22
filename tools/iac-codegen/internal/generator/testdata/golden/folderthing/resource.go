@@ -182,11 +182,7 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 	} else {
 		// Only the server sets the id, so no Update field sends it. The body names the resource by it.
 		body.Thing.Id = &id
-		v, err = r.update(ctx, body)
-		if err == nil {
-			// The Update response has no fields. Read the resource that it changed.
-			v, err = r.get(ctx, id)
-		}
+		v, err = r.update(ctx, id, body)
 	}
 	if cxsdk.IsNotFound(err) || err != nil && r.hooks.UpdateGone != nil && r.hooks.UpdateGone(ctx, r.client, id, err) {
 		// The framework does not allow Update to remove the resource from state.
@@ -257,12 +253,22 @@ func (r *Resource) get(ctx context.Context, id string) (*folder_things_service.F
 	return out.Thing, nil
 }
 
-func (r *Resource) update(ctx context.Context, body *folder_things_service.ReplaceFolderThingBody) (*folder_things_service.FolderThing, error) {
+func (r *Resource) update(ctx context.Context, id string, body *folder_things_service.ReplaceFolderThingBody) (*folder_things_service.FolderThing, error) {
 	_, httpResp, err := r.client.FolderThingsServiceReplaceFolderThing(ctx).ReplaceFolderThingBody(*body).Execute()
 	if err != nil {
 		return nil, cxsdk.NewAPIError(httpResp, err)
 	}
-	return nil, nil
+	// The Update response has no fields. Read the resource that it changed. Create reaches here
+	// too, for an attribute that only Update sends.
+	v, err := r.get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	// The id of the state is the id of the resource, also when Get leaves it out.
+	if v != nil && (v.Id == nil || *v.Id == "") {
+		v.Id = &id
+	}
+	return v, nil
 }
 
 func (r *Resource) delete(ctx context.Context, id string) error {

@@ -1,6 +1,7 @@
 # Unreleased
 
 #### tools/iac-codegen
+- FIX: When the Update response has no fields, the read-back is part of the generated `update` call, so the create-time update of an attribute that only Update sends reads the resource too. The read-back puts the id of the state into the resource when Get leaves it out.
 - CHORE: Bump the generator to `v0.1.0-beta.35`.
 - FIX: A contract that already has the property `tfgenReadBack` or a component named `<Response>TfgenReadBack` is reported (`READ_BACK_NAME_COLLISION`) instead of patched into a document with duplicate keys.
 - FIX: The generated Create keeps the id that the API returned when the follow-up Get leaves the id out, and a response component that Update shares with another operation (a Delete) is no longer changed for the read-back.
