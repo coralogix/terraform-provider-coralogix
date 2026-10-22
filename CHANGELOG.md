@@ -18,6 +18,19 @@
 #### resource/coralogix_alert
 - DOCS: Describe `phantom_mode`: the alert sends no notifications and opens no incident of its own, and the API rejects a phantom alert whose `notification_group` sets a notification target.
 
+#### provider
+- CHORE: Bump `coralogix-management-sdk` to the version with the dashboard folders contract (`name` is required).
+
+#### resource/coralogix_dashboards_folder
+- CHORE: The resource and the data source are generated from the API contract. Schema version stays 1, and existing state upgrades with no plan change.
+- CHORE: `name` is required, and between 1 and 100 characters, as the API enforces: it rejects a folder without a name, with an empty name, or with a longer name. `parent_id` must be 36 characters, a UUID: the API rejects anything else.
+- CHORE: Create no longer sends an id that the provider made up: the server assigns it, and Create reads the folder with that id. If that read fails, the folder stays in the state, and Terraform marks it as tainted.
+- FIX: Destroying a folder that was already deleted outside Terraform succeeds. The API answers that delete with 403, so the provider reads the folder: only a 404 there means that it is gone, and a 403 for a folder that exists is still an error.
+- FIX: An update of a folder that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. The API answers that update with 400, so the provider reads the folder to tell it from an invalid request.
+
+#### data-source/coralogix_dashboards_folder
+- FIX: A folder that is not found by `id` or `name` ends with an error and returns. Before, a folder without a name could stop the provider with a nil pointer, and the data source went on to write an empty state.
+
 # Release 3.22.0
 
 #### resource/coralogix_connector, resource/coralogix_global_router, resource/coralogix_preset
