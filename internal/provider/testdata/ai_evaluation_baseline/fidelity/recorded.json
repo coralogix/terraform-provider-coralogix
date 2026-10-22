@@ -192,14 +192,14 @@
               "config": {
                 "toxicity": {}
               },
-              "createdAt": "2026-10-16T11:01:40.578Z",
+              "createdAt": "2026-10-16T15:35:16.377Z",
               "createdBy": "",
               "id": "{{id}}",
               "isEnabled": true,
               "subsystem": "{{subsystem}}",
               "target": "RESPONSE",
               "threshold": 0.5,
-              "updatedAt": "2026-10-16T11:01:40.578Z"
+              "updatedAt": "2026-10-16T15:35:16.377Z"
             }
           }
         },
@@ -212,14 +212,14 @@
               "config": {
                 "toxicity": {}
               },
-              "createdAt": "2026-10-16T11:01:40.578Z",
+              "createdAt": "2026-10-16T15:35:16.377Z",
               "createdBy": "",
               "id": "{{id}}",
               "isEnabled": true,
               "subsystem": "{{subsystem}}",
               "target": "RESPONSE",
               "threshold": 0.5,
-              "updatedAt": "2026-10-16T11:01:40.578Z"
+              "updatedAt": "2026-10-16T15:35:16.377Z"
             }
           }
         },
@@ -250,13 +250,13 @@
               "config": {
                 "sexism": {}
               },
-              "createdAt": "2026-10-16T11:01:40.984Z",
+              "createdAt": "2026-10-16T15:35:16.806Z",
               "createdBy": "",
               "id": "{{id}}",
               "isEnabled": false,
               "subsystem": "{{subsystem}}",
               "target": "PROMPT",
-              "updatedAt": "2026-10-16T11:01:40.984Z"
+              "updatedAt": "2026-10-16T15:35:16.806Z"
             }
           }
         },
@@ -269,13 +269,13 @@
               "config": {
                 "sexism": {}
               },
-              "createdAt": "2026-10-16T11:01:40.984Z",
+              "createdAt": "2026-10-16T15:35:16.806Z",
               "createdBy": "",
               "id": "{{id}}",
               "isEnabled": false,
               "subsystem": "{{subsystem}}",
               "target": "PROMPT",
-              "updatedAt": "2026-10-16T11:01:40.984Z"
+              "updatedAt": "2026-10-16T15:35:16.806Z"
             }
           }
         },
@@ -299,14 +299,14 @@
               "config": {
                 "toxicity": {}
               },
-              "createdAt": "2026-10-16T11:01:41.214Z",
+              "createdAt": "2026-10-16T15:35:17.080Z",
               "createdBy": "",
               "id": "{{id}}",
               "isEnabled": true,
               "subsystem": "{{subsystem}}",
               "target": "RESPONSE",
               "threshold": 0.5,
-              "updatedAt": "2026-10-16T11:01:41.214Z"
+              "updatedAt": "2026-10-16T15:35:17.080Z"
             }
           }
         },
@@ -343,14 +343,14 @@
                   ]
                 }
               },
-              "createdAt": "2026-10-16T11:01:41.522Z",
+              "createdAt": "2026-10-16T15:35:17.301Z",
               "createdBy": "",
               "id": "{{id}}",
               "isEnabled": true,
               "subsystem": "{{subsystem}}",
               "target": "RESPONSE",
               "threshold": 0.5,
-              "updatedAt": "2026-10-16T11:01:41.522Z"
+              "updatedAt": "2026-10-16T15:35:17.301Z"
             }
           }
         },
@@ -369,14 +369,14 @@
                   ]
                 }
               },
-              "createdAt": "2026-10-16T11:01:41.522Z",
+              "createdAt": "2026-10-16T15:35:17.301Z",
               "createdBy": "",
               "id": "{{id}}",
               "isEnabled": true,
               "subsystem": "{{subsystem}}",
               "target": "RESPONSE",
               "threshold": 0.5,
-              "updatedAt": "2026-10-16T11:01:41.522Z"
+              "updatedAt": "2026-10-16T15:35:17.301Z"
             }
           }
         },
@@ -391,14 +391,14 @@
                   "additionalContext": ""
                 }
               },
-              "createdAt": "2026-10-16T11:01:41.522Z",
+              "createdAt": "2026-10-16T15:35:17.301Z",
               "createdBy": "",
               "id": "{{id}}",
               "isEnabled": true,
               "subsystem": "{{subsystem}}",
               "target": "RESPONSE",
               "threshold": 0.5,
-              "updatedAt": "2026-10-16T11:01:41.674Z"
+              "updatedAt": "2026-10-16T15:35:17.478Z"
             }
           }
         },
@@ -413,14 +413,14 @@
                   "additionalContext": ""
                 }
               },
-              "createdAt": "2026-10-16T11:01:41.522Z",
+              "createdAt": "2026-10-16T15:35:17.301Z",
               "createdBy": "",
               "id": "{{id}}",
               "isEnabled": true,
               "subsystem": "{{subsystem}}",
               "target": "RESPONSE",
               "threshold": 0.5,
-              "updatedAt": "2026-10-16T11:01:41.674Z"
+              "updatedAt": "2026-10-16T15:35:17.478Z"
             }
           }
         },
@@ -449,14 +449,14 @@
                   ]
                 }
               },
-              "createdAt": "2026-10-16T11:01:41.974Z",
+              "createdAt": "2026-10-16T15:35:17.844Z",
               "createdBy": "",
               "id": "{{id}}",
               "isEnabled": true,
               "subsystem": "{{subsystem}}",
               "target": "RESPONSE",
               "threshold": 0.5,
-              "updatedAt": "2026-10-16T11:01:41.974Z"
+              "updatedAt": "2026-10-16T15:35:17.844Z"
             }
           }
         },
@@ -474,14 +474,14 @@
                   ]
                 }
               },
-              "createdAt": "2026-10-16T11:01:41.974Z",
+              "createdAt": "2026-10-16T15:35:17.844Z",
               "createdBy": "",
               "id": "{{id}}",
               "isEnabled": false,
               "subsystem": "{{subsystem}}",
               "target": "RESPONSE",
               "threshold": 0.5,
-              "updatedAt": "2026-10-16T11:01:42.102Z"
+              "updatedAt": "2026-10-16T15:35:17.962Z"
             }
           }
         },
@@ -498,14 +498,14 @@
                   ]
                 }
               },
-              "createdAt": "2026-10-16T11:01:41.974Z",
+              "createdAt": "2026-10-16T15:35:17.844Z",
               "createdBy": "",
               "id": "{{id}}",
               "isEnabled": true,
               "subsystem": "{{subsystem}}",
               "target": "RESPONSE",
               "threshold": 0.25,
-              "updatedAt": "2026-10-16T11:01:42.189Z"
+              "updatedAt": "2026-10-16T15:35:18.115Z"
             }
           }
         },
@@ -518,14 +518,14 @@
               "config": {
                 "toxicity": {}
               },
-              "createdAt": "2026-10-16T11:01:41.974Z",
+              "createdAt": "2026-10-16T15:35:17.844Z",
               "createdBy": "",
               "id": "{{id}}",
               "isEnabled": false,
               "subsystem": "{{subsystem}}",
               "target": "RESPONSE",
               "threshold": 0,
-              "updatedAt": "2026-10-16T11:01:42.299Z"
+              "updatedAt": "2026-10-16T15:35:18.228Z"
             }
           }
         },
@@ -538,14 +538,14 @@
               "config": {
                 "toxicity": {}
               },
-              "createdAt": "2026-10-16T11:01:41.974Z",
+              "createdAt": "2026-10-16T15:35:17.844Z",
               "createdBy": "",
               "id": "{{id}}",
               "isEnabled": false,
               "subsystem": "{{subsystem}}",
               "target": "RESPONSE",
               "threshold": 0,
-              "updatedAt": "2026-10-16T11:01:42.299Z"
+              "updatedAt": "2026-10-16T15:35:18.228Z"
             }
           }
         },
@@ -569,14 +569,14 @@
               "config": {
                 "sqlReadOnly": {}
               },
-              "createdAt": "2026-10-16T11:01:42.561Z",
+              "createdAt": "2026-10-16T15:35:18.538Z",
               "createdBy": "",
               "id": "{{id}}",
               "isEnabled": true,
               "subsystem": "{{subsystem}}",
               "target": "RESPONSE",
               "threshold": 0.5,
-              "updatedAt": "2026-10-16T11:01:42.561Z"
+              "updatedAt": "2026-10-16T15:35:18.538Z"
             }
           }
         },
@@ -607,14 +607,14 @@
               "config": {
                 "toxicity": {}
               },
-              "createdAt": "2026-10-16T11:01:42.799Z",
+              "createdAt": "2026-10-16T15:35:18.787Z",
               "createdBy": "",
               "id": "{{id}}",
               "isEnabled": true,
               "subsystem": "{{subsystem}}",
               "target": "CONVERSATION",
               "threshold": 0.5,
-              "updatedAt": "2026-10-16T11:01:42.799Z"
+              "updatedAt": "2026-10-16T15:35:18.787Z"
             }
           }
         },
@@ -627,14 +627,91 @@
               "config": {
                 "toxicity": {}
               },
-              "createdAt": "2026-10-16T11:01:42.799Z",
+              "createdAt": "2026-10-16T15:35:18.787Z",
               "createdBy": "",
               "id": "{{id}}",
               "isEnabled": true,
               "subsystem": "{{subsystem}}",
               "target": "CONVERSATION",
               "threshold": 0.5,
-              "updatedAt": "2026-10-16T11:01:42.799Z"
+              "updatedAt": "2026-10-16T15:35:18.787Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "update without a mask replaces a nested object",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "promptInjection": {
+                  "additionalContext": "an assistant for refunds"
+                }
+              },
+              "createdAt": "2026-10-16T15:35:19.073Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "PROMPT",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:19.073Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "promptInjection": {
+                  "additionalContext": ""
+                }
+              },
+              "createdAt": "2026-10-16T15:35:19.073Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "PROMPT",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:19.243Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "promptInjection": {
+                  "additionalContext": ""
+                }
+              },
+              "createdAt": "2026-10-16T15:35:19.073Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "PROMPT",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:19.243Z"
             }
           }
         },

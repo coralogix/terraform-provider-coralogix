@@ -1,5 +1,13 @@
 # Unreleased
 
+#### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.34`.
+- FEAT: `requiresReplace: true` on a top-level field replaces the resource when the field changes, although Update accepts it. A PATCH Update does not send the field; a PUT Update still sends it, so an update of another field does not clear it. Combined with `computed: true`, or on a field that a PATCH Update body requires, it is an error.
+- FEAT: `types.<Type>.unsupportedArms` with `unsupportedSummary` and `unsupportedDetail` keeps oneOf arms that a released resource never configured out of the schema and the requests, and flatten reports a response that selects one. Naming no arm, or removing every arm of a group that requires one, is an error.
+- FEAT: `updateMask: omit` with `api.updateMaskInBody` sends no update mask, for a released resource that never sent one. An optional Update field that the body cannot clear is an error.
+- FEAT: `enums.<Enum>.readRejected: lower` reads a rejected value in lower case instead of the API spelling.
+- CHORE: The `evalthing` golden fixture covers the four keys.
+
 #### resource/coralogix_alert
 - DOCS: Describe `phantom_mode`: the alert sends no notifications and opens no incident of its own, and the API rejects a phantom alert whose `notification_group` sets a notification target.
 # Release 3.22.0

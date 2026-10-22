@@ -172,6 +172,9 @@ type convObject struct {
 	// DefaultArms are the arms that expand sends empty when the configuration sets no arm of
 	// their oneOf group (defaultArm).
 	DefaultArms []defaultArm
+	// Unsupported are the oneOf arms that the resource does not configure (unsupportedArms).
+	// Flatten reports a response that selects one.
+	Unsupported []unsupportedArm
 }
 
 // defaultArm is an arm that expand sends empty when no arm of its group is set.
@@ -475,10 +478,14 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if r.Replace {
 		return out, replaceFields(r, out, fixed, b.file)
 	}
-	if err := derivedValuesInMask(b.file); err != nil {
-		return nil, err
+	// Without a mask the Update body holds a derived value, and the server updates it.
+	omit := b.file != nil && b.file.UpdateMask == overrides.UpdateMaskOmit
+	if !omit {
+		if err := derivedValuesInMask(b.file); err != nil {
+			return nil, err
+		}
 	}
-	if err := buildMask(r, out, fixed); err != nil {
+	if err := buildMask(r, out, fixed, omit); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -745,10 +752,15 @@ func derivedValuesInMask(file *overrides.File) error {
 
 // buildMask sets the update mask data. Only the Update fields can be in the
 // mask, so application, subsystem, and target never are (D9).
-func buildMask(r *model.Resource, out *convData, fixed func(string) bool) error {
-	valid, leaf, err := maskRule(r.UpdateMaskPattern)
-	if err != nil {
-		return err
+func buildMask(r *model.Resource, out *convData, fixed func(string) bool, omit bool) error {
+	// With updateMask: omit, Update sends no mask, so the mask pattern does not matter: the
+	// top-level mask fields only decide whether a value changed.
+	valid, leaf := func(string) bool { return true }, false
+	if !omit {
+		var err error
+		if valid, leaf, err = maskRule(r.UpdateMaskPattern); err != nil {
+			return err
+		}
 	}
 	out.LeafMask = leaf
 	for _, f := range r.Fields {
@@ -908,9 +920,9 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 	for _, v := range over.Values {
 		m.Values = append(m.Values, enumMapValue{TF: over.TFValue(v), API: v})
 	}
-	if over.ReadRejected {
+	if over.ReadRejected.On() {
 		for _, v := range over.Rejected {
-			m.Read = append(m.Read, enumMapValue{TF: v, API: v})
+			m.Read = append(m.Read, enumMapValue{TF: over.RejectedTFValue(v), API: v})
 		}
 	}
 	b.enumMaps = append(b.enumMaps, m)
@@ -1358,6 +1370,9 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		return nil, err
 	}
 	obj.DefaultArms = arms
+	if obj.Unsupported, err = b.unsupportedArms(t, ref.Path); err != nil {
+		return nil, err
+	}
 	return obj, nil
 }
 
