@@ -2,6 +2,7 @@
 
 #### resource/coralogix_alert
 - FIX: Changing `type_definition` in place to `metric_threshold` or `logs_threshold` with `no_data_policy` or `logs_filter` left out no longer fails with "inconsistent result after apply". Both attributes stay unknown in the plan when the previous type had no such block; alerts that already hold those objects in state keep planning no change.
+- DOCS: Describe `phantom_mode`: the alert sends no notifications and opens no incident of its own, and the API rejects a phantom alert whose `notification_group` sets a notification target.
 # Release 3.22.0
 
 #### resource/coralogix_connector, resource/coralogix_global_router, resource/coralogix_preset
