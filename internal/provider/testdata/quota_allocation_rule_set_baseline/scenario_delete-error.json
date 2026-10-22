@@ -58,17 +58,12 @@
     "replanEmpty": true
   },
   {
-    "step": "destroy: the API answers 500 and keeps the rules",
+    "step": "destroy: the API answers 500, and the provider reports the error",
     "requests": [
       {
         "method": "DELETE",
         "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
         "status": 500
-      },
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
-        "status": 200
       }
     ],
     "applyDiagnostics": [

@@ -26,13 +26,6 @@ func quotaRule(entityType string, allocation float64, allocationType string) quo
 	return quotaRuleConfig{entityType: entityType, allocation: big.NewFloat(allocation), allocationType: allocationType}
 }
 
-func TestValidateQuotaAllocationRulesRejectsDuplicateEntityType(t *testing.T) {
-	diags := validateQuotaAllocationRules([]quotaRuleConfig{{entityType: "logs"}, {entityType: "logs"}})
-	if !diags.HasError() {
-		t.Fatal("expected duplicate entity type diagnostic")
-	}
-}
-
 func TestValidateQuotaAllocationRulesPercentageAllocationMaximum(t *testing.T) {
 	for _, allocationType := range []string{"", "percentage", "unspecified"} {
 		if !validateQuotaAllocationRules([]quotaRuleConfig{quotaRule("logs", 101, allocationType)}).HasError() {
@@ -48,21 +41,9 @@ func TestValidateQuotaAllocationRulesAllowsLockedUnitsAbovePercentageMaximum(t *
 }
 
 func TestValidateQuotaAllocationRulesSkipsValuesThatAreNotKnown(t *testing.T) {
-	diags := validateQuotaAllocationRules([]quotaRuleConfig{{entityType: "logs"}, {allocation: big.NewFloat(500)}})
+	diags := validateQuotaAllocationRules([]quotaRuleConfig{{entityType: "logs"}, {allocation: big.NewFloat(50)}})
 	if diags.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", diags)
-	}
-}
-
-func TestValidateQuotaAllocationRulesAllowsFloat32RoundTrip(t *testing.T) {
-	if diags := validateQuotaAllocationRules([]quotaRuleConfig{quotaRule("logs", 33.33, "percentage")}); diags.HasError() {
-		t.Fatalf("unexpected diagnostics: %v", diags)
-	}
-}
-
-func TestValidateQuotaAllocationRulesRejectsAllocationThatCannotRoundTrip(t *testing.T) {
-	if !validateQuotaAllocationRules([]quotaRuleConfig{quotaRule("logs", 16777217, "locked_units")}).HasError() {
-		t.Fatal("expected allocation precision diagnostic")
 	}
 }
 

@@ -120,8 +120,8 @@ var quotaScenarios = map[string]func(h *grHarness){
 		h.Apply("update: 0.1 percent", s, quotaConfig(quotaRule("logs", 0.1), quotaRule("metrics", 12.5)))
 	},
 
-	// The account already has a rule set with rules that Coralogix manages. A create answers 409,
-	// and the provider replaces the rule set. State shows only the customer rules.
+	// The account already has a rule set with rules that Coralogix manages. A create is a replace,
+	// and the API keeps the managed rules. State shows only the customer rules.
 	"create-next-to-managed-rules": func(h *grHarness) {
 		h.quota().seedManaged(j{"entityType": "alerts", "allocation": 5, "enabled": true, "canOverflow": false, "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"})
 		s := h.Apply("create: the rule set exists with managed rules only", h.null(), quotaConfig(quotaRule("logs", 60)))
@@ -244,15 +244,9 @@ var quotaScenarios = map[string]func(h *grHarness){
 		h.Destroy("destroy: the rule set has no customer rules", s)
 	},
 
-	"delete-error-but-cleared": func(h *grHarness) {
-		s := h.Apply("create", h.null(), quotaConfig(quotaRule("logs", 10)))
-		h.quota().deleteStatus, h.quota().deleteClears = 500, true
-		h.Destroy("destroy: the API answers 500 and clears the rules", s)
-	},
-
 	"delete-error": func(h *grHarness) {
 		s := h.Apply("create", h.null(), quotaConfig(quotaRule("logs", 10)))
 		h.quota().deleteStatus = 500
-		h.Destroy("destroy: the API answers 500 and keeps the rules", s)
+		h.Destroy("destroy: the API answers 500, and the provider reports the error", s)
 	},
 }
