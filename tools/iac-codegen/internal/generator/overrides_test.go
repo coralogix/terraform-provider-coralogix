@@ -250,6 +250,30 @@ func TestInferredFalseKeepsOneOfGroupValidators(t *testing.T) {
 	}
 }
 
+// With validators.inferred: true, the contract limit of a list or set of an enum that an enums line
+// renames lists the API values. The element validator takes the Terraform values of the line.
+func TestInferredEnumCollectionValidatorUsesTheEnumsLine(t *testing.T) {
+	a := &tfAttr{
+		Name: "kinds", Kind: "SetNested", ValueKind: "Set", EnumSchema: "Kind", Component: "T", Property: "kinds",
+		Validators:     []string{`setvalidator.ValueStringsAre(stringvalidator.OneOf("KIND_ONE", "KIND_TWO"))`},
+		ElemValidators: []string{`stringvalidator.OneOf("KIND_ONE", "KIND_TWO")`},
+	}
+	out := &tfResource{Attributes: []*tfAttr{a}}
+	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: true\nenums:\n  Kind:\n    zero: unspecified\n    trimPrefix: KIND_\n    values: [KIND_ONE, KIND_TWO]\n")
+	if err := applyOverrides(out, file); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{`setvalidator.ValueStringsAre(stringvalidator.OneOf("one", "two", "unspecified"))`}
+	if !slices.Equal(a.Validators, want) {
+		t.Fatalf("validators = %v, want %v", a.Validators, want)
+	}
+	// The acceptance test builds the value of an element from the element validators.
+	wantElem := []string{`stringvalidator.OneOf("one", "two", "unspecified")`}
+	if !slices.Equal(a.ElemValidators, wantElem) {
+		t.Fatalf("element validators = %v, want %v", a.ElemValidators, wantElem)
+	}
+}
+
 func TestLengthAtLeastOverride(t *testing.T) {
 	a := &tfAttr{Name: "name", Kind: "String", ValueKind: "String", Required: true, Component: "T", Property: "name"}
 	out := &tfResource{Attributes: []*tfAttr{a}}

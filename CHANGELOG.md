@@ -1,8 +1,9 @@
 # Unreleased
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.40`.
+- CHORE: Bump the generator to `v0.1.0-beta.39`.
 - FIX: When the Update response has no fields, the read-back is part of the generated `update` call, so the create-time update of an attribute that only Update sends reads the resource too. The read-back puts the id of the state into the resource when Get leaves it out.
-- CHORE: Bump the generator to `v0.1.0-beta.35`.
 - FIX: A contract that already has the property `tfgenReadBack` or a component named `<Response>TfgenReadBack` is reported (`READ_BACK_NAME_COLLISION`) instead of patched into a document with duplicate keys.
 - FIX: The generated Create keeps the id that the API returned when the follow-up Get leaves the id out, and a response component that Update shares with another operation (a Delete) is no longer changed for the read-back.
 - FEAT: The generated Create of a resource whose API returns only the id of the new resource (`api.createResponseID`, a Terraform key) reads the resource with Get, and keeps the id in the state when that read fails, so Terraform marks the resource as tainted.
@@ -14,6 +15,12 @@
 - FEAT: `updateMask: omit` with `api.updateMaskInBody` sends no update mask, for a released resource that never sent one. An optional Update field that the body cannot clear is an error.
 - FEAT: `enums.<Enum>.readRejected: lower` reads a rejected value in lower case instead of the API spelling.
 - CHORE: The `evalthing` golden fixture covers the four keys.
+- FEAT: `singletonID: true` for a singleton whose API resource has a server-set `id`: the id attribute holds that id, and a `Get` without an id falls back to the type name. A writable or numeric id, a default on it, or one that is not named `id` is an error.
+- FEAT: `uniqueBy: <property>` on a top-level list or set of objects reports an item that repeats a string property, at validation and again before the write. A property whose enum has aliases is an error, because an alias and its target would count as two keys.
+- FEAT: With `validators.inferred: true`, a float attribute, or a list, set, or map of floats, that the API would return as another float32 is reported before the write.
+- FEAT: `enums.<Enum>.aliases` plans an accepted value as another value, for an alias that the API stores as its target, in the items of a set only (Terraform rejects a changed configured value elsewhere). A plan that equals the state after that plans no change.
+- FEAT: `Hooks.ValidateConfig` adds checks that no key expresses.
+- FIX: `validators.inferred` on an enum that has an `enums` line takes the Terraform values of that line, also for a list or set of the enum.
 
 #### resource/coralogix_alert
 - DOCS: Describe `phantom_mode`: the alert sends no notifications and opens no incident of its own, and the API rejects a phantom alert whose `notification_group` sets a notification target.

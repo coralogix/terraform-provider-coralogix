@@ -60,11 +60,11 @@ func renderAll(r *model.Resource, refs []sdkcheck.Ref, pkg string, file *overrid
 		return nil, err
 	}
 	files := maps.Clone(generatedFiles)
-	if data.Conv.UsesEquality() {
+	if data.Conv.UsesEquality() || len(data.EnumAliases) != 0 {
 		if data.HasServerDefaults {
 			// ModifyPlan keeps the state in place of every unknown that the configuration does
 			// not set. A server default plans unknown on purpose, and would be lost.
-			return nil, fmt.Errorf("equality and a server default in one resource are not supported; in existing mode, a default line in %s replaces the server default", overrides.FileName)
+			return nil, fmt.Errorf("equality or an enum alias and a server default in one resource are not supported; in existing mode, a default line in %s replaces the server default", overrides.FileName)
 		}
 		files["equality.go"] = "equality.go.tmpl"
 	}

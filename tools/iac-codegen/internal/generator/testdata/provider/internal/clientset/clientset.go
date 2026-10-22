@@ -8,6 +8,7 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/eval_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/folder_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/legacy_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/rulebook_service"
 	"example.com/iac-test-sdk/go/openapi/gen/settings_service"
 	"example.com/iac-test-sdk/go/openapi/gen/shared_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/suppressed_things_service"
@@ -28,9 +29,12 @@ type ClientSet struct {
 	Echo           *echo_things_service.EchoThingsServiceAPIService
 	Eval           *eval_things_service.EvalThingsServiceAPIService
 	Suppressed     *suppressed_things_service.SuppressedThingsServiceAPIService
+	RulebookClient *rulebook_service.RulebookServiceAPIService
 }
 
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
+
+func (c *ClientSet) Rulebook() *rulebook_service.RulebookServiceAPIService { return c.RulebookClient }
 
 func (c *ClientSet) Settings() *settings_service.SettingsServiceAPIService { return c.SettingsClient }
 
