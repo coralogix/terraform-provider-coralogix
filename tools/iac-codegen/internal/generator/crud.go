@@ -96,6 +96,13 @@ type crudOp struct {
 	// ResponseValue: the response field is a value, not a pointer. openapi-generator uses a value
 	// for a required field.
 	ResponseValue bool
+	// ResponseID is the response field that holds only the id of the resource: a Create response
+	// that does not return the resource. The generated call then reads the resource with Get.
+	ResponseID string
+	// ResponseIDValue: the id field is a value, not a pointer.
+	ResponseIDValue bool
+	// Empty: the response has no fields, so the generated call reads the resource with Get.
+	Empty bool
 }
 
 // buildCRUD maps the operations and their SDK names to the template data.
@@ -162,10 +169,10 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	}
 
 	ops := []crudSpec{
-		{"create", r.Create, &out.Create, true, true},
-		{"get", r.Get, &out.Get, false, true},
-		{"update", r.Update, &out.Update, true, true},
-		{"delete", r.Delete, &out.Delete, false, false},
+		{"create", r.Create, &out.Create, true, true, createResponseID(file)},
+		{"get", r.Get, &out.Get, false, true, ""},
+		{"update", r.Update, &out.Update, true, true, ""},
+		{"delete", r.Delete, &out.Delete, false, false, ""},
 	}
 	for _, o := range ops {
 		if *o.out, err = buildCRUDOp(ix, o, client.Name, resource.Name); err != nil {
@@ -248,6 +255,9 @@ type crudSpec struct {
 	out      *crudOp
 	body     bool // the operation must have a request body
 	resource bool // the response must hold the resource
+	// responseID is the property of the Create response that holds only the id: the generated
+	// call then reads the resource with Get. "" for a response that holds the resource.
+	responseID string
 }
 
 // buildCRUDOp returns the SDK names of one operation. client is the SDK client
@@ -257,7 +267,8 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string) (crudOp, err
 	if (o.op.Body != "") != o.body {
 		return out, fmt.Errorf("%s: request body %q is not supported", o.name, o.op.Body)
 	}
-	if (o.op.Response.Field != "" || o.op.Response.Direct) != o.resource {
+	readsBack := o.responseID != "" || o.name == "update" && o.op.Response.Empty
+	if (o.op.Response.Field != "" || o.op.Response.Direct) != o.resource && !readsBack {
 		return out, fmt.Errorf("%s: response field %q is not supported", o.name, o.op.Response.Field)
 	}
 	method, err := ix.methodRef(o.name, client)
@@ -275,6 +286,21 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string) (crudOp, err
 			return out, err
 		}
 		out.Body = body.Name
+	}
+	if o.responseID != "" {
+		field, err := ix.fieldRef(o.name + ".response." + o.responseID)
+		if err != nil {
+			return out, err
+		}
+		if field.Want != "*string" && field.Want != "string" {
+			return out, fmt.Errorf("SDK field %s has type %s, want *string", field.SDKName(), field.Want)
+		}
+		out.ResponseID, out.ResponseIDValue = field.Name, field.Want == "string"
+		return out, nil
+	}
+	if o.name == "update" && o.op.Response.Empty {
+		out.Empty = true
+		return out, nil
 	}
 	if o.resource && !o.op.Response.Direct {
 		field, err := ix.fieldRef(o.name + ".response." + o.op.Response.Field)
@@ -346,4 +372,13 @@ func updateOnlyAttrs(r *model.Resource, out *crudData) error {
 		out.UpdateOnly = append(out.UpdateOnly, updateOnlyAttr{Attr: terraformName(r.Policy, r.Name, f.Name), Default: value})
 	}
 	return nil
+}
+
+// createResponseID is the property of the Create response that holds only the id, from the
+// overrides file. It is "" for a new resource and for a Create that returns the resource.
+func createResponseID(file *overrides.File) string {
+	if file == nil {
+		return ""
+	}
+	return file.API.CreateResponseID
 }
