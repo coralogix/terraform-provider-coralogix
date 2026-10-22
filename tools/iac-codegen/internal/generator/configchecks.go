@@ -90,7 +90,8 @@ func float32Paths(out []string, parent string, attrs []*tfAttr) []string {
 		if parent != "" {
 			at = parent + "." + a.Name
 		}
-		if a.ValueKind == "Float32" {
+		// The elements of a list, set, or map of floats have the path of the collection.
+		if a.ValueKind == "Float32" || (a.ValueKind == "List" || a.ValueKind == "Set" || a.ValueKind == "Map") && a.ElementType == "types.Float32Type" {
 			out = append(out, at)
 		}
 		out = float32Paths(out, at, a.Attributes)

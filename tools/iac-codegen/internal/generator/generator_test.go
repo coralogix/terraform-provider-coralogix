@@ -2797,3 +2797,19 @@ func TestEnumAliasIsPlannedAsItsTarget(t *testing.T) {
 	}
 	compileGenerated(t, out, input)
 }
+
+// The float32 precision check also covers the elements of a list, set, or map of floats.
+func TestFloat32PathsIncludeCollections(t *testing.T) {
+	attrs := []*tfAttr{
+		{Name: "ratio", ValueKind: "Float32", Optional: true},
+		{Name: "ratios", ValueKind: "List", ElementType: "types.Float32Type", Optional: true},
+		{Name: "by_name", ValueKind: "Map", ElementType: "types.Float32Type", Optional: true},
+		{Name: "names", ValueKind: "Set", ElementType: "types.StringType", Optional: true},
+		{Name: "server", ValueKind: "List", ElementType: "types.Float32Type", Computed: true},
+		{Name: "group", ValueKind: "Object", Optional: true, Attributes: []*tfAttr{{Name: "weights", ValueKind: "Set", ElementType: "types.Float32Type", Optional: true}}},
+	}
+	want := []string{"ratio", "ratios", "by_name", "group.weights"}
+	if got := float32Paths(nil, "", attrs); !slices.Equal(got, want) {
+		t.Fatalf("float32 paths = %v, want %v", got, want)
+	}
+}
