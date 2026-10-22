@@ -2387,3 +2387,22 @@ func TestOmittedMaskIgnoresAnUnsafePattern(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// A zero default is cleared only when Update sends it: without presence, Update leaves a zero out,
+// and with updateMask: omit the server keeps the old value.
+func TestOmittedMaskRejectsAnUnsentZeroDefault(t *testing.T) {
+	lines := strings.Replace(evalThingLines(t), "      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        computed: true\n        default: false\n", 1)
+	if err := generateEvalThingWith(t, lines, nil); err != nil {
+		t.Fatalf("with presence in Update: %v", err)
+	}
+	noPresence := func(spec string) string {
+		const update = "                enabled: {type: boolean, x-coralogix-presence: true}\n                updateMask:"
+		if !strings.Contains(spec, update) {
+			t.Fatal("the spec lacks the Update enabled field")
+		}
+		return strings.Replace(spec, update, "                enabled: {type: boolean}\n                updateMask:", 1)
+	}
+	if err := generateEvalThingWith(t, lines, noPresence); err == nil || !strings.Contains(err.Error(), "enabled: updateMask: omit cannot clear this attribute: its default is the zero value") {
+		t.Fatalf("without presence in Update: err = %v, want the zero default rejected", err)
+	}
+}
