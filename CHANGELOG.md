@@ -1,7 +1,7 @@
 # Unreleased
 
 #### tools/iac-codegen
-- CHORE: Bump the generator to `v0.1.0-beta.38`.
+- CHORE: Bump the generator to `v0.1.0-beta.39`.
 - CHORE: Bump the generator to `v0.1.0-beta.34`.
 - FEAT: `requiresReplace: true` on a top-level field replaces the resource when the field changes, although Update accepts it. A PATCH Update does not send the field; a PUT Update still sends it, so an update of another field does not clear it. Combined with `computed: true`, or on a field that a PATCH Update body requires, it is an error.
 - FEAT: `types.<Type>.unsupportedArms` with `unsupportedSummary` and `unsupportedDetail` keeps oneOf arms that a released resource never configured out of the schema and the requests, and flatten reports a response that selects one. Naming no arm, or removing every arm of a group that requires one, is an error.

@@ -2740,7 +2740,7 @@ func rule(entity string, allocation any) map[string]tftypes.Value {
 }
 
 func TestGenericChecks(t *testing.T) {
-	if d := configChecks(rulesConfig(t, rule("logs", 10), rule("spans", 0.5))); d.HasError() {
+	if d := configChecks(rulesConfig(t, rule("logs", 10), rule("spans", 0.5), rule("metrics", 99.2), rule("alerts", 0.1))); d.HasError() {
 		t.Fatalf("valid config: %v", d)
 	}
 	d := configChecks(rulesConfig(t, rule("logs", 10), rule("logs", 20)))
