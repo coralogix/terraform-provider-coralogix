@@ -2473,3 +2473,51 @@ func generateFolderThing(t *testing.T) string {
 	}
 	return out
 }
+
+// A Create response whose id is a required field is a value in the SDK, not a pointer. The SDK
+// check writes the value type into the reference, so the generated Create tests the value and
+// compiles.
+func TestCreateResponseIDAsAValue(t *testing.T) {
+	input, loadDir := copiedSyntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "folderthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := strings.Replace(string(spec), "      properties:\n        thingId: {type: string, x-coralogix-presence: true}\n", "      required: [thingId]\n      properties:\n        thingId: {type: string}\n", 1)
+	if changed == string(spec) {
+		t.Fatal("the test contract did not change: update the replaced text")
+	}
+	input.OpenAPI = []byte(changed)
+	mock := filepath.Join(input.SDKDir, "go", "openapi", "gen", "folder_things_service", "folder.go")
+	source, err := os.ReadFile(mock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	valued := strings.NewReplacer("	ThingId *string\n", "	ThingId string\n", "&CreateFolderThingResponse{ThingId: &id}", "&CreateFolderThingResponse{ThingId: id}").Replace(string(source))
+	if valued == string(source) {
+		t.Fatal("the mock SDK did not change: update the replaced text")
+	}
+	if err := os.WriteFile(mock, []byte(valued), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(t.TempDir(), "folderthing")
+	options := Options{Resource: "FolderThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "folderthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(resource), `out.ThingId == ""`) || strings.Contains(string(resource), "*out.ThingId") {
+		t.Fatal("the generated Create does not treat the id as a value")
+	}
+	semantics, err := os.ReadFile(filepath.Join("testdata", "folderthing_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
