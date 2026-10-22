@@ -2636,7 +2636,7 @@ func TestConfigChecksFromGenericKeys(t *testing.T) {
 		{Name: "mode", Type: &model.Type{Kind: model.Enum, Schema: "RuleMode", Values: []string{"RULE_MODE_ONE", "RULE_MODE_TWO"}, EnumZero: "RULE_MODE_UNSPECIFIED"}, Behavior: model.Normal, Create: &model.Attrs{}},
 	}}
 	resource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{
-		{Name: "rules", Type: &model.Type{Kind: model.List, Elem: rule}, Behavior: model.Normal, Create: &model.Attrs{}, Get: &model.Attrs{}, InGet: true},
+		{Name: "rules", Type: &model.Type{Kind: model.Set, Elem: rule}, Behavior: model.Normal, Create: &model.Attrs{}, Get: &model.Attrs{}, InGet: true},
 		{Name: "name", Type: &model.Type{Kind: model.String}, Behavior: model.Normal, Create: &model.Attrs{Required: true}, Get: &model.Attrs{}, InGet: true},
 	}}
 	lines := "types:\n  Thing:\n    fields:\n      rules: {uniqueBy: entityType}\nenums:\n  RuleMode:\n    zero: unspecified\n    trimPrefix: RULE_MODE_\n    values: [RULE_MODE_ONE, RULE_MODE_TWO]\n    aliases: {unspecified: one}\n"
@@ -2664,6 +2664,14 @@ func TestConfigChecksFromGenericKeys(t *testing.T) {
 	}
 	if len(data.Float32Paths) != 0 {
 		t.Errorf("float32 paths = %v, want none for validators.inferred: false", data.Float32Paths)
+	}
+
+	// Terraform checks a configured value in a list against the plan, so an alias in a list is an error.
+	listResource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{
+		{Name: "rules", Type: &model.Type{Kind: model.List, Elem: rule}, Behavior: model.Normal, Create: &model.Attrs{}, Get: &model.Attrs{}, InGet: true},
+	}}
+	if _, err := buildTFResourceWith(listResource, "thing", mustParse(t, head("true")+lines)); err == nil || !strings.Contains(err.Error(), "only for an attribute inside the items of a set") {
+		t.Errorf("alias in a list: err = %v, want the set rule", err)
 	}
 
 	for name, tc := range map[string]struct{ lines, want string }{

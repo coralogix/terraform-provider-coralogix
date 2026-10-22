@@ -50,7 +50,7 @@ func applyConfigChecks(out *tfResource, file *overrides.File) error {
 	if file.Validators.Inferred != nil && *file.Validators.Inferred {
 		out.Float32Paths = float32Paths(nil, "", out.Attributes)
 	}
-	aliases, err := enumAliases(nil, "", out.Attributes, file)
+	aliases, err := enumAliases(nil, "", false, out.Attributes, file)
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,10 @@ func float32Paths(out []string, parent string, attrs []*tfAttr) []string {
 	return out
 }
 
-func enumAliases(out []enumAlias, parent string, attrs []*tfAttr, file *overrides.File) ([]enumAlias, error) {
+// enumAliases collects the alias attributes. The plan changes a configured value, which Terraform
+// allows only in the items of a set: it cannot match those items to the configuration, and it
+// checks every other configured value against the plan.
+func enumAliases(out []enumAlias, parent string, inSet bool, attrs []*tfAttr, file *overrides.File) ([]enumAlias, error) {
 	for _, a := range attrs {
 		at := a.Name
 		if parent != "" {
@@ -104,6 +107,9 @@ func enumAliases(out []enumAlias, parent string, attrs []*tfAttr, file *override
 			if a.ValueKind != "String" {
 				return nil, fmt.Errorf("%s: enums.%s.aliases works on a string attribute, not on a list or set of an enum", at, a.EnumSchema)
 			}
+			if !inSet {
+				return nil, fmt.Errorf("%s: enums.%s.aliases changes a configured value in the plan, which Terraform allows only for an attribute inside the items of a set", at, a.EnumSchema)
+			}
 			alias := enumAlias{Path: at}
 			for from, to := range enum.Aliases {
 				alias.Pairs = append(alias.Pairs, aliasPair{From: from, To: to})
@@ -112,7 +118,7 @@ func enumAliases(out []enumAlias, parent string, attrs []*tfAttr, file *override
 			out = append(out, alias)
 		}
 		var err error
-		if out, err = enumAliases(out, at, a.Attributes, file); err != nil {
+		if out, err = enumAliases(out, at, inSet || a.ValueKind == "Set" && len(a.Attributes) != 0, a.Attributes, file); err != nil {
 			return nil, err
 		}
 	}
