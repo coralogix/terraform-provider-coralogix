@@ -56,11 +56,7 @@
 - CHORE: Add a protocol baseline of the resource (schema and lifecycle scenarios against an in-memory API), checked against a recording of the real API. Test-only; no behavior change.
 
 #### provider
-<<<<<<< HEAD
 - CHORE: Build with Go 1.26.10.
-=======
-- CHORE: Bump `coralogix-management-sdk` to the version with the dashboard folders contract (`name` is required).
->>>>>>> ebab8b27 ([CX-63628] feat(dashboards_folder): generate coralogix_dashboards_folder from the API contract)
 - CHORE: Bump `coralogix-management-sdk` to the version with the alert suppression rule contract. The SDK holds required fields as values; `coralogix_alerts_scheduler`, `coralogix_events2metric`, and `coralogix_slo_v2` adapt, with no change to plans.
 - CHORE: Bump `google.golang.org/grpc` to v1.83.2 to clear open security advisories (GHSA-vp52-pcj8-j9qc, GHSA-qc2q-p7wx-3px3, GHSA-2v4p-qf9q-27wj). Indirect `golang.org/x/*` and `google.golang.org/genproto` modules move up with it. No change to provider behavior.
 - CHORE: Bump `golang.org/x/net` to v0.61.0 and `golang.org/x/crypto` to v0.58.0 to clear govulncheck findings. The provider does not call the affected code. No change to provider behavior.
