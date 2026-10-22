@@ -10,6 +10,15 @@
 
 #### resource/coralogix_alert
 - DOCS: Describe `phantom_mode`: the alert sends no notifications and opens no incident of its own, and the API rejects a phantom alert whose `notification_group` sets a notification target.
+
+#### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.34`.
+- FIX: A contract that already has the property `tfgenReadBack` or a component named `<Response>TfgenReadBack` is reported (`READ_BACK_NAME_COLLISION`) instead of patched into a document with duplicate keys.
+- FIX: The generated Create keeps the id that the API returned when the follow-up Get leaves the id out, and a response component that Update shares with another operation (a Delete) is no longer changed for the read-back.
+- FEAT: The generated Create of a resource whose API returns only the id of the new resource (`api.createResponseID`, a Terraform key) reads the resource with Get, and keeps the id in the state when that read fails, so Terraform marks the resource as tainted.
+- FEAT: The generated Update reads the resource with Get when the API answers it with an object that has no fields (existing mode).
+- FEAT: `Hooks.UpdateGone` and `Hooks.DeleteGone` (existing mode) say that the error of a failed Update or Delete means that the resource is gone, for an API that answers a call on a missing resource with another status than 404.
+
 # Release 3.22.0
 
 #### resource/coralogix_connector, resource/coralogix_global_router, resource/coralogix_preset
@@ -79,12 +88,6 @@
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
 
 #### tools/iac-codegen
-- FIX: A contract that already has the property `tfgenReadBack` or a component named `<Response>TfgenReadBack` is reported (`READ_BACK_NAME_COLLISION`) instead of patched into a document with duplicate keys.
-- FIX: The generated Create keeps the id that the API returned when the follow-up Get leaves the id out, and a response component that Update shares with another operation (a Delete) is no longer changed for the read-back.
-- CHORE: Bump the generator to `v0.1.0-beta.34`.
-- FEAT: The generated Create of a resource whose API returns only the id of the new resource (`api.createResponseID`, a Terraform key) reads the resource with Get, and keeps the id in the state when that read fails, so Terraform marks the resource as tainted.
-- FEAT: The generated Update reads the resource with Get when the API answers it with an object that has no fields (existing mode).
-- FEAT: `Hooks.UpdateGone` and `Hooks.DeleteGone` (existing mode) say that the error of a failed Update or Delete means that the resource is gone, for an API that answers a call on a missing resource with another status than 404.
 - CHORE: Bump the generator to `v0.1.0-beta.33`.
 - CHORE: Bump the generator to `v0.1.0-beta.32`.
 - FEAT: An optional request scalar needs `x-coralogix-presence` only when it declares a default that is not its zero value and the zero value is valid, for example `false` next to a default of `true`. An enum never needs it. Without presence or a default, a scalar whose zero value is valid is handled as if it declared that zero value as its server default: it is `Optional + Computed`, and removing it resets it to zero. A scalar whose zero value is not valid, such as an integer with `minimum: 1`, reads zero as null.
