@@ -8,6 +8,8 @@
 - FEAT: `enums.<Enum>.readRejected: lower` reads a rejected value in lower case instead of the API spelling.
 - CHORE: The `evalthing` golden fixture covers the four keys.
 
+# Release 3.22.0
+
 #### resource/coralogix_connector, resource/coralogix_global_router, resource/coralogix_preset
 - DOCS: Remove the "This resource is in Beta stage" note from the resource and data source descriptions. Notification Center connectors, global routers, and presets are generally available.
 
@@ -31,6 +33,7 @@
 - CHORE: Add a protocol baseline of the resource (schema and lifecycle scenarios against an in-memory API), checked against a recording of the real API. Test-only; no behavior change.
 
 #### provider
+- CHORE: Build with Go 1.26.10.
 - CHORE: Bump `coralogix-management-sdk` to the version with the alert suppression rule contract. The SDK holds required fields as values; `coralogix_alerts_scheduler`, `coralogix_events2metric`, and `coralogix_slo_v2` adapt, with no change to plans.
 
 #### resource/coralogix_dashboards_folder
