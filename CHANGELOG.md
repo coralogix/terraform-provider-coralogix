@@ -8,8 +8,18 @@
 - FEAT: `enums.<Enum>.readRejected: lower` reads a rejected value in lower case instead of the API spelling.
 - CHORE: The `evalthing` golden fixture covers the four keys.
 
+#### provider
+- CHORE: Bump `coralogix-management-sdk` to the version with the AI evaluations contract. `coralogix_dashboards_folder` and `coralogix_dashboard` adapt to its types: the folder name is a required string, and the dashboard of a replace request is optional. A `coralogix_dashboards_folder` without `name` now sends an empty name: the API still rejects it, now with "folder name cannot be empty".
+
+#### resource/coralogix_ai_evaluation
+- CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Update still sends `config`, `is_enabled`, and `threshold` without an update mask, and `application`, `subsystem`, and `target` still replace the evaluation. An evaluation whose target is `CONVERSATION` still reads as `conversation`, and one with an unsupported config still fails the read with the released error.
+- CHANGE: Plan-time checks for upper limits are gone: 256 characters for `application`, `subsystem`, and list items, 1024 list items, and 65536 characters for `additional_context`. The API still rejects those values at apply. `threshold` keeps its 0 to 1 range, and `pii.categories` keeps its value check.
+- CHANGE: A config with no variant, or with two, reports the error on each variant instead of once. Error messages of failed API calls changed wording.
+- CHORE: Add an upgrade test that creates evaluations with provider 3.21.0 and plans them with this build.
+
 #### resource/coralogix_alert
 - DOCS: Describe `phantom_mode`: the alert sends no notifications and opens no incident of its own, and the API rejects a phantom alert whose `notification_group` sets a notification target.
+
 # Release 3.22.0
 
 #### resource/coralogix_connector, resource/coralogix_global_router, resource/coralogix_preset

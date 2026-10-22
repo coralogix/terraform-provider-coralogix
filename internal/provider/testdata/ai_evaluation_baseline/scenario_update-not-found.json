@@ -136,7 +136,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating coralogix_ai_evaluation | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Evaluation not found\"}\noperation - Update"
+      "error: Resource no longer exists | The API did not find ai_evaluation with id 00000000-0000-4000-8000-000000000001. Run terraform apply without -refresh=false: the refresh removes it from state, and the plan creates it again."
     ],
     "state": {
       "application": "tf-baseline-app",

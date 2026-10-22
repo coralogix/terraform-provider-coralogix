@@ -4,6 +4,7 @@ package provider
 // directory in internal/provider/generated. `go generate ./internal/provider/` regenerates
 // them all. The CI version check of the generator reads these lines to know what to compare.
 
+//go:generate make -C ../.. codegen RESOURCE=AiEvaluation OUT=aievaluation
 //go:generate make -C ../.. codegen RESOURCE=AlertSchedulerRule OUT=alertsscheduler
 //go:generate make -C ../.. codegen RESOURCE=ConfigurationGroup OUT=configurationgroup
 //go:generate make -C ../.. codegen RESOURCE=Connector OUT=connector

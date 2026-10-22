@@ -246,7 +246,7 @@ func (r *DashboardsFolderResource) Delete(ctx context.Context, req resource.Dele
 func flattenDashboardsFolder(folder *dbfs.DashboardFolder) DashboardsFolderResourceModel {
 	return DashboardsFolderResourceModel{
 		ID:       types.StringPointerValue(folder.Id),
-		Name:     types.StringPointerValue(folder.Name),
+		Name:     types.StringValue(folder.Name),
 		ParentId: types.StringPointerValue(folder.ParentId),
 	}
 }
@@ -255,7 +255,7 @@ func extractCreateDashboardsFolder(plan DashboardsFolderResourceModel) *dbfs.Das
 	id := utils.ExpandUuid(plan.ID)
 	return &dbfs.DashboardFolder{
 		Id:       &id,
-		Name:     utils.TypeStringToStringPointer(plan.Name),
+		Name:     plan.Name.ValueString(),
 		ParentId: utils.TypeStringToStringPointer(plan.ParentId),
 	}
 }
