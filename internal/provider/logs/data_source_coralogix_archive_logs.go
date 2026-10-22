@@ -26,7 +26,12 @@ import (
 	archiveLogs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/target_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var _ datasource.DataSourceWithConfigure = &ArchiveLogsDataSource{}
@@ -60,12 +65,8 @@ func (d *ArchiveLogsDataSource) Configure(_ context.Context, req datasource.Conf
 	d.client = clientSet.ArchiveLogs()
 }
 
-func (d *ArchiveLogsDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r ArchiveLogsResource
-	var resourceResp resource.SchemaResponse
-	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
-
-	resp.Schema = utils.ConvertSchemaWithoutID(resourceResp.Schema)
+func (d *ArchiveLogsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = utils.ConvertSchemaWithoutID(archiveLogsSchema())
 }
 
 func (d *ArchiveLogsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -94,4 +95,75 @@ func (d *ArchiveLogsDataSource) Read(ctx context.Context, req datasource.ReadReq
 	data = flattenArchiveLogs(result.Target.S3, result.Target.ArchiveSpec, id)
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+// The data source keeps the schema and flatten of the released resource until it is migrated
+// itself. The resource is generated (internal/provider/generated/archivelogs).
+
+type ArchiveLogsResourceModel struct {
+	ID                types.String `tfsdk:"id"`
+	Active            types.Bool   `tfsdk:"active"`
+	Bucket            types.String `tfsdk:"bucket"`
+	ArchivingFormatId types.String `tfsdk:"archiving_format_id"`
+	Region            types.String `tfsdk:"region"`
+	EnableTags        types.Bool   `tfsdk:"enable_tags"`
+}
+
+// archiveLogsSchema is the schema of the released resource.
+func archiveLogsSchema() schema.Schema {
+	return schema.Schema{
+		Version: 0,
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"bucket": schema.StringAttribute{
+				Required:            true,
+				MarkdownDescription: "The bucket name to store the archived logs in.",
+			},
+			"active": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(true),
+			},
+			"archiving_format_id": schema.StringAttribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"enable_tags": schema.BoolAttribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"region": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				MarkdownDescription: "The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions",
+			},
+		},
+		MarkdownDescription: "Coralogix archive-logs. Configures the S3 bucket Coralogix archives logs and traces into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.",
+	}
+}
+
+func flattenArchiveLogs(targetS3 *archiveLogs.S3TargetSpec, archiveSpec archiveLogs.ArchiveSpec, id string) *ArchiveLogsResourceModel {
+	if targetS3 == nil {
+		return nil
+	}
+	return &ArchiveLogsResourceModel{
+		ID:                types.StringValue(id),
+		Active:            types.BoolValue(archiveSpec.GetIsActive()),
+		Bucket:            types.StringValue(targetS3.Bucket),
+		Region:            types.StringPointerValue(targetS3.Region),
+		ArchivingFormatId: types.StringValue(archiveSpec.GetArchivingFormatId()),
+		EnableTags:        types.BoolValue(archiveSpec.GetEnableTags()),
+	}
 }

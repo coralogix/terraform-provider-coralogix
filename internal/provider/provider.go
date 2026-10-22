@@ -36,6 +36,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/events2metrics"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/fleet"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/archivelogs"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/configurationgroup"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/globalrouter"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/viewfolder"
@@ -458,7 +459,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		recording_rules.NewRecordingRuleGroupSetResource,
 		dataengine.NewArchiveRetentionsResource,
 		metrics.NewArchiveMetricsResource,
-		logs.NewArchiveLogsResource,
+		func() resource.Resource { return archivelogs.NewResource(archivelogs.Hooks{}) },
 		alerts.NewAlertsSchedulerResource,
 		apm.NewSLOResource,
 		slo_mgmt.NewSLOV2Resource,
