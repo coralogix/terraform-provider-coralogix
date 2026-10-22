@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"math/big"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	quotaRules "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/quota_allocation_rule_set_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/quotaallocationruleset"
 
@@ -36,13 +35,10 @@ const quotaAllocationTypeUnspecified = "unspecified"
 
 func NewQuotaAllocationRuleSetResource() resource.Resource {
 	return quotaallocationruleset.NewResource(quotaallocationruleset.Hooks{
-		BeforeFlatten:     dropCxManagedQuotaAllocationRules,
-		ValidateConfig:    validateQuotaAllocationRulesConfig,
-		BeforeWrite:       validateQuotaAllocationRulesBeforeWrite,
-		AfterRead:         keepQuotaAllocationRulesKnown,
-		ModifyPlan:        normalizeUnspecifiedQuotaAllocationTypes,
-		CreateFallback:    adoptQuotaAllocationRuleSetOnConflict,
-		IgnoreDeleteError: quotaAllocationRuleSetClearedAfterDeleteError,
+		BeforeFlatten:  dropCxManagedQuotaAllocationRules,
+		ValidateConfig: validateQuotaAllocationRulesConfig,
+		BeforeWrite:    validateQuotaAllocationRulesBeforeWrite,
+		AfterRead:      keepQuotaAllocationRulesKnown,
 	})
 }
 
@@ -142,146 +138,25 @@ func validateQuotaAllocationRulesConfig(_ context.Context, config tfsdk.Config) 
 	return validateQuotaAllocationRules(quotaRulesFromConfig(config.Raw))
 }
 
-// validateQuotaAllocationRules checks what no attribute validator can: a duplicate entity type, a
-// percentage above 100, and an allocation that the API stores as another float32.
+// validateQuotaAllocationRules checks what no key of the behavior-overrides file expresses: the
+// percentage limit depends on allocation_type. The duplicate entity type and the float32 precision
+// are generated checks.
 func validateQuotaAllocationRules(rules []quotaRuleConfig) diag.Diagnostics {
 	diags := diag.Diagnostics{}
-	seen := map[string]struct{}{}
 	for _, rule := range rules {
-		if rule.entityType == "" {
+		if rule.allocation == nil || rule.allocationTypeUnknown {
 			continue
 		}
-		if _, ok := seen[rule.entityType]; ok {
-			diags.AddAttributeError(
-				path.Root("rules"),
-				"Duplicate quota allocation rule entity_type",
-				fmt.Sprintf("Only one quota allocation rule can be configured for entity_type %q.", rule.entityType),
-			)
+		if rule.allocationType != "" && rule.allocationType != quotaAllocationTypePercentage && rule.allocationType != quotaAllocationTypeUnspecified {
 			continue
 		}
-		seen[rule.entityType] = struct{}{}
-
-		if rule.allocation == nil {
-			continue
-		}
-		allocation, _ := rule.allocation.Float64()
-		if !rule.allocationTypeUnknown && (rule.allocationType == "" || rule.allocationType == quotaAllocationTypePercentage || rule.allocationType == quotaAllocationTypeUnspecified) && allocation > 100 {
+		if allocation, _ := rule.allocation.Float64(); allocation > 100 {
 			diags.AddAttributeError(
 				path.Root("rules"),
 				"Invalid percentage quota allocation",
 				fmt.Sprintf("The quota allocation rule for entity_type %q uses allocation_type %q, so allocation must be between 0 and 100.", rule.entityType, quotaAllocationTypePercentage),
 			)
 		}
-		normalized := float32ToSchemaFloat64Allocation(float32(allocation))
-		if normalized != allocation {
-			diags.AddAttributeError(
-				path.Root("rules"),
-				"Invalid quota allocation precision",
-				fmt.Sprintf("The quota allocation rule for entity_type %q uses allocation %s, but the Coralogix API stores allocations as float32 and would return %s. Configure %s instead to avoid Terraform state drift.", rule.entityType, formatQuotaAllocation(allocation), formatQuotaAllocation(normalized), formatQuotaAllocation(normalized)),
-			)
-		}
 	}
 	return diags
-}
-
-func formatQuotaAllocation(value float64) string {
-	return new(big.Float).SetFloat64(value).Text('f', -1)
-}
-
-// normalizeUnspecifiedQuotaAllocationTypes plans allocation_type "unspecified", an alias that the
-// resource accepts, as "percentage", which is what the API stores for it.
-func normalizeUnspecifiedQuotaAllocationTypes(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	if req.Plan.Raw.IsNull() {
-		return
-	}
-	var rules types.Set
-	diags := resp.Plan.GetAttribute(ctx, path.Root("rules"), &rules)
-	if diags.HasError() || rules.IsNull() || rules.IsUnknown() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-	var items []quotaallocationruleset.QuotaAllocationEntityTypeRuleModel
-	if diags := rules.ElementsAs(ctx, &items, false); diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-	changed := false
-	for i := range items {
-		if items[i].AllocationType.ValueString() == quotaAllocationTypeUnspecified {
-			items[i].AllocationType = types.StringValue(quotaAllocationTypePercentage)
-			changed = true
-		}
-	}
-	if !changed {
-		return
-	}
-	normalized, diags := types.SetValueFrom(ctx, rules.ElementType(ctx), items)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
-		return
-	}
-	resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("rules"), normalized)...)
-	// Terraform plans the computed id as unknown, because the configuration differs from the state
-	// until the alias is normalized. When the normalized rules are the stored rules, nothing changes.
-	if req.State.Raw.IsNull() {
-		return
-	}
-	var stateRules types.Set
-	if req.State.GetAttribute(ctx, path.Root("rules"), &stateRules).HasError() || !stateRules.Equal(normalized) {
-		return
-	}
-	var id types.String
-	if req.State.GetAttribute(ctx, path.Root("id"), &id).HasError() {
-		return
-	}
-	resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("id"), id)...)
-}
-
-// adoptQuotaAllocationRuleSetOnConflict handles a create that the API refuses with 409 because the
-// account already has a rule set. When it holds no rules of the customer, only rules that
-// Coralogix manages, the provider replaces it: the API preserves the managed rules. Otherwise the
-// user has to import the rule set.
-func adoptQuotaAllocationRuleSetOnConflict(ctx context.Context, client *quotaRules.QuotaAllocationRuleSetServiceAPIService, body *quotaRules.CreateQuotaAllocationRuleSetRequest, createErr error) (*quotaRules.QuotaAllocationEntityTypeRuleSet, bool, diag.Diagnostics) {
-	if cxsdk.Code(createErr) != 409 {
-		return nil, false, nil
-	}
-	var diags diag.Diagnostics
-	existing, httpResponse, err := client.QuotaAllocationRuleSetServiceGetQuotaAllocationRuleSet(ctx).Execute()
-	if err != nil {
-		diags.AddError("Unable to read the existing quota_allocation_rule_set after a create conflict", cxsdk.NewAPIError(httpResponse, err).Error())
-		return nil, false, diags
-	}
-	if existing != nil && existing.RuleSet != nil && len(customerQuotaAllocationRules(existing.RuleSet.Rules)) > 0 {
-		diags.AddError(
-			"Quota allocation rule set already exists",
-			"Coralogix already has a quota allocation rule set. Import it with `terraform import coralogix_quota_allocation_rule_set.<name> quota-allocation-rule-set` before managing it with Terraform.",
-		)
-		return nil, false, diags
-	}
-	// Send only the rules of the customer. The API preserves the managed rules on a replace.
-	replace := quotaRules.ReplaceQuotaAllocationRuleSetRequest{RuleSet: body.RuleSet}
-	if existing != nil && existing.RuleSet != nil && existing.RuleSet.GetId() != "" {
-		replace.RuleSet.SetId(existing.RuleSet.GetId())
-	}
-	replaced, httpResponse, err := client.QuotaAllocationRuleSetServiceReplaceQuotaAllocationRuleSet(ctx).ReplaceQuotaAllocationRuleSetRequest(replace).Execute()
-	if err != nil {
-		diags.AddError("Unable to preserve the Coralogix-managed quota allocation rules during create", cxsdk.NewAPIError(httpResponse, err).Error())
-		return nil, false, diags
-	}
-	if replaced == nil {
-		return nil, true, nil
-	}
-	return replaced.RuleSet, true, nil
-}
-
-// quotaAllocationRuleSetClearedAfterDeleteError ignores an error of the delete call when the API
-// cleared the rules of the customer anyway: it keeps the rules that Coralogix manages, and
-// sometimes answers with an error after it cleared the rest.
-func quotaAllocationRuleSetClearedAfterDeleteError(ctx context.Context, client *quotaRules.QuotaAllocationRuleSetServiceAPIService, _ error) bool {
-	result, httpResponse, err := client.QuotaAllocationRuleSetServiceGetQuotaAllocationRuleSet(ctx).Execute()
-	if err != nil {
-		// A 404 of the verification read means that the rule set is gone, as for the old delete.
-		return cxsdk.Code(cxsdk.NewAPIError(httpResponse, err)) == 404
-	}
-	return result == nil || result.RuleSet == nil || len(customerQuotaAllocationRules(result.RuleSet.Rules)) == 0
 }

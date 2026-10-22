@@ -31,6 +31,8 @@ types:
       rules:
         # The contract does not require it, because [] is a valid rule set. The released resource does.
         required: true
+        # The API rejects two rules for one entity type.
+        uniqueBy: entityType
         markdownDescription: "Complete set of customer-managed quota allocation rules. Because the backend stores a single account-level rule set, Terraform replaces the full customer-managed set during update. Set `rules = []` to clear all customer-managed rules."
   QuotaAllocationEntityTypeRule:
     fields:
@@ -55,8 +57,9 @@ types:
 
 enums:
   # The API stores an unspecified type as percentage. The released resource accepts "unspecified" as an
-  # alias, and a hook plans it as percentage.
+  # alias, and the plan shows percentage.
   QuotaAllocationType:
     zero: unspecified
+    aliases: {unspecified: percentage}
     trimPrefix: QUOTA_ALLOCATION_TYPE_
     values: [QUOTA_ALLOCATION_TYPE_PERCENTAGE, QUOTA_ALLOCATION_TYPE_LOCKED_UNITS]
