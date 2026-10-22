@@ -622,7 +622,7 @@ func (r *Resource) update(ctx context.Context{{if or (not .UpdateIDInBody) .Upda
 	}
 {{- if not .Singleton}}
 	// The id of the state is the id of the resource, also when Get leaves it out.
-	if v != nil && {{if .IDValue}}v.{{.IDField}} == ""{{else}}(v.{{.IDField}} == nil || *v.{{.IDField}} == ""){{end}} {
+	if v != nil && {{if .IDValue}}v.{{.IDField}} == {{if eq .IDGoType "string"}}""{{else}}0{{end}}{{else}}(v.{{.IDField}} == nil || *v.{{.IDField}} == {{if eq .IDGoType "string"}}""{{else}}0{{end}}){{end}} {
 		v.{{.IDField}} = {{if not .IDValue}}&{{end}}id
 	}
 {{- end}}
