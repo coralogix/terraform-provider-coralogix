@@ -1,0 +1,75 @@
+# A resource that users already have, whose API is a singleton that always exists: a GET reads it,
+# and a POST on the same path sets it. The API has no Create, Update, or Delete. The request sends
+# enabled at the top and the spec object, and the response holds the resource in target, with
+# enabled inside the meta object and the spec as one arm of a oneOf.
+openapi: 3.1.0
+info: {title: upsert, version: 1.0.0}
+paths:
+  /upsert/v1/target:
+    get:
+      tags: [Upsert Service]
+      operationId: UpsertService_GetTarget
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetTargetResponse'}
+    post:
+      tags: [Upsert Service]
+      operationId: UpsertService_SetTarget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Set Target Request
+              type: object
+              required: [enabled, spec]
+              properties:
+                enabled: {type: boolean}
+                spec: {$ref: '#/components/schemas/Spec'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SetTargetResponse'}
+components:
+  schemas:
+    GetTargetResponse:
+      type: object
+      required: [target]
+      properties:
+        target: {$ref: '#/components/schemas/Target'}
+    SetTargetResponse:
+      type: object
+      required: [target]
+      properties:
+        target: {$ref: '#/components/schemas/Target'}
+    Target:
+      type: object
+      required: [meta]
+      oneOf:
+        - {type: object, required: [spec]}
+        - {type: object, required: [other]}
+      properties:
+        meta: {$ref: '#/components/schemas/Meta'}
+        spec: {$ref: '#/components/schemas/Spec'}
+        other: {$ref: '#/components/schemas/Other'}
+    Spec:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string, minLength: 1, description: The name.}
+        zone: {type: string, x-coralogix-presence: true, description: The zone.}
+        token: {type: string, x-coralogix-presence: true, description: A value that the server derives.}
+    Meta:
+      type: object
+      properties:
+        enabled: {type: boolean, description: Whether the target is enabled.}
+        version: {type: string, description: The version that the server sets.}
+    Other:
+      type: object
+      properties:
+        crn: {type: string}
