@@ -272,6 +272,10 @@ func addSingletonID(out *tfResource, root *tfModel, r *model.Resource, singleton
 		}
 		// The fixed fallback and the import are strings, and a request that sets the id would let the
 		// user configure a value that flatten replaces.
+		// The template reads and writes the model field Id.
+		if f.Name != "id" {
+			return fmt.Errorf("singletonID: the id property must be named exactly \"id\", not %q: the generated code reads it as the model field Id", f.Name)
+		}
 		if f.Type == nil || f.Type.Kind != model.String {
 			return fmt.Errorf("singletonID: the id field %s must be a string, not %s", f.Name, typeName(f.Type))
 		}

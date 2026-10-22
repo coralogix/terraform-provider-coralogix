@@ -2080,6 +2080,26 @@ func TestSingletonIDRejectsANumericID(t *testing.T) {
 	}
 }
 
+// The template reads and writes the model field Id, so an id property with another name would
+// generate code that does not compile.
+func TestSingletonIDRejectsAnIDPropertyWithAnotherName(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	renamed := strings.Replace(string(spec), "        id:\n", "        ID:\n", 1)
+	if renamed == string(spec) {
+		t.Fatal("the fixture no longer has the id that this test renames")
+	}
+	input.OpenAPI = []byte(renamed)
+	options := Options{Resource: "settings", OutputDir: filepath.Join(t.TempDir(), "settings"), OverridesPath: filepath.Join("testdata", "singleton-id-overrides.yaml")}
+	err = generateFromInput(options, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "named exactly") {
+		t.Fatalf("error = %v, want the id property must be named id", err)
+	}
+}
+
 // An immutable value that holds a value that the server sets compares only the
 // request values. The stock RequiresReplace would compare the unknown server
 // value and replace the resource on every change.
