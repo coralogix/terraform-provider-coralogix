@@ -1,6 +1,12 @@
 # Unreleased
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.35`.
+- FIX: A contract that already has the property `tfgenReadBack` or a component named `<Response>TfgenReadBack` is reported (`READ_BACK_NAME_COLLISION`) instead of patched into a document with duplicate keys.
+- FIX: The generated Create keeps the id that the API returned when the follow-up Get leaves the id out, and a response component that Update shares with another operation (a Delete) is no longer changed for the read-back.
+- FEAT: The generated Create of a resource whose API returns only the id of the new resource (`api.createResponseID`, a Terraform key) reads the resource with Get, and keeps the id in the state when that read fails, so Terraform marks the resource as tainted.
+- FEAT: The generated Update reads the resource with Get when the API answers it with an object that has no fields (existing mode).
+- FEAT: `Hooks.UpdateGone` and `Hooks.DeleteGone` (existing mode) say that the error of a failed Update or Delete means that the resource is gone, for an API that answers a call on a missing resource with another status than 404.
 - CHORE: Bump the generator to `v0.1.0-beta.34`.
 - FEAT: `requiresReplace: true` on a top-level field replaces the resource when the field changes, although Update accepts it. A PATCH Update does not send the field; a PUT Update still sends it, so an update of another field does not clear it. Combined with `computed: true`, or on a field that a PATCH Update body requires, it is an error.
 - FEAT: `types.<Type>.unsupportedArms` with `unsupportedSummary` and `unsupportedDetail` keeps oneOf arms that a released resource never configured out of the schema and the requests, and flatten reports a response that selects one. Naming no arm, or removing every arm of a group that requires one, is an error.
@@ -10,14 +16,6 @@
 
 #### resource/coralogix_alert
 - DOCS: Describe `phantom_mode`: the alert sends no notifications and opens no incident of its own, and the API rejects a phantom alert whose `notification_group` sets a notification target.
-
-#### tools/iac-codegen
-- CHORE: Bump the generator to `v0.1.0-beta.35`.
-- FIX: A contract that already has the property `tfgenReadBack` or a component named `<Response>TfgenReadBack` is reported (`READ_BACK_NAME_COLLISION`) instead of patched into a document with duplicate keys.
-- FIX: The generated Create keeps the id that the API returned when the follow-up Get leaves the id out, and a response component that Update shares with another operation (a Delete) is no longer changed for the read-back.
-- FEAT: The generated Create of a resource whose API returns only the id of the new resource (`api.createResponseID`, a Terraform key) reads the resource with Get, and keeps the id in the state when that read fails, so Terraform marks the resource as tainted.
-- FEAT: The generated Update reads the resource with Get when the API answers it with an object that has no fields (existing mode).
-- FEAT: `Hooks.UpdateGone` and `Hooks.DeleteGone` (existing mode) say that the error of a failed Update or Delete means that the resource is gone, for an API that answers a call on a missing resource with another status than 404.
 
 # Release 3.22.0
 
