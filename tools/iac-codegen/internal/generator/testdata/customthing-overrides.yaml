@@ -38,6 +38,7 @@ enums:
   ThingKind:
     zero: unspecified
     values: [SYSTEM, CUSTOM]
+    aliases: {unspecified: system}
     rejected: [LEGACY]
     readRejected: true
   AttachmentPolicy:

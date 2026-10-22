@@ -35,6 +35,12 @@ type tfResource struct {
 	// ComputedPaths are the paths of the computed attributes, with list and map
 	// steps left out, as in Conv.OneOfArms.
 	ComputedPaths []string
+	// UniqueChecks, Float32Paths, and EnumAliases are the generic checks of a released
+	// resource: uniqueBy lines, the float32 precision of the float attributes, and the
+	// aliases of the enums lines. See applyConfigChecks.
+	UniqueChecks []uniqueCheck
+	Float32Paths []string
+	EnumAliases  []enumAlias
 	// ServerPaths are the paths of the computed-only attributes inside the
 	// attributes that a request sends, in the form of ComputedPaths. The
 	// server sets them, and Terraform plans them as unknown when the resource
@@ -437,7 +443,7 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 	// modifiers back on a computed-only copy of a component. Configuration is
 	// always null there, so those checks never run.
 	stripComputedConfig(out.Attributes)
-	return nil
+	return applyConfigChecks(out, file)
 }
 
 // stripComputedConfig removes configuration checks from a computed-only attribute

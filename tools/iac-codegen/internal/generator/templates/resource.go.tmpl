@@ -5,13 +5,21 @@ package {{.Package}}
 import (
 	"context"
 	"fmt"
-{{- if .CRUD.IDBits}}
+{{- if or .CRUD.IDBits .Float32Paths}}
 	"strconv"
+{{- end}}
+{{- if or .Float32Paths .EnumAliases}}
+	"strings"
+{{- end}}
+{{- if .Float32Paths}}
+	"math/big"
 {{- end}}
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 {{- if .CRUD.UpdateOnly}}
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+{{- end}}
+{{- if or .CRUD.UpdateOnly .UniqueChecks .Float32Paths .EnumAliases}}
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 {{- end}}
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -40,7 +48,6 @@ var (
 	_ resource.ResourceWithImportState      = (*Resource)(nil)
 {{- if .Existing}}
 	_ resource.ResourceWithValidateConfig   = (*Resource)(nil)
-	_ resource.ResourceWithModifyPlan       = (*Resource)(nil)
 {{- end}}
 {{- if .Upgrades}}
 	_ resource.ResourceWithUpgradeState     = (*Resource)(nil)
@@ -72,16 +79,6 @@ type Hooks struct {
 	// ValidateConfig adds checks that no attribute validator expresses, such as a rule over
 	// the items of a set.
 	ValidateConfig func(context.Context, tfsdk.Config) diag.Diagnostics
-	// ModifyPlan changes the plan after the plan modifiers of the attributes ran, for a rule
-	// over several attributes, such as an alias that the plan normalizes.
-	ModifyPlan func(context.Context, resource.ModifyPlanRequest, *resource.ModifyPlanResponse)
-	// CreateFallback runs when the Create call fails. It returns the resource and true when it
-	// created or adopted the resource in another way, for an API that refuses a create next to
-	// a resource that exists. It returns false to report the error of the Create call.
-	CreateFallback func(context.Context, *{{$sdk}}.{{.Client}}, *{{$sdk}}.{{$.Conv.CreateBody}}, error) (*{{$sdk}}.{{.Resource}}, bool, diag.Diagnostics)
-	// IgnoreDeleteError reports whether the error of a failed Delete call can be ignored, for an
-	// API that clears the resource and still answers with an error.
-	IgnoreDeleteError func(context.Context, *{{$sdk}}.{{.Client}}, error) bool
 }
 
 // NewResource returns the resource. Use it in provider.Resources.
@@ -118,16 +115,124 @@ func (r *Resource) ConfigValidators(context.Context) []resource.ConfigValidator 
 {{- if .Existing}}
 
 func (r *Resource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+{{- if or $.UniqueChecks $.Float32Paths}}
+	resp.Diagnostics.Append(configChecks(req.Config)...)
+{{- end}}
 	if r.hooks.ValidateConfig != nil {
 		resp.Diagnostics.Append(r.hooks.ValidateConfig(ctx, req.Config)...)
 	}
 }
-{{- if not $.Conv.UsesEquality}}
 
-func (r *Resource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	if r.hooks.ModifyPlan != nil {
-		r.hooks.ModifyPlan(ctx, req, resp)
+// beforeWrite checks the resolved configuration again, because a value that comes from another
+// resource is unknown while Terraform validates the configuration, and then runs the BeforeWrite hook.
+func (r *Resource) beforeWrite(ctx context.Context, config tfsdk.Config, body any) diag.Diagnostics {
+	var diags diag.Diagnostics
+{{- if or $.UniqueChecks $.Float32Paths}}
+	diags.Append(configChecks(config)...)
+	if diags.HasError() {
+		return diags
 	}
+{{- end}}
+	if r.hooks.BeforeWrite != nil {
+		diags.Append(r.hooks.BeforeWrite(ctx, config, body)...)
+	}
+	return diags
+}
+{{- if or $.UniqueChecks $.Float32Paths}}
+
+// configChecks runs the checks that the behavior-overrides file asks for: the uniqueBy lines and
+// the float32 precision of the float attributes.
+func configChecks(config tfsdk.Config) diag.Diagnostics {
+	var diags diag.Diagnostics
+{{- range $.UniqueChecks}}
+	diags.Append(checkUnique(config.Raw, {{printf "%q" .Attr}}, {{printf "%q" .Key}})...)
+{{- end}}
+{{- if $.Float32Paths}}
+	diags.Append(checkFloat32Precision(config.Raw)...)
+{{- end}}
+	return diags
+}
+{{- end}}
+{{- if $.UniqueChecks}}
+
+// checkUnique reports an item of the collection that has the same key value as an earlier one.
+// A null or unknown value is not a duplicate.
+func checkUnique(config tftypes.Value, collection, key string) diag.Diagnostics {
+	var diags diag.Diagnostics
+	var root map[string]tftypes.Value
+	if config.IsNull() || !config.IsKnown() || config.As(&root) != nil {
+		return diags
+	}
+	var items []tftypes.Value
+	if value := root[collection]; !value.IsKnown() || value.IsNull() || value.As(&items) != nil {
+		return diags
+	}
+	seen := map[string]bool{}
+	for _, item := range items {
+		var fields map[string]tftypes.Value
+		if !item.IsKnown() || item.IsNull() || item.As(&fields) != nil {
+			continue
+		}
+		var text string
+		if v := fields[key]; !v.IsKnown() || v.IsNull() || v.As(&text) != nil {
+			continue
+		}
+		if seen[text] {
+			diags.AddAttributeError(path.Root(collection), "Duplicate "+collection+" "+key,
+				fmt.Sprintf("Only one item of %s can set %s to %q.", collection, key, text))
+			continue
+		}
+		seen[text] = true
+	}
+	return diags
+}
+{{- end}}
+{{- if $.Float32Paths}}
+
+// float32Attributes are the attributes that the API stores as float32.
+var float32Attributes = map[string]bool{
+{{- range $.Float32Paths}}
+	{{printf "%q" .}}: true,
+{{- end}}
+}
+
+// checkFloat32Precision reports a float32 attribute that the API would return as another number:
+// the state would then differ from the configuration.
+func checkFloat32Precision(config tftypes.Value) diag.Diagnostics {
+	var diags diag.Diagnostics
+	_ = tftypes.Walk(config, func(p *tftypes.AttributePath, v tftypes.Value) (bool, error) {
+		if !float32Attributes[attributeKey(p)] || !v.IsKnown() || v.IsNull() {
+			return true, nil
+		}
+		var given big.Float
+		if v.As(&given) != nil {
+			return true, nil
+		}
+		stored, _ := given.Float32()
+		returned, err := strconv.ParseFloat(strconv.FormatFloat(float64(stored), 'f', -1, 32), 64)
+		asked, _ := given.Float64()
+		if err == nil && returned != asked {
+			text := strconv.FormatFloat(returned, 'f', -1, 64)
+			diags.AddAttributeError(path.Root(string(p.Steps()[0].(tftypes.AttributeName))), "Invalid "+attributeKey(p)+" precision",
+				fmt.Sprintf("%s is %s, but the API stores it as float32 and would return %s. Configure %s instead to avoid state drift.",
+					attributeKey(p), given.Text('f', -1), text, text))
+		}
+		return true, nil
+	})
+	return diags
+}
+{{- end}}
+{{- if or $.Float32Paths $.EnumAliases}}
+
+// attributeKey is the dotted Terraform path of an attribute, without the steps of lists, sets, and maps.
+func attributeKey(p *tftypes.AttributePath) string {
+	var names []string
+	for _, step := range p.Steps() {
+		if name, ok := step.(tftypes.AttributeName); ok {
+			names = append(names, string(name))
+		}
+	}
+	return strings.Join(names, ".")
 }
 {{- end}}
 {{- end}}
@@ -175,11 +280,9 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 		return
 	}
 {{- if .Existing}}
-	if r.hooks.BeforeWrite != nil {
-		resp.Diagnostics.Append(r.hooks.BeforeWrite(ctx, req.Config, body)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
+	resp.Diagnostics.Append(r.beforeWrite(ctx, req.Config, body)...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 {{- end}}
 {{- if .UpdateOnly}}
@@ -189,18 +292,6 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	}
 {{- end}}
 	v, err := r.create(ctx, body)
-{{- if .Existing}}
-	if err != nil && r.hooks.CreateFallback != nil {
-		fallback, handled, fallbackDiags := r.hooks.CreateFallback(ctx, r.client, body, err)
-		resp.Diagnostics.Append(fallbackDiags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		if handled {
-			v, err = fallback, nil
-		}
-	}
-{{- end}}
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create "+TypeName, err.Error())
 		return
@@ -288,12 +379,10 @@ func (r *Resource) applyUpdateOnly(ctx context.Context, config tfsdk.Config, pla
 		return diags
 	}
 {{- if .Existing}}
-	if r.hooks.BeforeWrite != nil {
-		// The follow-up Update is a write like any other: the overlay completes its body.
-		diags.Append(r.hooks.BeforeWrite(ctx, config, body)...)
-		if diags.HasError() {
-			return diags
-		}
+	// The follow-up Update is a write like any other: the overlay completes its body.
+	diags.Append(r.beforeWrite(ctx, config, body)...)
+	if diags.HasError() {
+		return diags
 	}
 {{- end}}
 {{- if and .MaskInBody (not .OmitMask)}}
@@ -400,8 +489,8 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		return
 	}
 {{- if .Existing}}
-	if body != nil && r.hooks.BeforeWrite != nil {
-		resp.Diagnostics.Append(r.hooks.BeforeWrite(ctx, req.Config, body)...)
+	if body != nil {
+		resp.Diagnostics.Append(r.beforeWrite(ctx, req.Config, body)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -448,11 +537,6 @@ func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp 
 		return
 	}
 	err := r.delete(ctx, id)
-{{- if .Existing}}
-	if err != nil && r.hooks.IgnoreDeleteError != nil && r.hooks.IgnoreDeleteError(ctx, r.client, err) {
-		return
-	}
-{{- end}}
 	if err != nil && !{{$cx}}.{{.APINotFound}}(err) {
 		resp.Diagnostics.AddError("Unable to delete "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 	}

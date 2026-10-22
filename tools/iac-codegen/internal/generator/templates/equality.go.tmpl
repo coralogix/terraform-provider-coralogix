@@ -15,7 +15,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+{{- if .Conv.UsesEquality "yaml"}}
 	yaml "gopkg.in/yaml.v3"
+{{- end}}
 )
 
 var _ resource.ResourceWithModifyPlan = (*Resource)(nil)
@@ -263,17 +265,57 @@ func keepEquivalentText(prior, api types.String, equal func(a, b string) bool) t
 	return api
 }
 
+{{- if .EnumAliases}}
+// enumAliases are the enum values that the plan replaces, by attribute: the API stores the alias as
+// its target.
+var enumAliases = map[string]map[string]string{
+{{- range .EnumAliases}}
+	{{printf "%q" .Path}}: {
+	{{- range .Pairs}}
+		{{printf "%q" .From}}: {{printf "%q" .To}},
+	{{- end}}
+	},
+{{- end}}
+}
+
+// normalizeEnumAliases replaces each alias value in the plan with its target.
+func normalizeEnumAliases(plan tftypes.Value) (tftypes.Value, error) {
+	return tftypes.Transform(plan, func(p *tftypes.AttributePath, v tftypes.Value) (tftypes.Value, error) {
+		aliases, ok := enumAliases[attributeKey(p)]
+		if !ok || !v.IsKnown() || v.IsNull() {
+			return v, nil
+		}
+		var text string
+		if err := v.As(&text); err != nil {
+			return v, err
+		}
+		if target, ok := aliases[text]; ok {
+			return tftypes.NewValue(v.Type(), target), nil
+		}
+		return v, nil
+	})
+}
+{{end}}
 // ModifyPlan plans no change when the configuration differs from the state only in the format of
-// a document. Terraform marks every computed attribute that the configuration does not set unknown
-// when the configuration changes, before equivalentDocument keeps the state of the documents. When
-// every known planned value is the state, those unknown values are the only difference, and nothing
-// changes.
+// a document{{if .EnumAliases}} or in the alias of an enum value{{end}}. Terraform marks every computed attribute that the
+// configuration does not set unknown when the configuration changes, before equivalentDocument
+// keeps the state of the documents{{if .EnumAliases}} and the aliases are replaced{{end}}. When every known planned value is the
+// state, those unknown values are the only difference, and nothing changes.
 func (r *Resource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	if !req.State.Raw.IsNull() && !req.Plan.Raw.IsNull() && onlyUnsetUnknowns(req.Plan.Raw, req.Config.Raw, req.State.Raw) {
-		resp.Plan.Raw = req.State.Raw
+	plan := req.Plan.Raw
+{{- if .EnumAliases}}
+	if !plan.IsNull() {
+		normalized, err := normalizeEnumAliases(plan)
+		if err != nil {
+			resp.Diagnostics.AddError("Unable to plan "+TypeName, err.Error())
+			return
+		}
+		plan = normalized
+		resp.Plan.Raw = plan
 	}
-	if r.hooks.ModifyPlan != nil {
-		r.hooks.ModifyPlan(ctx, req, resp)
+{{- end}}
+	if !req.State.Raw.IsNull() && !plan.IsNull() && onlyUnsetUnknowns(plan, req.Config.Raw, req.State.Raw) {
+		resp.Plan.Raw = req.State.Raw
 	}
 }
 

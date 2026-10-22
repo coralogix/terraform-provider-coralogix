@@ -305,6 +305,10 @@ type Field struct {
 	// accepts it, as the released resource did. A PATCH Update does not send the field. A PUT
 	// Update still sends it, so an update of another field does not clear it.
 	RequiresReplace bool `yaml:"requiresReplace"`
+	// UniqueBy names a property of the items of a top-level list or set of objects (entityType)
+	// that must differ between the items. The generated resource reports a duplicate before the
+	// request, for an API that rejects it.
+	UniqueBy string `yaml:"uniqueBy"`
 }
 
 // Equality values of a field line.
@@ -376,6 +380,35 @@ func (t Type) checkUnsupported() error {
 
 // TFValue is the Terraform value of the API value v of the enum: its names entry, or the value
 // without trimPrefix, in lower case unless the line is verbatim.
+// checkAliases checks that each alias is an accepted Terraform value and has another accepted value
+// as its target. The zero value is no target: the plan would replace a value with the API's
+// unspecified one.
+func (e Enum) checkAliases(name string) error {
+	accepted := map[string]bool{}
+	targets := map[string]bool{}
+	if e.Zero != "" {
+		accepted[e.Zero] = true
+	}
+	for _, v := range e.Values {
+		accepted[e.TFValue(v)] = true
+		targets[e.TFValue(v)] = true
+	}
+	for _, alias := range sortedKeys(e.Aliases) {
+		target := e.Aliases[alias]
+		switch {
+		case !accepted[alias]:
+			return fmt.Errorf("enums.%s.aliases: %q is not the zero value or a value of the enum, so no config can set it", name, alias)
+		case !targets[target]:
+			return fmt.Errorf("enums.%s.aliases: the target %q of %q is not a value of the enum", name, target, alias)
+		case target == alias:
+			return fmt.Errorf("enums.%s.aliases: %q maps to itself", name, alias)
+		case e.Aliases[target] != "":
+			return fmt.Errorf("enums.%s.aliases: the target %q of %q is an alias itself", name, target, alias)
+		}
+	}
+	return nil
+}
+
 func (e Enum) TFValue(v string) string {
 	if tf, ok := e.Names[v]; ok {
 		return tf
@@ -410,6 +443,11 @@ type Enum struct {
 	// spells it in another way (SEVERITY_DEBUG is Debug). It overrides the lower case and
 	// Verbatim.
 	Names map[string]string `yaml:"names"`
+	// Aliases maps a Terraform value that the resource accepts to the Terraform value that the
+	// plan replaces it with, for an alias that the API stores as another value (unspecified is
+	// percentage). The alias is the zero value or one of the values, and its target is one of
+	// the values.
+	Aliases map[string]string `yaml:"aliases"`
 	// Rejected are the values of the contract that the resource does not accept. The generator
 	// reports a value of the contract that is in neither list, so a new API value needs a decision.
 	Rejected []string `yaml:"rejected"`
@@ -592,6 +630,9 @@ func (f *File) checkEnums() error {
 		if e.Zero != "" {
 			seen[e.Zero] = "zero"
 		}
+		if err := e.checkAliases(name); err != nil {
+			return err
+		}
 		if e.ReadRejected == ReadRejectedLower && e.Verbatim {
 			return fmt.Errorf("enums.%s: readRejected: lower excludes verbatim", name)
 		}
@@ -654,6 +695,7 @@ func (l Field) keys() []string {
 	add(l.Equality != "", "equality")
 	add(l.Unwrap != nil, "unwrap")
 	add(l.RequiresReplace, "requiresReplace")
+	add(l.UniqueBy != "", "uniqueBy")
 	return keys
 }
 
@@ -706,7 +748,7 @@ func (l Field) emptyMode() bool {
 
 func (l Field) emptyValue() bool {
 	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.KeyedBy == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() &&
-		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == ""
 }
 
 func (l Field) check() error {
@@ -837,7 +879,7 @@ func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.Fixed() ||
 		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.AsBool || l.TerraformType != "" || l.DefaultArm ||
-		l.RequiresReplace
+		l.RequiresReplace || l.UniqueBy != ""
 }
 
 func checkValidators(validators []Validator) error {

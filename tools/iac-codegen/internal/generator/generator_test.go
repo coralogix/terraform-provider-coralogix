@@ -2626,3 +2626,156 @@ func TestUnsupportedArmKeepsItsEnumLine(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// uniqueBy, the float32 precision of a float attribute, and an enum alias are generic checks of a
+// released resource. The precision is a limit of the contract, so validators.inferred: false leaves it out.
+func TestConfigChecksFromGenericKeys(t *testing.T) {
+	rule := &model.Type{Kind: model.Object, Schema: "Rule", CreateSchema: "Rule", Fields: []*model.Field{
+		{Name: "entityType", Type: &model.Type{Kind: model.String}, Behavior: model.Normal, Create: &model.Attrs{Required: true}},
+		{Name: "allocation", Type: &model.Type{Kind: model.Number, Format: "float"}, Behavior: model.Normal, Create: &model.Attrs{Required: true, Presence: true}},
+		{Name: "mode", Type: &model.Type{Kind: model.Enum, Schema: "RuleMode", Values: []string{"RULE_MODE_ONE", "RULE_MODE_TWO"}, EnumZero: "RULE_MODE_UNSPECIFIED"}, Behavior: model.Normal, Create: &model.Attrs{}},
+	}}
+	resource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{
+		{Name: "rules", Type: &model.Type{Kind: model.List, Elem: rule}, Behavior: model.Normal, Create: &model.Attrs{}, Get: &model.Attrs{}, InGet: true},
+		{Name: "name", Type: &model.Type{Kind: model.String}, Behavior: model.Normal, Create: &model.Attrs{Required: true}, Get: &model.Attrs{}, InGet: true},
+	}}
+	lines := "types:\n  Thing:\n    fields:\n      rules: {uniqueBy: entityType}\nenums:\n  RuleMode:\n    zero: unspecified\n    trimPrefix: RULE_MODE_\n    values: [RULE_MODE_ONE, RULE_MODE_TWO]\n    aliases: {unspecified: one}\n"
+	head := func(inferred string) string {
+		return "resource: Thing\nmode: existing\nvalidators:\n  inferred: " + inferred + "\n"
+	}
+
+	data, err := buildTFResourceWith(resource, "thing", mustParse(t, head("true")+lines))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []uniqueCheck{{Attr: "rules", Key: "entity_type"}}; !slices.Equal(data.UniqueChecks, want) {
+		t.Errorf("unique checks = %v, want %v", data.UniqueChecks, want)
+	}
+	if want := []string{"rules.allocation"}; !slices.Equal(data.Float32Paths, want) {
+		t.Errorf("float32 paths = %v, want %v", data.Float32Paths, want)
+	}
+	if want := []enumAlias{{Path: "rules.mode", Pairs: []aliasPair{{From: "unspecified", To: "one"}}}}; !reflect.DeepEqual(data.EnumAliases, want) {
+		t.Errorf("enum aliases = %v, want %v", data.EnumAliases, want)
+	}
+
+	data, err = buildTFResourceWith(resource, "thing", mustParse(t, head("false")+lines))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(data.Float32Paths) != 0 {
+		t.Errorf("float32 paths = %v, want none for validators.inferred: false", data.Float32Paths)
+	}
+
+	for name, tc := range map[string]struct{ lines, want string }{
+		"no such property": {"types:\n  Thing:\n    fields:\n      rules: {uniqueBy: missing}\n", `have no property "missing"`},
+		"not a collection": {"types:\n  Thing:\n    fields:\n      name: {uniqueBy: entityType}\n", "no list or set of objects"},
+		"not a string":     {"types:\n  Thing:\n    fields:\n      rules: {uniqueBy: allocation}\n", "no plain string"},
+	} {
+		_, err := buildTFResourceWith(resource, "thing", mustParse(t, head("true")+tc.lines))
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: err = %v, want %q", name, err, tc.want)
+		}
+	}
+}
+
+// The generated code of a released resource checks a duplicate uniqueBy value and the float32
+// precision before the write, and plans an enum alias as its target.
+func TestGeneratedGenericChecks(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "rulebook.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "rulebook")
+	options := Options{Resource: "rulebook", OutputDir: out, OverridesPath: filepath.Join("testdata", "rulebook-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	semantics := `package rulebook
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+)
+
+func rulesConfig(t *testing.T, rules ...map[string]tftypes.Value) tfsdk.Config {
+	t.Helper()
+	ruleType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"entity_type": tftypes.String, "allocation": tftypes.Number, "mode": tftypes.String}}
+	items := []tftypes.Value{}
+	for _, r := range rules {
+		items = append(items, tftypes.NewValue(ruleType, r))
+	}
+	attrs := map[string]tftypes.Type{}
+	for name, a := range Schema().Attributes {
+		attrs[name] = a.GetType().TerraformType(t.Context())
+	}
+	values := map[string]tftypes.Value{}
+	for name, typ := range attrs {
+		values[name] = tftypes.NewValue(typ, nil)
+	}
+	values["rules"] = tftypes.NewValue(tftypes.Set{ElementType: ruleType}, items)
+	return tfsdk.Config{Schema: Schema(), Raw: tftypes.NewValue(tftypes.Object{AttributeTypes: attrs}, values)}
+}
+
+func rule(entity string, allocation any) map[string]tftypes.Value {
+	return map[string]tftypes.Value{
+		"entity_type": tftypes.NewValue(tftypes.String, entity),
+		"allocation":  tftypes.NewValue(tftypes.Number, allocation),
+		"mode":        tftypes.NewValue(tftypes.String, nil),
+	}
+}
+
+func TestGenericChecks(t *testing.T) {
+	if d := configChecks(rulesConfig(t, rule("logs", 10), rule("spans", 0.5))); d.HasError() {
+		t.Fatalf("valid config: %v", d)
+	}
+	d := configChecks(rulesConfig(t, rule("logs", 10), rule("logs", 20)))
+	if !d.HasError() || !strings.Contains(d[0].Summary(), "Duplicate rules entity_type") {
+		t.Fatalf("duplicate entity_type: %v", d)
+	}
+	d = configChecks(rulesConfig(t, rule("logs", 0.1234567891)))
+	if !d.HasError() || !strings.Contains(d[0].Detail(), "stores it as float32") {
+		t.Fatalf("float32 precision: %v", d)
+	}
+}
+
+func TestEnumAliasIsPlannedAsItsTarget(t *testing.T) {
+	ruleType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"mode": tftypes.String}}
+	plan := tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{"rules": tftypes.Set{ElementType: ruleType}}}, map[string]tftypes.Value{
+		"rules": tftypes.NewValue(tftypes.Set{ElementType: ruleType}, []tftypes.Value{
+			tftypes.NewValue(ruleType, map[string]tftypes.Value{"mode": tftypes.NewValue(tftypes.String, "unspecified")}),
+			tftypes.NewValue(ruleType, map[string]tftypes.Value{"mode": tftypes.NewValue(tftypes.String, "two")}),
+		}),
+	})
+	got, err := normalizeEnumAliases(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var root map[string]tftypes.Value
+	var items []tftypes.Value
+	if err := got.As(&root); err != nil || root["rules"].As(&items) != nil {
+		t.Fatal(err)
+	}
+	modes := map[string]bool{}
+	for _, item := range items {
+		var fields map[string]tftypes.Value
+		var mode string
+		if err := item.As(&fields); err != nil || fields["mode"].As(&mode) != nil {
+			t.Fatal(err)
+		}
+		modes[mode] = true
+	}
+	if !modes["one"] || !modes["two"] || modes["unspecified"] {
+		t.Fatalf("modes = %v, want one and two", modes)
+	}
+}
+`
+	if err := os.WriteFile(filepath.Join(out, "generic_checks_test.go"), []byte(semantics), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}

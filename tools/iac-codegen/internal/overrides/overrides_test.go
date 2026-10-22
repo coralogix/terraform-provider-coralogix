@@ -518,3 +518,24 @@ func TestUpdateMaskOmit(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestEnumAliasesAreChecked(t *testing.T) {
+	base := "resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  A: "
+	if _, err := Parse([]byte(base + "{zero: unspecified, values: [A_ONE], trimPrefix: A_, aliases: {unspecified: one}}\n")); err != nil {
+		t.Fatalf("the zero value as an alias: %v", err)
+	}
+	for name, enum := range map[string]struct{ text, want string }{
+		"an alias that no config can set": {"{values: [A_ONE, A_TWO], aliases: {a_three: a_one}}", "no config can set it"},
+		"a target that is no value":       {"{zero: unspecified, values: [A_ONE], aliases: {unspecified: a_two}}", "is not a value of the enum"},
+		"the zero value as a target":      {"{zero: unspecified, values: [A_ONE], aliases: {a_one: unspecified}}", "is not a value of the enum"},
+		"an alias of itself":              {"{values: [A_ONE], aliases: {a_one: a_one}}", "maps to itself"},
+		"a chain":                         {"{values: [A_ONE, A_TWO], aliases: {a_one: a_two, a_two: a_one}}", "is an alias itself"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := Parse([]byte(base + enum.text + "\n"))
+			if err == nil || !strings.Contains(err.Error(), enum.want) {
+				t.Fatalf("err = %v, want %q", err, enum.want)
+			}
+		})
+	}
+}
