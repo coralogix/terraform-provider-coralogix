@@ -208,11 +208,12 @@ func checkFloat32Precision(config tftypes.Value) diag.Diagnostics {
 		if v.As(&given) != nil {
 			return true, nil
 		}
+		// The state holds the shortest decimal of the float32, parsed at the precision of the
+		// configuration, so the comparison keeps every digit of both.
 		stored, _ := given.Float32()
-		returned, err := strconv.ParseFloat(strconv.FormatFloat(float64(stored), 'f', -1, 32), 64)
-		asked, _ := given.Float64()
-		if err == nil && returned != asked {
-			text := strconv.FormatFloat(returned, 'f', -1, 64)
+		text := strconv.FormatFloat(float64(stored), 'f', -1, 32)
+		returned, _, err := big.ParseFloat(text, 10, 512, big.ToNearestEven)
+		if err == nil && given.Cmp(returned) != 0 {
 			diags.AddAttributeError(path.Root(string(p.Steps()[0].(tftypes.AttributeName))), "Invalid "+attributeKey(p)+" precision",
 				fmt.Sprintf("%s is %s, but the API stores it as float32 and would return %s. Configure %s instead to avoid state drift.",
 					attributeKey(p), given.Text('f', -1), text, text))

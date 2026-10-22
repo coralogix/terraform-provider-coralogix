@@ -1,7 +1,7 @@
 # Unreleased
 
 #### tools/iac-codegen
-- CHORE: Bump the generator to `v0.1.0-beta.37`.
+- CHORE: Bump the generator to `v0.1.0-beta.38`.
 - CHORE: Bump the generator to `v0.1.0-beta.34`.
 - FEAT: `requiresReplace: true` on a top-level field replaces the resource when the field changes, although Update accepts it. A PATCH Update does not send the field; a PUT Update still sends it, so an update of another field does not clear it. Combined with `computed: true`, or on a field that a PATCH Update body requires, it is an error.
 - FEAT: `types.<Type>.unsupportedArms` with `unsupportedSummary` and `unsupportedDetail` keeps oneOf arms that a released resource never configured out of the schema and the requests, and flatten reports a response that selects one. Naming no arm, or removing every arm of a group that requires one, is an error.
@@ -9,7 +9,7 @@
 - FEAT: `enums.<Enum>.readRejected: lower` reads a rejected value in lower case instead of the API spelling.
 - CHORE: The `evalthing` golden fixture covers the four keys.
 - FEAT: `singletonID: true` for a singleton whose API resource has a server-set `id`: the id attribute holds that id, and a `Get` without an id falls back to the type name. A writable or numeric id, a default on it, or one that is not named `id` is an error.
-- FEAT: `uniqueBy: <property>` on a top-level list or set of objects reports an item that repeats a string property, at validation and again before the write.
+- FEAT: `uniqueBy: <property>` on a top-level list or set of objects reports an item that repeats a string property, at validation and again before the write. A property whose enum has aliases is an error, because an alias and its target would count as two keys.
 - FEAT: With `validators.inferred: true`, a float attribute that the API would return as another float32 is reported before the write.
 - FEAT: `enums.<Enum>.aliases` plans an accepted value as another value, for an alias that the API stores as its target, in the items of a set only (Terraform rejects a changed configured value elsewhere). A plan that equals the state after that plans no change.
 - FEAT: `Hooks.ValidateConfig` adds checks that no key expresses.

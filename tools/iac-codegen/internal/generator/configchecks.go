@@ -33,7 +33,7 @@ func applyConfigChecks(out *tfResource, file *overrides.File) error {
 		if line.UniqueBy == "" {
 			continue
 		}
-		check, err := uniqueCheckOf(a, line.UniqueBy)
+		check, err := uniqueCheckOf(a, line.UniqueBy, file)
 		if err != nil {
 			return fmt.Errorf("%s.%s: uniqueBy: %w", a.Component, a.Property, err)
 		}
@@ -58,7 +58,7 @@ func applyConfigChecks(out *tfResource, file *overrides.File) error {
 	return nil
 }
 
-func uniqueCheckOf(a *tfAttr, property string) (uniqueCheck, error) {
+func uniqueCheckOf(a *tfAttr, property string, file *overrides.File) (uniqueCheck, error) {
 	if (a.ValueKind != "List" && a.ValueKind != "Set") || len(a.Attributes) == 0 {
 		return uniqueCheck{}, fmt.Errorf("%s is no list or set of objects", a.Name)
 	}
@@ -71,6 +71,10 @@ func uniqueCheckOf(a *tfAttr, property string) (uniqueCheck, error) {
 		}
 		if item.ValueKind != "String" || item.CustomType != "" {
 			return uniqueCheck{}, fmt.Errorf("%s of %s is no plain string", item.Name, a.Name)
+		}
+		if enum, ok := file.Enums[item.EnumSchema]; ok && item.EnumSchema != "" && len(enum.Aliases) != 0 {
+			// The plan rewrites an alias after the check, so an alias and its target would pass as two keys.
+			return uniqueCheck{}, fmt.Errorf("%s of %s has enum aliases, so an alias and its target would count as two keys", item.Name, a.Name)
 		}
 		return uniqueCheck{Attr: a.Name, Key: item.Name}, nil
 	}

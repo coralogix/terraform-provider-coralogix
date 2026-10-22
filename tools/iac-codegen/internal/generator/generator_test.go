@@ -2675,9 +2675,10 @@ func TestConfigChecksFromGenericKeys(t *testing.T) {
 	}
 
 	for name, tc := range map[string]struct{ lines, want string }{
-		"no such property": {"types:\n  Thing:\n    fields:\n      rules: {uniqueBy: missing}\n", `have no property "missing"`},
-		"not a collection": {"types:\n  Thing:\n    fields:\n      name: {uniqueBy: entityType}\n", "no list or set of objects"},
-		"not a string":     {"types:\n  Thing:\n    fields:\n      rules: {uniqueBy: allocation}\n", "no plain string"},
+		"a key with aliases": {"types:\n  Thing:\n    fields:\n      rules: {uniqueBy: mode}\nenums:\n  RuleMode:\n    zero: unspecified\n    trimPrefix: RULE_MODE_\n    values: [RULE_MODE_ONE, RULE_MODE_TWO]\n    aliases: {unspecified: one}\n", "would count as two keys"},
+		"no such property":   {"types:\n  Thing:\n    fields:\n      rules: {uniqueBy: missing}\n", `have no property "missing"`},
+		"not a collection":   {"types:\n  Thing:\n    fields:\n      name: {uniqueBy: entityType}\n", "no list or set of objects"},
+		"not a string":       {"types:\n  Thing:\n    fields:\n      rules: {uniqueBy: allocation}\n", "no plain string"},
 	} {
 		_, err := buildTFResourceWith(resource, "thing", mustParse(t, head("true")+tc.lines))
 		if err == nil || !strings.Contains(err.Error(), tc.want) {
@@ -2703,6 +2704,7 @@ func TestGeneratedGenericChecks(t *testing.T) {
 	semantics := `package rulebook
 
 import (
+	"math/big"
 	"strings"
 	"testing"
 
@@ -2744,6 +2746,14 @@ func TestGenericChecks(t *testing.T) {
 	d := configChecks(rulesConfig(t, rule("logs", 10), rule("logs", 20)))
 	if !d.HasError() || !strings.Contains(d[0].Summary(), "Duplicate rules entity_type") {
 		t.Fatalf("duplicate entity_type: %v", d)
+	}
+	// A difference below float64 precision is still a difference.
+	almostHalf, _, err := big.ParseFloat("0.5000000000000000000000000001", 10, 512, big.ToNearestEven)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d := configChecks(rulesConfig(t, rule("logs", almostHalf))); !d.HasError() {
+		t.Fatalf("a number just above 0.5 reads back as 0.5: %v", d)
 	}
 	d = configChecks(rulesConfig(t, rule("logs", 0.1234567891)))
 	if !d.HasError() || !strings.Contains(d[0].Detail(), "stores it as float32") {
