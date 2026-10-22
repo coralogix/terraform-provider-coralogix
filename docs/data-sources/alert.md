@@ -31,7 +31,7 @@ Coralogix Alert. For more info check - https://coralogix.com/docs/getting-starte
 - `labels` (Map of String) Key-value labels on the alert definition. Use them to categorize the alert and to match Notification Center routers and alert-scheduler mute rules. Omit the attribute to clear all labels. An empty map is rejected.
 - `name` (String) Alert name.
 - `notification_group` (Attributes) (see [below for nested schema](#nestedatt--notification_group))
-- `phantom_mode` (Boolean)
+- `phantom_mode` (Boolean) When `true`, the alert is evaluated but stays silent: it sends no notifications and opens no incident of its own. Use it for alerts that serve as building blocks of a flow alert, which then notifies and opens the incident. The Coralogix API rejects a phantom alert whose `notification_group` sets `group_by_keys`, `webhooks_settings`, `destinations` or `router`. Omit `notification_group` or leave it empty. Defaults to `false`.
 - `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"]. This field will be removed in the future in favor of the 'override' property where possible.
 - `schedule` (Attributes) Alert schedule. Will be activated all the time if not specified. (see [below for nested schema](#nestedatt--schedule))
 - `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold, analytics_immediate (preview), analytics_threshold (preview). (see [below for nested schema](#nestedatt--type_definition))
