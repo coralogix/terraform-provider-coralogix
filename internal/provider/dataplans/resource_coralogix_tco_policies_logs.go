@@ -527,15 +527,7 @@ func (r *TCOPoliciesLogsResource) Update(ctx context.Context, req resource.Updat
 		Execute()
 
 	if err != nil {
-		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("coralogix_tco_policies_logs %v is in state, but no longer exists in Coralogix backend", rq),
-				fmt.Sprintf("%v will be recreated when you apply", rq),
-			)
-			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError("Error replacing coralogix_tco_policies_logs", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
-		}
+		resp.Diagnostics.AddError("Error replacing coralogix_tco_policies_logs", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
 		return
 	}
 

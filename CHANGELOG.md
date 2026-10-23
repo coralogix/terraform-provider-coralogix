@@ -17,6 +17,9 @@
 
 #### resource/coralogix_alert
 - DOCS: Describe `phantom_mode`: the alert sends no notifications and opens no incident of its own, and the API rejects a phantom alert whose `notification_group` sets a notification target.
+
+#### resource/coralogix_tco_policies_logs, resource/coralogix_tco_policies_traces, resource/coralogix_tco_policies_rum
+- CHORE: Remove the unreachable 404 branch from Update. The overwrite API recreates deleted policies and never returns 404 for them.
 # Release 3.22.0
 
 #### resource/coralogix_connector, resource/coralogix_global_router, resource/coralogix_preset
