@@ -499,7 +499,7 @@ func logsFilterSchema() schema.SingleNestedAttribute {
 		Optional: true,
 		Computed: true,
 		PlanModifiers: []planmodifier.Object{
-			objectplanmodifier.UseStateForUnknown(),
+			objectplanmodifier.UseNonNullStateForUnknown(),
 		},
 		Attributes: map[string]schema.Attribute{
 			"simple_filter": schema.SingleNestedAttribute{
@@ -608,7 +608,7 @@ func noDataPolicySchema() schema.SingleNestedAttribute {
 		Optional: true,
 		Computed: true,
 		PlanModifiers: []planmodifier.Object{
-			objectplanmodifier.UseStateForUnknown(),
+			objectplanmodifier.UseNonNullStateForUnknown(),
 		},
 		Attributes: map[string]schema.Attribute{
 			"auto_retire_seconds": schema.Int64Attribute{
