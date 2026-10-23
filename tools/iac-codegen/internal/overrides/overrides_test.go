@@ -539,3 +539,50 @@ func TestEnumAliasesAreChecked(t *testing.T) {
 		})
 	}
 }
+
+func TestParseUpsertHoistAndName(t *testing.T) {
+	text := `
+resource: Target
+mode: existing
+typeName: archive_logs
+fixedID: settings
+validators:
+  inferred: false
+api:
+  upsert: {get: S_GetTarget, set: S_SetTarget}
+types:
+  Target:
+    fields:
+      s3: {hoist: true}
+      isActive: {name: active, computed: true, default: true}
+`
+	f, err := Parse([]byte(text))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := f.Policy()
+	if f.TypeName != "archive_logs" || f.FixedID != "settings" || f.API.Upsert == nil || *f.API.Upsert != (Upsert{Get: "S_GetTarget", Set: "S_SetTarget"}) ||
+		!slices.Equal(f.HoistedFields(), []string{"s3"}) || p.Names["Target.isActive"] != "active" {
+		t.Fatalf("file = %+v, policy = %+v", f, p)
+	}
+}
+
+func TestParseRejectsUpsertHoistAndNameMistakes(t *testing.T) {
+	const head = "resource: Target\nmode: existing\nvalidators:\n  inferred: false\n"
+	tests := map[string]struct{ text, want string }{
+		"upsert without set":        {head + "api:\n  upsert: {get: G}\n", "api.upsert.get and api.upsert.set are required"},
+		"upsert with delete":        {head + "api:\n  upsert: {get: G, set: S}\n  delete: {operation: D}\n", "cannot have operations, delete"},
+		"upsert with idProperty":    {head + "api:\n  upsert: {get: G, set: S}\n  idProperty: uid\n", "idProperty"},
+		"hoist with other keys":     {head + "types:\n  Target:\n    fields:\n      s3: {hoist: true, computed: true}\n", "sets only hoist"},
+		"hoist on a nested type":    {head + "types:\n  Other:\n    fields:\n      s3: {hoist: true}\n", "applies to a field of the resource Target"},
+		"name not a Terraform name": {head + "types:\n  Target:\n    fields:\n      isActive: {name: Active}\n", "is not a Terraform attribute name"},
+		"skipped field with a name": {head + "types:\n  Target:\n    fields:\n      isActive: {skip: true, name: active}\n", "a skipped field has no other behavior"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte(test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
