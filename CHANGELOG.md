@@ -21,6 +21,10 @@
 
 #### resource/coralogix_tco_policies_logs, resource/coralogix_tco_policies_traces, resource/coralogix_tco_policies_rum
 - CHORE: Remove the unreachable 404 branch from Update. The overwrite API recreates deleted policies and never returns 404 for them.
+
+#### resource/coralogix_quota_allocation_rule_set, data-source/coralogix_quota_allocation_rule_set
+- DOCS: Stop listing entity types. The list included `olly`, which the API rejects. The descriptions now give examples and link to the Quota Rules documentation for the supported list.
+
 # Release 3.22.0
 
 #### resource/coralogix_connector, resource/coralogix_global_router, resource/coralogix_preset
