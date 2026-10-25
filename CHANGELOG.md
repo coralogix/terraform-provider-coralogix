@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.22.1
+
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.39`.
 - CHORE: Bump the generator to `v0.1.0-beta.34`.
