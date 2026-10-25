@@ -66,16 +66,16 @@ const fullConfig = `resource "coralogix_alerts_scheduler" "test" {
   filter = {
     meta_labels = [
       {
-        key = "@{run}-key"
-        value = "@{run}-value"
+        key = "alert_type"
+        value = "security"
       },
     ]
     what_expression = "source logs | filter true"
   }
   meta_labels = [
     {
-      key = "@{run}-key"
-      value = "@{run}-value"
+      key = "alert_type"
+      value = "security"
     },
   ]
   name = "@{run}-scheduler"
@@ -100,16 +100,16 @@ const updatedConfig = `resource "coralogix_alerts_scheduler" "test" {
   filter = {
     meta_labels = [
       {
-        key = "@{run}-key-updated"
-        value = "@{run}-value-updated"
+        key = "alert_type"
+        value = "security"
       },
     ]
     what_expression = "source logs | filter true"
   }
   meta_labels = [
     {
-      key = "@{run}-key-updated"
-      value = "@{run}-value-updated"
+      key = "alert_type"
+      value = "security"
     },
   ]
   name = "@{run}-scheduler"
