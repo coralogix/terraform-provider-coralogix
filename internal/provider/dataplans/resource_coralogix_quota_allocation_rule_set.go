@@ -46,8 +46,8 @@ const (
 	quotaAllocationTypeUnspecified = "unspecified"
 )
 
-// Known allocatable entity types verified against the API. The list is additive; the API may accept more values over time.
-const quotaAllocationKnownEntityTypesDoc = "`logs`, `spans`, `metrics`, `cpuProfiles`, `memoryProfiles`, `browserLogs`, `browserLogs/v2`, `sessionRecordings`, `olly`, `auditEvents`, `alerts`, `quotaEvents`, `engineQueries`, `engineSchemaFields`, `labsLimitViolations`, and `notificationDeliveries`"
+// The API validates entity_type as a plain string, so the docs link to the product documentation instead of listing values that go stale.
+const quotaAllocationEntityTypesDoc = "The [Quota Rules](https://coralogix.com/docs/user-guides/account-management/payment-and-billing/quota-rules/) documentation lists the supported entity types; the Coralogix API rejects an unsupported one."
 
 var (
 	quotaAllocationTypeSchemaToAPI = map[string]quotaRules.QuotaAllocationType{
@@ -119,7 +119,7 @@ func (r *QuotaAllocationRuleSetResource) Configure(_ context.Context, req resour
 
 func (r *QuotaAllocationRuleSetResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set. Delete clears customer-managed rules only; Coralogix-managed (`cx_managed`) rules are preserved. This resource filters `cx_managed` rules out of state; the data source exposes them. Requires `team-quota-rules:Read` and `team-quota-rules:Manage` permissions. Known entity types include " + quotaAllocationKnownEntityTypesDoc + ". The list is additive; the API may accept more values over time.",
+		MarkdownDescription: "Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set. Delete clears customer-managed rules only; Coralogix-managed (`cx_managed`) rules are preserved. This resource filters `cx_managed` rules out of state; the data source exposes them. Requires `team-quota-rules:Read` and `team-quota-rules:Manage` permissions. Rules are keyed by entity type, such as `logs`, `spans`, or `metrics`. " + quotaAllocationEntityTypesDoc,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -135,7 +135,7 @@ func (r *QuotaAllocationRuleSetResource) Schema(_ context.Context, _ resource.Sc
 							Validators: []validator.String{
 								stringvalidator.LengthAtLeast(1),
 							},
-							MarkdownDescription: "Entity type covered by the rule. Known values include " + quotaAllocationKnownEntityTypesDoc + ". The list is additive; the API may accept more values over time.",
+							MarkdownDescription: "Entity type covered by the rule, such as `logs`, `spans`, or `metrics`. " + quotaAllocationEntityTypesDoc,
 						},
 						"allocation": schema.Float64Attribute{
 							Required: true,

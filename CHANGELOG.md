@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.22.1
+
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.39`.
 - CHORE: Bump the generator to `v0.1.0-beta.34`.
@@ -21,6 +23,9 @@
 
 #### resource/coralogix_tco_policies_logs, resource/coralogix_tco_policies_traces, resource/coralogix_tco_policies_rum
 - CHORE: Remove the unreachable 404 branch from Update. The overwrite API recreates deleted policies and never returns 404 for them.
+
+#### resource/coralogix_quota_allocation_rule_set, data-source/coralogix_quota_allocation_rule_set
+- DOCS: Stop listing entity types. The list included `olly`, which the API rejects. The descriptions now give examples and link to the Quota Rules documentation for the supported list.
 
 #### provider
 - CHORE: Bump `github.com/yuin/goldmark` to v1.7.17 to clear CVE-2026-5160. It is used only by the docs generator, not the provider binary. No change to provider behavior.
