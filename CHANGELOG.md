@@ -1,5 +1,8 @@
 # Unreleased
 
+#### provider
+- CHORE: Bump `github.com/yuin/goldmark` to v1.7.17 to clear CVE-2026-5160. It is used only by the docs generator, not the provider binary. No change to provider behavior.
+
 # Release 3.22.1
 
 #### tools/iac-codegen
