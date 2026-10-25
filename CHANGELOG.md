@@ -1,5 +1,8 @@
 # Unreleased
 
+#### provider
+- CHORE: Bump `github.com/yuin/goldmark` to v1.7.17 to clear CVE-2026-5160. It is used only by the docs generator, not the provider binary. No change to provider behavior.
+
 # Release 3.22.1
 
 #### tools/iac-codegen
@@ -26,9 +29,6 @@
 
 #### resource/coralogix_quota_allocation_rule_set, data-source/coralogix_quota_allocation_rule_set
 - DOCS: Stop listing entity types. The list included `olly`, which the API rejects. The descriptions now give examples and link to the Quota Rules documentation for the supported list.
-
-#### provider
-- CHORE: Bump `github.com/yuin/goldmark` to v1.7.17 to clear CVE-2026-5160. It is used only by the docs generator, not the provider binary. No change to provider behavior.
 
 # Release 3.22.0
 
