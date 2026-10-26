@@ -15,5 +15,6 @@ description: "Use when a handwritten resource that users already have becomes ge
 5. **Fix confirmed bugs in a separate step.** The golden diff must show only the fixes. Do not keep a bug with an override line.
 6. **Later API changes.** A new optional scalar field generates without a line unless it has a default that is not its zero value and no `x-coralogix-presence: true`; then the generator stops, so ask for the annotation or probe a read and write a line. A new enum value stops the generator until it is in `values` or `rejected`.
 7. **Generated acceptance test.** Add `acceptance.yaml` next to the overrides (prerequisite HCL, real values, `skip`, `minimal`, `upgradeFrom`) and run `tfgen generate`. Keep the hand test until the generated one has passed on a tenant.
+8. **Data source.** Add the resource to `dataSourceBaselines` in `internal/provider/data_source_baseline_test.go` (`ReadDataSource` steps) and record on master. Then add `dataSource: {}` (or its lines) to the overrides, regenerate, and keep a one-line domain constructor that passes the resource hooks to `NewDataSource`.
 
 **Why:** Terraform plan modifiers, defaults, and null/empty reads decide whether an upgrade is silent. A schema dump and a second plan after apply catch what a compile cannot.
