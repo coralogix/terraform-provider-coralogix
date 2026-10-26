@@ -847,6 +847,20 @@ func TestIntegerResourceIDs(t *testing.T) {
 					t.Errorf("resource.go lacks %q", fragment)
 				}
 			}
+			// The schema copy makes only a string id the lookup attribute, so the data source
+			// sets the integer id itself.
+			dataSource, err := os.ReadFile(filepath.Join(out, dataSourceFile))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, fragment := range []string{
+				`resp.Schema.Attributes["id"] = schema.` + test.tfType + "Attribute{",
+				"var configured types." + test.tfType,
+			} {
+				if !bytes.Contains(dataSource, []byte(fragment)) {
+					t.Errorf("%s lacks %q", dataSourceFile, fragment)
+				}
+			}
 			compileGenerated(t, out, input)
 		})
 	}
@@ -1910,6 +1924,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
 
@@ -1921,7 +1936,12 @@ func TestSingletonIDIsStatic(t *testing.T) {
 	if TypeName != "settings" {
 		t.Fatalf("TypeName = %q", TypeName)
 	}
-	_ = context.Background()
+	// The data source of a singleton takes no input.
+	var resp datasource.SchemaResponse
+	NewDataSource().Schema(context.Background(), datasource.SchemaRequest{}, &resp)
+	if a := resp.Schema.Attributes["id"]; !a.IsComputed() || a.IsRequired() || a.IsOptional() {
+		t.Fatalf("data source id = %#v, want computed-only", a)
+	}
 }
 `
 	if err := os.WriteFile(filepath.Join(out, "singleton_test.go"), []byte(semantics), 0o644); err != nil {
@@ -2263,6 +2283,58 @@ func generateSuppressedThing(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return out
+}
+
+// A data source whose id attribute is not "id" looks up that attribute. The schema copy makes "id"
+// the lookup attribute, so the data source turns a value attribute named id back into a computed one.
+func TestDataSourceOfAnIDPropertyWithItsOwnName(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := os.ReadFile(filepath.Join("testdata", "suppressed-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overridesText := strings.Replace(string(text), "      uniqueIdentifier: {readOnly: true, name: id}\n      id: {skip: true}\n", "      uniqueIdentifier: {readOnly: true}\n", 1)
+	if overridesText == string(text) {
+		t.Fatal("the overrides did not change: update the replaced text")
+	}
+	overridesText += "\ndataSource: {}\n"
+	overridesPath := filepath.Join(t.TempDir(), overrides.FileName)
+	if err := os.WriteFile(overridesPath, []byte(overridesText), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "suppressedthing")
+	if err := generateFromInput(Options{Resource: "SuppressedThing", OutputDir: out, OverridesPath: overridesPath}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	semantics := `package suppressedthing
+
+import (
+	"context"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+)
+
+func TestDataSourceLooksUpTheIDProperty(t *testing.T) {
+	var resp datasource.SchemaResponse
+	NewDataSource(Hooks{}).Schema(context.Background(), datasource.SchemaRequest{}, &resp)
+	if a := resp.Schema.Attributes["unique_identifier"]; a == nil || !a.IsRequired() {
+		t.Fatalf("unique_identifier = %#v, want required", a)
+	}
+	if a := resp.Schema.Attributes["id"]; a == nil || !a.IsComputed() || a.IsRequired() || a.IsOptional() {
+		t.Fatalf("id = %#v, want computed-only", a)
+	}
+}
+`
+	if err := os.WriteFile(filepath.Join(out, "datasource_test.go"), []byte(semantics), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
 }
 
 // The generated resource whose id property has another name than the path parameter sends no id on

@@ -70,6 +70,9 @@ type File struct {
 	// objects included: a removed nested attribute is cleared. A server that merged nested
 	// objects would keep it, and the generator cannot check that.
 	UpdateMask string `yaml:"updateMask"`
+	// DataSource is the data source of the resource. Without it, a released resource gets no
+	// generated data source.
+	DataSource *DataSource `yaml:"dataSource"`
 }
 
 // UpdateMaskOmit is the updateMask value that sends no update mask.
@@ -538,6 +541,14 @@ func (f *File) check() error {
 	}
 	if f.SingletonID && (f.API.ClientSetID || f.API.ServerSetID || f.API.UpdateIDInBody) {
 		return errors.New("singletonID is for a singleton, which has no id in a path: it cannot be combined with api.clientSetID, api.serverSetID, or api.updateIDInBody")
+	}
+	return f.checkSections()
+}
+
+// checkSections checks the dataSource section and the types section.
+func (f *File) checkSections() error {
+	if err := f.DataSource.check(); err != nil {
+		return err
 	}
 	return f.checkTypes()
 }

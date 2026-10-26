@@ -80,6 +80,22 @@ const upgradeMinimalConfig = `{{.UpgradeMinimal.Config}}`
 func config(run, resourceBlock string) string {
 	return render(run, prerequisites+"\n\n"+resourceBlock)
 }
+{{- if .DataSource}}
+
+const dataSourceAddress = {{printf "%q" .DataSource.Address}}
+
+// dataSourceConfig reads the data source of the resource that the config creates.
+const dataSourceConfig = `{{.DataSource.Config}}`
+
+// dataSourceChecks compare the data source with the resource.
+func dataSourceChecks() resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+{{- range .DataSource.Pairs}}
+		resource.TestCheckResourceAttrPair(dataSourceAddress, {{printf "%q" .}}, resourceAddress, {{printf "%q" .}}),
+{{- end}}
+	)
+}
+{{- end}}
 
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
@@ -197,7 +213,7 @@ var importStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
-	// full-lifecycle sets every attribute, imports, changes the attributes, and imports again.
+	// full-lifecycle sets every attribute, imports,{{if .DataSource}} reads the data source,{{end}} changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
@@ -206,6 +222,9 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
+{{- if .DataSource}}
+				{Config: config(run, fullConfig+"\n\n"+dataSourceConfig), Check: dataSourceChecks()},
+{{- end}}
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
 			},

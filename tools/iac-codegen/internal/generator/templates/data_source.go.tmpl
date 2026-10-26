@@ -1,0 +1,158 @@
+{{.VersionHeader}}
+
+package {{.Package}}
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"{{.CRUD.ProviderPkg}}"
+	"{{.CRUD.CXPkg}}"
+	"{{.DataSource.UtilsPkg}}"
+)
+{{with .CRUD}}
+{{- $provider := .ProviderName}}
+{{- $cx := .CXName}}
+var (
+	_ datasource.DataSource              = (*DataSource)(nil)
+	_ datasource.DataSourceWithConfigure = (*DataSource)(nil)
+)
+
+{{if .Singleton -}}
+// DataSource reads the {{.TypeName}} singleton with the schema, the model, and the conversion of the
+// resource. It takes no input.
+{{- else -}}
+// DataSource reads one {{.TypeName}} by id with the schema, the model, and the conversion of the
+// resource.
+{{- end}}
+type DataSource struct {
+	// resource holds the API client and the API calls.
+	resource Resource
+}
+{{- if .Existing}}
+
+// NewDataSource returns the data source. Use it in provider.DataSources. Pass the hooks of the
+// resource: the data source runs BeforeFlatten. It has no prior plan or state, so it does not run
+// AfterRead.
+func NewDataSource(hooks Hooks) datasource.DataSource {
+	return &DataSource{resource: Resource{hooks: hooks}}
+}
+{{- else}}
+
+// NewDataSource returns the data source. Use it in provider.DataSources.
+func NewDataSource() datasource.DataSource { return &DataSource{} }
+{{- end}}
+
+func (d *DataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_" + TypeName
+}
+
+{{if .Singleton -}}
+// Schema is the schema of the resource with every attribute computed.
+{{- else -}}
+// Schema is the schema of the resource with every attribute computed, except the id, which the
+// configuration sets.
+{{- end}}
+func (d *DataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+{{- if $.DataSource.IDSchema}}
+	s := Schema()
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(s)
+{{- if ne .IDAttr "id"}}
+	if a, ok := s.Attributes["id"]; ok {
+		// The copy makes "id" the lookup attribute. Here it is a value of the resource.
+		resp.Schema.Attributes["id"] = utils.ConvertAttribute(a)
+	}
+{{- end}}
+	id := s.Attributes[{{printf "%q" .IDAttr}}]
+	resp.Schema.Attributes[{{printf "%q" .IDAttr}}] = schema.{{.IDTFType}}Attribute{
+{{- if .Singleton}}
+		Computed:            true,
+{{- else}}
+		Required:            true,
+{{- end}}
+		Description:         id.GetDescription(),
+		MarkdownDescription: id.GetMarkdownDescription(),
+	}
+{{- else}}
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(Schema())
+{{- end}}
+}
+
+func (d *DataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return // The provider is not configured yet.
+	}
+	cs, ok := req.ProviderData.(*{{$provider}}.{{.ClientSet}})
+	if !ok {
+		resp.Diagnostics.AddError("Unexpected provider data",
+			fmt.Sprintf("The provider data is %T. The data source needs *{{$provider}}.{{.ClientSet}}.", req.ProviderData))
+		return
+	}
+	d.resource.client = cs.{{.Accessor}}()
+}
+
+{{if .Singleton -}}
+// Read reads the singleton. A 404 is an error: the data source has no result to show.
+{{- else -}}
+// Read reads the resource with the configured id. An id that the API does not find is an error.
+// A 404 of a route that does not exist is an error too.
+{{- end}}
+func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+{{- if .Singleton}}
+	id := TypeName
+{{- else}}
+	var configured types.{{.IDTFType}}
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), &configured)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	id := configured.Value{{.IDTFType}}()
+{{- end}}
+	v, err := d.resource.get(ctx, id)
+	if {{$cx}}.{{.APINotFound}}(err) {
+		resp.Diagnostics.AddError("coralogix_"+TypeName+" not found", fmt.Sprintf("The API did not find coralogix_%s with id %v.", TypeName, id))
+		return
+	}
+	if err != nil {
+		resp.Diagnostics.AddError("Unable to read coralogix_"+TypeName, fmt.Sprintf("id %v: %s", id, err))
+		return
+	}
+{{- if .Existing}}
+	if d.resource.hooks.BeforeFlatten != nil && v != nil {
+		resp.Diagnostics.Append(d.resource.hooks.BeforeFlatten(ctx, v)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+{{- end}}
+	m, diags := flatten(ctx, v{{if $.Conv.HasPrior}}, nil{{end}})
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- range $.DataSource.ValueFields}}
+	// The data source shows the {{.TFName}} that the API returns, also an empty one, which the
+	// resource reads as null.
+{{- if .Value}}
+	m.{{.Model}} = types.StringValue(v.{{.SDK}})
+{{- else}}
+	if v.{{.SDK}} != nil {
+		m.{{.Model}} = types.StringValue(*v.{{.SDK}})
+	}
+{{- end}}
+{{- end}}
+{{- if and .Singleton .SingletonID}}
+	if m.Id.IsNull() || m.Id.ValueString() == "" {
+		m.Id = types.StringValue(TypeName) // the API returned no id
+	}
+{{- else if .Singleton}}
+	m.Id = types.StringValue(TypeName) // a singleton has a fixed id (D18)
+{{- end}}
+	resp.Diagnostics.Append(resp.State.Set(ctx, m)...)
+}
+{{- end}}
