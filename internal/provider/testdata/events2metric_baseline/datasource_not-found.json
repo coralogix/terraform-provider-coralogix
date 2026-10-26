@@ -12,7 +12,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: coralogix_events2metric not found | The API did not find coralogix_events2metric with id 00000000-0000-4000-8000-999999999999."
+      "error: coralogix_events2metric not found | The API did not find coralogix_events2metric with id 00000000-0000-4000-8000-999999999999: 404 Not Found — {\"code\":404,\"message\":\"Not Found: {\\\"message\\\":\\\"NOT_FOUND: Events2Metrics with id 00000000-0000-4000-8000-999999999999 not found\\\",\\\"status\\\":5}\"}"
     ],
     "state": {
       "data_source": null,

@@ -12,7 +12,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: coralogix_slo_v2 not found | The API did not find coralogix_slo_v2 with id 00000000-0000-4000-8000-999999999999."
+      "error: coralogix_slo_v2 not found | The API did not find coralogix_slo_v2 with id 00000000-0000-4000-8000-999999999999: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Slo with id 00000000-0000-4000-8000-999999999999 not found for company 1\"}"
     ],
     "state": {
       "apm_sli_metadata": null,

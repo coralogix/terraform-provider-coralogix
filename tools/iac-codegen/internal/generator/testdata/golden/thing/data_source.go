@@ -64,7 +64,7 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	id := configured.ValueString()
 	v, err := d.resource.get(ctx, id)
 	if cxsdk.IsNotFound(err) {
-		resp.Diagnostics.AddError("coralogix_"+TypeName+" not found", fmt.Sprintf("The API did not find coralogix_%s with id %v.", TypeName, id))
+		resp.Diagnostics.AddError("coralogix_"+TypeName+" not found", fmt.Sprintf("The API did not find coralogix_%s with id %v: %s", TypeName, id, err))
 		return
 	}
 	if err != nil {
