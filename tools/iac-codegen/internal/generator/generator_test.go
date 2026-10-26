@@ -806,16 +806,7 @@ func TestIntegerResourceIDs(t *testing.T) {
 				t.Fatalf("check rejected %s ID: %v", test.format, err)
 			}
 
-			sdkPath := filepath.Join(input.SDKDir, "go", "openapi", "gen", "things_service", "things.go")
-			sdk, err := os.ReadFile(sdkPath)
-			if err != nil {
-				t.Fatal(err)
-			}
-			sdk = bytes.Replace(sdk, []byte("Id           *string"), []byte("Id           *"+test.goType), 1)
-			sdk = bytes.ReplaceAll(sdk, []byte("id string"), []byte("id "+test.goType))
-			if err := os.WriteFile(sdkPath, sdk, 0o644); err != nil {
-				t.Fatal(err)
-			}
+			integerIDSDK(t, input.SDKDir, test.goType)
 
 			out := filepath.Join(t.TempDir(), "thing")
 			if err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, loadDir); err != nil {
@@ -885,6 +876,21 @@ func integerIDOpenAPI(t *testing.T, spec []byte, format string) []byte {
 		t.Fatalf("cannot convert synthetic ID to %s", format)
 	}
 	return []byte(value)
+}
+
+// integerIDSDK changes the id of the synthetic SDK in sdkDir to goType, to match integerIDOpenAPI.
+func integerIDSDK(t *testing.T, sdkDir, goType string) {
+	t.Helper()
+	sdkPath := filepath.Join(sdkDir, "go", "openapi", "gen", "things_service", "things.go")
+	sdk, err := os.ReadFile(sdkPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sdk = bytes.Replace(sdk, []byte("Id           *string"), []byte("Id           *"+goType), 1)
+	sdk = bytes.ReplaceAll(sdk, []byte("id string"), []byte("id "+goType))
+	if err := os.WriteFile(sdkPath, sdk, 0o644); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func optionalCreateRequiredUpdateOpenAPI(t *testing.T, spec []byte) []byte {

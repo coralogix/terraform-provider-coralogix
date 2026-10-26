@@ -339,7 +339,7 @@ make codegen RESOURCE=resource_name OUT=resource_name
 | `internal/provider/generated/registry.go` | `Resources()` and `DataSources()`, the constructors of every new resource and of its data source. `provider.go` appends them. |
 | `examples/resources/coralogix_<type>/resource.tf` | The docs example: the prerequisites and the full config of the acceptance test. `@{run}` becomes `example`, and `@{env.NAME}` becomes `<NAME>`. |
 | `examples/resources/coralogix_<type>/import.sh` | `terraform import coralogix_<type>.example "<id>"`. A singleton uses its type name as the id. |
-| `examples/data-sources/coralogix_<type>/data-source.tf` | The docs example of the data source: it reads the resource by `id = "<id>"`. A singleton takes no input. |
+| `examples/data-sources/coralogix_<type>/data-source.tf` | The docs example of the data source: it reads the resource by `id = "<id>"`, or by `id = 0` with a comment when the id is a number. A singleton takes no input. |
 
 `make generate` then renders `docs/resources/<type>.md` and `docs/data-sources/<type>.md` from the schemas and these files.
 

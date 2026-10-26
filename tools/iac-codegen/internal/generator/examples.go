@@ -60,11 +60,16 @@ func renderExample(acc *acceptanceData, typeName string) ([]byte, error) {
 }
 
 // renderDataSourceExample returns the docs example of the data source: it reads the resource by id.
-// The id is a quoted placeholder, as in the import command. A singleton takes no input.
+// A string id is a quoted placeholder, as in the import command. A numeric id is the number 0 with
+// a comment, because Terraform rejects a string for a number attribute. A singleton takes no input.
 func renderDataSourceExample(crud *crudData) []byte {
 	body := ""
-	if !crud.Singleton {
+	switch {
+	case crud.Singleton:
+	case crud.IDTFType == "String":
 		body = fmt.Sprintf("  %s = \"<%s>\"\n", crud.IDAttr, crud.IDAttr)
+	default:
+		body = fmt.Sprintf("  %s = 0 # replace with the %s\n", crud.IDAttr, crud.IDAttr)
 	}
 	text := fmt.Sprintf("%s\n\ndata %q \"example\" {\n%s}\n", exampleProviders, "coralogix_"+crud.TypeName, body)
 	return hclwrite.Format([]byte(text))

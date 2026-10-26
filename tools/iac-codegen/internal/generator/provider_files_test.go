@@ -83,6 +83,25 @@ func TestGoldenProviderFiles(t *testing.T) {
 	}
 }
 
+// The docs example of the data source of a new resource with a numeric id sets a number, because
+// Terraform rejects a string for an Int64 attribute.
+func TestGoldenDataSourceExampleNumericID(t *testing.T) {
+	input, loadDir, out := inProvider(t, "thing")
+	input.OpenAPI = integerIDOpenAPI(t, input.OpenAPI, "int64")
+	integerIDSDK(t, input.SDKDir, "int64")
+	if err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	got := readFile(t, filepath.Join(input.ModuleRoot, "examples", "data-sources", "coralogix_thing", "data-source.tf"))
+	path := filepath.Join("testdata", "golden", "provider", "data-source-int64.tf")
+	if *updateGolden {
+		writeFile(t, path, got)
+	}
+	if want := readFile(t, path); got != want {
+		t.Errorf("data-source.tf differs from %s; run go test ./internal/generator -run TestGoldenDataSourceExampleNumericID -update:\n%s", path, got)
+	}
+}
+
 // compileRegistry builds the registry with the generated package in the provider, as provider.go
 // imports them.
 func compileRegistry(t *testing.T, root, out string) {
