@@ -12,7 +12,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_configuration_group | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: {\\\"reason\\\":\\\"Configuration group with id 00000000-0000-4000-8000-999999999999 not found\\\"}\"}\noperation - Read"
+      "error: coralogix_configuration_group not found | The API did not find coralogix_configuration_group with id 00000000-0000-4000-8000-999999999999."
     ],
     "state": {
       "archived": null,
