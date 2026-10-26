@@ -1,0 +1,44 @@
+[
+  {
+    "step": "read a one-time rule",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "description": "",
+      "enabled": true,
+      "filter": {
+        "alerts_unique_ids": [
+          "alert-1"
+        ],
+        "meta_labels": null,
+        "what_expression": "source logs | filter true"
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "meta_labels": [],
+      "name": "one-time",
+      "schedule": {
+        "one_time": {
+          "time_frame": {
+            "duration": {
+              "for_over": 2,
+              "frequency": "hours"
+            },
+            "end_time": null,
+            "start_time": "2030-01-04T02:00:00.000",
+            "time_zone": "UTC+2"
+          }
+        },
+        "operation": "active",
+        "recurring": null
+      }
+    }
+  }
+]

@@ -1,0 +1,50 @@
+[
+  {
+    "step": "read by id",
+    "config": {
+      "id": "11111111-1111-4111-8111-111111111111"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/fleet-management/configuration-groups/v1/11111111-1111-4111-8111-111111111111",
+        "status": 200
+      }
+    ],
+    "state": {
+      "archived": false,
+      "description": "made outside Terraform",
+      "family": {
+        "active": false,
+        "based_on_configuration_family_id": null,
+        "description": "raw family",
+        "id": "22222222-2222-4222-8222-222222222222",
+        "last_activated_at": null,
+        "preset": null,
+        "raw": {
+          "collector_version": null,
+          "metadata": null,
+          "remote_configurations": [
+            {
+              "agent_selector": null,
+              "created_at": null,
+              "hash": "h1",
+              "id": "33333333-3333-4333-8333-333333333333",
+              "name": "base",
+              "raw_configuration": "receivers:\n  otlp: {}\n",
+              "updated_at": null
+            }
+          ]
+        },
+        "sources": null,
+        "version": "3"
+      },
+      "id": "11111111-1111-4111-8111-111111111111",
+      "name": "seeded",
+      "priority_order": 2,
+      "tags": [
+        "team-a"
+      ]
+    }
+  }
+]

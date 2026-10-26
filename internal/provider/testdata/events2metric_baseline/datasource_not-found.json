@@ -1,0 +1,29 @@
+[
+  {
+    "step": "read an id that does not exist",
+    "config": {
+      "id": "00000000-0000-4000-8000-999999999999"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/events2metrics/events2metrics/v2/00000000-0000-4000-8000-999999999999",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: 404 Not Found | Events2Metric \"00000000-0000-4000-8000-999999999999\" is in state, but no longer exists in Coralogix backend"
+    ],
+    "state": {
+      "data_source": null,
+      "description": null,
+      "id": "00000000-0000-4000-8000-999999999999",
+      "logs_query": null,
+      "metric_fields": null,
+      "metric_labels": null,
+      "name": null,
+      "permutations": null,
+      "spans_query": null
+    }
+  }
+]

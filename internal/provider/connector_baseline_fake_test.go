@@ -120,6 +120,8 @@ func (f *cxFake) handle(method, path string, body any) (int, any) {
 		return f.write(body, false)
 	case method == http.MethodPut && id == "":
 		return f.write(body, true)
+	case method == http.MethodGet && id == "":
+		return http.StatusOK, map[string]any{"connectors": listByID(f.connectors, f.present)}
 	case method == http.MethodGet && id != "":
 		stored, found := f.connectors[id]
 		if !found {

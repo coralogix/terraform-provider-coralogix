@@ -73,6 +73,8 @@ type grHarness struct {
 	typ      tftypes.Object
 	api      requestLog
 	typeName string
+	// dsSchema is the schema of the data source with the same type name, or nil.
+	dsSchema *tfprotov6.Schema
 	steps    []grStep
 	// applied is the config of the last apply that succeeded. RefreshPlan plans it again.
 	applied map[string]any
@@ -150,6 +152,7 @@ func newProtocolHarness(t *testing.T, typeName string, api requestLog) *grHarnes
 		t.Fatalf("%s is not registered", typeName)
 	}
 	h.typ = h.schema.ValueType().(tftypes.Object)
+	h.dsSchema = schemas.DataSourceSchemas[typeName]
 
 	providerType := schemas.Provider.ValueType().(tftypes.Object)
 	nulls := map[string]tftypes.Value{}
@@ -426,6 +429,85 @@ func (h *grHarness) UpgradeV0(name, rawJSON string) tftypes.Value {
 	step.State = toJSON(state)
 	h.record(step)
 	return state
+}
+
+// ReadDataSource validates the config of the data source with the type name of the harness, and
+// reads it, as Terraform core does during a plan. The state of the step is the data source result.
+func (h *grHarness) ReadDataSource(name string, cfgJSON map[string]any) {
+	h.t.Helper()
+	if h.dsSchema == nil {
+		h.t.Fatalf("%s has no data source", h.typeName)
+	}
+	typ := h.dsSchema.ValueType().(tftypes.Object)
+	step := grStep{Step: name, Config: cfgJSON}
+	cfg := h.dynamic(typ, fromJSON(h.t, typ, cfgJSON))
+
+	validated, err := h.server.ValidateDataResourceConfig(h.ctx, &tfprotov6.ValidateDataResourceConfigRequest{
+		TypeName: h.typeName, Config: cfg,
+	})
+	h.must(err)
+	step.ValidateDiags = diagStrings(validated.Diagnostics)
+	slices.Sort(step.ValidateDiags)
+	if hasError(validated.Diagnostics) {
+		h.record(step)
+		return
+	}
+
+	resp, err := h.server.ReadDataSource(h.ctx, &tfprotov6.ReadDataSourceRequest{TypeName: h.typeName, Config: cfg})
+	h.must(err)
+	step.Requests = h.api.takeRequests()
+	step.ApplyDiags = diagStrings(resp.Diagnostics)
+	if resp.State != nil {
+		state, err := resp.State.Unmarshal(typ)
+		h.must(err)
+		step.State = toJSON(state)
+	}
+	h.record(step)
+}
+
+// dataSourceSchemaText returns the data source schema as Terraform core receives it: one line per
+// attribute, sorted by path, with its type, its flags, and its descriptions.
+func dataSourceSchemaText(s *tfprotov6.Schema) string {
+	var lines []string
+	var walk func(prefix string, attrs []*tfprotov6.SchemaAttribute)
+	walk = func(prefix string, attrs []*tfprotov6.SchemaAttribute) {
+		for _, a := range attrs {
+			p := prefix + a.Name
+			kind := "nested"
+			if a.Type != nil {
+				kind = a.Type.String()
+			} else if a.NestedType != nil {
+				kind = "nested " + a.NestedType.Nesting.String()
+			}
+			var flags []string
+			for _, f := range []struct {
+				on   bool
+				name string
+			}{{a.Required, "required"}, {a.Optional, "optional"}, {a.Computed, "computed"}, {a.Sensitive, "sensitive"}, {a.Deprecated, "deprecated"}, {a.WriteOnly, "write-only"}} {
+				if f.on {
+					flags = append(flags, f.name)
+				}
+			}
+			line := p + "  " + kind + " " + strings.Join(flags, ",")
+			if a.Description != "" {
+				line += "\n    description: " + strings.ReplaceAll(a.Description, "\n", "\\n")
+			}
+			lines = append(lines, line)
+			if a.NestedType != nil {
+				walk(p+".", a.NestedType.Attributes)
+			}
+		}
+	}
+	walk("", s.Block.Attributes)
+	slices.Sort(lines)
+	header := "(data source schema)"
+	if s.Block.Description != "" {
+		header += "\n    description: " + strings.ReplaceAll(s.Block.Description, "\n", "\\n")
+	}
+	if s.Block.Deprecated {
+		header += "\n    deprecated"
+	}
+	return header + "\n" + strings.Join(lines, "\n") + "\n"
 }
 
 // --- values ---
