@@ -219,3 +219,6 @@ enums:
   # sloType is skipped, but the contract check still reads its enum.
   SloType:
     values: [SLO_TYPE_REQUEST, SLO_TYPE_WINDOW]
+
+# The data source reads an SLO by id.
+dataSource: {}

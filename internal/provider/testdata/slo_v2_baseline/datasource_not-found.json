@@ -12,8 +12,20 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_slo_v2 \"00000000-0000-4000-8000-999999999999\" is in state, but no longer exists in Coralogix backend | 00000000-0000-4000-8000-999999999999 will be recreated when you apply"
+      "error: coralogix_slo_v2 not found | The API did not find coralogix_slo_v2 with id 00000000-0000-4000-8000-999999999999."
     ],
-    "state": null
+    "state": {
+      "apm_sli_metadata": null,
+      "description": null,
+      "grouping": null,
+      "id": "00000000-0000-4000-8000-999999999999",
+      "labels": null,
+      "name": null,
+      "ownership_tags": null,
+      "product_type": null,
+      "sli": null,
+      "target_threshold_percentage": null,
+      "window": null
+    }
   }
 ]
