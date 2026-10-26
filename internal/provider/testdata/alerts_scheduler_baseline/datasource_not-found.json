@@ -12,7 +12,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading alerts-scheduler | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: No suppression rule found with unique identifier 00000000-0000-4000-8000-999999999999\"}\noperation - Read"
+      "error: coralogix_alerts_scheduler not found | The API did not find coralogix_alerts_scheduler with id 00000000-0000-4000-8000-999999999999."
     ],
     "state": {
       "description": null,
