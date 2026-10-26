@@ -1,7 +1,7 @@
 # Unreleased
 
 #### resource/coralogix_group
-- BREAKING: Use the Team Groups API instead of SCIM. If a group uses the SCIM role `Read Only` or `Legacy Read Only`, set `role = "Read-Only User"`.
+- BREAKING: Use the Team Groups API instead of SCIM. This API renames the two read-only roles. Change `role = "Read Only"` to `role = "Legacy Read Only"`, and change `role = "Legacy Read Only"` to `role = "Read-Only User"`. Other role names do not change.
 - FEAT: Set `scope_id = ""` to remove the group's scope. Deleting `scope_id` keeps the current scope.
 
 #### data-source/coralogix_group
