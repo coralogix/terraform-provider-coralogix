@@ -12,7 +12,7 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: 404 Not Found | Events2Metric \"00000000-0000-4000-8000-999999999999\" is in state, but no longer exists in Coralogix backend"
+      "error: coralogix_events2metric not found | The API did not find coralogix_events2metric with id 00000000-0000-4000-8000-999999999999."
     ],
     "state": {
       "data_source": null,

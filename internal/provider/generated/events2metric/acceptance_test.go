@@ -107,6 +107,25 @@ func config(run, resourceBlock string) string {
 	return render(run, prerequisites+"\n\n"+resourceBlock)
 }
 
+const dataSourceAddress = "data.coralogix_events2metric.test"
+
+// dataSourceConfig reads the data source of the resource that the config creates.
+const dataSourceConfig = `data "coralogix_events2metric" "test" {
+  id = coralogix_events2metric.test.id
+}`
+
+// dataSourceChecks compare the data source with the resource.
+func dataSourceChecks() resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "description", resourceAddress, "description"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "logs_query.applications.#", resourceAddress, "logs_query.applications.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "logs_query.subsystems.#", resourceAddress, "logs_query.subsystems.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "metric_labels.key", resourceAddress, "metric_labels.key"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "permutations.limit", resourceAddress, "permutations.limit"),
+	)
+}
+
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
@@ -151,7 +170,7 @@ var importStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceE2MGenerated(t *testing.T) {
-	// full-lifecycle sets every attribute, imports, changes the attributes, and imports again.
+	// full-lifecycle sets every attribute, imports, reads the data source, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
@@ -160,6 +179,7 @@ func TestAccCoralogixResourceE2MGenerated(t *testing.T) {
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
+				{Config: config(run, fullConfig+"\n\n"+dataSourceConfig), Check: dataSourceChecks()},
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
 			},
