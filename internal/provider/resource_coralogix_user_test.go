@@ -474,7 +474,7 @@ func testAccCoralogixResourceUserInGroup(userName, groupName string) string {
 
 	resource "coralogix_group" "test" {
 	  display_name = "%s"
-	  role         = "Read Only"
+	  role         = "Read-Only User"
 	  members      = [coralogix_user.test.id]
 	}
 
