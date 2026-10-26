@@ -228,11 +228,7 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	if err != nil {
 		apiErr := cxsdkOpenapi.NewAPIError(httpResp, err)
 		if cxsdkOpenapi.IsNotFound(apiErr) {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Group %q is in state, but no longer exists in Coralogix backend", plan.ID.ValueString()),
-				fmt.Sprintf("%s will be recreated when you apply", plan.ID.ValueString()),
-			)
-			resp.State.RemoveResource(ctx)
+			addGroupGoneDuringUpdateError(&resp.Diagnostics, plan.ID.ValueString())
 			return
 		}
 		resp.Diagnostics.AddError(
@@ -245,11 +241,7 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	state, err := r.readFlattenedGroup(ctx, groupID)
 	if err != nil {
 		if isGroupNotFoundErr(err) {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Group %q is in state, but no longer exists in Coralogix backend", plan.ID.ValueString()),
-				fmt.Sprintf("%s will be recreated when you apply", plan.ID.ValueString()),
-			)
-			resp.State.RemoveResource(ctx)
+			addGroupGoneDuringUpdateError(&resp.Diagnostics, plan.ID.ValueString())
 			return
 		}
 		resp.Diagnostics.AddError("Error reading Group", err.Error())
@@ -260,6 +252,17 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
+}
+
+// addGroupGoneDuringUpdateError reports a group that was deleted outside Terraform after the
+// last refresh. Update must not remove state: the Framework then fails with "Missing Resource
+// State After Update". A refresh removes the group from state, and the next apply recreates it.
+func addGroupGoneDuringUpdateError(diags *diag.Diagnostics, id string) {
+	diags.AddError(
+		"Group no longer exists",
+		fmt.Sprintf("Group %q is in state, but no longer exists in Coralogix. "+
+			"Run `terraform apply -refresh-only` to remove it from state, then apply again to recreate it.", id),
+	)
 }
 
 func (r *GroupResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
