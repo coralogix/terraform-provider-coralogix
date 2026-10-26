@@ -789,3 +789,40 @@ func TestRequestValueDropsServerValuesInSets(t *testing.T) {
 		t.Fatalf("unknown paths after requestValue = %v, want none", paths)
 	}
 }
+
+// The data source of a new resource copies the resource schema: the id is required and every other
+// attribute is computed-only. A response without the resource is an error, not a panic.
+func TestDataSourceCopiesTheResourceSchema(t *testing.T) {
+	ctx := context.Background()
+	d := NewDataSource()
+	var schemaResp datasource.SchemaResponse
+	d.Schema(ctx, datasource.SchemaRequest{}, &schemaResp)
+	if len(schemaResp.Schema.Attributes) != len(Schema().Attributes) {
+		t.Fatalf("data source has %d attributes, the resource %d", len(schemaResp.Schema.Attributes), len(Schema().Attributes))
+	}
+	for name, a := range schemaResp.Schema.Attributes {
+		if name == "id" {
+			if !a.IsRequired() {
+				t.Errorf("id = %#v, want required", a)
+			}
+			continue
+		}
+		if !a.IsComputed() || a.IsOptional() || a.IsRequired() {
+			t.Errorf("%s = %#v, want computed-only", name, a)
+		}
+	}
+	root := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
+	values := map[string]tftypes.Value{}
+	for attr, attrType := range root.AttributeTypes {
+		values[attr] = tftypes.NewValue(attrType, nil)
+	}
+	values["id"] = tftypes.NewValue(tftypes.String, "thing-1")
+	config := tftypes.NewValue(root, values)
+	ds := d.(*DataSource)
+	ds.resource.client = &things_service.ThingsServiceAPIService{}
+	resp := &datasource.ReadResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: config}}
+	ds.Read(ctx, datasource.ReadRequest{Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: config}}, resp)
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("read of a response without the resource: want an error")
+	}
+}

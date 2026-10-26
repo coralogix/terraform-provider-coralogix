@@ -15,92 +15,13 @@
 package slo_mgmt
 
 import (
-	"context"
-	"fmt"
-	"net/http"
-
-	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-
-	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/slov2"
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/slov2"
 )
 
+// NewSLOV2DataSource returns coralogix_slo_v2, the generated data source of the resource. It reads
+// an older record as the resource does.
 func NewSLOV2DataSource() datasource.DataSource {
-	return &SLOV2DataSource{}
-}
-
-type SLOV2DataSource struct {
-	client *slos.SlosServiceAPIService
-}
-
-func (d *SLOV2DataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_slo_v2"
-}
-
-func (d *SLOV2DataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	d.client = clientSet.SLOs()
-}
-
-func (d *SLOV2DataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var resourceResp resource.SchemaResponse
-	NewSLOV2Resource().Schema(ctx, resource.SchemaRequest{}, &resourceResp)
-
-	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
-}
-
-func (d *SLOV2DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var state *slov2.SloModel
-	diags := req.Config.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	//Get refreshed SLO value from Coralogix
-	id := state.Id.ValueString()
-	rq := d.client.SlosServiceGetSlo(ctx, id)
-	result, httpResponse, err := rq.Execute()
-
-	if err != nil {
-		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("coralogix_slo_v2 %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
-			)
-			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError("Error reading coralogix_slo_v2",
-				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
-			)
-		}
-		return
-	}
-
-	resp.Diagnostics.Append(normalizeLegacySLO(ctx, &result.Slo)...)
-	state, diags = slov2.Flatten(ctx, &result.Slo)
-	if diags.HasError() {
-		resp.Diagnostics = diags
-		return
-	}
-
-	diags = resp.State.Set(ctx, &state)
-	resp.Diagnostics.Append(diags...)
+	return slov2.NewDataSource(slov2.Hooks{BeforeFlatten: normalizeLegacySLO})
 }

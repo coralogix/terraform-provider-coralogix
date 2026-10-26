@@ -15,85 +15,13 @@
 package alerts
 
 import (
-	"context"
-	"fmt"
-
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/alertsscheduler"
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
 
-	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-	alertscheduler "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_scheduler_rule_service"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/alertsscheduler"
 )
 
-var _ datasource.DataSourceWithConfigure = &AlertsSchedulerDataSource{}
-
+// NewAlertsSchedulerDataSource returns coralogix_alerts_scheduler, the generated data source of the
+// resource. It runs the BeforeFlatten hook of the resource.
 func NewAlertsSchedulerDataSource() datasource.DataSource {
-	return &AlertsSchedulerDataSource{}
-}
-
-type AlertsSchedulerDataSource struct {
-	client *alertscheduler.AlertSchedulerRuleServiceAPIService
-}
-
-func (d *AlertsSchedulerDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_alerts_scheduler"
-}
-
-func (d *AlertsSchedulerDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	d.client = clientSet.AlertSchedulers()
-}
-
-func (d *AlertsSchedulerDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var resourceResp resource.SchemaResponse
-	NewAlertsSchedulerResource().Schema(ctx, resource.SchemaRequest{}, &resourceResp)
-
-	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
-}
-
-func (d *AlertsSchedulerDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *alertsscheduler.AlertSchedulerRuleModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	id := data.UniqueIdentifier.ValueString()
-	getAlertsSchedulerResp, httpResp, err := d.client.
-		AlertSchedulerRuleServiceGetAlertSchedulerRule(ctx, id).
-		Execute()
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error reading alerts-scheduler",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Read", id),
-		)
-		return
-	}
-
-	rule := &getAlertsSchedulerResp.AlertSchedulerRule
-	resp.Diagnostics.Append(normalizeStartTimes(ctx, rule)...)
-	data, diags := alertsscheduler.Flatten(ctx, rule)
-	if diags.HasError() {
-		resp.Diagnostics = diags
-		return
-	}
-
-	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	return alertsscheduler.NewDataSource(schedulerHooks)
 }

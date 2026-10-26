@@ -58,6 +58,8 @@ type tfResource struct {
 	// released description of the resource. Both come from the behavior-overrides file.
 	SchemaVersion               int64
 	ResourceMarkdownDescription string
+	// DataSource is the data source of the package, or nil when the package has none.
+	DataSource *dsData
 }
 
 // tfAttr is one Terraform schema attribute.

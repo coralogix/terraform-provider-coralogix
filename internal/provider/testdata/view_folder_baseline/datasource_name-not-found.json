@@ -1,0 +1,22 @@
+[
+  {
+    "step": "read a name that does not exist",
+    "config": {
+      "name": "missing"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/data-exploration/views/v1/folders",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error reading coralogix_view_folder | Could not find view folder with name (missing)"
+    ],
+    "state": {
+      "id": null,
+      "name": "missing"
+    }
+  }
+]

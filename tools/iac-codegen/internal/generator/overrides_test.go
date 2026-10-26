@@ -154,6 +154,41 @@ func TestStaleKeyIsNamedNotTheLine(t *testing.T) {
 	}
 }
 
+// A dataSource line that changes nothing, or that this version cannot render, is an error.
+func TestDataSourceLines(t *testing.T) {
+	tests := map[string]struct {
+		text string
+		code string
+		want string
+	}{
+		"default lookup": {
+			"dataSource:\n  lookup: [id]\n",
+			"OVERRIDE_UNUSED", "dataSource.lookup",
+		},
+		"nested component": {
+			"dataSource:\n  types:\n    LegacyRule:\n      fields:\n        name: {readEmptyAs: value}\n",
+			"OVERRIDE_INVALID", "dataSource.types.LegacyRule.fields.name",
+		},
+		"no resource line": {
+			"dataSource:\n  types:\n    LegacyThing:\n      fields:\n        name: {readEmptyAs: value}\n",
+			"OVERRIDE_UNUSED", `no readEmptyAs: "null" line on name`,
+		},
+		"not a string": {
+			"dataSource:\n  types:\n    LegacyThing:\n      fields:\n        labels: {readEmptyAs: value}\n",
+			"RENDERER_SHAPE_UNSUPPORTED", `readEmptyAs: "value" is supported for a string`,
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			file := mustParse(t, legacyOverrides+test.text)
+			_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
+			if got := eligibilityCodes(t, err); !slices.Contains(got, test.code) || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %s with %q", err, test.code, test.want)
+			}
+		})
+	}
+}
+
 // A name line that gives the Terraform name that the field has anyway changes nothing.
 func TestNameLineWithTheDefaultNameIsStale(t *testing.T) {
 	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  LegacyThing:\n    fields:\n      name: {name: name}\n")

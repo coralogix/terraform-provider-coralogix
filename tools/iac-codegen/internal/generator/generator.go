@@ -181,6 +181,7 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 	}
 	delete(files, exampleKey)
 	delete(files, importKey)
+	delete(files, dataSourceExampleKey)
 	return publishAll(options.OutputDir, files, extras)
 }
 
@@ -335,6 +336,7 @@ func rendererIssues(resource *model.Resource, refs []sdkcheck.Ref, file *overrid
 		{"renderer.schema", func() error { _, err := buildTFResourceWith(resource, "generated", file); return err }},
 		{"renderer.conversion", func() error { _, err := buildConvWith(resource, refs, file); return err }},
 		{"renderer.crud", func() error { _, err := buildCRUDWith(resource, refs, file); return err }},
+		{"renderer.datasource", func() error { return dataSourceShape(resource, refs, file) }},
 	}
 	var report issue.Report
 	for _, check := range checks {

@@ -5,6 +5,25 @@
 
 #### tools/iac-codegen
 - CHORE: Bump `golang.org/x/text` to v0.43.0 to clear CVE-2026-56851 and CVE-2026-56852, with `golang.org/x/tools` v0.51.0 and `golang.org/x/sync` v0.24.0 as its module requires. No change to generated code.
+- FEAT: Generate `data_source.go` next to the resource. The data source reads one resource by id. Its schema is the resource schema, copied at run time with `utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema`, so a new API field reaches the data source with no change. It runs the `BeforeFlatten` hook of the resource, and an id that the API does not find is an error.
+- FEAT: A new resource always gets a data source, `DataSources()` in `registry.go`, and the docs example `examples/data-sources/coralogix_<type>/data-source.tf`. An existing resource gets a data source only with a `dataSource:` section in `behavior-overrides.yaml` (`dataSource: {}` when it has no line).
+- FEAT: `dataSource.types.<Resource>.fields.<field>: {readEmptyAs: value}` shows the API value of a top-level string, also `""`, where the resource line reads `""` as null. A line on a nested component, a line without a resource `readEmptyAs: "null"` line, and `lookup: [id]`, which is the default, are errors.
+- FEAT: The generated acceptance test reads the data source by the id of the resource in `full-lifecycle` and compares it with the resource.
+- CHORE: Bump the generator to `v0.1.0-beta.40`.
+
+#### data-source/coralogix_configuration_group
+- CHORE: The data source uses the generated data source of the resource.
+
+#### data-source/coralogix_alerts_scheduler
+- CHORE: The data source uses the generated data source of the resource.
+
+#### data-source/coralogix_slo_v2
+- CHORE: The data source uses the generated data source of the resource.
+- FIX: An id that the API does not find is an error. Before, the data source returned a warning and no result.
+
+#### data-source/coralogix_events2metric
+- CHORE: The data source uses the generated data source of the resource. `description` still shows the stored value, also `""`.
+- FIX: An id that the API does not find is an error. Before, the data source returned a warning and null attributes.
 
 # Release 3.22.1
 

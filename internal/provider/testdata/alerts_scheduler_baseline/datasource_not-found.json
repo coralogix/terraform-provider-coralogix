@@ -1,0 +1,27 @@
+[
+  {
+    "step": "read an id that does not exist",
+    "config": {
+      "id": "00000000-0000-4000-8000-999999999999"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/suppression-rules/v1/00000000-0000-4000-8000-999999999999",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: coralogix_alerts_scheduler not found | The API did not find coralogix_alerts_scheduler with id 00000000-0000-4000-8000-999999999999: 404 Not Found — {\"code\":404,\"message\":\"Not Found: No suppression rule found with unique identifier 00000000-0000-4000-8000-999999999999\"}"
+    ],
+    "state": {
+      "description": null,
+      "enabled": null,
+      "filter": null,
+      "id": "00000000-0000-4000-8000-999999999999",
+      "meta_labels": null,
+      "name": null,
+      "schedule": null
+    }
+  }
+]

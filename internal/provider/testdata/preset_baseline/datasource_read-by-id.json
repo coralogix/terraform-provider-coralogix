@@ -1,0 +1,41 @@
+[
+  {
+    "step": "read by id",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/presets/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "attachment_config": "AUTO",
+      "config_overrides": [
+        {
+          "condition_type": {
+            "match_entity_type": {},
+            "match_entity_type_and_sub_type": null
+          },
+          "message_config": {
+            "fields": [
+              {
+                "field_name": "body",
+                "template": "{}"
+              }
+            ]
+          },
+          "payload_type": "generic_https_default"
+        }
+      ],
+      "connector_type": "generic_https",
+      "description": "made outside Terraform",
+      "entity_type": "alerts",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "seeded",
+      "parent_id": "preset_system_generic_https_alerts_empty"
+    }
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "step": "read a name that does not exist",
+    "config": {
+      "name": "missing"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/connectors",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: coralogix_connector with name \"missing\" not found"
+    ],
+    "state": {
+      "config_overrides": null,
+      "connector_config": null,
+      "description": null,
+      "id": null,
+      "name": "missing",
+      "type": null
+    }
+  }
+]

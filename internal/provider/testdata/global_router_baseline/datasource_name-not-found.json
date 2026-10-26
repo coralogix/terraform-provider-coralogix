@@ -1,0 +1,31 @@
+[
+  {
+    "step": "read a name that does not exist",
+    "config": {
+      "name": "missing"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: coralogix_global_router with name \"missing\" not found"
+    ],
+    "state": {
+      "create_time": null,
+      "description": null,
+      "disabled": null,
+      "entity_labels": null,
+      "fallback": null,
+      "fallback_targets": null,
+      "id": null,
+      "name": "missing",
+      "routing_labels": null,
+      "rules": null,
+      "update_time": null
+    }
+  }
+]

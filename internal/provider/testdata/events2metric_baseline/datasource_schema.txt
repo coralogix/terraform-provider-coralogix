@@ -1,0 +1,65 @@
+(data source schema)
+    description: Coralogix Events2Metrics. Converts logs and spans into metrics for long-term monitoring. For more info please review - https://coralogix.com/docs/user-guides/monitoring-and-insights/events2metrics/.
+data_source  tftypes.String computed
+    description: Data source in `<namespace>/<dataset_name>` format. If not set, defaults to the standard logs/spans stream.
+description  tftypes.String computed
+    description: Events2Metric description.
+id  tftypes.String required
+logs_query  nested SINGLE computed
+    description: logs-events2metric type. Exactly one of "spans_query" or "logs_query" must be defined.
+logs_query.applications  tftypes.Set[tftypes.String] computed
+    description: An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+logs_query.lucene  tftypes.String computed
+    description: The search_query that we wanted to be notified on.
+logs_query.severities  tftypes.Set[tftypes.String] computed
+    description: An array of severities that we interested in. Can be one of ["Critical" "Debug" "Error" "Info" "Unspecified" "Verbose" "Warning"]
+logs_query.subsystems  tftypes.Set[tftypes.String] computed
+    description: An array that contains log’s subsystem names that we want to be notified on.  Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+metric_fields  nested MAP computed
+metric_fields.aggregations  nested SINGLE computed
+metric_fields.aggregations.avg  nested SINGLE computed
+metric_fields.aggregations.avg.enable  tftypes.Bool computed
+metric_fields.aggregations.avg.target_metric_name  tftypes.String computed
+metric_fields.aggregations.count  nested SINGLE computed
+metric_fields.aggregations.count.enable  tftypes.Bool computed
+metric_fields.aggregations.count.target_metric_name  tftypes.String computed
+metric_fields.aggregations.histogram  nested SINGLE computed
+metric_fields.aggregations.histogram.buckets  tftypes.List[tftypes.Number] computed
+metric_fields.aggregations.histogram.enable  tftypes.Bool computed
+metric_fields.aggregations.histogram.target_metric_name  tftypes.String computed
+metric_fields.aggregations.max  nested SINGLE computed
+metric_fields.aggregations.max.enable  tftypes.Bool computed
+metric_fields.aggregations.max.target_metric_name  tftypes.String computed
+metric_fields.aggregations.min  nested SINGLE computed
+metric_fields.aggregations.min.enable  tftypes.Bool computed
+metric_fields.aggregations.min.target_metric_name  tftypes.String computed
+metric_fields.aggregations.samples  nested SINGLE computed
+metric_fields.aggregations.samples.enable  tftypes.Bool computed
+metric_fields.aggregations.samples.target_metric_name  tftypes.String computed
+metric_fields.aggregations.samples.type  tftypes.String computed
+    description: Can be one of ["Max" "Min"].
+metric_fields.aggregations.sum  nested SINGLE computed
+metric_fields.aggregations.sum.enable  tftypes.Bool computed
+metric_fields.aggregations.sum.target_metric_name  tftypes.String computed
+metric_fields.source_field  tftypes.String computed
+metric_labels  tftypes.Map[tftypes.String] computed
+name  tftypes.String computed
+    description: Events2Metric name. Events2Metric names have to be unique per account.
+permutations  nested SINGLE computed
+    description: Defines the permutations' info of the events2metric.
+permutations.has_exceed_limit  tftypes.Bool computed
+    description: Notify if the limit permutations' limit of the events2metric has exceed (computed).
+permutations.limit  tftypes.Number computed
+    description: Defines the permutations' limit of the events2metric.
+spans_query  nested SINGLE computed
+    description: spans-events2metric type. Exactly one of "spans_query" or "logs_query" should be defined.
+spans_query.actions  tftypes.Set[tftypes.String] computed
+    description: An array that contains log’s actions names that we want to be notified on.  Actions can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+spans_query.applications  tftypes.Set[tftypes.String] computed
+    description: An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+spans_query.lucene  tftypes.String computed
+    description: The search_query that we wanted to be notified on.
+spans_query.services  tftypes.Set[tftypes.String] computed
+    description: An array that contains log’s services names that we want to be notified on.  Services can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+spans_query.subsystems  tftypes.Set[tftypes.String] computed
+    description: An array that contains log’s subsystem names that we want to be notified on.  Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
