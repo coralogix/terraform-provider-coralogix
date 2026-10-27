@@ -24,6 +24,9 @@ concurrency:
   # Live suites create remote Coralogix resources and clean them up on teardown.
   # Cancelling mid-run can leak fixtures in the shared team.
   cancel-in-progress: false
+  # The default `queue: single` keeps one pending run and cancels it when a newer
+  # run joins the group. `max` keeps up to 100 pending runs in FIFO order.
+  queue: max
 
 env:
   DASHBOARD_ACC_PATTERN: '^TestAccCoralogix(Resource|DataSource)Dashboards?'
