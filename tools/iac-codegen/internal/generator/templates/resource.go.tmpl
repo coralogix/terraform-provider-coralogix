@@ -421,7 +421,13 @@ func (r *Resource) applyUpdateOnly(ctx context.Context, config tfsdk.Config, pla
 		diags.AddError("Unable to update "+TypeName+" after create", err.Error())
 		return diags
 	}
+{{- if and .Singleton .SingletonID .Update.Empty}}
+	// The plan of the create has an unknown id, and Get can leave the id out: the state has the
+	// id that Create stored, so it is the prior value of this write.
+	diags.Append(r.setState(ctx, v, state, state)...)
+{{- else}}
 	diags.Append(r.setState(ctx, v, plan, state)...)
+{{- end}}
 	return diags
 }
 
