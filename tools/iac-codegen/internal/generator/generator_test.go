@@ -2040,7 +2040,7 @@ func TestGoldenOutputSingletonQueryID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"Optional:            true", "Computed:            true", "getWithQueryID(ctx, queryID)"} {
+	for _, want := range []string{"Optional:            true", "Computed:            true", "getWithQueryID(ctx, queryID)", "types.StringValue(id) // the API returned no id"} {
 		if !strings.Contains(string(dataSource), want) {
 			t.Errorf("data source does not contain %q:\n%s", want, dataSource)
 		}

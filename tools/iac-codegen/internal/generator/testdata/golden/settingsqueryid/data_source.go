@@ -67,7 +67,6 @@ func (d *DataSource) Configure(_ context.Context, req datasource.ConfigureReques
 
 // Read reads the singleton. A 404 is an error: the data source has no result to show.
 func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-
 	var configured types.String
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("id"), &configured)...)
 	if resp.Diagnostics.HasError() {
@@ -84,7 +83,6 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 		queryID = &id
 	}
 	v, err := d.resource.getWithQueryID(ctx, queryID)
-
 	if cxsdk.IsNotFound(err) {
 		resp.Diagnostics.AddError("coralogix_"+TypeName+" not found", fmt.Sprintf("The API did not find coralogix_%s with id %v: %s", TypeName, id, err))
 		return
@@ -105,7 +103,7 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 		return
 	}
 	if m.Id.IsNull() || m.Id.ValueString() == "" {
-		m.Id = types.StringValue(TypeName) // the API returned no id
+		m.Id = types.StringValue(id) // the API returned no id
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, m)...)
 }

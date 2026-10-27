@@ -163,7 +163,7 @@ func (d *DataSource) Configure(_ context.Context, req datasource.ConfigureReques
 // A 404 of a route that does not exist is an error too.
 {{- end}}
 func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	{{if and .Singleton $.DataSource.QueryID}}
+	{{- if and .Singleton $.DataSource.QueryID}}
 	var configured types.String
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("id"), &configured)...)
 	if resp.Diagnostics.HasError() {
@@ -180,9 +180,9 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 		queryID = &id
 	}
 	v, err := d.resource.getWithQueryID(ctx, queryID)
-	{{else if .Singleton}}
+	{{- else if .Singleton}}
 	id := TypeName
-	{{else}}
+	{{- else}}
 	var configured types.{{.IDTFType}}
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), &configured)...)
 {{- if $name}}
@@ -203,9 +203,9 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	}
 {{- end}}
 {{- end}}
-	{{if not (and .Singleton $.DataSource.QueryID)}}
+	{{- if not (and .Singleton $.DataSource.QueryID)}}
 	v, err := d.resource.get(ctx, id)
-	{{end}}
+	{{- end}}
 	if {{$cx}}.{{.APINotFound}}(err) {
 		resp.Diagnostics.AddError("coralogix_"+TypeName+" not found", fmt.Sprintf("The API did not find coralogix_%s with id %v: %s", TypeName, id, err))
 		return
@@ -247,7 +247,7 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 {{- end}}
 {{- if and .Singleton .SingletonID}}
 	if m.Id.IsNull() || m.Id.ValueString() == "" {
-		m.Id = types.StringValue(TypeName) // the API returned no id
+		m.Id = types.StringValue({{if $.DataSource.QueryID}}id{{else}}TypeName{{end}}) // the API returned no id
 	}
 {{- else if .Singleton}}
 	m.Id = types.StringValue(SingletonID) // a singleton has a fixed id (D18)
