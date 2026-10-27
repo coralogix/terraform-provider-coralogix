@@ -6,15 +6,12 @@ on:
   push:
     branches:
       - master
+  # No paths-ignore: branch protection requires the `Acceptance tests result` job,
+  # so the workflow must start on every pull request. The `changes` job skips the
+  # tests for pull requests that change only docs and agent files.
   pull_request:
     branches:
       - master
-    paths-ignore:
-      - '.claude/**'
-      - '.cursor/**'
-      - 'AGENTS.md'
-      - 'CLAUDE.md'
-      - '**/*.md'
 
 concurrency:
   # One shared group for all live acceptance runs (any PR, master push, or nightly).
@@ -54,8 +51,39 @@ env:
   NON_DASHBOARD_SHARD_DATA_PROCESSING: &non_dashboard_shard_data_processing '^TestAccCoralogix.*(ParsingRules|Enrichments?|DataSet|TCOPolicies|QuotaAllocation)'
 
 jobs:
+  changes:
+    name: Detect code changes
+    permissions:
+      pull-requests: read
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - name: Check for files other than docs and agent files
+        id: filter
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # A failed API call stops the job here. The result job then fails,
+          # so an error can never skip the tests and report success.
+          files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[].filename')
+          if printf '%s\n' "$files" | grep -qvE '^(\.claude/|\.cursor/)|\.md$'; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
   test:
     name: Non-dashboard acceptance tests (${{ matrix.shard }})
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     permissions:
       contents: read
     env:
@@ -97,6 +125,8 @@ jobs:
 
   test-unsharded:
     name: Non-dashboard acceptance tests (unsharded catch-all)
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     permissions:
       contents: read
     env:
@@ -138,6 +168,8 @@ jobs:
 
   dashboard:
     name: Dashboard acceptance tests (${{ matrix.shard }})
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     permissions:
       contents: read
     env:
@@ -190,6 +222,8 @@ jobs:
 
   dashboard-unsharded:
     name: Dashboard acceptance tests (unsharded catch-all)
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     permissions:
       contents: read
     env:
@@ -234,6 +268,8 @@ jobs:
 
   provider-migration:
     name: Provider migration (${{ matrix.shard }})
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     permissions:
       contents: read
     env:
@@ -274,11 +310,33 @@ jobs:
         run: |
           bash .github/scripts/run-tests-with-summary.sh env CORALOGIX_DASHBOARD_MIGRATION_ACC=1 CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 CORALOGIX_USER_MIGRATION_ACC=1 CORALOGIX_GLOBAL_ROUTER_MIGRATION_ACC=1 CORALOGIX_GENERATED_UPGRADE_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -run '${{ matrix.pattern }}' -v -count=1 -timeout 120m -parallel=3
 
+  acceptance-result:
+    # Branch protection requires this check name. Keep it stable.
+    name: Acceptance tests result
+    # always() keeps this job from being skipped. GitHub counts a skipped
+    # required check as passed. While the run waits in the concurrency queue,
+    # the check is missing, so the pull request cannot merge.
+    if: ${{ always() }}
+    needs:
+      - changes
+      - test
+      - test-unsharded
+      - dashboard
+      - dashboard-unsharded
+      - provider-migration
+    permissions: {}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any acceptance job failed or was cancelled
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+        run: exit 1
+
   notify-failure:
     name: Notify Slack on failure
     # Scheduled (nightly) and master push runs alert. Pull request runs stay quiet.
     if: ${{ always() && (github.event_name == 'schedule' || github.event_name == 'push') }}
     needs:
+      - changes
       - test
       - test-unsharded
       - dashboard
