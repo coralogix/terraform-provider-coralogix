@@ -40,11 +40,12 @@ env:
   # archive-logs shard runs all of them (handwritten, generated, and generated upgrade) with -p 1;
   # every other job skips them.
   ARCHIVE_LOGS_ACC_PATTERN: &archive_logs_acc_pattern '^TestAccCoralogix(Resource|DataSource)(Resource)?ArchiveLogs'
-  # The quota allocation rule set is one per account, so its upgrade test has its own shard of the
-  # provider migration job, which runs after the test job, and the generated-upgrade shard skips it.
-  QUOTA_UPGRADE_ACC_PATTERN: &quota_upgrade_acc_pattern '^TestAccCoralogixResourceQuotaAllocationRuleSetGeneratedUpgrade$'
-  # The generated upgrade shard leaves out the tests that have a shard or a job of their own.
-  GENERATED_UPGRADE_SKIP_PATTERN: &generated_upgrade_skip_pattern '^TestAccCoralogix(Resource|DataSource)(Resource)?ArchiveLogs|^TestAccCoralogixResourceQuotaAllocationRuleSetGeneratedUpgrade$'
+  # The quota allocation rule set is one per account, so its tests must not run at the same time. The
+  # quota-allocation-rule-set shard runs all of them (handwritten, generated, and generated upgrade)
+  # with -p 1; every other job skips them.
+  QUOTA_ACC_PATTERN: &quota_acc_pattern '^TestAccCoralogix(Resource|DataSource)QuotaAllocation'
+  # The generated upgrade shard leaves out the tests that have a shard of their own.
+  GENERATED_UPGRADE_SKIP_PATTERN: &generated_upgrade_skip_pattern '^TestAccCoralogix(Resource|DataSource)(Resource)?ArchiveLogs|^TestAccCoralogix(Resource|DataSource)QuotaAllocation'
   DASHBOARD_SHARD_STRUCTURED_LINE_AND_TABLE: &dashboard_shard_structured_line_and_table '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/line-and-table$'
   DASHBOARD_SHARD_STRUCTURED_GAUGE_AND_BARS: &dashboard_shard_structured_gauge_and_bars '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/gauge-and-bars$'
   DASHBOARD_SHARD_STRUCTURED_HORIZONTAL_AND_HEXAGON: &dashboard_shard_structured_horizontal_and_hexagon '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/horizontal-and-hexagon$'
@@ -62,7 +63,7 @@ env:
   DASHBOARD_SHARD_ACTIONS_SECTIONS_AND_ANNOTATIONS: &dashboard_shard_actions_sections_and_annotations '^TestAccCoralogixResourceDashboard(WidgetCustomActions|SectionOptionBranches|AccessPolicyAddedLater|MetricAnnotationOrientation|AnnotationScope|DataprimeAnnotation|EventRecurrenceAnnotation)$'
   DASHBOARD_SHARD_VARIABLES_V2: &dashboard_shard_variables_v2 '^TestAccCoralogixResourceDashboardVariablesV2'
   NON_DASHBOARD_SHARD_ALERTS_AND_INTEGRATIONS: &non_dashboard_shard_alerts_and_integrations '^TestAccCoralogix.*(Alert|Webhook|Connector|Preset|Integration)'
-  NON_DASHBOARD_SHARD_DATA_PROCESSING: &non_dashboard_shard_data_processing '^TestAccCoralogix.*(ParsingRules|Enrichments?|DataSet|TCOPolicies|QuotaAllocation)'
+  NON_DASHBOARD_SHARD_DATA_PROCESSING: &non_dashboard_shard_data_processing '^TestAccCoralogix.*(ParsingRules|Enrichments?|DataSet|TCOPolicies)'
   # The user tests run one after another and are the slowest non-dashboard tests.
   # Three shards keep each job near three minutes.
   # Tests that change team-wide state (archives, global router, IP access) stay
@@ -125,7 +126,6 @@ jobs:
             pattern: *non_dashboard_shard_alerts_and_integrations
           - shard: data-processing
             pattern: *non_dashboard_shard_data_processing
-            procs: 1
           - shard: user-group-membership
             pattern: *non_dashboard_shard_user_group_membership
           - shard: user-data-source
@@ -161,18 +161,10 @@ jobs:
           PD_INTEGRATION_ID: ${{ secrets.PD_INTEGRATION_ID }}
           CORALOGIX_SLO_V2_APM_SERVICE: ${{ secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
           RUN_PATTERN: ${{ matrix.pattern }}
-          PROCS: ${{ matrix.procs }}
         run: |
           # make reads `$` as a variable, so a pattern that ends in `$'` lost its
           # closing quote. `$$` reaches the shell as one `$`.
-          # The quota allocation rule set is one per account, and its tests sit in two packages. The
-          # data-processing shard runs its packages one after the other (procs: 1), so that they do
-          # not replace and delete the same rule set at the same time.
-          testargs="-run '${RUN_PATTERN//\$/\$\$}'"
-          if [ -n "$PROCS" ]; then
-            testargs="$testargs -p $PROCS"
-          fi
-          bash .github/scripts/run-tests-with-summary.sh make testacc "TESTARGS=$testargs"
+          bash .github/scripts/run-tests-with-summary.sh make testacc "TESTARGS=-run '${RUN_PATTERN//\$/\$\$}'"
       # Uploads on pass too (an empty file) and overwrites the earlier attempt,
       # so after any re-run each shard has one file for its latest result.
       - name: Upload failed test names
@@ -240,7 +232,7 @@ jobs:
             "$NON_DASHBOARD_SHARD_ACCESS_CONTROL"
             "$NON_DASHBOARD_SHARD_SLO_AI_VIEWS_AND_RECORDING_RULES"
           )
-          skip_pattern="$DASHBOARD_ACC_PATTERN|$EVENTS2METRIC_MIGRATION_ACC_PATTERN|$USER_MIGRATION_ACC_PATTERN|$ARCHIVE_LOGS_ACC_PATTERN"
+          skip_pattern="$DASHBOARD_ACC_PATTERN|$EVENTS2METRIC_MIGRATION_ACC_PATTERN|$USER_MIGRATION_ACC_PATTERN|$ARCHIVE_LOGS_ACC_PATTERN|$QUOTA_ACC_PATTERN"
           for pattern in "${shard_patterns[@]}"; do
             skip_pattern+="|($pattern)"
           done
@@ -430,12 +422,8 @@ jobs:
 
   provider-migration:
     name: Provider migration (${{ matrix.shard }})
-    # The quota allocation rule set is one per account, and the upgrade shard of this job replaces
-    # it. The test job runs the other quota tests, so this job starts after it, also when it fails.
-    needs:
-      - changes
-      - test
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
     permissions:
       contents: read
     env:
@@ -461,8 +449,8 @@ jobs:
           - shard: generated-upgrade
             pattern: *generated_upgrade_acc_pattern
             skip: *generated_upgrade_skip_pattern
-          - shard: quota-allocation-rule-set-v3.21.0
-            pattern: *quota_upgrade_acc_pattern
+          - shard: quota-allocation-rule-set
+            pattern: *quota_acc_pattern
             procs: 1
           - shard: archive-logs
             pattern: *archive_logs_acc_pattern
