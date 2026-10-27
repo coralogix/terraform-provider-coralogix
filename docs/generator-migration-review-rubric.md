@@ -42,7 +42,7 @@ changes.
 
 If tests use a fake API, compare its replies with real API calls or a saved recording. Check 404s.
 If the API says the resource is gone, remove it from state. If the API route is missing, return an
-error. If create, update, or read now calls another service or RPC, map each call to an API-key
-permission in `mapRoleToPermission`. A least-privilege key that worked before must still work. Read
-comments on earlier generator migration PRs and apply the ones that fit this PR. Report
+error. If create, update, or read now calls another service or RPC, list each call and the API-key
+permission it needs. A least-privilege key that could do the old write must still work; test with
+one. Read comments on earlier generator migration PRs and apply the ones that fit this PR. Report
 each remaining blocker with an example and code location.
