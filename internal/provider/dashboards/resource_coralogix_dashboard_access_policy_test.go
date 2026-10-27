@@ -63,6 +63,24 @@ func TestFlattenDashboardAccessPolicy(t *testing.T) {
 			want:         types.StringValue(""),
 		},
 		{
+			name:         "a whitespace-only plan keeps an echoed whitespace policy",
+			plan:         types.StringValue(blankText),
+			accessPolicy: &blankText,
+			want:         types.StringValue(blankText),
+		},
+		{
+			name:         "a whitespace-only plan keeps an empty policy from the API",
+			plan:         types.StringValue(blankText),
+			accessPolicy: &emptyText,
+			want:         types.StringValue(blankText),
+		},
+		{
+			name:         "a whitespace-only plan keeps an omitted policy",
+			plan:         types.StringValue(blankText),
+			accessPolicy: nil,
+			want:         types.StringValue(blankText),
+		},
+		{
 			name:         "an empty policy with an unknown plan is no policy",
 			plan:         types.StringUnknown(),
 			accessPolicy: &emptyText,
