@@ -9,6 +9,16 @@
         "status": 200
       }
     ],
-    "state": null
+    "applyDiagnostics": [
+      "error: Missing resource | The API response has no s3."
+    ],
+    "state": {
+      "active": null,
+      "archiving_format_id": null,
+      "bucket": null,
+      "enable_tags": null,
+      "id": null,
+      "region": null
+    }
   }
 ]

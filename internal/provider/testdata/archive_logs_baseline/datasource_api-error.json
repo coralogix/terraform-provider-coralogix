@@ -10,7 +10,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_archive_logs | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: archive target store unavailable\"}\noperation - Read"
+      "error: Unable to read coralogix_archive_logs | id archive_logs: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: archive target store unavailable\"}"
     ],
     "state": {
       "active": null,

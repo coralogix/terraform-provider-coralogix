@@ -26,6 +26,9 @@ api:
     update: S3TargetService_SetTarget
     delete: none
 
+# The released data source reads the one archive target. It takes no input.
+dataSource: {}
+
 types:
   v2.Target:
     fields:

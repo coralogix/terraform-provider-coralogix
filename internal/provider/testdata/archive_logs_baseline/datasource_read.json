@@ -14,7 +14,7 @@
       "archiving_format_id": "cx_data_v1",
       "bucket": "seeded-bucket",
       "enable_tags": false,
-      "id": "",
+      "id": "archive-logs-settings",
       "region": "eu-north-1"
     }
   }

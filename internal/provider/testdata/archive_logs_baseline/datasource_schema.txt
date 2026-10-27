@@ -1,10 +1,13 @@
 (data source schema)
     description: Coralogix archive-logs. Configures the S3 bucket Coralogix archives logs and traces into. For more info please review - https://coralogix.com/docs/user-guides/data-flow/s3-archive/connect-s3-archive/.
 active  tftypes.Bool computed
+    description: Whether archiving to this target is active.
 archiving_format_id  tftypes.String computed
+    description: The archiving format ID.
 bucket  tftypes.String computed
     description: The bucket name to store the archived logs in.
 enable_tags  tftypes.Bool computed
 id  tftypes.String computed
+    description: The fixed id of this singleton: there is one per company.
 region  tftypes.String computed
     description: The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions

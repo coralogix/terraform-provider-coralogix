@@ -10,6 +10,12 @@
 - CHORE: API errors read `Unable to create archive_logs` or `Unable to update archive_logs` instead of `Error replacing coralogix_archive_logs`.
 - DOCS: `active` and `archiving_format_id` have descriptions.
 
+#### data-source/coralogix_archive_logs
+- CHORE: The data source is generated with the resource, so it uses the schema of the resource, and `active`, `archiving_format_id`, and `id` have descriptions.
+- CHORE: `id` is `archive-logs-settings`, as in the resource. Before, it was empty.
+- FIX: A read fails with an error when the company has no S3 archive target, or when the API returns a 404. Before, a 404 only warned, and a company without an S3 target got an empty result without a warning.
+- CHORE: API errors read `Unable to read coralogix_archive_logs` instead of `Error reading coralogix_archive_logs`.
+
 #### resource/coralogix_dashboard
 - FIX: An empty `access_policy` returned by the API is read as null, the same as an omitted one. Before, the empty string went into state and import could not match it.
 
