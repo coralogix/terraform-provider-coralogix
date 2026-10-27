@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -368,7 +367,11 @@ func TestAccCoralogixResourceEventBridgeWebhook(t *testing.T) {
 }
 
 func testAccCheckWebhookDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).Webhooks()
+	cs, err := testAccNewClientSet()
+	if err != nil {
+		return err
+	}
+	client := cs.Webhooks()
 
 	ctx := context.TODO()
 

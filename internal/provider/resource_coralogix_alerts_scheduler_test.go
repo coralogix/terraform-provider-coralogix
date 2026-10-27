@@ -19,11 +19,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/google/uuid"
 
 	alertscheduler "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_scheduler_rule_service"
-	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -205,10 +203,11 @@ func TestAccCoralogixResourceAlertsSchedulerImportDirectAlertIDNoDrift(t *testin
 }
 
 func testAccCheckAlertsSchedulerDestroy(s *terraform.State) error {
-	testAccProvider = OldProvider()
-	rc := terraform2.ResourceConfig{}
-	testAccProvider.Configure(context.Background(), &rc)
-	client := testAccProvider.Meta().(*clientset.ClientSet).AlertSchedulers()
+	cs, err := testAccNewClientSet()
+	if err != nil {
+		return err
+	}
+	client := cs.AlertSchedulers()
 	ctx := context.TODO()
 
 	for _, rs := range s.RootModule().Resources {
@@ -261,12 +260,11 @@ func testAccCreateAlertsScheduler(t *testing.T, scheduler alertscheduler.AlertSc
 func testAccAlertsSchedulerClient(t *testing.T) *alertscheduler.AlertSchedulerRuleServiceAPIService {
 	t.Helper()
 
-	testAccProvider = OldProvider()
-	rc := terraform2.ResourceConfig{}
-	if diags := testAccProvider.Configure(context.Background(), &rc); diags.HasError() {
-		t.Fatalf("configuring provider for alert scheduler client: %v", diags)
+	cs, err := testAccNewClientSet()
+	if err != nil {
+		t.Fatalf("configuring alert scheduler client: %v", err)
 	}
-	return testAccProvider.Meta().(*clientset.ClientSet).AlertSchedulers()
+	return cs.AlertSchedulers()
 }
 
 func testAccBackendAlertsSchedulerAllAlerts(name string) alertscheduler.AlertSchedulerRule {
