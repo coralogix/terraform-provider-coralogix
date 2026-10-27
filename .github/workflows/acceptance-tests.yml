@@ -159,13 +159,16 @@ jobs:
           # make reads `$` as a variable, so a pattern that ends in `$'` lost its
           # closing quote. `$$` reaches the shell as one `$`.
           bash .github/scripts/run-tests-with-summary.sh make testacc "TESTARGS=-run '${RUN_PATTERN//\$/\$\$}'"
+      # Uploads on pass too (an empty file) and overwrites the earlier attempt,
+      # so after any re-run each shard has one file for its latest result.
       - name: Upload failed test names
-        if: ${{ failure() }}
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: failed-tests-${{ github.run_attempt }}-non-dashboard-${{ matrix.shard }}
+          name: failed-tests-non-dashboard-${{ matrix.shard }}
           path: ${{ env.FAILED_TESTS_FILE }}
           if-no-files-found: ignore
+          overwrite: true
           retention-days: 7
       # No attempt number in the name: a re-run replaces the file of its own job
       # and keeps the files of jobs that did not re-run, so the check sees every job.
@@ -228,13 +231,16 @@ jobs:
             skip_pattern+="|($pattern)"
           done
           ACC_SKIP_PATTERN="$skip_pattern" bash .github/scripts/run-tests-with-summary.sh make testacc
+      # Uploads on pass too (an empty file) and overwrites the earlier attempt,
+      # so after any re-run each shard has one file for its latest result.
       - name: Upload failed test names
-        if: ${{ failure() }}
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: failed-tests-${{ github.run_attempt }}-non-dashboard-unsharded
+          name: failed-tests-non-dashboard-unsharded
           path: ${{ env.FAILED_TESTS_FILE }}
           if-no-files-found: ignore
+          overwrite: true
           retention-days: 7
       # No attempt number in the name: a re-run replaces the file of its own job
       # and keeps the files of jobs that did not re-run, so the check sees every job.
@@ -311,13 +317,16 @@ jobs:
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
         run: |
           bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run '${{ matrix.pattern }}' -timeout 120m -parallel=4
+      # Uploads on pass too (an empty file) and overwrites the earlier attempt,
+      # so after any re-run each shard has one file for its latest result.
       - name: Upload failed test names
-        if: ${{ failure() }}
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: failed-tests-${{ github.run_attempt }}-dashboard-${{ matrix.shard }}
+          name: failed-tests-dashboard-${{ matrix.shard }}
           path: ${{ env.FAILED_TESTS_FILE }}
           if-no-files-found: ignore
+          overwrite: true
           retention-days: 7
       # No attempt number in the name: a re-run replaces the file of its own job
       # and keeps the files of jobs that did not re-run, so the check sees every job.
@@ -382,13 +391,16 @@ jobs:
             skip_pattern+="|$pattern"
           done
           bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run "$DASHBOARD_ACC_PATTERN" -skip "$skip_pattern" -timeout 120m -parallel=4
+      # Uploads on pass too (an empty file) and overwrites the earlier attempt,
+      # so after any re-run each shard has one file for its latest result.
       - name: Upload failed test names
-        if: ${{ failure() }}
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: failed-tests-${{ github.run_attempt }}-dashboard-unsharded
+          name: failed-tests-dashboard-unsharded
           path: ${{ env.FAILED_TESTS_FILE }}
           if-no-files-found: ignore
+          overwrite: true
           retention-days: 7
       # No attempt number in the name: a re-run replaces the file of its own job
       # and keeps the files of jobs that did not re-run, so the check sees every job.
@@ -454,13 +466,16 @@ jobs:
           ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
         run: |
           bash .github/scripts/run-tests-with-summary.sh env CORALOGIX_DASHBOARD_MIGRATION_ACC=1 CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 CORALOGIX_USER_MIGRATION_ACC=1 CORALOGIX_GLOBAL_ROUTER_MIGRATION_ACC=1 CORALOGIX_GENERATED_UPGRADE_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test -p ${{ matrix.procs || 4 }} -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -run '${{ matrix.pattern }}' -skip '${{ matrix.skip }}' -v -count=1 -timeout 120m -parallel=3
+      # Uploads on pass too (an empty file) and overwrites the earlier attempt,
+      # so after any re-run each shard has one file for its latest result.
       - name: Upload failed test names
-        if: ${{ failure() }}
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: failed-tests-${{ github.run_attempt }}-provider-migration-${{ matrix.shard }}
+          name: failed-tests-provider-migration-${{ matrix.shard }}
           path: ${{ env.FAILED_TESTS_FILE }}
           if-no-files-found: ignore
+          overwrite: true
           retention-days: 7
       # No attempt number in the name: a re-run replaces the file of its own job
       # and keeps the files of jobs that did not re-run, so the check sees every job.
@@ -554,23 +569,26 @@ jobs:
     permissions: {}
     runs-on: ubuntu-latest
     steps:
-      # Each failed test job uploads one file, named after its shard.
-      # merge-multiple puts all files in one folder: GitHub skips the
-      # per-artifact folder when only one artifact matches.
-      # Artifacts belong to the whole run, so a re-run still sees the files of
-      # earlier attempts. The attempt number in the name keeps only this one.
+      # Each test job uploads one file, named after its shard. The file is empty
+      # when the job passed. merge-multiple puts all files in one folder: GitHub
+      # skips the per-artifact folder when only one artifact matches.
       - name: Download failed test names
         if: ${{ contains(needs.*.result, 'failure') }}
         uses: actions/download-artifact@v8
         with:
-          pattern: failed-tests-${{ github.run_attempt }}-*
+          pattern: failed-tests-*
           path: failed-tests
           merge-multiple: true
       - name: Write failed tests summary
         if: ${{ contains(needs.*.result, 'failure') }}
         run: |
           shopt -s nullglob
-          files=(failed-tests/*.txt)
+          files=()
+          for file in failed-tests/*.txt; do
+            if [ -s "$file" ]; then
+              files+=("$file")
+            fi
+          done
           if [ "${#files[@]}" -eq 0 ]; then
             exit 0
           fi
