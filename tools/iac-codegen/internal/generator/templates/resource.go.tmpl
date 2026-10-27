@@ -40,6 +40,11 @@ import (
 {{- $cx := .CXName}}
 // TypeName is the resource type name without the provider prefix.
 const TypeName = {{printf "%q" .TypeName}}
+{{- if .Singleton}}
+
+// SingletonID is the fixed id of the resource: there is one per company.
+const SingletonID = {{.FixedID}}
+{{- end}}
 
 var (
 	_ resource.Resource                     = (*Resource)(nil)
@@ -295,6 +300,13 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	v, err := r.create(ctx, body)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create "+TypeName, err.Error())
+{{- if .Create.ResponseID}}
+		if v != nil {
+			// The resource exists, but reading it failed. Keep the id, so Terraform marks the
+			// resource as tainted and can delete it.
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), {{if not .IDValue}}*{{end}}v.{{.IDField}})...)
+		}
+{{- end}}
 		return
 	}
 	diags = r.setState(ctx, v, req.Plan, &resp.State)
@@ -310,7 +322,7 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	if diags.HasError() {
 		// The singleton exists, but the state is not complete. Keep the id, so
 		// Terraform marks the resource as tainted and can delete it.
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), TypeName)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), SingletonID)...)
 	}
 {{- else}}
 	if diags.HasError() && v != nil{{if not .IDValue}} && v.{{.IDField}} != nil{{end}} {
@@ -359,7 +371,7 @@ func (r *Resource) applyUpdateOnly(ctx context.Context, config tfsdk.Config, pla
 	if !differs || diags.HasError() {
 		return diags
 	}
-{{- if or (not .UpdateIDInBody) .UpdateBodyID}}
+{{- if or (not .UpdateIDInBody) .UpdateBodyID .Update.Empty}}
 	id, d := stateID(ctx, *state)
 	diags.Append(d...)
 	if diags.HasError() {
@@ -397,12 +409,18 @@ func (r *Resource) applyUpdateOnly(ctx context.Context, config tfsdk.Config, pla
 	// Only the server sets the id, so no Update field sends it. The body names the resource by it.
 	body.{{.UpdateBodyID}} = {{if not .UpdateBodyIDValue}}&{{end}}id
 {{- end}}
-	v, err := r.update(ctx{{if not .UpdateIDInBody}}, id{{end}}, body{{if and (not .Replace) (not .MaskInBody)}}, mask{{end}})
+	v, err := r.update(ctx{{if or (not .UpdateIDInBody) .Update.Empty}}, id{{end}}, body{{if and (not .Replace) (not .MaskInBody)}}, mask{{end}})
 	if err != nil {
 		diags.AddError("Unable to update "+TypeName+" after create", err.Error())
 		return diags
 	}
+{{- if and .Singleton .SingletonID .Update.Empty}}
+	// The plan of the create has an unknown id, and Get can leave the id out: the state has the
+	// id that Create stored, so it is the prior value of this write.
+	diags.Append(r.setState(ctx, v, state, state)...)
+{{- else}}
 	diags.Append(r.setState(ctx, v, plan, state)...)
+{{- end}}
 	return diags
 }
 
@@ -449,7 +467,7 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 		return
 	}
 	v, err := r.get(ctx, id)
-	if {{$cx}}.{{.APINotFound}}(err) {
+	if {{$cx}}.{{.APINotFound}}(err){{if .Arms}} || err == nil && absent(v){{end}} {
 		resp.Diagnostics.AddWarning("Resource disappeared during read",
 			fmt.Sprintf("%s with id %v was not found. Terraform removed it from state.", TypeName, id))
 		resp.State.RemoveResource(ctx)
@@ -462,7 +480,11 @@ func (r *Resource) Read(ctx context.Context, req resource.ReadRequest, resp *res
 	resp.Diagnostics.Append(r.setState(ctx, v, req.State, &resp.State)...)
 }
 
-{{if .Replace -}}
+{{if .Upsert -}}
+// Update sends every Update field with the Set call, which replaces the
+// resource. When no Update field changed, it sends no request and reads the
+// resource instead (D14).
+{{- else if .Replace -}}
 // Update sends every Update field: a PUT replaces the resource. When no
 // Update field changed, it sends no request and reads the resource instead
 // (D14).
@@ -513,7 +535,7 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		// Only the server sets the id, so no Update field sends it. The body names the resource by it.
 		body.{{.UpdateBodyID}} = {{if not .UpdateBodyIDValue}}&{{end}}id
 {{- end}}
-		v, err = r.update(ctx{{if not .UpdateIDInBody}}, id{{end}}, body{{if and (not .Replace) (not .MaskInBody)}}, mask{{end}})
+		v, err = r.update(ctx{{if or (not .UpdateIDInBody) .Update.Empty}}, id{{end}}, body{{if and (not .Replace) (not .MaskInBody)}}, mask{{end}})
 	}
 	if {{$cx}}.{{.APINotFound}}(err) {
 		// The framework does not allow Update to remove the resource from state.
@@ -529,6 +551,14 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 	resp.Diagnostics.Append(r.setState(ctx, v, req.Plan, &resp.State)...)
 }
 
+{{if .Upsert -}}
+// Delete removes the resource from the state only. The API cannot remove it, so
+// it keeps the last configuration that Terraform set.
+func (r *Resource) Delete(_ context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
+	resp.Diagnostics.AddWarning("Resource not deleted",
+		fmt.Sprintf("The API cannot delete %s. Terraform removed it from state, and the API keeps its last configuration.", TypeName))
+}
+{{- else -}}
 // Delete treats a resource that the API does not find as deleted. A 404 of a route that
 // does not exist is an error: the resource can still exist.
 func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -542,6 +572,7 @@ func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp 
 		resp.Diagnostics.AddError("Unable to delete "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 	}
 }
+{{- end}}
 
 // The API calls. Each returns the error with its HTTP status and body.
 
@@ -550,11 +581,33 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBod
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 	}
+{{- if .Create.ResponseID}}
+	if out == nil || {{if not .Create.ResponseIDValue}}out.{{.Create.ResponseID}} == nil || *out.{{.Create.ResponseID}} == ""{{else}}out.{{.Create.ResponseID}} == ""{{end}} {
+		return nil, fmt.Errorf("the API did not return the id of the new resource")
+	}
+	id := {{if not .Create.ResponseIDValue}}*{{end}}out.{{.Create.ResponseID}}
+	// The Create response holds only the id. Read the resource that it created.
+	v, err := r.get(ctx, id)
+	if err != nil {
+		// Return the id with the error, so Create can keep it in the state.
+		return &{{$sdk}}.{{.Resource}}{ {{.IDField}}: {{if not .IDValue}}&{{end}}id}, fmt.Errorf("created %s with id %v, but could not read it: %w", TypeName, id, err)
+	}
+	if v == nil {
+		return &{{$sdk}}.{{.Resource}}{ {{.IDField}}: {{if not .IDValue}}&{{end}}id}, fmt.Errorf("created %s with id %v, but the API returned no resource", TypeName, id)
+	}
+	// The id that Create returned is the id of the resource, also when Get leaves it out.
+	if {{if .IDValue}}v.{{.IDField}} == ""{{else}}v.{{.IDField}} == nil || *v.{{.IDField}} == ""{{end}} {
+		v.{{.IDField}} = {{if not .IDValue}}&{{end}}id
+	}
+	return v, nil
+}
+{{- else}}
 	if out == nil {
 		return nil, nil
 	}
 	return {{if .Create.Response}}{{if .Create.ResponseValue}}&{{end}}out.{{.Create.Response}}{{else}}out{{end}}, nil
 }
+{{- end}}
 
 func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Resource}}, error) {
 	out, httpResp, err := r.client.{{.Get.Method}}(ctx{{if not .Singleton}}, id{{end}}).Execute()
@@ -567,7 +620,26 @@ func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Reso
 	return {{if .Get.Response}}{{if .Get.ResponseValue}}&{{end}}out.{{.Get.Response}}{{else}}out{{end}}, nil
 }
 
-func (r *Resource) update(ctx context.Context{{if not .UpdateIDInBody}}, id {{.IDGoType}}{{end}}, body *{{$sdk}}.{{$.Conv.UpdateBody}}{{if and (not .Replace) (not .MaskInBody)}}, mask string{{end}}) (*{{$sdk}}.{{.Resource}}, error) {
+func (r *Resource) update(ctx context.Context{{if or (not .UpdateIDInBody) .Update.Empty}}, id {{.IDGoType}}{{end}}, body *{{$sdk}}.{{$.Conv.UpdateBody}}{{if and (not .Replace) (not .MaskInBody)}}, mask string{{end}}) (*{{$sdk}}.{{.Resource}}, error) {
+{{- if .Update.Empty}}
+	_, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}(*body){{if and (not .Replace) (not .MaskInBody)}}.{{.UpdateMask}}(mask){{end}}.Execute()
+	if err != nil {
+		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
+	}
+	// The Update response has no fields. Read the resource that it changed. Create reaches here
+	// too, for an attribute that only Update sends.
+	v, err := r.get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+{{- if not .Singleton}}
+	// The id of the state is the id of the resource, also when Get leaves it out.
+	if v != nil && {{if .IDValue}}v.{{.IDField}} == {{if eq .IDGoType "string"}}""{{else}}0{{end}}{{else}}(v.{{.IDField}} == nil || *v.{{.IDField}} == {{if eq .IDGoType "string"}}""{{else}}0{{end}}){{end}} {
+		v.{{.IDField}} = {{if not .IDValue}}&{{end}}id
+	}
+{{- end}}
+	return v, nil
+{{- else}}
 	out, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}(*body){{if and (not .Replace) (not .MaskInBody)}}.{{.UpdateMask}}(mask){{end}}.Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
@@ -576,12 +648,23 @@ func (r *Resource) update(ctx context.Context{{if not .UpdateIDInBody}}, id {{.I
 		return nil, nil
 	}
 	return {{if .Update.Response}}{{if .Update.ResponseValue}}&{{end}}out.{{.Update.Response}}{{else}}out{{end}}, nil
+{{- end}}
 }
 
+{{if not .Upsert -}}
 func (r *Resource) delete(ctx context.Context, id {{.IDGoType}}) error {
 	_, httpResp, err := r.client.{{.Delete.Method}}(ctx{{if not .Singleton}}, id{{end}}).Execute()
 	return {{$cx}}.{{.NewAPIError}}(httpResp, err)
 }
+{{- end}}
+{{- if .Arms}}
+
+// absent reports whether a response has none of the arms that hold the resource. The API then
+// has no resource: it returns another arm, or an empty one.
+func absent(v *{{$sdk}}.{{.Resource}}) bool {
+	return v == nil{{range .Arms}} || v.{{.}} == nil{{end}}
+}
+{{- end}}
 
 {{if .Existing -}}
 // setState writes the resource in an API response to the state. A value that is empty in both
@@ -621,7 +704,7 @@ func (r *Resource) setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prio
 		}
 	}
 {{- else if .Singleton}}
-	m.Id = types.StringValue(TypeName) // a singleton has a fixed id (D18)
+	m.Id = types.StringValue(SingletonID) // a singleton has a fixed id (D18)
 {{- end}}
 	diags.Append(state.Set(ctx, m)...)
 	if diags.HasError() {
@@ -687,7 +770,7 @@ func (r *Resource) upgradeByRefresh(ctx context.Context, req resource.UpgradeSta
 		return
 	}
 	v, err := r.get(ctx, id)
-	if {{$cx}}.{{.APINotFound}}(err) {
+	if {{$cx}}.{{.APINotFound}}(err){{if .Arms}} || err == nil && absent(v){{end}} {
 		// The framework does not allow a state upgrade to remove the resource from state,
 		// and a refresh runs the upgrade first, so only the user can remove it.
 		resp.Diagnostics.AddError("Resource no longer exists",

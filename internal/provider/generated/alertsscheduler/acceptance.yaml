@@ -7,10 +7,14 @@ values:
   schedule.operation: '"mute"'
   schedule.one_time.time_frame.start_time: '"2030-01-01T00:00:00.000"'
   schedule.one_time.time_frame.time_zone: '"UTC+0"'
-  meta_labels[].key: '"alert_type"'
-  meta_labels[].value: '"security"'
-  filter.meta_labels[].key: '"alert_type"'
-  filter.meta_labels[].value: '"security"'
+  # The tenant is at its meta label limit, so the API drops a label that does not exist yet; a
+  # scheduler rule does not delete its labels, so a label that only scheduler tests use stays.
+  # An alert label such as alert_type/security does not: the alert tests in the same CI shard
+  # create and delete it while this test runs, and the rule loses it.
+  meta_labels[].key: '"key"'
+  meta_labels[].value: '"value"'
+  filter.meta_labels[].key: '"key"'
+  filter.meta_labels[].value: '"value"'
 
 # The API rejects an alert id that does not exist, so the tests select alerts by meta label.
 skip:

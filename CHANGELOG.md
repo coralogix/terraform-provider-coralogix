@@ -5,6 +5,12 @@
 - CHORE: Bump `coralogix-management-sdk` to the version with the AI evaluations contract. `coralogix_dashboards_folder` and `coralogix_dashboard` adapt to its types: the folder name is a required string, and the dashboard of a replace request is optional. A `coralogix_dashboards_folder` without `name` now sends an empty name: the API still rejects it, now with "folder name cannot be empty".
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.43`.
+- FEAT: `api.operations` with `delete: none`, and `create` and `update` naming one POST, generates a singleton that a GET reads and a POST on the same path sets. Create and Update send the whole resource with the POST, and Delete makes no call and warns that the API keeps the resource.
+- FEAT: An `inline: true` field line shows the fields of an object of the resource as top-level attributes. A response arm that is inlined, with the other arms skipped, means that the resource exists: Read removes a resource whose response has another arm. It needs an Update that sends the whole resource: a PUT, or the POST of `delete: none`.
+- CHANGE: `singletonID` is an object with one key: `singletonID: {fixed: <id>}` gives the released fixed id, which the generated package exports as `SingletonID`, and `singletonID: true` is now `singletonID: {fromAPI: true}`.
+- FIX: A `default` field line without `computed: true` is an error. Before, the generated schema had a default on an attribute that is not computed, which Terraform rejects. A default on a field that the contract requires also needs `optional: true` on the line.
+- CHORE: The generated acceptance test is named after the Terraform resource type: `TestAccCoralogixResourceSloV2Generated`, `TestAccCoralogixResourceEvents2metricGenerated`, and `TestAccCoralogixResourceAlertsSchedulerGenerated` (and their `Upgrade` tests) replace the names taken from the API component.
 - CHORE: Bump `golang.org/x/text` to v0.43.0 to clear CVE-2026-56851 and CVE-2026-56852, with `golang.org/x/tools` v0.51.0 and `golang.org/x/sync` v0.24.0 as its module requires. No change to generated code.
 - FEAT: Generate `data_source.go` next to the resource. The data source reads one resource by id. Its schema is the resource schema, copied at run time with `utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema`, so a new API field reaches the data source with no change. It runs the `BeforeFlatten` hook of the resource, and an id that the API does not find is an error.
 - FEAT: A new resource always gets a data source, `DataSources()` in `registry.go`, and the docs example `examples/data-sources/coralogix_<type>/data-source.tf`. An existing resource gets a data source only with a `dataSource:` section in `behavior-overrides.yaml` (`dataSource: {}` when it has no line).
@@ -15,7 +21,12 @@
 - FEAT: `dataSource.duplicateNames: first` takes the first item with the name, in the order of the API, for a released data source that did so. Without `name` in `lookup`, the line is an error.
 - FEAT: With name lookup, the generated acceptance test also reads the data source by the name of the resource and compares it with the resource.
 - CHORE: Bump the `iac` module to the commit that adds the List operation to the model.
-- CHORE: Bump the generator to `v0.1.0-beta.41`.
+- CHORE: Bump the generator to `v0.1.0-beta.44`.
+- CHORE: The header of a generated Go file has no generator version. `internal/provider/generated/versions.yaml` holds the version of each generated package, so a new version changes only that file and the files whose output changes. The generator still takes a file with the old header, which has the version, as its own.
+- CHORE: Bump the generator to `v0.1.0-beta.42`.
+- FEAT: `api.createResponseOnlyIDProperty` names the property of a Create response that holds only the id. The generated Create then reads the resource with Get, and keeps the id in the state when that read fails, so Terraform marks the resource as tainted. The SDK `iac` module reads the response shape.
+- FEAT: The generated Update reads the resource with Get when the API answers it with an object that has no fields (existing mode), inside the `update` call, and puts the id of the state into the resource when Get leaves it out.
+- CHORE: Bump the `iac` module to the commit that reads a Create response with only an id.
 
 #### data-source/coralogix_configuration_group
 - CHORE: The data source uses the generated data source of the resource.

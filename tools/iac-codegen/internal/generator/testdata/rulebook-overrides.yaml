@@ -7,7 +7,7 @@ mode: existing
 validators:
   inferred: true
 
-singletonID: true
+singletonID: {fromAPI: true}
 
 types:
   Rulebook:
