@@ -334,6 +334,11 @@ var quotaDataSourceScenarios = map[string]func(h *grHarness){
 		)
 		h.ReadDataSource("read managed and customer rules", j{})
 	},
+	"read-unspecified-type": func(h *grHarness) {
+		h.quota().seedManaged(j{"entityType": "alerts", "allocation": 5, "enabled": true, "canOverflow": false, "allocationType": "QUOTA_ALLOCATION_TYPE_UNSPECIFIED"})
+		h.quota().seedCustomer(j{"entityType": "logs", "allocation": 10, "enabled": true, "canOverflow": false})
+		h.ReadDataSource("read rules whose type the API returns as unspecified or leaves out", j{})
+	},
 	"not-found": func(h *grHarness) {
 		h.quota().notFound = true
 		h.ReadDataSource("read when the API answers 404", j{})

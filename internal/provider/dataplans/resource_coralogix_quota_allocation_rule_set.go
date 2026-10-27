@@ -43,10 +43,15 @@ func NewQuotaAllocationRuleSetResource() resource.Resource {
 
 // dropCxManagedQuotaAllocationRules keeps the rules that Coralogix manages out of the state of the
 // resource. The API returns them next to the rules of the customer and preserves them on every
-// write. The data source shows them. A rule with no type, or an unspecified one, is a percentage
-// rule: that is what the API stores for it, and what the configuration plans.
-func dropCxManagedQuotaAllocationRules(_ context.Context, ruleSet *quotaRules.QuotaAllocationEntityTypeRuleSet) diag.Diagnostics {
+// write. The data source shows them.
+func dropCxManagedQuotaAllocationRules(ctx context.Context, ruleSet *quotaRules.QuotaAllocationEntityTypeRuleSet) diag.Diagnostics {
 	ruleSet.Rules = customerQuotaAllocationRules(ruleSet.Rules)
+	return normalizeQuotaAllocationTypes(ctx, ruleSet)
+}
+
+// normalizeQuotaAllocationTypes reads a rule with no type, or an unspecified one, as a percentage
+// rule, which is what the API stores for it.
+func normalizeQuotaAllocationTypes(_ context.Context, ruleSet *quotaRules.QuotaAllocationEntityTypeRuleSet) diag.Diagnostics {
 	for i := range ruleSet.Rules {
 		if allocationType, ok := ruleSet.Rules[i].GetAllocationTypeOk(); !ok || *allocationType == quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_UNSPECIFIED {
 			ruleSet.Rules[i].SetAllocationType(quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_PERCENTAGE)

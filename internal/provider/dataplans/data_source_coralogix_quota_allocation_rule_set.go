@@ -21,8 +21,9 @@ import (
 )
 
 // NewQuotaAllocationRuleSetDataSource returns coralogix_quota_allocation_rule_set, the generated
-// data source of the resource. It runs no hooks: the released data source showed the rules that
-// Coralogix manages (cx_managed), which the resource drops from its state.
+// data source of the resource. It keeps the rules that Coralogix manages (cx_managed), which the
+// resource drops from its state, and reads an unspecified allocation type as percentage, as the
+// released data source did.
 func NewQuotaAllocationRuleSetDataSource() datasource.DataSource {
-	return quotaallocationruleset.NewDataSource(quotaallocationruleset.Hooks{})
+	return quotaallocationruleset.NewDataSource(quotaallocationruleset.Hooks{BeforeFlatten: normalizeQuotaAllocationTypes})
 }
