@@ -10,7 +10,7 @@ api:
   requestWrapper: thing
   updateIDInBody: true
   idProperty: id
-  createResponseID: thingId
+  createResponseOnlyIDProperty: thingId
   serverSetID: true
 
 types:

@@ -1,0 +1,24 @@
+(data source schema)
+    description: Coralogix Notification Center Preset. For more info please review - https://coralogix.com/docs/user-guides/notification-center/presets/introduction/.
+attachment_config  tftypes.String computed
+    description: Controls whether notification payloads include attachments. Valid values are: AUTO, ENABLED, DISABLED. Defaults to AUTO. Removing the attribute resets it to AUTO.
+config_overrides  nested LIST computed
+config_overrides.condition_type  nested SINGLE computed
+    description: Condition type for the preset. Must be either match_entity_type or match_entity_type_and_sub_type.
+config_overrides.condition_type.match_entity_type  nested SINGLE computed
+config_overrides.condition_type.match_entity_type_and_sub_type  nested SINGLE computed
+config_overrides.condition_type.match_entity_type_and_sub_type.entity_sub_type  tftypes.String computed
+config_overrides.message_config  nested SINGLE computed
+config_overrides.message_config.fields  nested SET computed
+config_overrides.message_config.fields.field_name  tftypes.String computed
+config_overrides.message_config.fields.template  tftypes.String computed
+config_overrides.payload_type  tftypes.String computed
+connector_type  tftypes.String computed
+    description: The type of connector for the preset. Valid values are: email, eventbridge, generic_https, incident_io, microsoft_teams, pagerduty, pagerduty_incidents, service_now, slack, unspecified. `incident_io` is a preview type.
+description  tftypes.String computed
+entity_type  tftypes.String computed
+    description: The type of entity for the preset. Valid values are: alerts, cases, test_notifications, unspecified
+id  tftypes.String optional
+    description: The ID of the Preset. Can be set to a custom value, or left empty to auto-generate. Requires recreation in case of change.
+name  tftypes.String optional,computed
+parent_id  tftypes.String computed

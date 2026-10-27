@@ -6,3 +6,6 @@ validators:
   inferred: false
 
 singletonID: true
+
+# The data source of a singleton takes no input.
+dataSource: {}

@@ -1,0 +1,27 @@
+[
+  {
+    "step": "read an id that does not exist",
+    "config": {
+      "id": "00000000-0000-4000-8000-999999999999"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/fleet-management/configuration-groups/v1/00000000-0000-4000-8000-999999999999",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: coralogix_configuration_group not found | The API did not find coralogix_configuration_group with id 00000000-0000-4000-8000-999999999999: 404 Not Found — {\"code\":404,\"message\":\"Not Found: {\\\"reason\\\":\\\"Configuration group with id 00000000-0000-4000-8000-999999999999 not found\\\"}\"}"
+    ],
+    "state": {
+      "archived": null,
+      "description": null,
+      "family": null,
+      "id": "00000000-0000-4000-8000-999999999999",
+      "name": null,
+      "priority_order": null,
+      "tags": null
+    }
+  }
+]

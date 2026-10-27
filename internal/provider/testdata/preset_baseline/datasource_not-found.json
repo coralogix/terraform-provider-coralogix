@@ -1,0 +1,28 @@
+[
+  {
+    "step": "read an id that does not exist",
+    "config": {
+      "id": "00000000-0000-4000-8000-999999999999"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/presets/00000000-0000-4000-8000-999999999999",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: coralogix_preset not found | The API did not find coralogix_preset with id 00000000-0000-4000-8000-999999999999: 404 Not Found — {\"code\":404,\"message\":\"Not Found: {\\\"reason\\\":\\\"Preset with id '00000000-0000-4000-8000-999999999999' not found\\\"}\"}"
+    ],
+    "state": {
+      "attachment_config": null,
+      "config_overrides": null,
+      "connector_type": null,
+      "description": null,
+      "entity_type": null,
+      "id": "00000000-0000-4000-8000-999999999999",
+      "name": null,
+      "parent_id": null
+    }
+  }
+]

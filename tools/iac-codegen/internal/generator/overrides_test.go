@@ -154,6 +154,41 @@ func TestStaleKeyIsNamedNotTheLine(t *testing.T) {
 	}
 }
 
+// A dataSource line that changes nothing, or that this version cannot render, is an error.
+func TestDataSourceLines(t *testing.T) {
+	tests := map[string]struct {
+		text string
+		code string
+		want string
+	}{
+		"default lookup": {
+			"dataSource:\n  lookup: [id]\n",
+			"OVERRIDE_UNUSED", "dataSource.lookup",
+		},
+		"nested component": {
+			"dataSource:\n  types:\n    LegacyRule:\n      fields:\n        name: {readEmptyAs: value}\n",
+			"OVERRIDE_INVALID", "dataSource.types.LegacyRule.fields.name",
+		},
+		"no resource line": {
+			"dataSource:\n  types:\n    LegacyThing:\n      fields:\n        name: {readEmptyAs: value}\n",
+			"OVERRIDE_UNUSED", `no readEmptyAs: "null" line on name`,
+		},
+		"not a string": {
+			"dataSource:\n  types:\n    LegacyThing:\n      fields:\n        labels: {readEmptyAs: value}\n",
+			"RENDERER_SHAPE_UNSUPPORTED", `readEmptyAs: "value" is supported for a string`,
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			file := mustParse(t, legacyOverrides+test.text)
+			_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
+			if got := eligibilityCodes(t, err); !slices.Contains(got, test.code) || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %s with %q", err, test.code, test.want)
+			}
+		})
+	}
+}
+
 // A name line that gives the Terraform name that the field has anyway changes nothing.
 func TestNameLineWithTheDefaultNameIsStale(t *testing.T) {
 	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  LegacyThing:\n    fields:\n      name: {name: name}\n")
@@ -1210,7 +1245,7 @@ func TestTerraformTypeNeedsAnInt32Field(t *testing.T) {
 }
 
 // A Create response that holds only the id, and an id path parameter with another name than the
-// id field, need the idField and createResponseID lines. A line that names nothing is an error.
+// id field, need the idField and createResponseOnlyIDProperty lines. A line that names nothing is an error.
 func TestFolderBodyIDOverrides(t *testing.T) {
 	spec, err := os.ReadFile(filepath.Join("testdata", "folderthing.yaml"))
 	if err != nil {
@@ -1222,10 +1257,10 @@ func TestFolderBodyIDOverrides(t *testing.T) {
 		want string
 	}{
 		"no lines":            {"", "RESOURCE_LIFECYCLE_INCOMPLETE"},
-		"no id property":      {"  createResponseID: thingId\n", "UPDATE_ID_NOT_IN_BODY"},
-		"unknown id property": {"  idProperty: key\n  createResponseID: thingId\n", "RESOURCE_LIFECYCLE_INCOMPLETE"},
-		"unknown response id": {"  idProperty: id\n  createResponseID: key\n", "READ_BACK_UNSUPPORTED"},
-		"valid lines":         {"  idProperty: id\n  createResponseID: thingId\n", ""},
+		"no id property":      {"  createResponseOnlyIDProperty: thingId\n", "UPDATE_ID_NOT_IN_BODY"},
+		"unknown id property": {"  idProperty: key\n  createResponseOnlyIDProperty: thingId\n", "RESOURCE_LIFECYCLE_INCOMPLETE"},
+		"unknown response id": {"  idProperty: id\n  createResponseOnlyIDProperty: key\n", "RESOURCE_LIFECYCLE_INCOMPLETE"},
+		"valid lines":         {"  idProperty: id\n  createResponseOnlyIDProperty: thingId\n", ""},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -1240,82 +1275,5 @@ func TestFolderBodyIDOverrides(t *testing.T) {
 				t.Fatalf("err = %v, want %s", err, test.want)
 			}
 		})
-	}
-}
-
-// The id of a Create response that holds only the id is a string.
-func TestCreateResponseIDMustBeAString(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("testdata", "folderthing.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	changed := strings.Replace(string(spec), "thingId: {type: string, x-coralogix-presence: true}", "thingId: {type: integer, format: int32, x-coralogix-presence: true}", 1)
-	if changed == string(spec) {
-		t.Fatal("the test contract did not change: update the replaced text")
-	}
-	file := mustParse(t, "resource: FolderThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  FolderThing:\n    fields:\n      id: {readOnly: true}\napi:\n  requestWrapper: thing\n  updateIDInBody: true\n  idProperty: id\n  serverSetID: true\n  createResponseID: thingId\n")
-	_, err = validateOpenAPIWith([]byte(changed), "FolderThing", model.OperationIDs{}, "sdk", "provider", file)
-	if !slices.Contains(eligibilityCodes(t, err), "READ_BACK_UNSUPPORTED") {
-		t.Fatalf("err = %v, want READ_BACK_UNSUPPORTED", err)
-	}
-}
-
-// A contract that already has a name that the read-back adds is reported, not patched.
-func TestReadBackNameCollisions(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("testdata", "folderthing.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	file := mustParse(t, "resource: FolderThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  FolderThing:\n    fields:\n      id: {readOnly: true}\napi:\n  requestWrapper: thing\n  updateIDInBody: true\n  idProperty: id\n  serverSetID: true\n  createResponseID: thingId\n")
-	tests := map[string]struct{ old, new string }{
-		"property":  {"        thingId: {type: string, x-coralogix-presence: true}\n", "        thingId: {type: string, x-coralogix-presence: true}\n        tfgenReadBack: {type: string}\n"},
-		"component": {"    ReplaceFolderThingResponse:\n      type: object\n", "    ReplaceFolderThingResponse:\n      type: object\n    ReplaceFolderThingResponseTfgenReadBack:\n      type: object\n"},
-	}
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			changed := strings.Replace(string(spec), test.old, test.new, 1)
-			if changed == string(spec) {
-				t.Fatal("the test contract did not change: update the replaced text")
-			}
-			_, err := validateOpenAPIWith([]byte(changed), "FolderThing", model.OperationIDs{}, "sdk", "provider", file)
-			if !slices.Contains(eligibilityCodes(t, err), "READ_BACK_NAME_COLLISION") {
-				t.Fatalf("err = %v, want READ_BACK_NAME_COLLISION", err)
-			}
-		})
-	}
-}
-
-// A Create response with no properties, or an override that names a property of a response that
-// has none, is reported and does not panic.
-func TestCreateResponseIDOfAResponseWithoutProperties(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("testdata", "folderthing.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	changed := strings.Replace(string(spec), "    CreateFolderThingResponse:\n      type: object\n      properties:\n        thingId: {type: string, x-coralogix-presence: true}\n", "    CreateFolderThingResponse:\n      type: object\n", 1)
-	if changed == string(spec) {
-		t.Fatal("the test contract did not change: update the replaced text")
-	}
-	file := mustParse(t, "resource: FolderThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  FolderThing:\n    fields:\n      id: {readOnly: true}\napi:\n  requestWrapper: thing\n  updateIDInBody: true\n  idProperty: id\n  serverSetID: true\n  createResponseID: thingId\n")
-	_, err = validateOpenAPIWith([]byte(changed), "FolderThing", model.OperationIDs{}, "sdk", "provider", file)
-	if !slices.Contains(eligibilityCodes(t, err), "READ_BACK_UNSUPPORTED") {
-		t.Fatalf("err = %v, want READ_BACK_UNSUPPORTED", err)
-	}
-}
-
-// An override that names the id of a Create response that now returns the resource is stale.
-func TestCreateResponseIDOfAResponseThatHoldsTheResource(t *testing.T) {
-	spec, err := os.ReadFile(filepath.Join("testdata", "folderthing.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	changed := strings.Replace(string(spec), "        thingId: {type: string, x-coralogix-presence: true}\n", "        thingId: {type: string, x-coralogix-presence: true}\n        thing:\n          allOf: [{$ref: '#/components/schemas/FolderThing'}]\n", 1)
-	if changed == string(spec) {
-		t.Fatal("the test contract did not change: update the replaced text")
-	}
-	file := mustParse(t, "resource: FolderThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  FolderThing:\n    fields:\n      id: {readOnly: true}\napi:\n  requestWrapper: thing\n  updateIDInBody: true\n  idProperty: id\n  serverSetID: true\n  createResponseID: thingId\n")
-	_, err = validateOpenAPIWith([]byte(changed), "FolderThing", model.OperationIDs{}, "sdk", "provider", file)
-	if !slices.Contains(eligibilityCodes(t, err), "READ_BACK_UNNEEDED") {
-		t.Fatalf("err = %v, want READ_BACK_UNNEEDED", err)
 	}
 }

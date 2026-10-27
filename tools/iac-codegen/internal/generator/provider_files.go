@@ -26,7 +26,7 @@ type providerFile struct {
 }
 
 // providerFiles returns the files of the provider that go with the output directory: the docs
-// example and import command of a new resource, and the registry. The registry is last, so
+// examples of a new resource and its data source, the import command, and the registry. The registry is last, so
 // publication registers a package only after the package is in place.
 func providerFiles(options Options, providerRoot, providerModule string, isNew bool, typeName string, files map[string][]byte) ([]providerFile, error) {
 	output, err := filepath.Abs(options.OutputDir)
@@ -44,9 +44,14 @@ func providerFiles(options Options, providerRoot, providerModule string, isNew b
 		if err := checkExampleOwned(dir, output, typeName); err != nil {
 			return nil, err
 		}
+		dataSourceDir := filepath.Join(providerRoot, "examples", "data-sources", "coralogix_"+typeName)
+		if err := checkExampleOwned(dataSourceDir, output, typeName); err != nil {
+			return nil, err
+		}
 		out = append(out,
 			providerFile{filepath.Join(dir, "resource.tf"), files[exampleKey]},
-			providerFile{filepath.Join(dir, "import.sh"), files[importKey]})
+			providerFile{filepath.Join(dir, "import.sh"), files[importKey]},
+			providerFile{filepath.Join(dataSourceDir, "data-source.tf"), files[dataSourceExampleKey]})
 	}
 	registry, err := renderRegistry(output, providerRoot, providerModule, isNew)
 	if err != nil {
@@ -129,10 +134,19 @@ func renderRegistry(output, providerRoot, providerModule string, isNew bool) (pr
 	if err != nil {
 		return providerFile{}, err
 	}
+	// A new resource of this run always has a data source. A package that an older generator
+	// version wrote may have none until it is generated again.
+	var dataSources []string
+	for _, name := range names {
+		if name == filepath.Base(output) || fileExists(filepath.Join(parent, name, dataSourceFile)) {
+			dataSources = append(dataSources, name)
+		}
+	}
 	importBase := providerModule + "/" + filepath.ToSlash(rel)
 	var buf bytes.Buffer
 	if err := templates.ExecuteTemplate(&buf, "registry.go.tmpl", map[string]any{
 		"VersionHeader": version.Header, "Package": pkg, "ImportBase": importBase, "Names": names,
+		"DataSources": dataSources,
 	}); err != nil {
 		return providerFile{}, fmt.Errorf("%s: %w", registryFileName, err)
 	}
@@ -141,6 +155,11 @@ func renderRegistry(output, providerRoot, providerModule string, isNew bool) (pr
 		return providerFile{}, err
 	}
 	return providerFile{path, src}, nil
+}
+
+func fileExists(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
 }
 
 // checkRegistryOwned allows the generator to replace the registry only when it wrote it.

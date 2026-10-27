@@ -2,6 +2,7 @@ package things_service
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 )
@@ -166,14 +167,25 @@ type UpdateThingRequest struct {
 	UpdateMask   *string
 }
 
+type ListThingsResponse struct {
+	Things []Thing
+}
+
 type ThingsServiceAPIService struct {
 	CreateCalls int
 }
 
+// Listed is the response of the List, and GotIDs are the ids that Get received.
+var (
+	Listed *ListThingsResponse
+	GotIDs []string
+)
+
 type ApiThingsServiceCreateThingRequest struct {
 	client *ThingsServiceAPIService
 }
-type ApiThingsServiceGetThingRequest struct{}
+type ApiThingsServiceGetThingRequest struct{ requested string }
+type ApiThingsServiceListThingsRequest struct{}
 type ApiThingsServiceUpdateThingRequest struct{}
 type ApiThingsServiceDeleteThingRequest struct{}
 
@@ -183,8 +195,13 @@ func (s *ThingsServiceAPIService) ThingsServiceCreateThing(ctx context.Context) 
 }
 
 func (*ThingsServiceAPIService) ThingsServiceGetThing(ctx context.Context, id string) ApiThingsServiceGetThingRequest {
-	_, _ = ctx, id
-	return ApiThingsServiceGetThingRequest{}
+	_ = ctx
+	return ApiThingsServiceGetThingRequest{requested: fmt.Sprint(id)}
+}
+
+func (*ThingsServiceAPIService) ThingsServiceListThings(ctx context.Context) ApiThingsServiceListThingsRequest {
+	_ = ctx
+	return ApiThingsServiceListThingsRequest{}
 }
 
 func (*ThingsServiceAPIService) ThingsServiceUpdateThing(ctx context.Context, id string) ApiThingsServiceUpdateThingRequest {
@@ -219,8 +236,13 @@ func (r ApiThingsServiceCreateThingRequest) Execute() (*Thing, *http.Response, e
 	return nil, nil, nil
 }
 
-func (ApiThingsServiceGetThingRequest) Execute() (*Thing, *http.Response, error) {
+func (r ApiThingsServiceGetThingRequest) Execute() (*Thing, *http.Response, error) {
+	GotIDs = append(GotIDs, r.requested)
 	return nil, nil, nil
+}
+
+func (ApiThingsServiceListThingsRequest) Execute() (*ListThingsResponse, *http.Response, error) {
+	return Listed, nil, nil
 }
 
 func (ApiThingsServiceUpdateThingRequest) Execute() (*Thing, *http.Response, error) {

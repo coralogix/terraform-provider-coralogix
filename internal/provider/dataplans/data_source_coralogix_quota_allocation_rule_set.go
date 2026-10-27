@@ -78,7 +78,7 @@ func (d *QuotaAllocationRuleSetDataSource) Configure(_ context.Context, req data
 
 func (d *QuotaAllocationRuleSetDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Reads the current account-level Coralogix quota allocation rule set, including Coralogix-managed (`cx_managed`) rules that the resource filters out of state. Requires `team-quota-rules:Read` permission. Known entity types include " + quotaAllocationKnownEntityTypesDoc + ". The list is additive; the API may accept more values over time.",
+		MarkdownDescription: "Reads the current account-level Coralogix quota allocation rule set, including Coralogix-managed (`cx_managed`) rules that the resource filters out of state. Requires `team-quota-rules:Read` permission. Rules are keyed by entity type, such as `logs`, `spans`, or `metrics`. " + quotaAllocationEntityTypesDoc,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:            true,
@@ -91,7 +91,7 @@ func (d *QuotaAllocationRuleSetDataSource) Schema(_ context.Context, _ datasourc
 					Attributes: map[string]schema.Attribute{
 						"entity_type": schema.StringAttribute{
 							Computed:            true,
-							MarkdownDescription: "Entity type covered by the rule. Known values include " + quotaAllocationKnownEntityTypesDoc + ". The list is additive; the API may accept more values over time.",
+							MarkdownDescription: "Entity type covered by the rule, such as `logs`, `spans`, or `metrics`. " + quotaAllocationEntityTypesDoc,
 						},
 						"allocation": schema.Float64Attribute{
 							Computed:            true,

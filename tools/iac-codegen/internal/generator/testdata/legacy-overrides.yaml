@@ -65,3 +65,6 @@ enums:
     zero: unspecified
     values: [ALPHA, BETA]
     rejected: [GAMMA]
+
+# The released resource has a data source that keeps every default.
+dataSource: {}

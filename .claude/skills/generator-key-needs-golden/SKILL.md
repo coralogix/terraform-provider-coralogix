@@ -7,6 +7,6 @@ description: "Use when adding a generator key or branch in tools/iac-codegen. Co
 
 **Trigger:** A new key or branch in `tools/iac-codegen` (a field line, an enum line, or a convert or schema branch).
 
-**Fix:** Add or extend a fixture under `internal/generator/testdata`. `customthing` covers custom methods, root and nested `requestValue`, `readNullAs`, string `readEmptyAs`, `requireOne`, `readRejected`, unwrap, and a missing enum that reads as the field's string `default`. Run `go test ./internal/generator -run TestGoldenOutput<Name> -update` and commit the golden. A second run without `-update` must pass.
+**Fix:** Add or extend a fixture under `internal/generator/testdata`. `customthing` covers custom methods, root and nested `requestValue`, `readNullAs`, string `readEmptyAs`, `requireOne`, `readRejected`, unwrap, and a missing enum that reads as the field's string `default`. `sharedthing` covers the data source `readEmptyAs: value` line and `lookup: [id, name]` with a summary List and `duplicateNames: first`, `thing` covers the automatic name lookup of a full List, and `legacything` covers `dataSource: {}`. Run `go test ./internal/generator -run TestGoldenOutput<Name> -update` and commit the golden. A second run without `-update` must pass.
 
 **Why:** A key that only a resource's generated files show can change without a test noticing.

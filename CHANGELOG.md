@@ -1,5 +1,54 @@
 # Unreleased
 
+#### provider
+- CHORE: Bump `github.com/yuin/goldmark` to v1.7.17 to clear CVE-2026-5160. It is used only by the docs generator, not the provider binary. No change to provider behavior.
+
+#### tools/iac-codegen
+- CHORE: Bump `golang.org/x/text` to v0.43.0 to clear CVE-2026-56851 and CVE-2026-56852, with `golang.org/x/tools` v0.51.0 and `golang.org/x/sync` v0.24.0 as its module requires. No change to generated code.
+- FEAT: Generate `data_source.go` next to the resource. The data source reads one resource by id. Its schema is the resource schema, copied at run time with `utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema`, so a new API field reaches the data source with no change. It runs the `BeforeFlatten` hook of the resource, and an id that the API does not find is an error.
+- FEAT: A new resource always gets a data source, `DataSources()` in `registry.go`, and the docs example `examples/data-sources/coralogix_<type>/data-source.tf`. An existing resource gets a data source only with a `dataSource:` section in `behavior-overrides.yaml` (`dataSource: {}` when it has no line).
+- FEAT: `dataSource.types.<Resource>.fields.<field>: {readEmptyAs: value}` shows the API value of a top-level string, also `""`, where the resource line reads `""` as null. A line on a nested component, a line without a resource `readEmptyAs: "null"` line, and `lookup: [id]`, which is the default, are errors.
+- FEAT: The generated acceptance test reads the data source by the id of the resource in `full-lifecycle` and compares it with the resource.
+- FEAT: The data source of a new resource also looks up the resource by `name` when the API has a usable List: its items have the id and a string `name`, and it is not paged. `id` and `name` are then optional, and the configuration sets exactly one of them. The List turns the name into an id, and Get reads the result. A name that no item has, or that more than one item has, is an error. Without a usable List, the data source looks up the id only.
+- FEAT: `dataSource.lookup: [id, name]` turns on the lookup by name for an existing resource. The line is an error when the resource has no usable List, and the error says why. `api.operations.list` names a List that is not on the Create path.
+- FEAT: `dataSource.duplicateNames: first` takes the first item with the name, in the order of the API, for a released data source that did so. Without `name` in `lookup`, the line is an error.
+- FEAT: With name lookup, the generated acceptance test also reads the data source by the name of the resource and compares it with the resource.
+- CHORE: Bump the `iac` module to the commit that adds the List operation to the model.
+- CHORE: Bump the generator to `v0.1.0-beta.42`.
+- FEAT: `api.createResponseOnlyIDProperty` names the property of a Create response that holds only the id. The generated Create then reads the resource with Get, and keeps the id in the state when that read fails, so Terraform marks the resource as tainted. The SDK `iac` module reads the response shape.
+- FEAT: The generated Update reads the resource with Get when the API answers it with an object that has no fields (existing mode), inside the `update` call, and puts the id of the state into the resource when Get leaves it out.
+- FEAT: `Hooks.UpdateGone` and `Hooks.DeleteGone` (existing mode) say that the error of a failed Update or Delete means that the resource is gone, for an API that answers a call on a missing resource with another status than 404.
+- CHORE: Bump the `iac` module to the commit that reads a Create response with only an id.
+- CHORE: Bump the generator to `v0.1.0-beta.41`.
+
+#### data-source/coralogix_configuration_group
+- CHORE: The data source uses the generated data source of the resource.
+
+#### data-source/coralogix_alerts_scheduler
+- CHORE: The data source uses the generated data source of the resource.
+
+#### data-source/coralogix_slo_v2
+- CHORE: The data source uses the generated data source of the resource.
+- FIX: An id that the API does not find is an error. Before, the data source returned a warning and no result.
+
+#### data-source/coralogix_events2metric
+- CHORE: The data source uses the generated data source of the resource. `description` still shows the stored value, also `""`.
+- FIX: An id that the API does not find is an error. Before, the data source returned a warning and null attributes.
+
+#### data-source/coralogix_connector
+- CHORE: The data source uses the generated data source of the resource. It still finds a connector by `id` or by `name`, and takes the first connector with the name. The error for an id that the API does not find has new wording.
+
+#### data-source/coralogix_global_router
+- CHORE: The data source uses the generated data source of the resource. It still finds a global router by `id` or by `name`, and takes the first router with the name. The error for an id that the API does not find has new wording.
+
+#### data-source/coralogix_preset
+- CHORE: The data source uses the generated data source of the resource. It still finds a preset by `id` or by `name`, and takes the first preset with the name. The error for an id that the API does not find has new wording.
+
+#### data-source/coralogix_view_folder
+- CHORE: The data source uses the generated data source of the resource. It still finds a view folder by `id` or by `name`, and takes the first folder with the name. A read by id now gets the folder by its id instead of listing every folder. The errors for an id or a name that the API does not find have new wording.
+
+# Release 3.22.1
+
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.40`.
 - CHORE: Bump the generator to `v0.1.0-beta.39`.
@@ -23,7 +72,14 @@
 - FIX: `validators.inferred` on an enum that has an `enums` line takes the Terraform values of that line, also for a list or set of the enum.
 
 #### resource/coralogix_alert
+- FIX: Changing `type_definition` in place to `metric_threshold` or `logs_threshold` with `no_data_policy` or `logs_filter` left out no longer fails with "inconsistent result after apply". Both attributes stay unknown in the plan when the previous type had no such block; alerts that already hold those objects in state keep planning no change.
 - DOCS: Describe `phantom_mode`: the alert sends no notifications and opens no incident of its own, and the API rejects a phantom alert whose `notification_group` sets a notification target.
+
+#### resource/coralogix_tco_policies_logs, resource/coralogix_tco_policies_traces, resource/coralogix_tco_policies_rum
+- CHORE: Remove the unreachable 404 branch from Update. The overwrite API recreates deleted policies and never returns 404 for them.
+
+#### resource/coralogix_quota_allocation_rule_set, data-source/coralogix_quota_allocation_rule_set
+- DOCS: Stop listing entity types. The list included `olly`, which the API rejects. The descriptions now give examples and link to the Quota Rules documentation for the supported list.
 
 # Release 3.22.0
 

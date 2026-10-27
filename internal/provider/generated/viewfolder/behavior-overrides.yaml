@@ -16,3 +16,9 @@ types:
         markdownDescription: "Unique identifier for the view folder, assigned by Coralogix. Stays the same when the folder is renamed."
       name:
         markdownDescription: "Display name of the view folder. Between 1 and 100 characters - the backend silently truncates a longer name, so the provider rejects it instead. Folder names must currently be unique within the team."
+
+# The data source reads a view folder by id or by name. A name that more than one folder has takes
+# the first one in the order of the List, as the released data source did.
+dataSource:
+  lookup: [id, name]
+  duplicateNames: first

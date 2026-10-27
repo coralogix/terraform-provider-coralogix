@@ -181,6 +181,7 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 	}
 	delete(files, exampleKey)
 	delete(files, importKey)
+	delete(files, dataSourceExampleKey)
 	return publishAll(options.OutputDir, files, extras)
 }
 
@@ -254,20 +255,6 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	if len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}
-	shapes, report := findReadBackShapes(doc, component, operationIDs, file)
-	if len(report) != 0 {
-		return nil, &EligibilityError{Report: report}
-	}
-	if shapes.any() {
-		// The model reads a response that wraps the resource. See readback.go.
-		patched, err := withReadBackProperty(data, component, shapes)
-		if err != nil {
-			return nil, fmt.Errorf("prepare the responses to read back: %w", err)
-		}
-		if doc, err = model.Load(patched); err != nil {
-			return nil, fmt.Errorf("load the responses to read back: %w", err)
-		}
-	}
 	if file != nil {
 		if report = overrideIssues(doc, component, file); len(report) != 0 {
 			return nil, &EligibilityError{Report: report}
@@ -280,9 +267,7 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	if err != nil {
 		return nil, fmt.Errorf("build validated resource: %w", err)
 	}
-	if err := shapes.restore(resource); err != nil {
-		return nil, eligibilityIssue("READ_BACK_UNSUPPORTED", "paths", err, "Correct api.createResponseID, or the Create and Update responses of the source API contract.")
-	}
+	dropUnusedList(resource, file)
 	if report = unwrapUsageIssues(resource, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}
@@ -306,7 +291,6 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 		}
 		refs = append(refs, armRefs...)
 	}
-	refs = shapes.refs(refs)
 	if report = rendererIssues(resource, refs, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report.Normalize()}
 	}
@@ -353,6 +337,7 @@ func rendererIssues(resource *model.Resource, refs []sdkcheck.Ref, file *overrid
 		{"renderer.schema", func() error { _, err := buildTFResourceWith(resource, "generated", file); return err }},
 		{"renderer.conversion", func() error { _, err := buildConvWith(resource, refs, file); return err }},
 		{"renderer.crud", func() error { _, err := buildCRUDWith(resource, refs, file); return err }},
+		{"renderer.datasource", func() error { return dataSourceShape(resource, refs, file) }},
 	}
 	var report issue.Report
 	for _, check := range checks {
@@ -389,6 +374,14 @@ func shapeIssue(location string, err error) issue.Issue {
 			Location:    location,
 			Message:     err.Error(),
 			Remediation: "Delete the keepPriorOrder or equality key, or the unwrap line of the field.",
+		}
+	}
+	if errors.Is(err, errDataSourceLookup) {
+		return issue.Issue{
+			Code:        "OVERRIDE_INVALID",
+			Location:    overrides.FileName + ":dataSource.lookup",
+			Message:     err.Error(),
+			Remediation: "Delete name from dataSource.lookup, or give the API a List that the data source can use.",
 		}
 	}
 	if errors.Is(err, errStaleOverrideKey) {

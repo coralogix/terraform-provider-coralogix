@@ -39,8 +39,9 @@ func writeFile(t *testing.T, path, text string) {
 	}
 }
 
-// The golden provider files of the new synthetic resource: the registry, and the docs example and
-// import command. A second run writes the same files over the first.
+// The golden provider files of the new synthetic resource: the registry, the docs example, the
+// import command, and the docs example of the data source. A second run writes the same files over
+// the first.
 func TestGoldenProviderFiles(t *testing.T) {
 	input, loadDir, out := inProvider(t, "thing")
 	for range 2 {
@@ -50,10 +51,12 @@ func TestGoldenProviderFiles(t *testing.T) {
 	}
 	compileRegistry(t, input.ModuleRoot, out)
 	examples := filepath.Join(input.ModuleRoot, "examples", "resources", "coralogix_thing")
+	dataSourceExamples := filepath.Join(input.ModuleRoot, "examples", "data-sources", "coralogix_thing")
 	got := map[string]string{
 		registryFileName: readFile(t, filepath.Join(filepath.Dir(out), registryFileName)),
 		"resource.tf":    readFile(t, filepath.Join(examples, "resource.tf")),
 		"import.sh":      readFile(t, filepath.Join(examples, "import.sh")),
+		"data-source.tf": readFile(t, filepath.Join(dataSourceExamples, "data-source.tf")),
 	}
 	golden := filepath.Join("testdata", "golden", "provider")
 	for name, text := range got {
@@ -71,6 +74,31 @@ func TestGoldenProviderFiles(t *testing.T) {
 	}
 	if len(entries) != 2 {
 		t.Errorf("examples directory has %d entries, want resource.tf and import.sh: a staged file stayed", len(entries))
+	}
+	if entries, err = os.ReadDir(dataSourceExamples); err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 {
+		t.Errorf("data source examples directory has %d entries, want data-source.tf: a staged file stayed", len(entries))
+	}
+}
+
+// The docs example of the data source of a new resource with a numeric id sets a number, because
+// Terraform rejects a string for an Int64 attribute.
+func TestGoldenDataSourceExampleNumericID(t *testing.T) {
+	input, loadDir, out := inProvider(t, "thing")
+	input.OpenAPI = integerIDOpenAPI(t, input.OpenAPI, "int64")
+	integerIDSDK(t, input.SDKDir, "int64")
+	if err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	got := readFile(t, filepath.Join(input.ModuleRoot, "examples", "data-sources", "coralogix_thing", "data-source.tf"))
+	path := filepath.Join("testdata", "golden", "provider", "data-source-int64.tf")
+	if *updateGolden {
+		writeFile(t, path, got)
+	}
+	if want := readFile(t, path); got != want {
+		t.Errorf("data-source.tf differs from %s; run go test ./internal/generator -run TestGoldenDataSourceExampleNumericID -update:\n%s", path, got)
 	}
 }
 

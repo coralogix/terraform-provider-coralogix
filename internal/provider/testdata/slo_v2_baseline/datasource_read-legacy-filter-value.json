@@ -1,0 +1,49 @@
+[
+  {
+    "step": "read a record without productType and with a deprecated filter value",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/slo/slos/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": null,
+      "description": null,
+      "grouping": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": null,
+      "name": "legacy",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": {
+          "error_config": {},
+          "filters": [
+            {
+              "key": "environment",
+              "values": [
+                "prod"
+              ]
+            }
+          ],
+          "grouping_keys": null,
+          "latency_config": null,
+          "services": [
+            "checkout"
+          ]
+        },
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": null
+      },
+      "target_threshold_percentage": 99,
+      "window": {
+        "slo_time_frame": "7_days"
+      }
+    }
+  }
+]

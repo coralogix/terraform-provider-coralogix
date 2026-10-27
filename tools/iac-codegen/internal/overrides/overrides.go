@@ -70,6 +70,9 @@ type File struct {
 	// objects included: a removed nested attribute is cleared. A server that merged nested
 	// objects would keep it, and the generator cannot check that.
 	UpdateMask string `yaml:"updateMask"`
+	// DataSource is the data source of the resource. Without it, a released resource gets no
+	// generated data source.
+	DataSource *DataSource `yaml:"dataSource"`
 }
 
 // UpdateMaskOmit is the updateMask value that sends no update mask.
@@ -539,6 +542,14 @@ func (f *File) check() error {
 	if f.SingletonID && (f.API.ClientSetID || f.API.ServerSetID || f.API.UpdateIDInBody) {
 		return errors.New("singletonID is for a singleton, which has no id in a path: it cannot be combined with api.clientSetID, api.serverSetID, or api.updateIDInBody")
 	}
+	return f.checkSections()
+}
+
+// checkSections checks the dataSource section and the types section.
+func (f *File) checkSections() error {
+	if err := f.DataSource.check(); err != nil {
+		return err
+	}
 	return f.checkTypes()
 }
 
@@ -932,6 +943,7 @@ func checkValidators(validators []Validator) error {
 // exceptions that the Terraform keys cover.
 func (f *File) Policy() model.Policy {
 	p := f.Exceptions().Policy()
+	p.CreateResponseOnlyIDProperty = f.API.CreateResponseOnlyIDProperty
 	p.EnumAnyPrefix = append(p.EnumAnyPrefix, sortedKeys(f.Enums)...)
 	for _, name := range sortedKeys(f.Types) {
 		t := f.Types[name]
@@ -986,10 +998,10 @@ func (f *File) Policy() model.Policy {
 // reads the same way, and the keys that only Terraform needs.
 type API struct {
 	iacoverrides.API `yaml:",inline"`
-	// CreateResponseID is the property of the Create response that holds only the id of the new
+	// CreateResponseOnlyIDProperty is the property of the Create response that holds only the id of the new
 	// resource, when the response does not return the resource. The generated Create then reads
-	// the resource with Get. Only Terraform reads the key; the model reads Policy.CreateResponseID.
-	CreateResponseID string `yaml:"createResponseID"`
+	// the resource with Get. Only Terraform reads the key; the model reads Policy.CreateResponseOnlyIDProperty.
+	CreateResponseOnlyIDProperty string `yaml:"createResponseOnlyIDProperty"`
 }
 
 // Exceptions returns the keys of the file that describe the API.

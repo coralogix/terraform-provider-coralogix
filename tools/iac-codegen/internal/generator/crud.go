@@ -169,10 +169,10 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	}
 
 	ops := []crudSpec{
-		{"create", r.Create, &out.Create, true, true, createResponseID(file)},
-		{"get", r.Get, &out.Get, false, true, ""},
-		{"update", r.Update, &out.Update, true, true, ""},
-		{"delete", r.Delete, &out.Delete, false, false, ""},
+		{"create", r.Create, &out.Create, true, true},
+		{"get", r.Get, &out.Get, false, true},
+		{"update", r.Update, &out.Update, true, true},
+		{"delete", r.Delete, &out.Delete, false, false},
 	}
 	for _, o := range ops {
 		if *o.out, err = buildCRUDOp(ix, o, client.Name, resource.Name); err != nil {
@@ -255,9 +255,6 @@ type crudSpec struct {
 	out      *crudOp
 	body     bool // the operation must have a request body
 	resource bool // the response must hold the resource
-	// responseID is the property of the Create response that holds only the id: the generated
-	// call then reads the resource with Get. "" for a response that holds the resource.
-	responseID string
 }
 
 // buildCRUDOp returns the SDK names of one operation. client is the SDK client
@@ -267,7 +264,7 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string) (crudOp, err
 	if (o.op.Body != "") != o.body {
 		return out, fmt.Errorf("%s: request body %q is not supported", o.name, o.op.Body)
 	}
-	readsBack := o.responseID != "" || o.name == "update" && o.op.Response.Empty
+	readsBack := o.op.Response.ID != "" || o.name == "update" && o.op.Response.Empty
 	if (o.op.Response.Field != "" || o.op.Response.Direct) != o.resource && !readsBack {
 		return out, fmt.Errorf("%s: response field %q is not supported", o.name, o.op.Response.Field)
 	}
@@ -287,8 +284,8 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string) (crudOp, err
 		}
 		out.Body = body.Name
 	}
-	if o.responseID != "" {
-		field, err := ix.fieldRef(o.name + ".response." + o.responseID)
+	if o.op.Response.ID != "" {
+		field, err := ix.fieldRef(o.name + ".response." + o.op.Response.ID)
 		if err != nil {
 			return out, err
 		}
@@ -372,13 +369,4 @@ func updateOnlyAttrs(r *model.Resource, out *crudData) error {
 		out.UpdateOnly = append(out.UpdateOnly, updateOnlyAttr{Attr: terraformName(r.Policy, r.Name, f.Name), Default: value})
 	}
 	return nil
-}
-
-// createResponseID is the property of the Create response that holds only the id, from the
-// overrides file. It is "" for a new resource and for a Create that returns the resource.
-func createResponseID(file *overrides.File) string {
-	if file == nil {
-		return ""
-	}
-	return file.API.CreateResponseID
 }

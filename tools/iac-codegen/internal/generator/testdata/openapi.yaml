@@ -78,6 +78,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Thing'
+    get:
+      tags: [Things Service]
+      operationId: ThingsService_ListThings
+      responses:
+        '200':
+          description: Listed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListThingsResponse'
   /things/{id}:
     parameters:
       - name: id
@@ -450,5 +460,12 @@ components:
       properties:
         origin:
           type: string
+    ListThingsResponse:
+      type: object
+      properties:
+        things:
+          type: array
+          items:
+            $ref: '#/components/schemas/Thing'
     DeleteThingResponse:
       type: object

@@ -15,6 +15,9 @@ import (
 const (
 	exampleKey = "examples/resource.tf"
 	importKey  = "examples/import.sh"
+	// dataSourceExampleKey is the docs example of the data source, in
+	// examples/data-sources/coralogix_<type>/ of the provider.
+	dataSourceExampleKey = "examples/data-source.tf"
 )
 
 // exampleProviders is the provider block of an example. It has no version: the example works
@@ -54,6 +57,22 @@ func renderExample(acc *acceptanceData, typeName string) ([]byte, error) {
 		return nil, fmt.Errorf("example: %s", diags.Error())
 	}
 	return hclwrite.Format([]byte(text)), nil
+}
+
+// renderDataSourceExample returns the docs example of the data source: it reads the resource by id.
+// A string id is a quoted placeholder, as in the import command. A numeric id is the number 0 with
+// a comment, because Terraform rejects a string for a number attribute. A singleton takes no input.
+func renderDataSourceExample(crud *crudData) []byte {
+	body := ""
+	switch {
+	case crud.Singleton:
+	case crud.IDTFType == "String":
+		body = fmt.Sprintf("  %s = \"<%s>\"\n", crud.IDAttr, crud.IDAttr)
+	default:
+		body = fmt.Sprintf("  %s = 0 # replace with the %s\n", crud.IDAttr, crud.IDAttr)
+	}
+	text := fmt.Sprintf("%s\n\ndata %q \"example\" {\n%s}\n", exampleProviders, "coralogix_"+crud.TypeName, body)
+	return hclwrite.Format([]byte(text))
 }
 
 // renderImport returns the import command of the docs. A singleton has one id per company: the

@@ -176,7 +176,7 @@ A `readOnly: true` line works on a field of a nested component as well: the requ
 
 `api.idProperty` names the property that holds the id when its name is not the name of the path parameter, for example `uniqueIdentifier` for `/rules/{rule_id}` next to a version `id` that every Update replaces. Get and Delete pass its value as the path parameter, every id rule above applies to it (`clientSetID`, `serverSetID`, `updateIDInBody`, a `readOnly` line), and the generated Update copies it into the body. The Terraform attribute takes the name of the property, so a released `id` needs a `name: id` line, and a field that already has that name must be skipped. The Go SDK names a path parameter in lower camel case (`alertSchedulerRuleId`), and the SDK check expects that name. With `updateIDInBody`, an id property that Create does not send and that Update and Get have is the server-set id, and is computed. An `idProperty` that names the Get path parameter changes nothing, so the generator reports it (`ID_PROPERTY_UNNEEDED`).
 
-`api.createResponseID` names the property of the Create response that holds only the id of the new resource, a string, when the response does not return the resource. Only Terraform reads a Create response that way, so the key and the shapes are handled in this module and not in the SDK `iac` module: before the model reads the contract, the response component gets one extra property that holds the resource, and after the build the model is set back to the shape of the API (`readback.go`). The generated Create reads the resource with Get, and keeps the id in the state when that read fails, so Terraform marks the resource as tainted. An existing resource can also have an Update response with no fields: the generated Update reads the resource with Get after the call.
+`api.createResponseOnlyIDProperty` names the property of the Create response that holds only the id of the new resource, a string, when the response does not return the resource. The key is a Terraform key; the SDK `iac` module reads the response shape (`Policy.CreateResponseOnlyIDProperty`) and reports the key when the response is the resource or holds it. The generated Create reads the resource with Get, and keeps the id in the state when that read fails, so Terraform marks the resource as tainted. An existing resource can also have an Update response with no fields: the generated Update reads the resource with Get after the call.
 
 `valueNames` on a field line gives the numbers of an integer list or set a released name each, for example `{1: Sunday, 7: Saturday}` for days that the API numbers. The attribute is a list or set of strings with a `OneOf` validator of the names. Expand sends the numbers, and flatten returns the names. A name that is not in the line, or a number that the API returns and the line does not name, is an error, not a zero or an empty name. Names must be unique and not empty. On any other field the key is an error.
 
@@ -254,9 +254,63 @@ Existing mode also keeps the prior form of an empty value, as new resources do. 
 
 `Hooks` also has `ValidateConfig` (checks over several values that no key expresses, such as a rule that depends on the value of another attribute). A write runs the generated checks, then `BeforeWrite`.
 
-A resource in this mode exports `Flatten` for a handwritten data source. `NewResource` takes `Hooks`, handwritten steps around the generated CRUD: `BeforeWrite` changes the request body, `BeforeFlatten` changes the API value before flatten (for a value that only an older record has, such as a deprecated field that a newer one replaces), and `AfterRead` changes the state after flatten. A data source that calls `Flatten` calls the same `BeforeFlatten` step itself. A frozen prior schema stays in its own package.
+A resource in this mode exports `Flatten` for a handwritten data source. `NewResource` takes `Hooks`, handwritten steps around the generated CRUD: `BeforeWrite` changes the request body, `BeforeFlatten` changes the API value before flatten (for a value that only an older record has, such as a deprecated field that a newer one replaces), and `AfterRead` changes the state after flatten. A handwritten data source that calls `Flatten` calls the same `BeforeFlatten` step itself. The generated data source does that for you (see [Data sources](#data-sources)). A frozen prior schema stays in its own package. `UpdateGone(ctx, client, id, err)` and `DeleteGone(ctx, client, id, err)` say that the error of a failed Update or Delete means that the resource is gone, for an API that answers a call on a missing resource with another status than 404; they can read the resource to tell that from a real failure, such as a missing permission.
 
-A resource in this mode exports `Flatten` for a handwritten data source. `NewResource` takes `Hooks`, handwritten steps around the generated CRUD: `BeforeWrite` changes the request body, `BeforeFlatten` changes the API value before flatten (for a value that only an older record has, such as a deprecated field that a newer one replaces), and `AfterRead` changes the state after flatten. A data source that calls `Flatten` calls the same `BeforeFlatten` step itself. A frozen prior schema stays in its own package. `UpdateGone(ctx, client, id, err)` and `DeleteGone(ctx, client, id, err)` say that the error of a failed Update or Delete means that the resource is gone, for an API that answers a call on a missing resource with another status than 404; they can read the resource to tell that from a real failure, such as a missing permission.
+## Data sources
+
+The generator writes `data_source.go` in the package of the resource. The data source reads one resource by its id, or by its name when the API has a usable List.
+
+| Resource | Data source |
+|---|---|
+| New | Always. |
+| Existing | Only when `behavior-overrides.yaml` has a `dataSource:` section. Write `dataSource: {}` when the section has no line. |
+
+The data source uses the code of the resource:
+
+- Schema: `utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(Schema())`, at run time. Every attribute is computed, and the id is required (optional with name lookup, see below). A new API field reaches the data source with no change. The copy makes only a string attribute named `id` the lookup attribute, so the data source sets an integer id, or an id attribute with another name, itself. A singleton takes no input: its `id` is computed.
+- Read: Get by id (or by the id of the name), then `BeforeFlatten` (existing mode), then flatten without a prior value. It does not run `AfterRead`: that hook needs a plan or a state.
+- An id that the API does not find is an error. A 404 of a route that does not exist is an error too.
+
+Lookup by name. The List only turns a name into an id. The result always comes from Get, so a List of summaries works as well as a List of full resources. A usable List:
+
+- exists: the GET on the Create path, or the operation that `api.operations.list` names (`api.operations` can also name `list`, alone or with the four lifecycle keys);
+- has items with the id and a string `name`;
+- is not paged: the data source reads one response.
+
+| Resource | Lookup |
+|---|---|
+| New | `id` or `name` when the List is usable. `id` only otherwise, with no error. |
+| Existing | `id` or `name` only with `lookup: [id, name]`. The line on a resource without a usable List is an error (`OVERRIDE_INVALID`) that says why. |
+
+The generator checks the SDK names of the List only when the data source looks up the name. A List that the generated code does not call never stops the generation.
+
+With name lookup, `id` and `name` are optional, and the configuration sets exactly one of them (`ExactlyOneOf` on `id`). `name` stays computed. Read with a name calls the List with no parameters, takes the id of the item with that name, and then reads the id as a lookup by id does. A name that no item has is the error `coralogix_<type> with name "<name>" not found`. A name that more than one item has is the error `coralogix_<type> with name "<name>" is not unique`, unless `duplicateNames: first` takes the first item in the order of the API.
+
+An existing resource passes the hooks of the resource, so both run the same `BeforeFlatten`. The domain package keeps a one-line constructor, and `provider.go` keeps its registration line:
+
+```go
+func NewSLOV2DataSource() datasource.DataSource {
+	return slov2.NewDataSource(slov2.Hooks{BeforeFlatten: normalizeLegacySLO})
+}
+```
+
+The keys of the section:
+
+```yaml
+dataSource:
+  lookup: [id, name]        # also find the resource by its name, through the List
+  duplicateNames: first     # the first item with the name wins, as the released data source did
+  types:
+    E2M:
+      fields:
+        description: {readEmptyAs: value}   # show the API value, also "", not the null of the resource
+```
+
+- `readEmptyAs: value` is for a top-level string whose resource line reads `""` as null (`readEmptyAs: "null"`). The data source shows the value of the API, also `""`, as a released data source did. A line on another component than the resource is an error (`OVERRIDE_INVALID`). A line on a field without a resource `readEmptyAs: "null"` line changes nothing (`OVERRIDE_UNUSED`). A field that is not a plain string is an error (`RENDERER_SHAPE_UNSUPPORTED`).
+- `lookup: [id]` is the default, so the generator reports it (`OVERRIDE_UNUSED`). `lookup` must name `id`.
+- `duplicateNames: first` keeps the released behavior when more than one item has the name. Without `name` in `lookup`, it is an error.
+
+Golden contracts: `thing` has the data source of a new resource with a full List, so it looks up the name. `legacything` has `dataSource: {}`. `sharedthing` has a `readEmptyAs: value` line, and a List of summaries that `api.operations.list` names, with `lookup: [id, name]` and `duplicateNames: first`.
 
 ## Acceptance tests
 
@@ -281,7 +335,7 @@ upgradeCases:                   # extra upgrade subtests (needs upgradeFrom)
 
 The test makes its configs from the final schema, after the behavior overrides. Each lifecycle is a subtest on its own resource, so a failure in one does not hide the others:
 
-- `full-lifecycle`: the full config sets every attribute the user can set, and the test checks each value. Then an import step compares the imported state with the state (`ImportStateVerify`). The update config changes the strings, numbers, and bools. An immutable attribute and an enum keep their values, because the valid values of other fields can depend on an enum. Then another import.
+- `full-lifecycle`: the full config sets every attribute the user can set, and the test checks each value. Then an import step compares the imported state with the state (`ImportStateVerify`). When the package has a data source, the next step reads it by the id of the resource, and also by the name when the data source looks up the name, and compares the id and every checked value with the resource (`TestCheckResourceAttrPair`). The update config changes the strings, numbers, and bools. An immutable attribute and an enum keep their values, because the valid values of other fields can depend on an enum. Then another import.
 - `minimal-lifecycle`: the minimal config sets only the required attributes, and the ones listed in `minimal`. Optional attributes that the server does not fill must leave the state. Then an import, the full config, and the minimal config again.
 
 After every apply, the framework plans again and fails on a non-empty plan. The made-up values are: the first accepted value of an enum (not `unspecified`), `true` and `false`, `1` and `2` (or the start of a range validator and the next number), and `@{run}-<attribute>` for a string (cut or padded with `x` to fit a length validator). One arm of each `oneOf` group is set. A made-up collection has one element, made by the same rules and the validators of the elements. The generator fails on a kind of attribute it cannot make, or on a collection whose size validator rejects one element, and asks for a value in `acceptance.yaml`. A path in `values`, `skip`, `minimal`, or `upgradeCases[].values` that matches no attribute is an error. A nested path in `minimal` (or `upgradeMinimal`) also sets its optional parents, with only their required fields. A required attribute in `skip` is an error too: no config can leave it out. After the minimal config removes an `Optional` and `Computed` attribute, the test checks the value that the schema states: a static or server default, or, with `UseStateForUnknown`, the value of the full config. Without one, the API decides, and only the empty plan and the import check it. A `values` path names the attributes from the resource down, with `[]` for each list or set element: `rules[].targets[].connector_id`.
@@ -298,17 +352,18 @@ Run the generator and the docs in one command from the provider root:
 make codegen RESOURCE=resource_name OUT=resource_name
 ```
 
-`--out` must be a directory in `internal/provider/generated`, because `provider.go` imports only the registry there. For a new resource, `generate` also writes three files outside the output directory:
+`--out` must be a directory in `internal/provider/generated`, because `provider.go` imports only the registry there. For a new resource, `generate` also writes four files outside the output directory:
 
 | File | What it holds |
 |---|---|
-| `internal/provider/generated/registry.go` | `Resources()`, the constructors of every new resource. `provider.go` appends them. |
+| `internal/provider/generated/registry.go` | `Resources()` and `DataSources()`, the constructors of every new resource and of its data source. `provider.go` appends them. |
 | `examples/resources/coralogix_<type>/resource.tf` | The docs example: the prerequisites and the full config of the acceptance test. `@{run}` becomes `example`, and `@{env.NAME}` becomes `<NAME>`. |
 | `examples/resources/coralogix_<type>/import.sh` | `terraform import coralogix_<type>.example "<id>"`. A singleton uses its type name as the id. |
+| `examples/data-sources/coralogix_<type>/data-source.tf` | The docs example of the data source: it reads the resource by `id = "<id>"`, or by `id = 0` with a comment when the id is a number. A singleton takes no input. |
 
-`make generate` then renders `docs/resources/<type>.md` from the schema and these files.
+`make generate` then renders `docs/resources/<type>.md` and `docs/data-sources/<type>.md` from the schemas and these files.
 
-A resource that users already have keeps its handwritten registration and examples. The generator tells the two apart by `behavior-overrides.yaml` in the output directory, so an existing resource in the provider must keep the file there. The registry lists every generator-owned package without that file.
+A resource that users already have keeps its handwritten registration and examples, also for its data source. The generator tells the two apart by `behavior-overrides.yaml` in the output directory, so an existing resource in the provider must keep the file there. The registry lists every generator-owned package without that file.
 
 The generator does not replace a file that it did not write. An existing example directory stops a new resource, unless an earlier run generated the same resource in the same output directory. A `registry.go` without the generator header stops every run. The generator writes every file to a staging place first. It then moves the output directory, the examples, and the registry last, so a package is in place before the registry names it.
 
@@ -317,7 +372,7 @@ The generator does not replace a file that it did not write. An existing example
 Every generated Go file starts with this header:
 
 ```go
-// Code generated by coralogix-iac-codegen v0.1.0-beta.39. DO NOT EDIT.
+// Code generated by coralogix-iac-codegen v0.1.0-beta.41. DO NOT EDIT.
 ```
 
 Find files affected by this generator version with:
@@ -334,7 +389,7 @@ A behavior change is a change of what the generator produces, whatever caused it
 
 ## Beta boundary
 
-This beta has no type mode. `generate` has no OpenAPI input flag. The module has no live OpenAPI fetch, custom field hook, force flag, or allow-unsupported flag. The only override is the `behavior-overrides.yaml` file of an existing resource. A Delete override makes one call: it cannot run a step before it, such as an update that an API needs before it archives, and it cannot send a request body. Data sources, provider registration, and automated delivery are separate work.
+This beta has no type mode. `generate` has no OpenAPI input flag. The module has no live OpenAPI fetch, custom field hook, force flag, or allow-unsupported flag. The only override is the `behavior-overrides.yaml` file of an existing resource. A Delete override makes one call: it cannot run a step before it, such as an update that an API needs before it archives, and it cannot send a request body. A data source looks up the id, or the name through a List that is not paged. Paging, a name field with another name than `name`, plural "list all" data sources, data sources of handwritten resources, and automated delivery are separate work.
 
 ## Verify changes
 
