@@ -4,7 +4,7 @@ mode: existing
 markdownDescription: "Coralogix AI evaluation."
 
 validators:
-  inferred: false
+  inferred: true
 
 api:
   updateMaskInBody: true
@@ -20,17 +20,13 @@ types:
         markdownDescription: "AI evaluation ID."
       application:
         requiresReplace: true
-        validators: [{lengthAtLeast: 1}]
       subsystem:
         requiresReplace: true
-        validators: [{lengthAtLeast: 1}]
       target:
         markdownDescription: 'Target span content the evaluation runs against. Can be one of ["prompt" "response"].'
         requiresReplace: true
-        validators: [{enum: true}]
       threshold:
         required: true
-        validators: [{between: [0, 1]}]
       isEnabled:
         markdownDescription: "Whether the evaluation is active."
         computed: true
@@ -64,26 +60,10 @@ types:
     unsupportedArms: [sqlLoad, customEvaluation]
     unsupportedSummary: "Unsupported AI evaluation config"
     unsupportedDetail: "Only Allowed Topics, Competition, Hallucination Completeness, Hallucination Context Adherence, Hallucination Context Relevance, Hallucination Correctness, Hallucination Task Adherence, Language Mismatch, PII, Prompt Injection, Restricted Topics, Sexism, SQL Allowed Tables, SQL Hallucination, SQL Read Only, SQL Restricted Tables, and Toxicity AI evaluation configs are currently supported by this resource."
-  AllowedTopicsConfig:
-    fields:
-      topics: {validators: [{sizeAtLeast: 1}]}
-  RestrictedTopicsConfig:
-    fields:
-      topics: {validators: [{sizeAtLeast: 1}]}
-  CompetitionConfig:
-    fields:
-      competitors: {validators: [{sizeAtLeast: 1}]}
   PiiConfig:
     fields:
       categories:
         markdownDescription: 'PII categories to detect. Can include ["CREDIT_CARD" "EMAIL_ADDRESS" "IBAN_CODE" "PHONE_NUMBER" "US_SSN"].'
-        validators: [{sizeAtLeast: 1}, {enum: true}]
-  SqlAllowedTablesConfig:
-    fields:
-      tables: {validators: [{sizeAtLeast: 1}]}
-  SqlRestrictedTablesConfig:
-    fields:
-      tables: {validators: [{sizeAtLeast: 1}]}
   PromptInjectionConfig:
     fields:
       additionalContext:

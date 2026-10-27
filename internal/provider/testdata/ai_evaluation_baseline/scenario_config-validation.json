@@ -160,7 +160,7 @@
       "threshold": 0.5
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value Length [AttributeName(\"application\")] | Attribute application string length must be at least 1, got: 0"
+      "error: Invalid Attribute Value Length [AttributeName(\"application\")] | Attribute application string length must be between 1 and 256, got: 0"
     ],
     "state": null
   },

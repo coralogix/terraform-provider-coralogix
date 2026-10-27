@@ -26,7 +26,7 @@ func Schema() schema.Schema {
 			"application": schema.StringAttribute{
 				Required: true,
 				Validators: []validator.String{
-					stringvalidator.LengthAtLeast(1),
+					stringvalidator.LengthBetween(1, 256),
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -47,6 +47,8 @@ func Schema() schema.Schema {
 								ElementType: types.StringType,
 								Validators: []validator.Set{
 									setvalidator.SizeAtLeast(1),
+									setvalidator.SizeAtMost(1024),
+									setvalidator.ValueStringsAre(stringvalidator.LengthBetween(1, 256)),
 								},
 								MarkdownDescription: "Topics considered allowed.",
 							},
@@ -64,6 +66,8 @@ func Schema() schema.Schema {
 								ElementType: types.StringType,
 								Validators: []validator.Set{
 									setvalidator.SizeAtLeast(1),
+									setvalidator.SizeAtMost(1024),
+									setvalidator.ValueStringsAre(stringvalidator.LengthBetween(1, 256)),
 								},
 								MarkdownDescription: "Competitor names to watch for.",
 							},
@@ -129,6 +133,7 @@ func Schema() schema.Schema {
 								ElementType: types.StringType,
 								Validators: []validator.Set{
 									setvalidator.SizeAtLeast(1),
+									setvalidator.SizeAtMost(1024),
 									setvalidator.ValueStringsAre(stringvalidator.OneOf("CREDIT_CARD", "EMAIL_ADDRESS", "IBAN_CODE", "PHONE_NUMBER", "US_SSN")),
 								},
 								MarkdownDescription: "PII categories to detect. Can include [\"CREDIT_CARD\" \"EMAIL_ADDRESS\" \"IBAN_CODE\" \"PHONE_NUMBER\" \"US_SSN\"].",
@@ -143,9 +148,12 @@ func Schema() schema.Schema {
 						},
 						Attributes: map[string]schema.Attribute{
 							"additional_context": schema.StringAttribute{
-								Optional:            true,
-								Computed:            true,
-								Default:             stringdefault.StaticString(""),
+								Optional: true,
+								Computed: true,
+								Default:  stringdefault.StaticString(""),
+								Validators: []validator.String{
+									stringvalidator.LengthBetween(0, 65536),
+								},
 								MarkdownDescription: "Additional context passed to the LLM evaluator.",
 							},
 						},
@@ -162,6 +170,8 @@ func Schema() schema.Schema {
 								ElementType: types.StringType,
 								Validators: []validator.Set{
 									setvalidator.SizeAtLeast(1),
+									setvalidator.SizeAtMost(1024),
+									setvalidator.ValueStringsAre(stringvalidator.LengthBetween(1, 256)),
 								},
 								MarkdownDescription: "Topics that should not appear.",
 							},
@@ -187,6 +197,8 @@ func Schema() schema.Schema {
 								ElementType: types.StringType,
 								Validators: []validator.Set{
 									setvalidator.SizeAtLeast(1),
+									setvalidator.SizeAtMost(1024),
+									setvalidator.ValueStringsAre(stringvalidator.LengthBetween(1, 256)),
 								},
 								MarkdownDescription: "SQL table names that are allowed.",
 							},
@@ -220,6 +232,8 @@ func Schema() schema.Schema {
 								ElementType: types.StringType,
 								Validators: []validator.Set{
 									setvalidator.SizeAtLeast(1),
+									setvalidator.SizeAtMost(1024),
+									setvalidator.ValueStringsAre(stringvalidator.LengthBetween(1, 256)),
 								},
 								MarkdownDescription: "SQL table names that are not allowed.",
 							},
@@ -253,7 +267,7 @@ func Schema() schema.Schema {
 			"subsystem": schema.StringAttribute{
 				Required: true,
 				Validators: []validator.String{
-					stringvalidator.LengthAtLeast(1),
+					stringvalidator.LengthBetween(1, 256),
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
@@ -273,7 +287,7 @@ func Schema() schema.Schema {
 			"threshold": schema.Float64Attribute{
 				Required: true,
 				Validators: []validator.Float64{
-					float64validator.Between(0.0, 1.0),
+					float64validator.Between(0, 1),
 				},
 				MarkdownDescription: "Score threshold. Must be between 0.0 and 1.0 inclusive.",
 			},
