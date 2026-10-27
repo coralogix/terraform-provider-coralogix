@@ -95,3 +95,64 @@ func TestGroupUpdateErrorsWhenGroupIsGone(t *testing.T) {
 		})
 	}
 }
+
+// The same race on coralogix_group_attachment: the group is gone when Update reads its
+// members, or when Update writes them.
+func TestGroupAttachmentUpdateErrorsWhenGroupIsGone(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		getFinds bool
+	}{
+		"member read returns 404":  {getFinds: false},
+		"member write returns 404": {getFinds: true},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			const groupNotFound = `{"code":404,"message":"Not Found: team group 123 not found"}`
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				if r.Method == http.MethodGet && tc.getFinds {
+					_, _ = w.Write([]byte(`{"group":{"name":"group","userIds":["u1"]}}`))
+					return
+				}
+				w.WriteHeader(http.StatusNotFound)
+				_, _ = w.Write([]byte(groupNotFound))
+			}))
+			defer server.Close()
+
+			cfg := teamGroups.NewConfiguration()
+			cfg.Servers = teamGroups.ServerConfigurations{{URL: server.URL}}
+			r := &GroupAttachmentResource{client: teamGroups.NewAPIClient(cfg).TeamGroupsManagementServiceAPI}
+
+			ctx := context.Background()
+			var schemaResp resource.SchemaResponse
+			r.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+
+			priorState := tfsdk.State{Schema: schemaResp.Schema}
+			if diags := priorState.Set(ctx, &GroupAttachmentResourceModel{GroupID: "123", UserIDs: []string{"u1"}}); diags.HasError() {
+				t.Fatalf("state.Set: %v", diags)
+			}
+			plan := tfsdk.Plan{Schema: schemaResp.Schema}
+			if diags := plan.Set(ctx, &GroupAttachmentResourceModel{GroupID: "123", UserIDs: []string{"u1", "u2"}}); diags.HasError() {
+				t.Fatalf("plan.Set: %v", diags)
+			}
+
+			resp := &resource.UpdateResponse{State: priorState}
+			r.Update(ctx, resource.UpdateRequest{Plan: plan, Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: plan.Raw}, State: priorState}, resp)
+
+			if !resp.Diagnostics.HasError() {
+				t.Fatalf("want an error, got diagnostics %v", resp.Diagnostics)
+			}
+			if got := resp.Diagnostics.Errors()[0].Summary(); got != "Group no longer exists" {
+				t.Errorf("error summary = %q: %s", got, resp.Diagnostics.Errors()[0].Detail())
+			}
+			if !resp.State.Raw.Equal(priorState.Raw) {
+				t.Error("Update changed the attachment state")
+			}
+		})
+	}
+}

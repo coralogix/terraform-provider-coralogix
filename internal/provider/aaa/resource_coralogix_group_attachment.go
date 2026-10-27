@@ -176,12 +176,20 @@ func (r *GroupAttachmentResource) Update(ctx context.Context, req resource.Updat
 
 	existing, err := r.listMembers(ctx, groupID)
 	if err != nil {
+		if isGroupNotFoundErr(err) {
+			addAttachmentGroupGoneDuringUpdateError(&resp.Diagnostics, plan.GroupID)
+			return
+		}
 		resp.Diagnostics.AddError("Failed to get group", err.Error())
 		return
 	}
 
 	desired := desiredAttachmentGroupUserIDs(existing, state.UserIDs, plan.UserIDs)
 	if err := r.applyUserOp(ctx, groupID, "set", desired); err != nil {
+		if isGroupNotFoundErr(err) {
+			addAttachmentGroupGoneDuringUpdateError(&resp.Diagnostics, plan.GroupID)
+			return
+		}
 		resp.Diagnostics.AddError("Failed to attach users to group", err.Error())
 		return
 	}
@@ -245,9 +253,24 @@ func (r *GroupAttachmentResource) listMembers(ctx context.Context, groupID int64
 func (r *GroupAttachmentResource) applyUserOp(ctx context.Context, groupID int64, operationType string, userIDs []string) error {
 	httpResp, err := applyGroupUserOperation(ctx, r.client, groupID, operationType, userIDs)
 	if err != nil {
-		return fmt.Errorf("%s", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Update", groupID))
+		apiErr := cxsdkOpenapi.NewAPIError(httpResp, err)
+		if cxsdkOpenapi.IsNotFound(apiErr) {
+			return &groupNotFoundError{id: groupID}
+		}
+		return fmt.Errorf("%s", utils.FormatOpenAPIErrors(apiErr, "Update", groupID))
 	}
 	return nil
+}
+
+// addAttachmentGroupGoneDuringUpdateError reports a group that was deleted outside Terraform
+// after the last refresh. Update must not remove state. A refresh removes the attachment,
+// because Read drops it when its group is missing.
+func addAttachmentGroupGoneDuringUpdateError(diags *diag.Diagnostics, groupID string) {
+	diags.AddError(
+		"Group no longer exists",
+		fmt.Sprintf("Group %q of this attachment no longer exists in Coralogix. "+
+			"Run `terraform apply -refresh-only` to remove the attachment from state.", groupID),
+	)
 }
 
 func extractGroupMembersIds(ctx context.Context, set types.Set) ([]string, diag.Diagnostics) {
