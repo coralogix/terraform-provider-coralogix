@@ -36,6 +36,9 @@
 #### data-source/coralogix_global_router
 - CHORE: The data source uses the generated data source of the resource. It still finds a global router by `id` or by `name`, and takes the first router with the name. The error for an id that the API does not find has new wording.
 
+#### data-source/coralogix_preset
+- CHORE: The data source uses the generated data source of the resource. It still finds a preset by `id` or by `name`, and takes the first preset with the name. The error for an id that the API does not find has new wording.
+
 # Release 3.22.1
 
 #### tools/iac-codegen
