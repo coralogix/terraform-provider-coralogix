@@ -56,6 +56,7 @@ var dataSourceBaselines = map[string]dataSourceBaseline{
 	"archive_logs": {alGoldenDir, func(t *testing.T) *grHarness {
 		return newProtocolHarness(t, alTypeName, newALFake(t))
 	}, alDataSourceScenarios},
+	"quota_allocation_rule_set": {quotaGoldenDir, newQuotaHarness, quotaDataSourceScenarios},
 }
 
 func TestDataSourceBaselineSchema(t *testing.T) {
@@ -315,4 +316,26 @@ var vfDataSourceScenarios = nameLookupScenarios(
 // order that the test seeds them.
 func vfNextID(h *grHarness) string {
 	return fmt.Sprintf("aaaaaaaa-0000-4000-8000-%012d", len(h.records().records)+1)
+}
+
+// --- quota allocation rule set ---
+
+// The data source reads the singleton with no configuration, and shows the rules of Coralogix
+// (cx_managed) next to the rules of the customer.
+var quotaDataSourceScenarios = map[string]func(h *grHarness){
+	"read-empty": func(h *grHarness) {
+		h.ReadDataSource("read the rule set before any rule exists", j{})
+	},
+	"read-managed-and-customer": func(h *grHarness) {
+		h.quota().seedManaged(j{"entityType": "alerts", "allocation": 5, "enabled": true, "canOverflow": false, "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE"})
+		h.quota().seedCustomer(
+			j{"entityType": "logs", "allocation": 60.5, "enabled": true, "canOverflow": true},
+			j{"entityType": "spans", "allocation": 2, "enabled": false, "canOverflow": false, "allocationType": "QUOTA_ALLOCATION_TYPE_LOCKED_UNITS"},
+		)
+		h.ReadDataSource("read managed and customer rules", j{})
+	},
+	"not-found": func(h *grHarness) {
+		h.quota().notFound = true
+		h.ReadDataSource("read when the API answers 404", j{})
+	},
 }
