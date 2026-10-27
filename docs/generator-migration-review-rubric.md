@@ -9,6 +9,9 @@ Compare old and new schema, data source, create, read, update, delete, import, s
 errors. Check set/change/remove, defaults, null/empty values, IDs, partial failure, retry, and
 cleanup. Change behavior only to fix a proven bug; give an example. Old and migration tests can
 show old behavior. No old code copy is needed. List each fix in `CHANGELOG.md` as a `FIX:` line.
+Migrate the paired data source in the same PR: add a `dataSource:` section to
+`behavior-overrides.yaml`. It must keep the old lookups (by id, by name) and errors. If the
+generator cannot express the old data source, report a blocker.
 
 ## 2. Keep future fields automatic
 
