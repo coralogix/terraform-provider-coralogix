@@ -74,7 +74,9 @@ jobs:
           # A failed API call stops the job here. The result job then fails,
           # so an error can never skip the tests and report success.
           files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[].filename')
-          if printf '%s\n' "$files" | grep -qvE '^(\.claude/|\.cursor/)|\.md$'; then
+          # A here-string, not a pipe: `grep -q` exits at the first match, and
+          # under pipefail the writer's SIGPIPE would make this check false.
+          if grep -qvE '^(\.claude/|\.cursor/)|\.md$' <<< "$files"; then
             echo "code=true" >> "$GITHUB_OUTPUT"
           else
             echo "code=false" >> "$GITHUB_OUTPUT"
