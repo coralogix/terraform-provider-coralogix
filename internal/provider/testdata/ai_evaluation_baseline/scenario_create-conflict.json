@@ -55,7 +55,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_ai_evaluation | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: An evaluation with these parameters already exists\"}\noperation - Create"
+      "error: Unable to create ai_evaluation | 409 Conflict — {\"code\":409,\"message\":\"Already Exists: An evaluation with these parameters already exists\"}"
     ],
     "state": null
   }
