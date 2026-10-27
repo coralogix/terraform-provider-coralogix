@@ -12,7 +12,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_view_folder | Could not find view folder with name (missing)"
+      "error: coralogix_view_folder with name \"missing\" not found"
     ],
     "state": {
       "id": null,

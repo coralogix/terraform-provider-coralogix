@@ -15,126 +15,14 @@
 package views
 
 import (
-	"context"
-	"fmt"
-	"log"
-
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/viewfolder"
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-
-	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-	viewsfolders "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/folders_for_views_service"
-
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/viewfolder"
 )
 
-var _ datasource.DataSourceWithConfigure = &ViewFolderDataSource{}
-
+// NewViewFolderDataSource returns coralogix_view_folder, the generated data source of the resource.
+// It finds a view folder by id or by name, and takes the first folder with the name. The data
+// source runs only the BeforeFlatten hook, which the resource does not set.
 func NewViewFolderDataSource() datasource.DataSource {
-	return &ViewFolderDataSource{}
-}
-
-type ViewFolderDataSource struct {
-	client *viewsfolders.FoldersForViewsServiceAPIService
-}
-
-func (d *ViewFolderDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_view_folder"
-}
-
-func (d *ViewFolderDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	d.client = clientSet.ViewsFolders()
-}
-
-func (d *ViewFolderDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(viewfolder.Schema())
-
-	if idAttr, ok := resp.Schema.Attributes["id"].(schema.StringAttribute); ok {
-		idAttr.Required = false
-		idAttr.Optional = true
-		idAttr.Validators = []validator.String{
-			stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("name")),
-		}
-		resp.Schema.Attributes["id"] = idAttr
-	}
-
-	if nameAttr, ok := resp.Schema.Attributes["name"].(schema.StringAttribute); ok {
-		nameAttr.Required = false
-		nameAttr.Optional = true
-		resp.Schema.Attributes["name"] = nameAttr
-	}
-}
-
-func (d *ViewFolderDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data viewfolder.ViewFolderModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	log.Print("[INFO] Listing view folders")
-	listResult, httpResponse, err := d.client.ViewsFoldersServiceListViewFolders(ctx).Execute()
-	if err != nil {
-		resp.Diagnostics.AddError("Error listing coralogix_view_folder",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
-		)
-		return
-	}
-
-	// Exactly one of id/name is set, so match on the one the caller actually gave.
-	byID := !data.Id.IsNull() && !data.Id.IsUnknown()
-	folders := listResult.GetFolders()
-	var match *viewsfolders.ViewFolder
-	for i := range folders {
-		if byID {
-			if folders[i].GetId() == data.Id.ValueString() {
-				match = &folders[i]
-				break
-			}
-			continue
-		}
-		if folders[i].GetName() == data.Name.ValueString() {
-			match = &folders[i]
-			break
-		}
-	}
-	if match == nil {
-		if byID {
-			resp.Diagnostics.AddError(
-				"Error reading coralogix_view_folder",
-				fmt.Sprintf("Could not find view folder with id (%s)", data.Id.ValueString()),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading coralogix_view_folder",
-				fmt.Sprintf("Could not find view folder with name (%s)", data.Name.ValueString()),
-			)
-		}
-		return
-	}
-
-	flat, diags := viewfolder.Flatten(ctx, match)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, flat)...)
+	return viewfolder.NewDataSource(viewfolder.Hooks{})
 }
