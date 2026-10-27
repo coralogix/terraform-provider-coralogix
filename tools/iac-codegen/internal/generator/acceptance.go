@@ -72,7 +72,9 @@ type acceptanceData struct {
 // accDataSource is the step that reads the data source of the resource that the full config created.
 type accDataSource struct {
 	Address string // address of the data source in the config
-	Config  string // the data block
+	// ByNameAddress is the address of the data source that reads the resource by its name, or "".
+	ByNameAddress string
+	Config        string // the data blocks
 	// Pairs are the attribute paths that the data source and the resource must have with the same
 	// value: the id, and every value that the full config checks.
 	Pairs []string
@@ -158,14 +160,15 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		return nil, err
 	}
 	if res.DataSource != nil {
-		out.DataSource = dataSourceStep(res.CRUD, out.Full.Checks)
+		out.DataSource = dataSourceStep(res.CRUD, res.DataSource.Name, out.Full.Checks)
 	}
 	return out, nil
 }
 
 // dataSourceStep reads the data source by the id of the resource, or with no input for a singleton,
-// which depends on the resource instead.
-func dataSourceStep(crud *crudData, checks []accCheck) *accDataSource {
+// which depends on the resource instead. With name lookup, a second data source reads the resource
+// by its name.
+func dataSourceStep(crud *crudData, name *dsNameLookup, checks []accCheck) *accDataSource {
 	resourceType := "coralogix_" + crud.TypeName
 	body := fmt.Sprintf("%s = %s.test.%s", crud.IDAttr, resourceType, crud.IDAttr)
 	if crud.Singleton {
@@ -175,6 +178,10 @@ func dataSourceStep(crud *crudData, checks []accCheck) *accDataSource {
 		Address: "data." + resourceType + ".test",
 		Config:  fmt.Sprintf("data %q \"test\" {\n  %s\n}", resourceType, body),
 		Pairs:   []string{crud.IDAttr},
+	}
+	if name != nil {
+		out.ByNameAddress = "data." + resourceType + ".by_name"
+		out.Config += fmt.Sprintf("\n\ndata %q \"by_name\" {\n  %s = %s.test.%s\n}", resourceType, name.Attr, resourceType, name.Attr)
 	}
 	for _, check := range checks {
 		if !check.Absent && !slices.Contains(out.Pairs, check.Path) {

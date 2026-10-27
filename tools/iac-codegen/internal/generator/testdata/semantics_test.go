@@ -790,8 +790,9 @@ func TestRequestValueDropsServerValuesInSets(t *testing.T) {
 	}
 }
 
-// The data source of a new resource copies the resource schema: the id is required and every other
-// attribute is computed-only. A response without the resource is an error, not a panic.
+// The data source of a new resource copies the resource schema: every attribute is computed-only,
+// except the id and the name, which are optional, because the API has a List with names. A response
+// without the resource is an error, not a panic.
 func TestDataSourceCopiesTheResourceSchema(t *testing.T) {
 	ctx := context.Background()
 	d := NewDataSource()
@@ -801,14 +802,19 @@ func TestDataSourceCopiesTheResourceSchema(t *testing.T) {
 		t.Fatalf("data source has %d attributes, the resource %d", len(schemaResp.Schema.Attributes), len(Schema().Attributes))
 	}
 	for name, a := range schemaResp.Schema.Attributes {
-		if name == "id" {
-			if !a.IsRequired() {
-				t.Errorf("id = %#v, want required", a)
+		switch name {
+		case "id":
+			if !a.IsOptional() || a.IsComputed() || len(a.(interface{ StringValidators() []validator.String }).StringValidators()) != 1 {
+				t.Errorf("id = %#v, want optional with the ExactlyOneOf validator", a)
 			}
-			continue
-		}
-		if !a.IsComputed() || a.IsOptional() || a.IsRequired() {
-			t.Errorf("%s = %#v, want computed-only", name, a)
+		case "name":
+			if !a.IsOptional() || !a.IsComputed() {
+				t.Errorf("name = %#v, want optional and computed", a)
+			}
+		default:
+			if !a.IsComputed() || a.IsOptional() || a.IsRequired() {
+				t.Errorf("%s = %#v, want computed-only", name, a)
+			}
 		}
 	}
 	root := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
@@ -824,5 +830,60 @@ func TestDataSourceCopiesTheResourceSchema(t *testing.T) {
 	ds.Read(ctx, datasource.ReadRequest{Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: config}}, resp)
 	if !resp.Diagnostics.HasError() {
 		t.Fatal("read of a response without the resource: want an error")
+	}
+}
+
+// readDataSourceByName reads the data source with only the name set, and returns the diagnostics
+// and the ids that Get received.
+func readDataSourceByName(t *testing.T, listed *things_service.ListThingsResponse, name string) (diag.Diagnostics, []string) {
+	t.Helper()
+	ctx := context.Background()
+	d := NewDataSource().(*DataSource)
+	var schemaResp datasource.SchemaResponse
+	d.Schema(ctx, datasource.SchemaRequest{}, &schemaResp)
+	root := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
+	values := map[string]tftypes.Value{}
+	for attr, attrType := range root.AttributeTypes {
+		values[attr] = tftypes.NewValue(attrType, nil)
+	}
+	values["name"] = tftypes.NewValue(tftypes.String, name)
+	config := tftypes.NewValue(root, values)
+	d.resource.client = &things_service.ThingsServiceAPIService{}
+	things_service.Listed, things_service.GotIDs = listed, nil
+	t.Cleanup(func() { things_service.Listed, things_service.GotIDs = nil, nil })
+	resp := &datasource.ReadResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: config}}
+	d.Read(ctx, datasource.ReadRequest{Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: config}}, resp)
+	return resp.Diagnostics, things_service.GotIDs
+}
+
+func listedThing(id, name string) things_service.Thing {
+	return things_service.Thing{Id: &id, Name: &name}
+}
+
+// The data source finds the id of the one item with the name in the List, and reads that id with
+// Get. A name that no item has, or that more than one item has, is an error before any Get.
+func TestDataSourceReadsByName(t *testing.T) {
+	listed := &things_service.ListThingsResponse{Things: []things_service.Thing{
+		listedThing("thing-1", "other"), listedThing("thing-2", "wanted"), {}, // an item without a name or an id
+	}}
+	_, got := readDataSourceByName(t, listed, "wanted")
+	if !slices.Equal(got, []string{"thing-2"}) {
+		t.Fatalf("Get ids = %v, want [thing-2]", got)
+	}
+
+	diags, got := readDataSourceByName(t, listed, "missing")
+	if len(got) != 0 || !diags.HasError() || diags[0].Summary() != `coralogix_thing with name "missing" not found` || diags[0].Detail() != "" {
+		t.Fatalf("missing name: Get ids = %v, diagnostics = %v", got, diags)
+	}
+	diags, got = readDataSourceByName(t, nil, "wanted")
+	if len(got) != 0 || !diags.HasError() || diags[0].Summary() != `coralogix_thing with name "wanted" not found` {
+		t.Fatalf("empty List: Get ids = %v, diagnostics = %v", got, diags)
+	}
+
+	listed.Things = append(listed.Things, listedThing("thing-3", "wanted"))
+	diags, got = readDataSourceByName(t, listed, "wanted")
+	if len(got) != 0 || !diags.HasError() || diags[0].Summary() != `coralogix_thing with name "wanted" is not unique` ||
+		diags[0].Detail() != `2 coralogix_thing resources have the name "wanted". Set the id instead of the name.` {
+		t.Fatalf("duplicate name: Get ids = %v, diagnostics = %v", got, diags)
 	}
 }

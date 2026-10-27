@@ -69,6 +69,15 @@ type ReplaceSharedThingResponse struct {
 	Thing      SharedThing
 }
 
+type SharedThingSummary struct {
+	Id   *string
+	Name *string
+}
+
+type ListSharedThingSummariesResponse struct {
+	Summaries []SharedThingSummary
+}
+
 type SharedThingsServiceAPIService struct{}
 
 type ApiSharedThingsServiceCreateSharedThingRequest struct {
@@ -82,14 +91,18 @@ type ApiSharedThingsServiceReplaceSharedThingRequest struct {
 	updateBody *SharedThingUpdate
 }
 type ApiSharedThingsServiceDeleteSharedThingRequest struct{}
+type ApiSharedThingsServiceListSharedThingSummariesRequest struct{}
 
 // Created and Replaced list the bodies that the calls received. Create returns the thing with
-// the id CreatedID, and replace returns the thing it received. Get returns Stored.
+// the id CreatedID, and replace returns the thing it received. Get returns Stored, and GotIDs
+// lists the ids that it received. The List returns Summaries.
 var (
 	Created   []SharedThing1
 	Replaced  []SharedThing1
 	CreatedID = "thing-1"
 	Stored    SharedThing
+	GotIDs    []string
+	Summaries []SharedThingSummary
 )
 
 func (*SharedThingsServiceAPIService) SharedThingsServiceCreateSharedThing(ctx context.Context) ApiSharedThingsServiceCreateSharedThingRequest {
@@ -134,8 +147,17 @@ func (r ApiSharedThingsServiceCreateSharedThingRequest) Execute() (*CreateShared
 }
 
 func (r ApiSharedThingsServiceGetSharedThingRequest) Execute() (*GetSharedThingResponse, *http.Response, error) {
-	_ = r.id
+	GotIDs = append(GotIDs, r.id)
 	return &GetSharedThingResponse{Thing: Stored}, nil, nil
+}
+
+func (*SharedThingsServiceAPIService) SharedThingsServiceListSharedThingSummaries(ctx context.Context) ApiSharedThingsServiceListSharedThingSummariesRequest {
+	_ = ctx
+	return ApiSharedThingsServiceListSharedThingSummariesRequest{}
+}
+
+func (ApiSharedThingsServiceListSharedThingSummariesRequest) Execute() (*ListSharedThingSummariesResponse, *http.Response, error) {
+	return &ListSharedThingSummariesResponse{Summaries: Summaries}, nil, nil
 }
 
 func (r ApiSharedThingsServiceReplaceSharedThingRequest) Execute() (*ReplaceSharedThingResponse, *http.Response, error) {
