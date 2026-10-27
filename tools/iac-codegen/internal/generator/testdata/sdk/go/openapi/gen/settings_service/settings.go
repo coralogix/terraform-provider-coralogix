@@ -6,6 +6,7 @@ import (
 )
 
 type Settings struct {
+	Id            *string
 	RetentionDays *int32
 }
 

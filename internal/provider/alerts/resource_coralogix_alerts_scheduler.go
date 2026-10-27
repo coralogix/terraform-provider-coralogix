@@ -29,14 +29,17 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// NewAlertsSchedulerResource returns the generated coralogix_alerts_scheduler resource. The hooks
-// keep the released handling of start_time and time_zone, which the API stores in other forms.
+// schedulerHooks keep the released handling of start_time and time_zone, which the API stores in
+// other forms. The resource and the data source share them.
+var schedulerHooks = alertsscheduler.Hooks{
+	BeforeWrite:   sendUTCAsUTCPlus0,
+	BeforeFlatten: normalizeStartTimes,
+	AfterRead:     keepTimeFrameSpelling,
+}
+
+// NewAlertsSchedulerResource returns the generated coralogix_alerts_scheduler resource.
 func NewAlertsSchedulerResource() resource.Resource {
-	return alertsscheduler.NewResource(alertsscheduler.Hooks{
-		BeforeWrite:   sendUTCAsUTCPlus0,
-		BeforeFlatten: normalizeStartTimes,
-		AfterRead:     keepTimeFrameSpelling,
-	})
+	return alertsscheduler.NewResource(schedulerHooks)
 }
 
 // timeFramePaths are the Terraform paths of the two time frames of a rule.

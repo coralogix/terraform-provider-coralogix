@@ -60,11 +60,11 @@ func renderAll(r *model.Resource, refs []sdkcheck.Ref, pkg string, file *overrid
 		return nil, err
 	}
 	files := maps.Clone(generatedFiles)
-	if data.Conv.UsesEquality() {
+	if data.Conv.UsesEquality() || len(data.EnumAliases) != 0 {
 		if data.HasServerDefaults {
 			// ModifyPlan keeps the state in place of every unknown that the configuration does
 			// not set. A server default plans unknown on purpose, and would be lost.
-			return nil, fmt.Errorf("equality and a server default in one resource are not supported; in existing mode, a default line in %s replaces the server default", overrides.FileName)
+			return nil, fmt.Errorf("equality or an enum alias and a server default in one resource are not supported; in existing mode, a default line in %s replaces the server default", overrides.FileName)
 		}
 		files["equality.go"] = "equality.go.tmpl"
 	}
@@ -73,8 +73,29 @@ func renderAll(r *model.Resource, refs []sdkcheck.Ref, pkg string, file *overrid
 		delete(files, "mask.go")
 		files["replace.go"] = "replace.go.tmpl"
 	}
+	if file.HasDataSource() {
+		if data.DataSource, err = buildDataSource(data.Conv, data.CRUD, file); err != nil {
+			return nil, err
+		}
+		files[dataSourceFile] = "data_source.go.tmpl"
+	}
+	out, err := executeTemplates(files, data)
+	if err != nil {
+		return nil, err
+	}
+	if acc != nil {
+		if err := renderTestFiles(out, data, providerModule, acc, prior, file == nil); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}
+
+// executeTemplates renders each file of files, a map from file name to template name, in a fixed
+// order, and formats it.
+func executeTemplates(files map[string]string, data *tfResource) (map[string][]byte, error) {
 	out := map[string][]byte{}
-	order := []string{"schema.go", "model.go", "convert.go", "equality.go", "mask.go", "resource.go", "replace.go"}
+	order := []string{"schema.go", "model.go", "convert.go", "equality.go", "mask.go", "resource.go", "replace.go", dataSourceFile}
 	for _, file := range order {
 		tmpl, ok := files[file]
 		if !ok {
@@ -90,17 +111,12 @@ func renderAll(r *model.Resource, refs []sdkcheck.Ref, pkg string, file *overrid
 		}
 		out[file] = src
 	}
-	if acc != nil {
-		if err := renderTestFiles(out, data, providerModule, acc, prior, file == nil); err != nil {
-			return nil, err
-		}
-	}
 	return out, nil
 }
 
 // renderTestFiles adds the acceptance test and the upgrade attributes file of its upgrade test to
 // out. A new resource has no handwritten docs, so it also adds the docs example, which is the full
-// config of the test, and the import command.
+// config of the test, the import command, and the docs example of the data source.
 func renderTestFiles(out map[string][]byte, data *tfResource, providerModule string, acc *acceptance.File, prior *acceptance.UpgradeAttributes, newResource bool) error {
 	accData, err := buildAcceptance(data, providerModule, acc, prior)
 	if err != nil {
@@ -119,6 +135,7 @@ func renderTestFiles(out map[string][]byte, data *tfResource, providerModule str
 			return err
 		}
 		out[importKey] = renderImport(data.CRUD)
+		out[dataSourceExampleKey] = renderDataSourceExample(data.CRUD)
 	}
 	return nil
 }

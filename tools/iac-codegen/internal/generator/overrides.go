@@ -105,6 +105,7 @@ func overrideIssues(doc *v3.Document, component string, file *overrides.File) is
 			})
 		}
 	}
+	report = append(report, dataSourceIssues(file)...)
 	return report.Normalize()
 }
 

@@ -1,0 +1,94 @@
+(data source schema)
+    description: Coralogix Fleet Management configuration group: the OpenTelemetry Collector configurations that matching agents receive. Its family is either `raw` (collector configurations you write) or `preset` (generated from a configuration template). Destroy archives the group. **Note:** This resource is in Beta stage.
+archived  tftypes.Bool computed
+    description: Whether this configuration group is archived.
+description  tftypes.String computed
+    description: Human-readable description.
+family  nested SINGLE computed
+    description: Latest configuration family of the group.
+family.active  tftypes.Bool computed
+    description: Whether this family is active.
+family.based_on_configuration_family_id  tftypes.String computed
+    description: Configuration family UUID v7 this family is based on.
+family.description  tftypes.String computed
+    description: Human-readable description.
+family.id  tftypes.String computed
+    description: Configuration family UUID v7.
+family.last_activated_at  tftypes.String computed
+    description: Time when this family was last activated.
+family.preset  nested SINGLE computed
+    description: Configuration template settings; present when the family has a chartName and observability features.
+family.preset.chart_name  tftypes.String computed
+    description: Configuration template type: `chart_name_otel_integration` for Kubernetes, `chart_name_otel_ecs_ec2` for ECS on EC2, or `chart_name_otel_linux_standalone`, `chart_name_otel_windows_standalone`, or `chart_name_otel_macos_standalone` for hosts.
+family.preset.chart_version  tftypes.String computed
+    description: Configuration template version. It determines the OTel Collector version, the generated collector configuration, and which integrationVersion values are supported. Unsupported versions are rejected.
+family.preset.collector_version  tftypes.String computed
+    description: OTel Collector semantic version Coralogix derived from chartVersion, without a leading v prefix.
+family.preset.integration_version  tftypes.String computed
+    description: Version of the observability features format used for this configuration family.
+family.preset.metadata  tftypes.Map[tftypes.String] computed
+    description: Environment setup values for the configuration template, such as ClusterName, KubernetesRunningOn, ApplicationName, or SubsystemName.
+family.preset.observability_features  tftypes.String computed
+    description: Observability feature settings for the configuration template, as a JSON object string; the available features depend on chartName and integrationVersion.
+family.preset.remote_configurations  nested LIST computed
+    description: Remote configurations Coralogix generated from the configuration template settings.
+family.preset.remote_configurations.agent_selector  nested SINGLE computed
+    description: Flat agent attributes that match agents for this configuration.
+family.preset.remote_configurations.agent_selector.attributes  tftypes.Map[tftypes.String] computed
+    description: Flat agent attributes matched by the selector.
+family.preset.remote_configurations.created_at  tftypes.String computed
+    description: Time when this remote configuration was created.
+family.preset.remote_configurations.hash  tftypes.String computed
+    description: SHA-256 hash of the normalized raw configuration content.
+family.preset.remote_configurations.id  tftypes.String computed
+    description: Remote configuration UUID v7.
+family.preset.remote_configurations.name  tftypes.String computed
+    description: Remote configuration name.
+family.preset.remote_configurations.raw_configuration  tftypes.String computed
+    description: Normalized OpenTelemetry Collector configuration YAML.
+family.preset.remote_configurations.updated_at  tftypes.String computed
+    description: Time when this remote configuration was last updated.
+family.raw  nested SINGLE computed
+    description: Inputs of a configuration family defined directly by its remote configurations; present when the family has no chartName.
+family.raw.collector_version  tftypes.String computed
+    description: Collector semantic version this family targets, without a leading v prefix.
+family.raw.metadata  tftypes.Map[tftypes.String] computed
+    description: Metadata stored with this configuration family.
+family.raw.remote_configurations  nested LIST computed
+    description: Remote configurations of this configuration family.
+family.raw.remote_configurations.agent_selector  nested SINGLE computed
+    description: Flat agent attributes that match agents for this configuration.
+family.raw.remote_configurations.agent_selector.attributes  tftypes.Map[tftypes.String] computed
+    description: Flat agent attributes matched by the selector.
+family.raw.remote_configurations.created_at  tftypes.String computed
+    description: Time when this remote configuration was created.
+family.raw.remote_configurations.hash  tftypes.String computed
+    description: SHA-256 hash of the normalized raw configuration content.
+family.raw.remote_configurations.id  tftypes.String computed
+    description: Remote configuration UUID v7.
+family.raw.remote_configurations.name  tftypes.String computed
+    description: Remote configuration name.
+family.raw.remote_configurations.raw_configuration  tftypes.String computed
+    description: Normalized OpenTelemetry Collector configuration YAML.
+family.raw.remote_configurations.updated_at  tftypes.String computed
+    description: Time when this remote configuration was last updated.
+family.sources  nested LIST computed
+    description: Immutable inputs that produced this configuration family version.
+family.sources.configuration_overlay  nested SINGLE computed
+    description: Configuration overlay that produced this family version.
+family.sources.configuration_overlay.overlay_id  tftypes.String computed
+    description: Configuration overlay UUID v7.
+family.sources.configuration_overlay.overlay_name  tftypes.String computed
+    description: Configuration overlay name at read time.
+family.sources.configuration_overlay.overlay_version_id  tftypes.String computed
+    description: Configuration overlay version UUID v7.
+family.version  tftypes.String computed
+    description: Monotonic version number of this configuration family within its group.
+id  tftypes.String required
+    description: Configuration group UUID v7.
+name  tftypes.String computed
+    description: Display name, unique among the team's configuration groups.
+priority_order  tftypes.Number computed
+    description: Selection precedence. Higher values win on ties and 0 is the default.
+tags  tftypes.List[tftypes.String] computed
+    description: Tags attached to the configuration group.

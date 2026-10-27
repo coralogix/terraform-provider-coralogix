@@ -158,6 +158,8 @@ func (f *grFake) handle(method, path string, body any) (int, any) {
 		return f.write(body, false)
 	case method == http.MethodPut && id == "":
 		return f.write(body, true)
+	case method == http.MethodGet && id == "":
+		return http.StatusOK, map[string]any{"routers": listByID(f.routers, f.present)}
 	case method == http.MethodGet && id != "":
 		router, found := f.routers[id]
 		if !found {

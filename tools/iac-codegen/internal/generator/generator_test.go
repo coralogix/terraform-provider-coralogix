@@ -304,6 +304,39 @@ func generateCustomThing(t *testing.T) string {
 	return out
 }
 
+// With validators.inferred: true, the contract limit of an enum that an enums line renames lists the
+// API values. The validator takes the Terraform values of the line instead, once.
+func TestInferredEnumValidatorUsesTheEnumsLine(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "customthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := os.ReadFile(filepath.Join("testdata", "customthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(file), "inferred: false") {
+		t.Fatal("customthing-overrides.yaml no longer has inferred: false")
+	}
+	overridesPath := filepath.Join(t.TempDir(), "behavior-overrides.yaml")
+	if err := os.WriteFile(overridesPath, []byte(strings.Replace(string(file), "inferred: false", "inferred: true", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "customthing")
+	if err := generateFromInput(Options{Resource: "CustomThing", OutputDir: out, OverridesPath: overridesPath}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(schema), `"SYSTEM"`) || strings.Count(string(schema), "stringvalidator.OneOf(") == 0 {
+		t.Fatalf("the enum validator must list the Terraform values, not the API values:\n%s", schema)
+	}
+}
+
 // generateWrapThing generates the synthetic resource whose API holds values in wrapper objects.
 func generateWrapThing(t *testing.T) string {
 	t.Helper()
@@ -773,16 +806,7 @@ func TestIntegerResourceIDs(t *testing.T) {
 				t.Fatalf("check rejected %s ID: %v", test.format, err)
 			}
 
-			sdkPath := filepath.Join(input.SDKDir, "go", "openapi", "gen", "things_service", "things.go")
-			sdk, err := os.ReadFile(sdkPath)
-			if err != nil {
-				t.Fatal(err)
-			}
-			sdk = bytes.Replace(sdk, []byte("Id           *string"), []byte("Id           *"+test.goType), 1)
-			sdk = bytes.ReplaceAll(sdk, []byte("id string"), []byte("id "+test.goType))
-			if err := os.WriteFile(sdkPath, sdk, 0o644); err != nil {
-				t.Fatal(err)
-			}
+			integerIDSDK(t, input.SDKDir, test.goType)
 
 			out := filepath.Join(t.TempDir(), "thing")
 			if err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, loadDir); err != nil {
@@ -814,6 +838,20 @@ func TestIntegerResourceIDs(t *testing.T) {
 					t.Errorf("resource.go lacks %q", fragment)
 				}
 			}
+			// The schema copy makes only a string id the lookup attribute, so the data source
+			// sets the integer id itself.
+			dataSource, err := os.ReadFile(filepath.Join(out, dataSourceFile))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, fragment := range []string{
+				`resp.Schema.Attributes["id"] = schema.` + test.tfType + "Attribute{",
+				"var configured types." + test.tfType,
+			} {
+				if !bytes.Contains(dataSource, []byte(fragment)) {
+					t.Errorf("%s lacks %q", dataSourceFile, fragment)
+				}
+			}
 			compileGenerated(t, out, input)
 		})
 	}
@@ -838,6 +876,21 @@ func integerIDOpenAPI(t *testing.T, spec []byte, format string) []byte {
 		t.Fatalf("cannot convert synthetic ID to %s", format)
 	}
 	return []byte(value)
+}
+
+// integerIDSDK changes the id of the synthetic SDK in sdkDir to goType, to match integerIDOpenAPI.
+func integerIDSDK(t *testing.T, sdkDir, goType string) {
+	t.Helper()
+	sdkPath := filepath.Join(sdkDir, "go", "openapi", "gen", "things_service", "things.go")
+	sdk, err := os.ReadFile(sdkPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sdk = bytes.Replace(sdk, []byte("Id           *string"), []byte("Id           *"+goType), 1)
+	sdk = bytes.ReplaceAll(sdk, []byte("id string"), []byte("id "+goType))
+	if err := os.WriteFile(sdkPath, sdk, 0o644); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func optionalCreateRequiredUpdateOpenAPI(t *testing.T, spec []byte) []byte {
@@ -1877,6 +1930,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
 
@@ -1888,13 +1942,188 @@ func TestSingletonIDIsStatic(t *testing.T) {
 	if TypeName != "settings" {
 		t.Fatalf("TypeName = %q", TypeName)
 	}
-	_ = context.Background()
+	// The data source of a singleton takes no input.
+	var resp datasource.SchemaResponse
+	NewDataSource().Schema(context.Background(), datasource.SchemaRequest{}, &resp)
+	if a := resp.Schema.Attributes["id"]; !a.IsComputed() || a.IsRequired() || a.IsOptional() {
+		t.Fatalf("data source id = %#v, want computed-only", a)
+	}
 }
 `
 	if err := os.WriteFile(filepath.Join(out, "singleton_test.go"), []byte(semantics), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	compileGenerated(t, out, input)
+}
+
+// A singleton whose API resource has a server-set id holds that id in its id attribute, and
+// falls back to the type name when the API returns none.
+func TestSingletonWithServerSetID(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "settings")
+	options := Options{Resource: "settings", OutputDir: out, OverridesPath: filepath.Join("testdata", "singleton-id-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(schema), "stringdefault.StaticString(TypeName)") {
+		t.Fatalf("the id must be the id of the API, not the fixed value:\n%s", schema)
+	}
+	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(resource), "the API returned no id") || !strings.Contains(string(resource), "keep the id that the plan or the state has") || strings.Contains(string(resource), "a singleton has a fixed id") {
+		t.Fatalf("flatten must keep the id of the API and fall back to the type name:\n%s", resource)
+	}
+	semantics := `package settings
+
+import (
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+)
+
+func TestSingletonIDIsFromTheAPI(t *testing.T) {
+	id, ok := Schema().Attributes["id"].(schema.StringAttribute)
+	if !ok || !id.Computed || id.Optional || id.Default != nil {
+		t.Fatalf("id attribute = %#v, want computed-only with no default", Schema().Attributes["id"])
+	}
+}
+`
+	if err := os.WriteFile(filepath.Join(out, "singleton_id_test.go"), []byte(semantics), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// singletonID needs an id that only the server sets: a Create body that lets the user set it would
+// make a value that flatten replaces.
+func TestSingletonIDRejectsAWritableID(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	writable := strings.Replace(string(spec), "              properties:\n                retentionDays:", "              properties:\n                id: {type: string}\n                retentionDays:", 1)
+	if writable == string(spec) {
+		t.Fatal("the fixture no longer has the Create body that this test changes")
+	}
+	overrides, err := os.ReadFile(filepath.Join("testdata", "singleton-id-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Without a readOnly line, the id is a field that the Create body sets.
+	err = generateSingleton(t, []byte(writable), string(overrides))
+	if err == nil || !strings.Contains(err.Error(), "lets a caller set") {
+		t.Fatalf("error = %v, want the id to be refused as writable", err)
+	}
+	// A readOnly line makes the id server-owned, when the contract does not say so.
+	open := strings.Replace(writable, "          description: Identifier that the server sets.\n          readOnly: true\n", "          description: Identifier that the server sets.\n", 1)
+	if open == writable {
+		t.Fatal("the fixture no longer has the read-only id that this test changes")
+	}
+	if err := generateSingleton(t, []byte(open), string(overrides)); err == nil || !strings.Contains(err.Error(), "lets a caller set") {
+		t.Fatalf("error without a readOnly line = %v, want the id to be refused as writable", err)
+	}
+	withLine := string(overrides) + "\ntypes:\n  Settings:\n    fields:\n      id: {readOnly: true}\n"
+	if err := generateSingleton(t, []byte(open), withLine); err != nil {
+		t.Fatalf("error with a readOnly line = %v, want none", err)
+	}
+}
+
+// A field line cannot make the id of a singleton configurable after the checks of the contract.
+func TestSingletonIDStaysComputedAfterTheFieldLines(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overrides, err := os.ReadFile(filepath.Join("testdata", "singleton-id-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, field := range []string{"{required: true, computed: false}", `{computed: true, default: "fixed"}`} {
+		line := string(overrides) + "\ntypes:\n  Settings:\n    fields:\n      id: " + field + "\n"
+		err = generateSingleton(t, spec, line)
+		if err == nil || !strings.Contains(err.Error(), "must stay computed-only") {
+			t.Fatalf("error with %s = %v, want the id to stay computed-only", field, err)
+		}
+	}
+}
+
+// singletonID needs an id field.
+func TestSingletonIDNeedsAnIDField(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overrides, err := os.ReadFile(filepath.Join("testdata", "singleton-id-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = generateSingleton(t, spec, string(overrides))
+	if err == nil || !strings.Contains(err.Error(), "has none") {
+		t.Fatalf("error = %v, want the resource to need an id field", err)
+	}
+}
+
+// generateSingleton generates the Settings singleton from a spec and an overrides text.
+func generateSingleton(t *testing.T, spec []byte, overrides string) error {
+	t.Helper()
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	path := filepath.Join(t.TempDir(), "behavior-overrides.yaml")
+	if err := os.WriteFile(path, []byte(overrides), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	options := Options{Resource: "settings", OutputDir: filepath.Join(t.TempDir(), "settings"), OverridesPath: path}
+	return generateFromInput(options, input, loadDir)
+}
+
+// api.singletonID supports a string id: the fallback to the type name and the import are strings.
+func TestSingletonIDRejectsANumericID(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	numeric := strings.Replace(string(spec), "          type: string\n          description: Identifier that the server sets.", "          type: integer\n          format: int32\n          description: Identifier that the server sets.", 1)
+	if numeric == string(spec) {
+		t.Fatal("the fixture no longer has the id that this test changes")
+	}
+	input.OpenAPI = []byte(numeric)
+	options := Options{Resource: "settings", OutputDir: filepath.Join(t.TempDir(), "settings"), OverridesPath: filepath.Join("testdata", "singleton-id-overrides.yaml")}
+	err = generateFromInput(options, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "must be a string") {
+		t.Fatalf("error = %v, want the id must be a string", err)
+	}
+}
+
+// The template reads and writes the model field Id, so an id property with another name would
+// generate code that does not compile.
+func TestSingletonIDRejectsAnIDPropertyWithAnotherName(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	renamed := strings.Replace(string(spec), "        id:\n", "        ID:\n", 1)
+	if renamed == string(spec) {
+		t.Fatal("the fixture no longer has the id that this test renames")
+	}
+	input.OpenAPI = []byte(renamed)
+	options := Options{Resource: "settings", OutputDir: filepath.Join(t.TempDir(), "settings"), OverridesPath: filepath.Join("testdata", "singleton-id-overrides.yaml")}
+	err = generateFromInput(options, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "named exactly") {
+		t.Fatalf("error = %v, want the id property must be named id", err)
+	}
 }
 
 // An immutable value that holds a value that the server sets compares only the
@@ -2060,6 +2289,58 @@ func generateSuppressedThing(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return out
+}
+
+// A data source whose id attribute is not "id" looks up that attribute. The schema copy makes "id"
+// the lookup attribute, so the data source turns a value attribute named id back into a computed one.
+func TestDataSourceOfAnIDPropertyWithItsOwnName(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := os.ReadFile(filepath.Join("testdata", "suppressed-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overridesText := strings.Replace(string(text), "      uniqueIdentifier: {readOnly: true, name: id}\n      id: {skip: true}\n", "      uniqueIdentifier: {readOnly: true}\n", 1)
+	if overridesText == string(text) {
+		t.Fatal("the overrides did not change: update the replaced text")
+	}
+	overridesText += "\ndataSource: {}\n"
+	overridesPath := filepath.Join(t.TempDir(), overrides.FileName)
+	if err := os.WriteFile(overridesPath, []byte(overridesText), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "suppressedthing")
+	if err := generateFromInput(Options{Resource: "SuppressedThing", OutputDir: out, OverridesPath: overridesPath}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	semantics := `package suppressedthing
+
+import (
+	"context"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+)
+
+func TestDataSourceLooksUpTheIDProperty(t *testing.T) {
+	var resp datasource.SchemaResponse
+	NewDataSource(Hooks{}).Schema(context.Background(), datasource.SchemaRequest{}, &resp)
+	if a := resp.Schema.Attributes["unique_identifier"]; a == nil || !a.IsRequired() {
+		t.Fatalf("unique_identifier = %#v, want required", a)
+	}
+	if a := resp.Schema.Attributes["id"]; a == nil || !a.IsComputed() || a.IsRequired() || a.IsOptional() {
+		t.Fatalf("id = %#v, want computed-only", a)
+	}
+}
+`
+	if err := os.WriteFile(filepath.Join(out, "datasource_test.go"), []byte(semantics), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
 }
 
 // The generated resource whose id property has another name than the path parameter sends no id on
@@ -2421,5 +2702,192 @@ func TestUnsupportedArmKeepsItsEnumLine(t *testing.T) {
 	lines := evalThingLines(t) + "  LegacyMode:\n    zero: unspecified\n    values: [LEGACY_MODE_ON]\n"
 	if err := generateEvalThingWith(t, lines, edit); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// uniqueBy, the float32 precision of a float attribute, and an enum alias are generic checks of a
+// released resource. The precision is a limit of the contract, so validators.inferred: false leaves it out.
+func TestConfigChecksFromGenericKeys(t *testing.T) {
+	rule := &model.Type{Kind: model.Object, Schema: "Rule", CreateSchema: "Rule", Fields: []*model.Field{
+		{Name: "entityType", Type: &model.Type{Kind: model.String}, Behavior: model.Normal, Create: &model.Attrs{Required: true}},
+		{Name: "allocation", Type: &model.Type{Kind: model.Number, Format: "float"}, Behavior: model.Normal, Create: &model.Attrs{Required: true, Presence: true}},
+		{Name: "mode", Type: &model.Type{Kind: model.Enum, Schema: "RuleMode", Values: []string{"RULE_MODE_ONE", "RULE_MODE_TWO"}, EnumZero: "RULE_MODE_UNSPECIFIED"}, Behavior: model.Normal, Create: &model.Attrs{}},
+	}}
+	resource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{
+		{Name: "rules", Type: &model.Type{Kind: model.Set, Elem: rule}, Behavior: model.Normal, Create: &model.Attrs{}, Get: &model.Attrs{}, InGet: true},
+		{Name: "name", Type: &model.Type{Kind: model.String}, Behavior: model.Normal, Create: &model.Attrs{Required: true}, Get: &model.Attrs{}, InGet: true},
+	}}
+	lines := "types:\n  Thing:\n    fields:\n      rules: {uniqueBy: entityType}\nenums:\n  RuleMode:\n    zero: unspecified\n    trimPrefix: RULE_MODE_\n    values: [RULE_MODE_ONE, RULE_MODE_TWO]\n    aliases: {unspecified: one}\n"
+	head := func(inferred string) string {
+		return "resource: Thing\nmode: existing\nvalidators:\n  inferred: " + inferred + "\n"
+	}
+
+	data, err := buildTFResourceWith(resource, "thing", mustParse(t, head("true")+lines))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []uniqueCheck{{Attr: "rules", Key: "entity_type"}}; !slices.Equal(data.UniqueChecks, want) {
+		t.Errorf("unique checks = %v, want %v", data.UniqueChecks, want)
+	}
+	if want := []string{"rules.allocation"}; !slices.Equal(data.Float32Paths, want) {
+		t.Errorf("float32 paths = %v, want %v", data.Float32Paths, want)
+	}
+	if want := []enumAlias{{Path: "rules.mode", Pairs: []aliasPair{{From: "unspecified", To: "one"}}}}; !reflect.DeepEqual(data.EnumAliases, want) {
+		t.Errorf("enum aliases = %v, want %v", data.EnumAliases, want)
+	}
+
+	data, err = buildTFResourceWith(resource, "thing", mustParse(t, head("false")+lines))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(data.Float32Paths) != 0 {
+		t.Errorf("float32 paths = %v, want none for validators.inferred: false", data.Float32Paths)
+	}
+
+	// Terraform checks a configured value in a list against the plan, so an alias in a list is an error.
+	listResource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{
+		{Name: "rules", Type: &model.Type{Kind: model.List, Elem: rule}, Behavior: model.Normal, Create: &model.Attrs{}, Get: &model.Attrs{}, InGet: true},
+	}}
+	if _, err := buildTFResourceWith(listResource, "thing", mustParse(t, head("true")+lines)); err == nil || !strings.Contains(err.Error(), "only for an attribute inside the items of a set") {
+		t.Errorf("alias in a list: err = %v, want the set rule", err)
+	}
+
+	for name, tc := range map[string]struct{ lines, want string }{
+		"a key with aliases": {"types:\n  Thing:\n    fields:\n      rules: {uniqueBy: mode}\nenums:\n  RuleMode:\n    zero: unspecified\n    trimPrefix: RULE_MODE_\n    values: [RULE_MODE_ONE, RULE_MODE_TWO]\n    aliases: {unspecified: one}\n", "would count as two keys"},
+		"no such property":   {"types:\n  Thing:\n    fields:\n      rules: {uniqueBy: missing}\n", `have no property "missing"`},
+		"not a collection":   {"types:\n  Thing:\n    fields:\n      name: {uniqueBy: entityType}\n", "no list or set of objects"},
+		"not a string":       {"types:\n  Thing:\n    fields:\n      rules: {uniqueBy: allocation}\n", "no plain string"},
+	} {
+		_, err := buildTFResourceWith(resource, "thing", mustParse(t, head("true")+tc.lines))
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: err = %v, want %q", name, err, tc.want)
+		}
+	}
+}
+
+// The generated code of a released resource checks a duplicate uniqueBy value and the float32
+// precision before the write, and plans an enum alias as its target.
+func TestGeneratedGenericChecks(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "rulebook.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "rulebook")
+	options := Options{Resource: "rulebook", OutputDir: out, OverridesPath: filepath.Join("testdata", "rulebook-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	semantics := `package rulebook
+
+import (
+	"math/big"
+	"strings"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+)
+
+func rulesConfig(t *testing.T, rules ...map[string]tftypes.Value) tfsdk.Config {
+	t.Helper()
+	ruleType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"entity_type": tftypes.String, "allocation": tftypes.Number, "mode": tftypes.String}}
+	items := []tftypes.Value{}
+	for _, r := range rules {
+		items = append(items, tftypes.NewValue(ruleType, r))
+	}
+	attrs := map[string]tftypes.Type{}
+	for name, a := range Schema().Attributes {
+		attrs[name] = a.GetType().TerraformType(t.Context())
+	}
+	values := map[string]tftypes.Value{}
+	for name, typ := range attrs {
+		values[name] = tftypes.NewValue(typ, nil)
+	}
+	values["rules"] = tftypes.NewValue(tftypes.Set{ElementType: ruleType}, items)
+	return tfsdk.Config{Schema: Schema(), Raw: tftypes.NewValue(tftypes.Object{AttributeTypes: attrs}, values)}
+}
+
+func rule(entity string, allocation any) map[string]tftypes.Value {
+	return map[string]tftypes.Value{
+		"entity_type": tftypes.NewValue(tftypes.String, entity),
+		"allocation":  tftypes.NewValue(tftypes.Number, allocation),
+		"mode":        tftypes.NewValue(tftypes.String, nil),
+	}
+}
+
+func TestGenericChecks(t *testing.T) {
+	if d := configChecks(rulesConfig(t, rule("logs", 10), rule("spans", 0.5), rule("metrics", 99.2), rule("alerts", 0.1))); d.HasError() {
+		t.Fatalf("valid config: %v", d)
+	}
+	d := configChecks(rulesConfig(t, rule("logs", 10), rule("logs", 20)))
+	if !d.HasError() || !strings.Contains(d[0].Summary(), "Duplicate rules entity_type") {
+		t.Fatalf("duplicate entity_type: %v", d)
+	}
+	// A difference below float64 precision is still a difference.
+	almostHalf, _, err := big.ParseFloat("0.5000000000000000000000000001", 10, 512, big.ToNearestEven)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d := configChecks(rulesConfig(t, rule("logs", almostHalf))); !d.HasError() {
+		t.Fatalf("a number just above 0.5 reads back as 0.5: %v", d)
+	}
+	d = configChecks(rulesConfig(t, rule("logs", 0.1234567891)))
+	if !d.HasError() || !strings.Contains(d[0].Detail(), "stores it as float32") {
+		t.Fatalf("float32 precision: %v", d)
+	}
+}
+
+func TestEnumAliasIsPlannedAsItsTarget(t *testing.T) {
+	ruleType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"mode": tftypes.String}}
+	plan := tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{"rules": tftypes.Set{ElementType: ruleType}}}, map[string]tftypes.Value{
+		"rules": tftypes.NewValue(tftypes.Set{ElementType: ruleType}, []tftypes.Value{
+			tftypes.NewValue(ruleType, map[string]tftypes.Value{"mode": tftypes.NewValue(tftypes.String, "unspecified")}),
+			tftypes.NewValue(ruleType, map[string]tftypes.Value{"mode": tftypes.NewValue(tftypes.String, "two")}),
+		}),
+	})
+	got, err := normalizeEnumAliases(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var root map[string]tftypes.Value
+	var items []tftypes.Value
+	if err := got.As(&root); err != nil || root["rules"].As(&items) != nil {
+		t.Fatal(err)
+	}
+	modes := map[string]bool{}
+	for _, item := range items {
+		var fields map[string]tftypes.Value
+		var mode string
+		if err := item.As(&fields); err != nil || fields["mode"].As(&mode) != nil {
+			t.Fatal(err)
+		}
+		modes[mode] = true
+	}
+	if !modes["one"] || !modes["two"] || modes["unspecified"] {
+		t.Fatalf("modes = %v, want one and two", modes)
+	}
+}
+`
+	if err := os.WriteFile(filepath.Join(out, "generic_checks_test.go"), []byte(semantics), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// The float32 precision check also covers the elements of a list, set, or map of floats.
+func TestFloat32PathsIncludeCollections(t *testing.T) {
+	attrs := []*tfAttr{
+		{Name: "ratio", ValueKind: "Float32", Optional: true},
+		{Name: "ratios", ValueKind: "List", ElementType: "types.Float32Type", Optional: true},
+		{Name: "by_name", ValueKind: "Map", ElementType: "types.Float32Type", Optional: true},
+		{Name: "names", ValueKind: "Set", ElementType: "types.StringType", Optional: true},
+		{Name: "server", ValueKind: "List", ElementType: "types.Float32Type", Computed: true},
+		{Name: "group", ValueKind: "Object", Optional: true, Attributes: []*tfAttr{{Name: "weights", ValueKind: "Set", ElementType: "types.Float32Type", Optional: true}}},
+	}
+	want := []string{"ratio", "ratios", "by_name", "group.weights"}
+	if got := float32Paths(nil, "", attrs); !slices.Equal(got, want) {
+		t.Fatalf("float32 paths = %v, want %v", got, want)
 	}
 }

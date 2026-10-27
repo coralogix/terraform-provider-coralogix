@@ -156,3 +156,6 @@ enums:
       DURATION_FREQUENCY_MINUTE: minutes
       DURATION_FREQUENCY_HOUR: hours
       DURATION_FREQUENCY_DAY: days
+
+# The data source reads a rule by id.
+dataSource: {}

@@ -1,0 +1,28 @@
+[
+  {
+    "step": "read a name that does not exist",
+    "config": {
+      "name": "missing"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/presets:summariesList",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: coralogix_preset with name \"missing\" not found"
+    ],
+    "state": {
+      "attachment_config": null,
+      "config_overrides": null,
+      "connector_type": null,
+      "description": null,
+      "entity_type": null,
+      "id": null,
+      "name": "missing",
+      "parent_id": null
+    }
+  }
+]

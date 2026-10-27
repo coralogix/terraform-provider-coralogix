@@ -65,6 +65,17 @@ type acceptanceData struct {
 	UpgradeFullAction, UpgradeMinimalAction string
 	// UpgradeCases are extra upgrade subtests from the acceptance file.
 	UpgradeCases []upgradeCaseData
+	// DataSource is the data source step of full-lifecycle. nil when the package has no data source.
+	DataSource *accDataSource
+}
+
+// accDataSource is the step that reads the data source of the resource that the full config created.
+type accDataSource struct {
+	Address string // address of the data source in the config
+	Config  string // the data block
+	// Pairs are the attribute paths that the data source and the resource must have with the same
+	// value: the id, and every value that the full config checks.
+	Pairs []string
 }
 
 // upgradeCaseData is one extra upgrade subtest.
@@ -146,7 +157,31 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 	if err := s.checkFile(); err != nil {
 		return nil, err
 	}
+	if res.DataSource != nil {
+		out.DataSource = dataSourceStep(res.CRUD, out.Full.Checks)
+	}
 	return out, nil
+}
+
+// dataSourceStep reads the data source by the id of the resource, or with no input for a singleton,
+// which depends on the resource instead.
+func dataSourceStep(crud *crudData, checks []accCheck) *accDataSource {
+	resourceType := "coralogix_" + crud.TypeName
+	body := fmt.Sprintf("%s = %s.test.%s", crud.IDAttr, resourceType, crud.IDAttr)
+	if crud.Singleton {
+		body = fmt.Sprintf("depends_on = [%s.test]", resourceType)
+	}
+	out := &accDataSource{
+		Address: "data." + resourceType + ".test",
+		Config:  fmt.Sprintf("data %q \"test\" {\n  %s\n}", resourceType, body),
+		Pairs:   []string{crud.IDAttr},
+	}
+	for _, check := range checks {
+		if !check.Absent && !slices.Contains(out.Pairs, check.Path) {
+			out.Pairs = append(out.Pairs, check.Path)
+		}
+	}
+	return out
 }
 
 // upgradeSteps makes the configs of the upgrade test. The released provider gets only the

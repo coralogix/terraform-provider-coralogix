@@ -7,6 +7,10 @@ values:
   schedule.operation: '"mute"'
   schedule.one_time.time_frame.start_time: '"2030-01-01T00:00:00.000"'
   schedule.one_time.time_frame.time_zone: '"UTC+0"'
+  meta_labels[].key: '"alert_type"'
+  meta_labels[].value: '"security"'
+  filter.meta_labels[].key: '"alert_type"'
+  filter.meta_labels[].value: '"security"'
 
 # The API rejects an alert id that does not exist, so the tests select alerts by meta label.
 skip:

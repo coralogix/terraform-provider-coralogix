@@ -137,6 +137,8 @@ func (f *presetFake) handle(method, path string, body any) (int, any) {
 		return f.write(body, false)
 	case method == http.MethodPut && rest == ":replaceCustom":
 		return f.write(body, true)
+	case method == http.MethodGet && rest == ":summariesList":
+		return http.StatusOK, map[string]any{"presetSummaries": f.summaries()}
 	case method == http.MethodGet && strings.HasPrefix(rest, "/") && !strings.Contains(rest[1:], "/"):
 		return f.get(strings.TrimPrefix(rest, "/"))
 	case method == http.MethodDelete && strings.HasPrefix(rest, "/custom/"):
@@ -212,19 +214,8 @@ func (f *presetFake) write(body any, replace bool) (int, any) {
 		stored["attachmentPolicy"] = policy
 	}
 	id := stored["id"].(string)
-	if replace {
-		if _, found := f.presets[id]; !found {
-			return grFail(http.StatusNotFound, "Preset with id '"+id+"' not found")
-		}
-	} else if _, found := f.presets[id]; found {
-		return grFail(http.StatusBadRequest, "Preset with id "+id+" already exists")
-	}
-	if !replace || f.presets[id]["name"] != stored["name"] {
-		for other, existing := range f.presets {
-			if other != id && existing["name"] == stored["name"] {
-				return grFail(http.StatusBadRequest, "Preset with name "+stored["name"].(string)+" already exists")
-			}
-		}
+	if status, resp := f.checkUnique(stored, replace); status != 0 {
+		return status, resp
 	}
 	f.clock++
 	stored["updateTime"] = fmt.Sprintf("2026-01-01T00:00:%02dZ", f.clock)
@@ -265,23 +256,50 @@ func (f *presetFake) check(preset map[string]any, replace bool) (int, any) {
 		return grFail(http.StatusBadRequest, "Parent preset entity type and connector type must match with child preset")
 	}
 	if replace {
-		id, _ := preset["id"].(string)
-		if id == "" {
-			return grFail(http.StatusBadRequest, "id is required")
-		}
-		existing, found := f.presets[id]
-		if !found {
-			if _, system := f.system[id]; system {
-				return grFail(http.StatusNotFound, "Preset with id '"+id+"' not found")
-			}
+		return f.checkReplace(preset, connector, entity)
+	}
+	return 0, nil
+}
+
+// checkUnique rejects a stored preset whose id or name another preset has.
+func (f *presetFake) checkUnique(stored map[string]any, replace bool) (int, any) {
+	id := stored["id"].(string)
+	if replace {
+		if _, found := f.presets[id]; !found {
 			return grFail(http.StatusNotFound, "Preset with id '"+id+"' not found")
 		}
-		if existing["connectorType"] != connector {
-			return grFail(http.StatusBadRequest, "Changing connector type is not allowed")
+	} else if _, found := f.presets[id]; found {
+		return grFail(http.StatusBadRequest, "Preset with id "+id+" already exists")
+	}
+	if !replace || f.presets[id]["name"] != stored["name"] {
+		for other, existing := range f.presets {
+			if other != id && existing["name"] == stored["name"] {
+				return grFail(http.StatusBadRequest, "Preset with name "+stored["name"].(string)+" already exists")
+			}
 		}
-		if existing["entityType"] != entity {
-			return grFail(http.StatusBadRequest, "Changing entity type is not allowed")
+	}
+	return 0, nil
+}
+
+// checkReplace rejects a replace of a preset that does not exist, or that changes its connector or
+// entity type.
+func (f *presetFake) checkReplace(preset map[string]any, connector, entity string) (int, any) {
+	id, _ := preset["id"].(string)
+	if id == "" {
+		return grFail(http.StatusBadRequest, "id is required")
+	}
+	existing, found := f.presets[id]
+	if !found {
+		if _, system := f.system[id]; system {
+			return grFail(http.StatusNotFound, "Preset with id '"+id+"' not found")
 		}
+		return grFail(http.StatusNotFound, "Preset with id '"+id+"' not found")
+	}
+	if existing["connectorType"] != connector {
+		return grFail(http.StatusBadRequest, "Changing connector type is not allowed")
+	}
+	if existing["entityType"] != entity {
+		return grFail(http.StatusBadRequest, "Changing entity type is not allowed")
 	}
 	return 0, nil
 }

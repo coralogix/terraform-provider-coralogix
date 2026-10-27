@@ -110,6 +110,11 @@ func TestParseIsStrict(t *testing.T) {
 		"name that is the lower case":                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    values: [E_ONE]\n    names: {E_ONE: e_one}\n", "already the Terraform value"},
 		"name that trimPrefix makes":                 {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    trimPrefix: E_\n    values: [E_ONE]\n    names: {E_ONE: one}\n", "already the Terraform value"},
 		"name that verbatim makes":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    verbatim: true\n    values: [E_ONE]\n    names: {E_ONE: E_ONE}\n", "already the Terraform value"},
+		"data source lookup by name":                 {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ndataSource:\n  lookup: [name]\n", `dataSource.lookup: "name" is not supported`},
+		"data source lookup twice":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ndataSource:\n  lookup: [id, id]\n", `names "id" twice`},
+		"data source key of a later version":         {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ndataSource:\n  duplicateNames: first\n", "duplicateNames"},
+		"data source readEmptyAs null":               {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ndataSource:\n  types:\n    Thing:\n      fields:\n        f: {readEmptyAs: \"null\"}\n", `readEmptyAs is "null", want "value"`},
+		"data source type with no line":              {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ndataSource:\n  types:\n    Thing: {}\n", "dataSource.types.Thing has no override"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -516,5 +521,26 @@ func TestUpdateMaskOmit(t *testing.T) {
 	}
 	if _, err := Parse([]byte(head + "api:\n  updateMaskInBody: true\nupdateMask: omit\n")); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestEnumAliasesAreChecked(t *testing.T) {
+	base := "resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  A: "
+	if _, err := Parse([]byte(base + "{zero: unspecified, values: [A_ONE], trimPrefix: A_, aliases: {unspecified: one}}\n")); err != nil {
+		t.Fatalf("the zero value as an alias: %v", err)
+	}
+	for name, enum := range map[string]struct{ text, want string }{
+		"an alias that no config can set": {"{values: [A_ONE, A_TWO], aliases: {a_three: a_one}}", "no config can set it"},
+		"a target that is no value":       {"{zero: unspecified, values: [A_ONE], aliases: {unspecified: a_two}}", "is not a value of the enum"},
+		"the zero value as a target":      {"{zero: unspecified, values: [A_ONE], aliases: {a_one: unspecified}}", "is not a value of the enum"},
+		"an alias of itself":              {"{values: [A_ONE], aliases: {a_one: a_one}}", "maps to itself"},
+		"a chain":                         {"{values: [A_ONE, A_TWO], aliases: {a_one: a_two, a_two: a_one}}", "is an alias itself"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := Parse([]byte(base + enum.text + "\n"))
+			if err == nil || !strings.Contains(err.Error(), enum.want) {
+				t.Fatalf("err = %v, want %q", err, enum.want)
+			}
+		})
 	}
 }

@@ -1,15 +1,30 @@
 # Unreleased
 
-#### tools/iac-codegen
-- CHORE: Bump the generator to `v0.1.0-beta.34`.
-- FEAT: `requiresReplace: true` on a top-level field replaces the resource when the field changes, although Update accepts it. A PATCH Update does not send the field; a PUT Update still sends it, so an update of another field does not clear it. Combined with `computed: true`, or on a field that a PATCH Update body requires, it is an error.
-- FEAT: `types.<Type>.unsupportedArms` with `unsupportedSummary` and `unsupportedDetail` keeps oneOf arms that a released resource never configured out of the schema and the requests, and flatten reports a response that selects one. Naming no arm, or removing every arm of a group that requires one, is an error.
-- FEAT: `updateMask: omit` with `api.updateMaskInBody` sends no update mask, for a released resource that never sent one. An optional Update field that the body cannot clear is an error.
-- FEAT: `enums.<Enum>.readRejected: lower` reads a rejected value in lower case instead of the API spelling.
-- CHORE: The `evalthing` golden fixture covers the four keys.
-
 #### provider
+- CHORE: Bump `github.com/yuin/goldmark` to v1.7.17 to clear CVE-2026-5160. It is used only by the docs generator, not the provider binary. No change to provider behavior.
 - CHORE: Bump `coralogix-management-sdk` to the version with the AI evaluations contract. `coralogix_dashboards_folder` and `coralogix_dashboard` adapt to its types: the folder name is a required string, and the dashboard of a replace request is optional. A `coralogix_dashboards_folder` without `name` now sends an empty name: the API still rejects it, now with "folder name cannot be empty".
+
+#### tools/iac-codegen
+- CHORE: Bump `golang.org/x/text` to v0.43.0 to clear CVE-2026-56851 and CVE-2026-56852, with `golang.org/x/tools` v0.51.0 and `golang.org/x/sync` v0.24.0 as its module requires. No change to generated code.
+- FEAT: Generate `data_source.go` next to the resource. The data source reads one resource by id. Its schema is the resource schema, copied at run time with `utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema`, so a new API field reaches the data source with no change. It runs the `BeforeFlatten` hook of the resource, and an id that the API does not find is an error.
+- FEAT: A new resource always gets a data source, `DataSources()` in `registry.go`, and the docs example `examples/data-sources/coralogix_<type>/data-source.tf`. An existing resource gets a data source only with a `dataSource:` section in `behavior-overrides.yaml` (`dataSource: {}` when it has no line).
+- FEAT: `dataSource.types.<Resource>.fields.<field>: {readEmptyAs: value}` shows the API value of a top-level string, also `""`, where the resource line reads `""` as null. A line on a nested component, a line without a resource `readEmptyAs: "null"` line, and `lookup: [id]`, which is the default, are errors.
+- FEAT: The generated acceptance test reads the data source by the id of the resource in `full-lifecycle` and compares it with the resource.
+- CHORE: Bump the generator to `v0.1.0-beta.40`.
+
+#### data-source/coralogix_configuration_group
+- CHORE: The data source uses the generated data source of the resource.
+
+#### data-source/coralogix_alerts_scheduler
+- CHORE: The data source uses the generated data source of the resource.
+
+#### data-source/coralogix_slo_v2
+- CHORE: The data source uses the generated data source of the resource.
+- FIX: An id that the API does not find is an error. Before, the data source returned a warning and no result.
+
+#### data-source/coralogix_events2metric
+- CHORE: The data source uses the generated data source of the resource. `description` still shows the stored value, also `""`.
+- FIX: An id that the API does not find is an error. Before, the data source returned a warning and null attributes.
 
 #### resource/coralogix_ai_evaluation
 - CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Update still sends `config`, `is_enabled`, and `threshold` without an update mask, and `application`, `subsystem`, and `target` still replace the evaluation. An evaluation whose target is `CONVERSATION` still reads as `conversation`, and one with an unsupported config still fails the read with the released error.
@@ -17,8 +32,32 @@
 - CHANGE: A config with no variant, or with two, reports the error on each variant instead of once. Error messages of failed API calls changed wording.
 - CHORE: Add an upgrade test that creates evaluations with provider 3.21.0 and plans them with this build.
 
+# Release 3.22.1
+
+#### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.39`.
+- CHORE: Bump the generator to `v0.1.0-beta.34`.
+- FEAT: `requiresReplace: true` on a top-level field replaces the resource when the field changes, although Update accepts it. A PATCH Update does not send the field; a PUT Update still sends it, so an update of another field does not clear it. Combined with `computed: true`, or on a field that a PATCH Update body requires, it is an error.
+- FEAT: `types.<Type>.unsupportedArms` with `unsupportedSummary` and `unsupportedDetail` keeps oneOf arms that a released resource never configured out of the schema and the requests, and flatten reports a response that selects one. Naming no arm, or removing every arm of a group that requires one, is an error.
+- FEAT: `updateMask: omit` with `api.updateMaskInBody` sends no update mask, for a released resource that never sent one. An optional Update field that the body cannot clear is an error.
+- FEAT: `enums.<Enum>.readRejected: lower` reads a rejected value in lower case instead of the API spelling.
+- CHORE: The `evalthing` golden fixture covers the four keys.
+- FEAT: `singletonID: true` for a singleton whose API resource has a server-set `id`: the id attribute holds that id, and a `Get` without an id falls back to the type name. A writable or numeric id, a default on it, or one that is not named `id` is an error.
+- FEAT: `uniqueBy: <property>` on a top-level list or set of objects reports an item that repeats a string property, at validation and again before the write. A property whose enum has aliases is an error, because an alias and its target would count as two keys.
+- FEAT: With `validators.inferred: true`, a float attribute, or a list, set, or map of floats, that the API would return as another float32 is reported before the write.
+- FEAT: `enums.<Enum>.aliases` plans an accepted value as another value, for an alias that the API stores as its target, in the items of a set only (Terraform rejects a changed configured value elsewhere). A plan that equals the state after that plans no change.
+- FEAT: `Hooks.ValidateConfig` adds checks that no key expresses.
+- FIX: `validators.inferred` on an enum that has an `enums` line takes the Terraform values of that line, also for a list or set of the enum.
+
 #### resource/coralogix_alert
+- FIX: Changing `type_definition` in place to `metric_threshold` or `logs_threshold` with `no_data_policy` or `logs_filter` left out no longer fails with "inconsistent result after apply". Both attributes stay unknown in the plan when the previous type had no such block; alerts that already hold those objects in state keep planning no change.
 - DOCS: Describe `phantom_mode`: the alert sends no notifications and opens no incident of its own, and the API rejects a phantom alert whose `notification_group` sets a notification target.
+
+#### resource/coralogix_tco_policies_logs, resource/coralogix_tco_policies_traces, resource/coralogix_tco_policies_rum
+- CHORE: Remove the unreachable 404 branch from Update. The overwrite API recreates deleted policies and never returns 404 for them.
+
+#### resource/coralogix_quota_allocation_rule_set, data-source/coralogix_quota_allocation_rule_set
+- DOCS: Stop listing entity types. The list included `olly`, which the API rejects. The descriptions now give examples and link to the Quota Rules documentation for the supported list.
 
 # Release 3.22.0
 
@@ -47,6 +86,8 @@
 #### provider
 - CHORE: Build with Go 1.26.10.
 - CHORE: Bump `coralogix-management-sdk` to the version with the alert suppression rule contract. The SDK holds required fields as values; `coralogix_alerts_scheduler`, `coralogix_events2metric`, and `coralogix_slo_v2` adapt, with no change to plans.
+- CHORE: Bump `google.golang.org/grpc` to v1.83.2 to clear open security advisories (GHSA-vp52-pcj8-j9qc, GHSA-qc2q-p7wx-3px3, GHSA-2v4p-qf9q-27wj). Indirect `golang.org/x/*` and `google.golang.org/genproto` modules move up with it. No change to provider behavior.
+- CHORE: Bump `golang.org/x/net` to v0.61.0 and `golang.org/x/crypto` to v0.58.0 to clear govulncheck findings. The provider does not call the affected code. No change to provider behavior.
 
 #### resource/coralogix_dashboards_folder
 - CHORE: Add protocol baseline golden files against an in-memory dashboard folders API, checked against answers recorded from a real tenant.

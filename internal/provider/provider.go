@@ -408,7 +408,8 @@ func grpcTargetURL(domain, terraformEnvironmentAlias string) (string, fwdiag.Dia
 }
 
 func (p *coralogixProvider) DataSources(context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{
+	// generated.DataSources are the data sources of the new generated resources. tfgen registers them.
+	return append([]func() datasource.DataSource{
 		events2metrics.NewEvents2MetricDataSource,
 		actions.NewActionDataSource,
 		dataplans.NewTCOPoliciesLogsDataSource,
@@ -440,7 +441,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		parsing_rules.NewParsingRulesDataSource,
 		enrichment_rules.NewDataEnrichmentDataSource,
 		fleet.NewFleetConfigurationGroupDataSource,
-	}
+	}, generated.DataSources()...)
 }
 
 func (p *coralogixProvider) Resources(context.Context) []func() resource.Resource {

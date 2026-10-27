@@ -1,0 +1,126 @@
+(data source schema)
+    description: Coralogix New SLO. Read more about limits and details at https://coralogix.com/docs/user-guides/slos/introduction/
+apm_sli_metadata  nested SINGLE computed
+    description: Read-only copy of `sli.apm_sli` that the backend materializes for APM SLOs. Null for metric SLIs. It is never sent on create or replace.
+apm_sli_metadata.error_config  nested SINGLE computed
+    description: Measure the service's error rate. Set it to the empty object `{}`; it carries no attributes. Exactly one of `error_config` or `latency_config` is required: the backend rejects an `apm_sli` with neither, and the SDK refuses to encode one with both.
+apm_sli_metadata.filters  nested LIST computed
+    description: Additional label-based filters applied to the generated metrics. Omit the attribute for no filters; an explicit empty list is rejected.
+apm_sli_metadata.filters.key  tftypes.String computed
+    description: Label or tag name to filter on.
+apm_sli_metadata.filters.values  tftypes.List[tftypes.String] computed
+    description: Values to match, with OR semantics.
+apm_sli_metadata.grouping_keys  tftypes.List[tftypes.String] computed
+    description: Labels to group the SLO results by. Omit the attribute for no extra grouping keys; an explicit empty list is rejected. Distinct from the read-only top-level `grouping`, which the backend fixes to `service_name` for APM SLOs.
+apm_sli_metadata.latency_config  nested SINGLE computed
+    description: Measure the service's latency. Exactly one of `error_config` or `latency_config` is required.
+apm_sli_metadata.latency_config.average  nested SINGLE computed
+    description: Mean-based latency measurement. Set it to the empty object `{}`; it carries no attributes. Exactly one of `quantile` or `average` is required.
+apm_sli_metadata.latency_config.quantile  nested SINGLE computed
+    description: Percentile-based latency measurement. Exactly one of `quantile` or `average` is required: the backend rejects a `latency_config` with neither, and the SDK refuses to encode one with both.
+apm_sli_metadata.latency_config.quantile.percentile  tftypes.Number computed
+    description: Percentile to measure, as a fraction (`0.95` = P95). The backend stores `0` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `percentile = 0` to reset it.
+apm_sli_metadata.latency_config.threshold  tftypes.Number computed
+    description: Latency threshold in milliseconds; a request is good when its latency is at or below it. The backend stores `0` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `threshold = 0` to reset it.
+apm_sli_metadata.latency_config.time_window  tftypes.String computed
+    description: Time window for latency calculations. One of: 1_minute, 5_minutes.
+apm_sli_metadata.services  tftypes.List[tftypes.String] computed
+    description: Names of the APM Service Catalog services to monitor. The backend currently accepts exactly one service and rejects unknown service names.
+description  tftypes.String computed
+    description: Optional SLO description.
+grouping  nested SINGLE computed
+    description: Grouping configuration for SLO evaluations. Read-only: the backend derives it from the SLI - the `by (...)` clause of a metric query, or `service_name` for an APM SLI - and rejects writes. It is unrelated to the writable `sli.apm_sli.grouping_keys`.
+grouping.labels  tftypes.List[tftypes.String] computed
+    description: List of labels to group SLO evaluations by.
+id  tftypes.String required
+    description: SLO ID.
+labels  tftypes.Map[tftypes.String] computed
+    description: Optional map of labels to attach to the SLO. 
+name  tftypes.String computed
+    description: SLO name.
+ownership_tags  nested SINGLE computed
+    description: Service, environment and team ownership of the SLO, used by the SLO hub's ownership filters. At least one dimension must be configured - the backend drops an ownership block that holds no values. Removing the block clears the tags on the next apply.
+ownership_tags.environment  nested SINGLE computed
+    description: Environment ownership. Values are free-form strings. Exactly one of `static_values` or `label_keys` must be configured.
+ownership_tags.environment.label_keys  tftypes.List[tftypes.String] computed
+    description: Metric label names whose values identify this dimension at query time. Conflicts with `static_values`; an explicit empty list is rejected.
+ownership_tags.environment.resolved_values  tftypes.List[tftypes.String] computed
+    description: Read-only union of `static_values` and the values resolved from `label_keys`.
+ownership_tags.environment.static_values  tftypes.List[tftypes.String] computed
+    description: Static values that apply to the whole SLO. Conflicts with `label_keys`; an explicit empty list is rejected.
+ownership_tags.service  nested SINGLE computed
+    description: Service ownership. `static_values` must name services that exist in the APM Service Catalog. Exactly one of `static_values` or `label_keys` must be configured.
+ownership_tags.service.label_keys  tftypes.List[tftypes.String] computed
+    description: Metric label names whose values identify this dimension at query time. Conflicts with `static_values`; an explicit empty list is rejected.
+ownership_tags.service.resolved_values  tftypes.List[tftypes.String] computed
+    description: Read-only union of `static_values` and the values resolved from `label_keys`.
+ownership_tags.service.static_values  tftypes.List[tftypes.String] computed
+    description: Static values that apply to the whole SLO. Conflicts with `label_keys`; an explicit empty list is rejected.
+ownership_tags.team  nested SINGLE computed
+    description: Team ownership. Values are free-form strings. Exactly one of `static_values` or `label_keys` must be configured.
+ownership_tags.team.label_keys  tftypes.List[tftypes.String] computed
+    description: Metric label names whose values identify this dimension at query time. Conflicts with `static_values`; an explicit empty list is rejected.
+ownership_tags.team.resolved_values  tftypes.List[tftypes.String] computed
+    description: Read-only union of `static_values` and the values resolved from `label_keys`.
+ownership_tags.team.static_values  tftypes.List[tftypes.String] computed
+    description: Static values that apply to the whole SLO. Conflicts with `label_keys`; an explicit empty list is rejected.
+product_type  tftypes.String computed
+    description: Product type of the SLO. One of: apm, unspecified. `apm` is only accepted together with `sli.apm_sli`; metric SLIs stay `unspecified`. The backend always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `product_type = "unspecified"` to reset it.
+sli  nested SINGLE computed
+    description: SLI definition: exactly one of request_based_metric_sli, window_based_metric_sli or apm_sli must be provided.
+sli.apm_sli  nested SINGLE computed
+    description: SLI generated from an APM Service Catalog service instead of from PromQL. Requires `product_type = "apm"`.
+sli.apm_sli.error_config  nested SINGLE computed
+    description: Measure the service's error rate. Set it to the empty object `{}`; it carries no attributes. Exactly one of `error_config` or `latency_config` is required: the backend rejects an `apm_sli` with neither, and the SDK refuses to encode one with both.
+sli.apm_sli.filters  nested LIST computed
+    description: Additional label-based filters applied to the generated metrics. Omit the attribute for no filters; an explicit empty list is rejected.
+sli.apm_sli.filters.key  tftypes.String computed
+    description: Label or tag name to filter on.
+sli.apm_sli.filters.values  tftypes.List[tftypes.String] computed
+    description: Values to match, with OR semantics.
+sli.apm_sli.grouping_keys  tftypes.List[tftypes.String] computed
+    description: Labels to group the SLO results by. Omit the attribute for no extra grouping keys; an explicit empty list is rejected. Distinct from the read-only top-level `grouping`, which the backend fixes to `service_name` for APM SLOs.
+sli.apm_sli.latency_config  nested SINGLE computed
+    description: Measure the service's latency. Exactly one of `error_config` or `latency_config` is required.
+sli.apm_sli.latency_config.average  nested SINGLE computed
+    description: Mean-based latency measurement. Set it to the empty object `{}`; it carries no attributes. Exactly one of `quantile` or `average` is required.
+sli.apm_sli.latency_config.quantile  nested SINGLE computed
+    description: Percentile-based latency measurement. Exactly one of `quantile` or `average` is required: the backend rejects a `latency_config` with neither, and the SDK refuses to encode one with both.
+sli.apm_sli.latency_config.quantile.percentile  tftypes.Number computed
+    description: Percentile to measure, as a fraction (`0.95` = P95). The backend stores `0` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `percentile = 0` to reset it.
+sli.apm_sli.latency_config.threshold  tftypes.Number computed
+    description: Latency threshold in milliseconds; a request is good when its latency is at or below it. The backend stores `0` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `threshold = 0` to reset it.
+sli.apm_sli.latency_config.time_window  tftypes.String computed
+    description: Time window for latency calculations. One of: 1_minute, 5_minutes.
+sli.apm_sli.services  tftypes.List[tftypes.String] computed
+    description: Names of the APM Service Catalog services to monitor. The backend currently accepts exactly one service and rejects unknown service names.
+sli.request_based_metric_sli  nested SINGLE computed
+    description: SLI based on request metrics.
+sli.request_based_metric_sli.good_events  nested SINGLE computed
+    description: Query defining good events.
+sli.request_based_metric_sli.good_events.query  tftypes.String computed
+    description: Query string for the metric.
+sli.request_based_metric_sli.total_events  nested SINGLE computed
+    description: Query defining total events.
+sli.request_based_metric_sli.total_events.query  tftypes.String computed
+    description: Query string for the metric.
+sli.window_based_metric_sli  nested SINGLE computed
+    description: SLI based on time-window metrics.
+sli.window_based_metric_sli.comparison_operator  tftypes.String computed
+    description: Comparison operator used to evaluate the threshold. One of: greater_than,greater_than_or_equals,less_than,less_than_or_equals,unspecified
+sli.window_based_metric_sli.missing_data_strategy  tftypes.String computed
+    description: How windows without data are counted. One of: bad, good, uncounted. The backend stores `uncounted` when the field is omitted and always returns a value, so this attribute is computed: removing it from the configuration keeps the last applied value - set `missing_data_strategy = "uncounted"` to reset it.
+sli.window_based_metric_sli.query  nested SINGLE computed
+    description: Query used for evaluating the time-window SLI.
+sli.window_based_metric_sli.query.query  tftypes.String computed
+    description: Query string for the metric.
+sli.window_based_metric_sli.threshold  tftypes.Number computed
+    description: Threshold value for the comparison.
+sli.window_based_metric_sli.window  tftypes.String computed
+    description: Time window type for evaluation. One of: 1_minute, 5_minutes.
+target_threshold_percentage  tftypes.Number computed
+    description: The target threshold percentage.
+window  nested SINGLE computed
+    description: SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified.
+window.slo_time_frame  tftypes.String computed
+    description: SLO time window. One of: 14_days, 1_day, 21_days, 28_days, 30_days, 7_days, unspecified.

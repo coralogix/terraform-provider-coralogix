@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -169,5 +171,51 @@ func TestReadWithoutAnArmFails(t *testing.T) {
 	r.Read(ctx, frameworkresource.ReadRequest{State: tfsdk.State{Schema: schemaResp.Schema, Raw: state}}, resp)
 	if !resp.Diagnostics.HasError() {
 		t.Fatal("read of a response with two arms: want an error")
+	}
+}
+
+// The data source shows the note that the API stores, also "", which the resource reads as null.
+// It runs the BeforeFlatten hook of the resource, and requires the id.
+func TestDataSourceShowsTheStoredNote(t *testing.T) {
+	ctx := context.Background()
+	id, name, frame, note, ratio := "thing-1", "a", shared_things_service.SHAREDFRAME_SHARED_FRAME_ONE_DAY, "", float32(0.5)
+	shared_things_service.Stored = shared_things_service.SharedThing{
+		Id: &id, Name: &name, Frame: &frame, Note: &note, ByRatio: &shared_things_service.SharedRatio{Ratio: &ratio},
+	}
+	flattened := false
+	d := &DataSource{resource: Resource{
+		client: &shared_things_service.SharedThingsServiceAPIService{},
+		hooks: Hooks{BeforeFlatten: func(context.Context, *shared_things_service.SharedThing) diag.Diagnostics {
+			flattened = true
+			return nil
+		}},
+	}}
+	var schemaResp datasource.SchemaResponse
+	d.Schema(ctx, datasource.SchemaRequest{}, &schemaResp)
+	if a := schemaResp.Schema.Attributes["id"]; !a.IsRequired() {
+		t.Fatalf("data source id = %#v, want required", a)
+	}
+	if a := schemaResp.Schema.Attributes["note"]; !a.IsComputed() || a.IsOptional() || a.IsRequired() {
+		t.Fatalf("data source note = %#v, want computed-only", a)
+	}
+	root := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
+	values := map[string]tftypes.Value{}
+	for attr, attrType := range root.AttributeTypes {
+		values[attr] = tftypes.NewValue(attrType, nil)
+	}
+	values["id"] = tftypes.NewValue(tftypes.String, id)
+	config := tftypes.NewValue(root, values)
+	resp := &datasource.ReadResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: config}}
+	d.Read(ctx, datasource.ReadRequest{Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: config}}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	if !flattened {
+		t.Fatal("the data source did not run BeforeFlatten")
+	}
+	var got types.String
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("note"), &got)...)
+	if resp.Diagnostics.HasError() || got.IsNull() || got.ValueString() != "" {
+		t.Fatalf("data source note = %v (%v), want \"\"", got, resp.Diagnostics)
 	}
 }

@@ -1,0 +1,22 @@
+[
+  {
+    "step": "read an id that does not exist",
+    "config": {
+      "id": "00000000-0000-4000-8000-999999999999"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/data-exploration/views/v1/folders",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error reading coralogix_view_folder | Could not find view folder with id (00000000-0000-4000-8000-999999999999)"
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-999999999999",
+      "name": null
+    }
+  }
+]

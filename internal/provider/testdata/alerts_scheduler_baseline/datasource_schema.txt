@@ -1,0 +1,83 @@
+(data source schema)
+    description: Coralogix alerts-scheduler (alert suppression rules). For more info please review - https://coralogix.com/docs/user-guides/alerting/alert-suppression-rules/.
+description  tftypes.String computed
+    description: Alert Scheduler description.
+enabled  tftypes.Bool computed
+    description: Alert Scheduler enabled. If set to `false`, the alert scheduler will be disabled. True by default.
+filter  nested SINGLE computed
+    description: Alert Scheduler filter. Only one of `meta_labels` or `alerts_unique_ids` can be set. If none of them set, all alerts will be affected.
+filter.alerts_unique_ids  tftypes.Set[tftypes.String] computed
+    description: Alert unique ids.
+filter.meta_labels  nested SET computed
+    description: Meta labels.
+filter.meta_labels.key  tftypes.String computed
+    description: The key.
+filter.meta_labels.value  tftypes.String computed
+    description: The value.
+filter.what_expression  tftypes.String computed
+    description: A [DataPrime](https://coralogix.com/docs/dataprime-query-language/) expression that filters which **group-by values** to suppress within the selected alerts. The expression must start with `source logs | filter` (this syntax is required even for metric or tracing alerts - the filtering works on group-by values regardless of alert type). Use `"source logs | filter true"` to suppress all alert activity without filtering specific values. Use `"source logs | filter $d.fieldName == 'value'"` to suppress only when specific group-by values match. This field controls **what triggered values** to suppress, while `alerts_unique_ids` or `meta_labels` control **which alerts** the rule applies to.
+id  tftypes.String required
+    description: Alert Scheduler ID.
+meta_labels  nested SET computed
+    description: Alert Scheduler meta labels.
+meta_labels.key  tftypes.String computed
+    description: The key.
+meta_labels.value  tftypes.String computed
+    description: The value.
+name  tftypes.String computed
+    description: Alert Scheduler name.
+schedule  nested SINGLE computed
+    description: Exactly one of `one_time` or `recurring` must be set.
+schedule.one_time  nested SINGLE computed
+    description: One time.
+schedule.one_time.time_frame  nested SINGLE computed
+    description: Timeframe.
+schedule.one_time.time_frame.duration  nested SINGLE computed
+    description: The duration from the start time to wait.
+schedule.one_time.time_frame.duration.for_over  tftypes.Number computed
+    description: The number of time units to wait before the alert is triggered. For example, if the frequency is set to `hours` and the value is set to `2`, the alert will be triggered after 2 hours.
+schedule.one_time.time_frame.duration.frequency  tftypes.String computed
+    description: The time unit to wait before the alert is triggered. Can be `minutes`, `hours` or `days`.
+schedule.one_time.time_frame.end_time  tftypes.String computed
+    description: The end time of the time frame. In a isodate format. For example, `2021-01-01T00:00:00.000`.
+schedule.one_time.time_frame.start_time  tftypes.String computed
+    description: Start time in ISO8601 format (e.g. `2026-02-17T08:00:00.000` or `2026-02-17T08:00:00.000Z`).
+schedule.one_time.time_frame.time_zone  tftypes.String computed
+    description: Timezone (e.g. `UTC`, `UTC+0`, `UTC+2`). Both `UTC` and `UTC+0` are accepted for zero offset.
+schedule.operation  tftypes.String computed
+    description: The operation to perform. Can be `mute` or `active`.
+schedule.recurring  nested SINGLE computed
+    description: Recurring schedule configuration. Use `dynamic` for time-based recurring schedules, or `always_active = true` for permanent suppression rules.
+schedule.recurring.always_active  tftypes.Bool computed
+    description: When set to `true`, creates a permanent suppression rule that is always active. This is mutually exclusive with `dynamic`. When using `always_active = true`, no time frame or frequency configuration is needed.
+schedule.recurring.dynamic  nested SINGLE computed
+    description: Dynamic.
+schedule.recurring.dynamic.frequency  nested SINGLE computed
+schedule.recurring.dynamic.frequency.daily  nested SINGLE computed
+    description: Daily.
+schedule.recurring.dynamic.frequency.monthly  nested SINGLE computed
+    description: Monthly.
+schedule.recurring.dynamic.frequency.monthly.days  tftypes.Set[tftypes.Number] computed
+    description: The days of month.
+schedule.recurring.dynamic.frequency.weekly  nested SINGLE computed
+    description: Weekly.
+schedule.recurring.dynamic.frequency.weekly.days  tftypes.Set[tftypes.String] computed
+    description: The days of week.
+schedule.recurring.dynamic.repeat_every  tftypes.Number computed
+    description: Interval multiplier controlling how often the rule recurs (e.g., every N days, weeks, or months).
+schedule.recurring.dynamic.termination_date  tftypes.String computed
+    description: ISO 8601 date after which the recurring rule stops being applied.
+schedule.recurring.dynamic.time_frame  nested SINGLE computed
+    description: Timeframe.
+schedule.recurring.dynamic.time_frame.duration  nested SINGLE computed
+    description: The duration from the start time to wait.
+schedule.recurring.dynamic.time_frame.duration.for_over  tftypes.Number computed
+    description: The number of time units to wait before the alert is triggered. For example, if the frequency is set to `hours` and the value is set to `2`, the alert will be triggered after 2 hours.
+schedule.recurring.dynamic.time_frame.duration.frequency  tftypes.String computed
+    description: The time unit to wait before the alert is triggered. Can be `minutes`, `hours` or `days`.
+schedule.recurring.dynamic.time_frame.end_time  tftypes.String computed
+    description: The end time of the time frame. In a isodate format. For example, `2021-01-01T00:00:00.000`.
+schedule.recurring.dynamic.time_frame.start_time  tftypes.String computed
+    description: Start time in ISO8601 format (e.g. `2026-02-17T08:00:00.000` or `2026-02-17T08:00:00.000Z`).
+schedule.recurring.dynamic.time_frame.time_zone  tftypes.String computed
+    description: Timezone (e.g. `UTC`, `UTC+0`, `UTC+2`). Both `UTC` and `UTC+0` are accepted for zero offset.

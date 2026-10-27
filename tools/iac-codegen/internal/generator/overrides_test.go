@@ -154,6 +154,41 @@ func TestStaleKeyIsNamedNotTheLine(t *testing.T) {
 	}
 }
 
+// A dataSource line that changes nothing, or that this version cannot render, is an error.
+func TestDataSourceLines(t *testing.T) {
+	tests := map[string]struct {
+		text string
+		code string
+		want string
+	}{
+		"default lookup": {
+			"dataSource:\n  lookup: [id]\n",
+			"OVERRIDE_UNUSED", "dataSource.lookup",
+		},
+		"nested component": {
+			"dataSource:\n  types:\n    LegacyRule:\n      fields:\n        name: {readEmptyAs: value}\n",
+			"OVERRIDE_INVALID", "dataSource.types.LegacyRule.fields.name",
+		},
+		"no resource line": {
+			"dataSource:\n  types:\n    LegacyThing:\n      fields:\n        name: {readEmptyAs: value}\n",
+			"OVERRIDE_UNUSED", `no readEmptyAs: "null" line on name`,
+		},
+		"not a string": {
+			"dataSource:\n  types:\n    LegacyThing:\n      fields:\n        labels: {readEmptyAs: value}\n",
+			"RENDERER_SHAPE_UNSUPPORTED", `readEmptyAs: "value" is supported for a string`,
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			file := mustParse(t, legacyOverrides+test.text)
+			_, err := validateOpenAPIWith(legacySpec(t), "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
+			if got := eligibilityCodes(t, err); !slices.Contains(got, test.code) || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %s with %q", err, test.code, test.want)
+			}
+		})
+	}
+}
+
 // A name line that gives the Terraform name that the field has anyway changes nothing.
 func TestNameLineWithTheDefaultNameIsStale(t *testing.T) {
 	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  LegacyThing:\n    fields:\n      name: {name: name}\n")
@@ -247,6 +282,30 @@ func TestInferredFalseKeepsOneOfGroupValidators(t *testing.T) {
 	}
 	if got := out.Attributes[0].Validators; !slices.Equal(got, []string{group}) {
 		t.Fatalf("validators = %v, want only the group validator", got)
+	}
+}
+
+// With validators.inferred: true, the contract limit of a list or set of an enum that an enums line
+// renames lists the API values. The element validator takes the Terraform values of the line.
+func TestInferredEnumCollectionValidatorUsesTheEnumsLine(t *testing.T) {
+	a := &tfAttr{
+		Name: "kinds", Kind: "SetNested", ValueKind: "Set", EnumSchema: "Kind", Component: "T", Property: "kinds",
+		Validators:     []string{`setvalidator.ValueStringsAre(stringvalidator.OneOf("KIND_ONE", "KIND_TWO"))`},
+		ElemValidators: []string{`stringvalidator.OneOf("KIND_ONE", "KIND_TWO")`},
+	}
+	out := &tfResource{Attributes: []*tfAttr{a}}
+	file := mustParse(t, "resource: LegacyThing\nmode: existing\nvalidators:\n  inferred: true\nenums:\n  Kind:\n    zero: unspecified\n    trimPrefix: KIND_\n    values: [KIND_ONE, KIND_TWO]\n")
+	if err := applyOverrides(out, file); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{`setvalidator.ValueStringsAre(stringvalidator.OneOf("one", "two", "unspecified"))`}
+	if !slices.Equal(a.Validators, want) {
+		t.Fatalf("validators = %v, want %v", a.Validators, want)
+	}
+	// The acceptance test builds the value of an element from the element validators.
+	wantElem := []string{`stringvalidator.OneOf("one", "two", "unspecified")`}
+	if !slices.Equal(a.ElemValidators, wantElem) {
+		t.Fatalf("element validators = %v, want %v", a.ElemValidators, wantElem)
 	}
 }
 
