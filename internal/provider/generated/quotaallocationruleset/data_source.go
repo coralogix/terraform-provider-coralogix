@@ -7,11 +7,15 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/quota_allocation_rule_set_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 )
@@ -48,6 +52,15 @@ func (d *DataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp 
 		Computed:            true,
 		Description:         id.GetDescription(),
 		MarkdownDescription: id.GetMarkdownDescription(),
+	}
+	// The data source shows the attributes of the items that the resource skips.
+	if nested, ok := resp.Schema.Attributes["rules"].(schema.SetNestedAttribute); ok {
+		nested.NestedObject.Attributes["cx_managed"] = schema.BoolAttribute{
+			Computed:            true,
+			Description:         "Whether the quota allocation rule is managed by Coralogix. Customer Terraform configurations must not send edits that collide with a `cx_managed` rule for the same entity type. Delete clears customer-managed rules only.",
+			MarkdownDescription: "Whether the quota allocation rule is managed by Coralogix. Customer Terraform configurations must not send edits that collide with a `cx_managed` rule for the same entity type. Delete clears customer-managed rules only.",
+		}
+		resp.Schema.Attributes["rules"] = nested
 	}
 }
 
@@ -87,8 +100,35 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if v.Rules != nil {
+		m.Rules = withShownRules(ctx, v.Rules, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
 	if m.Id.IsNull() || m.Id.ValueString() == "" {
 		m.Id = types.StringValue(TypeName) // the API returned no id
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, m)...)
+}
+
+// withShownRules converts the rules of the API with the attributes that only the data
+// source has.
+func withShownRules(ctx context.Context, items []quota_allocation_rule_set_service.QuotaAllocationEntityTypeRule, diags *diag.Diagnostics) types.Set {
+	attrTypes := quotaAllocationEntityTypeRuleAttrTypes()
+	attrTypes["cx_managed"] = types.BoolType
+	elements := make([]attr.Value, 0, len(items))
+	for i := range items {
+		item := flattenQuotaAllocationEntityTypeRule(ctx, path.Root("rules"), &items[i], diags)
+		value, valueDiags := types.ObjectValueFrom(ctx, quotaAllocationEntityTypeRuleAttrTypes(), *item)
+		diags.Append(valueDiags...)
+		attributes := value.Attributes()
+		attributes["cx_managed"] = types.BoolPointerValue(items[i].CxManaged)
+		element, elementDiags := types.ObjectValue(attrTypes, attributes)
+		diags.Append(elementDiags...)
+		elements = append(elements, element)
+	}
+	out, outDiags := types.SetValue(types.ObjectType{AttrTypes: attrTypes}, elements)
+	diags.Append(outDiags...)
+	return out
 }

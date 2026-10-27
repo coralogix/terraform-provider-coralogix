@@ -46,5 +46,6 @@ Read-Only:
 - `allocation` (Number) Quota allocation value for this entity type. For `percentage`, must be between 0 and 100. For `locked_units`, must be non-negative. The sum of enabled locked units plus any Coralogix bundle units must fit within the team daily quota.
 - `allocation_type` (String) How the allocation value is interpreted. Valid values are `percentage` (default) and `locked_units`. `unspecified` is accepted as a compatible alias of `percentage` and is normalized to `percentage` during planning. Locked units are reserved first from the team daily quota; percentage rules share the remaining pool and their enabled allocations must sum to at most 100.
 - `can_overflow` (Boolean) Whether this entity type can overflow beyond its allocation.
+- `cx_managed` (Boolean) Whether the quota allocation rule is managed by Coralogix. Customer Terraform configurations must not send edits that collide with a `cx_managed` rule for the same entity type. Delete clears customer-managed rules only.
 - `enabled` (Boolean) Whether the quota allocation rule is enabled.
 - `entity_type` (String) Entity type covered by the rule, such as `logs`, `spans`, or `metrics`. The [Quota Rules](https://coralogix.com/docs/user-guides/account-management/payment-and-billing/quota-rules/) documentation lists the supported entity types; the Coralogix API rejects an unsupported one.

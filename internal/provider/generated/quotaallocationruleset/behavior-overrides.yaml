@@ -64,5 +64,12 @@ enums:
     trimPrefix: QUOTA_ALLOCATION_TYPE_
     values: [QUOTA_ALLOCATION_TYPE_PERCENTAGE, QUOTA_ALLOCATION_TYPE_LOCKED_UNITS]
 
-# The data source reads the singleton. It has no configuration.
-dataSource: {}
+# The data source reads the singleton. It has no configuration. It shows cx_managed on each rule, which the
+# resource keeps out of its state, and it shows the rules that Coralogix manages.
+dataSource:
+  types:
+    QuotaAllocationEntityTypeRule:
+      fields:
+        cxManaged:
+          show: true
+          description: Whether the quota allocation rule is managed by Coralogix. Customer Terraform configurations must not send edits that collide with a `cx_managed` rule for the same entity type. Delete clears customer-managed rules only.

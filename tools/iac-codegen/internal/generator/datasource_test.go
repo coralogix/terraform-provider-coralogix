@@ -146,3 +146,57 @@ func TestUnusedListIsDropped(t *testing.T) {
 		})
 	}
 }
+
+// A show line adds an attribute to the data source that the resource skips. The generator reports a
+// line that the file cannot honor, instead of writing a data source that differs from the line.
+func TestDataSourceShowChecksTheLine(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "legacy.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := os.ReadFile(filepath.Join("testdata", "legacy-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := map[string]struct {
+		edit func(string) string
+		want string
+	}{
+		"the resource does not skip the field": {
+			func(s string) string { return replaceOnce(t, s, "      managed: {skip: true}\n", "") },
+			"does not skip LegacyRule.managed",
+		},
+		"a field that the component does not have": {
+			func(s string) string {
+				return replaceOnce(t, s, "        managed:\n          show: true", "        nope:\n          show: true")
+			},
+			"does not skip LegacyRule.nope",
+		},
+		"a component that the resource has no list of": {
+			func(s string) string {
+				return replaceOnce(t, s, "    LegacyRule:\n      fields:\n        managed:", "    LegacyLabels:\n      fields:\n        managed:")
+			},
+			"managed",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			file := mustParse(t, test.edit(string(text)))
+			_, err := validateOpenAPIWith(spec, "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want one with %q", err, test.want)
+			}
+		})
+	}
+}
+
+func TestDataSourceShowNeedsADescription(t *testing.T) {
+	text, err := os.ReadFile(filepath.Join("testdata", "legacy-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = overrides.Parse([]byte(replaceOnce(t, string(text), "          description: Whether the rule is managed.\n", "")))
+	if err == nil || !strings.Contains(err.Error(), "show needs a description") {
+		t.Fatalf("err = %v, want show needs a description", err)
+	}
+}

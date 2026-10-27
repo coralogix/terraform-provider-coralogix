@@ -38,6 +38,7 @@ types:
       name:
         description: "The rule name."
         required: true
+      managed: {skip: true}
       kind:
         computed: true
         default: alpha
@@ -66,5 +67,12 @@ enums:
     values: [ALPHA, BETA]
     rejected: [GAMMA]
 
-# The released resource has a data source that keeps every default.
-dataSource: {}
+# The released resource has a data source that adds the managed flag of each rule, which the
+# resource skips.
+dataSource:
+  types:
+    LegacyRule:
+      fields:
+        managed:
+          show: true
+          description: Whether the rule is managed.

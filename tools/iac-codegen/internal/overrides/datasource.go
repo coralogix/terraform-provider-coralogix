@@ -32,6 +32,13 @@ type DataSourceField struct {
 	// ReadEmptyAs: "value" shows the string that the API returns, also the empty one that the
 	// resource reads as null (readEmptyAs: "null"), for a released data source that showed "".
 	ReadEmptyAs string `yaml:"readEmptyAs"`
+	// Show adds a computed attribute that the resource does not have: a field that the resource
+	// skips (skip: true) and the contract has on an item of a list or set of objects of the
+	// resource, for a released data source that showed it. The data source reads it from the API.
+	// A bool and a string are supported.
+	Show bool `yaml:"show"`
+	// Description is the markdown description of a shown attribute. A show line needs it.
+	Description string `yaml:"description"`
 }
 
 // ReadEmptyAsValue is the readEmptyAs value of a data source field line.
@@ -59,8 +66,15 @@ func (d *DataSource) check() error {
 			return fmt.Errorf("dataSource.types.%s has no override", component)
 		}
 		for _, field := range sortedKeys(fields) {
-			if got := fields[field].ReadEmptyAs; got != ReadEmptyAsValue {
-				return fmt.Errorf("dataSource.types.%s.fields.%s: readEmptyAs is %q, want %q", component, field, got, ReadEmptyAsValue)
+			line := fields[field]
+			switch {
+			case line.Show && line.ReadEmptyAs != "":
+				return fmt.Errorf("dataSource.types.%s.fields.%s: show and readEmptyAs exclude each other", component, field)
+			case line.Show && line.Description == "":
+				return fmt.Errorf("dataSource.types.%s.fields.%s: show needs a description", component, field)
+			case line.Show:
+			case line.ReadEmptyAs != ReadEmptyAsValue:
+				return fmt.Errorf("dataSource.types.%s.fields.%s: readEmptyAs is %q, want %q, or the line sets show: true", component, field, line.ReadEmptyAs, ReadEmptyAsValue)
 			}
 		}
 	}
@@ -97,6 +111,7 @@ func (d *DataSource) LooksUpName() bool {
 // DataSourceLine is one line of the dataSource section, for the issues of the generator.
 type DataSourceLine struct {
 	Component, Field string
+	Show             bool // the line shows a field that the resource skips
 }
 
 // String is the location of the line in the file.
@@ -112,7 +127,7 @@ func (f *File) DataSourceLines() []DataSourceLine {
 	var out []DataSourceLine
 	for _, component := range sortedKeys(f.DataSource.Types) {
 		for _, field := range sortedKeys(f.DataSource.Types[component].Fields) {
-			out = append(out, DataSourceLine{Component: component, Field: field})
+			out = append(out, DataSourceLine{Component: component, Field: field, Show: f.DataSource.Types[component].Fields[field].Show})
 		}
 	}
 	return out

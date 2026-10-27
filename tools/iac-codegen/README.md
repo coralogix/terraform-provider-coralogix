@@ -328,10 +328,11 @@ dataSource:
 ```
 
 - `readEmptyAs: value` is for a top-level string whose resource line reads `""` as null (`readEmptyAs: "null"`). The data source shows the value of the API, also `""`, as a released data source did. A line on another component than the resource is an error (`OVERRIDE_INVALID`). A line on a field without a resource `readEmptyAs: "null"` line changes nothing (`OVERRIDE_UNUSED`). A field that is not a plain string is an error (`RENDERER_SHAPE_UNSUPPORTED`).
+- `show: true`, with a `description`, adds a computed `bool` or string attribute to the items of a top-level list or set of objects: a field that the resource skips (`skip: true`) and the API returns, for a released data source that showed it. The line sits under the component of the items. The data source rebuilds the attribute of the list or set from the API items and sets the field on each; the SDK check finds out whether the field is a pointer. It excludes `readEmptyAs` on the same line.
 - `lookup: [id]` is the default, so the generator reports it (`OVERRIDE_UNUSED`). `lookup` must name `id`.
 - `duplicateNames: first` keeps the released behavior when more than one item has the name. Without `name` in `lookup`, it is an error.
 
-Golden contracts: `thing` has the data source of a new resource with a full List, so it looks up the name. `legacything` has `dataSource: {}`. `sharedthing` has a `readEmptyAs: value` line, and a List of summaries that `api.operations.list` names, with `lookup: [id, name]` and `duplicateNames: first`.
+Golden contracts: `thing` has the data source of a new resource with a full List, so it looks up the name. `legacything` has a `show` line (the `managed` flag of each rule). `sharedthing` has a `readEmptyAs: value` line, and a List of summaries that `api.operations.list` names, with `lookup: [id, name]` and `duplicateNames: first`.
 
 ## Acceptance tests
 

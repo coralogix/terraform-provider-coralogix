@@ -7,11 +7,15 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"example.com/iac-test-sdk/go/openapi/cxsdk"
+	"example.com/iac-test-sdk/go/openapi/gen/legacy_things_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 )
@@ -43,6 +47,15 @@ func (d *DataSource) Metadata(_ context.Context, req datasource.MetadataRequest,
 // configuration sets.
 func (d *DataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(Schema())
+	// The data source shows the attributes of the items that the resource skips.
+	if nested, ok := resp.Schema.Attributes["rules"].(schema.ListNestedAttribute); ok {
+		nested.NestedObject.Attributes["managed"] = schema.BoolAttribute{
+			Computed:            true,
+			Description:         "Whether the rule is managed.",
+			MarkdownDescription: "Whether the rule is managed.",
+		}
+		resp.Schema.Attributes["rules"] = nested
+	}
 }
 
 func (d *DataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
@@ -87,5 +100,32 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	if v.Rules != nil {
+		m.Rules = withShownRules(ctx, v.Rules, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, m)...)
+}
+
+// withShownRules converts the rules of the API with the attributes that only the data
+// source has.
+func withShownRules(ctx context.Context, items []legacy_things_service.LegacyRule, diags *diag.Diagnostics) types.List {
+	attrTypes := legacyRuleAttrTypes()
+	attrTypes["managed"] = types.BoolType
+	elements := make([]attr.Value, 0, len(items))
+	for i := range items {
+		item := flattenLegacyRule(ctx, path.Root("rules"), &items[i], nil, diags)
+		value, valueDiags := types.ObjectValueFrom(ctx, legacyRuleAttrTypes(), *item)
+		diags.Append(valueDiags...)
+		attributes := value.Attributes()
+		attributes["managed"] = types.BoolPointerValue(items[i].Managed)
+		element, elementDiags := types.ObjectValue(attrTypes, attributes)
+		diags.Append(elementDiags...)
+		elements = append(elements, element)
+	}
+	out, outDiags := types.ListValue(types.ObjectType{AttrTypes: attrTypes}, elements)
+	diags.Append(outDiags...)
+	return out
 }

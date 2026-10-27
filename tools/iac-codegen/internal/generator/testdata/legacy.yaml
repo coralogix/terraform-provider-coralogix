@@ -110,6 +110,7 @@ components:
       required: []
       properties:
         name: {type: string}
+        managed: {type: boolean}
         kind:
           allOf:
             - {$ref: '#/components/schemas/legacy.Kind'}

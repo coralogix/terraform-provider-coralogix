@@ -10,6 +10,8 @@ rules.allocation_type  tftypes.String computed
     description: How the allocation value is interpreted. Valid values are `percentage` (default) and `locked_units`. `unspecified` is accepted as a compatible alias of `percentage` and is normalized to `percentage` during planning. Locked units are reserved first from the team daily quota; percentage rules share the remaining pool and their enabled allocations must sum to at most 100.
 rules.can_overflow  tftypes.Bool computed
     description: Whether this entity type can overflow beyond its allocation.
+rules.cx_managed  tftypes.Bool computed
+    description: Whether the quota allocation rule is managed by Coralogix. Customer Terraform configurations must not send edits that collide with a `cx_managed` rule for the same entity type. Delete clears customer-managed rules only.
 rules.enabled  tftypes.Bool computed
     description: Whether the quota allocation rule is enabled.
 rules.entity_type  tftypes.String computed

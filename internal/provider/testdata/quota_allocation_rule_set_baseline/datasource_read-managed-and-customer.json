@@ -16,6 +16,7 @@
           "allocation": 5,
           "allocation_type": "percentage",
           "can_overflow": false,
+          "cx_managed": true,
           "enabled": true,
           "entity_type": "alerts"
         },
@@ -23,6 +24,7 @@
           "allocation": 60.5,
           "allocation_type": "percentage",
           "can_overflow": true,
+          "cx_managed": false,
           "enabled": true,
           "entity_type": "logs"
         },
@@ -30,6 +32,7 @@
           "allocation": 2,
           "allocation_type": "locked_units",
           "can_overflow": false,
+          "cx_managed": false,
           "enabled": false,
           "entity_type": "spans"
         }
