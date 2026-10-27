@@ -135,7 +135,7 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v7
         with:
-          name: failed-tests-non-dashboard-${{ matrix.shard }}
+          name: failed-tests-${{ github.run_attempt }}-non-dashboard-${{ matrix.shard }}
           path: ${{ env.FAILED_TESTS_FILE }}
           if-no-files-found: ignore
           retention-days: 7
@@ -187,7 +187,7 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v7
         with:
-          name: failed-tests-non-dashboard-unsharded
+          name: failed-tests-${{ github.run_attempt }}-non-dashboard-unsharded
           path: ${{ env.FAILED_TESTS_FILE }}
           if-no-files-found: ignore
           retention-days: 7
@@ -250,7 +250,7 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v7
         with:
-          name: failed-tests-dashboard-${{ matrix.shard }}
+          name: failed-tests-${{ github.run_attempt }}-dashboard-${{ matrix.shard }}
           path: ${{ env.FAILED_TESTS_FILE }}
           if-no-files-found: ignore
           retention-days: 7
@@ -305,7 +305,7 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v7
         with:
-          name: failed-tests-dashboard-unsharded
+          name: failed-tests-${{ github.run_attempt }}-dashboard-unsharded
           path: ${{ env.FAILED_TESTS_FILE }}
           if-no-files-found: ignore
           retention-days: 7
@@ -363,7 +363,7 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v7
         with:
-          name: failed-tests-provider-migration-${{ matrix.shard }}
+          name: failed-tests-${{ github.run_attempt }}-provider-migration-${{ matrix.shard }}
           path: ${{ env.FAILED_TESTS_FILE }}
           if-no-files-found: ignore
           retention-days: 7
@@ -388,11 +388,13 @@ jobs:
       # Each failed test job uploads one file, named after its shard.
       # merge-multiple puts all files in one folder: GitHub skips the
       # per-artifact folder when only one artifact matches.
+      # Artifacts belong to the whole run, so a re-run still sees the files of
+      # earlier attempts. The attempt number in the name keeps only this one.
       - name: Download failed test names
         if: ${{ contains(needs.*.result, 'failure') }}
         uses: actions/download-artifact@v8
         with:
-          pattern: failed-tests-*
+          pattern: failed-tests-${{ github.run_attempt }}-*
           path: failed-tests
           merge-multiple: true
       - name: Write failed tests summary
