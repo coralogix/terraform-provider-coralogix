@@ -226,6 +226,9 @@ func (r *GroupAttachmentResource) Delete(ctx context.Context, request resource.D
 	}
 
 	if err := r.applyUserOp(ctx, groupID, "remove", userIDsToRemove(state.UserIDs, existing)); err != nil {
+		if isGroupNotFoundErr(err) {
+			return
+		}
 		response.Diagnostics.AddError("Failed to attach users to group", err.Error())
 		return
 	}
