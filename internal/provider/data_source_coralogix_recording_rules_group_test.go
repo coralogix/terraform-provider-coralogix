@@ -19,12 +19,14 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 var recordingRulesGroupsSetDataSourceName = "data." + recordingRulesGroupsSetResourceName
 
 func TestAccCoralogixDataSourceRecordingRulesGroupsSet_basic(t *testing.T) {
+	name := acctest.RandomWithPrefix("tf-acc-rr-set")
 	wd, err := os.Getwd()
 	if err != nil {
 		panic(err)
@@ -37,7 +39,7 @@ func TestAccCoralogixDataSourceRecordingRulesGroupsSet_basic(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceRecordingRulesGroupsSetFromYaml(filePath) +
+				Config: testAccCoralogixResourceRecordingRulesGroupsSetFromYamlWithName(filePath, name) +
 					testAccCoralogixDataSourceRecordingRulesGroupsSet_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(recordingRulesGroupsSetDataSourceName, "id"),
