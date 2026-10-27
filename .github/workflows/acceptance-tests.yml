@@ -73,7 +73,9 @@ jobs:
           fi
           # A failed API call stops the job here. The result job then fails,
           # so an error can never skip the tests and report success.
-          files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[].filename')
+          # A renamed file lists its old path in previous_filename. Check both, so
+          # moving code to a docs path still counts as a code change.
+          files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[] | .filename, (.previous_filename // empty)')
           # A here-string, not a pipe: `grep -q` exits at the first match, and
           # under pipefail the writer's SIGPIPE would make this check false.
           if grep -qvE '^(\.claude/|\.cursor/)|\.md$' <<< "$files"; then
