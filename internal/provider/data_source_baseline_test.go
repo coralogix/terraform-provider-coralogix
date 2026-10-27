@@ -53,6 +53,9 @@ var dataSourceBaselines = map[string]dataSourceBaseline{
 	"global_router": {grGoldenDir, newGRHarness, grDataSourceScenarios},
 	"preset":        {presetGoldenDir, newPresetHarness, presetDataSourceScenarios},
 	"view_folder":   {vfGoldenDir, newVFHarness, vfDataSourceScenarios},
+	"archive_logs": {alGoldenDir, func(t *testing.T) *grHarness {
+		return newProtocolHarness(t, alTypeName, newALFake(t))
+	}, alDataSourceScenarios},
 }
 
 func TestDataSourceBaselineSchema(t *testing.T) {

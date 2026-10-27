@@ -1,0 +1,14 @@
+# What the generated acceptance test needs for coralogix_archive_logs, besides the schema.
+# The company has one archive target, so every subtest sets the same one.
+resource: v2.Target
+
+# The API writes a probe object to the bucket, so the bucket must exist and allow Coralogix.
+env: [ARCHIVE_LOGS_BUCKET]
+
+values:
+  bucket: '"@{env.ARCHIVE_LOGS_BUCKET}"'
+
+skip:
+  - region   # the API accepts only the region of the Coralogix environment
+
+upgradeFrom: "3.21.0"

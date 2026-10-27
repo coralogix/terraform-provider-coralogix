@@ -17,9 +17,9 @@ Coralogix archive-logs. Configures the S3 bucket Coralogix archives logs and tra
 
 ### Read-Only
 
-- `active` (Boolean)
-- `archiving_format_id` (String)
+- `active` (Boolean) Whether archiving to this target is active.
+- `archiving_format_id` (String) The archiving format ID.
 - `bucket` (String) The bucket name to store the archived logs in.
 - `enable_tags` (Boolean)
-- `id` (String) The ID of this resource.
+- `id` (String) The fixed id of this singleton: there is one per company.
 - `region` (String) The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions

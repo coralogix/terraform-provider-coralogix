@@ -17,7 +17,7 @@
       "archiving_format_id": "cx_data_v1",
       "bucket": "seeded-bucket",
       "enable_tags": false,
-      "id": "anything",
+      "id": "archive-logs-settings",
       "region": "eu-north-1"
     },
     "drift": [
@@ -25,6 +25,7 @@
       "AttributeName(\"archiving_format_id\")",
       "AttributeName(\"bucket\")",
       "AttributeName(\"enable_tags\")",
+      "AttributeName(\"id\")",
       "AttributeName(\"region\")"
     ]
   },
@@ -39,7 +40,7 @@
       "archiving_format_id": "cx_data_v1",
       "bucket": "seeded-bucket",
       "enable_tags": false,
-      "id": "anything",
+      "id": "archive-logs-settings",
       "region": "eu-north-1"
     },
     "noChange": true,
@@ -48,7 +49,7 @@
       "archiving_format_id": "cx_data_v1",
       "bucket": "seeded-bucket",
       "enable_tags": false,
-      "id": "anything",
+      "id": "archive-logs-settings",
       "region": "eu-north-1"
     }
   }

@@ -12,6 +12,9 @@
         "status": 200
       }
     ],
+    "applyDiagnostics": [
+      "warning: Resource disappeared during read | archive_logs with id archive-logs-settings was not found. Terraform removed it from state."
+    ],
     "state": null
   }
 ]

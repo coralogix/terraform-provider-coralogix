@@ -134,3 +134,31 @@ var alScenarios = map[string]func(h *grHarness, f *alFake){
 		h.Apply("create sets the target that the company already has", h.null(), j{"bucket": "archive-bucket"})
 	},
 }
+
+// alDataSourceScenarios read the one archive target of the company. The data source takes no input.
+var alDataSourceScenarios = map[string]func(h *grHarness){
+	"read": func(h *grHarness) {
+		h.archiveLogs().seed(map[string]any{"bucket": "seeded-bucket", "region": "eu-north-1"}, true)
+		h.ReadDataSource("read the archive target", j{})
+	},
+	"read-without-target": func(h *grHarness) {
+		h.ReadDataSource("read: the API returns an empty IBM COS target", j{})
+	},
+	"route-missing": func(h *grHarness) {
+		h.archiveLogs().failGets(http.StatusNotFound, "Not Found", "Not Found")
+		h.ReadDataSource("read: the gateway has no such route", j{})
+	},
+	"api-error": func(h *grHarness) {
+		h.archiveLogs().failGets(http.StatusInternalServerError, "Internal", "archive target store unavailable")
+		h.ReadDataSource("read: the API fails", j{})
+	},
+}
+
+func (h *grHarness) archiveLogs() *alFake {
+	h.t.Helper()
+	f, ok := h.api.(*alFake)
+	if !ok {
+		h.t.Fatal("expected *alFake")
+	}
+	return f
+}
