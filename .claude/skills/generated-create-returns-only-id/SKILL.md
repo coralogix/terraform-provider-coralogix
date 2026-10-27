@@ -13,7 +13,7 @@ api:
   requestWrapper: thing        # the body wraps the resource
   updateIDInBody: true
   idProperty: id               # the id property next to the path parameter thing_id
-  createResponseID: thingId    # Create then reads the resource with Get
+  createResponseOnlyIDProperty: thingId    # Create then reads the resource with Get
   serverSetID: true            # the shared schema cannot require the id
 types:
   Thing: {fields: {id: {readOnly: true}}}
