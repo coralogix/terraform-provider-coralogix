@@ -26,6 +26,8 @@ func TestFlattenDashboardAccessPolicy(t *testing.T) {
 	backendText := `{"version":"2025-01-01","default":{"permissions":{"team-dashboards:Read":"grant"}},"rules":[]}`
 	canonicalText := `{"default":{"permissions":{"team-dashboards:Read":"grant"}},"rules":[],"version":"2025-01-01"}`
 	unparsableText := "not json"
+	emptyText := ""
+	blankText := " \n\t"
 	// jsonencode escapes &, so the stored text must escape it too.
 	ampersandText := `{"rules":[{"name":"reads & writes"}]}`
 	prettyText := "{\n  \"version\": \"2025-01-01\",\n  \"default\": {\n    \"permissions\": {\n      \"team-dashboards:Read\": \"grant\"\n    }\n  },\n  \"rules\": []\n}"
@@ -40,6 +42,54 @@ func TestFlattenDashboardAccessPolicy(t *testing.T) {
 			name:         "no policy on the dashboard",
 			plan:         types.StringNull(),
 			accessPolicy: nil,
+			want:         types.StringNull(),
+		},
+		{
+			name:         "an empty policy from the API is no policy",
+			plan:         types.StringNull(),
+			accessPolicy: &emptyText,
+			want:         types.StringNull(),
+		},
+		{
+			name:         "an empty plan keeps an empty policy from the API",
+			plan:         types.StringValue(""),
+			accessPolicy: &emptyText,
+			want:         types.StringValue(""),
+		},
+		{
+			name:         "an empty plan keeps an omitted policy",
+			plan:         types.StringValue(""),
+			accessPolicy: nil,
+			want:         types.StringValue(""),
+		},
+		{
+			name:         "a whitespace-only plan keeps an echoed whitespace policy",
+			plan:         types.StringValue(blankText),
+			accessPolicy: &blankText,
+			want:         types.StringValue(blankText),
+		},
+		{
+			name:         "a whitespace-only plan keeps an empty policy from the API",
+			plan:         types.StringValue(blankText),
+			accessPolicy: &emptyText,
+			want:         types.StringValue(blankText),
+		},
+		{
+			name:         "a whitespace-only plan keeps an omitted policy",
+			plan:         types.StringValue(blankText),
+			accessPolicy: nil,
+			want:         types.StringValue(blankText),
+		},
+		{
+			name:         "an empty policy with an unknown plan is no policy",
+			plan:         types.StringUnknown(),
+			accessPolicy: &emptyText,
+			want:         types.StringNull(),
+		},
+		{
+			name:         "a whitespace-only policy from the API is no policy",
+			plan:         types.StringNull(),
+			accessPolicy: &blankText,
 			want:         types.StringNull(),
 		},
 		{
