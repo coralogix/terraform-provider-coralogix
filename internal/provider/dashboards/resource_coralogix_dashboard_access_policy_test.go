@@ -26,6 +26,8 @@ func TestFlattenDashboardAccessPolicy(t *testing.T) {
 	backendText := `{"version":"2025-01-01","default":{"permissions":{"team-dashboards:Read":"grant"}},"rules":[]}`
 	canonicalText := `{"default":{"permissions":{"team-dashboards:Read":"grant"}},"rules":[],"version":"2025-01-01"}`
 	unparsableText := "not json"
+	emptyText := ""
+	blankText := " \n\t"
 	// jsonencode escapes &, so the stored text must escape it too.
 	ampersandText := `{"rules":[{"name":"reads & writes"}]}`
 	prettyText := "{\n  \"version\": \"2025-01-01\",\n  \"default\": {\n    \"permissions\": {\n      \"team-dashboards:Read\": \"grant\"\n    }\n  },\n  \"rules\": []\n}"
@@ -40,6 +42,30 @@ func TestFlattenDashboardAccessPolicy(t *testing.T) {
 			name:         "no policy on the dashboard",
 			plan:         types.StringNull(),
 			accessPolicy: nil,
+			want:         types.StringNull(),
+		},
+		{
+			name:         "an empty policy from the API is no policy",
+			plan:         types.StringNull(),
+			accessPolicy: &emptyText,
+			want:         types.StringNull(),
+		},
+		{
+			name:         "an empty policy replaces an empty string already in state",
+			plan:         types.StringValue(""),
+			accessPolicy: &emptyText,
+			want:         types.StringNull(),
+		},
+		{
+			name:         "an empty policy with an unknown plan is no policy",
+			plan:         types.StringUnknown(),
+			accessPolicy: &emptyText,
+			want:         types.StringNull(),
+		},
+		{
+			name:         "a whitespace-only policy from the API is no policy",
+			plan:         types.StringNull(),
+			accessPolicy: &blankText,
 			want:         types.StringNull(),
 		},
 		{

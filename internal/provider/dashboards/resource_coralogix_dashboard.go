@@ -4271,7 +4271,10 @@ func flattenContentJSONDashboard(ctx context.Context, plan DashboardResourceMode
 }
 
 func flattenDashboardAccessPolicy(planAccessPolicy types.String, accessPolicy *string) (types.String, diag.Diagnostics) {
-	if accessPolicy == nil {
+	// The API sometimes returns an empty string instead of omitting the
+	// field. Both mean the dashboard has no policy, and the request side
+	// never sends an empty one either.
+	if accessPolicy == nil || strings.TrimSpace(*accessPolicy) == "" {
 		return types.StringNull(), nil
 	}
 	if !planAccessPolicy.IsNull() && !planAccessPolicy.IsUnknown() && utils.JSONStringsEqual(planAccessPolicy.ValueString(), *accessPolicy) {

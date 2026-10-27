@@ -1,5 +1,8 @@
 # Unreleased
 
+#### resource/coralogix_dashboard
+- FIX: An empty `access_policy` returned by the API is read as null, the same as an omitted one. Before, the empty string went into state and import could not match it.
+
 #### provider
 - CHORE: Bump `github.com/yuin/goldmark` to v1.7.17 to clear CVE-2026-5160. It is used only by the docs generator, not the provider binary. No change to provider behavior.
 
