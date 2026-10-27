@@ -30,6 +30,7 @@ env:
   DASHBOARD_MIGRATION_ACC_PATTERN: '^TestAccCoralogixResourceDashboardMigration'
   DASHBOARD_MIGRATION_V360_PATTERN: &dashboard_migration_v360_pattern '^TestAccCoralogixResourceDashboardMigrationFromV360$'
   DASHBOARD_MIGRATION_SCHEMA_V3_PATTERN: &dashboard_migration_schema_v3_pattern '^TestAccCoralogixResourceDashboardMigrationFromSchemaV3$'
+  DASHBOARD_MIGRATION_SAME_SCHEMA_VERSION_PATTERN: &dashboard_migration_same_schema_version_pattern '^TestAccCoralogixResourceDashboardMigrationFromSameSchemaVersion$'
   EVENTS2METRIC_MIGRATION_ACC_PATTERN: &events2metric_migration_acc_pattern '^TestAccCoralogixResourceEvents2MetricMigration$'
   USER_MIGRATION_ACC_PATTERN: &user_migration_acc_pattern '^TestAccCoralogixResourceUserMigration'
   GLOBAL_ROUTER_MIGRATION_ACC_PATTERN: &global_router_migration_acc_pattern '^TestAccCoralogixResourceGlobalRouterMigration$'
@@ -51,8 +52,21 @@ env:
   DASHBOARD_SHARD_DYNAMIC_TIME_SERIES_AND_SPATIAL: &dashboard_shard_dynamic_time_series_and_spatial '^TestAccCoralogixResourceDashboardDynamic(TimeSeriesWidgets|SpatialWidgets)$'
   DASHBOARD_SHARD_DYNAMIC_STAT: &dashboard_shard_dynamic_stat '^TestAccCoralogixResourceDashboardDynamic(StatWidget|StatCardWidget)$'
   DASHBOARD_SHARD_DYNAMIC_BARS_TABLE_AND_GAUGE: &dashboard_shard_dynamic_bars_table_and_gauge '^TestAccCoralogixResourceDashboardDynamic(BarsWidgets|TableWidget|GaugeAndPieWidgets)$'
+  DASHBOARD_SHARD_HASH_COLORS_AND_COLORS_BY: &dashboard_shard_hash_colors_and_colors_by '^TestAccCoralogixResourceDashboard(HashColors|ColorsBy)$'
+  DASHBOARD_SHARD_PARITY_FIELDS: &dashboard_shard_parity_fields '^TestAccCoralogixResourceDashboard(LineChart|BarChart|Gauge|PieChart)ParityFields$'
+  DASHBOARD_SHARD_ACTIONS_SECTIONS_AND_ANNOTATIONS: &dashboard_shard_actions_sections_and_annotations '^TestAccCoralogixResourceDashboard(WidgetCustomActions|SectionOptionBranches|AccessPolicyAddedLater|MetricAnnotationOrientation|AnnotationScope|DataprimeAnnotation|EventRecurrenceAnnotation)$'
+  DASHBOARD_SHARD_VARIABLES_V2: &dashboard_shard_variables_v2 '^TestAccCoralogixResourceDashboardVariablesV2'
   NON_DASHBOARD_SHARD_ALERTS_AND_INTEGRATIONS: &non_dashboard_shard_alerts_and_integrations '^TestAccCoralogix.*(Alert|Webhook|Connector|Preset|Integration)'
   NON_DASHBOARD_SHARD_DATA_PROCESSING: &non_dashboard_shard_data_processing '^TestAccCoralogix.*(ParsingRules|Enrichments?|DataSet|TCOPolicies|QuotaAllocation)'
+  # The user tests run one after another and are the slowest non-dashboard tests.
+  # Three shards keep each job near three minutes.
+  # Tests that change team-wide state (archives, global router, IP access) stay
+  # together in the catch-all, so they still run one after another.
+  NON_DASHBOARD_SHARD_USER_GROUP_MEMBERSHIP: &non_dashboard_shard_user_group_membership '^TestAccCoralogixResourceUserGroupMembership$'
+  NON_DASHBOARD_SHARD_USER_DATA_SOURCE: &non_dashboard_shard_user_data_source '^TestAccCoralogixDataSourceUser'
+  NON_DASHBOARD_SHARD_USER_RESOURCE: &non_dashboard_shard_user_resource '^TestAccCoralogixResourceUser(|CreateInactive|KeepsLoginModes|BackwardsCompatibility|OutOfBandDeactivation|DestroyWhenAlreadyInactive)$'
+  NON_DASHBOARD_SHARD_ACCESS_CONTROL: &non_dashboard_shard_access_control '^Test(AccCoralogix(Resource|DataSource)(CustomRole|ApiKey|Group|Scope)|ApiKeyResource|CustomRole)'
+  NON_DASHBOARD_SHARD_SLO_AI_VIEWS_AND_RECORDING_RULES: &non_dashboard_shard_slo_ai_views_and_recording_rules '^TestAccCoralogix((Resource|DataSource)(SLOV2|AI|ViewFolder)|(DataSource)?RecordingRules)'
 
 jobs:
   changes:
@@ -96,6 +110,8 @@ jobs:
       contents: read
     env:
       GO111MODULE: on
+      FAILED_TESTS_FILE: failed-tests/non-dashboard-${{ matrix.shard }}.txt
+      RAN_TESTS_FILE: ran-tests/non-dashboard-${{ matrix.shard }}.txt
     strategy:
       fail-fast: false
       matrix:
@@ -104,6 +120,16 @@ jobs:
             pattern: *non_dashboard_shard_alerts_and_integrations
           - shard: data-processing
             pattern: *non_dashboard_shard_data_processing
+          - shard: user-group-membership
+            pattern: *non_dashboard_shard_user_group_membership
+          - shard: user-data-source
+            pattern: *non_dashboard_shard_user_data_source
+          - shard: user-resource
+            pattern: *non_dashboard_shard_user_resource
+          - shard: access-control
+            pattern: *non_dashboard_shard_access_control
+          - shard: slo-ai-views-and-recording-rules
+            pattern: *non_dashboard_shard_slo_ai_views_and_recording_rules
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -128,8 +154,33 @@ jobs:
           SLACK_INTEGRATION_CHANNEL_UPDATED: ${{ secrets.SLACK_INTEGRATION_CHANNEL_UPDATED }}
           PD_INTEGRATION_ID: ${{ secrets.PD_INTEGRATION_ID }}
           CORALOGIX_SLO_V2_APM_SERVICE: ${{ secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
+          RUN_PATTERN: ${{ matrix.pattern }}
         run: |
-          bash .github/scripts/run-tests-with-summary.sh make testacc "TESTARGS=-run '${{ matrix.pattern }}'"
+          # make reads `$` as a variable, so a pattern that ends in `$'` lost its
+          # closing quote. `$$` reaches the shell as one `$`.
+          bash .github/scripts/run-tests-with-summary.sh make testacc "TESTARGS=-run '${RUN_PATTERN//\$/\$\$}'"
+      # Uploads on pass too (an empty file) and overwrites the earlier attempt,
+      # so after any re-run each shard has one file for its latest result.
+      - name: Upload failed test names
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: failed-tests-non-dashboard-${{ matrix.shard }}
+          path: ${{ env.FAILED_TESTS_FILE }}
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 7
+      # No attempt number in the name: a re-run replaces the file of its own job
+      # and keeps the files of jobs that did not re-run, so the check sees every job.
+      - name: Upload ran test names
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ran-tests-non-dashboard-${{ matrix.shard }}
+          path: ${{ env.RAN_TESTS_FILE }}
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 7
 
   test-unsharded:
     name: Non-dashboard acceptance tests (unsharded catch-all)
@@ -139,6 +190,8 @@ jobs:
       contents: read
     env:
       GO111MODULE: on
+      FAILED_TESTS_FILE: failed-tests/non-dashboard-unsharded.txt
+      RAN_TESTS_FILE: ran-tests/non-dashboard-unsharded.txt
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -167,12 +220,39 @@ jobs:
           shard_patterns=(
             "$NON_DASHBOARD_SHARD_ALERTS_AND_INTEGRATIONS"
             "$NON_DASHBOARD_SHARD_DATA_PROCESSING"
+            "$NON_DASHBOARD_SHARD_USER_GROUP_MEMBERSHIP"
+            "$NON_DASHBOARD_SHARD_USER_DATA_SOURCE"
+            "$NON_DASHBOARD_SHARD_USER_RESOURCE"
+            "$NON_DASHBOARD_SHARD_ACCESS_CONTROL"
+            "$NON_DASHBOARD_SHARD_SLO_AI_VIEWS_AND_RECORDING_RULES"
           )
           skip_pattern="$DASHBOARD_ACC_PATTERN|$EVENTS2METRIC_MIGRATION_ACC_PATTERN|$USER_MIGRATION_ACC_PATTERN|$ARCHIVE_LOGS_ACC_PATTERN"
           for pattern in "${shard_patterns[@]}"; do
             skip_pattern+="|($pattern)"
           done
           ACC_SKIP_PATTERN="$skip_pattern" bash .github/scripts/run-tests-with-summary.sh make testacc
+      # Uploads on pass too (an empty file) and overwrites the earlier attempt,
+      # so after any re-run each shard has one file for its latest result.
+      - name: Upload failed test names
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: failed-tests-non-dashboard-unsharded
+          path: ${{ env.FAILED_TESTS_FILE }}
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 7
+      # No attempt number in the name: a re-run replaces the file of its own job
+      # and keeps the files of jobs that did not re-run, so the check sees every job.
+      - name: Upload ran test names
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ran-tests-non-dashboard-unsharded
+          path: ${{ env.RAN_TESTS_FILE }}
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 7
 
   dashboard:
     name: Dashboard acceptance tests (${{ matrix.shard }})
@@ -182,6 +262,8 @@ jobs:
       contents: read
     env:
       GO111MODULE: on
+      FAILED_TESTS_FILE: failed-tests/dashboard-${{ matrix.shard }}.txt
+      RAN_TESTS_FILE: ran-tests/dashboard-${{ matrix.shard }}.txt
     strategy:
       fail-fast: false
       matrix:
@@ -210,6 +292,14 @@ jobs:
             pattern: *dashboard_shard_dynamic_stat
           - shard: dynamic-bars-table-and-gauge
             pattern: *dashboard_shard_dynamic_bars_table_and_gauge
+          - shard: hash-colors-and-colors-by
+            pattern: *dashboard_shard_hash_colors_and_colors_by
+          - shard: parity-fields
+            pattern: *dashboard_shard_parity_fields
+          - shard: actions-sections-and-annotations
+            pattern: *dashboard_shard_actions_sections_and_annotations
+          - shard: variables-v2
+            pattern: *dashboard_shard_variables_v2
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -227,6 +317,28 @@ jobs:
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
         run: |
           bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run '${{ matrix.pattern }}' -timeout 120m -parallel=4
+      # Uploads on pass too (an empty file) and overwrites the earlier attempt,
+      # so after any re-run each shard has one file for its latest result.
+      - name: Upload failed test names
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: failed-tests-dashboard-${{ matrix.shard }}
+          path: ${{ env.FAILED_TESTS_FILE }}
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 7
+      # No attempt number in the name: a re-run replaces the file of its own job
+      # and keeps the files of jobs that did not re-run, so the check sees every job.
+      - name: Upload ran test names
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ran-tests-dashboard-${{ matrix.shard }}
+          path: ${{ env.RAN_TESTS_FILE }}
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 7
 
   dashboard-unsharded:
     name: Dashboard acceptance tests (unsharded catch-all)
@@ -236,6 +348,8 @@ jobs:
       contents: read
     env:
       GO111MODULE: on
+      FAILED_TESTS_FILE: failed-tests/dashboard-unsharded.txt
+      RAN_TESTS_FILE: ran-tests/dashboard-unsharded.txt
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -265,6 +379,10 @@ jobs:
             "$DASHBOARD_SHARD_DYNAMIC_TIME_SERIES_AND_SPATIAL"
             "$DASHBOARD_SHARD_DYNAMIC_STAT"
             "$DASHBOARD_SHARD_DYNAMIC_BARS_TABLE_AND_GAUGE"
+            "$DASHBOARD_SHARD_HASH_COLORS_AND_COLORS_BY"
+            "$DASHBOARD_SHARD_PARITY_FIELDS"
+            "$DASHBOARD_SHARD_ACTIONS_SECTIONS_AND_ANNOTATIONS"
+            "$DASHBOARD_SHARD_VARIABLES_V2"
           )
           skip_pattern="($DASHBOARD_MIGRATION_ACC_PATTERN)"
           for pattern in "${shard_patterns[@]}"; do
@@ -273,6 +391,28 @@ jobs:
             skip_pattern+="|$pattern"
           done
           bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run "$DASHBOARD_ACC_PATTERN" -skip "$skip_pattern" -timeout 120m -parallel=4
+      # Uploads on pass too (an empty file) and overwrites the earlier attempt,
+      # so after any re-run each shard has one file for its latest result.
+      - name: Upload failed test names
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: failed-tests-dashboard-unsharded
+          path: ${{ env.FAILED_TESTS_FILE }}
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 7
+      # No attempt number in the name: a re-run replaces the file of its own job
+      # and keeps the files of jobs that did not re-run, so the check sees every job.
+      - name: Upload ran test names
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ran-tests-dashboard-unsharded
+          path: ${{ env.RAN_TESTS_FILE }}
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 7
 
   provider-migration:
     name: Provider migration (${{ matrix.shard }})
@@ -282,6 +422,8 @@ jobs:
       contents: read
     env:
       GO111MODULE: on
+      FAILED_TESTS_FILE: failed-tests/provider-migration-${{ matrix.shard }}.txt
+      RAN_TESTS_FILE: ran-tests/provider-migration-${{ matrix.shard }}.txt
     strategy:
       fail-fast: false
       matrix:
@@ -290,6 +432,8 @@ jobs:
             pattern: *dashboard_migration_v360_pattern
           - shard: dashboard-schema-v3
             pattern: *dashboard_migration_schema_v3_pattern
+          - shard: dashboard-same-schema-version
+            pattern: *dashboard_migration_same_schema_version_pattern
           - shard: events2metric-v3.8.0-and-v3.21.0
             pattern: *events2metric_migration_acc_pattern
           - shard: user-scim-v3.14.0
@@ -322,6 +466,89 @@ jobs:
           ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
         run: |
           bash .github/scripts/run-tests-with-summary.sh env CORALOGIX_DASHBOARD_MIGRATION_ACC=1 CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 CORALOGIX_USER_MIGRATION_ACC=1 CORALOGIX_GLOBAL_ROUTER_MIGRATION_ACC=1 CORALOGIX_GENERATED_UPGRADE_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test -p ${{ matrix.procs || 4 }} -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -run '${{ matrix.pattern }}' -skip '${{ matrix.skip }}' -v -count=1 -timeout 120m -parallel=3
+      # Uploads on pass too (an empty file) and overwrites the earlier attempt,
+      # so after any re-run each shard has one file for its latest result.
+      - name: Upload failed test names
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: failed-tests-provider-migration-${{ matrix.shard }}
+          path: ${{ env.FAILED_TESTS_FILE }}
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 7
+      # No attempt number in the name: a re-run replaces the file of its own job
+      # and keeps the files of jobs that did not re-run, so the check sees every job.
+      - name: Upload ran test names
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ran-tests-provider-migration-${{ matrix.shard }}
+          path: ${{ env.RAN_TESTS_FILE }}
+          if-no-files-found: ignore
+          overwrite: true
+          retention-days: 7
+
+  list-tests:
+    name: List all tests
+    needs: changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: List every test in every package
+        run: |
+          set -euo pipefail
+          mkdir -p listed-tests
+          go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" -list '.*' ./... \
+            | bash .github/scripts/go-test-names.sh --list > listed-tests/listed-tests.txt
+      - name: Upload listed test names
+        uses: actions/upload-artifact@v7
+        with:
+          name: listed-tests
+          path: listed-tests/listed-tests.txt
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
+
+  test-coverage:
+    name: Acceptance test coverage
+    # Fails when a test ran in no job, or passed or failed in two jobs.
+    # Runs when every test job ran. A failed job still counts: its file lists
+    # the tests it ran before it failed.
+    needs:
+      - changes
+      - test
+      - test-unsharded
+      - dashboard
+      - dashboard-unsharded
+      - provider-migration
+      - list-tests
+    if: ${{ always() && needs.changes.outputs.code == 'true' && needs.list-tests.result == 'success' && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'skipped') }}
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download listed test names
+        uses: actions/download-artifact@v8
+        with:
+          name: listed-tests
+          path: listed-tests
+      - name: Download ran test names
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ran-tests-*
+          path: ran-tests
+          merge-multiple: true
+      - name: Check that every test ran in exactly one job
+        run: bash .github/scripts/check-test-coverage.sh listed-tests/listed-tests.txt ran-tests/*.txt
 
   acceptance-result:
     # Branch protection requires this check name. Keep it stable.
@@ -337,9 +564,42 @@ jobs:
       - dashboard
       - dashboard-unsharded
       - provider-migration
+      - list-tests
+      - test-coverage
     permissions: {}
     runs-on: ubuntu-latest
     steps:
+      # Each test job uploads one file, named after its shard. The file is empty
+      # when the job passed. merge-multiple puts all files in one folder: GitHub
+      # skips the per-artifact folder when only one artifact matches.
+      - name: Download failed test names
+        if: ${{ contains(needs.*.result, 'failure') }}
+        uses: actions/download-artifact@v8
+        with:
+          pattern: failed-tests-*
+          path: failed-tests
+          merge-multiple: true
+      - name: Write failed tests summary
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: |
+          shopt -s nullglob
+          files=()
+          for file in failed-tests/*.txt; do
+            if [ -s "$file" ]; then
+              files+=("$file")
+            fi
+          done
+          if [ "${#files[@]}" -eq 0 ]; then
+            exit 0
+          fi
+          {
+            echo '## Failed acceptance tests'
+            for file in "${files[@]}"; do
+              printf '\n### %s\n\n```text\n' "$(basename "$file" .txt)"
+              cat "$file"
+              printf '```\n'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Fail if any acceptance job failed or was cancelled
         if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
         run: exit 1
@@ -355,6 +615,8 @@ jobs:
       - dashboard
       - dashboard-unsharded
       - provider-migration
+      - list-tests
+      - test-coverage
     permissions:
       contents: read
     runs-on: ubuntu-latest
