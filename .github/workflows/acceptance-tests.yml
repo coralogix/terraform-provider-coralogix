@@ -332,7 +332,10 @@ jobs:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
         run: |
-          bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run '${{ matrix.pattern }}' -timeout 120m -parallel=4
+          # All provider packages, not only ./internal/provider: the non-dashboard jobs skip
+          # dashboard names in every package, so a generated dashboard resource in its own
+          # package must be picked up here.
+          bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -v -run '${{ matrix.pattern }}' -timeout 120m -parallel=4
       # Uploads on pass too (an empty file) and overwrites the earlier attempt,
       # so after any re-run each shard has one file for its latest result.
       - name: Upload failed test names
@@ -406,7 +409,10 @@ jobs:
             # a parent test pattern and a subtest pattern.
             skip_pattern+="|$pattern"
           done
-          bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run "$DASHBOARD_ACC_PATTERN" -skip "$skip_pattern" -timeout 120m -parallel=4
+          # All provider packages, not only ./internal/provider: the non-dashboard jobs skip
+          # dashboard names in every package, so a generated dashboard resource in its own
+          # package must be picked up here.
+          bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -v -run "$DASHBOARD_ACC_PATTERN" -skip "$skip_pattern" -timeout 120m -parallel=4
       # Uploads on pass too (an empty file) and overwrites the earlier attempt,
       # so after any re-run each shard has one file for its latest result.
       - name: Upload failed test names
