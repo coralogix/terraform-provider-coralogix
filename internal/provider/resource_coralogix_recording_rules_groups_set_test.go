@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -41,6 +42,7 @@ func TestAccCoralogixRecordingRulesGroupsSetFromYaml(t *testing.T) {
 	}
 	parent := filepath.Dir(filepath.Dir(wd))
 	filePath := parent + "/examples/resources/coralogix_recording_rules_groups_set/rule-group-set.yaml"
+	filePath = testAccRecordingRulesGroupsSetYamlWithUniqueName(t, filePath)
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -341,6 +343,28 @@ func testAccCoralogixResourceRecordingRulesGroupsSetFromYamlWithNameUpdated(file
 					name = %q
 				}
 `, filePath, name)
+}
+
+// testAccRecordingRulesGroupsSetYamlWithUniqueName copies the example YAML to a
+// temp file with a random set name. The backend rejects a second set with the
+// same name, so a fixed name collides with any set a past run leaked.
+func testAccRecordingRulesGroupsSetYamlWithUniqueName(t *testing.T, filePath string) string {
+	t.Helper()
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const exampleName = "name: Example\n"
+	if !strings.HasPrefix(string(content), exampleName) {
+		t.Fatalf("%s must start with %q", filePath, exampleName)
+	}
+	name := acctest.RandomWithPrefix("tf-acc-rr-set")
+	unique := strings.Replace(string(content), exampleName, "name: "+name+"\n", 1)
+	uniquePath := filepath.Join(t.TempDir(), filepath.Base(filePath))
+	if err := os.WriteFile(uniquePath, []byte(unique), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return uniquePath
 }
 
 func testAccCoralogixResourceRecordingRulesGroupsSetFromYaml(filePath string) string {
