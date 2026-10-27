@@ -6,9 +6,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"{{.CRUD.ProviderPkg}}"
@@ -16,6 +21,7 @@ import (
 	"{{.DataSource.UtilsPkg}}"
 )
 {{with .CRUD}}
+{{- $name := $.DataSource.Name}}
 {{- $provider := .ProviderName}}
 {{- $cx := .CXName}}
 var (
@@ -26,6 +32,9 @@ var (
 {{if .Singleton -}}
 // DataSource reads the {{.TypeName}} singleton with the schema, the model, and the conversion of the
 // resource. It takes no input.
+{{- else if $name -}}
+// DataSource reads one {{.TypeName}} by id or by name with the schema, the model, and the
+// conversion of the resource.
 {{- else -}}
 // DataSource reads one {{.TypeName}} by id with the schema, the model, and the conversion of the
 // resource.
@@ -54,12 +63,15 @@ func (d *DataSource) Metadata(_ context.Context, req datasource.MetadataRequest,
 
 {{if .Singleton -}}
 // Schema is the schema of the resource with every attribute computed.
+{{- else if $name -}}
+// Schema is the schema of the resource with every attribute computed. The configuration sets
+// exactly one of the id and the name.
 {{- else -}}
 // Schema is the schema of the resource with every attribute computed, except the id, which the
 // configuration sets.
 {{- end}}
 func (d *DataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-{{- if $.DataSource.IDSchema}}
+{{- if or $.DataSource.IDSchema $name}}
 	s := Schema()
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(s)
 {{- if ne .IDAttr "id"}}
@@ -72,12 +84,25 @@ func (d *DataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp 
 	resp.Schema.Attributes[{{printf "%q" .IDAttr}}] = schema.{{.IDTFType}}Attribute{
 {{- if .Singleton}}
 		Computed:            true,
+{{- else if $name}}
+		Optional:            true,
 {{- else}}
 		Required:            true,
 {{- end}}
 		Description:         id.GetDescription(),
 		MarkdownDescription: id.GetMarkdownDescription(),
+{{- if $name}}
+		Validators: []validator.{{.IDTFType}}{
+			{{$name.Validator}}.ExactlyOneOf(path.MatchRelative().AtParent().AtName({{printf "%q" $name.Attr}})),
+		},
+{{- end}}
 	}
+{{- if $name}}
+	if name, ok := resp.Schema.Attributes[{{printf "%q" $name.Attr}}].(schema.StringAttribute); ok {
+		name.Optional = true // and computed, as every copied attribute
+		resp.Schema.Attributes[{{printf "%q" $name.Attr}}] = name
+	}
+{{- end}}
 {{- else}}
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(Schema())
 {{- end}}
@@ -98,6 +123,9 @@ func (d *DataSource) Configure(_ context.Context, req datasource.ConfigureReques
 
 {{if .Singleton -}}
 // Read reads the singleton. A 404 is an error: the data source has no result to show.
+{{- else if $name -}}
+// Read reads the resource with the configured id, or with the id of the configured name. An id
+// that the API does not find is an error. A 404 of a route that does not exist is an error too.
 {{- else -}}
 // Read reads the resource with the configured id. An id that the API does not find is an error.
 // A 404 of a route that does not exist is an error too.
@@ -108,10 +136,23 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 {{- else}}
 	var configured types.{{.IDTFType}}
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), &configured)...)
+{{- if $name}}
+	var name types.String
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root({{printf "%q" $name.Attr}}), &name)...)
+{{- end}}
 	if resp.Diagnostics.HasError() {
 		return
 	}
 	id := configured.Value{{.IDTFType}}()
+{{- if $name}}
+	if !name.IsNull() {
+		var diags diag.Diagnostics
+		if id, diags = d.idByName(ctx, name.ValueString()); diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
+	}
+{{- end}}
 {{- end}}
 	v, err := d.resource.get(ctx, id)
 	if {{$cx}}.{{.APINotFound}}(err) {
@@ -155,4 +196,53 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 {{- end}}
 	resp.Diagnostics.Append(resp.State.Set(ctx, m)...)
 }
+{{- if $name}}
+
+{{- if $name.First}}
+// idByName lists the resources and returns the id of the first one with the name, in the order of
+// the API, as the released data source did. A name that no item has is an error.
+{{- else}}
+// idByName lists the resources and returns the id of the one with the name. A name that no item
+// has, or that more than one item has, is an error.
+{{- end}}
+func (d *DataSource) idByName(ctx context.Context, name string) ({{.IDGoType}}, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	out, httpResp, err := d.resource.client.{{$name.List}}(ctx).Execute()
+	if err != nil {
+		diags.AddError("Unable to list coralogix_"+TypeName, {{$cx}}.{{.NewAPIError}}(httpResp, err).Error())
+		return {{if eq .IDGoType "string"}}""{{else}}0{{end}}, diags
+	}
+	var ids []{{.IDGoType}}
+	if out != nil {
+		for _, item := range out.{{$name.Items}} {
+{{- if $name.NameValue}}
+			if item.{{$name.ItemName}} != name {
+{{- else}}
+			if item.{{$name.ItemName}} == nil || *item.{{$name.ItemName}} != name {
+{{- end}}
+				continue
+			}
+{{- if $name.IDValue}}
+			ids = append(ids, item.{{$name.ItemID}})
+{{- else}}
+			if item.{{$name.ItemID}} != nil {
+				ids = append(ids, *item.{{$name.ItemID}})
+			}
+{{- end}}
+		}
+	}
+	if len(ids) == 0 {
+		diags.AddError(fmt.Sprintf("coralogix_%s with name %q not found", TypeName, name), "")
+		return {{if eq .IDGoType "string"}}""{{else}}0{{end}}, diags
+	}
+{{- if not $name.First}}
+	if len(ids) > 1 {
+		diags.AddError(fmt.Sprintf("coralogix_%s with name %q is not unique", TypeName, name),
+			fmt.Sprintf("%d coralogix_%s resources have the name %q. Set the id instead of the name.", len(ids), TypeName, name))
+		return {{if eq .IDGoType "string"}}""{{else}}0{{end}}, diags
+	}
+{{- end}}
+	return ids[0], diags
+}
+{{- end}}
 {{- end}}

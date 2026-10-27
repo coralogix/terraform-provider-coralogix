@@ -10,8 +10,13 @@ import (
 // resource always gets one.
 type DataSource struct {
 	// Lookup names the attributes that find the resource. [id] is the default, so the generator
-	// reports it as a line that changes nothing. This version looks up the id only.
+	// reports it as a line that changes nothing. [id, name] also finds the resource by its name,
+	// through the List of the API.
 	Lookup []string `yaml:"lookup"`
+	// DuplicateNames: first takes the first item of the List that has the name, in the order of
+	// the API, for a released data source that did so. Without the line, a name that more than
+	// one item has is an error. It needs name in Lookup.
+	DuplicateNames string `yaml:"duplicateNames"`
 	// Types has one entry per OpenAPI component. Only the resource component can have one: a line
 	// changes a top-level attribute.
 	Types map[string]DataSourceType `yaml:"types"`
@@ -32,8 +37,12 @@ type DataSourceField struct {
 // ReadEmptyAsValue is the readEmptyAs value of a data source field line.
 const ReadEmptyAsValue = "value"
 
-// LookupID is the lookup attribute of the data source.
-const LookupID = "id"
+// The lookup attributes of the data source, and the duplicateNames value.
+const (
+	LookupID            = "id"
+	LookupName          = "name"
+	DuplicateNamesFirst = "first"
+)
 
 // check checks the keys that the file alone decides. The generator checks the lines against the
 // resource lines and the contract.
@@ -41,13 +50,8 @@ func (d *DataSource) check() error {
 	if d == nil {
 		return nil
 	}
-	for i, name := range d.Lookup {
-		if name != LookupID {
-			return fmt.Errorf("dataSource.lookup: %q is not supported; the data source looks up %q", name, LookupID)
-		}
-		if slices.Contains(d.Lookup[:i], name) {
-			return fmt.Errorf("dataSource.lookup names %q twice", name)
-		}
+	if err := d.checkLookup(); err != nil {
+		return err
 	}
 	for _, component := range sortedKeys(d.Types) {
 		fields := d.Types[component].Fields
@@ -61,6 +65,33 @@ func (d *DataSource) check() error {
 		}
 	}
 	return nil
+}
+
+// checkLookup checks lookup and duplicateNames.
+func (d *DataSource) checkLookup() error {
+	for i, name := range d.Lookup {
+		if name != LookupID && name != LookupName {
+			return fmt.Errorf("dataSource.lookup: %q is not supported; the data source looks up %q or %q", name, LookupID, LookupName)
+		}
+		if slices.Contains(d.Lookup[:i], name) {
+			return fmt.Errorf("dataSource.lookup names %q twice", name)
+		}
+	}
+	if len(d.Lookup) != 0 && !slices.Contains(d.Lookup, LookupID) {
+		return fmt.Errorf("dataSource.lookup must name %q: the data source always looks up the id", LookupID)
+	}
+	switch {
+	case d.DuplicateNames != "" && d.DuplicateNames != DuplicateNamesFirst:
+		return fmt.Errorf("dataSource.duplicateNames is %q, want %q", d.DuplicateNames, DuplicateNamesFirst)
+	case d.DuplicateNames != "" && !d.LooksUpName():
+		return fmt.Errorf("dataSource.duplicateNames needs %q in dataSource.lookup", LookupName)
+	}
+	return nil
+}
+
+// LooksUpName reports whether the section names name in lookup.
+func (d *DataSource) LooksUpName() bool {
+	return d != nil && slices.Contains(d.Lookup, LookupName)
 }
 
 // DataSourceLine is one line of the dataSource section, for the issues of the generator.

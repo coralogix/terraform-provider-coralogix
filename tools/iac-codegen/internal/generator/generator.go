@@ -267,6 +267,7 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	if err != nil {
 		return nil, fmt.Errorf("build validated resource: %w", err)
 	}
+	dropUnusedList(resource, file)
 	if report = unwrapUsageIssues(resource, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}
@@ -373,6 +374,14 @@ func shapeIssue(location string, err error) issue.Issue {
 			Location:    location,
 			Message:     err.Error(),
 			Remediation: "Delete the keepPriorOrder or equality key, or the unwrap line of the field.",
+		}
+	}
+	if errors.Is(err, errDataSourceLookup) {
+		return issue.Issue{
+			Code:        "OVERRIDE_INVALID",
+			Location:    overrides.FileName + ":dataSource.lookup",
+			Message:     err.Error(),
+			Remediation: "Delete name from dataSource.lookup, or give the API a List that the data source can use.",
 		}
 	}
 	if errors.Is(err, errStaleOverrideKey) {

@@ -83,6 +83,10 @@ func config(run, resourceBlock string) string {
 {{- if .DataSource}}
 
 const dataSourceAddress = {{printf "%q" .DataSource.Address}}
+{{- if .DataSource.ByNameAddress}}
+
+const dataSourceByNameAddress = {{printf "%q" .DataSource.ByNameAddress}}
+{{- end}}
 
 // dataSourceConfig reads the data source of the resource that the config creates.
 const dataSourceConfig = `{{.DataSource.Config}}`
@@ -92,6 +96,11 @@ func dataSourceChecks() resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 {{- range .DataSource.Pairs}}
 		resource.TestCheckResourceAttrPair(dataSourceAddress, {{printf "%q" .}}, resourceAddress, {{printf "%q" .}}),
+{{- end}}
+{{- if .DataSource.ByNameAddress}}
+{{- range .DataSource.Pairs}}
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, {{printf "%q" .}}, resourceAddress, {{printf "%q" .}}),
+{{- end}}
 {{- end}}
 	)
 }

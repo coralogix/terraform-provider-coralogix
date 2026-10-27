@@ -74,7 +74,7 @@ func renderAll(r *model.Resource, refs []sdkcheck.Ref, pkg string, file *overrid
 		files["replace.go"] = "replace.go.tmpl"
 	}
 	if file.HasDataSource() {
-		if data.DataSource, err = buildDataSource(data.Conv, data.CRUD, file); err != nil {
+		if data.DataSource, err = buildDataSource(r, refs, data.Conv, data.CRUD, file); err != nil {
 			return nil, err
 		}
 		files[dataSourceFile] = "data_source.go.tmpl"

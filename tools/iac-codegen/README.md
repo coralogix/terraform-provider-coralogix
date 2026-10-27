@@ -256,7 +256,7 @@ A resource in this mode exports `Flatten` for a handwritten data source. `NewRes
 
 ## Data sources
 
-The generator writes `data_source.go` in the package of the resource. The data source reads one resource by its id.
+The generator writes `data_source.go` in the package of the resource. The data source reads one resource by its id, or by its name when the API has a usable List.
 
 | Resource | Data source |
 |---|---|
@@ -265,9 +265,24 @@ The generator writes `data_source.go` in the package of the resource. The data s
 
 The data source uses the code of the resource:
 
-- Schema: `utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(Schema())`, at run time. Every attribute is computed, and the id is required. A new API field reaches the data source with no change. The copy makes only a string attribute named `id` the lookup attribute, so the data source sets an integer id, or an id attribute with another name, itself. A singleton takes no input: its `id` is computed.
-- Read: Get by id, then `BeforeFlatten` (existing mode), then flatten without a prior value. It does not run `AfterRead`: that hook needs a plan or a state.
+- Schema: `utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(Schema())`, at run time. Every attribute is computed, and the id is required (optional with name lookup, see below). A new API field reaches the data source with no change. The copy makes only a string attribute named `id` the lookup attribute, so the data source sets an integer id, or an id attribute with another name, itself. A singleton takes no input: its `id` is computed.
+- Read: Get by id (or by the id of the name), then `BeforeFlatten` (existing mode), then flatten without a prior value. It does not run `AfterRead`: that hook needs a plan or a state.
 - An id that the API does not find is an error. A 404 of a route that does not exist is an error too.
+
+Lookup by name. The List only turns a name into an id. The result always comes from Get, so a List of summaries works as well as a List of full resources. A usable List:
+
+- exists: the GET on the Create path, or the operation that `api.operations.list` names (`api.operations` can also name `list`, alone or with the four lifecycle keys);
+- has items with the id and a string `name`;
+- is not paged: the data source reads one response.
+
+| Resource | Lookup |
+|---|---|
+| New | `id` or `name` when the List is usable. `id` only otherwise, with no error. |
+| Existing | `id` or `name` only with `lookup: [id, name]`. The line on a resource without a usable List is an error (`OVERRIDE_INVALID`) that says why. |
+
+The generator checks the SDK names of the List only when the data source looks up the name. A List that the generated code does not call never stops the generation.
+
+With name lookup, `id` and `name` are optional, and the configuration sets exactly one of them (`ExactlyOneOf` on `id`). `name` stays computed. Read with a name calls the List with no parameters, takes the id of the item with that name, and then reads the id as a lookup by id does. A name that no item has is the error `coralogix_<type> with name "<name>" not found`. A name that more than one item has is the error `coralogix_<type> with name "<name>" is not unique`, unless `duplicateNames: first` takes the first item in the order of the API.
 
 An existing resource passes the hooks of the resource, so both run the same `BeforeFlatten`. The domain package keeps a one-line constructor, and `provider.go` keeps its registration line:
 
@@ -281,6 +296,8 @@ The keys of the section:
 
 ```yaml
 dataSource:
+  lookup: [id, name]        # also find the resource by its name, through the List
+  duplicateNames: first     # the first item with the name wins, as the released data source did
   types:
     E2M:
       fields:
@@ -288,9 +305,10 @@ dataSource:
 ```
 
 - `readEmptyAs: value` is for a top-level string whose resource line reads `""` as null (`readEmptyAs: "null"`). The data source shows the value of the API, also `""`, as a released data source did. A line on another component than the resource is an error (`OVERRIDE_INVALID`). A line on a field without a resource `readEmptyAs: "null"` line changes nothing (`OVERRIDE_UNUSED`). A field that is not a plain string is an error (`RENDERER_SHAPE_UNSUPPORTED`).
-- `lookup: [id]` is the default, so the generator reports it (`OVERRIDE_UNUSED`). This version has no other lookup.
+- `lookup: [id]` is the default, so the generator reports it (`OVERRIDE_UNUSED`). `lookup` must name `id`.
+- `duplicateNames: first` keeps the released behavior when more than one item has the name. Without `name` in `lookup`, it is an error.
 
-Golden contracts: `thing` has the data source of a new resource, `legacything` has `dataSource: {}`, and `sharedthing` has a `readEmptyAs: value` line.
+Golden contracts: `thing` has the data source of a new resource with a full List, so it looks up the name. `legacything` has `dataSource: {}`. `sharedthing` has a `readEmptyAs: value` line, and a List of summaries that `api.operations.list` names, with `lookup: [id, name]` and `duplicateNames: first`.
 
 ## Acceptance tests
 
@@ -315,7 +333,7 @@ upgradeCases:                   # extra upgrade subtests (needs upgradeFrom)
 
 The test makes its configs from the final schema, after the behavior overrides. Each lifecycle is a subtest on its own resource, so a failure in one does not hide the others:
 
-- `full-lifecycle`: the full config sets every attribute the user can set, and the test checks each value. Then an import step compares the imported state with the state (`ImportStateVerify`). When the package has a data source, the next step reads it by the id of the resource and compares the id and every checked value with the resource (`TestCheckResourceAttrPair`). The update config changes the strings, numbers, and bools. An immutable attribute and an enum keep their values, because the valid values of other fields can depend on an enum. Then another import.
+- `full-lifecycle`: the full config sets every attribute the user can set, and the test checks each value. Then an import step compares the imported state with the state (`ImportStateVerify`). When the package has a data source, the next step reads it by the id of the resource, and also by the name when the data source looks up the name, and compares the id and every checked value with the resource (`TestCheckResourceAttrPair`). The update config changes the strings, numbers, and bools. An immutable attribute and an enum keep their values, because the valid values of other fields can depend on an enum. Then another import.
 - `minimal-lifecycle`: the minimal config sets only the required attributes, and the ones listed in `minimal`. Optional attributes that the server does not fill must leave the state. Then an import, the full config, and the minimal config again.
 
 After every apply, the framework plans again and fails on a non-empty plan. The made-up values are: the first accepted value of an enum (not `unspecified`), `true` and `false`, `1` and `2` (or the start of a range validator and the next number), and `@{run}-<attribute>` for a string (cut or padded with `x` to fit a length validator). One arm of each `oneOf` group is set. A made-up collection has one element, made by the same rules and the validators of the elements. The generator fails on a kind of attribute it cannot make, or on a collection whose size validator rejects one element, and asks for a value in `acceptance.yaml`. A path in `values`, `skip`, `minimal`, or `upgradeCases[].values` that matches no attribute is an error. A nested path in `minimal` (or `upgradeMinimal`) also sets its optional parents, with only their required fields. A required attribute in `skip` is an error too: no config can leave it out. After the minimal config removes an `Optional` and `Computed` attribute, the test checks the value that the schema states: a static or server default, or, with `UseStateForUnknown`, the value of the full config. Without one, the API decides, and only the empty plan and the import check it. A `values` path names the attributes from the resource down, with `[]` for each list or set element: `rules[].targets[].connector_id`.
@@ -352,7 +370,7 @@ The generator does not replace a file that it did not write. An existing example
 Every generated Go file starts with this header:
 
 ```go
-// Code generated by coralogix-iac-codegen v0.1.0-beta.40. DO NOT EDIT.
+// Code generated by coralogix-iac-codegen v0.1.0-beta.41. DO NOT EDIT.
 ```
 
 Find files affected by this generator version with:
@@ -369,7 +387,7 @@ A behavior change is a change of what the generator produces, whatever caused it
 
 ## Beta boundary
 
-This beta has no type mode. `generate` has no OpenAPI input flag. The module has no live OpenAPI fetch, custom field hook, force flag, or allow-unsupported flag. The only override is the `behavior-overrides.yaml` file of an existing resource. A Delete override makes one call: it cannot run a step before it, such as an update that an API needs before it archives, and it cannot send a request body. A data source looks up the id only: name lookup, a List call, and plural "list all" data sources are separate work, as are data sources of handwritten resources and automated delivery.
+This beta has no type mode. `generate` has no OpenAPI input flag. The module has no live OpenAPI fetch, custom field hook, force flag, or allow-unsupported flag. The only override is the `behavior-overrides.yaml` file of an existing resource. A Delete override makes one call: it cannot run a step before it, such as an update that an API needs before it archives, and it cannot send a request body. A data source looks up the id, or the name through a List that is not paged. Paging, a name field with another name than `name`, plural "list all" data sources, data sources of handwritten resources, and automated delivery are separate work.
 
 ## Verify changes
 

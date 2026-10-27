@@ -15,136 +15,14 @@
 package notifications
 
 import (
-	"context"
-	"fmt"
-	"log"
-
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/connector"
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-
-	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/connector"
 )
 
-var _ datasource.DataSourceWithConfigure = &ConnectorDataSource{}
-
+// NewConnectorDataSource returns coralogix_connector, the generated data source of the resource. It
+// finds a connector by id or by name, and takes the first connector with the name. The data source
+// runs only the BeforeFlatten hook, which the resource does not set.
 func NewConnectorDataSource() datasource.DataSource {
-	return &ConnectorDataSource{}
-}
-
-type ConnectorDataSource struct {
-	client *connectors.ConnectorsServiceAPIService
-}
-
-func (d *ConnectorDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_connector"
-}
-
-func (d *ConnectorDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	d.client = clientSet.Connectors()
-}
-
-func (d *ConnectorDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r ConnectorResource
-	var resourceResp resource.SchemaResponse
-	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
-
-	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
-
-	if idAttr, ok := resp.Schema.Attributes["id"].(schema.StringAttribute); ok {
-		idAttr.Required = false
-		idAttr.Optional = true
-		idAttr.Validators = []validator.String{
-			stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("name")),
-		}
-		resp.Schema.Attributes["id"] = idAttr
-	}
-
-	if nameAttr, ok := resp.Schema.Attributes["name"].(schema.StringAttribute); ok {
-		nameAttr.Required = false
-		nameAttr.Optional = true
-		resp.Schema.Attributes["name"] = nameAttr
-	}
-}
-
-func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var name, id types.String
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("name"), &name)...)
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("id"), &id)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	var connectorID string
-	if n := name.ValueString(); n != "" {
-		log.Printf("[INFO] Listing coralogix_connector to find by name: %s", n)
-		listConnectorResp, httpResponse, err := d.client.
-			ConnectorsServiceListConnectors(ctx).
-			Execute()
-
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error listing coralogix_connector",
-				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "List", nil),
-			)
-			return
-		}
-
-		for _, item := range listConnectorResp.Connectors {
-			if item.Name == n {
-				connectorID = *item.Id
-				break
-			}
-		}
-
-		if connectorID == "" {
-			resp.Diagnostics.AddError(fmt.Sprintf("coralogix_connector with name %q not found", n), "")
-			return
-		}
-	} else if id.ValueString() != "" {
-		connectorID = id.ValueString()
-	} else {
-		resp.Diagnostics.AddError("ID or name must be set", "")
-		return
-	}
-	rq := d.client.ConnectorsServiceGetConnector(ctx, connectorID)
-	result, httpResponse, err := rq.
-		Execute()
-
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading coralogix_connector",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
-		)
-		return
-	}
-
-	data, diags := connector.Flatten(ctx, result.Connector)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
+	return connector.NewDataSource(connector.Hooks{})
 }
