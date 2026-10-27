@@ -1,0 +1,14 @@
+[
+  {
+    "step": "read: the API returns an empty IBM COS target",
+    "config": {},
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]
