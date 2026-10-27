@@ -51,10 +51,16 @@ func TestFlattenDashboardAccessPolicy(t *testing.T) {
 			want:         types.StringNull(),
 		},
 		{
-			name:         "an empty policy replaces an empty string already in state",
+			name:         "an empty plan keeps an empty policy from the API",
 			plan:         types.StringValue(""),
 			accessPolicy: &emptyText,
-			want:         types.StringNull(),
+			want:         types.StringValue(""),
+		},
+		{
+			name:         "an empty plan keeps an omitted policy",
+			plan:         types.StringValue(""),
+			accessPolicy: nil,
+			want:         types.StringValue(""),
 		},
 		{
 			name:         "an empty policy with an unknown plan is no policy",
