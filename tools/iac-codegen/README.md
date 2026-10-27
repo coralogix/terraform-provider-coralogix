@@ -288,8 +288,8 @@ The generator writes `data_source.go` in the package of the resource. The data s
 
 The data source uses the code of the resource:
 
-- Schema: `utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(Schema())`, at run time. Every attribute is computed, and the id is required (optional with name lookup, see below). A new API field reaches the data source with no change. The copy makes only a string attribute named `id` the lookup attribute, so the data source sets an integer id, or an id attribute with another name, itself. A singleton takes no input: its `id` is computed.
-- Read: Get by id (or by the id of the name), then `BeforeFlatten` (existing mode), then flatten without a prior value. It does not run `AfterRead`: that hook needs a plan or a state.
+- Schema: `utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(Schema())`, at run time. Every attribute is computed, and the id is required (optional with name lookup, see below). A new API field reaches the data source with no change. The copy makes only a string attribute named `id` the lookup attribute, so the data source sets an integer id, or an id attribute with another name, itself. A singleton normally takes no input: its `id` is computed. For an existing singleton whose Get operation has an optional string query parameter named `id`, `dataSource.queryID: true` keeps `id` optional and computed and sends it as that query parameter when configured.
+- Read: Get by id (or by the id of the name), then `BeforeFlatten` (existing mode), then flatten without a prior value. A singleton with `dataSource.queryID: true` passes the configured `id` query value when present; without it, Get leaves the query parameter unset. It does not run `AfterRead`: that hook needs a plan or a state.
 - An id that the API does not find is an error. A 404 of a route that does not exist is an error too.
 
 Lookup by name. The List only turns a name into an id. The result always comes from Get, so a List of summaries works as well as a List of full resources. A usable List:
@@ -321,6 +321,7 @@ The keys of the section:
 dataSource:
   lookup: [id, name]        # also find the resource by its name, through the List
   duplicateNames: first     # the first item with the name wins, as the released data source did
+  queryID: true             # for a singleton, pass an optional id to Get as a query parameter
   types:
     E2M:
       fields:
@@ -332,6 +333,7 @@ dataSource:
 - `show: true`, with a `description`, adds a computed `bool` or string attribute to the items of a top-level list or set of objects: a field that the resource skips (`skip: true`) and the API returns, for a released data source that showed it. The line sits under the component of the items. The data source rebuilds the attribute of the list or set from the API items and sets the field on each; the SDK check finds out whether the field is a pointer. It excludes `readEmptyAs` on the same line.
 - `lookup: [id]` is the default, so the generator reports it (`OVERRIDE_UNUSED`). `lookup` must name `id`.
 - `duplicateNames: first` keeps the released behavior when more than one item has the name. Without `name` in `lookup`, it is an error.
+- `queryID: true` is for an existing singleton with `singletonID: {fromAPI: true}` and an optional string Get query parameter named `id`. Its data source `id` is Optional+Computed, and a configured value is passed to the query parameter. When omitted, the query parameter stays unset. It is invalid for non-singletons, singletons without a server-set response ID, or APIs without that optional string query parameter.
 
 Golden contracts: `thing` has the data source of a new resource with a full List, so it looks up the name. `legacything` has a `show` line (the `managed` flag of each rule). `sharedthing` has a `readEmptyAs: value` line, and a List of summaries that `api.operations.list` names, with `lookup: [id, name]` and `duplicateNames: first`.
 

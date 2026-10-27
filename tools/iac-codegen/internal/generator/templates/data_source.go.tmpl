@@ -89,7 +89,10 @@ func (d *DataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp 
 	id := s.Attributes[{{printf "%q" .IDAttr}}]
 	resp.Schema.Attributes[{{printf "%q" .IDAttr}}] = schema.{{.IDTFType}}Attribute{
 {{- if .Singleton}}
+		{{if $.DataSource.QueryID}}Optional:            true,
+		Computed:            true,{{else}}
 		Computed:            true,
+{{end}}
 {{- else if $name}}
 		Optional:            true,
 {{- else}}
@@ -157,9 +160,26 @@ func (d *DataSource) Configure(_ context.Context, req datasource.ConfigureReques
 // A 404 of a route that does not exist is an error too.
 {{- end}}
 func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-{{- if .Singleton}}
+	{{if and .Singleton $.DataSource.QueryID}}
+	var configured types.String
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("id"), &configured)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	id := TypeName
-{{- else}}
+	var queryID *string
+	if configured.IsUnknown() {
+		resp.Diagnostics.AddError("Unknown singleton data source id", "The id must be known before the API read.")
+		return
+	}
+	if !configured.IsNull() {
+		id = configured.ValueString()
+		queryID = &id
+	}
+	v, err := d.resource.getWithQueryID(ctx, queryID)
+	{{else if .Singleton}}
+	id := TypeName
+	{{else}}
 	var configured types.{{.IDTFType}}
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), &configured)...)
 {{- if $name}}
@@ -180,7 +200,9 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	}
 {{- end}}
 {{- end}}
+	{{if not (and .Singleton $.DataSource.QueryID)}}
 	v, err := d.resource.get(ctx, id)
+	{{end}}
 	if {{$cx}}.{{.APINotFound}}(err) {
 		resp.Diagnostics.AddError("coralogix_"+TypeName+" not found", fmt.Sprintf("The API did not find coralogix_%s with id %v: %s", TypeName, id, err))
 		return
