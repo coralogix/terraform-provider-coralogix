@@ -33,6 +33,15 @@
 #### data-source/coralogix_connector
 - CHORE: The data source uses the generated data source of the resource. It still finds a connector by `id` or by `name`, and takes the first connector with the name. The error for an id that the API does not find has new wording.
 
+#### data-source/coralogix_global_router
+- CHORE: The data source uses the generated data source of the resource. It still finds a global router by `id` or by `name`, and takes the first router with the name. The error for an id that the API does not find has new wording.
+
+#### data-source/coralogix_preset
+- CHORE: The data source uses the generated data source of the resource. It still finds a preset by `id` or by `name`, and takes the first preset with the name. The error for an id that the API does not find has new wording.
+
+#### data-source/coralogix_view_folder
+- CHORE: The data source uses the generated data source of the resource. It still finds a view folder by `id` or by `name`, and takes the first folder with the name. A read by id now gets the folder by its id instead of listing every folder. The errors for an id or a name that the API does not find have new wording.
+
 # Release 3.22.1
 
 #### tools/iac-codegen

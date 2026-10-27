@@ -12,7 +12,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_preset | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: {\\\"reason\\\":\\\"Preset with id '00000000-0000-4000-8000-999999999999' not found\\\"}\"}\noperation - Read"
+      "error: coralogix_preset not found | The API did not find coralogix_preset with id 00000000-0000-4000-8000-999999999999: 404 Not Found — {\"code\":404,\"message\":\"Not Found: {\\\"reason\\\":\\\"Preset with id '00000000-0000-4000-8000-999999999999' not found\\\"}\"}"
     ],
     "state": {
       "attachment_config": null,

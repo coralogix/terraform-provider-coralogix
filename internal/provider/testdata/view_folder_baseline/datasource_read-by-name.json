@@ -9,6 +9,11 @@
         "method": "GET",
         "path": "/mgmt/openapi/5/data-exploration/views/v1/folders",
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/data-exploration/views/v1/folders/aaaaaaaa-0000-4000-8000-000000000002",
+        "status": 200
       }
     ],
     "state": {

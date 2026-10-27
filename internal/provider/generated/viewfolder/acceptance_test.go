@@ -81,6 +81,29 @@ func config(run, resourceBlock string) string {
 	return render(run, prerequisites+"\n\n"+resourceBlock)
 }
 
+const dataSourceAddress = "data.coralogix_view_folder.test"
+
+const dataSourceByNameAddress = "data.coralogix_view_folder.by_name"
+
+// dataSourceConfig reads the data source of the resource that the config creates.
+const dataSourceConfig = `data "coralogix_view_folder" "test" {
+  id = coralogix_view_folder.test.id
+}
+
+data "coralogix_view_folder" "by_name" {
+  name = coralogix_view_folder.test.name
+}`
+
+// dataSourceChecks compare the data source with the resource.
+func dataSourceChecks() resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "name", resourceAddress, "name"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "id", resourceAddress, "id"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "name", resourceAddress, "name"),
+	)
+}
+
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
@@ -118,7 +141,7 @@ var importStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceViewFolderGenerated(t *testing.T) {
-	// full-lifecycle sets every attribute, imports, changes the attributes, and imports again.
+	// full-lifecycle sets every attribute, imports, reads the data source, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
@@ -127,6 +150,7 @@ func TestAccCoralogixResourceViewFolderGenerated(t *testing.T) {
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
+				{Config: config(run, fullConfig+"\n\n"+dataSourceConfig), Check: dataSourceChecks()},
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
 			},

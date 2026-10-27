@@ -127,3 +127,9 @@ enums:
     zero: unspecified
     values: [ALERTS, CASES, TEST_NOTIFICATIONS]
     rejected: [OLLY_SCHEDULED_TASKS]
+
+# The data source reads a global router by id or by name. A name that more than one router has takes
+# the first one in the order of the List, as the released data source did.
+dataSource:
+  lookup: [id, name]
+  duplicateNames: first

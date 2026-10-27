@@ -12,7 +12,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_global_router | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: {\\\"reason\\\":\\\"Global router with id '00000000-0000-4000-8000-999999999999' not found\\\"}\"}\noperation - Read"
+      "error: coralogix_global_router not found | The API did not find coralogix_global_router with id 00000000-0000-4000-8000-999999999999: 404 Not Found — {\"code\":404,\"message\":\"Not Found: {\\\"reason\\\":\\\"Global router with id '00000000-0000-4000-8000-999999999999' not found\\\"}\"}"
     ],
     "state": {
       "create_time": null,
