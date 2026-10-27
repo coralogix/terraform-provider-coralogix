@@ -1,0 +1,63 @@
+name: Cancel superseded acceptance runs
+
+# Acceptance runs wait in one shared FIFO queue (`queue: max` in
+# acceptance-tests.yml). Each push to a pull request adds a run, so older
+# commits keep their place in the queue. This workflow runs outside that queue
+# and cancels the waiting runs of older commits of the same pull request.
+# It never cancels a running run: a cancelled run cannot finish its teardown
+# and leaks test resources into the shared Coralogix team.
+
+on:
+  pull_request:
+    types: [synchronize]
+    branches:
+      - master
+
+concurrency:
+  group: cancel-superseded-acceptance-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  cancel:
+    name: Cancel waiting acceptance runs of older commits
+    # Pull requests from forks get a read-only token, which cannot cancel runs.
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    permissions:
+      actions: write
+      pull-requests: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cancel waiting runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          # Read the head now, not from the event: this job can start after a newer push.
+          head_sha=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .head.sha)
+          # A run created after this one belongs to a newer push. Leave it alone.
+          started=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .created_at)
+          # `pending` waits in the concurrency queue. `queued` waits for a runner.
+          # Neither has started a test yet.
+          run_ids=$(
+            for status in pending queued; do
+              gh api --paginate -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/acceptance-tests.yml/runs" \
+                -f event=pull_request -f branch="$HEAD_BRANCH" -f status="$status" \
+                --jq ".workflow_runs[]
+                  | select(.head_repository.full_name == \"$GITHUB_REPOSITORY\")
+                  | select(.head_sha != \"$head_sha\" and .created_at < \"$started\")
+                  | .id"
+            done
+          )
+          for run_id in $run_ids; do
+            # The run can leave the queue between the list call and now.
+            status=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq .status)
+            if [ "$status" != "pending" ] && [ "$status" != "queued" ]; then
+              echo "Skipping run $run_id: it is $status"
+              continue
+            fi
+            echo "Cancelling waiting run $run_id"
+            gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/cancel" \
+              || echo "::warning::Could not cancel run $run_id"
+          done
