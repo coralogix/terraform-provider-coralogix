@@ -14,7 +14,8 @@
 - FEAT: `dataSource.duplicateNames: first` takes the first item with the name, in the order of the API, for a released data source that did so. Without `name` in `lookup`, the line is an error.
 - FEAT: With name lookup, the generated acceptance test also reads the data source by the name of the resource and compares it with the resource.
 - CHORE: Bump the `iac` module to the commit that adds the List operation to the model.
-- CHORE: Bump the generator to `v0.1.0-beta.41`.
+- CHORE: The header of a generated Go file has no generator version. `internal/provider/generated/versions.yaml` holds the version of each generated package, so a new version changes only that file and the files whose output changes. The generator still takes a file with the old header, which has the version, as its own.
+- CHORE: Bump the generator to `v0.1.0-beta.42`.
 
 #### data-source/coralogix_configuration_group
 - CHORE: The data source uses the generated data source of the resource.
