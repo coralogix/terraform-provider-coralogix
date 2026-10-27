@@ -35,7 +35,10 @@ var (
 	_ datasource.DataSourceWithConfigure = (*DataSource)(nil)
 )
 
-{{if .Singleton -}}
+{{if and .Singleton $.DataSource.QueryID -}}
+// DataSource reads the {{.TypeName}} singleton with the schema, the model, and the conversion of the
+// resource. It accepts an optional id query input.
+{{- else if .Singleton -}}
 // DataSource reads the {{.TypeName}} singleton with the schema, the model, and the conversion of the
 // resource. It takes no input.
 {{- else if $name -}}
@@ -68,7 +71,7 @@ func (d *DataSource) Metadata(_ context.Context, req datasource.MetadataRequest,
 }
 
 {{if .Singleton -}}
-// Schema is the schema of the resource with every attribute computed.
+// Schema is the schema of the resource with every attribute computed{{if $.DataSource.QueryID}}, except the optional query id{{end}}.
 {{- else if $name -}}
 // Schema is the schema of the resource with every attribute computed. The configuration sets
 // exactly one of the id and the name.

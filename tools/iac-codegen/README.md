@@ -337,6 +337,8 @@ dataSource:
 
 Golden contracts: `thing` has the data source of a new resource with a full List, so it looks up the name. `legacything` has a `show` line (the `managed` flag of each rule). `sharedthing` has a `readEmptyAs: value` line, and a List of summaries that `api.operations.list` names, with `lookup: [id, name]` and `duplicateNames: first`.
 
+The synthetic generator example is in `internal/generator/testdata/singleton-query-id.yaml` with its override in `singleton-query-id-overrides.yaml`. Its generated data source and resource helper are checked in under `internal/generator/testdata/golden/settingsqueryid/`.
+
 ## Acceptance tests
 
 A new resource always gets `acceptance_test.go`. An existing resource gets it only with an `acceptance.yaml` in the output directory. The test is an external test package (`<package>_test`) that runs against a real tenant. It serves the provider through `provider.MuxServer`, the SDKv2 and the framework providers behind one mux as in the binary, so a prerequisite can be any resource of the provider. It needs no helper from the provider tests. A new resource needs the file only for what the schema cannot state, such as a prerequisite resource or a real value; without it, the test makes up every value. When the generator cannot make the test of a new resource, the resource is not generated: its docs example is the full config of the test. `--acceptance <file>` names another file. `check --acceptance <file>` builds and renders the same test without writing it, so a wrong file fails before the SDK exists.

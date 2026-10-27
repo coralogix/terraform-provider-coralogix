@@ -2008,6 +2008,53 @@ func TestSingletonIDIsFromTheAPI(t *testing.T) {
 	compileGenerated(t, out, input)
 }
 
+// The generated golden output for a singleton data source whose optional id input is sent as
+// the optional Get query parameter. This fixture shows both the Terraform schema and SDK call.
+func TestGoldenOutputSingletonQueryID(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-query-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "settings")
+	options := Options{Resource: "settings", OutputDir: out, OverridesPath: filepath.Join("testdata", "singleton-query-id-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+
+	golden := filepath.Join("testdata", "golden", "settingsqueryid")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputSingletonQueryID -update:\n%s", diff)
+	}
+
+	dataSource, err := os.ReadFile(filepath.Join(out, "data_source.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"Optional:            true", "Computed:            true", "getWithQueryID(ctx, queryID)"} {
+		if !strings.Contains(string(dataSource), want) {
+			t.Errorf("data source does not contain %q:\n%s", want, dataSource)
+		}
+	}
+	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(resource), "request = request.Id(*id)") {
+		t.Fatalf("Get request does not pass the optional query id:\n%s", resource)
+	}
+	compileGenerated(t, out, input)
+}
+
 // singletonID needs an id that only the server sets: a Create body that lets the user set it would
 // make a value that flatten replaces.
 func TestSingletonIDRejectsAWritableID(t *testing.T) {
