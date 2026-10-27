@@ -207,11 +207,10 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 {{- end}}
 {{- end}}
 {{- range $.DataSource.Show}}
-	if v.{{.SDK}} != nil {
-		m.{{.Model}} = withShown{{.Model}}(ctx, v.{{.SDK}}, &resp.Diagnostics)
-		if resp.Diagnostics.HasError() {
-			return
-		}
+	// A response without the {{.Attr}}, as proto3 omits an empty list, shows the empty one, not null.
+	m.{{.Model}} = withShown{{.Model}}(ctx, v.{{.SDK}}, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 {{- end}}
 {{- if and .Singleton .SingletonID}}

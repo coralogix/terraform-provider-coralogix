@@ -100,11 +100,10 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if v.Rules != nil {
-		m.Rules = withShownRules(ctx, v.Rules, &resp.Diagnostics)
-		if resp.Diagnostics.HasError() {
-			return
-		}
+	// A response without the rules, as proto3 omits an empty list, shows the empty one, not null.
+	m.Rules = withShownRules(ctx, v.Rules, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 	if m.Id.IsNull() || m.Id.ValueString() == "" {
 		m.Id = types.StringValue(TypeName) // the API returned no id
