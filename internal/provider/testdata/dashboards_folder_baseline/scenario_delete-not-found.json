@@ -15,7 +15,6 @@
         "path": "/mgmt/openapi/5/dashboards/folders/v1",
         "body": {
           "folder": {
-            "id": "<generated-id-1>",
             "name": "gone"
           }
         },
@@ -23,33 +22,26 @@
       },
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-1>",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
         "status": 200
       }
     ],
     "state": {
-      "id": "<generated-id-1>",
+      "id": "00000000-0000-4000-8000-000000000001",
       "name": "gone",
       "parent_id": null
     },
     "replanEmpty": true
   },
   {
-    "step": "destroy: the API answers 403 for a folder that does not exist",
+    "step": "destroy: the API answers 404 for a folder that does not exist",
     "requests": [
       {
         "method": "DELETE",
-        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-1>",
-        "status": 403
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
+        "status": 404
       }
     ],
-    "applyDiagnostics": [
-      "error: Error deleting coralogix_dashboard_folder | error - 403 Forbidden — {\"code\":403,\"message\":\"Permission Denied: dont have permissions to delete folder DashboardFolderId(<generated-id-1>)\"}\noperation - Delete"
-    ],
-    "state": {
-      "id": "<generated-id-1>",
-      "name": "gone",
-      "parent_id": null
-    }
+    "state": null
   }
 ]

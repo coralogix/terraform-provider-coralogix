@@ -5,27 +5,8 @@
       "name": "empty-parent",
       "parent_id": ""
     },
-    "plan": {
-      "id": "(unknown)",
-      "name": "empty-parent",
-      "parent_id": ""
-    },
-    "requests": [
-      {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/dashboards/folders/v1",
-        "body": {
-          "folder": {
-            "id": "<generated-id-1>",
-            "name": "empty-parent",
-            "parentId": ""
-          }
-        },
-        "status": 400
-      }
-    ],
-    "applyDiagnostics": [
-      "error: Error creating coralogix_dashboard_folder | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: invalid uuid\"}\noperation - Create"
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"parent_id\")] | Attribute parent_id string length must be between 36 and 36, got: 0"
     ],
     "state": null
   },
@@ -45,7 +26,6 @@
         "path": "/mgmt/openapi/5/dashboards/folders/v1",
         "body": {
           "folder": {
-            "id": "<generated-id-2>",
             "name": "no-parent"
           }
         },
@@ -53,12 +33,12 @@
       },
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/dashboards/folders/v1/<generated-id-2>",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
         "status": 200
       }
     ],
     "state": {
-      "id": "<generated-id-2>",
+      "id": "00000000-0000-4000-8000-000000000001",
       "name": "no-parent",
       "parent_id": null
     },
@@ -70,30 +50,11 @@
       "name": "no-parent",
       "parent_id": ""
     },
-    "plan": {
-      "id": "<generated-id-2>",
-      "name": "no-parent",
-      "parent_id": ""
-    },
-    "requests": [
-      {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/dashboards/folders/v1",
-        "body": {
-          "folder": {
-            "id": "<generated-id-2>",
-            "name": "no-parent",
-            "parentId": ""
-          }
-        },
-        "status": 400
-      }
-    ],
-    "applyDiagnostics": [
-      "error: Error replacing coralogix_dashboard_folder | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: invalid uuid\"}\noperation - Replace"
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"parent_id\")] | Attribute parent_id string length must be between 36 and 36, got: 0"
     ],
     "state": {
-      "id": "<generated-id-2>",
+      "id": "00000000-0000-4000-8000-000000000001",
       "name": "no-parent",
       "parent_id": null
     }
