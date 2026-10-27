@@ -1,0 +1,83 @@
+resource: AiEvaluation
+mode: existing
+
+markdownDescription: "Coralogix AI evaluation."
+
+validators:
+  inferred: true
+
+api:
+  updateMaskInBody: true
+
+# Update sends no updateMask, as the released resource did: the server updates
+# every field present in the body.
+updateMask: omit
+
+types:
+  AiEvaluation:
+    fields:
+      id:
+        markdownDescription: "AI evaluation ID."
+      application:
+        requiresReplace: true
+      subsystem:
+        requiresReplace: true
+      target:
+        markdownDescription: 'Target span content the evaluation runs against. Can be one of ["prompt" "response"].'
+        requiresReplace: true
+      threshold:
+        required: true
+      isEnabled:
+        markdownDescription: "Whether the evaluation is active."
+        computed: true
+        default: true
+      config:
+        markdownDescription: "AI evaluation configuration."
+      companyId: {skip: true}
+      createdBy: {skip: true}
+      createdAt: {skip: true}
+      updatedAt: {skip: true}
+  EvaluationConfig:
+    # The released descriptions of the variants.
+    fields:
+      allowedTopics: {markdownDescription: "Configuration for Allowed Topics evaluation."}
+      competition: {markdownDescription: "Configuration for Competition evaluation."}
+      hallucinationCompleteness: {markdownDescription: "Configuration for Hallucination Completeness evaluation. This evaluation type has no fields."}
+      hallucinationContextAdherence: {markdownDescription: "Configuration for Hallucination Context Adherence evaluation. This evaluation type has no fields."}
+      hallucinationContextRelevance: {markdownDescription: "Configuration for Hallucination Context Relevance evaluation. This evaluation type has no fields."}
+      hallucinationCorrectness: {markdownDescription: "Configuration for Hallucination Correctness evaluation. This evaluation type has no fields."}
+      hallucinationTaskAdherence: {markdownDescription: "Configuration for Hallucination Task Adherence evaluation. This evaluation type has no fields."}
+      languageMismatch: {markdownDescription: "Configuration for Language Mismatch evaluation. This evaluation type has no fields."}
+      pii: {markdownDescription: "Configuration for PII evaluation."}
+      promptInjection: {markdownDescription: "Configuration for Prompt Injection evaluation."}
+      restrictedTopics: {markdownDescription: "Configuration for Restricted Topics evaluation."}
+      sexism: {markdownDescription: "Configuration for Sexism evaluation. This evaluation type has no fields."}
+      sqlAllowedTables: {markdownDescription: "Configuration for SQL Allowed Tables evaluation."}
+      sqlHallucination: {markdownDescription: "Configuration for SQL Hallucination evaluation. This evaluation type has no fields."}
+      sqlReadOnly: {markdownDescription: "Configuration for SQL Read Only evaluation. This evaluation type has no fields."}
+      sqlRestrictedTables: {markdownDescription: "Configuration for SQL Restricted Tables evaluation."}
+      toxicity: {markdownDescription: "Configuration for Toxicity evaluation. This evaluation type has no fields."}
+    unsupportedArms: [sqlLoad, customEvaluation]
+    unsupportedSummary: "Unsupported AI evaluation config"
+    unsupportedDetail: "Only Allowed Topics, Competition, Hallucination Completeness, Hallucination Context Adherence, Hallucination Context Relevance, Hallucination Correctness, Hallucination Task Adherence, Language Mismatch, PII, Prompt Injection, Restricted Topics, Sexism, SQL Allowed Tables, SQL Hallucination, SQL Read Only, SQL Restricted Tables, and Toxicity AI evaluation configs are currently supported by this resource."
+  PiiConfig:
+    fields:
+      categories:
+        markdownDescription: 'PII categories to detect. Can include ["CREDIT_CARD" "EMAIL_ADDRESS" "IBAN_CODE" "PHONE_NUMBER" "US_SSN"].'
+  PromptInjectionConfig:
+    fields:
+      additionalContext:
+        markdownDescription: "Additional context passed to the LLM evaluator."
+        computed: true
+        default: ""
+
+enums:
+  EvaluationTarget:
+    values: [PROMPT, RESPONSE]
+    rejected: [CONVERSATION]
+    # The released resource read CONVERSATION into state as "conversation" but did not accept it in a configuration.
+    readRejected: lower
+  # The first value of the list items is a business value, not a zero value.
+  PiiCategory:
+    verbatim: true
+    values: [PHONE_NUMBER, EMAIL_ADDRESS, CREDIT_CARD, IBAN_CODE, US_SSN]

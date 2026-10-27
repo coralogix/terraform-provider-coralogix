@@ -1,9 +1,40 @@
 # Unreleased
 
+#### resource/coralogix_archive_logs
+- CHORE: The resource is generated from the API contract. Create and Update set the archive target with the same call, as before.
+- CHORE: `id` is always `archive-logs-settings`. Before, an import with another ID kept that ID.
+- CHORE: `terraform destroy` warns that the API keeps the archive target. Before, it only wrote a log line.
+- CHORE: A refresh that finds no archive target warns when it removes the resource from the state. Before, it removed it silently.
+- FIX: A refresh that gets a 404 for a missing API route (`Not Found: Not Found` from the gateway) fails and keeps the resource in state. Before, it removed the resource from state with a warning, so the next apply set the target again.
+- FIX: An update that gets a 404 fails with `Resource no longer exists`, and the next refresh removes the resource from state. Before, it removed the resource from state during the update, and Terraform failed with `Missing Resource State After Update`.
+- CHORE: API errors read `Unable to create archive_logs` or `Unable to update archive_logs` instead of `Error replacing coralogix_archive_logs`.
+- DOCS: `active` and `archiving_format_id` have descriptions.
+
+#### data-source/coralogix_archive_logs
+- CHORE: The data source is generated with the resource, so it uses the schema of the resource, and `active`, `archiving_format_id`, and `id` have descriptions.
+- CHORE: `id` is `archive-logs-settings`, as in the resource. Before, it was empty.
+- FIX: A read fails with an error when the company has no S3 archive target, or when the API returns a 404. Before, a 404 only warned, and a company without an S3 target got an empty result without a warning.
+- CHORE: API errors read `Unable to read coralogix_archive_logs` instead of `Error reading coralogix_archive_logs`.
+
+#### resource/coralogix_dashboard
+- FIX: An empty `access_policy` returned by the API is read as null, the same as an omitted one. Before, the empty string went into state and import could not match it.
+
 #### provider
 - CHORE: Bump `github.com/yuin/goldmark` to v1.7.17 to clear CVE-2026-5160. It is used only by the docs generator, not the provider binary. No change to provider behavior.
+- CHORE: Bump `coralogix-management-sdk` to the version with the AI evaluations contract. `coralogix_dashboards_folder` and `coralogix_dashboard` adapt to its types: the folder name is a required string, and the dashboard of a replace request is optional. A `coralogix_dashboards_folder` without `name` now sends an empty name: the API still rejects it, now with "folder name cannot be empty".
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.49`.
+- FEAT: `dataSource.description`, and `description` on a `dataSource.types.<Component>.fields.<field>` line without `show`, replace the description that the generated data source copies from the resource.
+- FIX: A shown data source attribute (`show: true`) that has the Terraform name of an attribute of the item, or of another shown attribute, is an error. Before, it overwrote that attribute.
+- FEAT: `dataSource.types.<Component>.fields.<field>.show: true`, with a `description`, adds a computed bool or string attribute to the items of a top-level list or set of objects of the generated data source: a field that the resource skips and the API returns.
+- FEAT: `dataSourceSkip` in `acceptance.yaml` leaves attribute paths out of the data source comparison of the generated acceptance test, for a data source that shows more than the resource.
+- FIX: A required attribute with no prior value, which only an import has, takes the value of the API, as a computed one does. A required list or set reads back as the empty one after an import, so `rules = []` needs no hook.
+- FEAT: `api.operations` with `delete: none`, and `create` and `update` naming one POST, generates a singleton that a GET reads and a POST on the same path sets. Create and Update send the whole resource with the POST, and Delete makes no call and warns that the API keeps the resource.
+- FEAT: An `inline: true` field line shows the fields of an object of the resource as top-level attributes. A response arm that is inlined, with the other arms skipped, means that the resource exists: Read removes a resource whose response has another arm. It needs an Update that sends the whole resource: a PUT, or the POST of `delete: none`.
+- CHANGE: `singletonID` is an object with one key: `singletonID: {fixed: <id>}` gives the released fixed id, which the generated package exports as `SingletonID`, and `singletonID: true` is now `singletonID: {fromAPI: true}`.
+- FIX: A `default` field line without `computed: true` is an error. Before, the generated schema had a default on an attribute that is not computed, which Terraform rejects. A default on a field that the contract requires also needs `optional: true` on the line.
+- CHORE: The generated acceptance test is named after the Terraform resource type: `TestAccCoralogixResourceSloV2Generated`, `TestAccCoralogixResourceEvents2metricGenerated`, and `TestAccCoralogixResourceAlertsSchedulerGenerated` (and their `Upgrade` tests) replace the names taken from the API component.
 - CHORE: Bump `golang.org/x/text` to v0.43.0 to clear CVE-2026-56851 and CVE-2026-56852, with `golang.org/x/tools` v0.51.0 and `golang.org/x/sync` v0.24.0 as its module requires. No change to generated code.
 - FEAT: Generate `data_source.go` next to the resource. The data source reads one resource by id. Its schema is the resource schema, copied at run time with `utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema`, so a new API field reaches the data source with no change. It runs the `BeforeFlatten` hook of the resource, and an id that the API does not find is an error.
 - FEAT: A new resource always gets a data source, `DataSources()` in `registry.go`, and the docs example `examples/data-sources/coralogix_<type>/data-source.tf`. An existing resource gets a data source only with a `dataSource:` section in `behavior-overrides.yaml` (`dataSource: {}` when it has no line).
@@ -14,7 +45,12 @@
 - FEAT: `dataSource.duplicateNames: first` takes the first item with the name, in the order of the API, for a released data source that did so. Without `name` in `lookup`, the line is an error.
 - FEAT: With name lookup, the generated acceptance test also reads the data source by the name of the resource and compares it with the resource.
 - CHORE: Bump the `iac` module to the commit that adds the List operation to the model.
-- CHORE: Bump the generator to `v0.1.0-beta.41`.
+- CHORE: Bump the generator to `v0.1.0-beta.44`.
+- CHORE: The header of a generated Go file has no generator version. `internal/provider/generated/versions.yaml` holds the version of each generated package, so a new version changes only that file and the files whose output changes. The generator still takes a file with the old header, which has the version, as its own.
+- CHORE: Bump the generator to `v0.1.0-beta.42`.
+- FEAT: `api.createResponseOnlyIDProperty` names the property of a Create response that holds only the id. The generated Create then reads the resource with Get, and keeps the id in the state when that read fails, so Terraform marks the resource as tainted. The SDK `iac` module reads the response shape.
+- FEAT: The generated Update reads the resource with Get when the API answers it with an object that has no fields (existing mode), inside the `update` call, and puts the id of the state into the resource when Get leaves it out.
+- CHORE: Bump the `iac` module to the commit that reads a Create response with only an id.
 
 #### data-source/coralogix_configuration_group
 - CHORE: The data source uses the generated data source of the resource.
@@ -30,6 +66,11 @@
 - CHORE: The data source uses the generated data source of the resource. `description` still shows the stored value, also `""`.
 - FIX: An id that the API does not find is an error. Before, the data source returned a warning and null attributes.
 
+#### resource/coralogix_ai_evaluation
+- CHORE: The resource is generated from the API contract. Create, Read, Update, and Delete use the generated client. Update still sends `config`, `is_enabled`, and `threshold` without an update mask, and `application`, `subsystem`, and `target` still replace the evaluation. An evaluation whose target is `CONVERSATION` still reads as `conversation`, and one with an unsupported config still fails the read with the released error.
+- CHANGE: A config with no variant, or with two, reports the error on each variant instead of once. Error messages of failed API calls changed wording.
+- CHORE: Add an upgrade test that creates evaluations with provider 3.21.0 and plans them with this build.
+
 #### data-source/coralogix_connector
 - CHORE: The data source uses the generated data source of the resource. It still finds a connector by `id` or by `name`, and takes the first connector with the name. The error for an id that the API does not find has new wording.
 
@@ -41,6 +82,26 @@
 
 #### data-source/coralogix_view_folder
 - CHORE: The data source uses the generated data source of the resource. It still finds a view folder by `id` or by `name`, and takes the first folder with the name. A read by id now gets the folder by its id instead of listing every folder. The errors for an id or a name that the API does not find have new wording.
+
+#### resource/coralogix_dashboards_folder
+- CHORE: The resource and the data source are generated from the API contract. Schema version stays 1, and existing state upgrades with no plan change.
+- CHORE: `name` is required, and between 1 and 100 characters, as the API enforces: it rejects a folder without a name, with an empty name, or with a longer name. `parent_id` must be 36 characters, a UUID: the API rejects anything else.
+- CHORE: Create no longer sends an id that the provider made up: the server assigns it, and Create reads the folder with that id. If that read fails, the folder stays in the state, and Terraform marks it as tainted.
+- FIX: An update of a folder that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state.
+
+#### data-source/coralogix_dashboards_folder
+- CHORE: The data source is generated from the same contract as the resource. A lookup by `id` now reads the folder with a Get instead of scanning the list, and a folder that is not found ends with an error. A lookup by `name` still uses the list, and the first folder with that name wins, as before.
+- FIX: A folder that is not found by `id` or `name` ends with an error and returns. Before, a folder without a name could stop the provider with a nil pointer, and the data source went on to write an empty state.
+
+#### resource/coralogix_quota_allocation_rule_set
+- CHORE: The resource is generated from the API contract. The schema, the import ids (`quota-allocation-rule-set` or the id of the rule set), the `unspecified` alias of `allocation_type`, and the handling of Coralogix-managed (`cx_managed`) rules are unchanged.
+- CHORE: The data source is generated too. It still shows the rules that Coralogix manages next to the rules of the customer, with `rules[*].cx_managed` (a `show` line), it reads an unspecified allocation type as `percentage`, and it shows an empty rule set as `rules = []`, with the descriptions of the released data source. A read that the API answers with 404 is an error, where it removed the data source from the state before.
+- FIX: Planning `allocation_type = "unspecified"` no longer plans `id` as known after apply on every run, and no longer sends an update when the stored rules already match.
+- FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
+- CHORE: A destroy whose API call fails reports the error. The released resource ignored it when no rules of the customer remained, but the backend deletes in one transaction, so a failed call clears nothing.
+- CHORE: A create over rules that the customer already has replaces them, as before. The released resource had an "import it first" error for a 409, but the API answers a create as a replace and never answers 409, so the error never showed.
+- CHORE: The duplicate `entity_type` and `allocation` precision errors come from the generated checks, with a new text. The checks and their cases are the same.
+- CHORE: `rules[*].allocation` is a float32 attribute. Configurations and state are the same numbers.
 
 # Release 3.22.1
 

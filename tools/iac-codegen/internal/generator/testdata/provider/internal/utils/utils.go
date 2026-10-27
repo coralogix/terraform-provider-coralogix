@@ -5,6 +5,7 @@ package utils
 
 import (
 	"fmt"
+	"strings"
 
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -184,4 +185,94 @@ func convertNestedAttribute(resourceAttribute resourceschema.Attribute) (datasou
 	default:
 		return nil, false
 	}
+}
+
+// OverrideDatasourceDescriptions replaces the descriptions of a data source schema, which a data
+// source copied from the resource. A key is the dotted Terraform path of an attribute, such as
+// rules.allocation, and "" is the schema itself. The text is markdown and is also the plain
+// description. A path that no attribute has is a programming error.
+func OverrideDatasourceDescriptions(s *datasourceschema.Schema, descriptions map[string]string) {
+	for at, text := range descriptions {
+		if at == "" {
+			s.Description, s.MarkdownDescription = text, text
+			continue
+		}
+		if !overrideDatasourceDescription(s.Attributes, strings.Split(at, "."), text) {
+			panic(fmt.Sprintf("the data source has no attribute %s", at))
+		}
+	}
+}
+
+func overrideDatasourceDescription(attributes map[string]datasourceschema.Attribute, path []string, text string) bool {
+	current, ok := attributes[path[0]]
+	if !ok {
+		return false
+	}
+	if len(path) > 1 {
+		switch attr := current.(type) {
+		case datasourceschema.ListNestedAttribute:
+			return overrideDatasourceDescription(attr.NestedObject.Attributes, path[1:], text)
+		case datasourceschema.SetNestedAttribute:
+			return overrideDatasourceDescription(attr.NestedObject.Attributes, path[1:], text)
+		case datasourceschema.MapNestedAttribute:
+			return overrideDatasourceDescription(attr.NestedObject.Attributes, path[1:], text)
+		case datasourceschema.SingleNestedAttribute:
+			return overrideDatasourceDescription(attr.Attributes, path[1:], text)
+		}
+		return false
+	}
+	switch attr := current.(type) {
+	case datasourceschema.BoolAttribute:
+		attr.Description, attr.MarkdownDescription = text, text
+		current = attr
+	case datasourceschema.Float32Attribute:
+		attr.Description, attr.MarkdownDescription = text, text
+		current = attr
+	case datasourceschema.Float64Attribute:
+		attr.Description, attr.MarkdownDescription = text, text
+		current = attr
+	case datasourceschema.Int32Attribute:
+		attr.Description, attr.MarkdownDescription = text, text
+		current = attr
+	case datasourceschema.Int64Attribute:
+		attr.Description, attr.MarkdownDescription = text, text
+		current = attr
+	case datasourceschema.NumberAttribute:
+		attr.Description, attr.MarkdownDescription = text, text
+		current = attr
+	case datasourceschema.StringAttribute:
+		attr.Description, attr.MarkdownDescription = text, text
+		current = attr
+	case datasourceschema.DynamicAttribute:
+		attr.Description, attr.MarkdownDescription = text, text
+		current = attr
+	case datasourceschema.MapAttribute:
+		attr.Description, attr.MarkdownDescription = text, text
+		current = attr
+	case datasourceschema.ObjectAttribute:
+		attr.Description, attr.MarkdownDescription = text, text
+		current = attr
+	case datasourceschema.SetAttribute:
+		attr.Description, attr.MarkdownDescription = text, text
+		current = attr
+	case datasourceschema.ListAttribute:
+		attr.Description, attr.MarkdownDescription = text, text
+		current = attr
+	case datasourceschema.ListNestedAttribute:
+		attr.Description, attr.MarkdownDescription = text, text
+		current = attr
+	case datasourceschema.SetNestedAttribute:
+		attr.Description, attr.MarkdownDescription = text, text
+		current = attr
+	case datasourceschema.MapNestedAttribute:
+		attr.Description, attr.MarkdownDescription = text, text
+		current = attr
+	case datasourceschema.SingleNestedAttribute:
+		attr.Description, attr.MarkdownDescription = text, text
+		current = attr
+	default:
+		panic(fmt.Sprintf("unknown data source attribute type: %T", current))
+	}
+	attributes[path[0]] = current
+	return true
 }

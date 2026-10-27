@@ -9,7 +9,7 @@
       "archiving_format_id": "(unknown)",
       "bucket": "archive-bucket",
       "enable_tags": "(unknown)",
-      "id": "(unknown)",
+      "id": "archive-logs-settings",
       "region": "(unknown)"
     },
     "requests": [
@@ -45,7 +45,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_archive_logs | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: archive target store unavailable\"}\noperation - Read"
+      "error: Unable to read archive_logs | id archive-logs-settings: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: archive target store unavailable\"}"
     ],
     "state": {
       "active": true,

@@ -237,10 +237,10 @@
       "name": "replace a folder that does not exist",
       "steps": [
         {
-          "status": 400,
+          "status": 404,
           "response": {
-            "code": 400,
-            "message": "Bad Request: folder with id DashboardFolderId(\u003cid\u003e) does not exist"
+            "code": 404,
+            "message": "Not Found: folder with id DashboardFolderId(\u003cid\u003e) does not exist"
           }
         }
       ]
@@ -268,10 +268,10 @@
           }
         },
         {
-          "status": 403,
+          "status": 404,
           "response": {
-            "code": 403,
-            "message": "Permission Denied: dont have permissions to delete folder DashboardFolderId(\u003cid\u003e)"
+            "code": 404,
+            "message": "Not Found: folder with id DashboardFolderId(\u003cid\u003e) does not exist"
           }
         },
         {
@@ -304,10 +304,10 @@
           "response": {}
         },
         {
-          "status": 403,
+          "status": 404,
           "response": {
-            "code": 403,
-            "message": "Permission Denied: dont have permissions to delete folder DashboardFolderId({{id}})"
+            "code": 404,
+            "message": "Not Found: folder with id DashboardFolderId({{id}}) does not exist"
           }
         }
       ]

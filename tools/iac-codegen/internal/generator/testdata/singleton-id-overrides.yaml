@@ -5,7 +5,7 @@ mode: existing
 validators:
   inferred: false
 
-singletonID: true
+singletonID: {fromAPI: true}
 
 # The data source of a singleton takes no input.
 dataSource: {}

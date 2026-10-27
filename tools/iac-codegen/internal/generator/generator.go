@@ -259,6 +259,17 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 		if report = overrideIssues(doc, component, file); len(report) != 0 {
 			return nil, &EligibilityError{Report: report}
 		}
+		// The upsert and inline keys change the contract that the model reads (reshape.go).
+		reshaped, ids, report := reshape(data, component, operationIDs, file, policy)
+		if len(report) != 0 {
+			return nil, &EligibilityError{Report: report}
+		}
+		if file.Inlined != nil {
+			if doc, err = model.Load(reshaped); err != nil {
+				return nil, fmt.Errorf("read the reshaped contract: %w", err)
+			}
+			operationIDs = ids
+		}
 	}
 	if report = terraformContractIssues(doc, component, operationIDs, policy, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
@@ -266,6 +277,12 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	resource, err := model.BuildWithPolicy(doc, component, operationIDs, policy)
 	if err != nil {
 		return nil, fmt.Errorf("build validated resource: %w", err)
+	}
+	if resource.Singleton && resource.Create.Response.ID != "" {
+		// A singleton has no id to read it with after Create, and no id field to keep.
+		return nil, &EligibilityError{Report: issue.Report{{Code: "READ_BACK_SINGLETON_UNSUPPORTED", Location: overrides.FileName + ":api.createResponseOnlyIDProperty",
+			Message:     fmt.Sprintf("The resource %s is a singleton, so api.createResponseOnlyIDProperty has no id to read it back with.", resource.Name),
+			Remediation: "Delete api.createResponseOnlyIDProperty from the overrides."}}}
 	}
 	dropUnusedList(resource, file)
 	if report = unwrapUsageIssues(resource, file); len(report) != 0 {
@@ -290,6 +307,12 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 			return nil, eligibilityIssue("SDK_SHAPE_UNSUPPORTED", "resource", err, "Use OpenAPI shapes that have deterministic generated Go SDK names and types.")
 		}
 		refs = append(refs, armRefs...)
+	}
+	refs = inlineSDKNames(upsertSDKNames(refs, file), file)
+	if file != nil {
+		if refs, err = showSDKNames(doc, refs, file); err != nil {
+			return nil, eligibilityIssue("OVERRIDE_INVALID", overrides.FileName, err, "Fix the show line of the dataSource section.")
+		}
 	}
 	if report = rendererIssues(resource, refs, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report.Normalize()}

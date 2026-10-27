@@ -15,399 +15,83 @@
 package dataplans
 
 import (
+	"context"
+	"math/big"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-
 	quotaRules "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/quota_allocation_rule_set_service"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func TestExpandQuotaAllocationRuleSet(t *testing.T) {
-	plan := QuotaAllocationRuleSetModel{
-		ID: types.StringValue("rule-set-id"),
-		Rules: []QuotaAllocationRuleModel{
-			{
-				EntityType:     types.StringValue("metrics"),
-				Allocation:     types.Float64Value(25),
-				AllocationType: types.StringValue(quotaAllocationTypeLockedUnits),
-				Enabled:        types.BoolValue(true),
-				CanOverflow:    types.BoolValue(false),
-			},
-			{
-				EntityType:     types.StringValue("logs"),
-				Allocation:     types.Float64Value(75),
-				AllocationType: types.StringValue(quotaAllocationTypePercentage),
-				Enabled:        types.BoolValue(false),
-				CanOverflow:    types.BoolValue(true),
-			},
-		},
-	}
-
-	ruleSet, diags := expandQuotaAllocationRuleSet(plan)
-	if diags.HasError() {
-		t.Fatalf("unexpected diagnostics: %v", diags)
-	}
-
-	if ruleSet.GetId() != "rule-set-id" {
-		t.Fatalf("expected id to round-trip, got %q", ruleSet.GetId())
-	}
-	if len(ruleSet.Rules) != 2 {
-		t.Fatalf("expected 2 rules, got %d", len(ruleSet.Rules))
-	}
-	if ruleSet.Rules[0].GetEntityType() != "logs" {
-		t.Fatalf("expected rules to be sorted by entity type, got %q first", ruleSet.Rules[0].GetEntityType())
-	}
-	if ruleSet.Rules[0].GetAllocation() != 75 {
-		t.Fatalf("expected logs allocation 75, got %v", ruleSet.Rules[0].GetAllocation())
-	}
-	if !ruleSet.Rules[0].GetCanOverflow() {
-		t.Fatal("expected logs can_overflow to be true")
-	}
-	allocationType, ok := ruleSet.Rules[1].GetAllocationTypeOk()
-	if !ok || *allocationType != quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_LOCKED_UNITS {
-		t.Fatalf("expected metrics allocation_type to be locked units, got %v", allocationType)
-	}
-	if ruleSet.Rules[1].HasCxManaged() {
-		t.Fatal("cx_managed is read-only and should not be sent to the API")
-	}
-}
-
-func TestExpandQuotaAllocationRuleSetSyntheticImportID(t *testing.T) {
-	plan := QuotaAllocationRuleSetModel{
-		ID: types.StringValue(quotaAllocationRuleSetImportID),
-		Rules: []QuotaAllocationRuleModel{
-			{
-				EntityType:  types.StringValue("logs"),
-				Allocation:  types.Float64Value(100),
-				Enabled:     types.BoolValue(true),
-				CanOverflow: types.BoolValue(false),
-			},
-		},
-	}
-
-	ruleSet, diags := expandQuotaAllocationRuleSet(plan)
-	if diags.HasError() {
-		t.Fatalf("unexpected diagnostics: %v", diags)
-	}
-	if ruleSet.HasId() {
-		t.Fatalf("synthetic import id should not be sent to the API, got %q", ruleSet.GetId())
-	}
-}
-
-func TestValidateQuotaAllocationRulesRejectsDuplicateEntityType(t *testing.T) {
-	diags := validateQuotaAllocationRules([]QuotaAllocationRuleModel{
-		{
-			EntityType: types.StringValue("logs"),
-		},
-		{
-			EntityType: types.StringValue("logs"),
-		},
-	})
-
-	if !diags.HasError() {
-		t.Fatal("expected duplicate entity type diagnostic")
-	}
+func quotaRule(entityType string, allocation float64, allocationType string) quotaRuleConfig {
+	return quotaRuleConfig{entityType: entityType, allocation: big.NewFloat(allocation), allocationType: allocationType}
 }
 
 func TestValidateQuotaAllocationRulesPercentageAllocationMaximum(t *testing.T) {
-	diags := validateQuotaAllocationRules([]QuotaAllocationRuleModel{
-		{
-			EntityType:     types.StringValue("logs"),
-			Allocation:     types.Float64Value(101),
-			AllocationType: types.StringValue(quotaAllocationTypePercentage),
-		},
-	})
-
-	if !diags.HasError() {
-		t.Fatal("expected percentage allocation diagnostic")
+	for _, allocationType := range []string{"", "percentage", "unspecified"} {
+		if !validateQuotaAllocationRules([]quotaRuleConfig{quotaRule("logs", 101, allocationType)}).HasError() {
+			t.Fatalf("expected percentage allocation diagnostic for allocation_type %q", allocationType)
+		}
 	}
 }
 
 func TestValidateQuotaAllocationRulesAllowsLockedUnitsAbovePercentageMaximum(t *testing.T) {
-	diags := validateQuotaAllocationRules([]QuotaAllocationRuleModel{
-		{
-			EntityType:     types.StringValue("logs"),
-			Allocation:     types.Float64Value(101),
-			AllocationType: types.StringValue(quotaAllocationTypeLockedUnits),
-		},
-	})
+	if diags := validateQuotaAllocationRules([]quotaRuleConfig{quotaRule("logs", 101, "locked_units")}); diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+}
 
+func TestValidateQuotaAllocationRulesSkipsValuesThatAreNotKnown(t *testing.T) {
+	diags := validateQuotaAllocationRules([]quotaRuleConfig{{entityType: "logs"}, {allocation: big.NewFloat(50)}})
 	if diags.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+}
+
+func TestDropCxManagedQuotaAllocationRules(t *testing.T) {
+	managed, notManaged := true, false
+	ruleSet := &quotaRules.QuotaAllocationEntityTypeRuleSet{Rules: []quotaRules.QuotaAllocationEntityTypeRule{
+		{EntityType: "alerts", CxManaged: &managed},
+		{EntityType: "logs"},
+		{EntityType: "metrics", CxManaged: &notManaged},
+	}}
+	if diags := dropCxManagedQuotaAllocationRules(context.Background(), ruleSet); diags.HasError() {
+		t.Fatalf("unexpected diagnostics: %v", diags)
+	}
+	if len(ruleSet.Rules) != 2 || ruleSet.Rules[0].EntityType != "logs" || ruleSet.Rules[1].EntityType != "metrics" {
+		t.Fatalf("expected the customer rules, got %v", ruleSet.Rules)
+	}
+}
+
+func TestDropCxManagedQuotaAllocationRulesKeepsEmptyRulesEmpty(t *testing.T) {
+	ruleSet := &quotaRules.QuotaAllocationEntityTypeRuleSet{}
+	dropCxManagedQuotaAllocationRules(context.Background(), ruleSet)
+	if ruleSet.Rules == nil || len(ruleSet.Rules) != 0 {
+		t.Fatalf("expected an empty list, got %#v", ruleSet.Rules)
 	}
 }
 
 func TestValidateQuotaAllocationRulesDefersPercentageMaximumForUnknownAllocationType(t *testing.T) {
-	diags := validateQuotaAllocationRules([]QuotaAllocationRuleModel{
-		{
-			EntityType:     types.StringValue("logs"),
-			Allocation:     types.Float64Value(500),
-			AllocationType: types.StringUnknown(),
-		},
-	})
-
-	if diags.HasError() {
+	rule := quotaRule("logs", 500, "")
+	rule.allocationTypeUnknown = true
+	if diags := validateQuotaAllocationRules([]quotaRuleConfig{rule}); diags.HasError() {
 		t.Fatalf("unexpected diagnostics: %v", diags)
 	}
 }
 
-func TestValidateQuotaAllocationRulesAllowsFloat32RoundTrip(t *testing.T) {
-	diags := validateQuotaAllocationRules([]QuotaAllocationRuleModel{
-		{
-			EntityType:     types.StringValue("logs"),
-			Allocation:     types.Float64Value(33.33),
-			AllocationType: types.StringValue(quotaAllocationTypePercentage),
-		},
-	})
-
-	if diags.HasError() {
-		t.Fatalf("unexpected diagnostics: %v", diags)
-	}
-}
-
-func TestValidateQuotaAllocationRulesRejectsAllocationThatCannotRoundTrip(t *testing.T) {
-	diags := validateQuotaAllocationRules([]QuotaAllocationRuleModel{
-		{
-			EntityType:     types.StringValue("logs"),
-			Allocation:     types.Float64Value(16777217),
-			AllocationType: types.StringValue(quotaAllocationTypeLockedUnits),
-		},
-	})
-
-	if !diags.HasError() {
-		t.Fatal("expected allocation precision diagnostic")
-	}
-}
-
-func TestFlattenQuotaAllocationRuleSet(t *testing.T) {
-	id := "rule-set-id"
-	lockedUnits := quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_LOCKED_UNITS
-	cxManaged := true
-	state, diags := flattenQuotaAllocationRuleSet(&quotaRules.QuotaAllocationEntityTypeRuleSet{
-		Id: &id,
-		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
-			{
-				EntityType:     "metrics",
-				Allocation:     10,
-				AllocationType: &lockedUnits,
-				CxManaged:      &cxManaged,
-				Enabled:        true,
-				CanOverflow:    true,
-			},
-			{
-				EntityType:  "logs",
-				Allocation:  90,
-				Enabled:     false,
-				CanOverflow: false,
-			},
-		},
-	})
-	if diags.HasError() {
-		t.Fatalf("unexpected diagnostics: %v", diags)
-	}
-
-	if state.ID.ValueString() != "rule-set-id" {
-		t.Fatalf("expected id to round-trip, got %q", state.ID.ValueString())
-	}
-	if len(state.Rules) != 1 {
-		t.Fatalf("expected only user-managed rules in state, got %d", len(state.Rules))
-	}
-	if state.Rules[0].EntityType.ValueString() != "logs" {
-		t.Fatalf("expected rules to be sorted by entity type, got %q first", state.Rules[0].EntityType.ValueString())
-	}
-	if state.Rules[0].Allocation.ValueFloat64() != 90 {
-		t.Fatalf("expected logs allocation 90, got %v", state.Rules[0].Allocation.ValueFloat64())
-	}
-}
-
-func TestFlattenQuotaAllocationRuleSetRoundsFloat32Allocation(t *testing.T) {
-	state, diags := flattenQuotaAllocationRuleSet(&quotaRules.QuotaAllocationEntityTypeRuleSet{
-		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
-			{
-				EntityType:  "logs",
-				Allocation:  33.33,
-				Enabled:     true,
-				CanOverflow: true,
-			},
-		},
-	})
-	if diags.HasError() {
-		t.Fatalf("unexpected diagnostics: %v", diags)
-	}
-
-	if got := state.Rules[0].Allocation.ValueFloat64(); got != 33.33 {
-		t.Fatalf("expected allocation 33.33, got %.17f", got)
-	}
-}
-
-func TestFlattenQuotaAllocationRuleSetUsesSyntheticID(t *testing.T) {
-	state, diags := flattenQuotaAllocationRuleSet(&quotaRules.QuotaAllocationEntityTypeRuleSet{
-		Rules: []quotaRules.QuotaAllocationEntityTypeRule{},
-	})
-	if diags.HasError() {
-		t.Fatalf("unexpected diagnostics: %v", diags)
-	}
-	if state.ID.ValueString() != quotaAllocationRuleSetImportID {
-		t.Fatalf("expected synthetic id, got %q", state.ID.ValueString())
-	}
-}
-
-func TestFlattenQuotaAllocationRuleSetUnspecifiedBecomesPercentage(t *testing.T) {
+func TestDropCxManagedQuotaAllocationRulesReadsUnspecifiedAsPercentage(t *testing.T) {
 	unspecified := quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_UNSPECIFIED
-	state, diags := flattenQuotaAllocationRuleSet(&quotaRules.QuotaAllocationEntityTypeRuleSet{
-		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
-			{
-				EntityType:     "logs",
-				Allocation:     40,
-				AllocationType: &unspecified,
-				Enabled:        true,
-				CanOverflow:    true,
-			},
-		},
-	})
-	if diags.HasError() {
-		t.Fatalf("unexpected diagnostics: %v", diags)
-	}
-	if got := state.Rules[0].AllocationType.ValueString(); got != quotaAllocationTypePercentage {
-		t.Fatalf("expected unspecified allocation_type to flatten to %q, got %q", quotaAllocationTypePercentage, got)
-	}
-}
-
-func TestExpandQuotaAllocationRuleSetUnspecifiedBecomesPercentage(t *testing.T) {
-	plan := QuotaAllocationRuleSetModel{
-		Rules: []QuotaAllocationRuleModel{
-			{
-				EntityType:     types.StringValue("logs"),
-				Allocation:     types.Float64Value(40),
-				AllocationType: types.StringValue(quotaAllocationTypeUnspecified),
-				Enabled:        types.BoolValue(true),
-				CanOverflow:    types.BoolValue(true),
-			},
-		},
-	}
-
-	ruleSet, diags := expandQuotaAllocationRuleSet(plan)
-	if diags.HasError() {
-		t.Fatalf("unexpected diagnostics: %v", diags)
-	}
-	allocationType, ok := ruleSet.Rules[0].GetAllocationTypeOk()
-	if !ok || *allocationType != quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_PERCENTAGE {
-		t.Fatalf("expected unspecified to expand as percentage, got %v", allocationType)
-	}
-}
-
-func TestNormalizeUnspecifiedQuotaAllocationTypePlanModifier(t *testing.T) {
-	modifier := normalizeUnspecifiedQuotaAllocationType()
-	var resp planmodifier.StringResponse
-	modifier.PlanModifyString(t.Context(), planmodifier.StringRequest{
-		ConfigValue: types.StringValue(quotaAllocationTypeUnspecified),
-	}, &resp)
-	if resp.PlanValue.ValueString() != quotaAllocationTypePercentage {
-		t.Fatalf("expected plan value percentage, got %q", resp.PlanValue.ValueString())
-	}
-}
-func TestExpandAndFlattenQuotaAllocationRuleSetEmptyRules(t *testing.T) {
-	plan := QuotaAllocationRuleSetModel{
-		ID:    types.StringValue("rule-set-id"),
-		Rules: []QuotaAllocationRuleModel{},
-	}
-
-	ruleSet, diags := expandQuotaAllocationRuleSet(plan)
-	if diags.HasError() {
-		t.Fatalf("unexpected expand diagnostics: %v", diags)
-	}
-	if len(ruleSet.Rules) != 0 {
-		t.Fatalf("expected empty expand rules, got %d", len(ruleSet.Rules))
-	}
-
-	state, diags := flattenQuotaAllocationRuleSet(ruleSet)
-	if diags.HasError() {
-		t.Fatalf("unexpected flatten diagnostics: %v", diags)
-	}
-	if state.Rules == nil {
-		t.Fatal("expected empty rules slice, got nil")
-	}
-	if len(state.Rules) != 0 {
-		t.Fatalf("expected empty flatten rules, got %d", len(state.Rules))
-	}
-}
-
-func TestQuotaAllocationRuleSetHasUserManagedRules(t *testing.T) {
-	cxManaged := true
-	if quotaAllocationRuleSetHasUserManagedRules(nil) {
-		t.Fatal("nil rule set should not have user-managed rules")
-	}
-	if quotaAllocationRuleSetHasUserManagedRules(&quotaRules.QuotaAllocationEntityTypeRuleSet{
-		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
-			{
-				EntityType: "metrics",
-				CxManaged:  &cxManaged,
-			},
-		},
-	}) {
-		t.Fatal("managed-only rule set should not have user-managed rules")
-	}
-	if !quotaAllocationRuleSetHasUserManagedRules(&quotaRules.QuotaAllocationEntityTypeRuleSet{
-		Rules: []quotaRules.QuotaAllocationEntityTypeRule{
-			{
-				EntityType: "logs",
-			},
-		},
-	}) {
-		t.Fatal("rule set with omitted cx_managed should have user-managed rules")
-	}
-}
-
-func TestQuotaAllocationRuleSetIsReplaceableOnCreateConflict(t *testing.T) {
-	cxManaged := true
-	if !quotaAllocationRuleSetIsReplaceableOnCreateConflict(&quotaRules.GetQuotaAllocationRuleSetResponse{
-		RuleSet: &quotaRules.QuotaAllocationEntityTypeRuleSet{},
-	}) {
-		t.Fatal("empty existing rule set should be replaceable")
-	}
-	if !quotaAllocationRuleSetIsReplaceableOnCreateConflict(&quotaRules.GetQuotaAllocationRuleSetResponse{
-		RuleSet: &quotaRules.QuotaAllocationEntityTypeRuleSet{
-			Rules: []quotaRules.QuotaAllocationEntityTypeRule{
-				{
-					EntityType: "metrics",
-					CxManaged:  &cxManaged,
-				},
-			},
-		},
-	}) {
-		t.Fatal("managed-only existing rule set should be replaceable")
-	}
-	if quotaAllocationRuleSetIsReplaceableOnCreateConflict(&quotaRules.GetQuotaAllocationRuleSetResponse{
-		RuleSet: &quotaRules.QuotaAllocationEntityTypeRuleSet{
-			Rules: []quotaRules.QuotaAllocationEntityTypeRule{
-				{
-					EntityType: "logs",
-				},
-			},
-		},
-	}) {
-		t.Fatal("existing user-managed rule set should still require import")
-	}
-}
-
-func TestQuotaAllocationRuleSetIsEmpty(t *testing.T) {
-	if !quotaAllocationRuleSetIsEmpty(nil) {
-		t.Fatal("nil response should be treated as empty")
-	}
-	if !quotaAllocationRuleSetIsEmpty(&quotaRules.GetQuotaAllocationRuleSetResponse{}) {
-		t.Fatal("nil rule set should be treated as empty")
-	}
-	if !quotaAllocationRuleSetIsEmpty(&quotaRules.GetQuotaAllocationRuleSetResponse{
-		RuleSet: &quotaRules.QuotaAllocationEntityTypeRuleSet{Rules: []quotaRules.QuotaAllocationEntityTypeRule{}},
-	}) {
-		t.Fatal("rule set without rules should be treated as empty")
-	}
-	if quotaAllocationRuleSetIsEmpty(&quotaRules.GetQuotaAllocationRuleSetResponse{
-		RuleSet: &quotaRules.QuotaAllocationEntityTypeRuleSet{
-			Rules: []quotaRules.QuotaAllocationEntityTypeRule{{EntityType: "logs"}},
-		},
-	}) {
-		t.Fatal("rule set with rules should not be treated as empty")
+	locked := quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_LOCKED_UNITS
+	ruleSet := &quotaRules.QuotaAllocationEntityTypeRuleSet{Rules: []quotaRules.QuotaAllocationEntityTypeRule{
+		{EntityType: "logs"},
+		{EntityType: "metrics", AllocationType: &unspecified},
+		{EntityType: "spans", AllocationType: &locked},
+	}}
+	dropCxManagedQuotaAllocationRules(context.Background(), ruleSet)
+	got := []quotaRules.QuotaAllocationType{ruleSet.Rules[0].GetAllocationType(), ruleSet.Rules[1].GetAllocationType(), ruleSet.Rules[2].GetAllocationType()}
+	want := []quotaRules.QuotaAllocationType{quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_PERCENTAGE, quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_PERCENTAGE, locked}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("rule %d: got %v, want %v", i, got[i], want[i])
+		}
 	}
 }

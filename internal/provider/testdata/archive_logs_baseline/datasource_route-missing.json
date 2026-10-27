@@ -1,0 +1,24 @@
+[
+  {
+    "step": "read: the gateway has no such route",
+    "config": {},
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to read coralogix_archive_logs | id archive_logs: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}"
+    ],
+    "state": {
+      "active": null,
+      "archiving_format_id": null,
+      "bucket": null,
+      "enable_tags": null,
+      "id": null,
+      "region": null
+    }
+  }
+]

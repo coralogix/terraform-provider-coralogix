@@ -22,6 +22,7 @@ type LegacyTarget struct {
 
 type LegacyRule struct {
 	Name    *string
+	Managed *bool
 	Kind    *LegacyKind
 	Targets []LegacyTarget
 }

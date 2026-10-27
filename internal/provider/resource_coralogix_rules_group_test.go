@@ -197,6 +197,9 @@ func TestAccCoralogixResourceRulesGroupNumbersUnsetOrderByPosition(t *testing.T)
 				ResourceName:      rulesGroupOrderResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+				// The group order is a position among all rule-groups in the account,
+				// so other tests that delete a group can shift it between steps.
+				ImportStateVerifyIgnore: []string{"order"},
 			},
 		},
 	})

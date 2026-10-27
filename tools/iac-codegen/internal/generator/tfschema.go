@@ -35,6 +35,8 @@ type tfResource struct {
 	// ComputedPaths are the paths of the computed attributes, with list and map
 	// steps left out, as in Conv.OneOfArms.
 	ComputedPaths []string
+	// RequiredPaths are the paths of the required attributes, in the form of ComputedPaths.
+	RequiredPaths []string
 	// UniqueChecks, Float32Paths, and EnumAliases are the generic checks of a released
 	// resource: uniqueBy lines, the float32 precision of the float attributes, and the
 	// aliases of the enums lines. See applyConfigChecks.
@@ -141,17 +143,17 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // (nil for a new resource).
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
 	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}}
-	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: r.Name + "Model"}
+	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: modelTypeName(r.Name)}
 	root := &tfModel{Name: out.Model}
 	if err := b.claimModel(root.Name, "the resource "+r.Name); err != nil {
 		return nil, err
 	}
 	b.models = append(b.models, root)
 	if r.Singleton {
-		if err := addSingletonID(out, root, r, file != nil && file.SingletonID); err != nil {
+		if err := addSingletonID(out, root, r, file.IDFromAPI(), "SingletonID"); err != nil {
 			return nil, err
 		}
-	} else if file != nil && file.SingletonID {
+	} else if file != nil && file.SingletonID != nil {
 		return nil, errors.New("singletonID is for a singleton: Get of this resource has a path parameter")
 	}
 	groups := &tfGroups{file: file, resource: r.Name, attrs: map[string]*tfAttr{}, models: map[string]*tfModel{}}
@@ -187,7 +189,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 		if err := checkOmittedMaskClears(r, out.Attributes, file); err != nil {
 			return nil, err
 		}
-		if file.SingletonID {
+		if file.IDFromAPI() {
 			if err := checkSingletonIDAttribute(out.Attributes); err != nil {
 				return nil, err
 			}
@@ -196,6 +198,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
 	out.DefaultPkgs = defaultPackages(out.Attributes)
 	out.ComputedPaths = computedPaths(nil, "", out.Attributes)
+	out.RequiredPaths = requiredPaths(nil, "", out.Attributes)
 	for _, a := range out.Attributes {
 		if !computedOnly(a) {
 			out.ServerPaths = serverPaths(out.ServerPaths, a.Name, a.Attributes)
@@ -238,6 +241,21 @@ func computedPaths(out []string, parent string, attrs []*tfAttr) []string {
 	return out
 }
 
+// requiredPaths is computedPaths for the required attributes.
+func requiredPaths(out []string, parent string, attrs []*tfAttr) []string {
+	for _, a := range attrs {
+		at := a.Name
+		if parent != "" {
+			at = parent + "." + a.Name
+		}
+		if a.Required {
+			out = append(out, at)
+		}
+		out = requiredPaths(out, at, a.Attributes)
+	}
+	return out
+}
+
 // defaultPackages returns the default packages, such as stringdefault, that
 // the static defaults of attrs and of their nested attributes use.
 func defaultPackages(attrs []*tfAttr) []string {
@@ -270,7 +288,7 @@ func checkSingletonIDAttribute(attrs []*tfAttr) error {
 
 // addSingletonID adds the fixed id attribute of a singleton (D18). With singletonID, the resource has
 // an id field that the server sets, and the generic field pipeline builds the attribute.
-func addSingletonID(out *tfResource, root *tfModel, r *model.Resource, singletonID bool) error {
+func addSingletonID(out *tfResource, root *tfModel, r *model.Resource, singletonID bool, id string) error {
 	for _, f := range r.Fields {
 		if terraformName(r.Policy, r.Name, f.Name) != "id" {
 			continue
@@ -299,7 +317,7 @@ func addSingletonID(out *tfResource, root *tfModel, r *model.Resource, singleton
 	// show it as unknown. The user still cannot set it.
 	out.Attributes = append(out.Attributes, &tfAttr{Name: "id", Kind: "String", ValueKind: "String", Computed: true,
 		Description: "The fixed id of this singleton: there is one per company.",
-		Default:     "stringdefault.StaticString(TypeName)"})
+		Default:     "stringdefault.StaticString(" + id + ")"})
 	root.Fields = append(root.Fields, tfModelField{Name: "Id", Type: "types.String", TFName: "id"})
 	return nil
 }
@@ -311,6 +329,7 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 	if err != nil {
 		return nil, err
 	}
+	a.Name = terraformName(r.Policy, r.Name, f.Name)
 	if serverDefault(r, f) {
 		// The user may override this value. When it is omitted, the server
 		// supplies the declared default, and Get returns it or omits it. The
@@ -534,6 +553,14 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 			return err
 		}
 		a.Default = expr
+		if a.Required {
+			// A released default on a field that the contract requires means that the contract is
+			// wrong about the field. The line states the exception with optional: true.
+			if !l.Optional {
+				return errors.New("the line gives a default to a field that the contract requires: add optional: true, so the overrides file states that the released attribute is optional")
+			}
+			a.Required, a.Optional = false, true
+		}
 	}
 	for _, v := range l.Validators {
 		expr, err := validatorExpr(a, v, file)
@@ -558,6 +585,8 @@ func checkAttrMode(a *tfAttr) error {
 	switch {
 	case a.Required && a.Computed:
 		return errors.New("the line makes the attribute required and computed: required: true needs a field that the user sets")
+	case a.Default != "" && !a.Computed:
+		return errors.New("the line gives the attribute a default, but the attribute is not computed: add computed: true")
 	case !a.Required && !a.Optional && !a.Computed:
 		return errors.New("the line leaves the attribute without a mode: computed: false needs a field that the user can set, and the contract makes this field server-owned")
 	}

@@ -1914,7 +1914,7 @@ func TestSingletonGeneration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(schema), "stringdefault.StaticString(TypeName)") || strings.Contains(string(schema), "UseStateForUnknown") {
+	if !strings.Contains(string(schema), "stringdefault.StaticString(SingletonID)") || strings.Contains(string(schema), "UseStateForUnknown") {
 		t.Fatalf("singleton id must have a static default and no plan modifier:\n%s", schema)
 	}
 	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
@@ -1923,6 +1923,9 @@ func TestSingletonGeneration(t *testing.T) {
 	}
 	if !strings.Contains(string(resource), "SettingsServiceGetSettings(ctx).Execute()") {
 		t.Fatalf("singleton Get must have no id argument:\n%s", resource)
+	}
+	if !strings.Contains(string(resource), "const SingletonID = TypeName") {
+		t.Fatalf("a singleton without an upsert id must use the type name as its id:\n%s", resource)
 	}
 	semantics := `package settings
 
@@ -2890,4 +2893,153 @@ func TestFloat32PathsIncludeCollections(t *testing.T) {
 	if got := float32Paths(nil, "", attrs); !slices.Equal(got, want) {
 		t.Fatalf("float32 paths = %v, want %v", got, want)
 	}
+}
+
+// The golden output of a singleton that one call sets and another reads. Create and Update are
+// the Set call, Delete makes no call, and the fields of the inlined objects are top-level
+// attributes. Read treats a response without the inlined arm as no resource.
+func TestGoldenOutputUpsert(t *testing.T) {
+	out := generateUpsertThing(t)
+	golden := filepath.Join("testdata", "golden", "upsertthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputUpsert -update:\n%s", diff)
+	}
+}
+
+// generateUpsertThing generates the synthetic singleton that one call sets and another reads.
+func generateUpsertThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "upsert.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "upsertthing")
+	options := Options{Resource: "Target", OutputDir: out, OverridesPath: filepath.Join("testdata", "upsert-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// The generated singleton that one call sets creates and updates with that call, makes no call on
+// Delete, and removes the resource from the state when the API returns another arm.
+func TestUpsertRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateUpsertThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "upsert_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// The golden output of a released resource whose path parameter has another name than the id
+// field, whose Create returns only the id, and whose Replace returns an object with no fields.
+func TestGoldenOutputFolderBody(t *testing.T) {
+	out := generateFolderThing(t)
+	golden := filepath.Join("testdata", "golden", "folderthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputFolderBody -update:\n%s", diff)
+	}
+}
+
+// Create reads the resource that it made, with Get, because its response holds only the id.
+// Update reads it too, because the Replace response has no fields.
+func TestFolderBodyRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateFolderThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "folderthing_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// generateFolderThing generates the synthetic resource whose Create returns only the id.
+func generateFolderThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "folderthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "folderthing")
+	options := Options{Resource: "FolderThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "folderthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// A Create response whose id is a required field is a value in the SDK, not a pointer. The SDK
+// check writes the value type into the reference, so the generated Create tests the value and
+// compiles.
+func TestCreateResponseIDAsAValue(t *testing.T) {
+	input, loadDir := copiedSyntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "folderthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := strings.Replace(string(spec), "      properties:\n        thingId: {type: string, x-coralogix-presence: true}\n", "      required: [thingId]\n      properties:\n        thingId: {type: string}\n", 1)
+	if changed == string(spec) {
+		t.Fatal("the test contract did not change: update the replaced text")
+	}
+	input.OpenAPI = []byte(changed)
+	mock := filepath.Join(input.SDKDir, "go", "openapi", "gen", "folder_things_service", "folder.go")
+	source, err := os.ReadFile(mock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	valued := strings.NewReplacer("	ThingId *string\n", "	ThingId string\n", "&CreateFolderThingResponse{ThingId: &id}", "&CreateFolderThingResponse{ThingId: id}").Replace(string(source))
+	if valued == string(source) {
+		t.Fatal("the mock SDK did not change: update the replaced text")
+	}
+	if err := os.WriteFile(mock, []byte(valued), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(t.TempDir(), "folderthing")
+	options := Options{Resource: "FolderThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "folderthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(resource), `out.ThingId == ""`) || strings.Contains(string(resource), "*out.ThingId") {
+		t.Fatal("the generated Create does not treat the id as a value")
+	}
+	semantics, err := os.ReadFile(filepath.Join("testdata", "folderthing_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
 }

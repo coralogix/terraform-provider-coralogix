@@ -28,7 +28,7 @@ data "coralogix_dashboards_folder" "example" {
 ### Optional
 
 - `id` (String) Unique identifier for the folder.
-- `name` (String) Display name of the folder.
+- `name` (String) Display name of the folder. Between 1 and 100 characters; folder names are unique in the company.
 
 ### Read-Only
 

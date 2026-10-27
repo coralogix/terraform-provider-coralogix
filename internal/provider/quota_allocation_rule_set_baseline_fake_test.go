@@ -55,18 +55,15 @@ func (h *grHarness) quota() *quotaFake {
 // no allocationType, or an unspecified one, as percentage, ignores the id query, and answers a
 // write in the order of the request and a read by entity type.
 //
-// Two answers are not recorded, because the tenant has no Coralogix-managed rules and the API
-// never answered 404: a create next to managed rules answers 409, as the provider expects, and
-// notFound makes a read, replace, or delete answer 404, as the contract documents.
+// One answer is not recorded, because the API never answered 404: notFound makes a read, replace,
+// or delete answer 404, as the contract documents.
 type quotaFake struct {
 	mu       sync.Mutex
 	set      map[string]any
 	seq      int
 	requests []grRequest
 	// deleteStatus is the status of a delete that fails. 0 means that a delete works.
-	// A failed delete still clears the customer rules when deleteClears is true.
 	deleteStatus int
-	deleteClears bool
 	// notFound makes a read, replace, or delete answer 404. The recording never shows it.
 	notFound bool
 	// writeStatus is the status of a create or replace that fails. 0 means that a write works.
@@ -167,12 +164,7 @@ func (f *quotaFake) handle(method, path, id string, body any) (int, any) {
 		if f.writeStatus != 0 {
 			return quotaFail(f.writeStatus, "quota allocation rule set could not be written")
 		}
-		// The recording shows a create over a rule set with customer rules, or with none, as a
-		// replace. A 409 is not recorded: the tenant has no Coralogix-managed rules. The fake
-		// answers it when managed rules exist, as the provider expects.
-		if f.set != nil && len(quotaManagedOnly(f.set["rules"].([]any))) > 0 {
-			return quotaFail(http.StatusConflict, "Quota allocation rule set already exists")
-		}
+		// A create is a replace: the API answers no 409 for it, and keeps the managed rules.
 		return f.write(in)
 	case http.MethodPut:
 		if f.writeStatus != 0 {
@@ -188,9 +180,6 @@ func (f *quotaFake) handle(method, path, id string, body any) (int, any) {
 		}
 		// A delete clears the customer rules and keeps the rule set, also when it is empty.
 		if f.deleteStatus != 0 {
-			if f.deleteClears {
-				f.set["rules"] = quotaManagedOnly(f.set["rules"].([]any))
-			}
 			return quotaFail(f.deleteStatus, "quota allocation rule set could not be deleted")
 		}
 		f.set["rules"] = quotaManagedOnly(f.set["rules"].([]any))

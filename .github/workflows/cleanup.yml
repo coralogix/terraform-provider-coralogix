@@ -12,6 +12,8 @@ concurrency:
   # resources belonging to an in-progress live acceptance run.
   group: acceptance-tests-live-cx
   cancel-in-progress: false
+  # Keep the nightly cleanup in the same FIFO queue as acceptance-tests.yml.
+  queue: max
 
 jobs:
   test:

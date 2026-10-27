@@ -1243,3 +1243,60 @@ func TestTerraformTypeNeedsAnInt32Field(t *testing.T) {
 		t.Fatalf("err = %v, want terraformType Int64 needs an int32 field", err)
 	}
 }
+
+// A Create response that holds only the id, and an id path parameter with another name than the
+// id field, need the idField and createResponseOnlyIDProperty lines. A line that names nothing is an error.
+func TestFolderBodyIDOverrides(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "folderthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const head = "resource: FolderThing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  FolderThing:\n    fields:\n      id: {readOnly: true}\napi:\n  requestWrapper: thing\n  updateIDInBody: true\n  serverSetID: true\n"
+	tests := map[string]struct {
+		api  string
+		want string
+	}{
+		"no lines":            {"", "RESOURCE_LIFECYCLE_INCOMPLETE"},
+		"no id property":      {"  createResponseOnlyIDProperty: thingId\n", "UPDATE_ID_NOT_IN_BODY"},
+		"unknown id property": {"  idProperty: key\n  createResponseOnlyIDProperty: thingId\n", "RESOURCE_LIFECYCLE_INCOMPLETE"},
+		"unknown response id": {"  idProperty: id\n  createResponseOnlyIDProperty: key\n", "RESOURCE_LIFECYCLE_INCOMPLETE"},
+		"valid lines":         {"  idProperty: id\n  createResponseOnlyIDProperty: thingId\n", ""},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := validateOpenAPIWith(spec, "FolderThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, head+test.api))
+			if test.want == "" {
+				if err != nil && !strings.Contains(err.Error(), "SDK_") {
+					t.Fatalf("err = %v, want none", err)
+				}
+				return
+			}
+			if !slices.Contains(eligibilityCodes(t, err), test.want) {
+				t.Fatalf("err = %v, want %s", err, test.want)
+			}
+		})
+	}
+}
+
+// A singleton has no id to read it with, so a Create response with only an id is refused with an
+// issue instead of generating code that does not parse.
+func TestCreateResponseOnlyIDPropertyIsRefusedForASingleton(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := strings.Replace(string(spec), "      responses:\n        '200':\n          description: Created\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/Settings'\n", "      responses:\n        '200':\n          description: Created\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/CreateSettingsResponse'\n", 1)
+	changed = strings.Replace(changed, "components:\n  schemas:\n", "components:\n  schemas:\n    CreateSettingsResponse:\n      type: object\n      properties:\n        settingsId: {type: string, x-coralogix-presence: true}\n", 1)
+	if changed == string(spec) {
+		t.Fatal("the test contract did not change: update the replaced text")
+	}
+	overrides, err := os.ReadFile(filepath.Join("testdata", "singleton-id-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := mustParse(t, string(overrides)+"api:\n  createResponseOnlyIDProperty: settingsId\n")
+	_, err = validateOpenAPIWith([]byte(changed), "Settings", model.OperationIDs{}, "sdk", "provider", file)
+	if !slices.Contains(eligibilityCodes(t, err), "READ_BACK_SINGLETON_UNSUPPORTED") {
+		t.Fatalf("err = %v, want READ_BACK_SINGLETON_UNSUPPORTED", err)
+	}
+}

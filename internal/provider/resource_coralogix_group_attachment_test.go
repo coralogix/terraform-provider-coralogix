@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -32,7 +30,11 @@ func TestAccCoralogixResourceGroupAttachment(t *testing.T) {
 }
 
 func testCheckUserInGroup(s *terraform.State) error {
-	groupsClient := testAccProvider.Meta().(*clientset.ClientSet).Groups()
+	cs, err := testAccNewClientSet()
+	if err != nil {
+		return err
+	}
+	groupsClient := cs.Groups()
 	ctx := context.TODO()
 
 	var groupId, userId string
@@ -86,7 +88,11 @@ func testCheckUserInGroup(s *terraform.State) error {
 }
 
 func testCheckUserWasRemovedFromGroup(s *terraform.State) error {
-	groupsClient := testAccProvider.Meta().(*clientset.ClientSet).Groups()
+	cs, err := testAccNewClientSet()
+	if err != nil {
+		return err
+	}
+	groupsClient := cs.Groups()
 	ctx := context.TODO()
 
 	var groupId, userId string

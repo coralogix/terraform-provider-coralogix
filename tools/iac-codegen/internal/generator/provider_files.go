@@ -26,8 +26,8 @@ type providerFile struct {
 }
 
 // providerFiles returns the files of the provider that go with the output directory: the docs
-// examples of a new resource and its data source, the import command, and the registry. The registry is last, so
-// publication registers a package only after the package is in place.
+// examples of a new resource and its data source, the import command, versions.yaml, and the
+// registry. The registry is last, so publication registers a package only after the package is in place.
 func providerFiles(options Options, providerRoot, providerModule string, isNew bool, typeName string, files map[string][]byte) ([]providerFile, error) {
 	output, err := filepath.Abs(options.OutputDir)
 	if err != nil {
@@ -53,11 +53,15 @@ func providerFiles(options Options, providerRoot, providerModule string, isNew b
 			providerFile{filepath.Join(dir, "import.sh"), files[importKey]},
 			providerFile{filepath.Join(dataSourceDir, "data-source.tf"), files[dataSourceExampleKey]})
 	}
+	versions, err := renderVersions(output)
+	if err != nil {
+		return nil, err
+	}
 	registry, err := renderRegistry(output, providerRoot, providerModule, isNew)
 	if err != nil {
 		return nil, err
 	}
-	return append(out, registry), nil
+	return append(out, versions, registry), nil
 }
 
 // checkOverridesLocation requires the behavior-overrides file of a resource in the provider to be

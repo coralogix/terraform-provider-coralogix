@@ -58,26 +58,16 @@
     "replanEmpty": true
   },
   {
-    "step": "destroy: the API answers 500 and keeps the rules",
+    "step": "destroy: the API answers 500, and the provider reports the error",
     "requests": [
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
-        "status": 200
-      },
       {
         "method": "DELETE",
         "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
         "status": 500
-      },
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
-        "status": 200
       }
     ],
     "applyDiagnostics": [
-      "error: Error deleting coralogix_quota_allocation_rule_set | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: quota allocation rule set could not be deleted\"}\noperation - Delete"
+      "error: Unable to delete quota_allocation_rule_set | id 00000000-0000-4000-8000-000000000001: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: quota allocation rule set could not be deleted\"}"
     ],
     "state": {
       "id": "00000000-0000-4000-8000-000000000001",

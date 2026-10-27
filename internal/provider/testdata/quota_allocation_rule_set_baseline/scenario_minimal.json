@@ -62,7 +62,7 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1?id=00000000-0000-4000-8000-000000000001",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
         "status": 200
       }
     ],
@@ -82,11 +82,6 @@
   {
     "step": "destroy",
     "requests": [
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
-        "status": 200
-      },
       {
         "method": "DELETE",
         "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",

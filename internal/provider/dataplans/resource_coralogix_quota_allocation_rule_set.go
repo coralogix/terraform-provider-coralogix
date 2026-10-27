@@ -17,613 +17,132 @@ package dataplans
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"sort"
-	"strconv"
+	"math/big"
 
-	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	quotaRules "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/quota_allocation_rule_set_service"
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/quotaallocationruleset"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
-const quotaAllocationRuleSetImportID = "quota-allocation-rule-set"
+const quotaAllocationTypeUnspecified = "unspecified"
 
-const (
-	quotaAllocationTypePercentage  = "percentage"
-	quotaAllocationTypeLockedUnits = "locked_units"
-	quotaAllocationTypeUnspecified = "unspecified"
-)
-
-// The API validates entity_type as a plain string, so the docs link to the product documentation instead of listing values that go stale.
-const quotaAllocationEntityTypesDoc = "The [Quota Rules](https://coralogix.com/docs/user-guides/account-management/payment-and-billing/quota-rules/) documentation lists the supported entity types; the Coralogix API rejects an unsupported one."
-
-var (
-	quotaAllocationTypeSchemaToAPI = map[string]quotaRules.QuotaAllocationType{
-		quotaAllocationTypePercentage:  quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_PERCENTAGE,
-		quotaAllocationTypeLockedUnits: quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_LOCKED_UNITS,
-		// unspecified is a compatible alias of percentage (API default).
-		quotaAllocationTypeUnspecified: quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_PERCENTAGE,
-	}
-	// API UNSPECIFIED flattens to percentage (same effective default the API applies on write).
-	quotaAllocationTypeAPIToSchema = map[quotaRules.QuotaAllocationType]string{
-		quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_UNSPECIFIED:  quotaAllocationTypePercentage,
-		quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_PERCENTAGE:   quotaAllocationTypePercentage,
-		quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_LOCKED_UNITS: quotaAllocationTypeLockedUnits,
-	}
-	validQuotaAllocationTypes = []string{
-		quotaAllocationTypePercentage,
-		quotaAllocationTypeLockedUnits,
-		quotaAllocationTypeUnspecified,
-	}
-)
-
-var (
-	_ resource.ResourceWithConfigure      = &QuotaAllocationRuleSetResource{}
-	_ resource.ResourceWithImportState    = &QuotaAllocationRuleSetResource{}
-	_ resource.ResourceWithValidateConfig = &QuotaAllocationRuleSetResource{}
-)
+const quotaAllocationTypePercentage = "percentage"
 
 func NewQuotaAllocationRuleSetResource() resource.Resource {
-	return &QuotaAllocationRuleSetResource{}
+	return quotaallocationruleset.NewResource(quotaallocationruleset.Hooks{
+		BeforeFlatten:  dropCxManagedQuotaAllocationRules,
+		ValidateConfig: validateQuotaAllocationRulesConfig,
+		BeforeWrite:    validateQuotaAllocationRulesBeforeWrite,
+	})
 }
 
-type QuotaAllocationRuleSetResource struct {
-	client *quotaRules.QuotaAllocationRuleSetServiceAPIService
+// dropCxManagedQuotaAllocationRules keeps the rules that Coralogix manages out of the state of the
+// resource. The API returns them next to the rules of the customer and preserves them on every
+// write. The data source shows them.
+func dropCxManagedQuotaAllocationRules(ctx context.Context, ruleSet *quotaRules.QuotaAllocationEntityTypeRuleSet) diag.Diagnostics {
+	ruleSet.Rules = customerQuotaAllocationRules(ruleSet.Rules)
+	return normalizeQuotaAllocationTypes(ctx, ruleSet)
 }
 
-type QuotaAllocationRuleSetModel struct {
-	ID    types.String               `tfsdk:"id"`
-	Rules []QuotaAllocationRuleModel `tfsdk:"rules"`
-}
-
-type QuotaAllocationRuleModel struct {
-	EntityType     types.String  `tfsdk:"entity_type"`
-	Allocation     types.Float64 `tfsdk:"allocation"`
-	AllocationType types.String  `tfsdk:"allocation_type"`
-	Enabled        types.Bool    `tfsdk:"enabled"`
-	CanOverflow    types.Bool    `tfsdk:"can_overflow"`
-}
-
-func (r *QuotaAllocationRuleSetResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_quota_allocation_rule_set"
-}
-
-func (r *QuotaAllocationRuleSetResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	r.client = clientSet.QuotaAllocationRules()
-}
-
-func (r *QuotaAllocationRuleSetResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set. Delete clears customer-managed rules only; Coralogix-managed (`cx_managed`) rules are preserved. This resource filters `cx_managed` rules out of state; the data source exposes them. Requires `team-quota-rules:Read` and `team-quota-rules:Manage` permissions. Rules are keyed by entity type, such as `logs`, `spans`, or `metrics`. " + quotaAllocationEntityTypesDoc,
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "The backend identifier for the quota allocation rule set. Import accepts this value or `quota-allocation-rule-set`.",
-			},
-			"rules": schema.SetNestedAttribute{
-				Required:            true,
-				MarkdownDescription: "Complete set of customer-managed quota allocation rules. Because the backend stores a single account-level rule set, Terraform replaces the full customer-managed set during update. Set `rules = []` to clear all customer-managed rules.",
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"entity_type": schema.StringAttribute{
-							Required: true,
-							Validators: []validator.String{
-								stringvalidator.LengthAtLeast(1),
-							},
-							MarkdownDescription: "Entity type covered by the rule, such as `logs`, `spans`, or `metrics`. " + quotaAllocationEntityTypesDoc,
-						},
-						"allocation": schema.Float64Attribute{
-							Required: true,
-							Validators: []validator.Float64{
-								float64validator.AtLeast(0),
-							},
-							MarkdownDescription: "Quota allocation value for this entity type. For `percentage`, must be between 0 and 100. For `locked_units`, must be non-negative. The sum of enabled locked units plus any Coralogix bundle units must fit within the team daily quota.",
-						},
-						"allocation_type": schema.StringAttribute{
-							Optional: true,
-							Computed: true,
-							Default:  stringdefault.StaticString(quotaAllocationTypePercentage),
-							Validators: []validator.String{
-								stringvalidator.OneOf(validQuotaAllocationTypes...),
-							},
-							PlanModifiers: []planmodifier.String{
-								normalizeUnspecifiedQuotaAllocationType(),
-							},
-							MarkdownDescription: "How the allocation value is interpreted. Valid values are `percentage` (default) and `locked_units`. `unspecified` is accepted as a compatible alias of `percentage` and is normalized to `percentage` during planning. Locked units are reserved first from the team daily quota; percentage rules share the remaining pool and their enabled allocations must sum to at most 100.",
-						},
-						"enabled": schema.BoolAttribute{
-							Required:            true,
-							MarkdownDescription: "Whether the quota allocation rule is enabled.",
-						},
-						"can_overflow": schema.BoolAttribute{
-							Required:            true,
-							MarkdownDescription: "Whether this entity type can overflow beyond its allocation.",
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func (r *QuotaAllocationRuleSetResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
-	var data QuotaAllocationRuleSetModel
-
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	resp.Diagnostics.Append(validateQuotaAllocationRules(data.Rules)...)
-}
-
-func (r *QuotaAllocationRuleSetResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
-}
-
-func (r *QuotaAllocationRuleSetResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan QuotaAllocationRuleSetModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	ruleSet, diags := expandQuotaAllocationRuleSet(plan)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	request := quotaRules.CreateQuotaAllocationRuleSetRequest{RuleSet: *ruleSet}
-	result, httpResponse, err := r.client.
-		QuotaAllocationRuleSetServiceCreateQuotaAllocationRuleSet(ctx).
-		CreateQuotaAllocationRuleSetRequest(request).
-		Execute()
-	if err != nil {
-		if responseStatus(httpResponse) == http.StatusConflict {
-			existingResult, readResponse, readErr := getQuotaAllocationRuleSet(ctx, r.client, "")
-			if readErr != nil {
-				resp.Diagnostics.AddError("Error reading existing coralogix_quota_allocation_rule_set after create conflict",
-					utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(readResponse, readErr), "Read", nil),
-				)
-				return
-			}
-			if quotaAllocationRuleSetIsReplaceableOnCreateConflict(existingResult) {
-				// Send only customer rules. The API preserves cx_managed rules on Replace.
-				ruleSet = withRemoteQuotaAllocationRuleSetID(ruleSet, existingResult.RuleSet)
-				request := quotaRules.ReplaceQuotaAllocationRuleSetRequest{RuleSet: *ruleSet}
-				replaceResult, replaceResponse, replaceErr := r.client.
-					QuotaAllocationRuleSetServiceReplaceQuotaAllocationRuleSet(ctx).
-					ReplaceQuotaAllocationRuleSetRequest(request).
-					Execute()
-				if replaceErr != nil {
-					resp.Diagnostics.AddError("Error preserving Coralogix-managed quota allocation rules during create",
-						utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(replaceResponse, replaceErr), "Replace", request),
-					)
-					return
-				}
-
-				state, diags := flattenReplaceQuotaAllocationRuleSetResponse(replaceResult)
-				if diags.HasError() {
-					resp.Diagnostics.Append(diags...)
-					return
-				}
-
-				resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
-				return
-			}
-
-			resp.Diagnostics.AddError(
-				"Quota allocation rule set already exists",
-				"Coralogix already has a quota allocation rule set. Import it with `terraform import coralogix_quota_allocation_rule_set.<name> quota-allocation-rule-set` before managing it with Terraform.",
-			)
-			return
+// normalizeQuotaAllocationTypes reads a rule with no type, or an unspecified one, as a percentage
+// rule, which is what the API stores for it.
+func normalizeQuotaAllocationTypes(_ context.Context, ruleSet *quotaRules.QuotaAllocationEntityTypeRuleSet) diag.Diagnostics {
+	for i := range ruleSet.Rules {
+		if allocationType, ok := ruleSet.Rules[i].GetAllocationTypeOk(); !ok || *allocationType == quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_UNSPECIFIED {
+			ruleSet.Rules[i].SetAllocationType(quotaRules.QUOTAALLOCATIONTYPE_QUOTA_ALLOCATION_TYPE_PERCENTAGE)
 		}
-
-		resp.Diagnostics.AddError("Error creating coralogix_quota_allocation_rule_set",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", request),
-		)
-		return
 	}
-
-	state, diags := flattenCreateQuotaAllocationRuleSetResponse(result)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+	return nil
 }
 
-func (r *QuotaAllocationRuleSetResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state QuotaAllocationRuleSetModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	result, httpResponse, err := getQuotaAllocationRuleSet(ctx, r.client, state.ID.ValueString())
-	if err != nil {
-		if responseStatus(httpResponse) == http.StatusNotFound {
-			resp.State.RemoveResource(ctx)
-			return
-		}
-
-		resp.Diagnostics.AddError("Error reading coralogix_quota_allocation_rule_set",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
-		)
-		return
-	}
-
-	// Empty customer-managed rules are a valid managed state (`rules = []` clears them).
-	newState, diags := flattenGetQuotaAllocationRuleSetResponse(result)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, newState)...)
-}
-
-func (r *QuotaAllocationRuleSetResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan QuotaAllocationRuleSetModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	ruleSet, diags := expandQuotaAllocationRuleSet(plan)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	// Send only customer rules. The API preserves cx_managed rules on Replace.
-	request := quotaRules.ReplaceQuotaAllocationRuleSetRequest{RuleSet: *ruleSet}
-	replaceResult, httpResponse, err := r.client.
-		QuotaAllocationRuleSetServiceReplaceQuotaAllocationRuleSet(ctx).
-		ReplaceQuotaAllocationRuleSetRequest(request).
-		Execute()
-	if err != nil {
-		if responseStatus(httpResponse) == http.StatusNotFound {
-			resp.State.RemoveResource(ctx)
-			return
-		}
-
-		resp.Diagnostics.AddError("Error replacing coralogix_quota_allocation_rule_set",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", request),
-		)
-		return
-	}
-
-	state, diags := flattenReplaceQuotaAllocationRuleSetResponse(replaceResult)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
-}
-
-func (r *QuotaAllocationRuleSetResource) Delete(ctx context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
-	result, httpResponse, err := getQuotaAllocationRuleSet(ctx, r.client, "")
-	if err != nil {
-		if responseStatus(httpResponse) == http.StatusNotFound {
-			return
-		}
-
-		resp.Diagnostics.AddError("Error reading coralogix_quota_allocation_rule_set before delete",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
-		)
-		return
-	}
-	if quotaAllocationRuleSetIsEmpty(result) {
-		return
-	}
-
-	// Delete clears customer rules only; the API preserves cx_managed rules.
-	_, httpResponse, err = r.client.
-		QuotaAllocationRuleSetServiceDeleteQuotaAllocationRuleSet(ctx).
-		Execute()
-	if err != nil {
-		if responseStatus(httpResponse) == http.StatusNotFound {
-			return
-		}
-
-		result, readResponse, readErr := getQuotaAllocationRuleSet(ctx, r.client, "")
-		if readErr == nil && quotaAllocationRuleSetIsEmpty(result) {
-			return
-		}
-		if responseStatus(readResponse) == http.StatusNotFound {
-			return
-		}
-
-		resp.Diagnostics.AddError("Error deleting coralogix_quota_allocation_rule_set",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
-		)
-		return
-	}
-}
-
-func getQuotaAllocationRuleSet(ctx context.Context, client *quotaRules.QuotaAllocationRuleSetServiceAPIService, id string) (*quotaRules.GetQuotaAllocationRuleSetResponse, *http.Response, error) {
-	request := client.QuotaAllocationRuleSetServiceGetQuotaAllocationRuleSet(ctx)
-	if id != "" && id != quotaAllocationRuleSetImportID {
-		request = request.Id(id)
-	}
-
-	return request.Execute()
-}
-
-func validateQuotaAllocationRules(rules []QuotaAllocationRuleModel) diag.Diagnostics {
-	diags := diag.Diagnostics{}
-	seen := map[string]struct{}{}
+func customerQuotaAllocationRules(rules []quotaRules.QuotaAllocationEntityTypeRule) []quotaRules.QuotaAllocationEntityTypeRule {
+	customer := make([]quotaRules.QuotaAllocationEntityTypeRule, 0, len(rules))
 	for _, rule := range rules {
-		if rule.EntityType.IsUnknown() {
-			continue
+		if !rule.GetCxManaged() {
+			customer = append(customer, rule)
 		}
+	}
+	return customer
+}
 
-		entityType := rule.EntityType.ValueString()
-		if entityType == "" {
-			continue
-		}
+// quotaRuleConfig is a rule in the configuration. A nil allocation or an empty field is a value
+// that is null or not known yet.
+type quotaRuleConfig struct {
+	entityType     string
+	allocation     *big.Float
+	allocationType string
+	// allocationTypeUnknown: the value is not known yet, for example it comes from another resource.
+	allocationTypeUnknown bool
+}
 
-		if _, ok := seen[entityType]; ok {
-			diags.AddAttributeError(
-				path.Root("rules"),
-				"Duplicate quota allocation rule entity_type",
-				fmt.Sprintf("Only one quota allocation rule can be configured for entity_type %q.", entityType),
-			)
+func quotaRulesFromConfig(raw tftypes.Value) []quotaRuleConfig {
+	var root map[string]tftypes.Value
+	if raw.IsNull() || !raw.IsFullyKnown() && !raw.IsKnown() || raw.As(&root) != nil {
+		return nil
+	}
+	var items []tftypes.Value
+	if rules := root["rules"]; !rules.IsKnown() || rules.IsNull() || rules.As(&items) != nil {
+		return nil
+	}
+	out := make([]quotaRuleConfig, 0, len(items))
+	for _, item := range items {
+		var fields map[string]tftypes.Value
+		if !item.IsKnown() || item.IsNull() || item.As(&fields) != nil {
 			continue
 		}
-		seen[entityType] = struct{}{}
-
-		if rule.Allocation.IsUnknown() || rule.Allocation.IsNull() {
-			continue
-		}
-		allocationType := quotaAllocationTypePercentage
-		allocationTypeKnown := true
-		if !rule.AllocationType.IsUnknown() && !rule.AllocationType.IsNull() {
-			allocationType = rule.AllocationType.ValueString()
-			if allocationType == quotaAllocationTypeUnspecified {
-				allocationType = quotaAllocationTypePercentage
+		var rule quotaRuleConfig
+		_ = fields["entity_type"].As(&rule.entityType)
+		if value := fields["allocation"]; value.IsKnown() && !value.IsNull() {
+			rule.allocation = new(big.Float)
+			if value.As(rule.allocation) != nil {
+				rule.allocation = nil
 			}
-		} else if rule.AllocationType.IsUnknown() {
-			allocationTypeKnown = false
 		}
-		allocation := rule.Allocation.ValueFloat64()
-		if allocationTypeKnown && allocationType == quotaAllocationTypePercentage && allocation > 100 {
+		if value := fields["allocation_type"]; !value.IsKnown() {
+			rule.allocationType, rule.allocationTypeUnknown = "", true
+		} else {
+			_ = value.As(&rule.allocationType)
+		}
+		out = append(out, rule)
+	}
+	return out
+}
+
+// validateQuotaAllocationRulesBeforeWrite runs the checks again on the resolved configuration: a
+// value that comes from another resource is unknown while Terraform validates the configuration,
+// so the checks skip it, and the write is the first place that sees it.
+func validateQuotaAllocationRulesBeforeWrite(_ context.Context, config tfsdk.Config, _ any) diag.Diagnostics {
+	return validateQuotaAllocationRules(quotaRulesFromConfig(config.Raw))
+}
+
+func validateQuotaAllocationRulesConfig(_ context.Context, config tfsdk.Config) diag.Diagnostics {
+	return validateQuotaAllocationRules(quotaRulesFromConfig(config.Raw))
+}
+
+// validateQuotaAllocationRules checks what no key of the behavior-overrides file expresses: the
+// percentage limit depends on allocation_type. The duplicate entity type and the float32 precision
+// are generated checks.
+func validateQuotaAllocationRules(rules []quotaRuleConfig) diag.Diagnostics {
+	diags := diag.Diagnostics{}
+	for _, rule := range rules {
+		if rule.allocation == nil || rule.allocationTypeUnknown {
+			continue
+		}
+		if rule.allocationType != "" && rule.allocationType != quotaAllocationTypePercentage && rule.allocationType != quotaAllocationTypeUnspecified {
+			continue
+		}
+		if allocation, _ := rule.allocation.Float64(); allocation > 100 {
 			diags.AddAttributeError(
 				path.Root("rules"),
 				"Invalid percentage quota allocation",
-				fmt.Sprintf("The quota allocation rule for entity_type %q uses allocation_type %q, so allocation must be between 0 and 100.", entityType, quotaAllocationTypePercentage),
-			)
-		}
-		normalizedAllocation := normalizeQuotaAllocation(allocation)
-		if normalizedAllocation != allocation {
-			diags.AddAttributeError(
-				path.Root("rules"),
-				"Invalid quota allocation precision",
-				fmt.Sprintf("The quota allocation rule for entity_type %q uses allocation %s, but the Coralogix API stores allocations as float32 and would return %s. Configure %s instead to avoid Terraform state drift.", entityType, formatQuotaAllocation(allocation), formatQuotaAllocation(normalizedAllocation), formatQuotaAllocation(normalizedAllocation)),
+				fmt.Sprintf("The quota allocation rule for entity_type %q uses allocation_type %q, so allocation must be between 0 and 100.", rule.entityType, quotaAllocationTypePercentage),
 			)
 		}
 	}
-
 	return diags
-}
-
-func expandQuotaAllocationRuleSet(plan QuotaAllocationRuleSetModel) (*quotaRules.QuotaAllocationEntityTypeRuleSet, diag.Diagnostics) {
-	diags := validateQuotaAllocationRules(plan.Rules)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	rules := make([]quotaRules.QuotaAllocationEntityTypeRule, 0, len(plan.Rules))
-	for _, rule := range plan.Rules {
-		sdkRule := quotaRules.QuotaAllocationEntityTypeRule{
-			EntityType:  rule.EntityType.ValueString(),
-			Allocation:  float32(rule.Allocation.ValueFloat64()),
-			Enabled:     rule.Enabled.ValueBool(),
-			CanOverflow: rule.CanOverflow.ValueBool(),
-		}
-		if !rule.AllocationType.IsNull() && !rule.AllocationType.IsUnknown() {
-			if allocationType, ok := quotaAllocationTypeSchemaToAPI[rule.AllocationType.ValueString()]; ok {
-				sdkRule.SetAllocationType(allocationType)
-			}
-		}
-		rules = append(rules, sdkRule)
-	}
-
-	sort.Slice(rules, func(i, j int) bool {
-		return rules[i].EntityType < rules[j].EntityType
-	})
-
-	ruleSet := quotaRules.QuotaAllocationEntityTypeRuleSet{Rules: rules}
-	if !plan.ID.IsNull() && !plan.ID.IsUnknown() && plan.ID.ValueString() != quotaAllocationRuleSetImportID {
-		ruleSet.SetId(plan.ID.ValueString())
-	}
-
-	return &ruleSet, diags
-}
-
-func flattenCreateQuotaAllocationRuleSetResponse(resp *quotaRules.CreateQuotaAllocationRuleSetResponse) (*QuotaAllocationRuleSetModel, diag.Diagnostics) {
-	if resp == nil || resp.RuleSet == nil {
-		return &QuotaAllocationRuleSetModel{
-			ID:    types.StringValue(quotaAllocationRuleSetImportID),
-			Rules: []QuotaAllocationRuleModel{},
-		}, nil
-	}
-
-	return flattenQuotaAllocationRuleSet(resp.RuleSet)
-}
-
-func flattenGetQuotaAllocationRuleSetResponse(resp *quotaRules.GetQuotaAllocationRuleSetResponse) (*QuotaAllocationRuleSetModel, diag.Diagnostics) {
-	if resp == nil || resp.RuleSet == nil {
-		return &QuotaAllocationRuleSetModel{
-			ID:    types.StringValue(quotaAllocationRuleSetImportID),
-			Rules: []QuotaAllocationRuleModel{},
-		}, nil
-	}
-
-	return flattenQuotaAllocationRuleSet(resp.RuleSet)
-}
-
-func flattenReplaceQuotaAllocationRuleSetResponse(resp *quotaRules.ReplaceQuotaAllocationRuleSetResponse) (*QuotaAllocationRuleSetModel, diag.Diagnostics) {
-	if resp == nil || resp.RuleSet == nil {
-		return &QuotaAllocationRuleSetModel{
-			ID:    types.StringValue(quotaAllocationRuleSetImportID),
-			Rules: []QuotaAllocationRuleModel{},
-		}, nil
-	}
-
-	return flattenQuotaAllocationRuleSet(resp.RuleSet)
-}
-
-func quotaAllocationRuleSetIsEmpty(resp *quotaRules.GetQuotaAllocationRuleSetResponse) bool {
-	return resp == nil || resp.RuleSet == nil || len(resp.RuleSet.GetRules()) == 0
-}
-
-func quotaAllocationRuleSetHasUserManagedRules(ruleSet *quotaRules.QuotaAllocationEntityTypeRuleSet) bool {
-	if ruleSet == nil {
-		return false
-	}
-	for _, rule := range ruleSet.GetRules() {
-		if !quotaAllocationRuleIsManaged(rule) {
-			return true
-		}
-	}
-	return false
-}
-
-func quotaAllocationRuleSetIsReplaceableOnCreateConflict(resp *quotaRules.GetQuotaAllocationRuleSetResponse) bool {
-	return quotaAllocationRuleSetIsEmpty(resp) || !quotaAllocationRuleSetHasUserManagedRules(resp.RuleSet)
-}
-
-func withRemoteQuotaAllocationRuleSetID(ruleSet, remoteRuleSet *quotaRules.QuotaAllocationEntityTypeRuleSet) *quotaRules.QuotaAllocationEntityTypeRuleSet {
-	if ruleSet == nil {
-		ruleSet = &quotaRules.QuotaAllocationEntityTypeRuleSet{}
-	}
-	if remoteRuleSet == nil || ruleSet.HasId() {
-		return ruleSet
-	}
-	if id := remoteRuleSet.GetId(); id != "" {
-		ruleSet.SetId(id)
-	}
-	return ruleSet
-}
-
-type normalizeUnspecifiedQuotaAllocationTypeModifier struct{}
-
-func normalizeUnspecifiedQuotaAllocationType() planmodifier.String {
-	return normalizeUnspecifiedQuotaAllocationTypeModifier{}
-}
-
-func (m normalizeUnspecifiedQuotaAllocationTypeModifier) Description(_ context.Context) string {
-	return "Normalizes allocation_type \"unspecified\" to \"percentage\"."
-}
-
-func (m normalizeUnspecifiedQuotaAllocationTypeModifier) MarkdownDescription(ctx context.Context) string {
-	return m.Description(ctx)
-}
-
-func (m normalizeUnspecifiedQuotaAllocationTypeModifier) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
-	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
-		return
-	}
-	if req.ConfigValue.ValueString() == quotaAllocationTypeUnspecified {
-		resp.PlanValue = types.StringValue(quotaAllocationTypePercentage)
-	}
-}
-
-func flattenQuotaAllocationRuleSet(ruleSet *quotaRules.QuotaAllocationEntityTypeRuleSet) (*QuotaAllocationRuleSetModel, diag.Diagnostics) {
-	rules := ruleSet.GetRules()
-	sort.Slice(rules, func(i, j int) bool {
-		return rules[i].EntityType < rules[j].EntityType
-	})
-
-	stateRules := make([]QuotaAllocationRuleModel, 0, len(rules))
-	for _, rule := range rules {
-		if quotaAllocationRuleIsManaged(rule) {
-			continue
-		}
-
-		allocationType := types.StringValue(quotaAllocationTypePercentage)
-		if sdkAllocationType, ok := rule.GetAllocationTypeOk(); ok {
-			if schemaAllocationType, found := quotaAllocationTypeAPIToSchema[*sdkAllocationType]; found {
-				allocationType = types.StringValue(schemaAllocationType)
-			}
-		}
-
-		stateRules = append(stateRules, QuotaAllocationRuleModel{
-			EntityType:     types.StringValue(rule.GetEntityType()),
-			Allocation:     types.Float64Value(float32ToSchemaFloat64(rule.GetAllocation())),
-			AllocationType: allocationType,
-			Enabled:        types.BoolValue(rule.GetEnabled()),
-			CanOverflow:    types.BoolValue(rule.GetCanOverflow()),
-		})
-	}
-
-	id := ruleSet.GetId()
-	if id == "" {
-		id = quotaAllocationRuleSetImportID
-	}
-
-	return &QuotaAllocationRuleSetModel{
-		ID:    types.StringValue(id),
-		Rules: stateRules,
-	}, nil
-}
-
-func quotaAllocationRuleIsManaged(rule quotaRules.QuotaAllocationEntityTypeRule) bool {
-	value, ok := rule.GetCxManagedOk()
-	return ok && *value
-}
-
-func float32ToSchemaFloat64(value float32) float64 {
-	return normalizeQuotaAllocation(float64(value))
-}
-
-func normalizeQuotaAllocation(value float64) float64 {
-	parsed, err := strconv.ParseFloat(strconv.FormatFloat(float64(float32(value)), 'f', -1, 32), 64)
-	if err != nil {
-		return value
-	}
-
-	return parsed
-}
-
-func formatQuotaAllocation(value float64) string {
-	return strconv.FormatFloat(value, 'f', -1, 64)
-}
-
-func responseStatus(response *http.Response) int {
-	if response == nil {
-		return 0
-	}
-
-	return response.StatusCode
 }

@@ -497,8 +497,11 @@ func TestAcceptanceFileMustMatchTheSchema(t *testing.T) {
 		}, "is not set by the full config"},
 		"skip of a missing attribute": {func(s string) string { return strings.Replace(s, "  - labels.env\n", "  - labels.nope\n", 1) }, "not an attribute"},
 		"skip of a required one":      {func(s string) string { return strings.Replace(s, "  - labels.env\n", "  - name\n", 1) }, `"name" is required`},
-		"minimal of a missing one":    {func(s string) string { return strings.Replace(s, "  - labels\n", "  - nope\n", 1) }, "not an attribute"},
-		"another resource":            {func(s string) string { return strings.Replace(s, "resource: LegacyThing", "resource: Other", 1) }, "is for resource"},
+		"data source skip of a missing check": {func(s string) string {
+			return strings.Replace(s, "  - rules.0.kind\n", "  - rules.0.nope\n", 1)
+		}, "dataSourceSkip"},
+		"minimal of a missing one": {func(s string) string { return strings.Replace(s, "  - labels\n", "  - nope\n", 1) }, "not an attribute"},
+		"another resource":         {func(s string) string { return strings.Replace(s, "resource: LegacyThing", "resource: Other", 1) }, "is for resource"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -866,5 +869,30 @@ func TestAcceptanceRejectsAPathInSkipAndMinimal(t *testing.T) {
 				t.Fatalf("err = %v, want the path in skip and %s rejected", err, key)
 			}
 		})
+	}
+}
+
+// The acceptance test is named after the Terraform type, which a typeName line can make differ
+// from the SDK type: coralogix_slo_v2 for the component Slo.
+func TestAcceptanceTestIsNamedAfterTheTerraformType(t *testing.T) {
+	file, err := acceptance.Parse([]byte("resource: Slo\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct{ typeName, sdk, want string }{
+		{"slo_v2", "Slo", "SloV2"},
+		{"archive_logs", "V2Target", "ArchiveLogs"},
+		{"global_router", "GlobalRouter", "GlobalRouter"},
+	} {
+		res := &tfResource{Package: "p", CRUD: &crudData{TypeName: c.typeName, IDAttr: "id", Resource: c.sdk}, Attributes: []*tfAttr{
+			{Name: "name", Kind: "String", Required: true},
+		}}
+		data, err := buildAcceptance(res, "example.com/provider", file, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if data.Name != c.want {
+			t.Errorf("type %s, SDK type %s: test name TestAccCoralogixResource%sGenerated, want %sGenerated", c.typeName, c.sdk, data.Name, c.want)
+		}
 	}
 }

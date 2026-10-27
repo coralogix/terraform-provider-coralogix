@@ -15,83 +15,14 @@
 package logs
 
 import (
-	"context"
-	"fmt"
-	"net/http"
-
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-
-	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-	archiveLogs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/target_service"
-
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/archivelogs"
 )
 
-var _ datasource.DataSourceWithConfigure = &ArchiveLogsDataSource{}
-
+// NewArchiveLogsDataSource returns coralogix_archive_logs, the generated data source of the
+// resource. It reads the one archive target of the company and takes no input. The data source runs
+// only the BeforeFlatten hook, which the resource does not set.
 func NewArchiveLogsDataSource() datasource.DataSource {
-	return &ArchiveLogsDataSource{}
-}
-
-type ArchiveLogsDataSource struct {
-	client *archiveLogs.TargetServiceAPIService
-}
-
-func (d *ArchiveLogsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_archive_logs"
-}
-
-func (d *ArchiveLogsDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	d.client = clientSet.ArchiveLogs()
-}
-
-func (d *ArchiveLogsDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r ArchiveLogsResource
-	var resourceResp resource.SchemaResponse
-	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
-
-	resp.Schema = utils.ConvertSchemaWithoutID(resourceResp.Schema)
-}
-
-func (d *ArchiveLogsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *ArchiveLogsResourceModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	id := data.ID.ValueString()
-	rq := d.client.S3TargetServiceGetTarget(ctx)
-	result, httpResponse, err := rq.Execute()
-	if err != nil {
-		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("coralogix_archive_logs %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
-			)
-			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError("Error reading coralogix_archive_logs",
-				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
-			)
-		}
-		return
-	}
-	data = flattenArchiveLogs(result.Target.S3, result.Target.ArchiveSpec, id)
-	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	return archivelogs.NewDataSource(archivelogs.Hooks{})
 }
