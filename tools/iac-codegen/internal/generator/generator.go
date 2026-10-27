@@ -278,6 +278,12 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	if err != nil {
 		return nil, fmt.Errorf("build validated resource: %w", err)
 	}
+	if resource.Singleton && resource.Create.Response.ID != "" {
+		// A singleton has no id to read it with after Create, and no id field to keep.
+		return nil, &EligibilityError{Report: issue.Report{{Code: "READ_BACK_SINGLETON_UNSUPPORTED", Location: overrides.FileName + ":api.createResponseOnlyIDProperty",
+			Message:     fmt.Sprintf("The resource %s is a singleton, so api.createResponseOnlyIDProperty has no id to read it back with.", resource.Name),
+			Remediation: "Delete api.createResponseOnlyIDProperty from the overrides."}}}
+	}
 	dropUnusedList(resource, file)
 	if report = unwrapUsageIssues(resource, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
