@@ -96,6 +96,7 @@ jobs:
       contents: read
     env:
       GO111MODULE: on
+      FAILED_TESTS_FILE: failed-tests/non-dashboard-${{ matrix.shard }}.txt
     strategy:
       fail-fast: false
       matrix:
@@ -130,6 +131,14 @@ jobs:
           CORALOGIX_SLO_V2_APM_SERVICE: ${{ secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
         run: |
           bash .github/scripts/run-tests-with-summary.sh make testacc "TESTARGS=-run '${{ matrix.pattern }}'"
+      - name: Upload failed test names
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: failed-tests-non-dashboard-${{ matrix.shard }}
+          path: ${{ env.FAILED_TESTS_FILE }}
+          if-no-files-found: ignore
+          retention-days: 7
 
   test-unsharded:
     name: Non-dashboard acceptance tests (unsharded catch-all)
@@ -139,6 +148,7 @@ jobs:
       contents: read
     env:
       GO111MODULE: on
+      FAILED_TESTS_FILE: failed-tests/non-dashboard-unsharded.txt
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -173,6 +183,14 @@ jobs:
             skip_pattern+="|($pattern)"
           done
           ACC_SKIP_PATTERN="$skip_pattern" bash .github/scripts/run-tests-with-summary.sh make testacc
+      - name: Upload failed test names
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: failed-tests-non-dashboard-unsharded
+          path: ${{ env.FAILED_TESTS_FILE }}
+          if-no-files-found: ignore
+          retention-days: 7
 
   dashboard:
     name: Dashboard acceptance tests (${{ matrix.shard }})
@@ -182,6 +200,7 @@ jobs:
       contents: read
     env:
       GO111MODULE: on
+      FAILED_TESTS_FILE: failed-tests/dashboard-${{ matrix.shard }}.txt
     strategy:
       fail-fast: false
       matrix:
@@ -227,6 +246,14 @@ jobs:
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
         run: |
           bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run '${{ matrix.pattern }}' -timeout 120m -parallel=4
+      - name: Upload failed test names
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: failed-tests-dashboard-${{ matrix.shard }}
+          path: ${{ env.FAILED_TESTS_FILE }}
+          if-no-files-found: ignore
+          retention-days: 7
 
   dashboard-unsharded:
     name: Dashboard acceptance tests (unsharded catch-all)
@@ -236,6 +263,7 @@ jobs:
       contents: read
     env:
       GO111MODULE: on
+      FAILED_TESTS_FILE: failed-tests/dashboard-unsharded.txt
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -273,6 +301,14 @@ jobs:
             skip_pattern+="|$pattern"
           done
           bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run "$DASHBOARD_ACC_PATTERN" -skip "$skip_pattern" -timeout 120m -parallel=4
+      - name: Upload failed test names
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: failed-tests-dashboard-unsharded
+          path: ${{ env.FAILED_TESTS_FILE }}
+          if-no-files-found: ignore
+          retention-days: 7
 
   provider-migration:
     name: Provider migration (${{ matrix.shard }})
@@ -282,6 +318,7 @@ jobs:
       contents: read
     env:
       GO111MODULE: on
+      FAILED_TESTS_FILE: failed-tests/provider-migration-${{ matrix.shard }}.txt
     strategy:
       fail-fast: false
       matrix:
@@ -322,6 +359,14 @@ jobs:
           ARCHIVE_LOGS_BUCKET: ${{ secrets.ARCHIVE_LOGS_BUCKET }}
         run: |
           bash .github/scripts/run-tests-with-summary.sh env CORALOGIX_DASHBOARD_MIGRATION_ACC=1 CORALOGIX_EVENTS2METRIC_MIGRATION_ACC=1 CORALOGIX_USER_MIGRATION_ACC=1 CORALOGIX_GLOBAL_ROUTER_MIGRATION_ACC=1 CORALOGIX_GENERATED_UPGRADE_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test -p ${{ matrix.procs || 4 }} -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -run '${{ matrix.pattern }}' -skip '${{ matrix.skip }}' -v -count=1 -timeout 120m -parallel=3
+      - name: Upload failed test names
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: failed-tests-provider-migration-${{ matrix.shard }}
+          path: ${{ env.FAILED_TESTS_FILE }}
+          if-no-files-found: ignore
+          retention-days: 7
 
   acceptance-result:
     # Branch protection requires this check name. Keep it stable.
@@ -340,6 +385,32 @@ jobs:
     permissions: {}
     runs-on: ubuntu-latest
     steps:
+      # Each failed test job uploads one file, named after its shard.
+      # merge-multiple puts all files in one folder: GitHub skips the
+      # per-artifact folder when only one artifact matches.
+      - name: Download failed test names
+        if: ${{ contains(needs.*.result, 'failure') }}
+        uses: actions/download-artifact@v8
+        with:
+          pattern: failed-tests-*
+          path: failed-tests
+          merge-multiple: true
+      - name: Write failed tests summary
+        if: ${{ contains(needs.*.result, 'failure') }}
+        run: |
+          shopt -s nullglob
+          files=(failed-tests/*.txt)
+          if [ "${#files[@]}" -eq 0 ]; then
+            exit 0
+          fi
+          {
+            echo '## Failed acceptance tests'
+            for file in "${files[@]}"; do
+              printf '\n### %s\n\n```text\n' "$(basename "$file" .txt)"
+              cat "$file"
+              printf '```\n'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Fail if any acceptance job failed or was cancelled
         if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
         run: exit 1

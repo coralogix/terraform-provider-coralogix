@@ -26,6 +26,13 @@ if [[ $test_status -ne 0 ]]; then
       echo 'The test command failed, but its output did not include failed test names.'
     fi
   } >> "$GITHUB_STEP_SUMMARY"
+
+  # The workflow uploads this file, and the acceptance result job combines
+  # the files of all jobs into one summary.
+  if [[ -n ${FAILED_TESTS_FILE:-} ]]; then
+    mkdir -p "$(dirname "$FAILED_TESTS_FILE")"
+    printf '%s\n' "${failed_tests:-The test command failed, but its output did not include failed test names.}" > "$FAILED_TESTS_FILE"
+  fi
 fi
 
 exit "$test_status"
