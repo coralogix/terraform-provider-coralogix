@@ -33,6 +33,8 @@ import (
 
 const quotaAllocationTypeUnspecified = "unspecified"
 
+const quotaAllocationTypePercentage = "percentage"
+
 func NewQuotaAllocationRuleSetResource() resource.Resource {
 	return quotaallocationruleset.NewResource(quotaallocationruleset.Hooks{
 		BeforeFlatten:  dropCxManagedQuotaAllocationRules,

@@ -3,12 +3,12 @@
 page_title: "coralogix_quota_allocation_rule_set Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Reads the current account-level Coralogix quota allocation rule set, including Coralogix-managed (cx_managed) rules that the resource filters out of state. Requires team-quota-rules:Read permission. Rules are keyed by entity type, such as logs, spans, or metrics. The Quota Rules https://coralogix.com/docs/user-guides/account-management/payment-and-billing/quota-rules/ documentation lists the supported entity types; the Coralogix API rejects an unsupported one.
+  Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set. Delete clears customer-managed rules only; Coralogix-managed (cx_managed) rules are preserved. This resource filters cx_managed rules out of state; the data source exposes them. Requires team-quota-rules:Read and team-quota-rules:Manage permissions. Rules are keyed by entity type, such as logs, spans, or metrics. The Quota Rules https://coralogix.com/docs/user-guides/account-management/payment-and-billing/quota-rules/ documentation lists the supported entity types; the Coralogix API rejects an unsupported one.
 ---
 
 # coralogix_quota_allocation_rule_set (Data Source)
 
-Reads the current account-level Coralogix quota allocation rule set, including Coralogix-managed (`cx_managed`) rules that the resource filters out of state. Requires `team-quota-rules:Read` permission. Rules are keyed by entity type, such as `logs`, `spans`, or `metrics`. The [Quota Rules](https://coralogix.com/docs/user-guides/account-management/payment-and-billing/quota-rules/) documentation lists the supported entity types; the Coralogix API rejects an unsupported one.
+Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set. Delete clears customer-managed rules only; Coralogix-managed (`cx_managed`) rules are preserved. This resource filters `cx_managed` rules out of state; the data source exposes them. Requires `team-quota-rules:Read` and `team-quota-rules:Manage` permissions. Rules are keyed by entity type, such as `logs`, `spans`, or `metrics`. The [Quota Rules](https://coralogix.com/docs/user-guides/account-management/payment-and-billing/quota-rules/) documentation lists the supported entity types; the Coralogix API rejects an unsupported one.
 
 ## Example Usage
 
@@ -35,17 +35,16 @@ data "coralogix_quota_allocation_rule_set" "current" {}
 
 ### Read-Only
 
-- `id` (String) The backend identifier for the quota allocation rule set.
-- `rules` (Attributes Set) Current quota allocation rules returned by the backend, including `cx_managed` rules. (see [below for nested schema](#nestedatt--rules))
+- `id` (String) The backend identifier for the quota allocation rule set. Import accepts this value or `quota-allocation-rule-set`.
+- `rules` (Attributes Set) Complete set of customer-managed quota allocation rules. Because the backend stores a single account-level rule set, Terraform replaces the full customer-managed set during update. Set `rules = []` to clear all customer-managed rules. (see [below for nested schema](#nestedatt--rules))
 
 <a id="nestedatt--rules"></a>
 ### Nested Schema for `rules`
 
 Read-Only:
 
-- `allocation` (Number) Quota allocation value for this entity type. For `percentage`, this is a share of the pool left after `locked_units`. For `locked_units`, this is a fixed reservation from the team daily quota. The sum of enabled locked units plus any Coralogix bundle units must fit within the team daily quota.
-- `allocation_type` (String) How the allocation value is interpreted. Valid values are `percentage` and `locked_units`. An API `UNSPECIFIED` value is returned as `percentage`.
+- `allocation` (Number) Quota allocation value for this entity type. For `percentage`, must be between 0 and 100. For `locked_units`, must be non-negative. The sum of enabled locked units plus any Coralogix bundle units must fit within the team daily quota.
+- `allocation_type` (String) How the allocation value is interpreted. Valid values are `percentage` (default) and `locked_units`. `unspecified` is accepted as a compatible alias of `percentage` and is normalized to `percentage` during planning. Locked units are reserved first from the team daily quota; percentage rules share the remaining pool and their enabled allocations must sum to at most 100.
 - `can_overflow` (Boolean) Whether this entity type can overflow beyond its allocation.
-- `cx_managed` (Boolean) Whether the quota allocation rule is managed by Coralogix. Customer Terraform configurations must not send edits that collide with a `cx_managed` rule for the same entity type. Delete clears customer-managed rules only.
 - `enabled` (Boolean) Whether the quota allocation rule is enabled.
 - `entity_type` (String) Entity type covered by the rule, such as `logs`, `spans`, or `metrics`. The [Quota Rules](https://coralogix.com/docs/user-guides/account-management/payment-and-billing/quota-rules/) documentation lists the supported entity types; the Coralogix API rejects an unsupported one.

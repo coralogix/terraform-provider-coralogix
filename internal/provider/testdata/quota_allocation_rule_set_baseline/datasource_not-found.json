@@ -9,6 +9,12 @@
         "status": 404
       }
     ],
-    "state": null
+    "applyDiagnostics": [
+      "error: coralogix_quota_allocation_rule_set not found | The API did not find coralogix_quota_allocation_rule_set with id quota_allocation_rule_set: 404 Not Found — {\"code\":404,\"message\":\"Not Found: quota allocation rule set not found\"}"
+    ],
+    "state": {
+      "id": null,
+      "rules": null
+    }
   }
 ]

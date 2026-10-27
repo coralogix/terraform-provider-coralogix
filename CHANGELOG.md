@@ -89,7 +89,8 @@
 - FIX: A folder that is not found by `id` or `name` ends with an error and returns. Before, a folder without a name could stop the provider with a nil pointer, and the data source went on to write an empty state.
 
 #### resource/coralogix_quota_allocation_rule_set
-- CHORE: The resource is generated from the API contract. The schema, the import ids (`quota-allocation-rule-set` or the id of the rule set), the `unspecified` alias of `allocation_type`, and the handling of Coralogix-managed (`cx_managed`) rules are unchanged. The data source stays as it is.
+- CHORE: The resource is generated from the API contract. The schema, the import ids (`quota-allocation-rule-set` or the id of the rule set), the `unspecified` alias of `allocation_type`, and the handling of Coralogix-managed (`cx_managed`) rules are unchanged.
+- CHORE: The data source is generated too. It still shows the rules that Coralogix manages next to the rules of the customer, but it has the schema and the descriptions of the resource: `rules[*].cx_managed` is no longer an attribute, so the data source no longer tells a rule of Coralogix from a rule of the customer. A read that the API answers with 404 is an error, where it removed the data source from the state before.
 - FIX: Planning `allocation_type = "unspecified"` no longer plans `id` as known after apply on every run, and no longer sends an update when the stored rules already match.
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
 - CHORE: A destroy whose API call fails reports the error. The released resource ignored it when no rules of the customer remained, but the backend deletes in one transaction, so a failed call clears nothing.
