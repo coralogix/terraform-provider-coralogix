@@ -25,10 +25,19 @@ type crudData struct {
 	IDTFType string // String, Int32, or Int64
 	IDBits   int    // 0 for string; 32 or 64 for integer import parsing
 	// Singleton: no id in the path (D18). The id attribute is the fixed value
-	// TypeName, and the API calls take no id.
+	// SingletonID, and the API calls take no id.
 	Singleton bool
 	// SingletonID: the id attribute is the id field of the API resource, not the fixed value.
 	SingletonID bool
+	// FixedID is the Go expression of the fixed id of a singleton without singletonID.fromAPI:
+	// singletonID.fixed of the behavior-overrides file, or TypeName.
+	FixedID string
+	// Upsert: Create and Update are one Set call, and Delete makes no call. The API cannot remove
+	// the resource.
+	Upsert bool
+	// Arms are the Go fields of the inlined oneOf arms of the resource. Read treats a response
+	// without one as a resource that does not exist.
+	Arms []string
 	// Replace: Update is a full replace (PUT, E11) with no update mask.
 	Replace bool
 	// UpdateIDInBody: the Update call takes no id. The id is a field of the body.
@@ -129,7 +138,8 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		IDGoType:    "string",
 		IDTFType:    "String",
 		Singleton:   r.Singleton,
-		SingletonID: file != nil && file.SingletonID,
+		Upsert:      file.Upserts(),
+		SingletonID: file.IDFromAPI(),
 		Replace:     r.Replace,
 		MaskInBody:  r.MaskInBody,
 		OmitMask:    file != nil && file.UpdateMask == overrides.UpdateMaskOmit,
@@ -151,6 +161,16 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	}
 	if err := updateIDFromState(r, ix, out); err != nil {
 		return nil, err
+	}
+	out.FixedID = singletonID(file)
+	for _, parent := range inlinedParents(r, file) {
+		if parent.Arm {
+			ref, err := ix.fieldRef("fields." + parent.Field)
+			if err != nil {
+				return nil, err
+			}
+			out.Arms = append(out.Arms, ref.Name)
+		}
 	}
 	if file != nil {
 		for _, version := range sortedVersions(file) {
@@ -175,11 +195,23 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		{"delete", r.Delete, &out.Delete, false, false},
 	}
 	for _, o := range ops {
+		if o.name == "delete" && file.Upserts() {
+			continue // the API cannot remove an upsert, so Delete makes no call
+		}
 		if *o.out, err = buildCRUDOp(ix, o, client.Name, resource.Name); err != nil {
 			return nil, err
 		}
 	}
 	return out, nil
+}
+
+// singletonID is the Go expression of the fixed id of a singleton: singletonID.fixed of the
+// behavior-overrides file, or TypeName. The check that the resource is a singleton is in tfschema.go.
+func singletonID(file *overrides.File) string {
+	if fixed := file.FixedID(); fixed != "" {
+		return fmt.Sprintf("%q", fixed)
+	}
+	return "TypeName"
 }
 
 func resourceIDData(r *model.Resource, ix *refIndex, out *crudData) error {

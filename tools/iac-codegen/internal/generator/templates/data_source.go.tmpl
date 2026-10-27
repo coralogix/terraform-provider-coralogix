@@ -192,7 +192,7 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 		m.Id = types.StringValue(TypeName) // the API returned no id
 	}
 {{- else if .Singleton}}
-	m.Id = types.StringValue(TypeName) // a singleton has a fixed id (D18)
+	m.Id = types.StringValue(SingletonID) // a singleton has a fixed id (D18)
 {{- end}}
 	resp.Diagnostics.Append(resp.State.Set(ctx, m)...)
 }

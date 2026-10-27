@@ -129,7 +129,7 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		Package:        res.Package,
 		VersionHeader:  version.Header,
 		ProviderImport: providerModule + "/internal/provider",
-		Name:           res.CRUD.Resource,
+		Name:           camelize(typeName), // the Terraform type, which can differ from the SDK type
 		Address:        "coralogix_" + typeName + ".test",
 		IDAttr:         res.CRUD.IDAttr,
 		IDCustom:       res.CRUD.IDAttr != "id",
