@@ -95,7 +95,6 @@ type ClientSet struct {
 	aiApplications        *aiapplications.AIApplicationsServiceAPIService
 	aiEvaluations         *aievaluations.AIEvaluationsServiceAPIService
 	grafana               *GrafanaClient
-	groups                *GroupsClient
 	teamGroups            *teamGroupss.TeamGroupsManagementServiceAPIService
 	teams                 *teamsservice.TeamsServiceAPIService
 	users                 *usersservice.UsersManagementServiceAPIService
@@ -203,10 +202,6 @@ func (c *ClientSet) ViewsFolders() *viewsfolders.FoldersForViewsServiceAPIServic
 
 func (c *ClientSet) Views() *viewsservice.ViewsServiceAPIService {
 	return c.views
-}
-
-func (c *ClientSet) Groups() *GroupsClient {
-	return c.groups
 }
 
 func (c *ClientSet) Users() *usersservice.UsersManagementServiceAPIService {
@@ -333,7 +328,6 @@ func NewClientSet(region string, apiKey string, grpcTarget string) *ClientSet {
 		customDataEnrichments: cs.CustomEnrichments(),
 		alertScheduler:        cs.AlertScheduler(),
 		grafana:               NewGrafanaClient(apikeyCPC),
-		groups:                NewGroupsClient(region, apiKey),
 		teamGroups:            cs.Groups(),
 		teams:                 cs.Teams(),
 		users:                 cs.Users(),

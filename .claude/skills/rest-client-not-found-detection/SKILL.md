@@ -1,11 +1,11 @@
 ---
 name: rest-client-not-found-detection
-description: "Use when a REST-backed resource (SCIM group/user, Grafana) fails to soft-delete on 404, or when cxsdk.Code returns Unknown for a status.Error from rest/client.go."
+description: "Use when a REST-backed resource (SCIM user, Grafana) fails to soft-delete on 404, or when cxsdk.Code returns Unknown for a status.Error from rest/client.go."
 ---
 
 # REST clients return bare status errors — use status.Code
 
-**Trigger:** A read/delete path for SCIM groups, SCIM users, or Grafana uses `cxsdk.Code(err) == codes.NotFound`, but the branch never runs for a real 404.
+**Trigger:** A read/delete path for SCIM users or Grafana uses `cxsdk.Code(err) == codes.NotFound`, but the branch never runs for a real 404.
 
 **Fix:** Keep `rest/client.go` returning a bare status error, and check with `status.Code`:
 
