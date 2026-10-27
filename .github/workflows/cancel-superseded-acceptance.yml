@@ -52,6 +52,9 @@ jobs:
           )
           for run_id in $run_ids; do
             # The run can leave the queue between the list call and now.
+            # It can also start in the second between this check and the cancel
+            # call. That is safe: a run starts with the `changes` job, and no
+            # test job, so none has created test resources yet.
             status=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq .status)
             if [ "$status" != "pending" ] && [ "$status" != "queued" ]; then
               echo "Skipping run $run_id: it is $status"
