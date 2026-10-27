@@ -5,6 +5,7 @@ alertsscheduler: v0.1.0-beta.44
 archivelogs: v0.1.0-beta.44
 configurationgroup: v0.1.0-beta.44
 connector: v0.1.0-beta.44
+dashboardsfolder: v0.1.0-beta.44
 events2metric: v0.1.0-beta.44
 globalrouter: v0.1.0-beta.44
 preset: v0.1.0-beta.44

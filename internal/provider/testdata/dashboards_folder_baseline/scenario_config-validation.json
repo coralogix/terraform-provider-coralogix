@@ -2,6 +2,9 @@
   {
     "step": "empty config",
     "config": {},
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"name\")] | Must set a configuration value for the name attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
     "state": null
   },
   {
@@ -9,6 +12,9 @@
     "config": {
       "name": ""
     },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"name\")] | Attribute name string length must be between 1 and 100, got: 0"
+    ],
     "state": null
   },
   {
@@ -16,6 +22,9 @@
     "config": {
       "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"name\")] | Attribute name string length must be between 1 and 100, got: 101"
+    ],
     "state": null
   }
 ]

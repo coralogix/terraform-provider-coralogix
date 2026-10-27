@@ -78,6 +78,16 @@
 #### data-source/coralogix_view_folder
 - CHORE: The data source uses the generated data source of the resource. It still finds a view folder by `id` or by `name`, and takes the first folder with the name. A read by id now gets the folder by its id instead of listing every folder. The errors for an id or a name that the API does not find have new wording.
 
+#### resource/coralogix_dashboards_folder
+- CHORE: The resource and the data source are generated from the API contract. Schema version stays 1, and existing state upgrades with no plan change.
+- CHORE: `name` is required, and between 1 and 100 characters, as the API enforces: it rejects a folder without a name, with an empty name, or with a longer name. `parent_id` must be 36 characters, a UUID: the API rejects anything else.
+- CHORE: Create no longer sends an id that the provider made up: the server assigns it, and Create reads the folder with that id. If that read fails, the folder stays in the state, and Terraform marks it as tainted.
+- FIX: An update of a folder that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state.
+
+#### data-source/coralogix_dashboards_folder
+- CHORE: The data source is generated from the same contract as the resource. A lookup by `id` now reads the folder with a Get instead of scanning the list, and a folder that is not found ends with an error. A lookup by `name` still uses the list, and the first folder with that name wins, as before.
+- FIX: A folder that is not found by `id` or `name` ends with an error and returns. Before, a folder without a name could stop the provider with a nil pointer, and the data source went on to write an empty state.
+
 # Release 3.22.1
 
 #### tools/iac-codegen
