@@ -165,6 +165,59 @@ func config(run, resourceBlock string) string {
 	return render(run, prerequisites+"\n\n"+resourceBlock)
 }
 
+const dataSourceAddress = "data.coralogix_global_router.test"
+
+const dataSourceByNameAddress = "data.coralogix_global_router.by_name"
+
+// dataSourceConfig reads the data source of the resource that the config creates.
+const dataSourceConfig = `data "coralogix_global_router" "test" {
+  id = coralogix_global_router.test.id
+}
+
+data "coralogix_global_router" "by_name" {
+  name = coralogix_global_router.test.name
+}`
+
+// dataSourceChecks compare the data source with the resource.
+func dataSourceChecks() resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "description", resourceAddress, "description"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "disabled", resourceAddress, "disabled"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "entity_labels.key", resourceAddress, "entity_labels.key"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "fallback_targets.#", resourceAddress, "fallback_targets.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "fallback_targets.0.entity_type", resourceAddress, "fallback_targets.0.entity_type"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "fallback_targets.0.target.custom_details.key", resourceAddress, "fallback_targets.0.target.custom_details.key"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "name", resourceAddress, "name"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "routing_labels.environment", resourceAddress, "routing_labels.environment"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "routing_labels.service", resourceAddress, "routing_labels.service"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "routing_labels.team", resourceAddress, "routing_labels.team"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "rules.#", resourceAddress, "rules.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "rules.0.custom_details.key", resourceAddress, "rules.0.custom_details.key"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "rules.0.entity_type", resourceAddress, "rules.0.entity_type"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "rules.0.name", resourceAddress, "rules.0.name"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "rules.0.targets.#", resourceAddress, "rules.0.targets.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "rules.0.targets.0.custom_details.key", resourceAddress, "rules.0.targets.0.custom_details.key"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "id", resourceAddress, "id"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "description", resourceAddress, "description"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "disabled", resourceAddress, "disabled"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "entity_labels.key", resourceAddress, "entity_labels.key"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "fallback_targets.#", resourceAddress, "fallback_targets.#"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "fallback_targets.0.entity_type", resourceAddress, "fallback_targets.0.entity_type"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "fallback_targets.0.target.custom_details.key", resourceAddress, "fallback_targets.0.target.custom_details.key"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "name", resourceAddress, "name"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "routing_labels.environment", resourceAddress, "routing_labels.environment"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "routing_labels.service", resourceAddress, "routing_labels.service"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "routing_labels.team", resourceAddress, "routing_labels.team"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "rules.#", resourceAddress, "rules.#"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "rules.0.custom_details.key", resourceAddress, "rules.0.custom_details.key"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "rules.0.entity_type", resourceAddress, "rules.0.entity_type"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "rules.0.name", resourceAddress, "rules.0.name"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "rules.0.targets.#", resourceAddress, "rules.0.targets.#"),
+		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "rules.0.targets.0.custom_details.key", resourceAddress, "rules.0.targets.0.custom_details.key"),
+	)
+}
+
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
@@ -240,7 +293,7 @@ var importStep = resource.TestStep{
 // so that a failure in one does not hide the others. After every apply, the framework plans again and
 // fails when the plan is not empty.
 func TestAccCoralogixResourceGlobalRouterGenerated(t *testing.T) {
-	// full-lifecycle sets every attribute, imports, changes the attributes, and imports again.
+	// full-lifecycle sets every attribute, imports, reads the data source, changes the attributes, and imports again.
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
@@ -249,6 +302,7 @@ func TestAccCoralogixResourceGlobalRouterGenerated(t *testing.T) {
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
 				importStep,
+				{Config: config(run, fullConfig+"\n\n"+dataSourceConfig), Check: dataSourceChecks()},
 				{Config: config(run, updatedConfig), Check: updatedChecks(run)},
 				importStep,
 			},
