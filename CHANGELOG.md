@@ -9,7 +9,12 @@
 - FEAT: A new resource always gets a data source, `DataSources()` in `registry.go`, and the docs example `examples/data-sources/coralogix_<type>/data-source.tf`. An existing resource gets a data source only with a `dataSource:` section in `behavior-overrides.yaml` (`dataSource: {}` when it has no line).
 - FEAT: `dataSource.types.<Resource>.fields.<field>: {readEmptyAs: value}` shows the API value of a top-level string, also `""`, where the resource line reads `""` as null. A line on a nested component, a line without a resource `readEmptyAs: "null"` line, and `lookup: [id]`, which is the default, are errors.
 - FEAT: The generated acceptance test reads the data source by the id of the resource in `full-lifecycle` and compares it with the resource.
-- CHORE: Bump the generator to `v0.1.0-beta.40`.
+- FEAT: The data source of a new resource also looks up the resource by `name` when the API has a usable List: its items have the id and a string `name`, and it is not paged. `id` and `name` are then optional, and the configuration sets exactly one of them. The List turns the name into an id, and Get reads the result. A name that no item has, or that more than one item has, is an error. Without a usable List, the data source looks up the id only.
+- FEAT: `dataSource.lookup: [id, name]` turns on the lookup by name for an existing resource. The line is an error when the resource has no usable List, and the error says why. `api.operations.list` names a List that is not on the Create path.
+- FEAT: `dataSource.duplicateNames: first` takes the first item with the name, in the order of the API, for a released data source that did so. Without `name` in `lookup`, the line is an error.
+- FEAT: With name lookup, the generated acceptance test also reads the data source by the name of the resource and compares it with the resource.
+- CHORE: Bump the `iac` module to the commit that adds the List operation to the model.
+- CHORE: Bump the generator to `v0.1.0-beta.41`.
 
 #### data-source/coralogix_configuration_group
 - CHORE: The data source uses the generated data source of the resource.
