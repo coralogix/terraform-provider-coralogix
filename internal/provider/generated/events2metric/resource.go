@@ -52,13 +52,6 @@ type Hooks struct {
 	// ValidateConfig adds checks that no attribute validator expresses, such as a rule over
 	// the items of a set.
 	ValidateConfig func(context.Context, tfsdk.Config) diag.Diagnostics
-	// UpdateGone reports whether the error of a failed Update call means that the resource is
-	// gone, for an API that answers an update of a missing resource with another status than 404.
-	// It can read the resource to tell that case from a real failure.
-	UpdateGone func(context.Context, *events2metrics_service.Events2MetricsServiceAPIService, string, error) bool
-	// DeleteGone is UpdateGone for a Delete call, for an API that answers a delete of a missing
-	// resource with another status than 404.
-	DeleteGone func(context.Context, *events2metrics_service.Events2MetricsServiceAPIService, string, error) bool
 }
 
 // NewResource returns the resource. Use it in provider.Resources.
@@ -200,7 +193,7 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		body.Id = id
 		v, err = r.update(ctx, body)
 	}
-	if cxsdk.IsNotFound(err) || err != nil && r.hooks.UpdateGone != nil && r.hooks.UpdateGone(ctx, r.client, id, err) {
+	if cxsdk.IsNotFound(err) {
 		// The framework does not allow Update to remove the resource from state.
 		// The next refresh removes it through Read.
 		resp.Diagnostics.AddError("Resource no longer exists",
@@ -223,9 +216,6 @@ func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp 
 		return
 	}
 	err := r.delete(ctx, id)
-	if err != nil && !cxsdk.IsNotFound(err) && r.hooks.DeleteGone != nil && r.hooks.DeleteGone(ctx, r.client, id, err) {
-		return
-	}
 	if err != nil && !cxsdk.IsNotFound(err) {
 		resp.Diagnostics.AddError("Unable to delete "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 	}

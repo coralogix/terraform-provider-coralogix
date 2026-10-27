@@ -10,6 +10,8 @@ github.com/coralogix/coralogix-management-sdk/iac v0.0.0-20261027054820-c897f915
 github.com/coralogix/coralogix-management-sdk/iac v0.0.0-20261027054820-c897f9154b34/go.mod h1:sap17qvp+dr3U71nzI7oLvIGM8V9G2twSKGmQ1xUltw=
 github.com/coralogix/coralogix-management-sdk/iac v0.0.0-20261027091939-509f308b4511 h1:+t2e/HyN+SlPbTNRzrB5lMFfW/Kz3GZ1v18glX+c/CI=
 github.com/coralogix/coralogix-management-sdk/iac v0.0.0-20261027091939-509f308b4511/go.mod h1:sap17qvp+dr3U71nzI7oLvIGM8V9G2twSKGmQ1xUltw=
+github.com/coralogix/coralogix-management-sdk/iac v0.0.0-20261027111036-7cd2c4fb0198 h1:F6pxduJKufPXECFHN5YrRm58dACPwkgFoZ6ysz8qU4w=
+github.com/coralogix/coralogix-management-sdk/iac v0.0.0-20261027111036-7cd2c4fb0198/go.mod h1:sap17qvp+dr3U71nzI7oLvIGM8V9G2twSKGmQ1xUltw=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/go-test/deep v1.0.3 h1:ZrJSEWsXzPOxaZnFteGEfooLba+ju3FYIbOrS+rQd68=

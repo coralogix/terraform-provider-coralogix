@@ -80,15 +80,9 @@ type File struct {
 // UpdateMaskOmit is the updateMask value that sends no update mask.
 const UpdateMaskOmit = "omit"
 
-// API is the api section of the file: the API keys of the iac module, which every tool reads the
-// same way, and the keys that only Terraform needs.
+// API is the api section of the file: the API keys of the iac module.
 type API struct {
 	iacoverrides.API `yaml:",inline"`
-	// CreateResponseOnlyIDProperty is the property of the Create response that holds only the id
-	// of the new resource, when the response does not return the resource. The generated Create
-	// then reads the resource with Get. Only Terraform reads the key; the model reads
-	// Policy.CreateResponseOnlyIDProperty.
-	CreateResponseOnlyIDProperty string `yaml:"createResponseOnlyIDProperty"`
 }
 
 // OperationNone is the api.operations.delete value of an API that cannot remove the resource.
@@ -1081,7 +1075,6 @@ func checkValidators(validators []Validator) error {
 // exceptions that the Terraform keys cover.
 func (f *File) Policy() model.Policy {
 	p := f.Exceptions().Policy()
-	p.CreateResponseOnlyIDProperty = f.API.CreateResponseOnlyIDProperty
 	if f.Upserts() {
 		// The generator names the operations of the reshaped contract (reshape.go).
 		p.Operations = model.OperationIDs{}

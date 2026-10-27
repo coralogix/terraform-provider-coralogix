@@ -25,7 +25,6 @@
 - CHORE: Bump the generator to `v0.1.0-beta.42`.
 - FEAT: `api.createResponseOnlyIDProperty` names the property of a Create response that holds only the id. The generated Create then reads the resource with Get, and keeps the id in the state when that read fails, so Terraform marks the resource as tainted. The SDK `iac` module reads the response shape.
 - FEAT: The generated Update reads the resource with Get when the API answers it with an object that has no fields (existing mode), inside the `update` call, and puts the id of the state into the resource when Get leaves it out.
-- FEAT: `Hooks.UpdateGone` and `Hooks.DeleteGone` (existing mode) say that the error of a failed Update or Delete means that the resource is gone, for an API that answers a call on a missing resource with another status than 404.
 - CHORE: Bump the `iac` module to the commit that reads a Create response with only an id.
 
 #### data-source/coralogix_configuration_group
