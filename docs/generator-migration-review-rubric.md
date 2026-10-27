@@ -45,7 +45,8 @@ changes.
 
 If tests use a fake API, compare its replies with real API calls or a saved recording. Check 404s.
 If the API says the resource is gone, remove it from state. If the API route is missing, return an
-error. If create, read, update, or delete now calls another service or RPC, list each call and the
-API-key permission it needs. A least-privilege key that could do the old calls must still work;
-test with one. Read comments on earlier generator migration PRs and apply the ones that fit this
-PR. Report each remaining blocker with an example and code location.
+error. If create, read, update, delete, or a data source lookup (by id or by name) now calls another
+service or RPC, list each call and the API-key permission it needs. A least-privilege key that
+could do the old calls must still work; test with one. Read comments on earlier generator migration
+PRs and apply the ones that fit this PR. Report each remaining blocker with an example and code
+location.
