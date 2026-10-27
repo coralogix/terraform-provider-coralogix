@@ -1,0 +1,39 @@
+# The behavior-overrides file of the synthetic singleton that one call sets and another reads.
+resource: Target
+mode: existing
+typeName: upsert_thing
+
+validators:
+  inferred: false
+
+singletonID: {fixed: upsert-thing-settings}
+
+api:
+  # One POST creates and replaces the singleton, and the API cannot remove it.
+  operations:
+    create: UpsertService_SetTarget
+    get: UpsertService_GetTarget
+    update: UpsertService_SetTarget
+    delete: none
+
+types:
+  Target:
+    fields:
+      spec:
+        inline: true
+      meta:
+        inline: true
+      other:
+        skip: true
+      enabled:
+        name: active
+        optional: true # the contract requires it, and the released attribute has a default
+        computed: true
+        default: true
+      zone:
+        computed: true
+        useStateForUnknown: true
+      version:
+        useStateForUnknown: true
+      token:
+        readOnly: true
