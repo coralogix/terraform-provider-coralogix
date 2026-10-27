@@ -75,7 +75,7 @@ func TestAccCoralogixDataSourceViewFolder_not_found(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      testAccCoralogixDataSourceViewFolder_read_missing(name),
-				ExpectError: regexp.MustCompile(`Could not find view folder with name`),
+				ExpectError: regexp.MustCompile(`coralogix_view_folder with name ".*" not found`),
 			},
 		},
 	})

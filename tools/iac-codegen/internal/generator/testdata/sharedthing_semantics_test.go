@@ -3,6 +3,7 @@ package sharedthing
 import (
 	"context"
 	"math/big"
+	"slices"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -175,7 +176,7 @@ func TestReadWithoutAnArmFails(t *testing.T) {
 }
 
 // The data source shows the note that the API stores, also "", which the resource reads as null.
-// It runs the BeforeFlatten hook of the resource, and requires the id.
+// It runs the BeforeFlatten hook of the resource, and takes the id or the name.
 func TestDataSourceShowsTheStoredNote(t *testing.T) {
 	ctx := context.Background()
 	id, name, frame, note, ratio := "thing-1", "a", shared_things_service.SHAREDFRAME_SHARED_FRAME_ONE_DAY, "", float32(0.5)
@@ -192,8 +193,11 @@ func TestDataSourceShowsTheStoredNote(t *testing.T) {
 	}}
 	var schemaResp datasource.SchemaResponse
 	d.Schema(ctx, datasource.SchemaRequest{}, &schemaResp)
-	if a := schemaResp.Schema.Attributes["id"]; !a.IsRequired() {
-		t.Fatalf("data source id = %#v, want required", a)
+	if a := schemaResp.Schema.Attributes["id"]; !a.IsOptional() || a.IsRequired() {
+		t.Fatalf("data source id = %#v, want optional", a)
+	}
+	if a := schemaResp.Schema.Attributes["name"]; !a.IsOptional() || !a.IsComputed() {
+		t.Fatalf("data source name = %#v, want optional and computed", a)
 	}
 	if a := schemaResp.Schema.Attributes["note"]; !a.IsComputed() || a.IsOptional() || a.IsRequired() {
 		t.Fatalf("data source note = %#v, want computed-only", a)
@@ -217,5 +221,56 @@ func TestDataSourceShowsTheStoredNote(t *testing.T) {
 	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("note"), &got)...)
 	if resp.Diagnostics.HasError() || got.IsNull() || got.ValueString() != "" {
 		t.Fatalf("data source note = %v (%v), want \"\"", got, resp.Diagnostics)
+	}
+}
+
+// With duplicateNames: first, the data source takes the first summary of the List with the name,
+// in the order of the API, and reads that id with Get. A name that no summary has is an error.
+func TestDataSourceTakesTheFirstNameMatch(t *testing.T) {
+	ctx := context.Background()
+	id, name, frame, ratio := "thing-2", "a", shared_things_service.SHAREDFRAME_SHARED_FRAME_ONE_DAY, float32(0.5)
+	shared_things_service.Stored = shared_things_service.SharedThing{
+		Id: &id, Name: &name, Frame: &frame, ByRatio: &shared_things_service.SharedRatio{Ratio: &ratio},
+	}
+	summary := func(id, name string) shared_things_service.SharedThingSummary {
+		return shared_things_service.SharedThingSummary{Id: &id, Name: &name}
+	}
+	shared_things_service.Summaries = []shared_things_service.SharedThingSummary{
+		summary("thing-1", "b"), summary("thing-2", "a"), summary("thing-3", "a"),
+	}
+	t.Cleanup(func() { shared_things_service.Summaries, shared_things_service.GotIDs = nil, nil })
+	d := &DataSource{resource: Resource{client: &shared_things_service.SharedThingsServiceAPIService{}}}
+	var schemaResp datasource.SchemaResponse
+	d.Schema(ctx, datasource.SchemaRequest{}, &schemaResp)
+	read := func(name string) *datasource.ReadResponse {
+		root := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
+		values := map[string]tftypes.Value{}
+		for attr, attrType := range root.AttributeTypes {
+			values[attr] = tftypes.NewValue(attrType, nil)
+		}
+		values["name"] = tftypes.NewValue(tftypes.String, name)
+		config := tftypes.NewValue(root, values)
+		shared_things_service.GotIDs = nil
+		resp := &datasource.ReadResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: config}}
+		d.Read(ctx, datasource.ReadRequest{Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: config}}, resp)
+		return resp
+	}
+
+	resp := read("a")
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	if !slices.Equal(shared_things_service.GotIDs, []string{"thing-2"}) {
+		t.Fatalf("Get ids = %v, want [thing-2]", shared_things_service.GotIDs)
+	}
+	var got types.String
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("id"), &got)...)
+	if got.ValueString() != "thing-2" {
+		t.Fatalf("data source id = %v (%v), want thing-2", got, resp.Diagnostics)
+	}
+
+	resp = read("missing")
+	if !resp.Diagnostics.HasError() || resp.Diagnostics[0].Summary() != `coralogix_shared_thing_v2 with name "missing" not found` || len(shared_things_service.GotIDs) != 0 {
+		t.Fatalf("missing name: Get ids = %v, diagnostics = %v", shared_things_service.GotIDs, resp.Diagnostics)
 	}
 }

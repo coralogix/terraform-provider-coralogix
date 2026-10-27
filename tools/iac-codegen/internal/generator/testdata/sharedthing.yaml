@@ -3,7 +3,8 @@
 # resource in a required field next to the ids of other objects that the call changed. The
 # server sets the id, Get does not require it, and Update finds the resource by the id in the
 # body. The released resource holds the oneOf arms and the frame in objects that the API does
-# not have, and is named shared_thing_v2.
+# not have, and is named shared_thing_v2. The List is not on the Create path and returns summaries
+# with the id and the name.
 openapi: 3.1.0
 info: {title: shared, version: 1.0.0}
 paths:
@@ -64,6 +65,16 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/ReplaceSharedThingResponse'}
+  /shared/v1/things:summaries:
+    get:
+      tags: [Shared Things Service]
+      operationId: SharedThingsService_ListSharedThingSummaries
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ListSharedThingSummariesResponse'}
   /shared/v1/things/{id}:
     parameters:
       - {name: id, in: path, required: true, schema: {type: string}}
@@ -104,6 +115,15 @@ components:
       properties:
         changedIds: {type: array, items: {type: string}}
         thing: {$ref: '#/components/schemas/SharedThing'}
+    ListSharedThingSummariesResponse:
+      type: object
+      properties:
+        summaries: {type: array, items: {$ref: '#/components/schemas/SharedThingSummary'}}
+    SharedThingSummary:
+      type: object
+      properties:
+        id: {type: string}
+        name: {type: string}
     DeleteSharedThingResponse:
       type: object
       required: []
