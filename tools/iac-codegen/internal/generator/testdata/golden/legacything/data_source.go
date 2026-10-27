@@ -56,6 +56,11 @@ func (d *DataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp 
 		}
 		resp.Schema.Attributes["rules"] = nested
 	}
+	utils.OverrideDatasourceDescriptions(&resp.Schema, map[string]string{
+		"":           "Reads a legacy thing. It only reads.",
+		"rules.name": "The name of the rule that the data source shows.",
+		"name":       "The name that the data source shows.",
+	})
 }
 
 func (d *DataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {

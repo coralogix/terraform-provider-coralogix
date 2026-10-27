@@ -17,8 +17,12 @@ type DataSource struct {
 	// the API, for a released data source that did so. Without the line, a name that more than
 	// one item has is an error. It needs name in Lookup.
 	DuplicateNames string `yaml:"duplicateNames"`
-	// Types has one entry per OpenAPI component. Only the resource component can have one: a line
-	// changes a top-level attribute.
+	// Description is the markdown description of the data source. Without it, the data source has
+	// the description of the resource, which describes what the resource manages.
+	Description string `yaml:"description"`
+	// Types has one entry per OpenAPI component. A readEmptyAs line changes a top-level attribute,
+	// so its component is the resource component. A show line and a description line also name an
+	// attribute of the items of a top-level list or set of objects, by the component of the items.
 	Types map[string]DataSourceType `yaml:"types"`
 }
 
@@ -37,7 +41,9 @@ type DataSourceField struct {
 	// resource, for a released data source that showed it. The data source reads it from the API.
 	// A bool and a string are supported.
 	Show bool `yaml:"show"`
-	// Description is the markdown description of a shown attribute. A show line needs it.
+	// Description is the markdown description of the attribute in the data source. A show line needs
+	// it. On another line it replaces the description that the data source copies from the
+	// resource, for a released data source that described its attributes in another way.
 	Description string `yaml:"description"`
 }
 
@@ -73,8 +79,10 @@ func (d *DataSource) check() error {
 			case line.Show && line.Description == "":
 				return fmt.Errorf("dataSource.types.%s.fields.%s: show needs a description", component, field)
 			case line.Show:
-			case line.ReadEmptyAs != ReadEmptyAsValue:
-				return fmt.Errorf("dataSource.types.%s.fields.%s: readEmptyAs is %q, want %q, or the line sets show: true", component, field, line.ReadEmptyAs, ReadEmptyAsValue)
+			case line.ReadEmptyAs == "" && line.Description == "":
+				return fmt.Errorf("dataSource.types.%s.fields.%s has no override: set readEmptyAs, show, or description", component, field)
+			case line.ReadEmptyAs != "" && line.ReadEmptyAs != ReadEmptyAsValue:
+				return fmt.Errorf("dataSource.types.%s.fields.%s: readEmptyAs is %q, want %q", component, field, line.ReadEmptyAs, ReadEmptyAsValue)
 			}
 		}
 	}
@@ -112,6 +120,8 @@ func (d *DataSource) LooksUpName() bool {
 type DataSourceLine struct {
 	Component, Field string
 	Show             bool // the line shows a field that the resource skips
+	ReadEmptyAs      string
+	Description      string
 }
 
 // String is the location of the line in the file.
@@ -127,7 +137,8 @@ func (f *File) DataSourceLines() []DataSourceLine {
 	var out []DataSourceLine
 	for _, component := range sortedKeys(f.DataSource.Types) {
 		for _, field := range sortedKeys(f.DataSource.Types[component].Fields) {
-			out = append(out, DataSourceLine{Component: component, Field: field, Show: f.DataSource.Types[component].Fields[field].Show})
+			out = append(out, DataSourceLine{Component: component, Field: field, Show: f.DataSource.Types[component].Fields[field].Show,
+				ReadEmptyAs: f.DataSource.Types[component].Fields[field].ReadEmptyAs, Description: f.DataSource.Types[component].Fields[field].Description})
 		}
 	}
 	return out

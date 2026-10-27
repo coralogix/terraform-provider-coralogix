@@ -62,6 +62,13 @@ func (d *DataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp 
 		}
 		resp.Schema.Attributes["rules"] = nested
 	}
+	utils.OverrideDatasourceDescriptions(&resp.Schema, map[string]string{
+		"":                      "Reads the current account-level Coralogix quota allocation rule set, including Coralogix-managed (`cx_managed`) rules that the resource filters out of state. Requires `team-quota-rules:Read` permission. Rules are keyed by entity type, such as `logs`, `spans`, or `metrics`. The [Quota Rules](https://coralogix.com/docs/user-guides/account-management/payment-and-billing/quota-rules/) documentation lists the supported entity types; the Coralogix API rejects an unsupported one.",
+		"rules.allocation":      "Quota allocation value for this entity type. For `percentage`, this is a share of the pool left after `locked_units`. For `locked_units`, this is a fixed reservation from the team daily quota. The sum of enabled locked units plus any Coralogix bundle units must fit within the team daily quota.",
+		"rules.allocation_type": "How the allocation value is interpreted. Valid values are `percentage` and `locked_units`. An API `UNSPECIFIED` value is returned as `percentage`.",
+		"id":                    "The backend identifier for the quota allocation rule set.",
+		"rules":                 "Current quota allocation rules returned by the backend, including `cx_managed` rules.",
+	})
 }
 
 func (d *DataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {

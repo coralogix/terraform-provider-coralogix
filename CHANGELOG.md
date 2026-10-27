@@ -24,7 +24,9 @@
 - CHORE: Bump `coralogix-management-sdk` to the version with the AI evaluations contract. `coralogix_dashboards_folder` and `coralogix_dashboard` adapt to its types: the folder name is a required string, and the dashboard of a replace request is optional. A `coralogix_dashboards_folder` without `name` now sends an empty name: the API still rejects it, now with "folder name cannot be empty".
 
 #### tools/iac-codegen
-- CHORE: Bump the generator to `v0.1.0-beta.48`.
+- CHORE: Bump the generator to `v0.1.0-beta.49`.
+- FEAT: `dataSource.description`, and `description` on a `dataSource.types.<Component>.fields.<field>` line without `show`, replace the description that the generated data source copies from the resource.
+- FIX: A shown data source attribute (`show: true`) that has the Terraform name of an attribute of the item, or of another shown attribute, is an error. Before, it overwrote that attribute.
 - FEAT: `dataSource.types.<Component>.fields.<field>.show: true`, with a `description`, adds a computed bool or string attribute to the items of a top-level list or set of objects of the generated data source: a field that the resource skips and the API returns.
 - FEAT: `dataSourceSkip` in `acceptance.yaml` leaves attribute paths out of the data source comparison of the generated acceptance test, for a data source that shows more than the resource.
 - FIX: A required attribute with no prior value, which only an import has, takes the value of the API, as a computed one does. A required list or set reads back as the empty one after an import, so `rules = []` needs no hook.
@@ -93,7 +95,7 @@
 
 #### resource/coralogix_quota_allocation_rule_set
 - CHORE: The resource is generated from the API contract. The schema, the import ids (`quota-allocation-rule-set` or the id of the rule set), the `unspecified` alias of `allocation_type`, and the handling of Coralogix-managed (`cx_managed`) rules are unchanged.
-- CHORE: The data source is generated too. It still shows the rules that Coralogix manages next to the rules of the customer, with `rules[*].cx_managed` (a `show` line), it reads an unspecified allocation type as `percentage`, and it shows an empty rule set as `rules = []`, but its descriptions are the ones of the resource. A read that the API answers with 404 is an error, where it removed the data source from the state before.
+- CHORE: The data source is generated too. It still shows the rules that Coralogix manages next to the rules of the customer, with `rules[*].cx_managed` (a `show` line), it reads an unspecified allocation type as `percentage`, and it shows an empty rule set as `rules = []`, with the descriptions of the released data source. A read that the API answers with 404 is an error, where it removed the data source from the state before.
 - FIX: Planning `allocation_type = "unspecified"` no longer plans `id` as known after apply on every run, and no longer sends an update when the stored rules already match.
 - FIX: An update of a resource that no longer exists fails with "Resource no longer exists", which says that a refresh (`terraform apply` without `-refresh=false`) removes it from state. Before, it warned that Terraform removed it from state, and the apply then failed with "Missing Resource State After Update".
 - CHORE: A destroy whose API call fails reports the error. The released resource ignored it when no rules of the customer remained, but the backend deletes in one transaction, so a failed call clears nothing.

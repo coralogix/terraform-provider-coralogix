@@ -174,7 +174,7 @@ func TestDataSourceShowChecksTheLine(t *testing.T) {
 		},
 		"a component that the resource has no list of": {
 			func(s string) string {
-				return replaceOnce(t, s, "    LegacyRule:\n      fields:\n        managed:", "    LegacyLabels:\n      fields:\n        managed:")
+				return replaceOnce(t, s, "    LegacyRule:\n      fields:\n        name:\n          description: The name of the rule that the data source shows.\n        managed:", "    LegacyLabels:\n      fields:\n        managed:")
 			},
 			"managed",
 		},
@@ -198,5 +198,41 @@ func TestDataSourceShowNeedsADescription(t *testing.T) {
 	_, err = overrides.Parse([]byte(replaceOnce(t, string(text), "          description: Whether the rule is managed.\n", "")))
 	if err == nil || !strings.Contains(err.Error(), "show needs a description") {
 		t.Fatalf("err = %v, want show needs a description", err)
+	}
+}
+
+// A shown attribute takes a Terraform name that no attribute of the item has: foo-bar and foo_bar are
+// both foo_bar, so one would overwrite the other in the data source.
+func TestDataSourceShowRejectsANameThatTheItemHas(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "legacy.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := os.ReadFile(filepath.Join("testdata", "legacy-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The rule field name is renamed to managed, which is the name of the shown field.
+	renamed := replaceOnce(t, string(text), "      name:\n        description: \"The rule name.\"\n        required: true\n", "      name:\n        description: \"The rule name.\"\n        required: true\n        name: managed\n")
+	file := mustParse(t, renamed)
+	_, err = validateOpenAPIWith(spec, "LegacyThing", model.OperationIDs{}, "sdk", "provider", file)
+	if err == nil || !strings.Contains(err.Error(), "already has") {
+		t.Fatalf("err = %v, want a Terraform name collision of the shown attribute", err)
+	}
+}
+
+func TestDataSourceDescriptionNeedsAnAttribute(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "legacy.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := os.ReadFile(filepath.Join("testdata", "legacy-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	edited := replaceOnce(t, string(text), "        name:\n          description: The name of the rule that the data source shows.\n", "        nope:\n          description: x\n")
+	_, err = validateOpenAPIWith(spec, "LegacyThing", model.OperationIDs{}, "sdk", "provider", mustParse(t, edited))
+	if err == nil || !strings.Contains(err.Error(), "nope") {
+		t.Fatalf("err = %v, want an error that names the field nope", err)
 	}
 }

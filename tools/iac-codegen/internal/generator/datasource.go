@@ -33,7 +33,13 @@ type dsData struct {
 	// Show are the lists and sets of objects whose items get attributes that only the data source
 	// has (show: true).
 	Show []*dsShow
+	// Descriptions replace the descriptions that the data source copies from the resource, by the
+	// dotted Terraform path of the attribute; the path "" is the data source itself.
+	Descriptions []dsDescription
 }
+
+// dsDescription is the description of one attribute of the data source.
+type dsDescription struct{ Path, Text string }
 
 // dsShow is a top-level list or set of objects of the resource whose items get more attributes
 // in the data source: fields that the resource skips and the API returns.
@@ -86,7 +92,7 @@ func buildDataSource(r *model.Resource, refs []sdkcheck.Ref, conv *convData, cru
 		IDSchema: crud.Singleton || crud.IDAttr != "id" || crud.IDTFType != "String",
 	}
 	for _, line := range file.DataSourceLines() {
-		if line.Show {
+		if line.Show || line.ReadEmptyAs == "" {
 			continue
 		}
 		field := slices.IndexFunc(conv.Resource.Fields, func(f *convField) bool {
@@ -109,7 +115,67 @@ func buildDataSource(r *model.Resource, refs []sdkcheck.Ref, conv *convData, cru
 	if out.Show, err = buildShow(refs, conv, file); err != nil {
 		return nil, err
 	}
+	if out.Descriptions, err = buildDescriptions(refs, conv, file); err != nil {
+		return nil, err
+	}
 	return out, nil
+}
+
+// buildDescriptions returns the description lines: the data source itself, a top-level attribute of
+// the resource, and an attribute of the items of a top-level list or set of objects.
+func buildDescriptions(refs []sdkcheck.Ref, conv *convData, file *overrides.File) ([]dsDescription, error) {
+	var out []dsDescription
+	if file != nil && file.DataSource != nil && file.DataSource.Description != "" {
+		out = append(out, dsDescription{Text: file.DataSource.Description})
+	}
+	for _, line := range file.DataSourceLines() {
+		if line.Show || line.Description == "" {
+			continue
+		}
+		at, err := descriptionPath(refs, conv, file, line)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, dsDescription{Path: at, Text: line.Description})
+	}
+	return out, nil
+}
+
+// descriptionPath returns the Terraform path of the attribute that a description line names.
+func descriptionPath(refs []sdkcheck.Ref, conv *convData, file *overrides.File, line overrides.DataSourceLine) (string, error) {
+	named := func(fields []*convField) *convField {
+		i := slices.IndexFunc(fields, func(f *convField) bool { return f.Model == camelize(line.Field) && f.Conv != convGroup })
+		if i < 0 {
+			return nil
+		}
+		return fields[i]
+	}
+	if line.Component == file.Resource {
+		f := named(conv.Resource.Fields)
+		if f == nil {
+			return "", fmt.Errorf("%s: %s is not a top-level attribute of the resource", line, line.Field)
+		}
+		return f.TFName, nil
+	}
+	ix, err := indexRefs(refs)
+	if err != nil {
+		return "", err
+	}
+	owner, err := ix.schemaRef(line.Component)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", line, err)
+	}
+	for _, holder := range conv.Resource.Fields {
+		if holder.Object == nil || holder.Object.SDK != owner.Name || (holder.Conv != convObjects && holder.Conv != convObj) {
+			continue
+		}
+		f := named(holder.Object.Fields)
+		if f == nil {
+			return "", fmt.Errorf("%s: %s is not an attribute of the items of %s", line, line.Field, holder.TFName)
+		}
+		return holder.TFName + "." + f.TFName, nil
+	}
+	return "", fmt.Errorf("%s: the resource has no top-level object or list of objects of component %s", line, line.Component)
 }
 
 // showPath is the path of the synthetic SDK ref of a field that a data source line shows.
@@ -220,7 +286,14 @@ func buildShow(refs []sdkcheck.Ref, conv *convData, file *overrides.File) ([]*ds
 				ItemSDK: owner.Name, NeedsPrior: holder.Object.NeedsPrior, Flatten: holder.Object.Func, AttrTypes: holder.Object.AttrTypesFunc})
 			at = len(out) - 1
 		}
-		out[at].Fields = append(out[at].Fields, &dsShowField{TFName: terraformName(model.Policy{}, line.Component, line.Field), SDK: field.Name, Kind: kind,
+		tfName := terraformName(file.Policy(), line.Component, line.Field)
+		// The shown attribute must not take the name of an attribute of the item, or of another shown
+		// attribute: foo-bar and foo_bar are both foo_bar in Terraform.
+		if slices.ContainsFunc(holder.Object.Fields, func(f *convField) bool { return f.TFName == tfName }) ||
+			slices.ContainsFunc(out[at].Fields, func(f *dsShowField) bool { return f.TFName == tfName }) {
+			return nil, fmt.Errorf("%s: the shown attribute %s has the Terraform name %s, which an attribute of %s already has", line, line.Field, tfName, holder.TFName)
+		}
+		out[at].Fields = append(out[at].Fields, &dsShowField{TFName: tfName, SDK: field.Name, Kind: kind,
 			Pointer: pointer, Description: file.DataSource.Types[line.Component].Fields[line.Field].Description})
 	}
 	return out, nil
@@ -361,14 +434,14 @@ func dataSourceIssues(file *overrides.File) issue.Report {
 				Message:     fmt.Sprintf("show adds a field that the resource skips, but the resource does not skip %s.%s, so the data source already has it.", line.Component, line.Field),
 				Remediation: "Delete the line, or skip the field of the resource.",
 			})
-		case line.Component != file.Resource:
+		case line.ReadEmptyAs != "" && line.Component != file.Resource:
 			report = append(report, issue.Issue{
 				Code:        "OVERRIDE_INVALID",
 				Location:    location,
 				Message:     fmt.Sprintf("A data source line changes a top-level attribute, so its component must be the resource component %s, not %s.", file.Resource, line.Component),
 				Remediation: "Move the line to dataSource.types." + file.Resource + ", or delete it.",
 			})
-		case file.Types[line.Component].Fields[line.Field].ReadEmptyAs != "null":
+		case line.ReadEmptyAs != "" && file.Types[line.Component].Fields[line.Field].ReadEmptyAs != "null":
 			report = append(report, issue.Issue{
 				Code:        "OVERRIDE_UNUSED",
 				Location:    location,

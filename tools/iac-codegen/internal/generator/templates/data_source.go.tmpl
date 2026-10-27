@@ -125,6 +125,13 @@ func (d *DataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp 
 		resp.Schema.Attributes[{{printf "%q" .Attr}}] = nested
 	}
 {{- end}}
+{{- if $.DataSource.Descriptions}}
+	utils.OverrideDatasourceDescriptions(&resp.Schema, map[string]string{
+{{- range $.DataSource.Descriptions}}
+		{{printf "%q" .Path}}: {{printf "%q" .Text}},
+{{- end}}
+	})
+{{- end}}
 }
 
 func (d *DataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
