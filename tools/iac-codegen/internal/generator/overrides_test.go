@@ -1277,3 +1277,26 @@ func TestFolderBodyIDOverrides(t *testing.T) {
 		})
 	}
 }
+
+// A singleton has no id to read it with, so a Create response with only an id is refused with an
+// issue instead of generating code that does not parse.
+func TestCreateResponseOnlyIDPropertyIsRefusedForASingleton(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := strings.Replace(string(spec), "      responses:\n        '200':\n          description: Created\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/Settings'\n", "      responses:\n        '200':\n          description: Created\n          content:\n            application/json:\n              schema:\n                $ref: '#/components/schemas/CreateSettingsResponse'\n", 1)
+	changed = strings.Replace(changed, "components:\n  schemas:\n", "components:\n  schemas:\n    CreateSettingsResponse:\n      type: object\n      properties:\n        settingsId: {type: string, x-coralogix-presence: true}\n", 1)
+	if changed == string(spec) {
+		t.Fatal("the test contract did not change: update the replaced text")
+	}
+	overrides, err := os.ReadFile(filepath.Join("testdata", "singleton-id-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	file := mustParse(t, string(overrides)+"api:\n  createResponseOnlyIDProperty: settingsId\n")
+	_, err = validateOpenAPIWith([]byte(changed), "Settings", model.OperationIDs{}, "sdk", "provider", file)
+	if !slices.Contains(eligibilityCodes(t, err), "READ_BACK_SINGLETON_UNSUPPORTED") {
+		t.Fatalf("err = %v, want READ_BACK_SINGLETON_UNSUPPORTED", err)
+	}
+}
