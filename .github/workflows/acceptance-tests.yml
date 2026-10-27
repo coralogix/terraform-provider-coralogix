@@ -41,7 +41,7 @@ env:
   # every other job skips them.
   ARCHIVE_LOGS_ACC_PATTERN: &archive_logs_acc_pattern '^TestAccCoralogix(Resource|DataSource)(Resource)?ArchiveLogs'
   # The quota allocation rule set is one per account, so its upgrade test has its own shard of the
-  # provider migration job, and the generated-upgrade shard skips it.
+  # provider migration job, which runs after the test job, and the generated-upgrade shard skips it.
   QUOTA_UPGRADE_ACC_PATTERN: &quota_upgrade_acc_pattern '^TestAccCoralogixResourceQuotaAllocationRuleSetGeneratedUpgrade$'
   # The generated upgrade shard leaves out the tests that have a shard or a job of their own.
   GENERATED_UPGRADE_SKIP_PATTERN: &generated_upgrade_skip_pattern '^TestAccCoralogix(Resource|DataSource)(Resource)?ArchiveLogs|^TestAccCoralogixResourceQuotaAllocationRuleSetGeneratedUpgrade$'
@@ -430,8 +430,12 @@ jobs:
 
   provider-migration:
     name: Provider migration (${{ matrix.shard }})
-    needs: changes
-    if: ${{ needs.changes.outputs.code == 'true' }}
+    # The quota allocation rule set is one per account, and the upgrade shard of this job replaces
+    # it. The test job runs the other quota tests, so this job starts after it, also when it fails.
+    needs:
+      - changes
+      - test
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     permissions:
       contents: read
     env:
