@@ -133,7 +133,7 @@ func (r AlertResource) GenericUpgradeState(_ any) func(context.Context, resource
 
 		alert := getAlertResp.GetAlertDef()
 
-		newState, diags := flattenAlert(ctx, alert, &schedule, nil)
+		newState, diags := flattenAlert(ctx, alert, &schedule, nil, types.StringNull(), nil)
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 			return
@@ -167,7 +167,10 @@ func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	rq := alerts.CreateAlertDefinitionRequest{AlertDefProperties: alertProperties}
+	rq := alerts.CreateAlertDefinitionRequest{
+		AlertDefProperties: alertProperties,
+		AccessPolicy:       alertAccessPolicyForCreate(plan.AccessPolicy),
+	}
 	result, httpResponse, err := r.client.AlertDefsServiceCreateAlertDef(ctx).CreateAlertDefinitionRequest(rq).Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating coralogix_alert",
@@ -175,7 +178,9 @@ func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, 
 		)
 		return
 	}
-	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule, &plan.NotificationGroup)
+	// Create responses carry no access echo, so the flatten keeps the planned
+	// policy (see flattenAlertAccessPolicy).
+	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule, &plan.NotificationGroup, plan.AccessPolicy, nil)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -197,10 +202,17 @@ func (r *AlertResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	var configAccessPolicy types.String
+	diags = req.Config.GetAttribute(ctx, path.Root("access_policy"), &configAccessPolicy)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	id := plan.ID.ValueString()
 	rq := &alerts.ReplaceAlertDefinitionRequest{
 		Id:                 &id,
 		AlertDefProperties: alertProperties,
+		AccessPolicy:       alertAccessPolicyActionForUpdate(configAccessPolicy, plan.AccessPolicy),
 	}
 	result, httpResponse, err := r.client.
 		AlertDefsServiceReplaceAlertDef(ctx).
@@ -217,7 +229,7 @@ func (r *AlertResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		}
 		return
 	}
-	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule, &plan.NotificationGroup)
+	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule, &plan.NotificationGroup, plan.AccessPolicy, nil)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -260,6 +272,15 @@ func (r *AlertResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	}
 	rq := r.client.AlertDefsServiceGetAlertDef(ctx, id)
 
+	// NOTE: the read deliberately does not opt into include_access_permissions.
+	// The dashboard read path fetches its policy with a plain Get (the
+	// dashboards API returns it unconditionally), so this read mirrors that
+	// and sends no include flag. For alerts the access field is then populated
+	// only when the backend chooses to; in particular, without the
+	// alerts:ReadAccessPolicy permission the policy reads back absent even
+	// when one exists. flattenAlertAccessPolicy therefore treats an absent
+	// policy as unknown rather than deleted: it preserves the prior state
+	// instead of clearing it.
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
 		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
@@ -276,7 +297,7 @@ func (r *AlertResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	state, diags = flattenAlert(ctx, result.GetAlertDef(), &state.Schedule, &state.NotificationGroup)
+	state, diags = flattenAlert(ctx, result.GetAlertDef(), &state.Schedule, &state.NotificationGroup, state.AccessPolicy, alertAccessFromGetResponse(result))
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -3168,7 +3189,7 @@ func extractAnalyticsThresholdCondition(ctx context.Context, condition types.Obj
 	}, nil
 }
 
-func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *types.Object, currentNotificationGroup *types.Object) (*alerttypes.AlertResourceModel, diag.Diagnostics) {
+func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *types.Object, currentNotificationGroup *types.Object, currentAccessPolicy types.String, accessPolicy *string) (*alerttypes.AlertResourceModel, diag.Diagnostics) {
 	alertProperties := alert.AlertDefProperties
 
 	alertSchedule, diags := flattenAlertSchedule(ctx, *alertProperties, currentSchedule)
@@ -3209,6 +3230,10 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 	if diags.HasError() {
 		return nil, diags
 	}
+	flattenedAccessPolicy, diags := flattenAlertAccessPolicy(currentAccessPolicy, accessPolicy)
+	if diags.HasError() {
+		return nil, diags
+	}
 	return &alerttypes.AlertResourceModel{
 		ID:                types.StringPointerValue(alert.Id),
 		Name:              types.StringPointerValue(getAlertName(alertProperties)),
@@ -3225,7 +3250,96 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 		Deleted:           types.BoolPointerValue(getAlertDeleted(alertProperties)),
 		DataSources:       dataSources,
 		CaseSettings:      caseSettings,
+		AccessPolicy:      flattenedAccessPolicy,
 	}, nil
+}
+
+// alertAccessPolicyForCreate maps the planned access_policy to the create
+// request's plain-string field: an absent or empty policy is omitted, so the
+// alert is created without one.
+func alertAccessPolicyForCreate(planAccessPolicy types.String) *string {
+	if planAccessPolicy.IsNull() || planAccessPolicy.IsUnknown() || planAccessPolicy.ValueString() == "" {
+		return nil
+	}
+
+	return planAccessPolicy.ValueStringPointer()
+}
+
+// alertAccessPolicyActionForUpdate maps the configured access_policy to the
+// replace request's AccessPolicyAction oneof, mirroring the operator's
+// semantics: a configured value upserts, an explicit "" deletes the remote
+// policy, and removing the attribute from the configuration omits the action
+// and leaves the remote policy unchanged.
+func alertAccessPolicyActionForUpdate(configAccessPolicy, planAccessPolicy types.String) *alerts.AccessPolicyAction {
+	if configAccessPolicy.IsNull() || configAccessPolicy.IsUnknown() {
+		return nil
+	}
+	if planAccessPolicy.IsNull() || planAccessPolicy.IsUnknown() {
+		return nil
+	}
+	if planAccessPolicy.ValueString() == "" {
+		return &alerts.AccessPolicyAction{Delete: map[string]interface{}{}}
+	}
+
+	return &alerts.AccessPolicyAction{Upsert: planAccessPolicy.ValueStringPointer()}
+}
+
+// alertAccessFromGetResponse extracts the raw access policy from a Get
+// response. It returns nil when the backend populated no access field, which
+// happens both when the alert has no policy and when the caller lacks the
+// alerts:ReadAccessPolicy permission.
+func alertAccessFromGetResponse(result *alerts.GetAlertDefResponse) *string {
+	if result == nil {
+		return nil
+	}
+	access, ok := result.GetAccessOk()
+	if !ok || access == nil {
+		return nil
+	}
+	policy, ok := access.GetAccessPolicyOk()
+	if !ok {
+		return nil
+	}
+
+	return policy
+}
+
+// flattenAlertAccessPolicy folds the backend's access policy into state,
+// following the dashboard access_policy pattern: a configured text that is
+// semantically equal to the backend's is preserved as written, otherwise the
+// backend text is stored in the canonical shape jsonencode produces.
+//
+// Unlike dashboards, an absent policy cannot be read as "no policy". The read
+// sends no include_access_permissions flag, so the access field stays empty
+// both when the alert has no policy and when the caller's key lacks the
+// alerts:ReadAccessPolicy permission — and create/replace responses carry no
+// access echo at all. Clearing the state here would drop a policy the apply
+// just wrote, or flap on every refresh for keys that cannot read policies.
+// An absent policy therefore preserves the prior state instead of nulling it:
+// absent means unknown, not deleted. A policy removed remotely while the
+// configuration still sets one is re-applied on the next update.
+func flattenAlertAccessPolicy(currentAccessPolicy types.String, accessPolicy *string) (types.String, diag.Diagnostics) {
+	if accessPolicy == nil {
+		if currentAccessPolicy.IsNull() || currentAccessPolicy.IsUnknown() {
+			return types.StringNull(), nil
+		}
+		return currentAccessPolicy, nil
+	}
+	if !currentAccessPolicy.IsNull() && !currentAccessPolicy.IsUnknown() && utils.JSONStringsEqual(currentAccessPolicy.ValueString(), *accessPolicy) {
+		return currentAccessPolicy, nil
+	}
+
+	// There is no prior text to preserve, which happens on import and in the
+	// data source. Store the policy in the shape jsonencode produces, so a
+	// configuration written that way holds the same text.
+	canonical, err := utils.CanonicalJSON(*accessPolicy)
+	if err != nil {
+		// The API returned something this provider cannot parse. Store it
+		// unchanged rather than failing the read.
+		return types.StringValue(*accessPolicy), nil
+	}
+
+	return types.StringValue(canonical), nil
 }
 
 // preserveDestinationRetriggeringNulls keeps retriggering_period_minutes null on

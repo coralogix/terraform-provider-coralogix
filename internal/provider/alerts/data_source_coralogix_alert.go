@@ -27,6 +27,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var _ datasource.DataSourceWithConfigure = &AlertDataSource{}
@@ -85,7 +86,7 @@ func (d *AlertDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	data, diags := flattenAlert(ctx, getAlertResp.GetAlertDef(), &data.Schedule, nil)
+	data, diags := flattenAlert(ctx, getAlertResp.GetAlertDef(), &data.Schedule, nil, types.StringNull(), alertAccessFromGetResponse(getAlertResp))
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

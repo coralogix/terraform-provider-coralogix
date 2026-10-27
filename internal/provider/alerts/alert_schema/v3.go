@@ -1015,6 +1015,19 @@ func V3() schema.Schema {
 				},
 			},
 			"case_settings": caseSettingsSchema(),
+			"access_policy": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					preserveStateForEquivalentJSON{},
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				MarkdownDescription: "JSON string representing the access policy for this alert. It defines granular permissions for users and groups. " +
+					"When set, the provider owns the policy and re-applies it on every update, reverting changes made elsewhere. " +
+					"Set to `\"\"` to delete the existing policy without a replacement; a policy added elsewhere is then removed on the next update. " +
+					"When omitted, the policy is left unmanaged and unchanged. " +
+					"Setting, changing, or deleting the policy requires the `alerts:UpdateAccessPolicy` permission, and reading it back requires `alerts:ReadAccessPolicy`.",
+			},
 		},
 	}
 }
