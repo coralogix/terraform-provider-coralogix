@@ -239,6 +239,17 @@ var computedAttrs = map[string]bool{
 	"view_type":                              true,
 }
 
+// requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
+var requiredAttrs = map[string]bool{
+	"filters.filters.name": true,
+	"name":                 true,
+	"search_query.query":   true,
+	"time_selection":       true,
+	"time_selection.custom_selection.from_time": true,
+	"time_selection.custom_selection.to_time":   true,
+	"time_selection.quick_selection.seconds":    true,
+}
+
 // omittedDefaults are the top-level attributes with a server default that a read can omit.
 // A read without one keeps a prior value that equals the default.
 var omittedDefaults = map[string]attr.Value{
@@ -312,15 +323,18 @@ func priorEmpty(ctx context.Context, at string, v, p attr.Value, diags *diag.Dia
 }
 
 // keepAPIValue reports whether v needs no rule: a value is missing or
-// unknown, the values are equal, or the attribute is computed and the prior
-// has no value, for example after an import. Terraform does not compare a
-// computed attribute that the configuration leaves out, so the value of the
-// API is safe, and an empty value stays known.
+// unknown, the values are equal, or the attribute is computed or required and
+// the prior has no value, for example after an import. Terraform does not
+// compare a computed attribute that the configuration leaves out, so the value
+// of the API is safe. A required attribute has no null in state or in the
+// configuration, so a null prior can only come from an import, and the empty
+// value of the API (rules = []) is the one that the configuration sets. An
+// empty value stays known.
 func keepAPIValue(at string, v, p attr.Value) bool {
 	if v == nil || p == nil || v.IsUnknown() || p.IsUnknown() || v.Equal(p) {
 		return true
 	}
-	return p.IsNull() && computedAttrs[at]
+	return p.IsNull() && (computedAttrs[at] || requiredAttrs[at])
 }
 
 func priorEmptyObject(ctx context.Context, at string, v, prior types.Object, diags *diag.Diagnostics) attr.Value {

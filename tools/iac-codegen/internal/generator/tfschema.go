@@ -35,6 +35,8 @@ type tfResource struct {
 	// ComputedPaths are the paths of the computed attributes, with list and map
 	// steps left out, as in Conv.OneOfArms.
 	ComputedPaths []string
+	// RequiredPaths are the paths of the required attributes, in the form of ComputedPaths.
+	RequiredPaths []string
 	// UniqueChecks, Float32Paths, and EnumAliases are the generic checks of a released
 	// resource: uniqueBy lines, the float32 precision of the float attributes, and the
 	// aliases of the enums lines. See applyConfigChecks.
@@ -196,6 +198,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
 	out.DefaultPkgs = defaultPackages(out.Attributes)
 	out.ComputedPaths = computedPaths(nil, "", out.Attributes)
+	out.RequiredPaths = requiredPaths(nil, "", out.Attributes)
 	for _, a := range out.Attributes {
 		if !computedOnly(a) {
 			out.ServerPaths = serverPaths(out.ServerPaths, a.Name, a.Attributes)
@@ -234,6 +237,21 @@ func computedPaths(out []string, parent string, attrs []*tfAttr) []string {
 			out = append(out, at)
 		}
 		out = computedPaths(out, at, a.Attributes)
+	}
+	return out
+}
+
+// requiredPaths is computedPaths for the required attributes.
+func requiredPaths(out []string, parent string, attrs []*tfAttr) []string {
+	for _, a := range attrs {
+		at := a.Name
+		if parent != "" {
+			at = parent + "." + a.Name
+		}
+		if a.Required {
+			out = append(out, at)
+		}
+		out = requiredPaths(out, at, a.Attributes)
 	}
 	return out
 }

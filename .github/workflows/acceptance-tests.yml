@@ -40,6 +40,11 @@ env:
   # archive-logs shard runs all of them (handwritten, generated, and generated upgrade) with -p 1;
   # every other job skips them.
   ARCHIVE_LOGS_ACC_PATTERN: &archive_logs_acc_pattern '^TestAccCoralogix(Resource|DataSource)(Resource)?ArchiveLogs'
+  # The quota allocation rule set is one per account, so its upgrade test runs after the quota tests
+  # of the data-processing shard, in its own job, and not next to them.
+  QUOTA_UPGRADE_ACC_PATTERN: &quota_upgrade_acc_pattern '^TestAccCoralogixResourceQuotaAllocationRuleSetGeneratedUpgrade$'
+  # The generated upgrade shard leaves out the tests that have a shard or a job of their own.
+  GENERATED_UPGRADE_SKIP_PATTERN: &generated_upgrade_skip_pattern '^TestAccCoralogix(Resource|DataSource)(Resource)?ArchiveLogs|^TestAccCoralogixResourceQuotaAllocationRuleSetGeneratedUpgrade$'
   DASHBOARD_SHARD_STRUCTURED_LINE_AND_TABLE: &dashboard_shard_structured_line_and_table '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/line-and-table$'
   DASHBOARD_SHARD_STRUCTURED_GAUGE_AND_BARS: &dashboard_shard_structured_gauge_and_bars '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/gauge-and-bars$'
   DASHBOARD_SHARD_STRUCTURED_HORIZONTAL_AND_HEXAGON: &dashboard_shard_structured_horizontal_and_hexagon '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/horizontal-and-hexagon$'
@@ -451,7 +456,7 @@ jobs:
             pattern: *global_router_migration_acc_pattern
           - shard: generated-upgrade
             pattern: *generated_upgrade_acc_pattern
-            skip: *archive_logs_acc_pattern
+            skip: *generated_upgrade_skip_pattern
           - shard: archive-logs
             pattern: *archive_logs_acc_pattern
             procs: 1
@@ -559,6 +564,36 @@ jobs:
       - name: Check that every test ran in exactly one job
         run: bash .github/scripts/check-test-coverage.sh listed-tests/listed-tests.txt ran-tests/*.txt
 
+  quota-upgrade:
+    name: Provider migration (quota-allocation-rule-set-v3.21.0)
+    # The account has one quota rule set. The data-processing shard of the test job replaces and
+    # deletes it, so this job starts after that shard, also when it fails.
+    needs:
+      - changes
+      - test
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    permissions:
+      contents: read
+    env:
+      GO111MODULE: on
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+      - name: Test pinned gRPC to current REST provider migration of the quota allocation rule set
+        env:
+          CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
+          CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
+        run: |
+          bash .github/scripts/run-tests-with-summary.sh env CORALOGIX_GENERATED_UPGRADE_ACC=1 TF_ACC=1 TF_ACC_PROVIDER_NAMESPACE=coralogix go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -run '${{ env.QUOTA_UPGRADE_ACC_PATTERN }}' -v -count=1 -timeout 120m
+
   acceptance-result:
     # Branch protection requires this check name. Keep it stable.
     name: Acceptance tests result
@@ -575,6 +610,7 @@ jobs:
       - provider-migration
       - list-tests
       - test-coverage
+      - quota-upgrade
     permissions: {}
     runs-on: ubuntu-latest
     steps:
@@ -626,6 +662,7 @@ jobs:
       - provider-migration
       - list-tests
       - test-coverage
+      - quota-upgrade
     permissions:
       contents: read
     runs-on: ubuntu-latest

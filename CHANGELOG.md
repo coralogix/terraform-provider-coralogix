@@ -24,7 +24,8 @@
 - CHORE: Bump `coralogix-management-sdk` to the version with the AI evaluations contract. `coralogix_dashboards_folder` and `coralogix_dashboard` adapt to its types: the folder name is a required string, and the dashboard of a replace request is optional. A `coralogix_dashboards_folder` without `name` now sends an empty name: the API still rejects it, now with "folder name cannot be empty".
 
 #### tools/iac-codegen
-- CHORE: Bump the generator to `v0.1.0-beta.43`.
+- CHORE: Bump the generator to `v0.1.0-beta.45`.
+- FIX: A required attribute with no prior value, which only an import has, takes the value of the API, as a computed one does. A required list or set reads back as the empty one after an import, so `rules = []` needs no hook.
 - FEAT: `api.operations` with `delete: none`, and `create` and `update` naming one POST, generates a singleton that a GET reads and a POST on the same path sets. Create and Update send the whole resource with the POST, and Delete makes no call and warns that the API keeps the resource.
 - FEAT: An `inline: true` field line shows the fields of an object of the resource as top-level attributes. A response arm that is inlined, with the other arms skipped, means that the resource exists: Read removes a resource whose response has another arm. It needs an Update that sends the whole resource: a PUT, or the POST of `delete: none`.
 - CHANGE: `singletonID` is an object with one key: `singletonID: {fixed: <id>}` gives the released fixed id, which the generated package exports as `SingletonID`, and `singletonID: true` is now `singletonID: {fromAPI: true}`.
