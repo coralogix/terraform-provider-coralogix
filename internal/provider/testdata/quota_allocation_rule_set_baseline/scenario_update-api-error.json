@@ -102,7 +102,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_quota_allocation_rule_set | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: quota allocation rule set could not be written\"}\noperation - Replace"
+      "error: Unable to update quota_allocation_rule_set | id 00000000-0000-4000-8000-000000000001: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: quota allocation rule set could not be written\"}"
     ],
     "state": {
       "id": "00000000-0000-4000-8000-000000000001",
@@ -122,7 +122,7 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1?id=00000000-0000-4000-8000-000000000001",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
         "status": 200
       }
     ],

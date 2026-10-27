@@ -1,0 +1,18 @@
+(data source schema)
+    description: Reads the current account-level Coralogix quota allocation rule set, including Coralogix-managed (`cx_managed`) rules that the resource filters out of state. Requires `team-quota-rules:Read` permission. Rules are keyed by entity type, such as `logs`, `spans`, or `metrics`. The [Quota Rules](https://coralogix.com/docs/user-guides/account-management/payment-and-billing/quota-rules/) documentation lists the supported entity types; the Coralogix API rejects an unsupported one.
+id  tftypes.String computed
+    description: The backend identifier for the quota allocation rule set.
+rules  nested SET computed
+    description: Current quota allocation rules returned by the backend, including `cx_managed` rules.
+rules.allocation  tftypes.Number computed
+    description: Quota allocation value for this entity type. For `percentage`, this is a share of the pool left after `locked_units`. For `locked_units`, this is a fixed reservation from the team daily quota. The sum of enabled locked units plus any Coralogix bundle units must fit within the team daily quota.
+rules.allocation_type  tftypes.String computed
+    description: How the allocation value is interpreted. Valid values are `percentage` and `locked_units`. An API `UNSPECIFIED` value is returned as `percentage`.
+rules.can_overflow  tftypes.Bool computed
+    description: Whether this entity type can overflow beyond its allocation.
+rules.cx_managed  tftypes.Bool computed
+    description: Whether the quota allocation rule is managed by Coralogix. Customer Terraform configurations must not send edits that collide with a `cx_managed` rule for the same entity type. Delete clears customer-managed rules only.
+rules.enabled  tftypes.Bool computed
+    description: Whether the quota allocation rule is enabled.
+rules.entity_type  tftypes.String computed
+    description: Entity type covered by the rule, such as `logs`, `spans`, or `metrics`. The [Quota Rules](https://coralogix.com/docs/user-guides/account-management/payment-and-billing/quota-rules/) documentation lists the supported entity types; the Coralogix API rejects an unsupported one.

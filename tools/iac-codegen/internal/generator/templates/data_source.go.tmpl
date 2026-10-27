@@ -9,6 +9,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+{{- if $.DataSource.Show}}
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+{{- end}}
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -19,6 +22,9 @@ import (
 	"{{.CRUD.ProviderPkg}}"
 	"{{.CRUD.CXPkg}}"
 	"{{.DataSource.UtilsPkg}}"
+{{- if $.DataSource.Show}}
+	"{{.Conv.SDKPkg}}"
+{{- end}}
 )
 {{with .CRUD}}
 {{- $name := $.DataSource.Name}}
@@ -106,6 +112,26 @@ func (d *DataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp 
 {{- else}}
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(Schema())
 {{- end}}
+{{- range $.DataSource.Show}}
+	// The data source shows the attributes of the items that the resource skips.
+	if nested, ok := resp.Schema.Attributes[{{printf "%q" .Attr}}].(schema.{{.Collection}}NestedAttribute); ok {
+{{- range .Fields}}
+		nested.NestedObject.Attributes[{{printf "%q" .TFName}}] = schema.{{.Kind}}Attribute{
+			Computed:            true,
+			Description:         {{printf "%q" .Description}},
+			MarkdownDescription: {{printf "%q" .Description}},
+		}
+{{- end}}
+		resp.Schema.Attributes[{{printf "%q" .Attr}}] = nested
+	}
+{{- end}}
+{{- if $.DataSource.Descriptions}}
+	utils.OverrideDatasourceDescriptions(&resp.Schema, map[string]string{
+{{- range $.DataSource.Descriptions}}
+		{{printf "%q" .Path}}: {{printf "%q" .Text}},
+{{- end}}
+	})
+{{- end}}
 }
 
 func (d *DataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
@@ -187,6 +213,13 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	}
 {{- end}}
 {{- end}}
+{{- range $.DataSource.Show}}
+	// A response without the {{.Attr}}, as proto3 omits an empty list, shows the empty one, not null.
+	m.{{.Model}} = withShown{{.Model}}(ctx, v.{{.SDK}}, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+{{- end}}
 {{- if and .Singleton .SingletonID}}
 	if m.Id.IsNull() || m.Id.ValueString() == "" {
 		m.Id = types.StringValue(TypeName) // the API returned no id
@@ -243,6 +276,37 @@ func (d *DataSource) idByName(ctx context.Context, name string) ({{.IDGoType}}, 
 	}
 {{- end}}
 	return ids[0], diags
+}
+{{- end}}
+{{- range $.DataSource.Show}}
+
+// withShown{{.Model}} converts the {{.Attr}} of the API with the attributes that only the data
+// source has.
+func withShown{{.Model}}(ctx context.Context, items []{{$.Conv.SDKName}}.{{.ItemSDK}}, diags *diag.Diagnostics) types.{{.Collection}} {
+	attrTypes := {{.AttrTypes}}()
+{{- range .Fields}}
+	attrTypes[{{printf "%q" .TFName}}] = types.{{.Kind}}Type
+{{- end}}
+	elements := make([]attr.Value, 0, len(items))
+	for i := range items {
+		item := flatten{{.Flatten}}(ctx, path.Root({{printf "%q" .Attr}}), &items[i], {{if .NeedsPrior}}nil, {{end}}diags)
+		value, valueDiags := types.ObjectValueFrom(ctx, {{.AttrTypes}}(), *item)
+		diags.Append(valueDiags...)
+		attributes := value.Attributes()
+{{- range .Fields}}
+{{- if .Pointer}}
+		attributes[{{printf "%q" .TFName}}] = types.{{.Kind}}PointerValue(items[i].{{.SDK}})
+{{- else}}
+		attributes[{{printf "%q" .TFName}}] = types.{{.Kind}}Value(items[i].{{.SDK}})
+{{- end}}
+{{- end}}
+		element, elementDiags := types.ObjectValue(attrTypes, attributes)
+		diags.Append(elementDiags...)
+		elements = append(elements, element)
+	}
+	out, outDiags := types.{{.Collection}}Value(types.ObjectType{AttrTypes: attrTypes}, elements)
+	diags.Append(outDiags...)
+	return out
 }
 {{- end}}
 {{- end}}

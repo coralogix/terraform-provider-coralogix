@@ -11,6 +11,7 @@ package provider
 //go:generate make -C ../.. codegen RESOURCE=E2M OUT=events2metric
 //go:generate make -C ../.. codegen RESOURCE=GlobalRouter OUT=globalrouter
 //go:generate make -C ../.. codegen RESOURCE=Preset OUT=preset
+//go:generate make -C ../.. codegen RESOURCE=QuotaAllocationEntityTypeRuleSet OUT=quotaallocationruleset
 //go:generate make -C ../.. codegen RESOURCE=Slo OUT=slov2
 //go:generate make -C ../.. codegen RESOURCE=View OUT=view
 //go:generate make -C ../.. codegen RESOURCE=ViewFolder OUT=viewfolder

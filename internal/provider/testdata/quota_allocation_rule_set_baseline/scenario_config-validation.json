@@ -26,7 +26,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Duplicate quota allocation rule entity_type [AttributeName(\"rules\")] | Only one quota allocation rule can be configured for entity_type \"logs\"."
+      "error: Duplicate rules entity_type [AttributeName(\"rules\")] | Only one item of rules can set entity_type to \"logs\"."
     ],
     "state": null
   },
@@ -92,7 +92,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Invalid quota allocation precision [AttributeName(\"rules\")] | The quota allocation rule for entity_type \"logs\" uses allocation 0.123456789012, but the Coralogix API stores allocations as float32 and would return 0.12345679. Configure 0.12345679 instead to avoid Terraform state drift."
+      "error: Invalid rules.allocation precision [AttributeName(\"rules\")] | rules.allocation is 0.123456789012, but the API stores it as float32 and would return 0.12345679. Configure 0.12345679 instead to avoid state drift."
     ],
     "state": null
   },
@@ -127,7 +127,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value Match [AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"allocation\":tftypes.Number, \"allocation_type\":tftypes.String, \"can_overflow\":tftypes.Bool, \"enabled\":tftypes.Bool, \"entity_type\":tftypes.String]<\"allocation\":tftypes.Number<\"10\">, \"allocation_type\":tftypes.String<\"PERCENTAGE\">, \"can_overflow\":tftypes.Bool<\"false\">, \"enabled\":tftypes.Bool<\"true\">, \"entity_type\":tftypes.String<\"logs\">>).AttributeName(\"allocation_type\")] | Attribute rules[Value({\"allocation\":10.000000,\"allocation_type\":\"PERCENTAGE\",\"can_overflow\":false,\"enabled\":true,\"entity_type\":\"logs\"})].allocation_type value must be one of: [\"percentage\" \"locked_units\" \"unspecified\"], got: \"PERCENTAGE\""
+      "error: Invalid Attribute Value Match [AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"allocation\":tftypes.Number, \"allocation_type\":tftypes.String, \"can_overflow\":tftypes.Bool, \"enabled\":tftypes.Bool, \"entity_type\":tftypes.String]<\"allocation\":tftypes.Number<\"10\">, \"allocation_type\":tftypes.String<\"PERCENTAGE\">, \"can_overflow\":tftypes.Bool<\"false\">, \"enabled\":tftypes.Bool<\"true\">, \"entity_type\":tftypes.String<\"logs\">>).AttributeName(\"allocation_type\")] | Attribute rules[Value({\"allocation\":10.000000,\"allocation_type\":\"PERCENTAGE\",\"can_overflow\":false,\"enabled\":true,\"entity_type\":\"logs\"})].allocation_type value must be one of: [\"locked_units\" \"percentage\" \"unspecified\"], got: \"PERCENTAGE\""
     ],
     "state": null
   },

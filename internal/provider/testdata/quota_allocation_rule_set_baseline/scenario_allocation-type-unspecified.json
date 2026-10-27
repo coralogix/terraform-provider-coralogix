@@ -56,17 +56,14 @@
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"id\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1?id=00000000-0000-4000-8000-000000000001",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
         "status": 200
       }
     ],
@@ -136,38 +133,6 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
-      "rules": [
-        {
-          "allocation": 60,
-          "allocation_type": "percentage",
-          "can_overflow": false,
-          "enabled": true,
-          "entity_type": "logs"
-        }
-      ]
-    },
-    "requests": [
-      {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
-        "body": {
-          "ruleSet": {
-            "rules": [
-              {
-                "allocation": 60,
-                "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
-                "canOverflow": false,
-                "enabled": true,
-                "entityType": "logs"
-              }
-            ]
-          }
-        },
-        "status": 200
-      }
-    ],
-    "state": {
       "id": "00000000-0000-4000-8000-000000000001",
       "rules": [
         {
@@ -179,9 +144,18 @@
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"id\")"
-    ]
+    "noChange": true,
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "rules": [
+        {
+          "allocation": 60,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    }
   }
 ]

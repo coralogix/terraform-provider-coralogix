@@ -136,7 +136,6 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "name", resourceAddress, "name"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "rules.#", resourceAddress, "rules.#"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "rules.0.name", resourceAddress, "rules.0.name"),
-		resource.TestCheckResourceAttrPair(dataSourceAddress, "rules.0.kind", resourceAddress, "rules.0.kind"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "rules.0.targets.#", resourceAddress, "rules.0.targets.#"),
 	)
 }
