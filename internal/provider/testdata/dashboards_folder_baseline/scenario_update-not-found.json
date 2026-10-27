@@ -54,11 +54,11 @@
             "name": "gone-renamed"
           }
         },
-        "status": 400
+        "status": 404
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_dashboard_folder | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: folder with id DashboardFolderId(<generated-id-1>) does not exist\"}\noperation - Replace"
+      "error: Error replacing coralogix_dashboard_folder | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: folder with id DashboardFolderId(<generated-id-1>) does not exist\"}\noperation - Replace"
     ],
     "state": {
       "id": "<generated-id-1>",

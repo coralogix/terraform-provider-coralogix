@@ -107,8 +107,8 @@ func (f *dashboardsFolderFake) ServeHTTP(w http.ResponseWriter, r *http.Request)
 // dashboardsFolderFail is an error answer of the real API: the status name, then the reason.
 func dashboardsFolderFail(status int, reason string) (int, any) {
 	prefix := map[int]string{
-		http.StatusBadRequest: "Bad Request", http.StatusForbidden: "Permission Denied",
-		http.StatusNotFound: "Not Found", http.StatusConflict: "Already Exists",
+		http.StatusBadRequest: "Bad Request",
+		http.StatusNotFound:   "Not Found", http.StatusConflict: "Already Exists",
 	}[status]
 	return status, map[string]any{"code": status, "message": prefix + ": " + reason}
 }
@@ -144,9 +144,8 @@ func (f *dashboardsFolderFake) handle(method, path string, body any) (int, any) 
 		}
 		return http.StatusOK, map[string]any{"folder": folder}
 	case method == http.MethodDelete && id != "":
-		// The API answers 403, not 404, for a folder that does not exist.
 		if _, ok := f.folders[id]; !ok {
-			return dashboardsFolderFail(http.StatusForbidden, "dont have permissions to delete folder "+folderMissing(id))
+			return dashboardsFolderFail(http.StatusNotFound, "folder with id "+folderMissing(id)+" does not exist")
 		}
 		delete(f.folders, id)
 		return http.StatusOK, map[string]any{}
@@ -182,7 +181,7 @@ func (f *dashboardsFolderFake) write(body any, replace bool) (int, any) {
 		return dashboardsFolderFail(http.StatusBadRequest, fmt.Sprintf("folder_id and parent_id can't be equal (%s)", id))
 	case replace:
 		if _, ok := f.folders[id]; !ok {
-			return dashboardsFolderFail(http.StatusBadRequest, "folder with id "+folderMissing(id)+" does not exist")
+			return dashboardsFolderFail(http.StatusNotFound, "folder with id "+folderMissing(id)+" does not exist")
 		}
 		// A replace to the name of another folder is 400, where a create is 409. Recorded for
 		// folders at the root; the path of a nested folder is not recorded.
