@@ -15,6 +15,13 @@ set +e
 test_status=${PIPESTATUS[0]}
 set -e
 
+# The workflow uploads this file, and the test coverage job checks that
+# every test ran in at least one job and passed or failed in at most one.
+if [[ -n ${RAN_TESTS_FILE:-} ]]; then
+  mkdir -p "$(dirname "$RAN_TESTS_FILE")"
+  bash "$(dirname "$0")/go-test-names.sh" < "$test_output" > "$RAN_TESTS_FILE"
+fi
+
 if [[ $test_status -ne 0 ]]; then
   failed_tests=$(sed -n 's/^--- FAIL: \([^ ]*\).*/\1/p' "$test_output" | sort -u)
   {
