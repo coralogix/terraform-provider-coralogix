@@ -38,8 +38,8 @@ const (
 	quotaAllocationTypePercentage = "percentage"
 )
 
-// Known allocatable entity types verified against the API. The list is additive; the API may accept more values over time.
-const quotaAllocationKnownEntityTypesDoc = "`logs`, `spans`, `metrics`, `cpuProfiles`, `memoryProfiles`, `browserLogs`, `browserLogs/v2`, `sessionRecordings`, `olly`, `auditEvents`, `alerts`, `quotaEvents`, `engineQueries`, `engineSchemaFields`, `labsLimitViolations`, and `notificationDeliveries`"
+// The API validates entity_type as a plain string, so the docs link to the product documentation instead of listing values that go stale.
+const quotaAllocationEntityTypesDoc = "The [Quota Rules](https://coralogix.com/docs/user-guides/account-management/payment-and-billing/quota-rules/) documentation lists the supported entity types; the Coralogix API rejects an unsupported one."
 
 // API UNSPECIFIED reads as percentage (same effective default the API applies on write).
 var quotaAllocationTypeAPIToSchema = map[quotaRules.QuotaAllocationType]string{

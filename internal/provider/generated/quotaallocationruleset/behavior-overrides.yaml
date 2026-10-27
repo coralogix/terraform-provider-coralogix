@@ -3,7 +3,7 @@ resource: QuotaAllocationEntityTypeRuleSet
 mode: existing
 typeName: quota_allocation_rule_set
 
-markdownDescription: "Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set. Delete clears customer-managed rules only; Coralogix-managed (`cx_managed`) rules are preserved. This resource filters `cx_managed` rules out of state; the data source exposes them. Requires `team-quota-rules:Read` and `team-quota-rules:Manage` permissions. Known entity types include `logs`, `spans`, `metrics`, `cpuProfiles`, `memoryProfiles`, `browserLogs`, `browserLogs/v2`, `sessionRecordings`, `olly`, `auditEvents`, `alerts`, `quotaEvents`, `engineQueries`, `engineSchemaFields`, `labsLimitViolations`, and `notificationDeliveries`. The list is additive; the API may accept more values over time."
+markdownDescription: "Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set. Delete clears customer-managed rules only; Coralogix-managed (`cx_managed`) rules are preserved. This resource filters `cx_managed` rules out of state; the data source exposes them. Requires `team-quota-rules:Read` and `team-quota-rules:Manage` permissions. Rules are keyed by entity type, such as `logs`, `spans`, or `metrics`. The [Quota Rules](https://coralogix.com/docs/user-guides/account-management/payment-and-billing/quota-rules/) documentation lists the supported entity types; the Coralogix API rejects an unsupported one."
 
 # The contract limits are the released validators: entity_type has a length of at least 1, and
 # allocation is at least 0.
@@ -11,7 +11,7 @@ validators:
   inferred: true
 
 # The rule set has the id of the API, and it is a singleton: no call takes an id.
-singletonID: true
+singletonID: {fromAPI: true}
 
 api:
   # Create and Replace send {"ruleSet": {...}}.
@@ -37,7 +37,7 @@ types:
   QuotaAllocationEntityTypeRule:
     fields:
       entityType:
-        markdownDescription: "Entity type covered by the rule. Known values include `logs`, `spans`, `metrics`, `cpuProfiles`, `memoryProfiles`, `browserLogs`, `browserLogs/v2`, `sessionRecordings`, `olly`, `auditEvents`, `alerts`, `quotaEvents`, `engineQueries`, `engineSchemaFields`, `labsLimitViolations`, and `notificationDeliveries`. The list is additive; the API may accept more values over time."
+        markdownDescription: "Entity type covered by the rule, such as `logs`, `spans`, or `metrics`. The [Quota Rules](https://coralogix.com/docs/user-guides/account-management/payment-and-billing/quota-rules/) documentation lists the supported entity types; the Coralogix API rejects an unsupported one."
       # Zero and false are valid values, and the contract does not state their presence. Terraform sends them every time.
       allocation:
         required: true
