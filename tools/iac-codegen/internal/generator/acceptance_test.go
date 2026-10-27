@@ -497,8 +497,11 @@ func TestAcceptanceFileMustMatchTheSchema(t *testing.T) {
 		}, "is not set by the full config"},
 		"skip of a missing attribute": {func(s string) string { return strings.Replace(s, "  - labels.env\n", "  - labels.nope\n", 1) }, "not an attribute"},
 		"skip of a required one":      {func(s string) string { return strings.Replace(s, "  - labels.env\n", "  - name\n", 1) }, `"name" is required`},
-		"minimal of a missing one":    {func(s string) string { return strings.Replace(s, "  - labels\n", "  - nope\n", 1) }, "not an attribute"},
-		"another resource":            {func(s string) string { return strings.Replace(s, "resource: LegacyThing", "resource: Other", 1) }, "is for resource"},
+		"data source skip of a missing check": {func(s string) string {
+			return strings.Replace(s, "  - rules.0.kind\n", "  - rules.0.nope\n", 1)
+		}, "dataSourceSkip"},
+		"minimal of a missing one": {func(s string) string { return strings.Replace(s, "  - labels\n", "  - nope\n", 1) }, "not an attribute"},
+		"another resource":         {func(s string) string { return strings.Replace(s, "resource: LegacyThing", "resource: Other", 1) }, "is for resource"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

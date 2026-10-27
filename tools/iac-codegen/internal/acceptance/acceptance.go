@@ -49,6 +49,11 @@ type File struct {
 	// Skip lists the fields that the test configs leave out, for example a deprecated field that
 	// the API refuses next to its replacement. A path has the same form as in values.
 	Skip []string `yaml:"skip"`
+	// DataSourceSkip lists the attribute paths that the data source test does not compare with the
+	// resource, for a data source that shows more than the resource: the rules that Coralogix manages
+	// are in the data source and not in the resource, so the counts differ. A path is a path of the
+	// full config checks, such as rules.#.
+	DataSourceSkip []string `yaml:"dataSourceSkip"`
 	// Minimal lists the optional fields that the minimal config sets, because the API refuses
 	// the resource without them. Each is set with all of its own attributes.
 	Minimal []string `yaml:"minimal"`

@@ -123,7 +123,6 @@ const dataSourceConfig = `data "coralogix_quota_allocation_rule_set" "test" {
 func dataSourceChecks() resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
-		resource.TestCheckResourceAttrPair(dataSourceAddress, "rules.#", resourceAddress, "rules.#"),
 	)
 }
 

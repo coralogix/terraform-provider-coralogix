@@ -159,8 +159,13 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 	if err := s.checkFile(); err != nil {
 		return nil, err
 	}
+	for _, path := range file.DataSourceSkip {
+		if !slices.ContainsFunc(out.Full.Checks, func(c accCheck) bool { return c.Path == path }) {
+			return nil, fmt.Errorf("acceptance test: dataSourceSkip %q matches no check of the full config", path)
+		}
+	}
 	if res.DataSource != nil {
-		out.DataSource = dataSourceStep(res.CRUD, res.DataSource.Name, out.Full.Checks)
+		out.DataSource = dataSourceStep(res.CRUD, res.DataSource.Name, out.Full.Checks, file.DataSourceSkip)
 	}
 	return out, nil
 }
@@ -168,7 +173,7 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 // dataSourceStep reads the data source by the id of the resource, or with no input for a singleton,
 // which depends on the resource instead. With name lookup, a second data source reads the resource
 // by its name.
-func dataSourceStep(crud *crudData, name *dsNameLookup, checks []accCheck) *accDataSource {
+func dataSourceStep(crud *crudData, name *dsNameLookup, checks []accCheck, skip []string) *accDataSource {
 	resourceType := "coralogix_" + crud.TypeName
 	body := fmt.Sprintf("%s = %s.test.%s", crud.IDAttr, resourceType, crud.IDAttr)
 	if crud.Singleton {
@@ -184,7 +189,7 @@ func dataSourceStep(crud *crudData, name *dsNameLookup, checks []accCheck) *accD
 		out.Config += fmt.Sprintf("\n\ndata %q \"by_name\" {\n  %s = %s.test.%s\n}", resourceType, name.Attr, resourceType, name.Attr)
 	}
 	for _, check := range checks {
-		if !check.Absent && !slices.Contains(out.Pairs, check.Path) {
+		if !check.Absent && !slices.Contains(out.Pairs, check.Path) && !slices.Contains(skip, check.Path) {
 			out.Pairs = append(out.Pairs, check.Path)
 		}
 	}

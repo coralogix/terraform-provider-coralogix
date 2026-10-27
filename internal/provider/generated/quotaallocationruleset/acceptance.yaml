@@ -10,3 +10,8 @@ values:
   rules[].allocation_type: '"percentage"'
 
 upgradeFrom: "3.21.0"
+
+# The data source shows the rules that Coralogix manages, which the resource keeps out of its state,
+# so the number of rules of the two can differ.
+dataSourceSkip:
+  - rules.#
