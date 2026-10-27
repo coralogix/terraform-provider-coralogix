@@ -30,6 +30,9 @@
 - CHORE: The data source uses the generated data source of the resource. `description` still shows the stored value, also `""`.
 - FIX: An id that the API does not find is an error. Before, the data source returned a warning and null attributes.
 
+#### data-source/coralogix_connector
+- CHORE: The data source uses the generated data source of the resource. It still finds a connector by `id` or by `name`, and takes the first connector with the name. The error for an id that the API does not find has new wording.
+
 # Release 3.22.1
 
 #### tools/iac-codegen
