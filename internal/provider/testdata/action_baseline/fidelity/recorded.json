@@ -535,6 +535,78 @@
       ]
     },
     {
+      "name": "replace omits optional fields",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [
+                "a"
+              ],
+              "description": "d",
+              "dpxlFilter": "\u003cv1\u003e true",
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-omit",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [
+                "s"
+              ],
+              "url": "https://example.com/{{p}}",
+              "urlFields": [
+                {
+                  "name": "p",
+                  "required": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "description": "d",
+              "dpxlFilter": "\u003cv1\u003e true",
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-omit",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "description": "d",
+              "dpxlFilter": "\u003cv1\u003e true",
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-omit",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
       "name": "duplicate names",
       "steps": [
         {

@@ -416,6 +416,58 @@
       ]
     },
     {
+      "name": "replace omits optional fields",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-omit",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false,
+            "description": "d",
+            "dpxlFilter": "<v1> true",
+            "applicationNames": [
+              "a"
+            ],
+            "subsystemNames": [
+              "s"
+            ],
+            "urlFields": [
+              {
+                "name": "p",
+                "required": true
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "action": {
+              "id": "{{id}}",
+              "name": "tf-fidelity-omit",
+              "url": "https://example.com/{{p}}",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "isPrivate": false,
+              "isHidden": false
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
       "name": "duplicate names",
       "steps": [
         {

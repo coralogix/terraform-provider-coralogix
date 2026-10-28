@@ -46,14 +46,13 @@ var (
 //   - A private action needs a user, which an API key does not have, so a create with isPrivate
 //     true or omitted is 400.
 //   - Replace needs the id and isHidden, and ignores the isHidden value. It keeps an omitted
-//     scalar and replaces a list. It cannot change isPrivate (412).
+//     description and dpxlFilter, and clears an omitted list. It cannot change isPrivate (412).
 //   - A dpxlFilter without the version prefix is stored with `<v1> `. An omitted description and
 //     dpxlFilter are left out of the answer, and an empty one is returned as "".
 //   - The name is unique (409), at most 50 characters, and the url must start with http(s)://.
 //   - A missing or malformed id is 404 on Get, Replace, and Delete.
 //
-// The fake does not check the order of validations, and it keeps a list that Replace omits as it
-// was (not recorded).
+// The fake does not check the order of validations.
 type actionFake struct {
 	mu       sync.Mutex
 	actions  map[string]map[string]any
@@ -335,10 +334,9 @@ func (f *actionFake) replace(req map[string]any) (int, any) {
 	if v, ok := in["dpxlFilter"]; ok {
 		a["dpxlFilter"] = actionFilter(v)
 	}
+	// The service stores the decoded lists, so an omitted list is cleared.
 	for _, k := range []string{"applicationNames", "subsystemNames", "urlFields"} {
-		if v, ok := in[k]; ok {
-			a[k] = listOrEmpty(v)
-		}
+		a[k] = listOrEmpty(in[k])
 	}
 	return http.StatusOK, map[string]any{"action": a}
 }
