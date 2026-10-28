@@ -171,7 +171,7 @@ func TestDashboardResourceRejectedReplaceKeepsPriorStateUsableOnRefresh(t *testi
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			_, _ = w.Write([]byte(`{"code":422,"message":"replacement rejected"}`))
 		case http.MethodGet:
-			_, _ = w.Write([]byte(`{"dashboard":{"id":"` + dashboardErrorPathTestID + `","name":"prior remote dashboard","layout":{"sections":[]}}}`))
+			_, _ = w.Write([]byte(`{"dashboard":{"id":"` + dashboardErrorPathTestID + `","name":"prior remote dashboard","layout":{"sections":[]}},"permissions":{"canRead":true,"canReadAccessPolicy":true,"canUpdate":true,"canUpdateAccessPolicy":true}}`))
 		default:
 			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
 		}
@@ -428,7 +428,7 @@ func TestDashboardStateUpgradeFromV3DecodesPriorSchema(t *testing.T) {
 			t.Fatalf("request = %s %s, want dashboard GET", r.Method, r.URL.Path)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"dashboard":{"id":"` + dashboardErrorPathTestID + `","name":"upgraded dashboard","layout":{"sections":[]}}}`))
+		_, _ = w.Write([]byte(`{"dashboard":{"id":"` + dashboardErrorPathTestID + `","name":"upgraded dashboard","layout":{"sections":[]}},"permissions":{"canRead":true,"canReadAccessPolicy":true,"canUpdate":true,"canUpdateAccessPolicy":true}}`))
 	}))
 	t.Cleanup(server.Close)
 
