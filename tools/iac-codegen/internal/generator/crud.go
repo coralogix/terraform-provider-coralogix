@@ -153,7 +153,7 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if file != nil && file.TypeName != "" {
 		out.TypeName = file.TypeName
 	}
-	if err := updateOnlyAttrs(r, out); err != nil {
+	if err := updateOnlyAttrs(r, file, out); err != nil {
 		return nil, err
 	}
 	if err := resourceIDData(r, ix, out); err != nil {
@@ -389,12 +389,24 @@ func cxsdkNames(ix *refIndex, out *crudData) error {
 }
 
 // updateOnlyAttrs lists the fields that only Update takes, with the server default that create stores.
-func updateOnlyAttrs(r *model.Resource, out *crudData) error {
+// The default is the contract's, or the default line of the behavior-overrides file of a released
+// resource whose API cannot take the field in Create.
+func updateOnlyAttrs(r *model.Resource, file *overrides.File, out *crudData) error {
 	for _, f := range r.Fields {
 		if !updateOnly(f) {
 			continue
 		}
-		value, err := serverDefaultValue(f.Type, *declaredDefault(f))
+		def := declaredDefault(f)
+		if def == nil && file != nil {
+			if line := file.Types[r.Name].Fields[f.Name].Default; line != nil {
+				s := fmt.Sprint(line)
+				def = &s
+			}
+		}
+		if def == nil {
+			return fmt.Errorf("%s: only Update has the field, and neither the contract nor a default line gives its server default", f.Name)
+		}
+		value, err := serverDefaultValue(f.Type, *def)
 		if err != nil {
 			return fmt.Errorf("%s: server default: %w", f.Name, err)
 		}

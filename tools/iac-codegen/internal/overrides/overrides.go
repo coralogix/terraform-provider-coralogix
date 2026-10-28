@@ -387,9 +387,10 @@ type Field struct {
 	ReadEmptyAs string `yaml:"readEmptyAs"`
 	// ReadNullAs: "empty" reads a missing list or set as an empty collection.
 	ReadNullAs string `yaml:"readNullAs"`
-	// SendNullAsEmpty sends "" for a null string, for an API that keeps the stored value when a
-	// request omits the field. Removing the value from the configuration then clears it. It needs
-	// readEmptyAs: "null", so that the stored "" reads back as null.
+	// SendNullAsEmpty sends "" for a null string, and an empty list for a null list or set, for an
+	// API that keeps the stored value when a request omits the field. Removing the value from the
+	// configuration then clears it. It needs readEmptyAs: "null", so that the stored empty value
+	// reads back as null.
 	SendNullAsEmpty bool `yaml:"sendNullAsEmpty"`
 	// RequireOne makes a oneOf that allows no arm use ExactlyOneOf. The released
 	// resource required one arm even though the contract allows none.

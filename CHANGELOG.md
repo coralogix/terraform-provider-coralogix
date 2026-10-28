@@ -30,7 +30,10 @@
 - CHORE: Bump `coralogix-management-sdk` to the version with the AI evaluations contract. `coralogix_dashboards_folder` and `coralogix_dashboard` adapt to its types: the folder name is a required string, and the dashboard of a replace request is optional. A `coralogix_dashboards_folder` without `name` now sends an empty name: the API still rejects it, now with "folder name cannot be empty".
 
 #### tools/iac-codegen
-- CHORE: Bump the generator to `v0.1.0-beta.50`.
+- CHORE: Bump the generator to `v0.1.0-beta.51`.
+- FEAT: `api.createUnwrapped: true` (with `api.requestWrapper`) says that only the Update body wraps the resource, and the Create body is the resource itself. Before, `requestWrapper` applied to both bodies.
+- FEAT: A `default` field line on a field that only Update and Get have makes the field managed, as a server default declared in the contract does: Create stores the default, and follows with an Update when the configuration sets another value. It is for a released API that refuses the field in Create.
+- FEAT: `sendNullAsEmpty: true` also works on a list or set of strings or objects: Update (and Create) send an empty list for a null one, for an API that keeps a stored list when a request omits it. Before, it worked only on a string.
 - FEAT: An existing singleton data source can set `dataSource.queryID: true` to retain an optional `id` input and pass it to an optional string Get query parameter named `id`. Without the input, the API request leaves the query parameter unset.
 - CHORE: Bump the generator to `v0.1.0-beta.49`.
 - FEAT: `dataSource.description`, and `description` on a `dataSource.types.<Component>.fields.<field>` line without `show`, replace the description that the generated data source copies from the resource.

@@ -691,8 +691,8 @@ func (b *convBuilder) rootObject(out *convData, root convRoot, ref sdkcheck.Ref)
 	switch {
 	case root.path == "fields":
 		return b.object(r.Name, ref), root.path, nil
-	case r.Policy.RequestWrapper != "" && root.expand:
-		body, wrap, err := b.bodyWrapper(root.path, r.Policy.RequestWrapper)
+	case r.Policy.WrapperOf(root.path == "create.body") != "" && root.expand:
+		body, wrap, err := b.bodyWrapper(root.path, r.Policy.WrapperOf(root.path == "create.body"))
 		if err != nil {
 			return nil, "", err
 		}
@@ -726,8 +726,8 @@ func (b *convBuilder) rootObject(out *convData, root convRoot, ref sdkcheck.Ref)
 // works for an object that is a pointer, and for a list or set of objects. Elsewhere it would
 // do nothing, and the released normalization that the line states would be missing.
 func checkReadEmptyAs(cf *convField) error {
-	if cf.SendNullAsEmpty && cf.Conv != convString {
-		return fmt.Errorf("sendNullAsEmpty is supported for a string, not for the %s field %s", cf.Conv, cf.TFName)
+	if cf.SendNullAsEmpty && cf.Conv != convString && cf.Conv != convStrings && cf.Conv != convObjects {
+		return fmt.Errorf("sendNullAsEmpty is supported for a string, and a list or set of strings or objects, not for the %s field %s", cf.Conv, cf.TFName)
 	}
 	if !cf.ReadEmptyAsNull {
 		return nil
@@ -1166,6 +1166,10 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	b.applyFieldLine(cf, component, name)
 	cf.ReadZeroAsNull, cf.Zero = t.ReadZeroAsNull, t.Zero
 	if b.resource.Policy.OptionalLine(component, name) && (strings.HasPrefix(ref.Want, "[]") || strings.HasPrefix(ref.Want, "map[")) {
+		cf.SendEmpty, cf.SDKSliceType = true, b.qualifyType(ref.Want)
+	}
+	if cf.SendNullAsEmpty && strings.HasPrefix(ref.Want, "[]") {
+		// A list or set that the API keeps when a request omits it: a removed one is sent empty.
 		cf.SendEmpty, cf.SDKSliceType = true, b.qualifyType(ref.Want)
 	}
 	want, err := b.fieldConv(cf, t, computed)

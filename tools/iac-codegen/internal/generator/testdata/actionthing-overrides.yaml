@@ -1,0 +1,33 @@
+# A released resource like the actions: Create is flat, Replace wraps the thing and has its id
+# in the body, the API refuses the field hidden in Create, and it keeps a note and tags that a
+# request omits.
+resource: ActionThing
+mode: existing
+typeName: action_thing_v2
+
+validators:
+  inferred: false
+
+api:
+  requestWrapper: thing
+  createUnwrapped: true
+  updateIDInBody: true
+  serverSetID: true
+
+types:
+  ActionThing:
+    fields:
+      id:
+        readOnly: true
+      name:
+        required: true
+      hidden:
+        optional: true
+        computed: true
+        default: false
+      note:
+        sendNullAsEmpty: true
+        readEmptyAs: "null"
+      tags:
+        sendNullAsEmpty: true
+        readEmptyAs: "null"
