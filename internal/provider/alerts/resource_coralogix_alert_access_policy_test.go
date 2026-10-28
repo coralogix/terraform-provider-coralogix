@@ -27,12 +27,12 @@ import (
 func TestFlattenAlertAccessPolicy(t *testing.T) {
 	// The backend's key order for the same policy a jsonencode-based
 	// configuration would produce.
-	backendText := `{"version":"2025-01-01","default":{"permissions":{"alerts:Read":"grant"}},"rules":[]}`
-	canonicalText := `{"default":{"permissions":{"alerts:Read":"grant"}},"rules":[],"version":"2025-01-01"}`
+	backendText := `{"version":"2025-01-01","default":{"permissions":{"alerts:ReadConfig":"grant"}},"rules":[]}`
+	canonicalText := `{"default":{"permissions":{"alerts:ReadConfig":"grant"}},"rules":[],"version":"2025-01-01"}`
 	unparsableText := "not json"
 	// jsonencode escapes &, so the stored text must escape it too.
 	ampersandText := `{"rules":[{"name":"reads & writes"}]}`
-	prettyText := "{\n  \"version\": \"2025-01-01\",\n  \"default\": {\n    \"permissions\": {\n      \"alerts:Read\": \"grant\"\n    }\n  },\n  \"rules\": []\n}"
+	prettyText := "{\n  \"version\": \"2025-01-01\",\n  \"default\": {\n    \"permissions\": {\n      \"alerts:ReadConfig\": \"grant\"\n    }\n  },\n  \"rules\": []\n}"
 
 	tests := []struct {
 		name         string
