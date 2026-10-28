@@ -1,5 +1,10 @@
 # Unreleased
 
+# Release 3.23.0
+
+#### resource/coralogix_alert
+- FEAT: New optional `access_policy` attribute: the alert's PBAC access-policy JSON, bringing alerts to parity with `coralogix_dashboard` and `coralogix_api_key`. Setting a value makes the provider own the policy and re-apply it whenever the alert is updated; `""` removes the remote policy; leaving it out leaves the policy unmanaged. While the attribute is set (including `""`), every update of the alert sends it and therefore requires the `alerts:UpdateAccessPolicy` API-key scope; reading it back needs `alerts:ReadAccessPolicy`. Changes made elsewhere show as drift for keys with the read scope; for keys without it, the policy is not re-checked on refresh and is only re-applied on the next update.
+
 #### resource/coralogix_archive_logs
 - CHORE: The resource is generated from the API contract. Create and Update set the archive target with the same call, as before.
 - CHORE: `id` is always `archive-logs-settings`. Before, an import with another ID kept that ID.
@@ -20,6 +25,7 @@
 - FIX: An empty `access_policy` returned by the API is read as null, the same as an omitted one. Before, the empty string went into state and import could not match it.
 
 #### provider
+- CHORE: Bump `golang.org/x/net` to v0.62.0 to clear CVE-2026-97045 and CVE-2026-78661. No change to provider behavior.
 - CHORE: Bump `github.com/yuin/goldmark` to v1.7.17 to clear CVE-2026-5160. It is used only by the docs generator, not the provider binary. No change to provider behavior.
 - CHORE: Bump `coralogix-management-sdk` to the version with the AI evaluations contract. `coralogix_dashboards_folder` and `coralogix_dashboard` adapt to its types: the folder name is a required string, and the dashboard of a replace request is optional. A `coralogix_dashboards_folder` without `name` now sends an empty name: the API still rejects it, now with "folder name cannot be empty".
 

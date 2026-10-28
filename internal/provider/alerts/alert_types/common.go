@@ -378,6 +378,7 @@ type AlertResourceModel struct {
 	Labels            types.Map    `tfsdk:"labels"`             // map[string]string
 	DataSources       types.List   `tfsdk:"data_sources"`       // []DataSourceModel
 	CaseSettings      types.Object `tfsdk:"case_settings"`      // CaseSettingsModel
+	AccessPolicy      types.String `tfsdk:"access_policy"`
 }
 
 type CaseSettingsModel struct {
