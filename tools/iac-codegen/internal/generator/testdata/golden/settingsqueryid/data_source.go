@@ -103,8 +103,10 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if m.Id.IsNull() || m.Id.ValueString() == "" {
-		m.Id = types.StringValue(id) // the API returned no id
+	if queryID != nil {
+		m.Id = types.StringValue(id) // keep the configured query id, even if the API returns another id
+	} else if m.Id.IsNull() || m.Id.ValueString() == "" {
+		m.Id = types.StringValue(TypeName) // the API returned no id
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, m)...)
 }

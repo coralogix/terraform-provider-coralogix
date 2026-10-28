@@ -246,9 +246,17 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	}
 {{- end}}
 {{- if and .Singleton .SingletonID}}
-	if m.Id.IsNull() || m.Id.ValueString() == "" {
-		m.Id = types.StringValue({{if $.DataSource.QueryID}}id{{else}}TypeName{{end}}) // the API returned no id
+	{{- if $.DataSource.QueryID}}
+	if queryID != nil {
+		m.Id = types.StringValue(id) // keep the configured query id, even if the API returns another id
+	} else if m.Id.IsNull() || m.Id.ValueString() == "" {
+		m.Id = types.StringValue(TypeName) // the API returned no id
 	}
+	{{- else}}
+	if m.Id.IsNull() || m.Id.ValueString() == "" {
+		m.Id = types.StringValue(TypeName) // the API returned no id
+	}
+	{{- end}}
 {{- else if .Singleton}}
 	m.Id = types.StringValue(SingletonID) // a singleton has a fixed id (D18)
 {{- end}}
