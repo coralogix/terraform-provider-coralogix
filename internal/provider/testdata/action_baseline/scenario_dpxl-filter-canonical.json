@@ -1,0 +1,78 @@
+[
+  {
+    "step": "import an action whose filter has no prefix",
+    "state": null
+  },
+  {
+    "step": "import an action whose filter has no prefix (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/actions/actions/v2/00000000-0000-4000-9000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": "<v1> $d.severity == 'ERROR'",
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "seeded-filter",
+      "source_type": "Log",
+      "subsystems": null,
+      "url": "https://example.com/",
+      "url_fields": null
+    },
+    "drift": [
+      "AttributeName(\"created_by\")",
+      "AttributeName(\"dpxl_filter\")",
+      "AttributeName(\"is_hidden\")",
+      "AttributeName(\"is_private\")",
+      "AttributeName(\"name\")",
+      "AttributeName(\"source_type\")",
+      "AttributeName(\"url\")"
+    ]
+  },
+  {
+    "step": "plan the filter with the prefix",
+    "config": {
+      "dpxl_filter": "<v1> $d.severity == 'ERROR'",
+      "is_private": false,
+      "name": "seeded-filter",
+      "source_type": "Log",
+      "url": "https://example.com/"
+    },
+    "plan": {
+      "applications": null,
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": "<v1> $d.severity == 'ERROR'",
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "seeded-filter",
+      "source_type": "Log",
+      "subsystems": null,
+      "url": "https://example.com/",
+      "url_fields": null
+    },
+    "noChange": true,
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": "<v1> $d.severity == 'ERROR'",
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "seeded-filter",
+      "source_type": "Log",
+      "subsystems": null,
+      "url": "https://example.com/",
+      "url_fields": null
+    }
+  }
+]

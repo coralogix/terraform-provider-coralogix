@@ -1,0 +1,174 @@
+[
+  {
+    "step": "empty config",
+    "config": {},
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"name\")] | Must set a configuration value for the name attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"source_type\")] | Must set a configuration value for the source_type attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"url\")] | Must set a configuration value for the url attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "empty name",
+    "config": {
+      "is_private": false,
+      "name": "",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"name\")] | Attribute name string length must be at least 1, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "empty url",
+    "config": {
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "url": ""
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Format [AttributeName(\"url\")] | Attribute url in not a valid url - "
+    ],
+    "state": null
+  },
+  {
+    "step": "url without a scheme",
+    "config": {
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "url": "example.com"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Format [AttributeName(\"url\")] | Attribute url in not a valid url - example.com"
+    ],
+    "state": null
+  },
+  {
+    "step": "url with another scheme",
+    "config": {
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "url": "ftp://example.com"
+    },
+    "state": null
+  },
+  {
+    "step": "source_type not in the list",
+    "config": {
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Metric",
+      "url": "https://example.com/{{p}}"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"source_type\")] | Attribute source_type value must be one of: [\"DataMap\" \"Log\"], got: \"Metric\""
+    ],
+    "state": null
+  },
+  {
+    "step": "dpxl_filter without the version prefix",
+    "config": {
+      "dpxl_filter": "$d.severity == 'ERROR'",
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"dpxl_filter\")] | Attribute dpxl_filter must be empty or start with a version prefix, e.g. `<v1> $d.severity == 'ERROR'`, got: $d.severity == 'ERROR'"
+    ],
+    "state": null
+  },
+  {
+    "step": "empty dpxl_filter",
+    "config": {
+      "dpxl_filter": "",
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}"
+    },
+    "state": null
+  },
+  {
+    "step": "empty url_fields name",
+    "config": {
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}",
+      "url_fields": [
+        {
+          "name": "",
+          "required": true
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"url_fields\").ElementKeyInt(0).AttributeName(\"name\")] | Attribute url_fields[0].name string length must be at least 1, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "url_fields without required",
+    "config": {
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}",
+      "url_fields": [
+        {
+          "name": "p"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"url_fields\").ElementKeyInt(0).AttributeName(\"required\")] | Must set a configuration value for the url_fields[0].required attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "empty applications",
+    "config": {
+      "applications": [],
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"applications\")] | Attribute applications set must contain at least 1 elements, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "empty subsystems",
+    "config": {
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": [],
+      "url": "https://example.com/{{p}}"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"subsystems\")] | Attribute subsystems set must contain at least 1 elements, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "name longer than 50 characters",
+    "config": {
+      "is_private": false,
+      "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}"
+    },
+    "state": null
+  }
+]

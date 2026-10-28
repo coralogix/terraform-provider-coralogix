@@ -1,0 +1,26 @@
+[
+  {
+    "step": "import an id that is not a UUID",
+    "state": null
+  },
+  {
+    "step": "import an id that is not a UUID (refresh)",
+    "applyDiagnostics": [
+      "error: Error reading coralogix_action | error - id must have at least 36 elements\noperation - Read"
+    ],
+    "state": {
+      "applications": null,
+      "created_by": null,
+      "description": null,
+      "dpxl_filter": null,
+      "id": "not-a-uuid",
+      "is_hidden": null,
+      "is_private": null,
+      "name": null,
+      "source_type": null,
+      "subsystems": null,
+      "url": null,
+      "url_fields": null
+    }
+  }
+]

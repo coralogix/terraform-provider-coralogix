@@ -1,0 +1,662 @@
+{
+  "cases": [
+    {
+      "name": "create full, read, replace, clear optional fields, delete",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-a",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false,
+            "description": "first",
+            "dpxlFilter": "<v1> $d.severity == 'ERROR'",
+            "urlFields": [
+              {
+                "name": "p",
+                "required": true
+              },
+              {
+                "name": "q",
+                "required": false
+              }
+            ],
+            "applicationNames": [
+              "app-a",
+              "app-b"
+            ],
+            "subsystemNames": [
+              "sub-a"
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "action": {
+              "id": "{{id}}",
+              "name": "tf-fidelity-a2",
+              "url": "https://example.com/{{p}}",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "isPrivate": false,
+              "isHidden": false,
+              "description": "second",
+              "dpxlFilter": "<v1> $d.severity == 'INFO'",
+              "urlFields": [
+                {
+                  "name": "p",
+                  "required": false
+                }
+              ],
+              "applicationNames": [
+                "app-a"
+              ],
+              "subsystemNames": [
+                "sub-b"
+              ]
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "action": {
+              "id": "{{id}}",
+              "name": "tf-fidelity-a2",
+              "url": "https://example.com/{{p}}",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "isPrivate": false,
+              "isHidden": false,
+              "description": "",
+              "dpxlFilter": "",
+              "urlFields": [],
+              "applicationNames": [],
+              "subsystemNames": []
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "action": {
+              "id": "{{id}}",
+              "name": "tf-fidelity-a2",
+              "url": "https://example.com/{{p}}",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "isPrivate": false,
+              "isHidden": false
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "action": {
+              "id": "{{id}}",
+              "name": "tf-fidelity-gone",
+              "url": "https://example.com/{{p}}",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "isPrivate": false,
+              "isHidden": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "create minimal and the second source type",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-min",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "action": {
+              "id": "{{id}}",
+              "name": "tf-fidelity-min",
+              "url": "https://example.com/{{p}}",
+              "sourceType": "SOURCE_TYPE_DATA_MAP",
+              "isPrivate": false,
+              "isHidden": false
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "create validation",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-private",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": true
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-omitted-private",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false
+          },
+          "capture": "long"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity",
+            "url": "",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity",
+            "url": "example.com",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity",
+            "url": "ftp://example.com",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity",
+            "url": "https://example.com/{{p}}",
+            "isPrivate": false
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_UNSPECIFIED",
+            "isPrivate": false
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_NOPE",
+            "isPrivate": false
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-nofilter",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false,
+            "dpxlFilter": "$d.severity == 'ERROR'"
+          },
+          "capture": "nf"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-emptyfilter",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false,
+            "dpxlFilter": ""
+          },
+          "capture": "ef"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-dupfields",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false,
+            "urlFields": [
+              {
+                "name": "p",
+                "required": true
+              },
+              {
+                "name": "p",
+                "required": false
+              }
+            ]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-emptyfield",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false,
+            "urlFields": [
+              {
+                "name": "",
+                "required": true
+              }
+            ]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-dupapps",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false,
+            "applicationNames": [
+              "a",
+              "a"
+            ]
+          },
+          "capture": "da"
+        },
+        {
+          "method": "GET",
+          "path": "/{{nf}}"
+        },
+        {
+          "method": "GET",
+          "path": "/{{ef}}"
+        },
+        {
+          "method": "GET",
+          "path": "/{{da}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{long}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{nf}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{ef}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{da}}"
+        }
+      ]
+    },
+    {
+      "name": "duplicate names",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-dup",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-dup",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false
+          },
+          "capture": "id2"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-other",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false
+          },
+          "capture": "id3"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "action": {
+              "id": "{{id3}}",
+              "name": "tf-fidelity-dup",
+              "url": "https://example.com/{{p}}",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "isPrivate": false,
+              "isHidden": false
+            }
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id2}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id3}}"
+        }
+      ]
+    },
+    {
+      "name": "replace validation and malformed ids",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-rv",
+            "url": "https://example.com/{{p}}",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "isPrivate": false
+          },
+          "capture": "id"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "action": {
+              "id": "{{id}}",
+              "name": "tf-fidelity",
+              "url": "https://example.com/{{p}}",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "isPrivate": false
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "action": {
+              "name": "tf-fidelity",
+              "url": "https://example.com/{{p}}",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "isPrivate": false,
+              "isHidden": false
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "action": {
+              "id": "{{id}}",
+              "name": "",
+              "url": "https://example.com/{{p}}",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "isPrivate": false,
+              "isHidden": false
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "action": {
+              "id": "{{id}}",
+              "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+              "url": "https://example.com/{{p}}",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "isPrivate": false,
+              "isHidden": false
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "action": {
+              "id": "{{id}}",
+              "name": "tf-fidelity",
+              "url": "example.com",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "isPrivate": false,
+              "isHidden": false
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "action": {
+              "id": "{{id}}",
+              "name": "tf-fidelity",
+              "url": "https://example.com/{{p}}",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "isPrivate": false,
+              "isHidden": false,
+              "dpxlFilter": "$d.severity == 'ERROR'"
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "action": {
+              "id": "{{id}}",
+              "name": "tf-fidelity",
+              "url": "https://example.com/{{p}}",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "isPrivate": true,
+              "isHidden": false
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "action": {
+              "id": "{{id}}",
+              "name": "tf-fidelity",
+              "url": "https://example.com/{{p}}",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "isPrivate": false,
+              "isHidden": true
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "action": {
+              "id": "not-a-uuid",
+              "name": "tf-fidelity",
+              "url": "https://example.com/{{p}}",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "isPrivate": false,
+              "isHidden": false
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "action": {
+              "id": "00000000-0000-4000-8000-000000000001",
+              "name": "tf-fidelity",
+              "url": "https://example.com/{{p}}",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "isPrivate": false,
+              "isHidden": false
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/not-a-uuid"
+        },
+        {
+          "method": "DELETE",
+          "path": "/not-a-uuid"
+        },
+        {
+          "method": "GET",
+          "path": "/00000000-0000-4000-8000-000000000001"
+        },
+        {
+          "method": "DELETE",
+          "path": "/00000000-0000-4000-8000-000000000001"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    }
+  ]
+}

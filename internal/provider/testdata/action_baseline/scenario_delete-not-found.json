@@ -1,0 +1,64 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}"
+    },
+    "plan": {
+      "applications": "(unknown)",
+      "created_by": "(unknown)",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "(unknown)",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": "(unknown)",
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "isPrivate": false,
+          "name": "tf-action",
+          "sourceType": "SOURCE_TYPE_LOG",
+          "url": "https://example.com/{{p}}"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": null,
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy: the API answers 404 for an action that does not exist",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/actions/actions/v2/00000000-0000-4000-9000-000000000001",
+        "status": 404
+      }
+    ],
+    "state": null
+  }
+]
