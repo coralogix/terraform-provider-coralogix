@@ -1,0 +1,34 @@
+[
+  {
+    "step": "read rules whose type the API returns as unspecified or leaves out",
+    "config": {},
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "rules": [
+        {
+          "allocation": 5,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "cx_managed": true,
+          "enabled": true,
+          "entity_type": "alerts"
+        },
+        {
+          "allocation": 10,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "cx_managed": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    }
+  }
+]

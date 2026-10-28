@@ -1,0 +1,24 @@
+[
+  {
+    "step": "import when the rule set has no rules",
+    "state": null
+  },
+  {
+    "step": "import when the rule set has no rules (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "rules": []
+    },
+    "drift": [
+      "AttributeName(\"id\")",
+      "AttributeName(\"rules\")"
+    ]
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "step": "import an id that does not exist",
+    "state": null
+  },
+  {
+    "step": "import an id that does not exist (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-00000000dead",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: Resource disappeared during read | dashboards_folder with id 00000000-0000-4000-8000-00000000dead was not found. Terraform removed it from state."
+    ],
+    "state": null
+  }
+]

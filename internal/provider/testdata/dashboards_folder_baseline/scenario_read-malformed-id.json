@@ -1,0 +1,17 @@
+[
+  {
+    "step": "import an id that is not a UUID",
+    "state": null
+  },
+  {
+    "step": "import an id that is not a UUID (refresh)",
+    "applyDiagnostics": [
+      "error: Unable to read dashboards_folder | id not-a-uuid: folderId must have at least 36 elements"
+    ],
+    "state": {
+      "id": "not-a-uuid",
+      "name": null,
+      "parent_id": null
+    }
+  }
+]

@@ -5,15 +5,20 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/config_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/custom_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/echo_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/eval_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/folder_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/legacy_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/rulebook_service"
 	"example.com/iac-test-sdk/go/openapi/gen/settings_service"
 	"example.com/iac-test-sdk/go/openapi/gen/shared_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/suppressed_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/upsert_service"
 	"example.com/iac-test-sdk/go/openapi/gen/wrap_things_service"
 )
 
 type ClientSet struct {
+	Folder         *folder_things_service.FolderThingsServiceAPIService
 	Client         *things_service.ThingsServiceAPIService
 	SettingsClient *settings_service.SettingsServiceAPIService
 	Legacy         *legacy_things_service.LegacyThingsServiceAPIService
@@ -23,10 +28,15 @@ type ClientSet struct {
 	Custom         *custom_things_service.CustomThingsServiceAPIService
 	Shared         *shared_things_service.SharedThingsServiceAPIService
 	Echo           *echo_things_service.EchoThingsServiceAPIService
+	Eval           *eval_things_service.EvalThingsServiceAPIService
 	Suppressed     *suppressed_things_service.SuppressedThingsServiceAPIService
+	RulebookClient *rulebook_service.RulebookServiceAPIService
+	UpsertClient   *upsert_service.UpsertServiceAPIService
 }
 
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
+
+func (c *ClientSet) Rulebook() *rulebook_service.RulebookServiceAPIService { return c.RulebookClient }
 
 func (c *ClientSet) Settings() *settings_service.SettingsServiceAPIService { return c.SettingsClient }
 
@@ -58,6 +68,15 @@ func (c *ClientSet) EchoThings() *echo_things_service.EchoThingsServiceAPIServic
 	return c.Echo
 }
 
+func (c *ClientSet) EvalThings() *eval_things_service.EvalThingsServiceAPIService {
+	return c.Eval
+}
+
 func (c *ClientSet) SuppressedThings() *suppressed_things_service.SuppressedThingsServiceAPIService {
 	return c.Suppressed
+}
+func (c *ClientSet) Upsert() *upsert_service.UpsertServiceAPIService { return c.UpsertClient }
+
+func (c *ClientSet) FolderThings() *folder_things_service.FolderThingsServiceAPIService {
+	return c.Folder
 }

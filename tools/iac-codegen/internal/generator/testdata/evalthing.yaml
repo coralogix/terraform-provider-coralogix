@@ -1,0 +1,134 @@
+# A released resource like the AI evaluation API. PATCH has an optional updateMask in the JSON
+# body, and the released resource never sent it: the server updates the fields in the body.
+# Get wraps the resource in a field with a description (allOf: [$ref]). The target enum starts
+# with a business value. The config oneOf has an arm the resource does not configure. The topic
+# list is unordered, though the contract does not say so.
+openapi: 3.1.0
+info: {title: eval, version: 1.0.0}
+paths:
+  /eval/v1/things:
+    post:
+      tags: [Eval Things Service]
+      operationId: EvalThingsService_CreateEvalThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CreateEvalThingRequest
+              type: object
+              required: [name, target, config]
+              properties:
+                name: {type: string, minLength: 1}
+                target: {$ref: '#/components/schemas/EvalTarget'}
+                config: {$ref: '#/components/schemas/EvalConfig'}
+                enabled: {type: boolean, x-coralogix-presence: true}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreateEvalThingResponse'}
+  /eval/v1/things/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Eval Things Service]
+      operationId: EvalThingsService_GetEvalThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetEvalThingResponse'}
+    patch:
+      tags: [Eval Things Service]
+      operationId: EvalThingsService_UpdateEvalThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: UpdateEvalThingRequest
+              type: object
+              properties:
+                name: {type: string, minLength: 1, x-coralogix-presence: true}
+                target: {$ref: '#/components/schemas/EvalTarget'}
+                config: {$ref: '#/components/schemas/EvalConfig'}
+                enabled: {type: boolean, x-coralogix-presence: true}
+                updateMask: {type: string, pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/UpdateEvalThingResponse'}
+    delete:
+      tags: [Eval Things Service]
+      operationId: EvalThingsService_DeleteEvalThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteEvalThingResponse'}
+components:
+  schemas:
+    CreateEvalThingResponse:
+      type: object
+      required: [thing]
+      properties:
+        thing: {$ref: '#/components/schemas/EvalThing'}
+    GetEvalThingResponse:
+      type: object
+      required: [thing]
+      properties:
+        thing:
+          allOf: [{$ref: '#/components/schemas/EvalThing'}]
+          description: The thing.
+    UpdateEvalThingResponse:
+      type: object
+      required: [thing]
+      properties:
+        thing: {$ref: '#/components/schemas/EvalThing'}
+    DeleteEvalThingResponse:
+      type: object
+      required: []
+    EvalTarget:
+      type: string
+      enum: [PROMPT, RESPONSE, CONVERSATION]
+    EvalThing:
+      type: object
+      required: [id, name, config]
+      properties:
+        id: {type: string, readOnly: true}
+        name: {type: string, minLength: 1}
+        target: {$ref: '#/components/schemas/EvalTarget'}
+        config: {$ref: '#/components/schemas/EvalConfig'}
+        enabled: {type: boolean}
+    EvalConfig:
+      type: object
+      required: []
+      properties:
+        topics: {$ref: '#/components/schemas/TopicsEvalConfig'}
+        toxicity: {$ref: '#/components/schemas/ToxicityEvalConfig'}
+        legacy: {$ref: '#/components/schemas/LegacyEvalConfig'}
+      oneOf:
+        - required: [topics]
+        - required: [toxicity]
+        - required: [legacy]
+    TopicsEvalConfig:
+      type: object
+      required: []
+      properties:
+        topics: {type: array, items: {type: string}}
+        context: {type: string}
+    ToxicityEvalConfig:
+      type: object
+      required: []
+    LegacyEvalConfig:
+      type: object
+      required: []
+      properties:
+        limit:
+          type: string

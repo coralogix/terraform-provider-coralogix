@@ -1,0 +1,21 @@
+(schema)  version=0
+    markdown: "Manages the account-level Coralogix quota allocation rule set. This API is a singleton overwrite surface: updates replace the full rule set. Delete clears customer-managed rules only; Coralogix-managed (`cx_managed`) rules are preserved. This resource filters `cx_managed` rules out of state; the data source exposes them. Requires `team-quota-rules:Read` and `team-quota-rules:Manage` permissions. Rules are keyed by entity type, such as `logs`, `spans`, or `metrics`. The [Quota Rules](https://coralogix.com/docs/user-guides/account-management/payment-and-billing/quota-rules/) documentation lists the supported entity types; the Coralogix API rejects an unsupported one."
+id  StringAttribute computed
+    markdown: "The backend identifier for the quota allocation rule set. Import accepts this value or `quota-allocation-rule-set`."
+rules  SetNestedAttribute required
+    markdown: "Complete set of customer-managed quota allocation rules. Because the backend stores a single account-level rule set, Terraform replaces the full customer-managed set during update. Set `rules = []` to clear all customer-managed rules."
+rules[]  NestedObject
+rules[].allocation  Float32Attribute required
+    markdown: "Quota allocation value for this entity type. For `percentage`, must be between 0 and 100. For `locked_units`, must be non-negative. The sum of enabled locked units plus any Coralogix bundle units must fit within the team daily quota."
+    validator: float32validator.atLeastValidator value must be at least 0.000000
+rules[].allocation_type  StringAttribute optional computed
+    default: stringdefault.staticStringDefault value defaults to percentage
+    markdown: "How the allocation value is interpreted. Valid values are `percentage` (default) and `locked_units`. `unspecified` is accepted as a compatible alias of `percentage` and is normalized to `percentage` during planning. Locked units are reserved first from the team daily quota; percentage rules share the remaining pool and their enabled allocations must sum to at most 100."
+    validator: stringvalidator.oneOfValidator value must be one of: ["locked_units" "percentage" "unspecified"]
+rules[].can_overflow  BoolAttribute required
+    markdown: "Whether this entity type can overflow beyond its allocation."
+rules[].enabled  BoolAttribute required
+    markdown: "Whether the quota allocation rule is enabled."
+rules[].entity_type  StringAttribute required
+    markdown: "Entity type covered by the rule, such as `logs`, `spans`, or `metrics`. The [Quota Rules](https://coralogix.com/docs/user-guides/account-management/payment-and-billing/quota-rules/) documentation lists the supported entity types; the Coralogix API rejects an unsupported one."
+    validator: stringvalidator.lengthAtLeastValidator string length must be at least 1

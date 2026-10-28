@@ -1,0 +1,156 @@
+[
+  {
+    "step": "import",
+    "state": null
+  },
+  {
+    "step": "import (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/ai/evaluations/v3/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "application": "tf-baseline-app",
+      "config": {
+        "allowed_topics": null,
+        "competition": null,
+        "hallucination_completeness": null,
+        "hallucination_context_adherence": null,
+        "hallucination_context_relevance": null,
+        "hallucination_correctness": null,
+        "hallucination_task_adherence": null,
+        "language_mismatch": null,
+        "pii": null,
+        "prompt_injection": null,
+        "restricted_topics": {
+          "topics": [
+            "politics",
+            "religion"
+          ]
+        },
+        "sexism": null,
+        "sql_allowed_tables": null,
+        "sql_hallucination": null,
+        "sql_read_only": null,
+        "sql_restricted_tables": null,
+        "toxicity": null
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "is_enabled": false,
+      "subsystem": "tf-baseline-subsystem",
+      "target": "prompt",
+      "threshold": 0.3
+    },
+    "drift": [
+      "AttributeName(\"application\")",
+      "AttributeName(\"config\")",
+      "AttributeName(\"config\").AttributeName(\"allowed_topics\")",
+      "AttributeName(\"config\").AttributeName(\"competition\")",
+      "AttributeName(\"config\").AttributeName(\"hallucination_completeness\")",
+      "AttributeName(\"config\").AttributeName(\"hallucination_context_adherence\")",
+      "AttributeName(\"config\").AttributeName(\"hallucination_context_relevance\")",
+      "AttributeName(\"config\").AttributeName(\"hallucination_correctness\")",
+      "AttributeName(\"config\").AttributeName(\"hallucination_task_adherence\")",
+      "AttributeName(\"config\").AttributeName(\"language_mismatch\")",
+      "AttributeName(\"config\").AttributeName(\"pii\")",
+      "AttributeName(\"config\").AttributeName(\"prompt_injection\")",
+      "AttributeName(\"config\").AttributeName(\"restricted_topics\")",
+      "AttributeName(\"config\").AttributeName(\"sexism\")",
+      "AttributeName(\"config\").AttributeName(\"sql_allowed_tables\")",
+      "AttributeName(\"config\").AttributeName(\"sql_hallucination\")",
+      "AttributeName(\"config\").AttributeName(\"sql_read_only\")",
+      "AttributeName(\"config\").AttributeName(\"sql_restricted_tables\")",
+      "AttributeName(\"config\").AttributeName(\"toxicity\")",
+      "AttributeName(\"is_enabled\")",
+      "AttributeName(\"subsystem\")",
+      "AttributeName(\"target\")",
+      "AttributeName(\"threshold\")"
+    ]
+  },
+  {
+    "step": "plan the matching config",
+    "config": {
+      "application": "tf-baseline-app",
+      "config": {
+        "restricted_topics": {
+          "topics": [
+            "religion",
+            "politics"
+          ]
+        }
+      },
+      "is_enabled": false,
+      "subsystem": "tf-baseline-subsystem",
+      "target": "prompt",
+      "threshold": 0.3
+    },
+    "plan": {
+      "application": "tf-baseline-app",
+      "config": {
+        "allowed_topics": null,
+        "competition": null,
+        "hallucination_completeness": null,
+        "hallucination_context_adherence": null,
+        "hallucination_context_relevance": null,
+        "hallucination_correctness": null,
+        "hallucination_task_adherence": null,
+        "language_mismatch": null,
+        "pii": null,
+        "prompt_injection": null,
+        "restricted_topics": {
+          "topics": [
+            "religion",
+            "politics"
+          ]
+        },
+        "sexism": null,
+        "sql_allowed_tables": null,
+        "sql_hallucination": null,
+        "sql_read_only": null,
+        "sql_restricted_tables": null,
+        "toxicity": null
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "is_enabled": false,
+      "subsystem": "tf-baseline-subsystem",
+      "target": "prompt",
+      "threshold": 0.3
+    },
+    "noChange": true,
+    "state": {
+      "application": "tf-baseline-app",
+      "config": {
+        "allowed_topics": null,
+        "competition": null,
+        "hallucination_completeness": null,
+        "hallucination_context_adherence": null,
+        "hallucination_context_relevance": null,
+        "hallucination_correctness": null,
+        "hallucination_task_adherence": null,
+        "language_mismatch": null,
+        "pii": null,
+        "prompt_injection": null,
+        "restricted_topics": {
+          "topics": [
+            "politics",
+            "religion"
+          ]
+        },
+        "sexism": null,
+        "sql_allowed_tables": null,
+        "sql_hallucination": null,
+        "sql_read_only": null,
+        "sql_restricted_tables": null,
+        "toxicity": null
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "is_enabled": false,
+      "subsystem": "tf-baseline-subsystem",
+      "target": "prompt",
+      "threshold": 0.3
+    }
+  }
+]

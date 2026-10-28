@@ -1,0 +1,60 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "bucket": "archive-bucket"
+    },
+    "plan": {
+      "active": true,
+      "archiving_format_id": "(unknown)",
+      "bucket": "archive-bucket",
+      "enable_tags": "(unknown)",
+      "id": "archive-logs-settings",
+      "region": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "body": {
+          "isActive": true,
+          "s3": {
+            "bucket": "archive-bucket"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "archiving_format_id": "cx_data_v1",
+      "bucket": "archive-bucket",
+      "enable_tags": false,
+      "id": "archive-logs-settings",
+      "region": "eu-north-1"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: the gateway has no such route",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to read archive_logs | id archive-logs-settings: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}"
+    ],
+    "state": {
+      "active": true,
+      "archiving_format_id": "cx_data_v1",
+      "bucket": "archive-bucket",
+      "enable_tags": false,
+      "id": "archive-logs-settings",
+      "region": "eu-north-1"
+    },
+    "replanEmpty": true
+  }
+]

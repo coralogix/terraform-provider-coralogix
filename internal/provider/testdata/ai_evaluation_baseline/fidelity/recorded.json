@@ -1,0 +1,727 @@
+{
+  "cases": [
+    {
+      "name": "create for an application that does not exist",
+      "steps": [
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: AI application not found"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create without target",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [\n  {\n    \"expected\": \"'PROMPT' | 'RESPONSE' | 'CONVERSATION'\",\n    \"received\": \"undefined\",\n    \"code\": \"invalid_type\",\n    \"path\": [\n      \"target\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create without config",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"config\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with an empty config",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [\n  {\n    \"code\": \"invalid_type\",\n    \"expected\": \"object\",\n    \"received\": \"undefined\",\n    \"path\": [\n      \"config\",\n      \"evaluation\"\n    ],\n    \"message\": \"Required\"\n  }\n]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with two config variants",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: proto: (line 1:51): error parsing \"toxicity\", oneof com.coralogixapis.ai.v3.EvaluationConfig.evaluation is already set"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with an empty topic list",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [\n  {\n    \"code\": \"too_small\",\n    \"minimum\": 1,\n    \"type\": \"array\",\n    \"inclusive\": true,\n    \"exact\": false,\n    \"message\": \"Array must contain at least 1 element(s)\",\n    \"path\": [\n      \"config\",\n      \"evaluation\",\n      \"value\",\n      \"topics\"\n    ]\n  }\n]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create without the topic list",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [\n  {\n    \"code\": \"too_small\",\n    \"minimum\": 1,\n    \"type\": \"array\",\n    \"inclusive\": true,\n    \"exact\": false,\n    \"message\": \"Array must contain at least 1 element(s)\",\n    \"path\": [\n      \"config\",\n      \"evaluation\",\n      \"value\",\n      \"topics\"\n    ]\n  }\n]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with a repeated topic",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [\n  {\n    \"code\": \"custom\",\n    \"message\": \"Items in array must be unique, no duplicates allowed.\",\n    \"path\": [\n      \"config\",\n      \"evaluation\",\n      \"value\",\n      \"topics\"\n    ]\n  }\n]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with a threshold above 1",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [\n  {\n    \"code\": \"too_big\",\n    \"maximum\": 1,\n    \"type\": \"number\",\n    \"inclusive\": true,\n    \"exact\": false,\n    \"message\": \"Number must be less than or equal to 1\",\n    \"path\": [\n      \"threshold\"\n    ]\n  }\n]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with an empty application",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [\n  {\n    \"code\": \"too_small\",\n    \"minimum\": 1,\n    \"type\": \"string\",\n    \"inclusive\": true,\n    \"exact\": false,\n    \"message\": \"String must contain at least 1 character(s)\",\n    \"path\": [\n      \"application\"\n    ]\n  }\n]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "get an id that is not a uuid",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [\n  {\n    \"validation\": \"uuid\",\n    \"code\": \"invalid_string\",\n    \"message\": \"Invalid uuid\",\n    \"path\": [\n      \"id\"\n    ]\n  }\n]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "get an id that does not exist",
+      "steps": [
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Evaluation not found"
+          }
+        }
+      ]
+    },
+    {
+      "name": "update an id that does not exist",
+      "steps": [
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Evaluation not found"
+          }
+        }
+      ]
+    },
+    {
+      "name": "update with a dotted mask path",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: [\n  {\n    \"code\": \"custom\",\n    \"message\": \"Unknown field path \\\"config.toxicity\\\" in update_mask.\",\n    \"path\": [\n      \"updateMask\"\n    ]\n  }\n]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "delete an id that does not exist",
+      "steps": [
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Evaluation not found"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create, read, and delete a toxicity evaluation",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "toxicity": {}
+              },
+              "createdAt": "2026-10-16T15:35:16.377Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "RESPONSE",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:16.377Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "toxicity": {}
+              },
+              "createdAt": "2026-10-16T15:35:16.377Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "RESPONSE",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:16.377Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{id}}"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Evaluation not found"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create without isEnabled and threshold",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "sexism": {}
+              },
+              "createdAt": "2026-10-16T15:35:16.806Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": false,
+              "subsystem": "{{subsystem}}",
+              "target": "PROMPT",
+              "updatedAt": "2026-10-16T15:35:16.806Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "sexism": {}
+              },
+              "createdAt": "2026-10-16T15:35:16.806Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": false,
+              "subsystem": "{{subsystem}}",
+              "target": "PROMPT",
+              "updatedAt": "2026-10-16T15:35:16.806Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "a second evaluation of the same type and target",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "toxicity": {}
+              },
+              "createdAt": "2026-10-16T15:35:17.080Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "RESPONSE",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:17.080Z"
+            }
+          }
+        },
+        {
+          "status": 409,
+          "response": {
+            "code": 409,
+            "message": "Already Exists: An evaluation with these parameters already exists"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "topic order and prompt injection context",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "allowedTopics": {
+                  "topics": [
+                    "zeta",
+                    "alpha",
+                    "mid"
+                  ]
+                }
+              },
+              "createdAt": "2026-10-16T15:35:17.301Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "RESPONSE",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:17.301Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "allowedTopics": {
+                  "topics": [
+                    "zeta",
+                    "alpha",
+                    "mid"
+                  ]
+                }
+              },
+              "createdAt": "2026-10-16T15:35:17.301Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "RESPONSE",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:17.301Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "promptInjection": {
+                  "additionalContext": ""
+                }
+              },
+              "createdAt": "2026-10-16T15:35:17.301Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "RESPONSE",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:17.478Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "promptInjection": {
+                  "additionalContext": ""
+                }
+              },
+              "createdAt": "2026-10-16T15:35:17.301Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "RESPONSE",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:17.478Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "update without a mask changes only the fields in the body",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "pii": {
+                  "categories": [
+                    "EMAIL_ADDRESS",
+                    "PHONE_NUMBER"
+                  ]
+                }
+              },
+              "createdAt": "2026-10-16T15:35:17.844Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "RESPONSE",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:17.844Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "pii": {
+                  "categories": [
+                    "EMAIL_ADDRESS",
+                    "PHONE_NUMBER"
+                  ]
+                }
+              },
+              "createdAt": "2026-10-16T15:35:17.844Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": false,
+              "subsystem": "{{subsystem}}",
+              "target": "RESPONSE",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:17.962Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "competition": {
+                  "competitors": [
+                    "acme"
+                  ]
+                }
+              },
+              "createdAt": "2026-10-16T15:35:17.844Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "RESPONSE",
+              "threshold": 0.25,
+              "updatedAt": "2026-10-16T15:35:18.115Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "toxicity": {}
+              },
+              "createdAt": "2026-10-16T15:35:17.844Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": false,
+              "subsystem": "{{subsystem}}",
+              "target": "RESPONSE",
+              "threshold": 0,
+              "updatedAt": "2026-10-16T15:35:18.228Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "toxicity": {}
+              },
+              "createdAt": "2026-10-16T15:35:17.844Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": false,
+              "subsystem": "{{subsystem}}",
+              "target": "RESPONSE",
+              "threshold": 0,
+              "updatedAt": "2026-10-16T15:35:18.228Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "update to another application that does not exist",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "sqlReadOnly": {}
+              },
+              "createdAt": "2026-10-16T15:35:18.538Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "RESPONSE",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:18.538Z"
+            }
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: AI application not found"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create and read a conversation evaluation",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "toxicity": {}
+              },
+              "createdAt": "2026-10-16T15:35:18.787Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "CONVERSATION",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:18.787Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "toxicity": {}
+              },
+              "createdAt": "2026-10-16T15:35:18.787Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "CONVERSATION",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:18.787Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "update without a mask replaces a nested object",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "promptInjection": {
+                  "additionalContext": "an assistant for refunds"
+                }
+              },
+              "createdAt": "2026-10-16T15:35:19.073Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "PROMPT",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:19.073Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "promptInjection": {
+                  "additionalContext": ""
+                }
+              },
+              "createdAt": "2026-10-16T15:35:19.073Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "PROMPT",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:19.243Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "aiEvaluation": {
+              "application": "{{application}}",
+              "companyId": "<company>",
+              "config": {
+                "promptInjection": {
+                  "additionalContext": ""
+                }
+              },
+              "createdAt": "2026-10-16T15:35:19.073Z",
+              "createdBy": "",
+              "id": "{{id}}",
+              "isEnabled": true,
+              "subsystem": "{{subsystem}}",
+              "target": "PROMPT",
+              "threshold": 0.5,
+              "updatedAt": "2026-10-16T15:35:19.243Z"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{id}}"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -36,6 +36,8 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/events2metrics"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/fleet"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/aievaluation"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/archivelogs"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/configurationgroup"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/globalrouter"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/viewfolder"
@@ -407,7 +409,8 @@ func grpcTargetURL(domain, terraformEnvironmentAlias string) (string, fwdiag.Dia
 }
 
 func (p *coralogixProvider) DataSources(context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{
+	// generated.DataSources are the data sources of the new generated resources. tfgen registers them.
+	return append([]func() datasource.DataSource{
 		events2metrics.NewEvents2MetricDataSource,
 		actions.NewActionDataSource,
 		dataplans.NewTCOPoliciesLogsDataSource,
@@ -439,7 +442,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		parsing_rules.NewParsingRulesDataSource,
 		enrichment_rules.NewDataEnrichmentDataSource,
 		fleet.NewFleetConfigurationGroupDataSource,
-	}
+	}, generated.DataSources()...)
 }
 
 func (p *coralogixProvider) Resources(context.Context) []func() resource.Resource {
@@ -447,7 +450,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 	return append([]func() resource.Resource{
 		events2metrics.NewEvents2MetricResource,
 		actions.NewActionResource,
-		ai.NewAIEvaluationResource,
+		func() resource.Resource { return aievaluation.NewResource(aievaluation.Hooks{}) },
 		ai.NewAICustomEvaluationResource,
 		dataplans.NewTCOPoliciesLogsResource,
 		dataplans.NewTCOPoliciesTracesResource,
@@ -458,7 +461,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		recording_rules.NewRecordingRuleGroupSetResource,
 		dataengine.NewArchiveRetentionsResource,
 		metrics.NewArchiveMetricsResource,
-		logs.NewArchiveLogsResource,
+		func() resource.Resource { return archivelogs.NewResource(archivelogs.Hooks{}) },
 		alerts.NewAlertsSchedulerResource,
 		apm.NewSLOResource,
 		slo_mgmt.NewSLOV2Resource,

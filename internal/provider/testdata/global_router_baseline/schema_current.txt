@@ -1,5 +1,5 @@
 (schema)  version=1
-    markdown: "Coralogix Notification Center Global Router. For more info please review - https://coralogix.com/docs/user-guides/notification-center/routing/introduction/. **Note:** This resource is in Beta stage."
+    markdown: "Coralogix Notification Center Global Router. For more info please review - https://coralogix.com/docs/user-guides/notification-center/routing/introduction/."
 create_time  StringAttribute computed
     markdown: "The create time. Set by the server; a value sent by the client is ignored."
     plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.

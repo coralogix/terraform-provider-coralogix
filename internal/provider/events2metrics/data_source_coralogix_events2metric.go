@@ -15,112 +15,13 @@
 package events2metrics
 
 import (
-	"context"
-	"fmt"
-	"net/http"
-
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/events2metric"
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-
-	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-	e2ms "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/events2metrics_service"
-
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/events2metric"
 )
 
-var _ datasource.DataSourceWithConfigure = &Events2MetricDataSource{}
-
+// NewEvents2MetricDataSource returns coralogix_events2metric, the generated data source of the
+// resource.
 func NewEvents2MetricDataSource() datasource.DataSource {
-	return &Events2MetricDataSource{}
-}
-
-type Events2MetricDataSource struct {
-	client *e2ms.Events2MetricsServiceAPIService
-}
-
-func (d *Events2MetricDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_events2metric"
-}
-
-func (d *Events2MetricDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	d.client = clientSet.Events2Metrics()
-}
-
-func (d *Events2MetricDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var resourceResp resource.SchemaResponse
-	NewEvents2MetricResource().Schema(ctx, resource.SchemaRequest{}, &resourceResp)
-
-	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
-}
-
-func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *events2metric.E2MModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	id := data.Id.ValueString()
-	getResp, httpResponse, err := d.client.Events2MetricServiceGetE2M(ctx, id).Execute()
-	if err != nil {
-		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
-			resp.Diagnostics.AddWarning(
-				err.Error(),
-				fmt.Sprintf("Events2Metric %q is in state, but no longer exists in Coralogix backend", id),
-			)
-			return
-		}
-		resp.Diagnostics.AddError(
-			"Error reading Events2Metric",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
-		)
-		return
-	}
-	if getResp == nil {
-		resp.Diagnostics.AddError(
-			"Error reading Events2Metric",
-			"Read response did not include an Events2Metric",
-		)
-		return
-	}
-
-	data, diags := flattenDataSource(ctx, &getResp.E2m)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-}
-
-// flattenDataSource is the data source model of an events2metric. It uses the resource's
-// Flatten, but shows the description as the API stores it: the resource reads a stored "" as
-// null so that a removed description plans no change, while the data source has no
-// configuration and showed "" before the resource was generated.
-func flattenDataSource(ctx context.Context, v *e2ms.E2M) (*events2metric.E2MModel, diag.Diagnostics) {
-	data, diags := events2metric.Flatten(ctx, v)
-	if diags.HasError() || data == nil {
-		return data, diags
-	}
-	if v.Description != nil {
-		data.Description = types.StringValue(*v.Description)
-	}
-	return data, diags
+	return events2metric.NewDataSource(events2metric.Hooks{})
 }

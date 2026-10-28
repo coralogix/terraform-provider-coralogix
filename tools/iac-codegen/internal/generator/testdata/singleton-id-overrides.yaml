@@ -1,0 +1,11 @@
+# The behavior-overrides file of a singleton whose API resource has its own server-set id.
+resource: Settings
+mode: existing
+
+validators:
+  inferred: false
+
+singletonID: {fromAPI: true}
+
+# The data source of a singleton takes no input.
+dataSource: {}

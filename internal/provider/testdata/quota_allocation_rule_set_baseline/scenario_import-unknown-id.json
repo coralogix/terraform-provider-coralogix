@@ -1,0 +1,33 @@
+[
+  {
+    "step": "import an id that does not exist",
+    "state": null
+  },
+  {
+    "step": "import an id that does not exist (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "rules": [
+        {
+          "allocation": 60,
+          "allocation_type": "percentage",
+          "can_overflow": true,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "drift": [
+      "AttributeName(\"id\")",
+      "AttributeName(\"rules\")",
+      "AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"allocation\":tftypes.Number, \"allocation_type\":tftypes.String, \"can_overflow\":tftypes.Bool, \"enabled\":tftypes.Bool, \"entity_type\":tftypes.String]<\"allocation\":tftypes.Number<\"60\">, \"allocation_type\":tftypes.String<\"percentage\">, \"can_overflow\":tftypes.Bool<\"true\">, \"enabled\":tftypes.Bool<\"true\">, \"entity_type\":tftypes.String<\"logs\">>)"
+    ]
+  }
+]

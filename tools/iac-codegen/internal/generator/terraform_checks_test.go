@@ -53,7 +53,7 @@ func TestTerraformNameCollisionIsIneligible(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			doc := loadComponents(t, "    Collision:\n      type: object\n      properties:\n"+properties)
-			if codes := issueCodes(terraformContractIssues(doc, "Collision", model.OperationIDs{}, model.Policy{})); !slices.Contains(codes, "TERRAFORM_NAME_COLLISION") {
+			if codes := issueCodes(terraformContractIssues(doc, "Collision", model.OperationIDs{}, model.Policy{}, nil)); !slices.Contains(codes, "TERRAFORM_NAME_COLLISION") {
 				t.Fatalf("codes %v do not contain TERRAFORM_NAME_COLLISION", codes)
 			}
 		})
@@ -73,7 +73,7 @@ func TestUint64RequiresTerraformInt64Bound(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			doc := loadComponents(t, fmt.Sprintf("    Holder:\n      type: object\n      properties:\n        counter: {%s}\n", test.schema))
-			report := terraformContractIssues(doc, "Holder", model.OperationIDs{}, model.Policy{})
+			report := terraformContractIssues(doc, "Holder", model.OperationIDs{}, model.Policy{}, nil)
 			if slices.Contains(issueCodes(report), "UINT64_RANGE_UNSUPPORTED") == test.eligible {
 				t.Fatalf("report = %v, eligible = %t", report, test.eligible)
 			}
@@ -92,7 +92,7 @@ func TestTerraformChecksJoinTheContractReport(t *testing.T) {
           type: array
           items: {$ref: '#/components/schemas/Broken'}
 `)
-	report := terraformContractIssues(doc, "Broken", model.OperationIDs{}, model.Policy{})
+	report := terraformContractIssues(doc, "Broken", model.OperationIDs{}, model.Policy{}, nil)
 	codes := issueCodes(report)
 	for _, want := range []string{"GO_NAME_COLLISION", "SCHEMA_RECURSIVE", "TERRAFORM_NAME_COLLISION"} {
 		if !slices.Contains(codes, want) {

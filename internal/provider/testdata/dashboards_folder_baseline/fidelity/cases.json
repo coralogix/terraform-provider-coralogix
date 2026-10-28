@@ -1,0 +1,463 @@
+{
+  "cases": [
+    {
+      "name": "create without an id, read, replace, delete",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "tf-fidelity-parent"
+            }
+          },
+          "capture": "pid"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "tf-fidelity-a",
+              "parentId": "{{pid}}"
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "folder": {
+              "id": "{{id}}",
+              "name": "tf-fidelity-a2",
+              "parentId": "{{pid}}"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "folder": {
+              "id": "{{id}}",
+              "name": "tf-fidelity-a2"
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{pid}}"
+        }
+      ]
+    },
+    {
+      "name": "create with a client id",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "id": "7c1f0a9e-4d3b-4c52-9a0e-5b6f1d2e3a41",
+              "name": "tf-fidelity-b"
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "create with a name only",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "tf-fidelity-c"
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "create without a name",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {}
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with a name of 100 and 101 characters",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with a malformed parent and a missing parent",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "tf-fidelity-d",
+              "parentId": "not-a-uuid"
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "tf-fidelity-d",
+              "parentId": "99999999-9999-4999-8999-999999999999"
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "create with a duplicate name",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "tf-fidelity-e"
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "tf-fidelity-e"
+            }
+          },
+          "capture": "id2"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id2}}"
+        }
+      ]
+    },
+    {
+      "name": "replace with a parent that is the folder itself",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "tf-fidelity-f"
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "folder": {
+              "id": "{{id}}",
+              "name": "tf-fidelity-f",
+              "parentId": "{{id}}"
+            }
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "replace a folder that does not exist",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "folder": {
+              "id": "99999999-9999-4999-8999-999999999999",
+              "name": "missing"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "replace without an id",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "no-id"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "get and delete a folder that does not exist",
+      "steps": [
+        {
+          "method": "GET",
+          "path": "/99999999-9999-4999-8999-999999999999"
+        },
+        {
+          "method": "DELETE",
+          "path": "/99999999-9999-4999-8999-999999999999"
+        },
+        {
+          "method": "GET",
+          "path": "/not-a-uuid"
+        },
+        {
+          "method": "DELETE",
+          "path": "/not-a-uuid"
+        }
+      ]
+    },
+    {
+      "name": "delete twice",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "tf-fidelity-g"
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "replace to a name that another folder has",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "tf-fidelity-h1"
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "tf-fidelity-h2"
+            }
+          },
+          "capture": "id2"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "folder": {
+              "id": "{{id2}}",
+              "name": "tf-fidelity-h1"
+            }
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "folder": {
+              "id": "{{id2}}",
+              "name": "tf-fidelity-h2"
+            }
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id2}}"
+        }
+      ]
+    },
+    {
+      "name": "name of 100 and 101 non-ASCII characters",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "an empty parent id",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "tf-fidelity-i0",
+              "parentId": ""
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "folder": {
+              "name": "tf-fidelity-i1"
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "folder": {
+              "id": "{{id}}",
+              "name": "tf-fidelity-i1",
+              "parentId": ""
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,125 @@
+openapi: 3.0.3
+info:
+  title: Synthetic rulebook API with generic checks
+  version: 1.0.0
+paths:
+  /rulebook:
+    post:
+      tags: [Rulebook Service]
+      operationId: RulebookService_CreateRulebook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CreateRulebookRequest
+              type: object
+              required: [retentionDays]
+              properties:
+                retentionDays:
+                  type: integer
+                  format: int32
+                  minimum: 1
+                rules:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/RulebookRule'
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rulebook'
+    get:
+      tags: [Rulebook Service]
+      operationId: RulebookService_GetRulebook
+      responses:
+        '200':
+          description: Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rulebook'
+    patch:
+      tags: [Rulebook Service]
+      operationId: RulebookService_UpdateRulebook
+      parameters:
+        - name: updateMask
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-z][A-Za-z0-9]*(,[a-z][A-Za-z0-9]*)*$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: UpdateRulebookRequest
+              type: object
+              required: []
+              properties:
+                retentionDays:
+                  type: integer
+                  format: int32
+                  minimum: 1
+                  x-coralogix-presence: true
+                rules:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/RulebookRule'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Rulebook'
+    delete:
+      tags: [Rulebook Service]
+      operationId: RulebookService_DeleteRulebook
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteRulebookResponse'
+components:
+  schemas:
+    Rulebook:
+      type: object
+      required: [retentionDays]
+      properties:
+        id:
+          type: string
+          description: Identifier that the server sets.
+          readOnly: true
+        retentionDays:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Days to keep data.
+        rules:
+          type: array
+          items:
+            $ref: '#/components/schemas/RulebookRule'
+    RulebookRule:
+      type: object
+      required: [entityType, allocation]
+      properties:
+        entityType:
+          type: string
+          minLength: 1
+        allocation:
+          type: number
+          format: float
+          x-coralogix-presence: true
+        mode:
+          $ref: '#/components/schemas/RulebookMode'
+    RulebookMode:
+      type: string
+      enum: [RULEBOOK_MODE_UNSPECIFIED, RULEBOOK_MODE_ONE, RULEBOOK_MODE_TWO]
+    DeleteRulebookResponse:
+      type: object

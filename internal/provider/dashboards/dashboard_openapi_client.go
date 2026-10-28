@@ -171,7 +171,7 @@ func newDashboardOpenAPICreateRequest(dashboard dashboardservice.Dashboard, acce
 
 func newDashboardOpenAPIReplaceRequest(dashboard dashboardservice.Dashboard, accessPolicy *string) dashboardservice.ReplaceDashboardRequestDataStructure {
 	request := dashboardservice.ReplaceDashboardRequestDataStructure{
-		Dashboard: dashboard,
+		Dashboard: &dashboard,
 		RequestId: newDashboardOpenAPIRequestID(dashboardOpenAPIOperationReplace),
 	}
 	if accessPolicy != nil {

@@ -1,0 +1,21 @@
+[
+  {
+    "step": "read the archive target",
+    "config": {},
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "archiving_format_id": "cx_data_v1",
+      "bucket": "seeded-bucket",
+      "enable_tags": false,
+      "id": "archive-logs-settings",
+      "region": "eu-north-1"
+    }
+  }
+]

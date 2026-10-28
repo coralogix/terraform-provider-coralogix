@@ -1,0 +1,135 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "application": "tf-baseline-app",
+      "config": {
+        "toxicity": {}
+      },
+      "subsystem": "tf-baseline-subsystem",
+      "target": "response",
+      "threshold": 0.5
+    },
+    "plan": {
+      "application": "tf-baseline-app",
+      "config": {
+        "allowed_topics": null,
+        "competition": null,
+        "hallucination_completeness": null,
+        "hallucination_context_adherence": null,
+        "hallucination_context_relevance": null,
+        "hallucination_correctness": null,
+        "hallucination_task_adherence": null,
+        "language_mismatch": null,
+        "pii": null,
+        "prompt_injection": null,
+        "restricted_topics": null,
+        "sexism": null,
+        "sql_allowed_tables": null,
+        "sql_hallucination": null,
+        "sql_read_only": null,
+        "sql_restricted_tables": null,
+        "toxicity": {}
+      },
+      "id": "(unknown)",
+      "is_enabled": true,
+      "subsystem": "tf-baseline-subsystem",
+      "target": "response",
+      "threshold": 0.5
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/ai/evaluations/v3",
+        "body": {
+          "application": "tf-baseline-app",
+          "config": {
+            "toxicity": {}
+          },
+          "isEnabled": true,
+          "subsystem": "tf-baseline-subsystem",
+          "target": "RESPONSE",
+          "threshold": 0.5
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "application": "tf-baseline-app",
+      "config": {
+        "allowed_topics": null,
+        "competition": null,
+        "hallucination_completeness": null,
+        "hallucination_context_adherence": null,
+        "hallucination_context_relevance": null,
+        "hallucination_correctness": null,
+        "hallucination_task_adherence": null,
+        "language_mismatch": null,
+        "pii": null,
+        "prompt_injection": null,
+        "restricted_topics": null,
+        "sexism": null,
+        "sql_allowed_tables": null,
+        "sql_hallucination": null,
+        "sql_read_only": null,
+        "sql_restricted_tables": null,
+        "toxicity": {}
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "is_enabled": true,
+      "subsystem": "tf-baseline-subsystem",
+      "target": "response",
+      "threshold": 0.5
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/ai/evaluations/v3/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "application": "tf-baseline-app",
+      "config": {
+        "allowed_topics": null,
+        "competition": null,
+        "hallucination_completeness": null,
+        "hallucination_context_adherence": null,
+        "hallucination_context_relevance": null,
+        "hallucination_correctness": null,
+        "hallucination_task_adherence": null,
+        "language_mismatch": null,
+        "pii": null,
+        "prompt_injection": null,
+        "restricted_topics": null,
+        "sexism": null,
+        "sql_allowed_tables": null,
+        "sql_hallucination": null,
+        "sql_read_only": null,
+        "sql_restricted_tables": null,
+        "toxicity": {}
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "is_enabled": true,
+      "subsystem": "tf-baseline-subsystem",
+      "target": "response",
+      "threshold": 0.5
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/ai/evaluations/v3/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
@@ -21,6 +22,26 @@ func resolveSDKNames(r *model.Resource, tag, module, providerModule string) ([]s
 		return nil, err
 	}
 	return append(refs, providerClientSetRefs(tag, providerModule)...), nil
+}
+
+// dataSourceQueryIDRef names the optional ID setter on the Get request builder.
+// The API contract check has established that this is an optional string query
+// parameter named id; sdkcheck verifies that the pinned SDK exposes its setter.
+func dataSourceQueryIDRef(refs []sdkcheck.Ref) (sdkcheck.Ref, error) {
+	for _, ref := range refs {
+		if ref.Path == "get" && ref.Kind == sdkcheck.KindType {
+			return sdkcheck.Ref{
+				Path:  "dataSource.get.query.id",
+				Kind:  sdkcheck.KindMethod,
+				Pkg:   ref.Pkg,
+				Owner: ref.Name,
+				Name:  goFieldName("id"),
+				Want:  "func(id string) " + ref.Name,
+				Rule:  sdkcheck.RuleParameter,
+			}, nil
+		}
+	}
+	return sdkcheck.Ref{}, fmt.Errorf("Get request builder type is missing")
 }
 
 // providerClientSetRefs are the names of the provider clientset. Its accessor name usually

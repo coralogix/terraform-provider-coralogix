@@ -110,6 +110,13 @@ func TestParseIsStrict(t *testing.T) {
 		"name that is the lower case":                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    values: [E_ONE]\n    names: {E_ONE: e_one}\n", "already the Terraform value"},
 		"name that trimPrefix makes":                 {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    trimPrefix: E_\n    values: [E_ONE]\n    names: {E_ONE: one}\n", "already the Terraform value"},
 		"name that verbatim makes":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    verbatim: true\n    values: [E_ONE]\n    names: {E_ONE: E_ONE}\n", "already the Terraform value"},
+		"data source lookup without id":              {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ndataSource:\n  lookup: [name]\n", `dataSource.lookup must name "id"`},
+		"data source lookup by label":                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ndataSource:\n  lookup: [id, label]\n", `dataSource.lookup: "label" is not supported`},
+		"data source lookup twice":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ndataSource:\n  lookup: [id, id]\n", `names "id" twice`},
+		"data source duplicateNames without name":    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ndataSource:\n  duplicateNames: first\n", `dataSource.duplicateNames needs "name" in dataSource.lookup`},
+		"data source duplicateNames value":           {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ndataSource:\n  lookup: [id, name]\n  duplicateNames: last\n", `dataSource.duplicateNames is "last", want "first"`},
+		"data source readEmptyAs null":               {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ndataSource:\n  types:\n    Thing:\n      fields:\n        f: {readEmptyAs: \"null\"}\n", `readEmptyAs is "null", want "value"`},
+		"data source type with no line":              {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ndataSource:\n  types:\n    Thing: {}\n", "dataSource.types.Thing has no override"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -448,5 +455,144 @@ func TestCreateAsAndNamesAreCheckedAcrossLines(t *testing.T) {
 	}
 	if _, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      quota: {createAs: {limit: limitValue}}\n")); err != nil {
 		t.Fatalf("createAs on the resource component: %v", err)
+	}
+}
+
+func TestRequiresReplaceCannotBeComputed(t *testing.T) {
+	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {requiresReplace: true, computed: true}\n"))
+	if err == nil || !strings.Contains(err.Error(), "requiresReplace cannot be combined with computed: true") {
+		t.Fatalf("err = %v, want an error about requiresReplace and computed", err)
+	}
+}
+
+func TestRequiresReplaceCannotBeFixed(t *testing.T) {
+	_, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n      f: {requiresReplace: true, requestValue: X}\n"))
+	if err == nil || !strings.Contains(err.Error(), "requiresReplace cannot be set") {
+		t.Fatalf("err = %v, want an error about requiresReplace and requestValue", err)
+	}
+}
+
+func TestUnsupportedArmsKeys(t *testing.T) {
+	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  C:\n"
+	tests := map[string]struct{ text, want string }{
+		"no summary":       {"    unsupportedArms: [queue]\n    unsupportedDetail: D\n", "set together"},
+		"arm twice":        {"    unsupportedArms: [queue, queue]\n    unsupportedSummary: S\n    unsupportedDetail: D\n", "twice"},
+		"field line":       {"    unsupportedArms: [queue]\n    unsupportedSummary: S\n    unsupportedDetail: D\n    fields:\n      queue: {computed: true}\n", `"queue" also has a field line`},
+		"text without arm": {"    unsupportedSummary: S\n    unsupportedDetail: D\n", "set together"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte(head + test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+	if _, err := Parse([]byte(head + "    unsupportedArms: [queue]\n    unsupportedSummary: S\n    unsupportedDetail: D\n")); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestReadRejectedLower(t *testing.T) {
+	base := "resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    values: [A]\n    rejected: [B]\n"
+	for extra, want := range map[string]string{
+		"    verbatim: true\n    readRejected: lower\n": "readRejected: lower excludes verbatim",
+		"    readRejected: upper\n":                     `readRejected is "upper", want true, false, or lower`,
+	} {
+		if _, err := Parse([]byte(base + extra)); err == nil || !strings.Contains(err.Error(), want) {
+			t.Fatalf("%q: err = %v, want %q", extra, err, want)
+		}
+	}
+	for extra, want := range map[string]string{"    readRejected: lower\n": "b", "    readRejected: true\n": "B"} {
+		f, err := Parse([]byte(base + extra))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := f.Enums["E"].RejectedTFValue("B"); got != want {
+			t.Fatalf("%q: RejectedTFValue = %q, want %q", extra, got, want)
+		}
+	}
+}
+
+func TestUpdateMaskOmit(t *testing.T) {
+	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\n"
+	if _, err := Parse([]byte(head + "updateMask: omit\n")); err == nil || !strings.Contains(err.Error(), "needs api.updateMaskInBody") {
+		t.Fatalf("err = %v, want an error that asks for a body mask", err)
+	}
+	if _, err := Parse([]byte(head + "api:\n  updateMaskInBody: true\nupdateMask: send\n")); err == nil || !strings.Contains(err.Error(), `want "omit"`) {
+		t.Fatalf("err = %v, want an error about the value", err)
+	}
+	if _, err := Parse([]byte(head + "api:\n  updateMaskInBody: true\nupdateMask: omit\n")); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestEnumAliasesAreChecked(t *testing.T) {
+	base := "resource: R\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  A: "
+	if _, err := Parse([]byte(base + "{zero: unspecified, values: [A_ONE], trimPrefix: A_, aliases: {unspecified: one}}\n")); err != nil {
+		t.Fatalf("the zero value as an alias: %v", err)
+	}
+	for name, enum := range map[string]struct{ text, want string }{
+		"an alias that no config can set": {"{values: [A_ONE, A_TWO], aliases: {a_three: a_one}}", "no config can set it"},
+		"a target that is no value":       {"{zero: unspecified, values: [A_ONE], aliases: {unspecified: a_two}}", "is not a value of the enum"},
+		"the zero value as a target":      {"{zero: unspecified, values: [A_ONE], aliases: {a_one: unspecified}}", "is not a value of the enum"},
+		"an alias of itself":              {"{values: [A_ONE], aliases: {a_one: a_one}}", "maps to itself"},
+		"a chain":                         {"{values: [A_ONE, A_TWO], aliases: {a_one: a_two, a_two: a_one}}", "is an alias itself"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			_, err := Parse([]byte(base + enum.text + "\n"))
+			if err == nil || !strings.Contains(err.Error(), enum.want) {
+				t.Fatalf("err = %v, want %q", err, enum.want)
+			}
+		})
+	}
+}
+
+func TestParseUpsertInlineAndName(t *testing.T) {
+	text := `
+resource: Target
+mode: existing
+typeName: archive_logs
+singletonID: {fixed: settings}
+validators:
+  inferred: false
+api:
+  operations: {create: S_SetTarget, get: S_GetTarget, update: S_SetTarget, delete: none}
+types:
+  Target:
+    fields:
+      s3: {inline: true}
+      isActive: {name: active, optional: true, computed: true, default: true}
+`
+	f, err := Parse([]byte(text))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := f.Policy()
+	if f.TypeName != "archive_logs" || f.FixedID() != "settings" || f.IDFromAPI() || !f.Upserts() || p.Operations != (model.OperationIDs{}) ||
+		!slices.Equal(f.InlinedFields(), []string{"s3"}) || p.Names["Target.isActive"] != "active" || slices.Contains(p.Optional, "Target.isActive") {
+		t.Fatalf("file = %+v, policy = %+v", f, p)
+	}
+}
+
+func TestParseRejectsUpsertInlineAndNameMistakes(t *testing.T) {
+	const head = "resource: Target\nmode: existing\nvalidators:\n  inferred: false\n"
+	const upsert = "api:\n  operations: {create: S, get: G, update: S, delete: none}\n"
+	tests := map[string]struct{ text, want string }{
+		"delete none with two calls":  {head + "api:\n  operations: {create: C, get: G, update: U, delete: none}\n", "create and update must name the same operation"},
+		"delete none with idProperty": {head + upsert + "  idProperty: uid\n", "idProperty"},
+		"singletonID with both keys":  {head + "singletonID: {fixed: a, fromAPI: true}\n", "exactly one of fixed"},
+		"singletonID with no key":     {head + "singletonID: {}\n", "exactly one of fixed"},
+		"inline with other keys":      {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, computed: true}\n", "sets only inline"},
+		"inline on a nested type":     {head + "types:\n  Other:\n    fields:\n      s3: {inline: true}\n", "applies to a field of the resource Target"},
+		"name not a Terraform name":   {head + "types:\n  Target:\n    fields:\n      isActive: {name: Active}\n", "is not a Terraform attribute name"},
+		"skipped field with a name":   {head + "types:\n  Target:\n    fields:\n      isActive: {skip: true, name: active}\n", "a skipped field has no other behavior"},
+		"the removed fixedID key":     {head + "fixedID: settings\n", "fixedID not found"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte(test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %q", err, test.want)
+			}
+		})
 	}
 }

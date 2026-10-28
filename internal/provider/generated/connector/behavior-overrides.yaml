@@ -5,7 +5,7 @@
 resource: Connector
 mode: existing
 
-markdownDescription: "Coralogix Notification Center Connector. For more info please review - https://coralogix.com/docs/user-guides/notification-center/connectors/. **Note:** This resource is in Beta stage."
+markdownDescription: "Coralogix Notification Center Connector. For more info please review - https://coralogix.com/docs/user-guides/notification-center/connectors/."
 
 schema:
   version: 0
@@ -90,3 +90,9 @@ enums:
     zero: unspecified
     values: [ALERTS, CASES, TEST_NOTIFICATIONS]
     rejected: [OLLY_SCHEDULED_TASKS]
+
+# The data source reads a connector by id or by name. A name that more than one connector has takes
+# the first one in the order of the List, as the released data source did.
+dataSource:
+  lookup: [id, name]
+  duplicateNames: first

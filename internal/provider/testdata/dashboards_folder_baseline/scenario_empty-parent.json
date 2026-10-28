@@ -1,0 +1,62 @@
+[
+  {
+    "step": "create with parent_id = \"\"",
+    "config": {
+      "name": "empty-parent",
+      "parent_id": ""
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"parent_id\")] | Attribute parent_id string length must be between 36 and 36, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "create without a parent",
+    "config": {
+      "name": "no-parent"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "name": "no-parent",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "name": "no-parent"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "no-parent",
+      "parent_id": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: set parent_id = \"\"",
+    "config": {
+      "name": "no-parent",
+      "parent_id": ""
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"parent_id\")] | Attribute parent_id string length must be between 36 and 36, got: 0"
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "no-parent",
+      "parent_id": null
+    }
+  }
+]

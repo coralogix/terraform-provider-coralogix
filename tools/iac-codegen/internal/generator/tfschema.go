@@ -35,6 +35,14 @@ type tfResource struct {
 	// ComputedPaths are the paths of the computed attributes, with list and map
 	// steps left out, as in Conv.OneOfArms.
 	ComputedPaths []string
+	// RequiredPaths are the paths of the required attributes, in the form of ComputedPaths.
+	RequiredPaths []string
+	// UniqueChecks, Float32Paths, and EnumAliases are the generic checks of a released
+	// resource: uniqueBy lines, the float32 precision of the float attributes, and the
+	// aliases of the enums lines. See applyConfigChecks.
+	UniqueChecks []uniqueCheck
+	Float32Paths []string
+	EnumAliases  []enumAlias
 	// ServerPaths are the paths of the computed-only attributes inside the
 	// attributes that a request sends, in the form of ComputedPaths. The
 	// server sets them, and Terraform plans them as unknown when the resource
@@ -52,6 +60,8 @@ type tfResource struct {
 	// released description of the resource. Both come from the behavior-overrides file.
 	SchemaVersion               int64
 	ResourceMarkdownDescription string
+	// DataSource is the data source of the package, or nil when the package has none.
+	DataSource *dsData
 }
 
 // tfAttr is one Terraform schema attribute.
@@ -133,16 +143,18 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // (nil for a new resource).
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
 	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}}
-	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: r.Name + "Model"}
+	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: modelTypeName(r.Name)}
 	root := &tfModel{Name: out.Model}
 	if err := b.claimModel(root.Name, "the resource "+r.Name); err != nil {
 		return nil, err
 	}
 	b.models = append(b.models, root)
 	if r.Singleton {
-		if err := addSingletonID(out, root, r); err != nil {
+		if err := addSingletonID(out, root, r, file.IDFromAPI(), "SingletonID"); err != nil {
 			return nil, err
 		}
+	} else if file != nil && file.SingletonID != nil {
+		return nil, errors.New("singletonID is for a singleton: Get of this resource has a path parameter")
 	}
 	groups := &tfGroups{file: file, resource: r.Name, attrs: map[string]*tfAttr{}, models: map[string]*tfModel{}}
 	if err := b.rootAttributes(out, root, r, file, groups); err != nil {
@@ -174,10 +186,19 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 		if err := checkImmutableValues(out.Attributes, ""); err != nil {
 			return nil, err
 		}
+		if err := checkOmittedMaskClears(r, out.Attributes, file); err != nil {
+			return nil, err
+		}
+		if file.IDFromAPI() {
+			if err := checkSingletonIDAttribute(out.Attributes); err != nil {
+				return nil, err
+			}
+		}
 	}
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
 	out.DefaultPkgs = defaultPackages(out.Attributes)
 	out.ComputedPaths = computedPaths(nil, "", out.Attributes)
+	out.RequiredPaths = requiredPaths(nil, "", out.Attributes)
 	for _, a := range out.Attributes {
 		if !computedOnly(a) {
 			out.ServerPaths = serverPaths(out.ServerPaths, a.Name, a.Attributes)
@@ -220,6 +241,21 @@ func computedPaths(out []string, parent string, attrs []*tfAttr) []string {
 	return out
 }
 
+// requiredPaths is computedPaths for the required attributes.
+func requiredPaths(out []string, parent string, attrs []*tfAttr) []string {
+	for _, a := range attrs {
+		at := a.Name
+		if parent != "" {
+			at = parent + "." + a.Name
+		}
+		if a.Required {
+			out = append(out, at)
+		}
+		out = requiredPaths(out, at, a.Attributes)
+	}
+	return out
+}
+
 // defaultPackages returns the default packages, such as stringdefault, that
 // the static defaults of attrs and of their nested attributes use.
 func defaultPackages(attrs []*tfAttr) []string {
@@ -238,18 +274,50 @@ func defaultPackages(attrs []*tfAttr) []string {
 	return packages
 }
 
-// addSingletonID adds the fixed id attribute of a singleton (D18).
-func addSingletonID(out *tfResource, root *tfModel, r *model.Resource) error {
+// checkSingletonIDAttribute checks that the id attribute of a singleton with singletonID is still
+// computed-only after the field lines: a line that makes it required, optional, or a configured
+// default would let the user set a value that flatten replaces with the id of the server.
+func checkSingletonIDAttribute(attrs []*tfAttr) error {
+	for _, a := range attrs {
+		if a.Name == "id" && (!computedOnly(a) || a.Default != "") {
+			return errors.New("singletonID says that only the server sets the id: the id attribute must stay computed-only with no default, so its line cannot set required, optional, computed: false, or a default")
+		}
+	}
+	return nil
+}
+
+// addSingletonID adds the fixed id attribute of a singleton (D18). With singletonID, the resource has
+// an id field that the server sets, and the generic field pipeline builds the attribute.
+func addSingletonID(out *tfResource, root *tfModel, r *model.Resource, singletonID bool, id string) error {
 	for _, f := range r.Fields {
-		if terraformName(r.Policy, r.Name, f.Name) == "id" {
+		if terraformName(r.Policy, r.Name, f.Name) != "id" {
+			continue
+		}
+		if !singletonID {
 			return fmt.Errorf("%s: a singleton with an id field is not supported: the id attribute is fixed", f.Name)
 		}
+		// The fixed fallback and the import are strings, and a request that sets the id would let the
+		// user configure a value that flatten replaces.
+		// The template reads and writes the model field Id.
+		if f.Name != "id" {
+			return fmt.Errorf("singletonID: the id property must be named exactly \"id\", not %q: the generated code reads it as the model field Id", f.Name)
+		}
+		if f.Type == nil || f.Type.Kind != model.String {
+			return fmt.Errorf("singletonID: the id field %s must be a string, not %s", f.Name, typeName(f.Type))
+		}
+		if f.Behavior != model.Computed {
+			return fmt.Errorf("singletonID says that only the server sets the id, but the Create or Update body of %s lets a caller set %q: add readOnly: true to its line, or mark it read-only in the contract", r.Name, f.Name)
+		}
+		return nil
+	}
+	if singletonID {
+		return fmt.Errorf("singletonID says that %s has an id field, and it has none", r.Name)
 	}
 	// A static default puts the fixed id in the plan, so Create does not
 	// show it as unknown. The user still cannot set it.
 	out.Attributes = append(out.Attributes, &tfAttr{Name: "id", Kind: "String", ValueKind: "String", Computed: true,
 		Description: "The fixed id of this singleton: there is one per company.",
-		Default:     "stringdefault.StaticString(TypeName)"})
+		Default:     "stringdefault.StaticString(" + id + ")"})
 	root.Fields = append(root.Fields, tfModelField{Name: "Id", Type: "types.String", TFName: "id"})
 	return nil
 }
@@ -261,6 +329,7 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 	if err != nil {
 		return nil, err
 	}
+	a.Name = terraformName(r.Policy, r.Name, f.Name)
 	if serverDefault(r, f) {
 		// The user may override this value. When it is omitted, the server
 		// supplies the declared default, and Get returns it or omits it. The
@@ -296,7 +365,8 @@ func (b *tfBuilder) resourceAttribute(out *tfResource, r *model.Resource, f *mod
 			a.Modifiers = append(a.Modifiers, strings.ToLower(a.ValueKind)+"planmodifier.UseStateForUnknown()")
 		}
 	case f.Behavior == model.Immutable || clientSetID:
-		b.requiresReplace(a, a.Name)
+		// The path holds the group, as the server paths of the request do.
+		b.requiresReplace(a, rootPath(group, a.Name).dotted())
 	}
 	return a, nil
 }
@@ -330,6 +400,31 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 			if file.Validators.Inferred != nil && !*file.Validators.Inferred {
 				// No limit of the contract becomes a validator. A oneOf group validator is not a limit.
 				a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return !slices.Contains(a.GroupValidators, v) })
+			} else if _, mapped := file.Enums[a.EnumSchema]; mapped && a.EnumSchema != "" && (a.ValueKind == "String" || a.ValueKind == "List" || a.ValueKind == "Set") {
+				// The contract limit of an enum lists the API values, which the enums line renames
+				// and filters. The validator takes the Terraform values of that line instead.
+				expr, err := enumValidatorExpr(a, file, false)
+				if err != nil {
+					return err
+				}
+				inferred := "stringvalidator.OneOf("
+				if a.ValueKind != "String" {
+					inferred = strings.ToLower(a.ValueKind) + "validator.ValueStringsAre(stringvalidator.OneOf("
+				}
+				a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool {
+					return strings.HasPrefix(v, inferred) && !slices.Contains(a.GroupValidators, v)
+				})
+				a.Validators = append(a.Validators, expr)
+				if a.ValueKind != "String" {
+					// The acceptance test picks the value of an element from its validators, so they
+					// name the Terraform values too.
+					oneOf, err := enumOneOf(a, file, false)
+					if err != nil {
+						return err
+					}
+					a.ElemValidators = slices.DeleteFunc(a.ElemValidators, func(v string) bool { return strings.HasPrefix(v, "stringvalidator.OneOf(") })
+					a.ElemValidators = append(a.ElemValidators, oneOf)
+				}
 			}
 			if line, ok := file.Types[a.Component].Fields[a.Property]; ok {
 				if serverOwned(a) && settable[a.Component+"."+a.Property] {
@@ -369,7 +464,7 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 	// modifiers back on a computed-only copy of a component. Configuration is
 	// always null there, so those checks never run.
 	stripComputedConfig(out.Attributes)
-	return nil
+	return applyConfigChecks(out, file)
 }
 
 // stripComputedConfig removes configuration checks from a computed-only attribute
@@ -458,6 +553,14 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 			return err
 		}
 		a.Default = expr
+		if a.Required {
+			// A released default on a field that the contract requires means that the contract is
+			// wrong about the field. The line states the exception with optional: true.
+			if !l.Optional {
+				return errors.New("the line gives a default to a field that the contract requires: add optional: true, so the overrides file states that the released attribute is optional")
+			}
+			a.Required, a.Optional = false, true
+		}
 	}
 	for _, v := range l.Validators {
 		expr, err := validatorExpr(a, v, file)
@@ -482,6 +585,8 @@ func checkAttrMode(a *tfAttr) error {
 	switch {
 	case a.Required && a.Computed:
 		return errors.New("the line makes the attribute required and computed: required: true needs a field that the user sets")
+	case a.Default != "" && !a.Computed:
+		return errors.New("the line gives the attribute a default, but the attribute is not computed: add computed: true")
 	case !a.Required && !a.Optional && !a.Computed:
 		return errors.New("the line leaves the attribute without a mode: computed: false needs a field that the user can set, and the contract makes this field server-owned")
 	}
@@ -574,6 +679,19 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 // They come from the enums line, so the validator and the conversion maps cannot disagree.
 // exceptZero leaves the zero value out of the validator. The conversion maps still contain it.
 func enumValidatorExpr(a *tfAttr, file *overrides.File, exceptZero bool) (string, error) {
+	oneOf, err := enumOneOf(a, file, exceptZero)
+	if err != nil {
+		return "", err
+	}
+	if a.ValueKind == "List" || a.ValueKind == "Set" {
+		return strings.ToLower(a.ValueKind) + "validator.ValueStringsAre(" + oneOf + ")", nil
+	}
+	return oneOf, nil
+}
+
+// enumOneOf is the OneOf validator of one value of the enum of the attribute: the validator of a
+// scalar, and the validator of each element of a list or set.
+func enumOneOf(a *tfAttr, file *overrides.File, exceptZero bool) (string, error) {
 	enum, ok := file.Enums[a.EnumSchema]
 	collection := a.ValueKind == "List" || a.ValueKind == "Set"
 	if a.EnumSchema == "" || !ok || a.ValueKind != "String" && !collection {
@@ -591,11 +709,7 @@ func enumValidatorExpr(a *tfAttr, file *overrides.File, exceptZero bool) (string
 	for _, v := range values {
 		quoted = append(quoted, strconv.Quote(v))
 	}
-	oneOf := "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")"
-	if collection {
-		return strings.ToLower(a.ValueKind) + "validator.ValueStringsAre(" + oneOf + ")", nil
-	}
-	return oneOf, nil
+	return "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")", nil
 }
 
 // markComputed makes a server-owned attribute and every nested attribute
@@ -1166,6 +1280,13 @@ func checkImmutableValues(attrs []*tfAttr, parent string) error {
 			at = parent + "." + a.Name
 		}
 		if replaces(a) {
+			// The attribute itself, not only a descendant. Optional+Computed plans an omitted
+			// value as unknown, and the stock RequiresReplace treats that unknown as a change.
+			// UseStateForUnknown runs first and plans the prior value instead, as for a
+			// client-set id.
+			if a.Optional && a.Computed && !keepsState(a) {
+				return fmt.Errorf("%s: an optional and computed attribute cannot require replacement. Omitting it plans the value as unknown and replaces the resource when something else changes", at)
+			}
 			if child := optionalComputed(a.Attributes, at); child != "" {
 				return fmt.Errorf("%s: the immutable value holds the optional and computed attribute %s. A change of another attribute would plan it as unknown and replace the resource", at, child)
 			}
@@ -1175,6 +1296,77 @@ func checkImmutableValues(attrs []*tfAttr, parent string) error {
 		}
 	}
 	return nil
+}
+
+// checkOmittedMaskClears rejects updateMask: omit when a field that Update sends could be removed
+// from the configuration: Update sends no mask, and the server keeps a field that the body omits,
+// so removing it would not clear it. A required field, a field with a default, and a field that
+// keeps its state value are always in the body.
+func checkOmittedMaskClears(r *model.Resource, attrs []*tfAttr, file *overrides.File) error {
+	if file == nil || file.UpdateMask != overrides.UpdateMaskOmit {
+		return nil
+	}
+	for _, f := range r.Fields {
+		if f.Update == nil || f.Behavior != model.Normal {
+			continue
+		}
+		if file.Types[r.Name].Fields[f.Name].Fixed() {
+			// A requestValue field has no attribute, and Update always sends it.
+			continue
+		}
+		if file.Types[r.Name].Fields[f.Name].SendNullAsEmpty {
+			// Expand sends "" for a removed value, so the server clears it.
+			continue
+		}
+		// No field is in a groups object: a group needs a full-replace Update, and
+		// updateMask: omit a PATCH.
+		name := terraformName(r.Policy, r.Name, f.Name)
+		i := slices.IndexFunc(attrs, func(a *tfAttr) bool { return a.Name == name })
+		if i < 0 {
+			return fmt.Errorf("%s: updateMask: omit found no attribute for the Update field", name)
+		}
+		if attrs[i].Default != "" && isZeroDefault(file.Types[r.Name].Fields[f.Name].Default) && !f.Update.Presence {
+			// Removing the value plans the zero, but a field without presence does not send it,
+			// and with no mask the server keeps the old value.
+			return fmt.Errorf("%s: updateMask: omit cannot clear this attribute: its default is the zero value, which Update does not send without x-coralogix-presence", name)
+		}
+		if attrs[i].Required || attrs[i].Default != "" || keepsAnyState(attrs[i]) {
+			continue
+		}
+		return fmt.Errorf("%s: updateMask: omit sends no mask, so removing this optional attribute would not clear it. Make it required or give it a default", name)
+	}
+	return nil
+}
+
+// isZeroDefault reports whether the default of a field line is the zero value of its kind.
+func isZeroDefault(v any) bool {
+	switch x := v.(type) {
+	case bool:
+		return !x
+	case int:
+		return x == 0
+	case float64:
+		return x == 0
+	case string:
+		return x == ""
+	}
+	return false
+}
+
+// keepsState reports whether an omitted value is planned as the prior state.
+func keepsState(a *tfAttr) bool {
+	return slices.ContainsFunc(a.Modifiers, func(m string) bool {
+		return strings.HasSuffix(m, "planmodifier.UseStateForUnknown()")
+	})
+}
+
+// keepsAnyState reports whether an omitted value is planned as the prior state, or as the prior
+// non-null state. Either keeps the field in an Update without a mask: a null prior value has
+// nothing to clear.
+func keepsAnyState(a *tfAttr) bool {
+	return keepsState(a) || slices.ContainsFunc(a.Modifiers, func(m string) bool {
+		return strings.HasSuffix(m, "planmodifier.UseNonNullStateForUnknown()")
+	})
 }
 
 // replaces reports whether a change of a replaces the resource.

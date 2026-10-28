@@ -1,0 +1,182 @@
+[
+  {
+    "step": "missing rules",
+    "config": {},
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"rules\")] | Must set a configuration value for the rules attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "duplicate entity_type",
+    "config": {
+      "rules": [
+        {
+          "allocation": 10,
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        },
+        {
+          "allocation": 20,
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Duplicate rules entity_type [AttributeName(\"rules\")] | Only one item of rules can set entity_type to \"logs\"."
+    ],
+    "state": null
+  },
+  {
+    "step": "percentage above 100",
+    "config": {
+      "rules": [
+        {
+          "allocation": 101,
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid percentage quota allocation [AttributeName(\"rules\")] | The quota allocation rule for entity_type \"logs\" uses allocation_type \"percentage\", so allocation must be between 0 and 100."
+    ],
+    "state": null
+  },
+  {
+    "step": "locked units above 100",
+    "config": {
+      "rules": [
+        {
+          "allocation": 101,
+          "allocation_type": "locked_units",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "state": null
+  },
+  {
+    "step": "negative allocation",
+    "config": {
+      "rules": [
+        {
+          "allocation": -1,
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"allocation\":tftypes.Number, \"allocation_type\":tftypes.String, \"can_overflow\":tftypes.Bool, \"enabled\":tftypes.Bool, \"entity_type\":tftypes.String]<\"allocation\":tftypes.Number<\"-1\">, \"allocation_type\":tftypes.String<null>, \"can_overflow\":tftypes.Bool<\"false\">, \"enabled\":tftypes.Bool<\"true\">, \"entity_type\":tftypes.String<\"logs\">>).AttributeName(\"allocation\")] | Attribute rules[Value({\"allocation\":-1.000000,\"allocation_type\":<null>,\"can_overflow\":false,\"enabled\":true,\"entity_type\":\"logs\"})].allocation value must be at least 0.000000, got: -1.000000"
+    ],
+    "state": null
+  },
+  {
+    "step": "allocation that is not a float32",
+    "config": {
+      "rules": [
+        {
+          "allocation": 0.123456789012,
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid rules.allocation precision [AttributeName(\"rules\")] | rules.allocation is 0.123456789012, but the API stores it as float32 and would return 0.12345679. Configure 0.12345679 instead to avoid state drift."
+    ],
+    "state": null
+  },
+  {
+    "step": "empty entity_type",
+    "config": {
+      "rules": [
+        {
+          "allocation": 10,
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": ""
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"allocation\":tftypes.Number, \"allocation_type\":tftypes.String, \"can_overflow\":tftypes.Bool, \"enabled\":tftypes.Bool, \"entity_type\":tftypes.String]<\"allocation\":tftypes.Number<\"10\">, \"allocation_type\":tftypes.String<null>, \"can_overflow\":tftypes.Bool<\"false\">, \"enabled\":tftypes.Bool<\"true\">, \"entity_type\":tftypes.String<\"\">>).AttributeName(\"entity_type\")] | Attribute rules[Value({\"allocation\":10.000000,\"allocation_type\":<null>,\"can_overflow\":false,\"enabled\":true,\"entity_type\":\"\"})].entity_type string length must be at least 1, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "allocation_type in upper case",
+    "config": {
+      "rules": [
+        {
+          "allocation": 10,
+          "allocation_type": "PERCENTAGE",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"allocation\":tftypes.Number, \"allocation_type\":tftypes.String, \"can_overflow\":tftypes.Bool, \"enabled\":tftypes.Bool, \"entity_type\":tftypes.String]<\"allocation\":tftypes.Number<\"10\">, \"allocation_type\":tftypes.String<\"PERCENTAGE\">, \"can_overflow\":tftypes.Bool<\"false\">, \"enabled\":tftypes.Bool<\"true\">, \"entity_type\":tftypes.String<\"logs\">>).AttributeName(\"allocation_type\")] | Attribute rules[Value({\"allocation\":10.000000,\"allocation_type\":\"PERCENTAGE\",\"can_overflow\":false,\"enabled\":true,\"entity_type\":\"logs\"})].allocation_type value must be one of: [\"locked_units\" \"percentage\" \"unspecified\"], got: \"PERCENTAGE\""
+    ],
+    "state": null
+  },
+  {
+    "step": "missing enabled",
+    "config": {
+      "rules": [
+        {
+          "allocation": 10,
+          "can_overflow": false,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"allocation\":tftypes.Number, \"allocation_type\":tftypes.String, \"can_overflow\":tftypes.Bool, \"enabled\":tftypes.Bool, \"entity_type\":tftypes.String]<\"allocation\":tftypes.Number<\"10\">, \"allocation_type\":tftypes.String<null>, \"can_overflow\":tftypes.Bool<\"false\">, \"enabled\":tftypes.Bool<null>, \"entity_type\":tftypes.String<\"logs\">>).AttributeName(\"enabled\")] | Must set a configuration value for the rules[Value({\"allocation\":10.000000,\"allocation_type\":<null>,\"can_overflow\":false,\"enabled\":<null>,\"entity_type\":\"logs\"})].enabled attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "missing can_overflow",
+    "config": {
+      "rules": [
+        {
+          "allocation": 10,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"allocation\":tftypes.Number, \"allocation_type\":tftypes.String, \"can_overflow\":tftypes.Bool, \"enabled\":tftypes.Bool, \"entity_type\":tftypes.String]<\"allocation\":tftypes.Number<\"10\">, \"allocation_type\":tftypes.String<null>, \"can_overflow\":tftypes.Bool<null>, \"enabled\":tftypes.Bool<\"true\">, \"entity_type\":tftypes.String<\"logs\">>).AttributeName(\"can_overflow\")] | Must set a configuration value for the rules[Value({\"allocation\":10.000000,\"allocation_type\":<null>,\"can_overflow\":<null>,\"enabled\":true,\"entity_type\":\"logs\"})].can_overflow attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "missing allocation",
+    "config": {
+      "rules": [
+        {
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"allocation\":tftypes.Number, \"allocation_type\":tftypes.String, \"can_overflow\":tftypes.Bool, \"enabled\":tftypes.Bool, \"entity_type\":tftypes.String]<\"allocation\":tftypes.Number<null>, \"allocation_type\":tftypes.String<null>, \"can_overflow\":tftypes.Bool<\"false\">, \"enabled\":tftypes.Bool<\"true\">, \"entity_type\":tftypes.String<\"logs\">>).AttributeName(\"allocation\")] | Must set a configuration value for the rules[Value({\"allocation\":<null>,\"allocation_type\":<null>,\"can_overflow\":false,\"enabled\":true,\"entity_type\":\"logs\"})].allocation attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  }
+]

@@ -1,0 +1,118 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "rules": [
+        {
+          "allocation": 10,
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "rules": [
+        {
+          "allocation": 10,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
+        "body": {
+          "ruleSet": {
+            "rules": [
+              {
+                "allocation": 10,
+                "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                "canOverflow": false,
+                "enabled": true,
+                "entityType": "logs"
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "rules": [
+        {
+          "allocation": 10,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: the rule set was deleted outside Terraform",
+    "config": {
+      "rules": [
+        {
+          "allocation": 20,
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "rules": [
+        {
+          "allocation": 20,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
+        "body": {
+          "ruleSet": {
+            "rules": [
+              {
+                "allocation": 20,
+                "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                "canOverflow": false,
+                "enabled": true,
+                "entityType": "logs"
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "rules": [
+        {
+          "allocation": 20,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "replanEmpty": true
+  }
+]

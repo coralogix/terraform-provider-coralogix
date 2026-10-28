@@ -1,0 +1,17 @@
+[
+  {
+    "step": "read the rule set before any rule exists",
+    "config": {},
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "rules": []
+    }
+  }
+]

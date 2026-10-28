@@ -953,7 +953,7 @@ func testAccDashboardImportStateStep(step resource.TestStep, otherIgnoredAttribu
 			if importedAccessPolicySet != expectedAccessPolicySet {
 				return fmt.Errorf("imported access_policy presence = %t, want %t", importedAccessPolicySet, expectedAccessPolicySet)
 			}
-			if expectedAccessPolicySet && !utils.JSONStringsEqual(importedAccessPolicy, expectedAccessPolicy) {
+			if expectedAccessPolicySet && importedAccessPolicy != expectedAccessPolicy && !utils.JSONStringsEqual(importedAccessPolicy, expectedAccessPolicy) {
 				return fmt.Errorf("imported access_policy = %q, want JSON equivalent to %q", importedAccessPolicy, expectedAccessPolicy)
 			}
 

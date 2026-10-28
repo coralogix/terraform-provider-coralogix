@@ -1,0 +1,598 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "rules": [
+        {
+          "allocation": 60,
+          "can_overflow": true,
+          "enabled": true,
+          "entity_type": "logs"
+        },
+        {
+          "allocation": 40,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "metrics"
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "rules": [
+        {
+          "allocation": 60,
+          "allocation_type": "percentage",
+          "can_overflow": true,
+          "enabled": true,
+          "entity_type": "logs"
+        },
+        {
+          "allocation": 40,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "metrics"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
+        "body": {
+          "ruleSet": {
+            "rules": [
+              {
+                "allocation": 60,
+                "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                "canOverflow": true,
+                "enabled": true,
+                "entityType": "logs"
+              },
+              {
+                "allocation": 40,
+                "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                "canOverflow": false,
+                "enabled": true,
+                "entityType": "metrics"
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "rules": [
+        {
+          "allocation": 60,
+          "allocation_type": "percentage",
+          "can_overflow": true,
+          "enabled": true,
+          "entity_type": "logs"
+        },
+        {
+          "allocation": 40,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "metrics"
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "rules": [
+        {
+          "allocation": 60,
+          "allocation_type": "percentage",
+          "can_overflow": true,
+          "enabled": true,
+          "entity_type": "logs"
+        },
+        {
+          "allocation": 40,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "metrics"
+        }
+      ]
+    }
+  },
+  {
+    "step": "update: change values",
+    "config": {
+      "rules": [
+        {
+          "allocation": 55,
+          "can_overflow": true,
+          "enabled": false,
+          "entity_type": "logs"
+        },
+        {
+          "allocation": 45,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "metrics"
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "rules": [
+        {
+          "allocation": 55,
+          "allocation_type": "percentage",
+          "can_overflow": true,
+          "enabled": false,
+          "entity_type": "logs"
+        },
+        {
+          "allocation": 45,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "metrics"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
+        "body": {
+          "ruleSet": {
+            "rules": [
+              {
+                "allocation": 55,
+                "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                "canOverflow": true,
+                "enabled": false,
+                "entityType": "logs"
+              },
+              {
+                "allocation": 45,
+                "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                "canOverflow": false,
+                "enabled": true,
+                "entityType": "metrics"
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "rules": [
+        {
+          "allocation": 55,
+          "allocation_type": "percentage",
+          "can_overflow": true,
+          "enabled": false,
+          "entity_type": "logs"
+        },
+        {
+          "allocation": 45,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "metrics"
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: add a locked units rule",
+    "config": {
+      "rules": [
+        {
+          "allocation": 55,
+          "can_overflow": true,
+          "enabled": false,
+          "entity_type": "logs"
+        },
+        {
+          "allocation": 45,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "metrics"
+        },
+        {
+          "allocation": 1,
+          "allocation_type": "locked_units",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "spans"
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "rules": [
+        {
+          "allocation": 55,
+          "allocation_type": "percentage",
+          "can_overflow": true,
+          "enabled": false,
+          "entity_type": "logs"
+        },
+        {
+          "allocation": 45,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "metrics"
+        },
+        {
+          "allocation": 1,
+          "allocation_type": "locked_units",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "spans"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
+        "body": {
+          "ruleSet": {
+            "rules": [
+              {
+                "allocation": 55,
+                "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                "canOverflow": true,
+                "enabled": false,
+                "entityType": "logs"
+              },
+              {
+                "allocation": 45,
+                "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                "canOverflow": false,
+                "enabled": true,
+                "entityType": "metrics"
+              },
+              {
+                "allocation": 1,
+                "allocationType": "QUOTA_ALLOCATION_TYPE_LOCKED_UNITS",
+                "canOverflow": false,
+                "enabled": true,
+                "entityType": "spans"
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "rules": [
+        {
+          "allocation": 55,
+          "allocation_type": "percentage",
+          "can_overflow": true,
+          "enabled": false,
+          "entity_type": "logs"
+        },
+        {
+          "allocation": 45,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "metrics"
+        },
+        {
+          "allocation": 1,
+          "allocation_type": "locked_units",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "spans"
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: remove a rule",
+    "config": {
+      "rules": [
+        {
+          "allocation": 55,
+          "can_overflow": true,
+          "enabled": false,
+          "entity_type": "logs"
+        },
+        {
+          "allocation": 1,
+          "allocation_type": "locked_units",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "spans"
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "rules": [
+        {
+          "allocation": 55,
+          "allocation_type": "percentage",
+          "can_overflow": true,
+          "enabled": false,
+          "entity_type": "logs"
+        },
+        {
+          "allocation": 1,
+          "allocation_type": "locked_units",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "spans"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
+        "body": {
+          "ruleSet": {
+            "rules": [
+              {
+                "allocation": 55,
+                "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                "canOverflow": true,
+                "enabled": false,
+                "entityType": "logs"
+              },
+              {
+                "allocation": 1,
+                "allocationType": "QUOTA_ALLOCATION_TYPE_LOCKED_UNITS",
+                "canOverflow": false,
+                "enabled": true,
+                "entityType": "spans"
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "rules": [
+        {
+          "allocation": 55,
+          "allocation_type": "percentage",
+          "can_overflow": true,
+          "enabled": false,
+          "entity_type": "logs"
+        },
+        {
+          "allocation": 1,
+          "allocation_type": "locked_units",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "spans"
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: allocation_type removed from a rule",
+    "config": {
+      "rules": [
+        {
+          "allocation": 55,
+          "can_overflow": true,
+          "enabled": false,
+          "entity_type": "logs"
+        },
+        {
+          "allocation": 1,
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "spans"
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "rules": [
+        {
+          "allocation": 55,
+          "allocation_type": "percentage",
+          "can_overflow": true,
+          "enabled": false,
+          "entity_type": "logs"
+        },
+        {
+          "allocation": 1,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "spans"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
+        "body": {
+          "ruleSet": {
+            "rules": [
+              {
+                "allocation": 55,
+                "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                "canOverflow": true,
+                "enabled": false,
+                "entityType": "logs"
+              },
+              {
+                "allocation": 1,
+                "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                "canOverflow": false,
+                "enabled": true,
+                "entityType": "spans"
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "rules": [
+        {
+          "allocation": 55,
+          "allocation_type": "percentage",
+          "can_overflow": true,
+          "enabled": false,
+          "entity_type": "logs"
+        },
+        {
+          "allocation": 1,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "spans"
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: clear all rules",
+    "config": {
+      "rules": []
+    },
+    "plan": {
+      "id": "(unknown)",
+      "rules": []
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
+        "body": {
+          "ruleSet": {
+            "rules": []
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "rules": []
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after clear",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "rules": []
+    }
+  },
+  {
+    "step": "update: rules again",
+    "config": {
+      "rules": [
+        {
+          "allocation": 10,
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "rules": [
+        {
+          "allocation": 10,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
+        "body": {
+          "ruleSet": {
+            "rules": [
+              {
+                "allocation": 10,
+                "allocationType": "QUOTA_ALLOCATION_TYPE_PERCENTAGE",
+                "canOverflow": false,
+                "enabled": true,
+                "entityType": "logs"
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "rules": [
+        {
+          "allocation": 10,
+          "allocation_type": "percentage",
+          "can_overflow": false,
+          "enabled": true,
+          "entity_type": "logs"
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/dataplan/quota-rules/v1",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

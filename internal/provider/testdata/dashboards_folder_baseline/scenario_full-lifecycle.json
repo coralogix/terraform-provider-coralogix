@@ -1,0 +1,188 @@
+[
+  {
+    "step": "create with a parent",
+    "config": {
+      "name": "main",
+      "parent_id": "11111111-1111-4111-8111-111111111111"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "name": "main",
+      "parent_id": "11111111-1111-4111-8111-111111111111"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "name": "main",
+            "parentId": "11111111-1111-4111-8111-111111111111"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main",
+      "parent_id": "11111111-1111-4111-8111-111111111111"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main",
+      "parent_id": "11111111-1111-4111-8111-111111111111"
+    }
+  },
+  {
+    "step": "update: rename",
+    "config": {
+      "name": "main-renamed",
+      "parent_id": "11111111-1111-4111-8111-111111111111"
+    },
+    "plan": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main-renamed",
+      "parent_id": "11111111-1111-4111-8111-111111111111"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "main-renamed",
+            "parentId": "11111111-1111-4111-8111-111111111111"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main-renamed",
+      "parent_id": "11111111-1111-4111-8111-111111111111"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: move to another parent",
+    "config": {
+      "name": "main-renamed",
+      "parent_id": "22222222-2222-4222-8222-222222222222"
+    },
+    "plan": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main-renamed",
+      "parent_id": "22222222-2222-4222-8222-222222222222"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "main-renamed",
+            "parentId": "22222222-2222-4222-8222-222222222222"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main-renamed",
+      "parent_id": "22222222-2222-4222-8222-222222222222"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: remove the parent",
+    "config": {
+      "name": "main-renamed"
+    },
+    "plan": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main-renamed",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "main-renamed"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main-renamed",
+      "parent_id": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "main-renamed",
+      "parent_id": null
+    }
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

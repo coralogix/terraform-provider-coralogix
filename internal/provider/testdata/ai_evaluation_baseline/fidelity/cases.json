@@ -1,0 +1,569 @@
+{
+  "cases": [
+    {
+      "name": "create for an application that does not exist",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "application": "tf-baseline-no-such-app",
+            "subsystem": "tf-baseline-no-such-subsystem",
+            "target": "RESPONSE",
+            "isEnabled": true,
+            "threshold": 0.5,
+            "config": {
+              "toxicity": {}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "create without target",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "isEnabled": true,
+            "threshold": 0.5,
+            "config": {
+              "toxicity": {}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "create without config",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "RESPONSE",
+            "isEnabled": true,
+            "threshold": 0.5
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with an empty config",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "RESPONSE",
+            "isEnabled": true,
+            "threshold": 0.5,
+            "config": {}
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with two config variants",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "RESPONSE",
+            "isEnabled": true,
+            "threshold": 0.5,
+            "config": {
+              "toxicity": {},
+              "sexism": {}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with an empty topic list",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "RESPONSE",
+            "isEnabled": true,
+            "threshold": 0.5,
+            "config": {
+              "allowedTopics": {
+                "topics": []
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "create without the topic list",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "RESPONSE",
+            "isEnabled": true,
+            "threshold": 0.5,
+            "config": {
+              "allowedTopics": {}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with a repeated topic",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "RESPONSE",
+            "isEnabled": true,
+            "threshold": 0.5,
+            "config": {
+              "allowedTopics": {
+                "topics": [
+                  "billing",
+                  "billing"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with a threshold above 1",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "RESPONSE",
+            "isEnabled": true,
+            "threshold": 1.5,
+            "config": {
+              "toxicity": {}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with an empty application",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "application": "",
+            "subsystem": "{{subsystem}}",
+            "target": "RESPONSE",
+            "isEnabled": true,
+            "threshold": 0.5,
+            "config": {
+              "toxicity": {}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "get an id that is not a uuid",
+      "steps": [
+        {
+          "method": "GET",
+          "path": "/does-not-exist"
+        }
+      ]
+    },
+    {
+      "name": "get an id that does not exist",
+      "steps": [
+        {
+          "method": "GET",
+          "path": "/00000000-0000-4000-8000-000000000000"
+        }
+      ]
+    },
+    {
+      "name": "update an id that does not exist",
+      "steps": [
+        {
+          "method": "PATCH",
+          "path": "/00000000-0000-4000-8000-000000000000",
+          "body": {
+            "isEnabled": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "update with a dotted mask path",
+      "steps": [
+        {
+          "method": "PATCH",
+          "path": "/00000000-0000-4000-8000-000000000000",
+          "body": {
+            "updateMask": "config.toxicity",
+            "config": {
+              "toxicity": {}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "delete an id that does not exist",
+      "steps": [
+        {
+          "method": "DELETE",
+          "path": "/00000000-0000-4000-8000-000000000000"
+        }
+      ]
+    },
+    {
+      "name": "create, read, and delete a toxicity evaluation",
+      "needsApplication": true,
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "RESPONSE",
+            "isEnabled": true,
+            "threshold": 0.5,
+            "config": {
+              "toxicity": {}
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "create without isEnabled and threshold",
+      "needsApplication": true,
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "PROMPT",
+            "config": {
+              "sexism": {}
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "a second evaluation of the same type and target",
+      "needsApplication": true,
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "RESPONSE",
+            "isEnabled": true,
+            "threshold": 0.5,
+            "config": {
+              "toxicity": {}
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "RESPONSE",
+            "isEnabled": true,
+            "threshold": 0.9,
+            "config": {
+              "toxicity": {}
+            }
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "topic order and prompt injection context",
+      "needsApplication": true,
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "RESPONSE",
+            "isEnabled": true,
+            "threshold": 0.5,
+            "config": {
+              "allowedTopics": {
+                "topics": [
+                  "zeta",
+                  "alpha",
+                  "mid"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "PATCH",
+          "path": "/{{id}}",
+          "body": {
+            "config": {
+              "promptInjection": {}
+            },
+            "isEnabled": true,
+            "threshold": 0.5
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "update without a mask changes only the fields in the body",
+      "needsApplication": true,
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "RESPONSE",
+            "isEnabled": true,
+            "threshold": 0.5,
+            "config": {
+              "pii": {
+                "categories": [
+                  "EMAIL_ADDRESS",
+                  "PHONE_NUMBER"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/{{id}}",
+          "body": {
+            "isEnabled": false
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/{{id}}",
+          "body": {
+            "config": {
+              "competition": {
+                "competitors": [
+                  "acme"
+                ]
+              }
+            },
+            "isEnabled": true,
+            "threshold": 0.25
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/{{id}}",
+          "body": {
+            "config": {
+              "toxicity": {}
+            },
+            "isEnabled": false,
+            "threshold": 0
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "update to another application that does not exist",
+      "needsApplication": true,
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "RESPONSE",
+            "isEnabled": true,
+            "threshold": 0.5,
+            "config": {
+              "sqlReadOnly": {}
+            }
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/{{id}}",
+          "body": {
+            "application": "tf-baseline-no-such-app"
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "create and read a conversation evaluation",
+      "needsApplication": true,
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "CONVERSATION",
+            "isEnabled": true,
+            "threshold": 0.5,
+            "config": {
+              "toxicity": {}
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "update without a mask replaces a nested object",
+      "needsApplication": true,
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "id",
+          "body": {
+            "application": "{{application}}",
+            "subsystem": "{{subsystem}}",
+            "target": "PROMPT",
+            "isEnabled": true,
+            "threshold": 0.5,
+            "config": {
+              "promptInjection": {
+                "additionalContext": "an assistant for refunds"
+              }
+            }
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/{{id}}",
+          "body": {
+            "config": {
+              "promptInjection": {}
+            },
+            "isEnabled": true,
+            "threshold": 0.5
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    }
+  ]
+}

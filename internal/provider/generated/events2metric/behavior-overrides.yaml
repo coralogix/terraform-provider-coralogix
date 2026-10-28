@@ -171,3 +171,11 @@ enums:
     zero: unspecified
     values: [AGG_TYPE_MIN, AGG_TYPE_MAX, AGG_TYPE_COUNT, AGG_TYPE_AVG, AGG_TYPE_SUM, AGG_TYPE_SAMPLES, AGG_TYPE_HISTOGRAM]
     names: {AGG_TYPE_MIN: min, AGG_TYPE_MAX: max, AGG_TYPE_COUNT: count, AGG_TYPE_AVG: avg, AGG_TYPE_SUM: sum, AGG_TYPE_HISTOGRAM: histogram, AGG_TYPE_SAMPLES: samples}
+
+# The data source reads an events2metric by id. It shows the description that the API stores, also
+# "", as the released data source did. The resource reads "" as null.
+dataSource:
+  types:
+    E2M:
+      fields:
+        description: {readEmptyAs: value}

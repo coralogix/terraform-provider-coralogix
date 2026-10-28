@@ -1,0 +1,68 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": "gone"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "name": "gone",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "name": "gone"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "gone",
+      "parent_id": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: folder was deleted outside Terraform",
+    "config": {
+      "name": "gone-renamed"
+    },
+    "plan": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "gone-renamed",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "id": "00000000-0000-4000-8000-000000000001",
+            "name": "gone-renamed"
+          }
+        },
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Resource no longer exists | The API did not find dashboards_folder with id 00000000-0000-4000-8000-000000000001. Run terraform apply without -refresh=false: the refresh removes it from state, and the plan creates it again."
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "gone",
+      "parent_id": null
+    }
+  }
+]

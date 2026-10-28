@@ -181,6 +181,7 @@ func generateFromInput(options Options, input source.Input, loadDir string) erro
 	}
 	delete(files, exampleKey)
 	delete(files, importKey)
+	delete(files, dataSourceExampleKey)
 	return publishAll(options.OutputDir, files, extras)
 }
 
@@ -258,14 +259,32 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 		if report = overrideIssues(doc, component, file); len(report) != 0 {
 			return nil, &EligibilityError{Report: report}
 		}
+		// The upsert and inline keys change the contract that the model reads (reshape.go).
+		reshaped, ids, report := reshape(data, component, operationIDs, file, policy)
+		if len(report) != 0 {
+			return nil, &EligibilityError{Report: report}
+		}
+		if file.Inlined != nil {
+			if doc, err = model.Load(reshaped); err != nil {
+				return nil, fmt.Errorf("read the reshaped contract: %w", err)
+			}
+			operationIDs = ids
+		}
 	}
-	if report = terraformContractIssues(doc, component, operationIDs, policy); len(report) != 0 {
+	if report = terraformContractIssues(doc, component, operationIDs, policy, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}
 	resource, err := model.BuildWithPolicy(doc, component, operationIDs, policy)
 	if err != nil {
 		return nil, fmt.Errorf("build validated resource: %w", err)
 	}
+	if resource.Singleton && resource.Create.Response.ID != "" {
+		// A singleton has no id to read it with after Create, and no id field to keep.
+		return nil, &EligibilityError{Report: issue.Report{{Code: "READ_BACK_SINGLETON_UNSUPPORTED", Location: overrides.FileName + ":api.createResponseOnlyIDProperty",
+			Message:     fmt.Sprintf("The resource %s is a singleton, so api.createResponseOnlyIDProperty has no id to read it back with.", resource.Name),
+			Remediation: "Delete api.createResponseOnlyIDProperty from the overrides."}}}
+	}
+	dropUnusedList(resource, file)
 	if report = unwrapUsageIssues(resource, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}
@@ -276,6 +295,36 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	refs, err := resolveSDKNames(resource, tag, sdkModule, providerModule)
 	if err != nil {
 		return nil, eligibilityIssue("SDK_SHAPE_UNSUPPORTED", "resource", err, "Use OpenAPI shapes that have deterministic generated Go SDK names and types.")
+	}
+	if file != nil {
+		// The Terraform keys of a released resource change the built model. The SDK names of
+		// the model before the change still hold the fields of the removed oneOf arms.
+		armRefs, err := applyReleasedShape(resource, file, refs)
+		if err != nil {
+			return nil, eligibilityIssue("OVERRIDE_INVALID", overrides.FileName, err, "Fix the requiresReplace or unsupportedArms line.")
+		}
+		if refs, err = resolveSDKNames(resource, tag, sdkModule, providerModule); err != nil {
+			return nil, eligibilityIssue("SDK_SHAPE_UNSUPPORTED", "resource", err, "Use OpenAPI shapes that have deterministic generated Go SDK names and types.")
+		}
+		refs = append(refs, armRefs...)
+	}
+	refs = inlineSDKNames(upsertSDKNames(refs, file), file)
+	if file != nil {
+		if refs, err = showSDKNames(doc, refs, file); err != nil {
+			return nil, eligibilityIssue("OVERRIDE_INVALID", overrides.FileName, err, "Fix the show line of the dataSource section.")
+		}
+	}
+	if file != nil && file.DataSource != nil && file.DataSource.QueryID {
+		if err := validateDataSourceQueryID(doc, resource); err != nil {
+			return nil, eligibilityIssue("DATASOURCE_QUERY_ID_UNSUPPORTED", overrides.FileName+":dataSource.queryID", err,
+				"Use queryID only for a singleton with a server-set string id and an optional string Get query parameter named id.")
+		}
+		ref, err := dataSourceQueryIDRef(refs)
+		if err != nil {
+			return nil, eligibilityIssue("SDK_SHAPE_UNSUPPORTED", overrides.FileName+":dataSource.queryID", err,
+				"Use an SDK that exposes the optional id query setter on the Get request builder.")
+		}
+		refs = append(refs, ref)
 	}
 	if report = rendererIssues(resource, refs, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report.Normalize()}
@@ -323,6 +372,7 @@ func rendererIssues(resource *model.Resource, refs []sdkcheck.Ref, file *overrid
 		{"renderer.schema", func() error { _, err := buildTFResourceWith(resource, "generated", file); return err }},
 		{"renderer.conversion", func() error { _, err := buildConvWith(resource, refs, file); return err }},
 		{"renderer.crud", func() error { _, err := buildCRUDWith(resource, refs, file); return err }},
+		{"renderer.datasource", func() error { return dataSourceShape(resource, refs, file) }},
 	}
 	var report issue.Report
 	for _, check := range checks {
@@ -359,6 +409,14 @@ func shapeIssue(location string, err error) issue.Issue {
 			Location:    location,
 			Message:     err.Error(),
 			Remediation: "Delete the keepPriorOrder or equality key, or the unwrap line of the field.",
+		}
+	}
+	if errors.Is(err, errDataSourceLookup) {
+		return issue.Issue{
+			Code:        "OVERRIDE_INVALID",
+			Location:    overrides.FileName + ":dataSource.lookup",
+			Message:     err.Error(),
+			Remediation: "Delete name from dataSource.lookup, or give the API a List that the data source can use.",
 		}
 	}
 	if errors.Is(err, errStaleOverrideKey) {

@@ -385,16 +385,7 @@ func (r *TCOPoliciesRumResource) Update(ctx context.Context, req resource.Update
 		Execute()
 
 	if err != nil {
-		apiErr := cxsdkOpenapi.NewAPIError(httpResponse, err)
-		if cxsdkOpenapi.Code(apiErr) == http.StatusNotFound {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("coralogix_tco_policies_rum %v is in state, but no longer exists in Coralogix backend", rq),
-				fmt.Sprintf("%v will be recreated when you apply", rq),
-			)
-			resp.State.RemoveResource(ctx)
-			return
-		}
-		resp.Diagnostics.AddError("Error replacing coralogix_tco_policies_rum", utils.FormatOpenAPIErrors(apiErr, "Replace", rq))
+		resp.Diagnostics.AddError("Error replacing coralogix_tco_policies_rum", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
 		return
 	}
 

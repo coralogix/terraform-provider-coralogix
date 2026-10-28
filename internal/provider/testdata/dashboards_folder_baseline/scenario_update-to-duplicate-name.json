@@ -1,0 +1,117 @@
+[
+  {
+    "step": "create the first folder",
+    "config": {
+      "name": "first"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "name": "first",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "name": "first"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "first",
+      "parent_id": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create the second folder",
+    "config": {
+      "name": "second"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "name": "second",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "name": "second"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000002",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "name": "second",
+      "parent_id": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: rename to the name of the first",
+    "config": {
+      "name": "first"
+    },
+    "plan": {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "name": "first",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "name": "first"
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to update dashboards_folder | id 00000000-0000-4000-8000-000000000002: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: folder with path /first already exists\"}"
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "name": "second",
+      "parent_id": null
+    }
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000002",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "name": "second",
+      "parent_id": null
+    }
+  }
+]

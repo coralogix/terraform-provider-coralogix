@@ -1,0 +1,56 @@
+[
+  {
+    "step": "import with an id that is not the fixed one",
+    "state": null
+  },
+  {
+    "step": "import with an id that is not the fixed one (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": false,
+      "archiving_format_id": "cx_data_v1",
+      "bucket": "seeded-bucket",
+      "enable_tags": false,
+      "id": "archive-logs-settings",
+      "region": "eu-north-1"
+    },
+    "drift": [
+      "AttributeName(\"active\")",
+      "AttributeName(\"archiving_format_id\")",
+      "AttributeName(\"bucket\")",
+      "AttributeName(\"enable_tags\")",
+      "AttributeName(\"id\")",
+      "AttributeName(\"region\")"
+    ]
+  },
+  {
+    "step": "plan the matching config",
+    "config": {
+      "active": false,
+      "bucket": "seeded-bucket"
+    },
+    "plan": {
+      "active": false,
+      "archiving_format_id": "cx_data_v1",
+      "bucket": "seeded-bucket",
+      "enable_tags": false,
+      "id": "archive-logs-settings",
+      "region": "eu-north-1"
+    },
+    "noChange": true,
+    "state": {
+      "active": false,
+      "archiving_format_id": "cx_data_v1",
+      "bucket": "seeded-bucket",
+      "enable_tags": false,
+      "id": "archive-logs-settings",
+      "region": "eu-north-1"
+    }
+  }
+]

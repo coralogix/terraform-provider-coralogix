@@ -1,0 +1,56 @@
+[
+  {
+    "step": "read a name that two resources have",
+    "config": {
+      "name": "seeded"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/notifications/notification-center/v1/routers/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "create_time": "2026-01-01T00:00:01Z",
+      "description": "made outside Terraform",
+      "disabled": false,
+      "entity_labels": {},
+      "fallback": null,
+      "fallback_targets": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "seeded",
+      "routing_labels": {
+        "environment": "seeded",
+        "service": null,
+        "team": null
+      },
+      "rules": [
+        {
+          "condition": "true",
+          "custom_details": {},
+          "entity_type": "cases",
+          "name": "r",
+          "targets": [
+            {
+              "connector_id": "c1",
+              "custom_details": {},
+              "preset_id": null
+            },
+            {
+              "connector_id": "c2",
+              "custom_details": {},
+              "preset_id": "p"
+            }
+          ]
+        }
+      ],
+      "update_time": "2026-01-01T00:00:01Z"
+    }
+  }
+]

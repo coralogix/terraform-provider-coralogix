@@ -5,7 +5,7 @@
 resource: Preset
 mode: existing
 
-markdownDescription: "Coralogix Notification Center Preset. For more info please review - https://coralogix.com/docs/user-guides/notification-center/presets/introduction/. **NOTE:** This resource is in Beta stage."
+markdownDescription: "Coralogix Notification Center Preset. For more info please review - https://coralogix.com/docs/user-guides/notification-center/presets/introduction/."
 
 schema:
   version: 0
@@ -24,6 +24,8 @@ api:
     get: PresetsService_GetPreset
     update: PresetsService_ReplaceCustomPreset
     delete: PresetsService_DeleteCustomPreset
+    # The List of summaries finds the id of a name for the data source.
+    list: PresetsService_ListPresetSummaries
 
 types:
   Preset:
@@ -129,3 +131,9 @@ enums:
     # is what a missing value reads back as.
     verbatim: true
     values: [AUTO, ENABLED, DISABLED]
+
+# The data source reads a preset by id or by name. A name that more than one preset has takes the
+# first one in the order of the List, as the released data source did.
+dataSource:
+  lookup: [id, name]
+  duplicateNames: first

@@ -1,0 +1,50 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": "gone"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "name": "gone",
+      "parent_id": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1",
+        "body": {
+          "folder": {
+            "name": "gone"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": "gone",
+      "parent_id": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: folder was deleted outside Terraform",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/folders/v1/00000000-0000-4000-8000-000000000001",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: Resource disappeared during read | dashboards_folder with id 00000000-0000-4000-8000-000000000001 was not found. Terraform removed it from state."
+    ],
+    "state": null
+  }
+]

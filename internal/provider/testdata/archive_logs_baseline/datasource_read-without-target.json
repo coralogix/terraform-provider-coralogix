@@ -1,0 +1,24 @@
+[
+  {
+    "step": "read: the API returns an empty IBM COS target",
+    "config": {},
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/logs/data-setup/v2",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Missing resource | The API response has no s3."
+    ],
+    "state": {
+      "active": null,
+      "archiving_format_id": null,
+      "bucket": null,
+      "enable_tags": null,
+      "id": null,
+      "region": null
+    }
+  }
+]

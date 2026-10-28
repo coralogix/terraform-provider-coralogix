@@ -1,0 +1,44 @@
+[
+  {
+    "step": "read by id",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/slo/slos/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "apm_sli_metadata": null,
+      "description": "made outside Terraform",
+      "grouping": {
+        "labels": []
+      },
+      "id": "00000000-0000-4000-8000-000000000001",
+      "labels": {},
+      "name": "seeded",
+      "ownership_tags": null,
+      "product_type": "unspecified",
+      "sli": {
+        "apm_sli": null,
+        "request_based_metric_sli": null,
+        "window_based_metric_sli": {
+          "comparison_operator": "less_than",
+          "missing_data_strategy": "uncounted",
+          "query": {
+            "query": "avg(up)"
+          },
+          "threshold": 0.2,
+          "window": "5_minutes"
+        }
+      },
+      "target_threshold_percentage": 99,
+      "window": {
+        "slo_time_frame": "14_days"
+      }
+    }
+  }
+]

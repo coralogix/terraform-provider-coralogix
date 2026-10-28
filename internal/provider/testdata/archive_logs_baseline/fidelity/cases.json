@@ -1,0 +1,54 @@
+{
+  "comment": "Requests that a recorder sends to the real archive target API (POST and GET /logs/data-setup/v2), and the offline test sends to the fake. Paths are relative to /logs/data-setup/v2. Tokens: {{BUCKET}} a bucket name made for the run; {{REGION}} the region that the API stores when the request has none (learned from the first answer); {{EXTERNAL_ID}} the external id that the API derives for the company. Every Set is inactive, so the API does not probe the bucket. The recorder restores the target that the company had before.",
+  "cases": [
+    {
+      "name": "inactive-target",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"isActive": false, "s3": {"bucket": "{{BUCKET}}"}}},
+        {"method": "GET", "path": ""},
+        {"method": "POST", "path": "", "body": {"isActive": false, "s3": {"bucket": "{{BUCKET}}", "region": "{{REGION}}"}}},
+        {"method": "GET", "path": ""}
+      ]
+    },
+    {
+      "name": "role-set-and-removed",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"isActive": false, "s3": {"bucket": "{{BUCKET}}", "roleArn": "arn:aws:iam::123456789012:role/{{BUCKET}}"}}},
+        {"method": "GET", "path": ""},
+        {"method": "POST", "path": "", "body": {"isActive": false, "s3": {"bucket": "{{BUCKET}}"}}},
+        {"method": "GET", "path": ""}
+      ]
+    },
+    {
+      "name": "client-external-id-is-ignored",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"isActive": false, "s3": {"bucket": "{{BUCKET}}", "externalId": "client-external-id"}}},
+        {"method": "GET", "path": ""}
+      ]
+    },
+    {
+      "name": "format",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"isActive": false, "s3": {"bucket": "{{BUCKET}}"}, "format": "TARGET_FORMAT_CX_DATA_V1"}},
+        {"method": "POST", "path": "", "body": {"isActive": false, "s3": {"bucket": "{{BUCKET}}"}, "format": "TARGET_FORMAT_UNSPECIFIED"}},
+        {"method": "GET", "path": ""}
+      ]
+    },
+    {
+      "name": "invalid-bucket",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"isActive": false, "s3": {"bucket": "Invalid_Bucket"}}},
+        {"method": "POST", "path": "", "body": {"isActive": false, "s3": {"bucket": "ab"}}},
+        {"method": "POST", "path": "", "body": {"isActive": false, "s3": {"bucket": ""}}},
+        {"method": "GET", "path": ""}
+      ]
+    },
+    {
+      "name": "other-region",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"isActive": false, "s3": {"bucket": "{{BUCKET}}", "region": "ap-southeast-2"}}},
+        {"method": "GET", "path": ""}
+      ]
+    }
+  ]
+}

@@ -66,6 +66,22 @@ type convData struct {
 	// UpdateMaskPointer is true when that field is *string.
 	UpdateMaskField   string
 	UpdateMaskPointer bool
+	// Arms are the inlined oneOf arms of the resource response. A response without one has no
+	// resource: flatten returns an error, and Read removes the resource from the state.
+	Arms []convArm
+}
+
+// convArm is an inlined object of the resource response that the SDK holds in a pointer.
+type convArm struct {
+	SDK string // Go field of the resource type
+	API string // API property
+}
+
+// convParent is an inlined object of a request body that the SDK holds in a pointer field. Expand
+// sets it before the fields that it holds, so they are always sent.
+type convParent struct {
+	SDK  string // Go field of the body
+	Type string // qualified SDK type of the object
 }
 
 // wrapHelper is one pair of generated functions, wrap<Func> and unwrap<Func>. They convert a value
@@ -172,6 +188,11 @@ type convObject struct {
 	// DefaultArms are the arms that expand sends empty when the configuration sets no arm of
 	// their oneOf group (defaultArm).
 	DefaultArms []defaultArm
+	// Unsupported are the oneOf arms that the resource does not configure (unsupportedArms).
+	// Flatten reports a response that selects one.
+	Unsupported []unsupportedArm
+	// Parents are the inlined objects of a request body that are SDK pointers.
+	Parents []convParent
 }
 
 // defaultArm is an arm that expand sends empty when no arm of its group is set.
@@ -438,14 +459,22 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	}
 
 	roots := []convRoot{
-		{&out.Create, "create.body", true, func(f *model.ResourceField) bool { return f.Create != nil }},
-		{&out.Update, "update.body", true, func(f *model.ResourceField) bool { return f.Update != nil }},
-		{&out.Resource, "fields", false, func(f *model.ResourceField) bool { return f.InGet }},
+		{&out.Create, "create.body", true, func(f *model.ResourceField) bool { return f.Create != nil }, func(f *model.ResourceField) *overrides.Parent { return file.ParentOf("create", f.Name) }},
+		{&out.Update, "update.body", true, func(f *model.ResourceField) bool { return f.Update != nil }, func(f *model.ResourceField) *overrides.Parent { return file.ParentOf("update", f.Name) }},
+		{&out.Resource, "fields", false, func(f *model.ResourceField) bool { return f.InGet }, func(f *model.ResourceField) *overrides.Parent { return file.ParentOf("get", f.Name) }},
 	}
 	for _, root := range roots {
+		if root.path == "update.body" && file.Upserts() {
+			// The Set call creates and updates, so Update expands the Create body.
+			out.Update, out.UpdateBody = out.Create, out.CreateBody
+			continue
+		}
 		if err := b.buildRoot(out, root); err != nil {
 			return nil, err
 		}
+	}
+	if err := b.arms(out); err != nil {
+		return nil, err
 	}
 	for _, obj := range b.listed {
 		// Only flatten builds Terraform values. An object that only a request
@@ -475,10 +504,14 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if r.Replace {
 		return out, replaceFields(r, out, fixed, b.file)
 	}
-	if err := derivedValuesInMask(b.file); err != nil {
-		return nil, err
+	// Without a mask the Update body holds a derived value, and the server updates it.
+	omit := b.file != nil && b.file.UpdateMask == overrides.UpdateMaskOmit
+	if !omit {
+		if err := derivedValuesInMask(b.file); err != nil {
+			return nil, err
+		}
 	}
-	if err := buildMask(r, out, fixed); err != nil {
+	if err := buildMask(r, out, fixed, omit); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -533,6 +566,50 @@ type convRoot struct {
 	path   string // SDK name path of the struct
 	expand bool
 	has    func(*model.ResourceField) bool
+	parent func(*model.ResourceField) *overrides.Parent // the inlined object that holds a field here
+}
+
+// arms sets the inlined objects of the resource response that the SDK holds in a pointer. An arm
+// is always one: a response without it has no resource. flatten reads the fields through the
+// pointer, so it returns an error for a response without the object.
+func (b *convBuilder) arms(out *convData) error {
+	for _, parent := range inlinedParents(b.resource, b.file) {
+		ref, err := b.ix.fieldRef("fields." + parent.Field)
+		if err != nil {
+			return err
+		}
+		pointer := strings.HasPrefix(ref.Want, "*")
+		if parent.Arm && !pointer {
+			return fmt.Errorf("SDK field %s of the oneOf arm %s has type %s, want a pointer", ref.SDKName(), parent.Field, ref.Want)
+		}
+		if pointer {
+			out.Arms = append(out.Arms, convArm{SDK: ref.Name, API: parent.Field})
+		}
+	}
+	return nil
+}
+
+// parentField returns the Go field of the root that holds an inlined object. A request body that
+// holds it in a pointer gets it set by expand.
+func (b *convBuilder) parentField(obj *convObject, root convRoot, parent *overrides.Parent) (string, error) {
+	ref, err := b.ix.fieldRef(root.path + "." + parent.Field)
+	if err != nil {
+		return "", err
+	}
+	typ, err := b.ix.typeRef(root.path + "." + parent.Field)
+	if err != nil {
+		return "", err
+	}
+	switch ref.Want {
+	case typ.Name:
+	case "*" + typ.Name:
+		if root.expand && !slices.ContainsFunc(obj.Parents, func(p convParent) bool { return p.SDK == ref.Name }) {
+			obj.Parents = append(obj.Parents, convParent{SDK: ref.Name, Type: b.qualify(typ.Name)})
+		}
+	default:
+		return "", fmt.Errorf("SDK field %s has type %s, want %s or *%s", ref.SDKName(), ref.Want, typ.Name, typ.Name)
+	}
+	return ref.Name, nil
 }
 
 // buildRoot builds one root object and its fields.
@@ -569,6 +646,14 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, typ, responseOnly(f.Behavior), hasPresence(f.Get))
 		if err != nil {
 			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+		}
+		if parent := root.parent(f); parent != nil {
+			// The SDK holds the field in the inlined object, so the Go expression goes through it.
+			field, err := b.parentField(obj, root, parent)
+			if err != nil {
+				return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+			}
+			cf.SDK = field + "." + cf.SDK
 		}
 		b.markComputedObjectValue(cf, f, root.path == "fields")
 		if err := checkReadEmptyAs(cf); err != nil {
@@ -745,10 +830,15 @@ func derivedValuesInMask(file *overrides.File) error {
 
 // buildMask sets the update mask data. Only the Update fields can be in the
 // mask, so application, subsystem, and target never are (D9).
-func buildMask(r *model.Resource, out *convData, fixed func(string) bool) error {
-	valid, leaf, err := maskRule(r.UpdateMaskPattern)
-	if err != nil {
-		return err
+func buildMask(r *model.Resource, out *convData, fixed func(string) bool, omit bool) error {
+	// With updateMask: omit, Update sends no mask, so the mask pattern does not matter: the
+	// top-level mask fields only decide whether a value changed.
+	valid, leaf := func(string) bool { return true }, false
+	if !omit {
+		var err error
+		if valid, leaf, err = maskRule(r.UpdateMaskPattern); err != nil {
+			return err
+		}
 	}
 	out.LeafMask = leaf
 	for _, f := range r.Fields {
@@ -908,9 +998,9 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 	for _, v := range over.Values {
 		m.Values = append(m.Values, enumMapValue{TF: over.TFValue(v), API: v})
 	}
-	if over.ReadRejected {
+	if over.ReadRejected.On() {
 		for _, v := range over.Rejected {
-			m.Read = append(m.Read, enumMapValue{TF: v, API: v})
+			m.Read = append(m.Read, enumMapValue{TF: over.RejectedTFValue(v), API: v})
 		}
 	}
 	b.enumMaps = append(b.enumMaps, m)
@@ -1358,6 +1448,9 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		return nil, err
 	}
 	obj.DefaultArms = arms
+	if obj.Unsupported, err = b.unsupportedArms(t, ref.Path); err != nil {
+		return nil, err
+	}
 	return obj, nil
 }
 
@@ -2235,4 +2328,16 @@ func (b *convBuilder) keyedObjectConv(cf *convField, t *model.Type) (string, err
 	b.keyedObjects = append(b.keyedObjects, ko)
 	cf.Object = obj
 	return "[]" + item.Name, nil
+}
+
+// inlinedParents returns the inlined objects that hold top-level fields in the resource response,
+// in field order, each once.
+func inlinedParents(r *model.Resource, file *overrides.File) []overrides.Parent {
+	var out []overrides.Parent
+	for _, f := range r.Fields {
+		if parent := file.ParentOf("get", f.Name); parent != nil && !slices.Contains(out, *parent) {
+			out = append(out, *parent)
+		}
+	}
+	return out
 }

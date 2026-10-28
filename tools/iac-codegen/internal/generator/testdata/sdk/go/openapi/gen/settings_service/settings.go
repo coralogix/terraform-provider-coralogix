@@ -6,6 +6,7 @@ import (
 )
 
 type Settings struct {
+	Id            *string
 	RetentionDays *int32
 }
 
@@ -32,6 +33,11 @@ func (*SettingsServiceAPIService) SettingsServiceCreateSettings(ctx context.Cont
 func (*SettingsServiceAPIService) SettingsServiceGetSettings(ctx context.Context) ApiSettingsServiceGetSettingsRequest {
 	_ = ctx
 	return ApiSettingsServiceGetSettingsRequest{}
+}
+
+func (r ApiSettingsServiceGetSettingsRequest) Id(id string) ApiSettingsServiceGetSettingsRequest {
+	_ = id
+	return r
 }
 
 func (*SettingsServiceAPIService) SettingsServiceUpdateSettings(ctx context.Context) ApiSettingsServiceUpdateSettingsRequest {

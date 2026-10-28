@@ -17,6 +17,7 @@ import (
 	"github.com/coralogix/coralogix-management-sdk/iac/issue"
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
 	"github.com/coralogix/coralogix-management-sdk/iac/source"
+	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/version"
 )
 
@@ -102,6 +103,47 @@ func TestGoldenOutputEchoedValues(t *testing.T) {
 	if diff := compareDirectories(golden, out); diff != "" {
 		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputEchoedValues -update:\n%s", diff)
 	}
+}
+
+// The golden output of a released resource like the AI evaluation API: updateMask: omit,
+// requiresReplace, unsupportedArms, and readRejected: lower.
+func TestGoldenOutputEvalThing(t *testing.T) {
+	out := generateEvalThing(t)
+	golden := filepath.Join("testdata", "golden", "evalthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputEvalThing -update:\n%s", diff)
+	}
+}
+
+// The generated EvalThing compiles against its SDK.
+func TestEvalThingCompiles(t *testing.T) {
+	input, _ := syntheticInput(t)
+	compileGenerated(t, generateEvalThing(t), input)
+}
+
+// generateEvalThing generates the synthetic resource like the AI evaluation API.
+func generateEvalThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "evalthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "evalthing")
+	options := Options{Resource: "EvalThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "evalthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
 }
 
 // generateEchoThing generates the synthetic resource whose Replace echoes server values.
@@ -260,6 +302,39 @@ func generateCustomThing(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return out
+}
+
+// With validators.inferred: true, the contract limit of an enum that an enums line renames lists the
+// API values. The validator takes the Terraform values of the line instead, once.
+func TestInferredEnumValidatorUsesTheEnumsLine(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "customthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := os.ReadFile(filepath.Join("testdata", "customthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(file), "inferred: false") {
+		t.Fatal("customthing-overrides.yaml no longer has inferred: false")
+	}
+	overridesPath := filepath.Join(t.TempDir(), "behavior-overrides.yaml")
+	if err := os.WriteFile(overridesPath, []byte(strings.Replace(string(file), "inferred: false", "inferred: true", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "customthing")
+	if err := generateFromInput(Options{Resource: "CustomThing", OutputDir: out, OverridesPath: overridesPath}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(schema), `"SYSTEM"`) || strings.Count(string(schema), "stringvalidator.OneOf(") == 0 {
+		t.Fatalf("the enum validator must list the Terraform values, not the API values:\n%s", schema)
+	}
 }
 
 // generateWrapThing generates the synthetic resource whose API holds values in wrapper objects.
@@ -731,16 +806,7 @@ func TestIntegerResourceIDs(t *testing.T) {
 				t.Fatalf("check rejected %s ID: %v", test.format, err)
 			}
 
-			sdkPath := filepath.Join(input.SDKDir, "go", "openapi", "gen", "things_service", "things.go")
-			sdk, err := os.ReadFile(sdkPath)
-			if err != nil {
-				t.Fatal(err)
-			}
-			sdk = bytes.Replace(sdk, []byte("Id           *string"), []byte("Id           *"+test.goType), 1)
-			sdk = bytes.ReplaceAll(sdk, []byte("id string"), []byte("id "+test.goType))
-			if err := os.WriteFile(sdkPath, sdk, 0o644); err != nil {
-				t.Fatal(err)
-			}
+			integerIDSDK(t, input.SDKDir, test.goType)
 
 			out := filepath.Join(t.TempDir(), "thing")
 			if err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, loadDir); err != nil {
@@ -772,6 +838,20 @@ func TestIntegerResourceIDs(t *testing.T) {
 					t.Errorf("resource.go lacks %q", fragment)
 				}
 			}
+			// The schema copy makes only a string id the lookup attribute, so the data source
+			// sets the integer id itself.
+			dataSource, err := os.ReadFile(filepath.Join(out, dataSourceFile))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, fragment := range []string{
+				`resp.Schema.Attributes["id"] = schema.` + test.tfType + "Attribute{",
+				"var configured types." + test.tfType,
+			} {
+				if !bytes.Contains(dataSource, []byte(fragment)) {
+					t.Errorf("%s lacks %q", dataSourceFile, fragment)
+				}
+			}
 			compileGenerated(t, out, input)
 		})
 	}
@@ -796,6 +876,21 @@ func integerIDOpenAPI(t *testing.T, spec []byte, format string) []byte {
 		t.Fatalf("cannot convert synthetic ID to %s", format)
 	}
 	return []byte(value)
+}
+
+// integerIDSDK changes the id of the synthetic SDK in sdkDir to goType, to match integerIDOpenAPI.
+func integerIDSDK(t *testing.T, sdkDir, goType string) {
+	t.Helper()
+	sdkPath := filepath.Join(sdkDir, "go", "openapi", "gen", "things_service", "things.go")
+	sdk, err := os.ReadFile(sdkPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sdk = bytes.Replace(sdk, []byte("Id           *string"), []byte("Id           *"+goType), 1)
+	sdk = bytes.ReplaceAll(sdk, []byte("id string"), []byte("id "+goType))
+	if err := os.WriteFile(sdkPath, sdk, 0o644); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func optionalCreateRequiredUpdateOpenAPI(t *testing.T, spec []byte) []byte {
@@ -1819,7 +1914,7 @@ func TestSingletonGeneration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(schema), "stringdefault.StaticString(TypeName)") || strings.Contains(string(schema), "UseStateForUnknown") {
+	if !strings.Contains(string(schema), "stringdefault.StaticString(SingletonID)") || strings.Contains(string(schema), "UseStateForUnknown") {
 		t.Fatalf("singleton id must have a static default and no plan modifier:\n%s", schema)
 	}
 	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
@@ -1829,12 +1924,16 @@ func TestSingletonGeneration(t *testing.T) {
 	if !strings.Contains(string(resource), "SettingsServiceGetSettings(ctx).Execute()") {
 		t.Fatalf("singleton Get must have no id argument:\n%s", resource)
 	}
+	if !strings.Contains(string(resource), "const SingletonID = TypeName") {
+		t.Fatalf("a singleton without an upsert id must use the type name as its id:\n%s", resource)
+	}
 	semantics := `package settings
 
 import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
 
@@ -1846,13 +1945,241 @@ func TestSingletonIDIsStatic(t *testing.T) {
 	if TypeName != "settings" {
 		t.Fatalf("TypeName = %q", TypeName)
 	}
-	_ = context.Background()
+	// The data source of a singleton takes no input.
+	var resp datasource.SchemaResponse
+	NewDataSource().Schema(context.Background(), datasource.SchemaRequest{}, &resp)
+	if a := resp.Schema.Attributes["id"]; !a.IsComputed() || a.IsRequired() || a.IsOptional() {
+		t.Fatalf("data source id = %#v, want computed-only", a)
+	}
 }
 `
 	if err := os.WriteFile(filepath.Join(out, "singleton_test.go"), []byte(semantics), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	compileGenerated(t, out, input)
+}
+
+// A singleton whose API resource has a server-set id holds that id in its id attribute, and
+// falls back to the type name when the API returns none.
+func TestSingletonWithServerSetID(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "settings")
+	options := Options{Resource: "settings", OutputDir: out, OverridesPath: filepath.Join("testdata", "singleton-id-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(schema), "stringdefault.StaticString(TypeName)") {
+		t.Fatalf("the id must be the id of the API, not the fixed value:\n%s", schema)
+	}
+	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(resource), "the API returned no id") || !strings.Contains(string(resource), "keep the id that the plan or the state has") || strings.Contains(string(resource), "a singleton has a fixed id") {
+		t.Fatalf("flatten must keep the id of the API and fall back to the type name:\n%s", resource)
+	}
+	semantics := `package settings
+
+import (
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+)
+
+func TestSingletonIDIsFromTheAPI(t *testing.T) {
+	id, ok := Schema().Attributes["id"].(schema.StringAttribute)
+	if !ok || !id.Computed || id.Optional || id.Default != nil {
+		t.Fatalf("id attribute = %#v, want computed-only with no default", Schema().Attributes["id"])
+	}
+}
+`
+	if err := os.WriteFile(filepath.Join(out, "singleton_id_test.go"), []byte(semantics), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// The generated golden output for a singleton data source whose optional id input is sent as
+// the optional Get query parameter. This fixture shows both the Terraform schema and SDK call.
+func TestGoldenOutputSingletonQueryID(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-query-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "settings")
+	options := Options{Resource: "settings", OutputDir: out, OverridesPath: filepath.Join("testdata", "singleton-query-id-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+
+	golden := filepath.Join("testdata", "golden", "settingsqueryid")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputSingletonQueryID -update:\n%s", diff)
+	}
+
+	dataSource, err := os.ReadFile(filepath.Join(out, "data_source.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"Optional:            true",
+		"Computed:            true",
+		"getWithQueryID(ctx, queryID)",
+		"if queryID != nil {\n\t\tm.Id = types.StringValue(id) // keep the configured query id, even if the API returns another id",
+		"types.StringValue(TypeName) // the API returned no id",
+	} {
+		if !strings.Contains(string(dataSource), want) {
+			t.Errorf("data source does not contain %q:\n%s", want, dataSource)
+		}
+	}
+	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(resource), "request = request.Id(*id)") {
+		t.Fatalf("Get request does not pass the optional query id:\n%s", resource)
+	}
+	compileGenerated(t, out, input)
+}
+
+// singletonID needs an id that only the server sets: a Create body that lets the user set it would
+// make a value that flatten replaces.
+func TestSingletonIDRejectsAWritableID(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	writable := strings.Replace(string(spec), "              properties:\n                retentionDays:", "              properties:\n                id: {type: string}\n                retentionDays:", 1)
+	if writable == string(spec) {
+		t.Fatal("the fixture no longer has the Create body that this test changes")
+	}
+	overrides, err := os.ReadFile(filepath.Join("testdata", "singleton-id-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Without a readOnly line, the id is a field that the Create body sets.
+	err = generateSingleton(t, []byte(writable), string(overrides))
+	if err == nil || !strings.Contains(err.Error(), "lets a caller set") {
+		t.Fatalf("error = %v, want the id to be refused as writable", err)
+	}
+	// A readOnly line makes the id server-owned, when the contract does not say so.
+	open := strings.Replace(writable, "          description: Identifier that the server sets.\n          readOnly: true\n", "          description: Identifier that the server sets.\n", 1)
+	if open == writable {
+		t.Fatal("the fixture no longer has the read-only id that this test changes")
+	}
+	if err := generateSingleton(t, []byte(open), string(overrides)); err == nil || !strings.Contains(err.Error(), "lets a caller set") {
+		t.Fatalf("error without a readOnly line = %v, want the id to be refused as writable", err)
+	}
+	withLine := string(overrides) + "\ntypes:\n  Settings:\n    fields:\n      id: {readOnly: true}\n"
+	if err := generateSingleton(t, []byte(open), withLine); err != nil {
+		t.Fatalf("error with a readOnly line = %v, want none", err)
+	}
+}
+
+// A field line cannot make the id of a singleton configurable after the checks of the contract.
+func TestSingletonIDStaysComputedAfterTheFieldLines(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overrides, err := os.ReadFile(filepath.Join("testdata", "singleton-id-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, field := range []string{"{required: true, computed: false}", `{computed: true, default: "fixed"}`} {
+		line := string(overrides) + "\ntypes:\n  Settings:\n    fields:\n      id: " + field + "\n"
+		err = generateSingleton(t, spec, line)
+		if err == nil || !strings.Contains(err.Error(), "must stay computed-only") {
+			t.Fatalf("error with %s = %v, want the id to stay computed-only", field, err)
+		}
+	}
+}
+
+// singletonID needs an id field.
+func TestSingletonIDNeedsAnIDField(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overrides, err := os.ReadFile(filepath.Join("testdata", "singleton-id-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = generateSingleton(t, spec, string(overrides))
+	if err == nil || !strings.Contains(err.Error(), "has none") {
+		t.Fatalf("error = %v, want the resource to need an id field", err)
+	}
+}
+
+// generateSingleton generates the Settings singleton from a spec and an overrides text.
+func generateSingleton(t *testing.T, spec []byte, overrides string) error {
+	t.Helper()
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	path := filepath.Join(t.TempDir(), "behavior-overrides.yaml")
+	if err := os.WriteFile(path, []byte(overrides), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	options := Options{Resource: "settings", OutputDir: filepath.Join(t.TempDir(), "settings"), OverridesPath: path}
+	return generateFromInput(options, input, loadDir)
+}
+
+// api.singletonID supports a string id: the fallback to the type name and the import are strings.
+func TestSingletonIDRejectsANumericID(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	numeric := strings.Replace(string(spec), "          type: string\n          description: Identifier that the server sets.", "          type: integer\n          format: int32\n          description: Identifier that the server sets.", 1)
+	if numeric == string(spec) {
+		t.Fatal("the fixture no longer has the id that this test changes")
+	}
+	input.OpenAPI = []byte(numeric)
+	options := Options{Resource: "settings", OutputDir: filepath.Join(t.TempDir(), "settings"), OverridesPath: filepath.Join("testdata", "singleton-id-overrides.yaml")}
+	err = generateFromInput(options, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "must be a string") {
+		t.Fatalf("error = %v, want the id must be a string", err)
+	}
+}
+
+// The template reads and writes the model field Id, so an id property with another name would
+// generate code that does not compile.
+func TestSingletonIDRejectsAnIDPropertyWithAnotherName(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "singleton-id.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	renamed := strings.Replace(string(spec), "        id:\n", "        ID:\n", 1)
+	if renamed == string(spec) {
+		t.Fatal("the fixture no longer has the id that this test renames")
+	}
+	input.OpenAPI = []byte(renamed)
+	options := Options{Resource: "settings", OutputDir: filepath.Join(t.TempDir(), "settings"), OverridesPath: filepath.Join("testdata", "singleton-id-overrides.yaml")}
+	err = generateFromInput(options, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "named exactly") {
+		t.Fatalf("error = %v, want the id property must be named id", err)
+	}
 }
 
 // An immutable value that holds a value that the server sets compares only the
@@ -2020,6 +2347,58 @@ func generateSuppressedThing(t *testing.T) string {
 	return out
 }
 
+// A data source whose id attribute is not "id" looks up that attribute. The schema copy makes "id"
+// the lookup attribute, so the data source turns a value attribute named id back into a computed one.
+func TestDataSourceOfAnIDPropertyWithItsOwnName(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "suppressed.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text, err := os.ReadFile(filepath.Join("testdata", "suppressed-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overridesText := strings.Replace(string(text), "      uniqueIdentifier: {readOnly: true, name: id}\n      id: {skip: true}\n", "      uniqueIdentifier: {readOnly: true}\n", 1)
+	if overridesText == string(text) {
+		t.Fatal("the overrides did not change: update the replaced text")
+	}
+	overridesText += "\ndataSource: {}\n"
+	overridesPath := filepath.Join(t.TempDir(), overrides.FileName)
+	if err := os.WriteFile(overridesPath, []byte(overridesText), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "suppressedthing")
+	if err := generateFromInput(Options{Resource: "SuppressedThing", OutputDir: out, OverridesPath: overridesPath}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	semantics := `package suppressedthing
+
+import (
+	"context"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+)
+
+func TestDataSourceLooksUpTheIDProperty(t *testing.T) {
+	var resp datasource.SchemaResponse
+	NewDataSource(Hooks{}).Schema(context.Background(), datasource.SchemaRequest{}, &resp)
+	if a := resp.Schema.Attributes["unique_identifier"]; a == nil || !a.IsRequired() {
+		t.Fatalf("unique_identifier = %#v, want required", a)
+	}
+	if a := resp.Schema.Attributes["id"]; a == nil || !a.IsComputed() || a.IsRequired() || a.IsOptional() {
+		t.Fatalf("id = %#v, want computed-only", a)
+	}
+}
+`
+	if err := os.WriteFile(filepath.Join(out, "datasource_test.go"), []byte(semantics), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
 // The generated resource whose id property has another name than the path parameter sends no id on
 // Create, sends the id property on Update, and reads it back as the id attribute.
 func TestIDPropertyRuntimeSemantics(t *testing.T) {
@@ -2096,6 +2475,624 @@ func TestRenamedUpdateOnlyFieldUsesItsName(t *testing.T) {
 	}
 	if !strings.Contains(string(resource), `{attr: "compact_mode",`) || strings.Contains(string(resource), `{attr: "compact",`) {
 		t.Fatalf("updateOnlyFields does not name compact_mode:\n%s", functionBody(t, string(resource), "var updateOnlyFields"))
+	}
+	compileGenerated(t, out, input)
+}
+
+// generateEvalThingWith generates EvalThing with another overrides file and, when edit is not
+// nil, another spec.
+func generateEvalThingWith(t *testing.T, lines string, edit func(string) string) error {
+	t.Helper()
+	_, err := generateEvalThingInto(t, lines, edit, filepath.Join(t.TempDir(), "evalthing"))
+	return err
+}
+
+// generateEvalThingInto generates EvalThing into out, and returns the synthetic input to compile
+// it with.
+func generateEvalThingInto(t *testing.T, lines string, edit func(string) string, out string) (source.Input, error) {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "evalthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if edit != nil {
+		spec = []byte(edit(string(spec)))
+	}
+	path := filepath.Join(t.TempDir(), "behavior-overrides.yaml")
+	if err := os.WriteFile(path, []byte(lines), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	return input, generateFromInput(Options{Resource: "EvalThing", OutputDir: out, OverridesPath: path}, input, loadDir)
+}
+
+// evalThingLines are the overrides of EvalThing without the keys that a test varies.
+func evalThingLines(t *testing.T) string {
+	t.Helper()
+	lines, err := os.ReadFile(filepath.Join("testdata", "evalthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(lines)
+}
+
+func TestReleasedShapeErrors(t *testing.T) {
+	base := evalThingLines(t)
+	replace := func(old, new string) string {
+		t.Helper()
+		if !strings.Contains(base, old) {
+			t.Fatalf("the overrides lack %q", old)
+		}
+		return strings.Replace(base, old, new, 1)
+	}
+	tests := map[string]struct {
+		lines string
+		edit  func(string) string
+		want  string
+	}{
+		"requiresReplace below the top level": {
+			lines: replace("      context:\n        computed: true\n        default: \"\"\n", "      context:\n        requiresReplace: true\n"),
+			want:  "requiresReplace works on a top-level field of EvalThing only",
+		},
+		"requiresReplace on a field that Update requires": {
+			lines: base,
+			edit: func(spec string) string {
+				return strings.Replace(spec, "              title: UpdateEvalThingRequest\n              type: object\n", "              title: UpdateEvalThingRequest\n              type: object\n              required: [name]\n", 1)
+			},
+			want: "requiresReplace leaves the field out of the Update body, but the Update body requires it",
+		},
+		"an unsupported arm that is no arm": {
+			lines: replace("    unsupportedArms: [legacy]\n", "    unsupportedArms: [missing]\n"),
+			want:  `"missing" is not a oneOf arm`,
+		},
+		"unsupported arms that remove every arm": {
+			lines: replace("    unsupportedArms: [legacy]\n", "    unsupportedArms: [legacy, topics, toxicity]\n"),
+			want:  "removes every arm",
+		},
+		"an optional field that the omitted mask cannot clear": {
+			lines: replace("      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        markdownDescription: Whether the thing is enabled.\n"),
+			want:  "enabled: updateMask: omit sends no mask, so removing this optional attribute would not clear it",
+		},
+		"a renamed optional field that the omitted mask cannot clear": {
+			lines: replace("      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        name: is_on\n        markdownDescription: Whether the thing is enabled.\n"),
+			want:  "is_on: updateMask: omit sends no mask, so removing this optional attribute would not clear it",
+		},
+		"unsupported arms of the resource itself": {
+			lines: replace("  EvalThing:\n    fields:\n", "  EvalThing:\n    unsupportedArms: [config]\n    unsupportedSummary: Unsupported\n    unsupportedDetail: Not supported.\n    fields:\n"),
+			want:  "types.EvalThing.unsupportedArms: the oneOf arms of the resource itself are not supported",
+		},
+		"requiresReplace on every Update field": {
+			lines: replace("      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        requiresReplace: true\n      config:\n        requiresReplace: true\n"),
+			want:  "requiresReplace leaves no field that Update can change",
+		},
+		"a line that only an unsupported arm reaches": {
+			lines: replace("  TopicsEvalConfig:\n", "  LegacyEvalConfig:\n    fields:\n      limit:\n        markdownDescription: The limit.\n  TopicsEvalConfig:\n"),
+			want:  "types.LegacyEvalConfig: only unsupported arms reach the component, so the line changes nothing",
+		},
+		"an optional and computed field that the contract makes immutable": {
+			lines: replace("      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        computed: true\n"),
+			edit: func(spec string) string {
+				// Only Create has enabled, so the contract makes it immutable.
+				return strings.Replace(spec, "                enabled: {type: boolean, x-coralogix-presence: true}\n                updateMask:", "                updateMask:", 1)
+			},
+			want: "enabled: an optional and computed attribute cannot require replacement",
+		},
+		"a body mask that names the arm without updateMask: omit": {
+			lines: replace("updateMask: omit\n", ""),
+			want:  "UPDATE_MASK_NESTED_ONEOF_UNSUPPORTED",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if err := generateEvalThingWith(t, test.lines, test.edit); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+}
+
+// A field that keeps its state value is always in the Update body, so updateMask: omit accepts it
+// as optional. A field that keeps only a non-null state value has nothing to clear when it is null.
+func TestOmittedMaskAcceptsAStateKeptField(t *testing.T) {
+	for _, modifier := range []string{"useStateForUnknown", "useNonNullStateForUnknown"} {
+		t.Run(modifier, func(t *testing.T) {
+			lines := strings.Replace(evalThingLines(t), "      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        computed: true\n        "+modifier+": true\n", 1)
+			if err := generateEvalThingWith(t, lines, nil); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+// updateMask: omit sends no mask, so a mask pattern that cannot name an Update field path is no
+// error. This pattern accepts dotted paths but no name with an x, such as config.topics.context.
+func TestOmittedMaskIgnoresTheMaskPattern(t *testing.T) {
+	edit := func(spec string) string {
+		return strings.Replace(spec, `pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'`, `pattern: '^[a-wyzA-Z_]+(\.[a-wyzA-Z_]+)*(,[a-wyzA-Z_]+(\.[a-wyzA-Z_]+)*)*$'`, 1)
+	}
+	if err := generateEvalThingWith(t, evalThingLines(t), edit); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Without a mask the Update body holds a requestValueBy value, so updateMask: omit accepts it.
+func TestOmittedMaskAcceptsADerivedValue(t *testing.T) {
+	edit := func(spec string) string {
+		const field = "                enabled: {type: boolean, x-coralogix-presence: true}\n"
+		spec = strings.ReplaceAll(spec, field, field+"                kind: {$ref: '#/components/schemas/EvalTarget'}\n")
+		return strings.Replace(spec, "        enabled: {type: boolean}\n", "        enabled: {type: boolean}\n        kind: {$ref: '#/components/schemas/EvalTarget'}\n", 1)
+	}
+	lines := strings.Replace(evalThingLines(t), "      enabled:\n", "      kind:\n        requestValueBy: {config: PROMPT}\n      enabled:\n", 1)
+	if err := generateEvalThingWith(t, lines, edit); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// The discriminator of a oneOf is no arm, so unsupportedArms cannot remove it.
+func TestDropArmsRejectsTheDiscriminator(t *testing.T) {
+	typ := &model.Type{Kind: model.OneOf, Discriminator: "kind", Fields: []*model.Field{{Name: "kind"}, {Name: "a"}, {Name: "b"}}}
+	if _, err := dropArms(typ, []string{"kind"}); err == nil || !strings.Contains(err.Error(), `"kind" is not a oneOf arm`) {
+		t.Fatalf("err = %v, want the discriminator rejected", err)
+	}
+	if _, err := dropArms(typ, []string{"a"}); err != nil {
+		t.Fatalf("dropping an arm: %v", err)
+	}
+	if _, err := dropArms(typ, []string{"b"}); err == nil || !strings.Contains(err.Error(), "removes every arm") {
+		t.Fatalf("err = %v, want removing the last arm next to the discriminator rejected", err)
+	}
+}
+
+// An unwrap entry whose wrapper only a removed arm reached changes nothing, so it is an error.
+func TestCheckReachableLinesUnwrap(t *testing.T) {
+	wrapped := &model.Type{Kind: model.String, Wrappers: []model.Wrapper{{Schema: "LimitWrapper", Field: "value"}}}
+	arm := &model.Type{Kind: model.Object, Schema: "Legacy", Fields: []*model.Field{{Name: "limit", Type: wrapped}}}
+	with := &model.Resource{Name: "R", Fields: []*model.ResourceField{{Name: "legacy", Type: arm}}}
+	without := &model.Resource{Name: "R"}
+	file := &overrides.File{Unwrap: []string{"LimitWrapper"}}
+	err := checkReachableLines(file, reachableComponents(with), reachableComponents(without))
+	if err == nil || !strings.Contains(err.Error(), "unwrap.LimitWrapper: only unsupported arms reach the wrapper") {
+		t.Fatalf("err = %v, want the unwrap entry reported", err)
+	}
+	if err := checkReachableLines(file, reachableComponents(with), reachableComponents(with)); err != nil {
+		t.Fatalf("a reachable wrapper: %v", err)
+	}
+}
+
+// A PUT replaces the whole resource, so its body keeps a requiresReplace field: without it, an
+// update of another field would clear the field on the server.
+func TestRequiresReplaceKeepsTheFieldInAPut(t *testing.T) {
+	edit := func(spec string) string {
+		spec = strings.Replace(spec, "    patch:\n", "    put:\n", 1)
+		return strings.Replace(spec, "                updateMask: {type: string, pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'}\n", "", 1)
+	}
+	lines := evalThingLines(t)
+	for _, old := range []string{"api:\n  updateMaskInBody: true\n", "updateMask: omit\n"} {
+		if !strings.Contains(lines, old) {
+			t.Fatalf("the overrides lack %q", old)
+		}
+		lines = strings.Replace(lines, old, "", 1)
+	}
+	out := filepath.Join(t.TempDir(), "evalthing")
+	input, err := generateEvalThingInto(t, lines, edit, out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	convert, err := os.ReadFile(filepath.Join(out, "convert.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := functionBody(t, string(convert), "func expandUpdateEvalThingRequest(")
+	for _, want := range []string{"out.Name =", "out.Target =", "out.Config ="} {
+		if !strings.Contains(body, want) {
+			t.Errorf("the PUT body lacks %q:\n%s", want, body)
+		}
+	}
+	schema, err := os.ReadFile(filepath.Join(out, "schema.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Count(string(schema), "planmodifier.RequiresReplace()"); got < 2 {
+		t.Errorf("schema.go has %d RequiresReplace modifiers, want name and target", got)
+	}
+	compileGenerated(t, out, input)
+}
+
+// A sendNullAsEmpty field sends "" when the configuration removes it, so updateMask: omit
+// accepts it as clearable.
+func TestOmittedMaskAcceptsSendNullAsEmpty(t *testing.T) {
+	edit := func(spec string) string {
+		spec = strings.Replace(spec, "required: [name, target, config]", "required: [target, config]", 1)
+		return strings.Replace(spec, "required: [id, name, config]", "required: [id, config]", 1)
+	}
+	lines := strings.Replace(evalThingLines(t), "      name:\n        requiresReplace: true\n", "      name:\n        sendNullAsEmpty: true\n        readEmptyAs: \"null\"\n", 1)
+	if err := generateEvalThingWith(t, lines, edit); err != nil {
+		t.Fatal(err)
+	}
+	plain := strings.Replace(evalThingLines(t), "      name:\n        requiresReplace: true\n", "", 1)
+	if err := generateEvalThingWith(t, plain, edit); err == nil || !strings.Contains(err.Error(), "name: updateMask: omit sends no mask") {
+		t.Fatalf("err = %v, want a plain optional name rejected", err)
+	}
+}
+
+// updateMask: omit sends no mask, so a mask pattern that generated masks cannot use is no error.
+func TestOmittedMaskIgnoresAnUnsafePattern(t *testing.T) {
+	edit := func(spec string) string {
+		return strings.Replace(spec, `pattern: '^[a-zA-Z_][a-zA-Z0-9_]*(,[a-zA-Z_][a-zA-Z0-9_]*)*$'`, `pattern: '^.*$'`, 1)
+	}
+	if err := generateEvalThingWith(t, evalThingLines(t), edit); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// A zero default is cleared only when Update sends it: without presence, Update leaves a zero out,
+// and with updateMask: omit the server keeps the old value.
+func TestOmittedMaskRejectsAnUnsentZeroDefault(t *testing.T) {
+	lines := strings.Replace(evalThingLines(t), "      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        computed: true\n        default: false\n", 1)
+	if err := generateEvalThingWith(t, lines, nil); err != nil {
+		t.Fatalf("with presence in Update: %v", err)
+	}
+	noPresence := func(spec string) string {
+		const update = "                enabled: {type: boolean, x-coralogix-presence: true}\n                updateMask:"
+		if !strings.Contains(spec, update) {
+			t.Fatal("the spec lacks the Update enabled field")
+		}
+		return strings.Replace(spec, update, "                enabled: {type: boolean}\n                updateMask:", 1)
+	}
+	if err := generateEvalThingWith(t, lines, noPresence); err == nil || !strings.Contains(err.Error(), "enabled: updateMask: omit cannot clear this attribute: its default is the zero value") {
+		t.Fatalf("without presence in Update: err = %v, want the zero default rejected", err)
+	}
+}
+
+// An enum that only an unsupported arm reaches still needs its enums line: the contract check
+// runs before the arm is removed. So the line is not reported as unreachable afterwards.
+func TestUnsupportedArmKeepsItsEnumLine(t *testing.T) {
+	edit := func(spec string) string {
+		const legacy = "    LegacyEvalConfig:\n      type: object\n      required: []\n      properties:\n"
+		if !strings.Contains(spec, legacy) {
+			t.Fatal("the spec lacks LegacyEvalConfig")
+		}
+		spec = strings.Replace(spec, legacy, legacy+"        mode: {$ref: '#/components/schemas/LegacyMode'}\n", 1)
+		return strings.Replace(spec, "    EvalThing:\n", "    LegacyMode:\n      type: string\n      enum: [LEGACY_MODE_UNSPECIFIED, LEGACY_MODE_ON]\n    EvalThing:\n", 1)
+	}
+	lines := evalThingLines(t) + "  LegacyMode:\n    zero: unspecified\n    values: [LEGACY_MODE_ON]\n"
+	if err := generateEvalThingWith(t, lines, edit); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// uniqueBy, the float32 precision of a float attribute, and an enum alias are generic checks of a
+// released resource. The precision is a limit of the contract, so validators.inferred: false leaves it out.
+func TestConfigChecksFromGenericKeys(t *testing.T) {
+	rule := &model.Type{Kind: model.Object, Schema: "Rule", CreateSchema: "Rule", Fields: []*model.Field{
+		{Name: "entityType", Type: &model.Type{Kind: model.String}, Behavior: model.Normal, Create: &model.Attrs{Required: true}},
+		{Name: "allocation", Type: &model.Type{Kind: model.Number, Format: "float"}, Behavior: model.Normal, Create: &model.Attrs{Required: true, Presence: true}},
+		{Name: "mode", Type: &model.Type{Kind: model.Enum, Schema: "RuleMode", Values: []string{"RULE_MODE_ONE", "RULE_MODE_TWO"}, EnumZero: "RULE_MODE_UNSPECIFIED"}, Behavior: model.Normal, Create: &model.Attrs{}},
+	}}
+	resource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{
+		{Name: "rules", Type: &model.Type{Kind: model.Set, Elem: rule}, Behavior: model.Normal, Create: &model.Attrs{}, Get: &model.Attrs{}, InGet: true},
+		{Name: "name", Type: &model.Type{Kind: model.String}, Behavior: model.Normal, Create: &model.Attrs{Required: true}, Get: &model.Attrs{}, InGet: true},
+	}}
+	lines := "types:\n  Thing:\n    fields:\n      rules: {uniqueBy: entityType}\nenums:\n  RuleMode:\n    zero: unspecified\n    trimPrefix: RULE_MODE_\n    values: [RULE_MODE_ONE, RULE_MODE_TWO]\n    aliases: {unspecified: one}\n"
+	head := func(inferred string) string {
+		return "resource: Thing\nmode: existing\nvalidators:\n  inferred: " + inferred + "\n"
+	}
+
+	data, err := buildTFResourceWith(resource, "thing", mustParse(t, head("true")+lines))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []uniqueCheck{{Attr: "rules", Key: "entity_type"}}; !slices.Equal(data.UniqueChecks, want) {
+		t.Errorf("unique checks = %v, want %v", data.UniqueChecks, want)
+	}
+	if want := []string{"rules.allocation"}; !slices.Equal(data.Float32Paths, want) {
+		t.Errorf("float32 paths = %v, want %v", data.Float32Paths, want)
+	}
+	if want := []enumAlias{{Path: "rules.mode", Pairs: []aliasPair{{From: "unspecified", To: "one"}}}}; !reflect.DeepEqual(data.EnumAliases, want) {
+		t.Errorf("enum aliases = %v, want %v", data.EnumAliases, want)
+	}
+
+	data, err = buildTFResourceWith(resource, "thing", mustParse(t, head("false")+lines))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(data.Float32Paths) != 0 {
+		t.Errorf("float32 paths = %v, want none for validators.inferred: false", data.Float32Paths)
+	}
+
+	// Terraform checks a configured value in a list against the plan, so an alias in a list is an error.
+	listResource := &model.Resource{Name: "Thing", Fields: []*model.ResourceField{
+		{Name: "rules", Type: &model.Type{Kind: model.List, Elem: rule}, Behavior: model.Normal, Create: &model.Attrs{}, Get: &model.Attrs{}, InGet: true},
+	}}
+	if _, err := buildTFResourceWith(listResource, "thing", mustParse(t, head("true")+lines)); err == nil || !strings.Contains(err.Error(), "only for an attribute inside the items of a set") {
+		t.Errorf("alias in a list: err = %v, want the set rule", err)
+	}
+
+	for name, tc := range map[string]struct{ lines, want string }{
+		"a key with aliases": {"types:\n  Thing:\n    fields:\n      rules: {uniqueBy: mode}\nenums:\n  RuleMode:\n    zero: unspecified\n    trimPrefix: RULE_MODE_\n    values: [RULE_MODE_ONE, RULE_MODE_TWO]\n    aliases: {unspecified: one}\n", "would count as two keys"},
+		"no such property":   {"types:\n  Thing:\n    fields:\n      rules: {uniqueBy: missing}\n", `have no property "missing"`},
+		"not a collection":   {"types:\n  Thing:\n    fields:\n      name: {uniqueBy: entityType}\n", "no list or set of objects"},
+		"not a string":       {"types:\n  Thing:\n    fields:\n      rules: {uniqueBy: allocation}\n", "no plain string"},
+	} {
+		_, err := buildTFResourceWith(resource, "thing", mustParse(t, head("true")+tc.lines))
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: err = %v, want %q", name, err, tc.want)
+		}
+	}
+}
+
+// The generated code of a released resource checks a duplicate uniqueBy value and the float32
+// precision before the write, and plans an enum alias as its target.
+func TestGeneratedGenericChecks(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "rulebook.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "rulebook")
+	options := Options{Resource: "rulebook", OutputDir: out, OverridesPath: filepath.Join("testdata", "rulebook-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	semantics := `package rulebook
+
+import (
+	"math/big"
+	"strings"
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+)
+
+func rulesConfig(t *testing.T, rules ...map[string]tftypes.Value) tfsdk.Config {
+	t.Helper()
+	ruleType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"entity_type": tftypes.String, "allocation": tftypes.Number, "mode": tftypes.String}}
+	items := []tftypes.Value{}
+	for _, r := range rules {
+		items = append(items, tftypes.NewValue(ruleType, r))
+	}
+	attrs := map[string]tftypes.Type{}
+	for name, a := range Schema().Attributes {
+		attrs[name] = a.GetType().TerraformType(t.Context())
+	}
+	values := map[string]tftypes.Value{}
+	for name, typ := range attrs {
+		values[name] = tftypes.NewValue(typ, nil)
+	}
+	values["rules"] = tftypes.NewValue(tftypes.Set{ElementType: ruleType}, items)
+	return tfsdk.Config{Schema: Schema(), Raw: tftypes.NewValue(tftypes.Object{AttributeTypes: attrs}, values)}
+}
+
+func rule(entity string, allocation any) map[string]tftypes.Value {
+	return map[string]tftypes.Value{
+		"entity_type": tftypes.NewValue(tftypes.String, entity),
+		"allocation":  tftypes.NewValue(tftypes.Number, allocation),
+		"mode":        tftypes.NewValue(tftypes.String, nil),
+	}
+}
+
+func TestGenericChecks(t *testing.T) {
+	if d := configChecks(rulesConfig(t, rule("logs", 10), rule("spans", 0.5), rule("metrics", 99.2), rule("alerts", 0.1))); d.HasError() {
+		t.Fatalf("valid config: %v", d)
+	}
+	d := configChecks(rulesConfig(t, rule("logs", 10), rule("logs", 20)))
+	if !d.HasError() || !strings.Contains(d[0].Summary(), "Duplicate rules entity_type") {
+		t.Fatalf("duplicate entity_type: %v", d)
+	}
+	// A difference below float64 precision is still a difference.
+	almostHalf, _, err := big.ParseFloat("0.5000000000000000000000000001", 10, 512, big.ToNearestEven)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if d := configChecks(rulesConfig(t, rule("logs", almostHalf))); !d.HasError() {
+		t.Fatalf("a number just above 0.5 reads back as 0.5: %v", d)
+	}
+	d = configChecks(rulesConfig(t, rule("logs", 0.1234567891)))
+	if !d.HasError() || !strings.Contains(d[0].Detail(), "stores it as float32") {
+		t.Fatalf("float32 precision: %v", d)
+	}
+}
+
+func TestEnumAliasIsPlannedAsItsTarget(t *testing.T) {
+	ruleType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"mode": tftypes.String}}
+	plan := tftypes.NewValue(tftypes.Object{AttributeTypes: map[string]tftypes.Type{"rules": tftypes.Set{ElementType: ruleType}}}, map[string]tftypes.Value{
+		"rules": tftypes.NewValue(tftypes.Set{ElementType: ruleType}, []tftypes.Value{
+			tftypes.NewValue(ruleType, map[string]tftypes.Value{"mode": tftypes.NewValue(tftypes.String, "unspecified")}),
+			tftypes.NewValue(ruleType, map[string]tftypes.Value{"mode": tftypes.NewValue(tftypes.String, "two")}),
+		}),
+	})
+	got, err := normalizeEnumAliases(plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var root map[string]tftypes.Value
+	var items []tftypes.Value
+	if err := got.As(&root); err != nil || root["rules"].As(&items) != nil {
+		t.Fatal(err)
+	}
+	modes := map[string]bool{}
+	for _, item := range items {
+		var fields map[string]tftypes.Value
+		var mode string
+		if err := item.As(&fields); err != nil || fields["mode"].As(&mode) != nil {
+			t.Fatal(err)
+		}
+		modes[mode] = true
+	}
+	if !modes["one"] || !modes["two"] || modes["unspecified"] {
+		t.Fatalf("modes = %v, want one and two", modes)
+	}
+}
+`
+	if err := os.WriteFile(filepath.Join(out, "generic_checks_test.go"), []byte(semantics), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// The float32 precision check also covers the elements of a list, set, or map of floats.
+func TestFloat32PathsIncludeCollections(t *testing.T) {
+	attrs := []*tfAttr{
+		{Name: "ratio", ValueKind: "Float32", Optional: true},
+		{Name: "ratios", ValueKind: "List", ElementType: "types.Float32Type", Optional: true},
+		{Name: "by_name", ValueKind: "Map", ElementType: "types.Float32Type", Optional: true},
+		{Name: "names", ValueKind: "Set", ElementType: "types.StringType", Optional: true},
+		{Name: "server", ValueKind: "List", ElementType: "types.Float32Type", Computed: true},
+		{Name: "group", ValueKind: "Object", Optional: true, Attributes: []*tfAttr{{Name: "weights", ValueKind: "Set", ElementType: "types.Float32Type", Optional: true}}},
+	}
+	want := []string{"ratio", "ratios", "by_name", "group.weights"}
+	if got := float32Paths(nil, "", attrs); !slices.Equal(got, want) {
+		t.Fatalf("float32 paths = %v, want %v", got, want)
+	}
+}
+
+// The golden output of a singleton that one call sets and another reads. Create and Update are
+// the Set call, Delete makes no call, and the fields of the inlined objects are top-level
+// attributes. Read treats a response without the inlined arm as no resource.
+func TestGoldenOutputUpsert(t *testing.T) {
+	out := generateUpsertThing(t)
+	golden := filepath.Join("testdata", "golden", "upsertthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputUpsert -update:\n%s", diff)
+	}
+}
+
+// generateUpsertThing generates the synthetic singleton that one call sets and another reads.
+func generateUpsertThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "upsert.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "upsertthing")
+	options := Options{Resource: "Target", OutputDir: out, OverridesPath: filepath.Join("testdata", "upsert-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// The generated singleton that one call sets creates and updates with that call, makes no call on
+// Delete, and removes the resource from the state when the API returns another arm.
+func TestUpsertRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateUpsertThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "upsert_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// The golden output of a released resource whose path parameter has another name than the id
+// field, whose Create returns only the id, and whose Replace returns an object with no fields.
+func TestGoldenOutputFolderBody(t *testing.T) {
+	out := generateFolderThing(t)
+	golden := filepath.Join("testdata", "golden", "folderthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputFolderBody -update:\n%s", diff)
+	}
+}
+
+// Create reads the resource that it made, with Get, because its response holds only the id.
+// Update reads it too, because the Replace response has no fields.
+func TestFolderBodyRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateFolderThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "folderthing_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// generateFolderThing generates the synthetic resource whose Create returns only the id.
+func generateFolderThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "folderthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "folderthing")
+	options := Options{Resource: "FolderThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "folderthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// A Create response whose id is a required field is a value in the SDK, not a pointer. The SDK
+// check writes the value type into the reference, so the generated Create tests the value and
+// compiles.
+func TestCreateResponseIDAsAValue(t *testing.T) {
+	input, loadDir := copiedSyntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "folderthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := strings.Replace(string(spec), "      properties:\n        thingId: {type: string, x-coralogix-presence: true}\n", "      required: [thingId]\n      properties:\n        thingId: {type: string}\n", 1)
+	if changed == string(spec) {
+		t.Fatal("the test contract did not change: update the replaced text")
+	}
+	input.OpenAPI = []byte(changed)
+	mock := filepath.Join(input.SDKDir, "go", "openapi", "gen", "folder_things_service", "folder.go")
+	source, err := os.ReadFile(mock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	valued := strings.NewReplacer("	ThingId *string\n", "	ThingId string\n", "&CreateFolderThingResponse{ThingId: &id}", "&CreateFolderThingResponse{ThingId: id}").Replace(string(source))
+	if valued == string(source) {
+		t.Fatal("the mock SDK did not change: update the replaced text")
+	}
+	if err := os.WriteFile(mock, []byte(valued), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(t.TempDir(), "folderthing")
+	options := Options{Resource: "FolderThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "folderthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	resource, err := os.ReadFile(filepath.Join(out, "resource.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(resource), `out.ThingId == ""`) || strings.Contains(string(resource), "*out.ThingId") {
+		t.Fatal("the generated Create does not treat the id as a value")
+	}
+	semantics, err := os.ReadFile(filepath.Join("testdata", "folderthing_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
 	}
 	compileGenerated(t, out, input)
 }

@@ -39,8 +39,9 @@ func writeFile(t *testing.T, path, text string) {
 	}
 }
 
-// The golden provider files of the new synthetic resource: the registry, and the docs example and
-// import command. A second run writes the same files over the first.
+// The golden provider files of the new synthetic resource: the registry, versions.yaml, the docs
+// example, the import command, and the docs example of the data source. A second run writes the
+// same files over the first.
 func TestGoldenProviderFiles(t *testing.T) {
 	input, loadDir, out := inProvider(t, "thing")
 	for range 2 {
@@ -50,10 +51,13 @@ func TestGoldenProviderFiles(t *testing.T) {
 	}
 	compileRegistry(t, input.ModuleRoot, out)
 	examples := filepath.Join(input.ModuleRoot, "examples", "resources", "coralogix_thing")
+	dataSourceExamples := filepath.Join(input.ModuleRoot, "examples", "data-sources", "coralogix_thing")
 	got := map[string]string{
 		registryFileName: readFile(t, filepath.Join(filepath.Dir(out), registryFileName)),
+		versionsFileName: readFile(t, filepath.Join(filepath.Dir(out), versionsFileName)),
 		"resource.tf":    readFile(t, filepath.Join(examples, "resource.tf")),
 		"import.sh":      readFile(t, filepath.Join(examples, "import.sh")),
+		"data-source.tf": readFile(t, filepath.Join(dataSourceExamples, "data-source.tf")),
 	}
 	golden := filepath.Join("testdata", "golden", "provider")
 	for name, text := range got {
@@ -71,6 +75,31 @@ func TestGoldenProviderFiles(t *testing.T) {
 	}
 	if len(entries) != 2 {
 		t.Errorf("examples directory has %d entries, want resource.tf and import.sh: a staged file stayed", len(entries))
+	}
+	if entries, err = os.ReadDir(dataSourceExamples); err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 {
+		t.Errorf("data source examples directory has %d entries, want data-source.tf: a staged file stayed", len(entries))
+	}
+}
+
+// The docs example of the data source of a new resource with a numeric id sets a number, because
+// Terraform rejects a string for an Int64 attribute.
+func TestGoldenDataSourceExampleNumericID(t *testing.T) {
+	input, loadDir, out := inProvider(t, "thing")
+	input.OpenAPI = integerIDOpenAPI(t, input.OpenAPI, "int64")
+	integerIDSDK(t, input.SDKDir, "int64")
+	if err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	got := readFile(t, filepath.Join(input.ModuleRoot, "examples", "data-sources", "coralogix_thing", "data-source.tf"))
+	path := filepath.Join("testdata", "golden", "provider", "data-source-int64.tf")
+	if *updateGolden {
+		writeFile(t, path, got)
+	}
+	if want := readFile(t, path); got != want {
+		t.Errorf("data-source.tf differs from %s; run go test ./internal/generator -run TestGoldenDataSourceExampleNumericID -update:\n%s", path, got)
 	}
 }
 
@@ -136,6 +165,9 @@ func TestExistingResourceGetsNoDocsFiles(t *testing.T) {
 	if registry := readFile(t, filepath.Join(filepath.Dir(out), registryFileName)); strings.Contains(registry, "archivedthing") {
 		t.Errorf("registry lists an existing resource:\n%s", registry)
 	}
+	if versions := readFile(t, filepath.Join(filepath.Dir(out), versionsFileName)); !strings.Contains(versions, "\narchivedthing: "+version.Current+"\n") {
+		t.Errorf("versions.yaml lacks the version of an existing resource:\n%s", versions)
+	}
 }
 
 // The registry tells a new resource from an existing one by the behavior-overrides file in its
@@ -156,8 +188,8 @@ func TestExistingResourceInProviderNeedsOverridesInOutput(t *testing.T) {
 	}
 }
 
-// A handwritten example stays, and a registry without the generator header stays. In both cases
-// the generator writes nothing.
+// A handwritten example stays, and a registry or versions.yaml without the generator header stays.
+// In each case the generator writes nothing.
 func TestProviderFilesKeepHandwrittenFiles(t *testing.T) {
 	tests := map[string]struct {
 		path func(root, out string) string
@@ -168,6 +200,9 @@ func TestProviderFilesKeepHandwrittenFiles(t *testing.T) {
 		}, "tfgen did not write it"},
 		"registry": {func(_, out string) string {
 			return filepath.Join(filepath.Dir(out), registryFileName)
+		}, "is not generator-owned"},
+		"versions": {func(_, out string) string {
+			return filepath.Join(filepath.Dir(out), versionsFileName)
 		}, "is not generator-owned"},
 	}
 	for name, test := range tests {
@@ -184,6 +219,53 @@ func TestProviderFilesKeepHandwrittenFiles(t *testing.T) {
 			}
 			if _, statErr := os.Stat(out); !os.IsNotExist(statErr) {
 				t.Fatal("the generator wrote output although it rejected the run")
+			}
+		})
+	}
+}
+
+// versions.yaml sets the line of the package of the run, drops the line of a package whose
+// directory is gone, and keeps the other lines. The lines are sorted by package name.
+func TestVersionsFileUpdatesThePackageAndDropsGonePackages(t *testing.T) {
+	input, loadDir, out := inProvider(t, "thing")
+	generated := filepath.Dir(out)
+	writeFile(t, filepath.Join(generated, "zeta", "schema.go"), version.Header+"\n\npackage zeta\n")
+	writeFile(t, filepath.Join(generated, "alpha", "schema.go"), version.Header+"\n\npackage alpha\n")
+	writeFile(t, filepath.Join(generated, versionsFileName),
+		versionsHeader+"zeta: v0.0.1\nthing: v0.0.1\ngone: v0.0.1\nalpha: v0.0.2\n")
+	for range 2 {
+		if err := generateFromInput(Options{Resource: "Thing", OutputDir: out}, input, loadDir); err != nil {
+			t.Fatal(err)
+		}
+		want := versionsHeader + "alpha: v0.0.2\nthing: " + version.Current + "\nzeta: v0.0.1\n"
+		if got := readFile(t, filepath.Join(generated, versionsFileName)); got != want {
+			t.Fatalf("versions.yaml =\n%s\nwant\n%s", got, want)
+		}
+	}
+}
+
+// Publish replaces an output whose Go files have the generator header, or the header with a
+// version that older generator versions wrote. A Go file without a generator header stops it.
+func TestPublishAcceptsBothGeneratorHeaders(t *testing.T) {
+	tests := map[string]struct {
+		prior string
+		owned bool
+	}{
+		"header":              {version.Header + "\npackage thing\n", true},
+		"header with version": {"// Code generated by coralogix-iac-codegen v0.1.0-beta.41. DO NOT EDIT.\npackage thing\n", true},
+		"handwritten":         {"package thing\n", false},
+		"other generator":     {"// Code generated by other. DO NOT EDIT.\npackage thing\n", false},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			out := filepath.Join(t.TempDir(), "thing")
+			writeFile(t, filepath.Join(out, "prior.go"), test.prior)
+			err := publish(out, map[string][]byte{"next.go": []byte(version.Header + "\npackage thing\n")})
+			if test.owned != (err == nil) {
+				t.Fatalf("publish = %v, want owned %v", err, test.owned)
+			}
+			if !test.owned && readFile(t, filepath.Join(out, "prior.go")) != test.prior {
+				t.Fatal("publish replaced a file without a generator header")
 			}
 		})
 	}

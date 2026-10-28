@@ -1,0 +1,12 @@
+[
+  {
+    "step": "create with an empty name",
+    "config": {
+      "name": ""
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"name\")] | Attribute name string length must be between 1 and 100, got: 0"
+    ],
+    "state": null
+  }
+]
