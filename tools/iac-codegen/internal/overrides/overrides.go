@@ -726,6 +726,10 @@ func (f *File) checkTypes() error {
 			if err := line.check(); err != nil {
 				return fmt.Errorf("types.%s.fields.%s: %w", name, field, err)
 			}
+			if line.RequestAs != "" && name != f.Resource {
+				// Only a field of the resource component has a request path of its own.
+				return fmt.Errorf("types.%s.fields.%s: requestAs works on a field of the resource component %s only", name, field, f.Resource)
+			}
 			if len(line.CreateAs) != 0 && name != f.Resource {
 				// Only the Create body of the resource has top-level fields to fold.
 				return fmt.Errorf("types.%s.fields.%s: createAs works on a field of the resource component %s only", name, field, f.Resource)
@@ -924,7 +928,7 @@ func (l Field) emptyMode() bool {
 
 func (l Field) emptyValue() bool {
 	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.KeyedBy == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() &&
-		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == ""
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == ""
 }
 
 func (l Field) check() error {

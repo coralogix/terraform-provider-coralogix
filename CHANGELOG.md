@@ -30,7 +30,7 @@
 - CHORE: Bump `coralogix-management-sdk` to the version with the AI evaluations contract. `coralogix_dashboards_folder` and `coralogix_dashboard` adapt to its types: the folder name is a required string, and the dashboard of a replace request is optional. A `coralogix_dashboards_folder` without `name` now sends an empty name: the API still rejects it, now with "folder name cannot be empty".
 
 #### tools/iac-codegen
-- FEAT: An existing resource whose Create and Update requests hold another component than the resource in their wrapper can map a field to its request path with `api.requestNames` (a renamed property, or one inside an object), and send the Update id beside the wrapper with `api.updateIDOutsideWrapper`.
+- FEAT: An existing resource whose Create and Update requests hold another component than the resource in their wrapper can map a field to its request path with `requestAs` on the field line (a renamed property, or one inside an object), and send the Update id beside the wrapper with `api.updateIDOutsideWrapper`.
 - CHORE: Bump the generator to `v0.1.0-beta.50`.
 - FEAT: An existing singleton data source can set `dataSource.queryID: true` to retain an optional `id` input and pass it to an optional string Get query parameter named `id`. Without the input, the API request leaves the query parameter unset.
 - CHORE: Bump the generator to `v0.1.0-beta.49`.

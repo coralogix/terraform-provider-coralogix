@@ -11,10 +11,6 @@ api:
   serverSetID: true
   customMethods: true
   createResponseOnlyIDProperty: integrationId
-  requestNames:
-    definitionKey: integrationKey
-    definitionVersion: version
-    parameters: integrationParameters.parameters
   operations:
     create: IntegrationService_SaveIntegration
     get: IntegrationService_GetDeployedIntegration
@@ -23,5 +19,7 @@ api:
 types:
   DeployedIntegrationInformation:
     fields:
-      parameters: {skip: true}
+      parameters: {skip: true, requestAs: integrationParameters.parameters}
+      definitionKey: {requestAs: integrationKey}
+      definitionVersion: {requestAs: version}
       integrationStatus: {skip: true}

@@ -15,10 +15,6 @@ api:
   serverSetID: true
   customMethods: true
   createResponseOnlyIDProperty: thingId
-  requestNames:
-    kind: specKind
-    version: specVersion
-    parameters: holder.items
   operations:
     create: RenameThingsService_SaveRenameThing
     get: RenameThingsService_GetRenameThing
@@ -31,6 +27,10 @@ hooks:
   client: true
 types:
   RenameThing:
+    fields:
+      kind: {requestAs: specKind}
+      version: {requestAs: specVersion}
+      parameters: {requestAs: holder.items}
     extraAttributes:
       settings:
         dynamic: true

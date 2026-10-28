@@ -3163,7 +3163,7 @@ func TestRequestShapeSkippedFieldHasNoRequestPath(t *testing.T) {
 	spec = []byte(strings.Replace(string(spec), "required: [specKind, holder]", "required: [specKind]", 1))
 	dir := t.TempDir()
 	path := filepath.Join(dir, "overrides.yaml")
-	skipped := strings.Replace(string(overrides), "    extraAttributes:", "    fields:\n      parameters: {skip: true}\n    extraAttributes:", 1)
+	skipped := strings.Replace(string(overrides), "      parameters: {requestAs: holder.items}", "      parameters: {skip: true, requestAs: holder.items}", 1)
 	if err := os.WriteFile(path, []byte(skipped), 0o644); err != nil {
 		t.Fatal(err)
 	}

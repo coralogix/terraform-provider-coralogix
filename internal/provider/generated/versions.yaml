@@ -8,7 +8,7 @@ connector: v0.1.0-beta.50
 dashboardsfolder: v0.1.0-beta.50
 events2metric: v0.1.0-beta.50
 globalrouter: v0.1.0-beta.50
-integration: v0.1.0-beta.50
+integration: v0.1.0-beta.51
 preset: v0.1.0-beta.50
 quotaallocationruleset: v0.1.0-beta.50
 slov2: v0.1.0-beta.50
