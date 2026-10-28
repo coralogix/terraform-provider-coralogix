@@ -252,7 +252,7 @@ func updateIDFromState(r *model.Resource, ix *refIndex, out *crudData) error {
 	if sdkcheck.ServerSetBodyID(r) == nil {
 		return nil
 	}
-	if wrapper := r.Policy.RequestWrapper; wrapper != "" {
+	if wrapper := r.Policy.RequestWrapper; wrapper != "" && !r.UpdateIDOutsideWrapper {
 		out.UpdateBodyID, out.UpdateBodyIDValue = goFieldName(wrapper)+"."+out.IDField, out.IDValue
 		return nil
 	}

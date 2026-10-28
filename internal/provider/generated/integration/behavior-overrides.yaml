@@ -1,0 +1,27 @@
+resource: DeployedIntegrationInformation
+mode: existing
+typeName: integration
+validators:
+  inferred: false
+api:
+  requestWrapper: metadata
+  updateIDInBody: true
+  updateIDOutsideWrapper: true
+  idProperty: id
+  serverSetID: true
+  customMethods: true
+  createResponseOnlyIDProperty: integrationId
+  requestNames:
+    definitionKey: integrationKey
+    definitionVersion: version
+    parameters: integrationParameters.parameters
+  operations:
+    create: IntegrationService_SaveIntegration
+    get: IntegrationService_GetDeployedIntegration
+    update: IntegrationService_UpdateIntegration
+    delete: IntegrationService_DeleteIntegration
+types:
+  DeployedIntegrationInformation:
+    fields:
+      parameters: {skip: true}
+      integrationStatus: {skip: true}
