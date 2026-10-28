@@ -85,10 +85,9 @@ Every PR must update `CHANGELOG.md`. The CI `changelog-check` workflow enforces 
 
 Exception: non-user-facing repository hygiene changes, such as pre-commit hook updates or CI-only changes, do not need a changelog entry unless the user explicitly asks for one.
 
-**Where to add your entry:**
+**Every merge with changelog entries is a release.** Add your bullet points under `# Unreleased`, then run `make bump` in the same PR (`make bump BUMP=minor` or `BUMP=major` for a bigger step). It sets the next version in `internal/clientset/version.go` and moves the entries under `# Release X.Y.Z`. On merge, `release-provider.yml` tags the commit, publishes the release, and waits for the Terraform Registry. The `version-bump` job of `changelog-check` fails a PR that adds `# Unreleased` entries without a bump, skips a version, or bumps from an outdated base.
 
-- **Normal PR** — add bullet points under the `# Unreleased` section at the top of the file.
-- **Release PR** (the PR that bumps `internal/clientset/version.go` to a new version) — rename `# Unreleased` to `# Release X.Y.Z` matching the new version, and add a fresh empty `# Unreleased` section above it.
+If another release merges first, update the branch, move your entries back under `# Unreleased`, reset `version.go` to master's version, and run `make bump` again.
 
 Keep entries concise: one line per change, prefixed with the affected resource/data-source path when relevant. Examples:
 

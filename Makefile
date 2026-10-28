@@ -47,6 +47,13 @@ release:
 	GOOS=windows GOARCH=386 go build -o ./bin/${BINARY}_${VERSION}_windows_386
 	GOOS=windows GOARCH=amd64 go build -o ./bin/${BINARY}_${VERSION}_windows_amd64
 
+# Prepare a release in the current PR: set the next version in internal/clientset/version.go
+# and move the "# Unreleased" changelog entries under "# Release X.Y.Z". Merging the PR
+# releases it. BUMP=minor or BUMP=major for a bigger step.
+BUMP ?= patch
+bump:
+	python3 .github/scripts/release/release.py bump $(BUMP)
+
 install: build
 	mkdir -p ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
 	mv ${BINARY} ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
