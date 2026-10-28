@@ -8,10 +8,11 @@ import (
 )
 
 type RenameThingModel struct {
-	Id         types.String `tfsdk:"id"`
-	Kind       types.String `tfsdk:"kind"`
-	Version    types.String `tfsdk:"version"`
-	Parameters types.List   `tfsdk:"parameters"`
+	Id         types.String  `tfsdk:"id"`
+	Kind       types.String  `tfsdk:"kind"`
+	Version    types.String  `tfsdk:"version"`
+	Parameters types.List    `tfsdk:"parameters"`
+	Settings   types.Dynamic `tfsdk:"settings"`
 }
 
 type RenameParamModel struct {

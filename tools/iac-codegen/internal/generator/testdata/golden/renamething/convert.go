@@ -313,6 +313,7 @@ func flattenRenameThing(ctx context.Context, p path.Path, v *rename_things_servi
 		}
 		out.Parameters = flattenList(ctx, types.ObjectType{AttrTypes: renameParamAttrTypes()}, items, diags)
 	}
+	out.Settings = types.DynamicNull()
 	return out
 }
 

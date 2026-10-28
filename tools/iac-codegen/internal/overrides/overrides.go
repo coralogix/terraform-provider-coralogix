@@ -75,6 +75,16 @@ type File struct {
 	// DataSource is the data source of the resource. Without it, a released resource gets no
 	// generated data source.
 	DataSource *DataSource `yaml:"dataSource"`
+	// Hooks adds optional steps to the generated Hooks struct of the resource.
+	Hooks *Hooks `yaml:"hooks"`
+}
+
+// Hooks is the hooks section of the file.
+type Hooks struct {
+	// Client: true adds Hooks.BeforeWriteWithClient. Create and Update call it after
+	// BeforeWrite and before the API call, with the typed API client of the resource, for a
+	// step that needs another API call first, such as a test call that validates the request.
+	Client bool `yaml:"client"`
 }
 
 // UpdateMaskOmit is the updateMask value that sends no update mask.
@@ -328,8 +338,18 @@ func (t Type) GroupOf(field string) string {
 
 // ExtraAttribute is one Terraform-only attribute of a generated object.
 type ExtraAttribute struct {
-	// ElementType is the map value type: "string" or "int64".
+	// ElementType is the map value type: "string" or "int64". A dynamic attribute has none.
 	ElementType string `yaml:"elementType"`
+	// Dynamic: true makes the attribute a DynamicAttribute (types.Dynamic) in place of a map,
+	// for a value of any Terraform type that a handwritten hook turns into request values.
+	Dynamic bool `yaml:"dynamic"`
+	// Required: true makes the attribute Required. Only a dynamic attribute can be required: a
+	// map extra attribute stays optional.
+	Required bool `yaml:"required"`
+	// InUpdate: true says that a handwritten BeforeWrite hook sends this attribute, so a change
+	// of it makes an Update. Without it, a change of only this attribute plans an update that
+	// sends no request. It needs a resource whose Update replaces the resource (PUT).
+	InUpdate bool `yaml:"inUpdate"`
 	// WriteOnly: Terraform sends the value and does not store it.
 	WriteOnly bool `yaml:"writeOnly"`
 	// MarkdownDescription is the docs text of the attribute.
@@ -638,6 +658,9 @@ func (f *File) check() error {
 	if err := f.API.Check(); err != nil {
 		return err
 	}
+	if f.Hooks != nil && !f.Hooks.Client {
+		return errors.New("hooks sets nothing: remove it, or set client: true")
+	}
 	if f.UpdateMask != "" && f.UpdateMask != UpdateMaskOmit {
 		return fmt.Errorf("updateMask is %q, want %q", f.UpdateMask, UpdateMaskOmit)
 	}
@@ -719,7 +742,8 @@ func (f *File) checkTypes() error {
 			if err := extra.check(field); err != nil {
 				return fmt.Errorf("types.%s.extraAttributes.%s: %w", name, field, err)
 			}
-			if _, ok := t.Fields[field]; ok {
+			// A skipped API field is no attribute, so an extra attribute can take its name.
+			if line, ok := t.Fields[field]; ok && !line.Skip {
 				return fmt.Errorf("types.%s.extraAttributes.%s: the type already has a field override of that name", name, field)
 			}
 		}
@@ -871,8 +895,17 @@ func (e ExtraAttribute) check(name string) error {
 	if name[0] < 'a' || name[0] > 'z' {
 		return fmt.Errorf("the attribute name %q must start with a letter", name)
 	}
-	if e.ElementType != "string" && e.ElementType != "int64" {
-		return fmt.Errorf("elementType is %q, want string or int64", e.ElementType)
+	if e.Dynamic {
+		if e.ElementType != "" || e.WriteOnly {
+			return errors.New("a dynamic attribute has no elementType and cannot be writeOnly")
+		}
+	} else {
+		if e.ElementType != "string" && e.ElementType != "int64" {
+			return fmt.Errorf("elementType is %q, want string or int64", e.ElementType)
+		}
+		if e.Required {
+			return errors.New("required applies to a dynamic attribute only")
+		}
 	}
 	if e.MarkdownDescription == "" {
 		return errors.New("markdownDescription is required")

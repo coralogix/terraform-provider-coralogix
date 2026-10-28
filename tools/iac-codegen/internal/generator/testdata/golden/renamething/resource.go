@@ -41,6 +41,10 @@ type Resource struct {
 type Hooks struct {
 	// BeforeWrite mutates the expanded request body before the API call.
 	BeforeWrite func(context.Context, tfsdk.Config, any) diag.Diagnostics
+	// BeforeWriteWithClient runs after BeforeWrite and before the API call of Create and Update.
+	// It gets the typed API client, for a step that needs another call first. The request body
+	// is the one that BeforeWrite has changed.
+	BeforeWriteWithClient func(context.Context, *rename_things_service.RenameThingsServiceAPIService, tfsdk.Config, any) diag.Diagnostics
 	// AfterRead mutates state after flatten. prior is the plan after Create or
 	// Update, or the state before Read.
 	AfterRead func(context.Context, *tfsdk.State, any) diag.Diagnostics
@@ -86,6 +90,9 @@ func (r *Resource) beforeWrite(ctx context.Context, config tfsdk.Config, body an
 	var diags diag.Diagnostics
 	if r.hooks.BeforeWrite != nil {
 		diags.Append(r.hooks.BeforeWrite(ctx, config, body)...)
+	}
+	if r.hooks.BeforeWriteWithClient != nil && !diags.HasError() {
+		diags.Append(r.hooks.BeforeWriteWithClient(ctx, r.client, config, body)...)
 	}
 	return diags
 }

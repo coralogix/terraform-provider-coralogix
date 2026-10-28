@@ -49,6 +49,8 @@ type crudData struct {
 	UpdateBodyIDValue bool
 	// Existing: the resource has users. The package exports Flatten for a handwritten data source.
 	Existing bool
+	// ClientHook: Hooks has BeforeWriteWithClient (hooks.client of the behavior-overrides file).
+	ClientHook bool
 	// UpdateOnly are the attributes that Create cannot send. Create follows with an Update
 	// when the configuration sets another value than the one Create stored, or omits the
 	// attribute and Create stored another value than the declared server default.
@@ -153,6 +155,7 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if file != nil && file.TypeName != "" {
 		out.TypeName = file.TypeName
 	}
+	out.ClientHook = file != nil && file.Hooks != nil && file.Hooks.Client
 	if err := updateOnlyAttrs(r, out); err != nil {
 		return nil, err
 	}
