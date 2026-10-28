@@ -1,0 +1,24 @@
+[
+  {
+    "step": "read by id",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/integrations/v1/deployed/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "integration_key": "aws-resource-catalog",
+      "parameters": {
+        "AwsRoleArn": "arn:aws:iam::123456789012:role/S3Access",
+        "IntegrationName": "seeded"
+      },
+      "version": "0.1.0"
+    }
+  }
+]

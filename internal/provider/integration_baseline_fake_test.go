@@ -91,6 +91,8 @@ type integrationFake struct {
 	testStatus int
 	// notFound makes a read, update, or delete answer 404 for every id.
 	notFound bool
+	// readStatus is the status of a read that fails. 0 means that it works.
+	readStatus int
 }
 
 func newIntegrationFakeState() *integrationFake {
@@ -289,6 +291,9 @@ func (f *integrationFake) handle(method, path string, body any) (int, any) {
 		return http.StatusOK, map[string]any{}
 	case method == http.MethodGet && strings.HasPrefix(rest, "/integrations/v1/deployed/"):
 		id := strings.TrimPrefix(rest, "/integrations/v1/deployed/")
+		if f.readStatus != 0 {
+			return integrationFail(f.readStatus, "the integration could not be read")
+		}
 		item, ok := f.items[id]
 		if !ok || f.notFound {
 			return integrationNotFound(id)
