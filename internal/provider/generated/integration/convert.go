@@ -52,7 +52,7 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 func expandCreate(ctx context.Context, m *DeployedIntegrationInformationModel) (*integration_service.SaveIntegrationRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	out := expandDeployedIntegrationInformationCreate(ctx, path.Empty(), m, &diags)
-	return &integration_service.SaveIntegrationRequest{Metadata: out}, diags
+	return &integration_service.SaveIntegrationRequest{Metadata: valueOf(out)}, diags
 }
 
 // expandUpdate returns the Update request body with every Update field. A
@@ -60,7 +60,7 @@ func expandCreate(ctx context.Context, m *DeployedIntegrationInformationModel) (
 func expandUpdate(ctx context.Context, m *DeployedIntegrationInformationModel) (*integration_service.UpdateIntegrationRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	out := expandDeployedIntegrationInformationUpdate(ctx, path.Empty(), m, &diags)
-	return &integration_service.UpdateIntegrationRequest{Metadata: out}, diags
+	return &integration_service.UpdateIntegrationRequest{Metadata: valueOf(out)}, diags
 }
 
 // flatten returns the Terraform model of the resource in an API response.
@@ -72,9 +72,6 @@ func flatten(ctx context.Context, v *integration_service.DeployedIntegrationInfo
 		return nil, diags
 	}
 	out := flattenDeployedIntegrationInformation(ctx, path.Empty(), v, &diags)
-	if out.Id.IsNull() {
-		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
-	}
 	return out, diags
 }
 
@@ -90,7 +87,10 @@ var computedAttrs = map[string]bool{
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
-var requiredAttrs = map[string]bool{}
+var requiredAttrs = map[string]bool{
+	"definition_key":     true,
+	"definition_version": true,
+}
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
 // prior data and the new state. The API does not tell null from an empty
@@ -236,8 +236,8 @@ func expandDeployedIntegrationInformationCreate(ctx context.Context, p path.Path
 		return nil
 	}
 	out := &integration_service.IntegrationMetadata{}
-	out.IntegrationKey = expandString(m.DefinitionKey)
-	out.Version = expandString(m.DefinitionVersion)
+	out.IntegrationKey = valueOf(expandString(m.DefinitionKey))
+	out.Version = valueOf(expandString(m.DefinitionVersion))
 	return out
 }
 
@@ -246,8 +246,8 @@ func expandDeployedIntegrationInformationUpdate(ctx context.Context, p path.Path
 		return nil
 	}
 	out := &integration_service.IntegrationMetadata{}
-	out.IntegrationKey = expandString(m.DefinitionKey)
-	out.Version = expandString(m.DefinitionVersion)
+	out.IntegrationKey = valueOf(expandString(m.DefinitionKey))
+	out.Version = valueOf(expandString(m.DefinitionVersion))
 	return out
 }
 
@@ -256,10 +256,20 @@ func flattenDeployedIntegrationInformation(ctx context.Context, p path.Path, v *
 		return nil
 	}
 	out := &DeployedIntegrationInformationModel{}
-	out.DefinitionKey = types.StringPointerValue(v.DefinitionKey)
-	out.DefinitionVersion = types.StringPointerValue(v.DefinitionVersion)
-	out.Id = types.StringPointerValue(v.Id)
+	out.DefinitionKey = types.StringPointerValue(&v.DefinitionKey)
+	out.DefinitionVersion = types.StringPointerValue(&v.DefinitionVersion)
+	out.Id = types.StringPointerValue(&v.Id)
 	return out
+}
+
+// valueOf returns the value of p, or the zero value for nil. It fills an SDK
+// field that is a value, not a pointer.
+func valueOf[T any](p *T) T {
+	var zero T
+	if p == nil {
+		return zero
+	}
+	return *p
 }
 
 // elements is a types.Set or a types.List.

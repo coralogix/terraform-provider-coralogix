@@ -1,5 +1,15 @@
 # Unreleased
 
+#### provider
+- CHORE: Bump `coralogix-management-sdk` to the version with the integrations contract. The SDK holds the required fields of `IntegrationMetadata` and `DeployedIntegrationInformation` as values; `coralogix_integration` adapts, with no change to plans.
+
+#### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.51`.
+- FEAT: `types.<Type>.extraAttributes` can set `dynamic: true` for a Terraform-only `DynamicAttribute` (a `types.Dynamic` model field), `required: true` for a required one, and `inUpdate: true` on an attribute of a resource whose Update replaces it, so that a change of only that attribute makes an Update. A handwritten `BeforeWrite` hook turns the value into request values. An extra attribute can take the name of a skipped API field.
+- FEAT: `hooks: {client: true}` adds `Hooks.BeforeWriteWithClient`: Create and Update call it after `BeforeWrite` and before the API call with the typed API client, for a step that needs another call first.
+- FEAT: An existing resource whose Create and Update requests hold another component than the resource in their wrapper can map a field to its request path with `requestAs` on the field line (a renamed property, or one inside an object), and send the Update id beside the wrapper with `api.updateIDOutsideWrapper`.
+
+
 # Release 3.23.0
 
 #### resource/coralogix_alert
@@ -30,7 +40,6 @@
 - CHORE: Bump `coralogix-management-sdk` to the version with the AI evaluations contract. `coralogix_dashboards_folder` and `coralogix_dashboard` adapt to its types: the folder name is a required string, and the dashboard of a replace request is optional. A `coralogix_dashboards_folder` without `name` now sends an empty name: the API still rejects it, now with "folder name cannot be empty".
 
 #### tools/iac-codegen
-- FEAT: An existing resource whose Create and Update requests hold another component than the resource in their wrapper can map a field to its request path with `requestAs` on the field line (a renamed property, or one inside an object), and send the Update id beside the wrapper with `api.updateIDOutsideWrapper`.
 - CHORE: Bump the generator to `v0.1.0-beta.50`.
 - FEAT: An existing singleton data source can set `dataSource.queryID: true` to retain an optional `id` input and pass it to an optional string Get query parameter named `id`. Without the input, the API request leaves the query parameter unset.
 - CHORE: Bump the generator to `v0.1.0-beta.49`.

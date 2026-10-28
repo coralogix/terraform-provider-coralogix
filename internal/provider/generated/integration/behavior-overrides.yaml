@@ -8,7 +8,6 @@ api:
   updateIDInBody: true
   updateIDOutsideWrapper: true
   idProperty: id
-  serverSetID: true
   customMethods: true
   createResponseOnlyIDProperty: integrationId
   operations:

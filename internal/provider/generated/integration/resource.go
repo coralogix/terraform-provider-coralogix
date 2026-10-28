@@ -133,16 +133,16 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 		if v != nil {
 			// The resource exists, but reading it failed. Keep the id, so Terraform marks the
 			// resource as tainted and can delete it.
-			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), *v.Id)...)
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), v.Id)...)
 		}
 		return
 	}
 	diags = r.setState(ctx, v, req.Plan, &resp.State)
 	resp.Diagnostics.Append(diags...)
-	if diags.HasError() && v != nil && v.Id != nil {
+	if diags.HasError() && v != nil {
 		// The resource exists, but the state is not complete. Keep the id, so
 		// Terraform marks the resource as tainted and can delete it.
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), *v.Id)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), v.Id)...)
 	}
 }
 
@@ -193,7 +193,7 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		v, err = r.get(ctx, id)
 	} else {
 		// Only the server sets the id, so no Update field sends it. The body names the resource by it.
-		body.Id = &id
+		body.Id = id
 		v, err = r.update(ctx, id, body)
 	}
 	if cxsdk.IsNotFound(err) {
@@ -231,22 +231,22 @@ func (r *Resource) create(ctx context.Context, body *integration_service.SaveInt
 	if err != nil {
 		return nil, cxsdk.NewAPIError(httpResp, err)
 	}
-	if out == nil || out.IntegrationId == nil || *out.IntegrationId == "" {
+	if out == nil || out.IntegrationId == "" {
 		return nil, fmt.Errorf("the API did not return the id of the new resource")
 	}
-	id := *out.IntegrationId
+	id := out.IntegrationId
 	// The Create response holds only the id. Read the resource that it created.
 	v, err := r.get(ctx, id)
 	if err != nil {
 		// Return the id with the error, so Create can keep it in the state.
-		return &integration_service.DeployedIntegrationInformation{Id: &id}, fmt.Errorf("created %s with id %v, but could not read it: %w", TypeName, id, err)
+		return &integration_service.DeployedIntegrationInformation{Id: id}, fmt.Errorf("created %s with id %v, but could not read it: %w", TypeName, id, err)
 	}
 	if v == nil {
-		return &integration_service.DeployedIntegrationInformation{Id: &id}, fmt.Errorf("created %s with id %v, but the API returned no resource", TypeName, id)
+		return &integration_service.DeployedIntegrationInformation{Id: id}, fmt.Errorf("created %s with id %v, but the API returned no resource", TypeName, id)
 	}
 	// The id that Create returned is the id of the resource, also when Get leaves it out.
-	if v.Id == nil || *v.Id == "" {
-		v.Id = &id
+	if v.Id == "" {
+		v.Id = id
 	}
 	return v, nil
 }
@@ -274,8 +274,8 @@ func (r *Resource) update(ctx context.Context, id string, body *integration_serv
 		return nil, err
 	}
 	// The id of the state is the id of the resource, also when Get leaves it out.
-	if v != nil && (v.Id == nil || *v.Id == "") {
-		v.Id = &id
+	if v != nil && v.Id == "" {
+		v.Id = id
 	}
 	return v, nil
 }

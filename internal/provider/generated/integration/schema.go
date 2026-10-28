@@ -15,11 +15,11 @@ func Schema() schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"definition_key": schema.StringAttribute{
-				Optional:            true,
+				Required:            true,
 				MarkdownDescription: "The definition key.",
 			},
 			"definition_version": schema.StringAttribute{
-				Optional:            true,
+				Required:            true,
 				MarkdownDescription: "The definition version.",
 			},
 			"id": schema.StringAttribute{
