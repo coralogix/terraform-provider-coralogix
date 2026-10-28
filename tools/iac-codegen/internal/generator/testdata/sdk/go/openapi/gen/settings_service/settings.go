@@ -35,6 +35,11 @@ func (*SettingsServiceAPIService) SettingsServiceGetSettings(ctx context.Context
 	return ApiSettingsServiceGetSettingsRequest{}
 }
 
+func (r ApiSettingsServiceGetSettingsRequest) Id(id string) ApiSettingsServiceGetSettingsRequest {
+	_ = id
+	return r
+}
+
 func (*SettingsServiceAPIService) SettingsServiceUpdateSettings(ctx context.Context) ApiSettingsServiceUpdateSettingsRequest {
 	_ = ctx
 	return ApiSettingsServiceUpdateSettingsRequest{}

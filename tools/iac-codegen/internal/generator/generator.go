@@ -314,6 +314,18 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 			return nil, eligibilityIssue("OVERRIDE_INVALID", overrides.FileName, err, "Fix the show line of the dataSource section.")
 		}
 	}
+	if file != nil && file.DataSource != nil && file.DataSource.QueryID {
+		if err := validateDataSourceQueryID(doc, resource); err != nil {
+			return nil, eligibilityIssue("DATASOURCE_QUERY_ID_UNSUPPORTED", overrides.FileName+":dataSource.queryID", err,
+				"Use queryID only for a singleton with a server-set string id and an optional string Get query parameter named id.")
+		}
+		ref, err := dataSourceQueryIDRef(refs)
+		if err != nil {
+			return nil, eligibilityIssue("SDK_SHAPE_UNSUPPORTED", overrides.FileName+":dataSource.queryID", err,
+				"Use an SDK that exposes the optional id query setter on the Get request builder.")
+		}
+		refs = append(refs, ref)
+	}
 	if report = rendererIssues(resource, refs, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report.Normalize()}
 	}

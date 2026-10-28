@@ -21,8 +21,6 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -121,7 +119,11 @@ func TestAccCoralogixResourceIntegrationInvalidConfigReadableError(t *testing.T)
 }
 
 func testAccCheckIntegrationDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).Integrations()
+	cs, err := testAccNewClientSet()
+	if err != nil {
+		return err
+	}
+	client := cs.Integrations()
 	ctx := context.TODO()
 
 	for _, rs := range s.RootModule().Resources {

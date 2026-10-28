@@ -27,6 +27,8 @@
 - CHORE: Bump `coralogix-management-sdk` to the version with the AI evaluations contract. `coralogix_dashboards_folder` and `coralogix_dashboard` adapt to its types: the folder name is a required string, and the dashboard of a replace request is optional. A `coralogix_dashboards_folder` without `name` now sends an empty name: the API still rejects it, now with "folder name cannot be empty".
 
 #### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.50`.
+- FEAT: An existing singleton data source can set `dataSource.queryID: true` to retain an optional `id` input and pass it to an optional string Get query parameter named `id`. Without the input, the API request leaves the query parameter unset.
 - CHORE: Bump the generator to `v0.1.0-beta.49`.
 - FEAT: `dataSource.description`, and `description` on a `dataSource.types.<Component>.fields.<field>` line without `show`, replace the description that the generated data source copies from the resource.
 - FIX: A shown data source attribute (`show: true`) that has the Terraform name of an attribute of the item, or of another shown attribute, is an error. Before, it overwrote that attribute.

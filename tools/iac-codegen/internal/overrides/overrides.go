@@ -650,6 +650,9 @@ func (f *File) check() error {
 	if f.SingletonID != nil && (f.API.ClientSetID || f.API.ServerSetID || f.API.UpdateIDInBody) {
 		return errors.New("singletonID is for a singleton, which has no id in a path: it cannot be combined with api.clientSetID, api.serverSetID, or api.updateIDInBody")
 	}
+	if f.DataSource != nil && f.DataSource.QueryID && (f.SingletonID == nil || !f.SingletonID.FromAPI) {
+		return errors.New("dataSource.queryID needs singletonID: {fromAPI: true}: the query id must be distinct from the singleton's server-set resource id")
+	}
 	return f.checkSections()
 }
 

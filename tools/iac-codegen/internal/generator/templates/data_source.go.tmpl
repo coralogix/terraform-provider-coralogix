@@ -35,7 +35,10 @@ var (
 	_ datasource.DataSourceWithConfigure = (*DataSource)(nil)
 )
 
-{{if .Singleton -}}
+{{if and .Singleton $.DataSource.QueryID -}}
+// DataSource reads the {{.TypeName}} singleton with the schema, the model, and the conversion of the
+// resource. It accepts an optional id query input.
+{{- else if .Singleton -}}
 // DataSource reads the {{.TypeName}} singleton with the schema, the model, and the conversion of the
 // resource. It takes no input.
 {{- else if $name -}}
@@ -68,7 +71,7 @@ func (d *DataSource) Metadata(_ context.Context, req datasource.MetadataRequest,
 }
 
 {{if .Singleton -}}
-// Schema is the schema of the resource with every attribute computed.
+// Schema is the schema of the resource with every attribute computed{{if $.DataSource.QueryID}}, except the optional query id{{end}}.
 {{- else if $name -}}
 // Schema is the schema of the resource with every attribute computed. The configuration sets
 // exactly one of the id and the name.
@@ -89,6 +92,9 @@ func (d *DataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp 
 	id := s.Attributes[{{printf "%q" .IDAttr}}]
 	resp.Schema.Attributes[{{printf "%q" .IDAttr}}] = schema.{{.IDTFType}}Attribute{
 {{- if .Singleton}}
+{{- if $.DataSource.QueryID}}
+		Optional:            true,
+{{- end}}
 		Computed:            true,
 {{- else if $name}}
 		Optional:            true,
@@ -157,9 +163,26 @@ func (d *DataSource) Configure(_ context.Context, req datasource.ConfigureReques
 // A 404 of a route that does not exist is an error too.
 {{- end}}
 func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-{{- if .Singleton}}
+	{{- if and .Singleton $.DataSource.QueryID}}
+	var configured types.String
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("id"), &configured)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 	id := TypeName
-{{- else}}
+	var queryID *string
+	if configured.IsUnknown() {
+		resp.Diagnostics.AddError("Unknown singleton data source id", "The id must be known before the API read.")
+		return
+	}
+	if !configured.IsNull() {
+		id = configured.ValueString()
+		queryID = &id
+	}
+	v, err := d.resource.getWithQueryID(ctx, queryID)
+	{{- else if .Singleton}}
+	id := TypeName
+	{{- else}}
 	var configured types.{{.IDTFType}}
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), &configured)...)
 {{- if $name}}
@@ -180,7 +203,9 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	}
 {{- end}}
 {{- end}}
+	{{- if not (and .Singleton $.DataSource.QueryID)}}
 	v, err := d.resource.get(ctx, id)
+	{{- end}}
 	if {{$cx}}.{{.APINotFound}}(err) {
 		resp.Diagnostics.AddError("coralogix_"+TypeName+" not found", fmt.Sprintf("The API did not find coralogix_%s with id %v: %s", TypeName, id, err))
 		return
@@ -221,9 +246,17 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	}
 {{- end}}
 {{- if and .Singleton .SingletonID}}
+	{{- if $.DataSource.QueryID}}
+	if queryID != nil {
+		m.Id = types.StringValue(id) // keep the configured query id, even if the API returns another id
+	} else if m.Id.IsNull() || m.Id.ValueString() == "" {
+		m.Id = types.StringValue(TypeName) // the API returned no id
+	}
+	{{- else}}
 	if m.Id.IsNull() || m.Id.ValueString() == "" {
 		m.Id = types.StringValue(TypeName) // the API returned no id
 	}
+	{{- end}}
 {{- else if .Singleton}}
 	m.Id = types.StringValue(SingletonID) // a singleton has a fixed id (D18)
 {{- end}}

@@ -25,6 +25,8 @@ type dsData struct {
 	// IDSchema: the data source sets the schema of the id attribute itself, because the copy makes
 	// only a string attribute named "id" the required lookup attribute.
 	IDSchema bool
+	// QueryID lets an existing singleton data source pass its optional id input to Get.
+	QueryID bool
 	// ValueFields are the top-level strings that the data source shows as the API returns them,
 	// also the empty string that the resource reads as null (readEmptyAs: "value").
 	ValueFields []*dsValueField
@@ -90,6 +92,7 @@ func buildDataSource(r *model.Resource, refs []sdkcheck.Ref, conv *convData, cru
 	out := &dsData{
 		UtilsPkg: strings.TrimSuffix(crud.ProviderPkg, "/clientset") + "/utils",
 		IDSchema: crud.Singleton || crud.IDAttr != "id" || crud.IDTFType != "String",
+		QueryID:  file != nil && file.DataSource != nil && file.DataSource.QueryID,
 	}
 	for _, line := range file.DataSourceLines() {
 		if line.Show || line.ReadEmptyAs == "" {
@@ -297,6 +300,66 @@ func buildShow(refs []sdkcheck.Ref, conv *convData, file *overrides.File) ([]*ds
 			Pointer: pointer, Description: file.DataSource.Types[line.Component].Fields[line.Field].Description})
 	}
 	return out, nil
+}
+
+// validateDataSourceQueryID checks the API contract for the optional Get query
+// parameter used by an existing singleton data source.
+func validateDataSourceQueryID(doc *v3.Document, r *model.Resource) error {
+	if !r.Singleton {
+		return errors.New("the resource is not a singleton")
+	}
+	if doc.Paths == nil || doc.Paths.PathItems == nil {
+		return errors.New("the OpenAPI document has no paths")
+	}
+	pathItem := doc.Paths.PathItems.GetOrZero(r.Get.Path)
+	if pathItem == nil {
+		return fmt.Errorf("Get path %q is missing", r.Get.Path)
+	}
+	op, ok := pathItem.GetOperations().Get(strings.ToLower(r.Get.Method))
+	if !ok || op == nil {
+		return fmt.Errorf("Get operation %s is missing", r.Get.OperationID)
+	}
+	var queryID *v3.Parameter
+	for _, candidate := range append(slices.Clone(pathItem.Parameters), op.Parameters...) {
+		parameter, err := resolveParameter(doc, candidate)
+		if err != nil {
+			return err
+		}
+		if parameter != nil && parameter.In == "query" && parameter.Name == "id" {
+			queryID = parameter // operation-level parameters override path-level parameters.
+		}
+	}
+	if queryID == nil {
+		return errors.New("Get has no query parameter named id")
+	}
+	if queryID.Required != nil && *queryID.Required {
+		return errors.New("Get query parameter id is required; dataSource.queryID needs it to be optional")
+	}
+	if queryID.Schema == nil || queryID.Schema.Schema() == nil || !slices.Contains(queryID.Schema.Schema().Type, "string") {
+		return errors.New("Get query parameter id must have a string schema")
+	}
+	return nil
+}
+
+// resolveParameter follows a reusable OpenAPI parameter reference. A reference
+// chain is bounded so malformed cyclic references return an eligibility error.
+func resolveParameter(doc *v3.Document, parameter *v3.Parameter) (*v3.Parameter, error) {
+	for depth := 0; parameter != nil && parameter.IsReference(); depth++ {
+		if depth >= 16 {
+			return nil, errors.New("Get query parameter id has a cyclic parameter reference")
+		}
+		const prefix = "#/components/parameters/"
+		reference := parameter.GetReference()
+		if !strings.HasPrefix(reference, prefix) || doc.Components == nil || doc.Components.Parameters == nil {
+			return nil, fmt.Errorf("Get parameter reference %q cannot be resolved", reference)
+		}
+		name := strings.TrimPrefix(reference, prefix)
+		parameter = doc.Components.Parameters.GetOrZero(name)
+		if parameter == nil {
+			return nil, fmt.Errorf("Get parameter reference %q cannot be resolved", reference)
+		}
+	}
+	return parameter, nil
 }
 
 // buildNameLookup returns the lookup by name, or nil. A new resource has it when the List of the

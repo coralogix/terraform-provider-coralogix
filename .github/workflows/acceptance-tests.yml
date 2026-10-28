@@ -62,7 +62,11 @@ env:
   DASHBOARD_SHARD_PARITY_FIELDS: &dashboard_shard_parity_fields '^TestAccCoralogixResourceDashboard(LineChart|BarChart|Gauge|PieChart)ParityFields$'
   DASHBOARD_SHARD_ACTIONS_SECTIONS_AND_ANNOTATIONS: &dashboard_shard_actions_sections_and_annotations '^TestAccCoralogixResourceDashboard(WidgetCustomActions|SectionOptionBranches|AccessPolicyAddedLater|MetricAnnotationOrientation|AnnotationScope|DataprimeAnnotation|EventRecurrenceAnnotation)$'
   DASHBOARD_SHARD_VARIABLES_V2: &dashboard_shard_variables_v2 '^TestAccCoralogixResourceDashboardVariablesV2'
-  NON_DASHBOARD_SHARD_ALERTS_AND_INTEGRATIONS: &non_dashboard_shard_alerts_and_integrations '^TestAccCoralogix.*(Alert|Webhook|Connector|Preset|Integration)'
+  # Together these two match what the old alerts-and-integrations shard matched. A test that
+  # matches both, such as TestAccCoralogixAlertWebhooksNotifyOnMandatory, is an alert test: the
+  # notification-center shard skips the alerts pattern.
+  NON_DASHBOARD_SHARD_ALERTS_AND_SCHEDULER: &non_dashboard_shard_alerts_and_scheduler '^TestAccCoralogix.*Alert'
+  NON_DASHBOARD_SHARD_NOTIFICATION_CENTER: &non_dashboard_shard_notification_center '^TestAccCoralogix.*(Webhook|Connector|Preset|Integration)'
   NON_DASHBOARD_SHARD_DATA_PROCESSING: &non_dashboard_shard_data_processing '^TestAccCoralogix.*(ParsingRules|Enrichments?|DataSet|TCOPolicies)'
   # The user tests run one after another and are the slowest non-dashboard tests.
   # Three shards keep each job near three minutes.
@@ -72,7 +76,7 @@ env:
   NON_DASHBOARD_SHARD_USER_DATA_SOURCE: &non_dashboard_shard_user_data_source '^TestAccCoralogixDataSourceUser'
   NON_DASHBOARD_SHARD_USER_RESOURCE: &non_dashboard_shard_user_resource '^TestAccCoralogixResourceUser(|CreateInactive|KeepsLoginModes|BackwardsCompatibility|OutOfBandDeactivation|DestroyWhenAlreadyInactive)$'
   NON_DASHBOARD_SHARD_ACCESS_CONTROL: &non_dashboard_shard_access_control '^Test(AccCoralogix(Resource|DataSource)(CustomRole|ApiKey|Group|Scope)|ApiKeyResource|CustomRole)'
-  NON_DASHBOARD_SHARD_SLO_AI_VIEWS_AND_RECORDING_RULES: &non_dashboard_shard_slo_ai_views_and_recording_rules '^TestAccCoralogix((Resource|DataSource)(SLOV2|AI|ViewFolder)|(DataSource)?RecordingRules|ResourceDashboardsFolderGenerated$)'
+  NON_DASHBOARD_SHARD_SLO_AI_VIEWS_AND_RECORDING_RULES: &non_dashboard_shard_slo_ai_views_and_recording_rules '^TestAccCoralogix((Resource|DataSource)(SLOV2|AI|ViewFolder)|(DataSource)?RecordingRules)'
 
 jobs:
   changes:
@@ -122,8 +126,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - shard: alerts-and-integrations
-            pattern: *non_dashboard_shard_alerts_and_integrations
+          - shard: alerts-and-scheduler
+            pattern: *non_dashboard_shard_alerts_and_scheduler
+          - shard: notification-center
+            pattern: *non_dashboard_shard_notification_center
+            skip: *non_dashboard_shard_alerts_and_scheduler
           - shard: data-processing
             pattern: *non_dashboard_shard_data_processing
           - shard: user-group-membership
@@ -161,6 +168,8 @@ jobs:
           PD_INTEGRATION_ID: ${{ secrets.PD_INTEGRATION_ID }}
           CORALOGIX_SLO_V2_APM_SERVICE: ${{ secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
           RUN_PATTERN: ${{ matrix.pattern }}
+          # The Makefile passes it to -skip. Empty for a shard without a skip pattern.
+          ACC_SKIP_PATTERN: ${{ matrix.skip }}
         run: |
           # make reads `$` as a variable, so a pattern that ends in `$'` lost its
           # closing quote. `$$` reaches the shell as one `$`.
@@ -224,7 +233,8 @@ jobs:
           CORALOGIX_SLO_V2_APM_SERVICE: ${{ secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
         run: |
           shard_patterns=(
-            "$NON_DASHBOARD_SHARD_ALERTS_AND_INTEGRATIONS"
+            "$NON_DASHBOARD_SHARD_ALERTS_AND_SCHEDULER"
+            "$NON_DASHBOARD_SHARD_NOTIFICATION_CENTER"
             "$NON_DASHBOARD_SHARD_DATA_PROCESSING"
             "$NON_DASHBOARD_SHARD_USER_GROUP_MEMBERSHIP"
             "$NON_DASHBOARD_SHARD_USER_DATA_SOURCE"
@@ -322,7 +332,10 @@ jobs:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
         run: |
-          bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run '${{ matrix.pattern }}' -timeout 120m -parallel=4
+          # All provider packages, not only ./internal/provider: the non-dashboard jobs skip
+          # dashboard names in every package, so a generated dashboard resource in its own
+          # package must be picked up here.
+          bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -v -run '${{ matrix.pattern }}' -timeout 120m -parallel=4
       # Uploads on pass too (an empty file) and overwrites the earlier attempt,
       # so after any re-run each shard has one file for its latest result.
       - name: Upload failed test names
@@ -396,7 +409,10 @@ jobs:
             # a parent test pattern and a subtest pattern.
             skip_pattern+="|$pattern"
           done
-          bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider -v -run "$DASHBOARD_ACC_PATTERN" -skip "$skip_pattern" -timeout 120m -parallel=4
+          # All provider packages, not only ./internal/provider: the non-dashboard jobs skip
+          # dashboard names in every package, so a generated dashboard resource in its own
+          # package must be picked up here.
+          bash .github/scripts/run-tests-with-summary.sh env TF_ACC=1 go test -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" ./internal/provider/... -v -run "$DASHBOARD_ACC_PATTERN" -skip "$skip_pattern" -timeout 120m -parallel=4
       # Uploads on pass too (an empty file) and overwrites the earlier attempt,
       # so after any re-run each shard has one file for its latest result.
       - name: Upload failed test names

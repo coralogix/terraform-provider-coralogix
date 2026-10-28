@@ -1,0 +1,11 @@
+# A singleton whose data-source id is also passed as an optional Get query parameter.
+resource: Settings
+mode: existing
+
+validators:
+  inferred: false
+
+singletonID: {fromAPI: true}
+
+dataSource:
+  queryID: true
