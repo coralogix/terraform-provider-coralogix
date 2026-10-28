@@ -15,6 +15,7 @@
 package alerts
 
 import (
+	"encoding/json"
 	"testing"
 
 	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
@@ -37,71 +38,99 @@ func TestFlattenAlertAccessPolicy(t *testing.T) {
 		name         string
 		current      types.String
 		accessPolicy *string
+		readable     bool
 		want         types.String
 	}{
 		{
-			name:         "no policy on the alert",
+			name:         "no policy on the alert, read authorized: state clears",
 			current:      types.StringNull(),
 			accessPolicy: nil,
+			readable:     true,
 			want:         types.StringNull(),
 		},
 		{
 			name:         "an equivalent configured text is preserved as written",
 			current:      types.StringValue(prettyText),
 			accessPolicy: &backendText,
+			readable:     true,
 			want:         types.StringValue(prettyText),
 		},
 		{
 			name:         "an unknown current stores the canonical text",
 			current:      types.StringUnknown(),
 			accessPolicy: &backendText,
+			readable:     true,
 			want:         types.StringValue(canonicalText),
 		},
 		{
 			name:         "import and the data source store the canonical text",
 			current:      types.StringNull(),
 			accessPolicy: &backendText,
+			readable:     true,
 			want:         types.StringValue(canonicalText),
 		},
 		{
 			name:         "a policy changed outside Terraform stores the canonical text",
 			current:      types.StringValue(`{"version":"2024-01-01","rules":[]}`),
 			accessPolicy: &backendText,
+			readable:     true,
 			want:         types.StringValue(canonicalText),
 		},
 		{
 			name:         "characters jsonencode escapes are stored escaped",
 			current:      types.StringNull(),
 			accessPolicy: &ampersandText,
+			readable:     true,
 			want:         types.StringValue(`{"rules":[{"name":"reads \u0026 writes"}]}`),
 		},
 		{
 			name:         "text this provider cannot parse is stored unchanged",
 			current:      types.StringNull(),
 			accessPolicy: &unparsableText,
+			readable:     true,
 			want:         types.StringValue("not json"),
 		},
 		{
-			// The read sends no include_access_permissions flag, so an
-			// absent policy also means the caller may not read policies.
-			// Clearing the state would drop a policy the apply just wrote,
-			// so the prior value is kept: absent is unknown, not deleted.
-			name:         "an absent policy preserves the prior value",
+			// The key lacks alerts:ReadAccessPolicy (or a create/replace
+			// response echoed no access). Policy presence is unknown: clearing
+			// the state would drop a policy the apply just wrote, so the prior
+			// value is kept. Absent means unknown, not deleted.
+			name:         "an unreadable absent policy preserves the prior value",
 			current:      types.StringValue(canonicalText),
 			accessPolicy: nil,
+			readable:     false,
 			want:         types.StringValue(canonicalText),
 		},
 		{
-			name:         "an absent policy with no prior value stays null",
+			name:         "an unreadable absent policy with no prior value stays null",
 			current:      types.StringNull(),
 			accessPolicy: nil,
+			readable:     false,
+			want:         types.StringNull(),
+		},
+		{
+			// Authoritative "no policy" from an authorized read: the remote
+			// deletion is real, so drift shows and the next apply re-applies.
+			name:         "an authorized absent policy clears the prior value",
+			current:      types.StringValue(canonicalText),
+			accessPolicy: nil,
+			readable:     true,
+			want:         types.StringNull(),
+		},
+		{
+			// State after a "" delete: the "" sentinel remains the record of
+			// the successful removal and an authorized no-policy read keeps it.
+			name:         "an authorized absent policy keeps the empty sentinel",
+			current:      types.StringValue(""),
+			accessPolicy: nil,
+			readable:     true,
 			want:         types.StringNull(),
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, diags := flattenAlertAccessPolicy(tt.current, tt.accessPolicy)
+			got, diags := flattenAlertAccessPolicy(tt.current, tt.accessPolicy, tt.readable)
 			if diags.HasError() {
 				t.Fatalf("diagnostics: %v", diags)
 			}
@@ -162,6 +191,32 @@ func TestAlertAccessPolicyActionForUpdate(t *testing.T) {
 			},
 		},
 		{
+			// UseStateForUnknown carries the prior policy into the plan when
+			// the configuration line is removed; the action must still be
+			// omitted (removal from config relinquishes management, Option A).
+			name:   "removed from configuration with the prior value carried into the plan is omitted",
+			config: types.StringNull(),
+			plan:   types.StringValue(value),
+			check: func(t *testing.T, got *alerts.AccessPolicyAction) {
+				t.Helper()
+				if got != nil {
+					t.Fatalf("action = %v, want nil", got)
+				}
+			},
+		},
+		{
+			// Same, after a "" delete: state "" carried into the plan.
+			name:   "removed from configuration with the empty sentinel carried into the plan is omitted",
+			config: types.StringNull(),
+			plan:   types.StringValue(empty),
+			check: func(t *testing.T, got *alerts.AccessPolicyAction) {
+				t.Helper()
+				if got != nil {
+					t.Fatalf("action = %v, want nil", got)
+				}
+			},
+		},
+		{
 			name:   "unknown config is omitted",
 			config: types.StringUnknown(),
 			plan:   types.StringUnknown(),
@@ -197,6 +252,24 @@ func TestAlertAccessPolicyActionForUpdate(t *testing.T) {
 				}
 				if got.Delete == nil {
 					t.Fatal("delete is nil, want non-nil marker")
+				}
+				// Wire-format regression: a nil map would serialize as an
+				// empty oneof object and be dropped by the backend (the
+				// operator hit exactly this trap). Assert the actual JSON.
+				raw, err := json.Marshal(&alerts.ReplaceAlertDefinitionRequest{AccessPolicy: got})
+				if err != nil {
+					t.Fatalf("marshal replace request: %v", err)
+				}
+				var wire map[string]interface{}
+				if err := json.Unmarshal(raw, &wire); err != nil {
+					t.Fatalf("unmarshal replace request: %v", err)
+				}
+				access, ok := wire["accessPolicy"].(map[string]interface{})
+				if !ok {
+					t.Fatalf("wire accessPolicy = %v, want a delete object", wire["accessPolicy"])
+				}
+				if _, hasDelete := access["delete"]; !hasDelete {
+					t.Fatalf("wire accessPolicy = %v, want {\"delete\":{}}", access)
 				}
 			},
 		},
@@ -234,17 +307,17 @@ func TestAlertAccessFromGetResponse(t *testing.T) {
 	withoutAccess := &alerts.GetAlertDefResponse{}
 	withoutPolicy := &alerts.GetAlertDefResponse{Access: &alerts.AlertDefAccess{}}
 
-	if got := alertAccessFromGetResponse(nil); got != nil {
-		t.Fatalf("nil response = %q, want nil", *got)
+	if got, readable := alertAccessFromGetResponse(nil); got != nil || readable {
+		t.Fatalf("nil response = (%v, %v), want (nil, false)", got, readable)
 	}
-	if got := alertAccessFromGetResponse(withoutAccess); got != nil {
-		t.Fatalf("response without access = %q, want nil", *got)
+	if got, readable := alertAccessFromGetResponse(withoutAccess); got != nil || readable {
+		t.Fatalf("response without access = (%v, %v), want (nil, false): presence unknown", got, readable)
 	}
-	if got := alertAccessFromGetResponse(withoutPolicy); got != nil {
-		t.Fatalf("access without policy = %q, want nil", *got)
+	if got, readable := alertAccessFromGetResponse(withoutPolicy); got != nil || !readable {
+		t.Fatalf("access without policy = (%v, %v), want (nil, true): authoritative absence", got, readable)
 	}
-	if got := alertAccessFromGetResponse(withPolicy); got == nil || *got != policy {
-		t.Fatalf("access with policy = %v, want %q", got, policy)
+	if got, readable := alertAccessFromGetResponse(withPolicy); got == nil || *got != policy || !readable {
+		t.Fatalf("access with policy = (%v, %v), want (%q, true)", got, readable, policy)
 	}
 }
 

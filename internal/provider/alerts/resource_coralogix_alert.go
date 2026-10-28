@@ -133,7 +133,7 @@ func (r AlertResource) GenericUpgradeState(_ any) func(context.Context, resource
 
 		alert := getAlertResp.GetAlertDef()
 
-		newState, diags := flattenAlert(ctx, alert, &schedule, nil, types.StringNull(), nil)
+		newState, diags := flattenAlert(ctx, alert, &schedule, nil, types.StringNull(), nil, false)
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 			return
@@ -180,7 +180,7 @@ func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, 
 	}
 	// Create responses carry no access echo, so the flatten keeps the planned
 	// policy (see flattenAlertAccessPolicy).
-	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule, &plan.NotificationGroup, plan.AccessPolicy, nil)
+	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule, &plan.NotificationGroup, plan.AccessPolicy, nil, false)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -229,7 +229,7 @@ func (r *AlertResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		}
 		return
 	}
-	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule, &plan.NotificationGroup, plan.AccessPolicy, nil)
+	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule, &plan.NotificationGroup, plan.AccessPolicy, nil, false)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -270,18 +270,27 @@ func (r *AlertResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	rq := r.client.AlertDefsServiceGetAlertDef(ctx, id)
+	rq := r.client.AlertDefsServiceGetAlertDef(ctx, id).IncludeAccessPermissions(true)
 
-	// NOTE: the read deliberately does not opt into include_access_permissions.
-	// The dashboard read path fetches its policy with a plain Get (the
-	// dashboards API returns it unconditionally), so this read mirrors that
-	// and sends no include flag. For alerts the access field is then populated
-	// only when the backend chooses to; in particular, without the
-	// alerts:ReadAccessPolicy permission the policy reads back absent even
-	// when one exists. flattenAlertAccessPolicy therefore treats an absent
-	// policy as unknown rather than deleted: it preserves the prior state
-	// instead of clearing it.
+	// The access policy is returned only when include_access_permissions=true
+	// (alert_defs_service.proto:416-428). With the flag, the access field is
+	// populated when the caller holds alerts:ReadAccessPolicy and omitted
+	// otherwise (verified against the SDK model contract; if a backend
+	// enforces the flag with a 403 instead of omitting the field, the caller
+	// without the scope simply sees the generic read error rather than silent
+	// absence). flattenAlertAccessPolicy therefore treats an absent policy as
+	// "unknown, not deleted" and preserves the prior state for keys that
+	// cannot read policies.
 	result, httpResponse, err := rq.Execute()
+	if err != nil {
+		if httpResponse != nil && httpResponse.StatusCode == http.StatusForbidden {
+			// The key lacks alerts:ReadAccessPolicy and the backend rejects
+			// the include flag instead of omitting the field. Retry without
+			// it: the policy reads back absent and flattenAlertAccessPolicy
+			// preserves the prior state (absent means unknown, not deleted).
+			result, httpResponse, err = r.client.AlertDefsServiceGetAlertDef(ctx, id).Execute()
+		}
+	}
 	if err != nil {
 		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
@@ -297,7 +306,8 @@ func (r *AlertResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	state, diags = flattenAlert(ctx, result.GetAlertDef(), &state.Schedule, &state.NotificationGroup, state.AccessPolicy, alertAccessFromGetResponse(result))
+	policy, readable := alertAccessFromGetResponse(result)
+	state, diags = flattenAlert(ctx, result.GetAlertDef(), &state.Schedule, &state.NotificationGroup, state.AccessPolicy, policy, readable)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -3189,7 +3199,7 @@ func extractAnalyticsThresholdCondition(ctx context.Context, condition types.Obj
 	}, nil
 }
 
-func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *types.Object, currentNotificationGroup *types.Object, currentAccessPolicy types.String, accessPolicy *string) (*alerttypes.AlertResourceModel, diag.Diagnostics) {
+func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *types.Object, currentNotificationGroup *types.Object, currentAccessPolicy types.String, accessPolicy *string, readable bool) (*alerttypes.AlertResourceModel, diag.Diagnostics) {
 	alertProperties := alert.AlertDefProperties
 
 	alertSchedule, diags := flattenAlertSchedule(ctx, *alertProperties, currentSchedule)
@@ -3230,7 +3240,7 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 	if diags.HasError() {
 		return nil, diags
 	}
-	flattenedAccessPolicy, diags := flattenAlertAccessPolicy(currentAccessPolicy, accessPolicy)
+	flattenedAccessPolicy, diags := flattenAlertAccessPolicy(currentAccessPolicy, accessPolicy, readable)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -3285,23 +3295,31 @@ func alertAccessPolicyActionForUpdate(configAccessPolicy, planAccessPolicy types
 }
 
 // alertAccessFromGetResponse extracts the raw access policy from a Get
-// response. It returns nil when the backend populated no access field, which
-// happens both when the alert has no policy and when the caller lacks the
-// alerts:ReadAccessPolicy permission.
-func alertAccessFromGetResponse(result *alerts.GetAlertDefResponse) *string {
+// response that opted into include_access_permissions. Three distinct shapes
+// reach the caller:
+//   - access populated with a policy: the caller can read policies and one is set;
+//   - access populated with no policy: the caller can read and the alert has no
+//     policy — this is an authoritative "no policy" and flatten clears state;
+//   - no access field at all: the caller lacks alerts:ReadAccessPolicy (or the
+//     backend omits it), so policy presence is unknown and flatten preserves
+//     the prior state.
+func alertAccessFromGetResponse(result *alerts.GetAlertDefResponse) (policy *string, readable bool) {
 	if result == nil {
-		return nil
+		return nil, false
 	}
 	access, ok := result.GetAccessOk()
 	if !ok || access == nil {
-		return nil
+		// Not permitted to read policies (with the include flag sent), or a
+		// response shape that carries no access block at all.
+		return nil, false
 	}
-	policy, ok := access.GetAccessPolicyOk()
+	p, ok := access.GetAccessPolicyOk()
 	if !ok {
-		return nil
+		// Access block present but no policy: the caller can read and the
+		// alert genuinely has none.
+		return nil, true
 	}
-
-	return policy
+	return p, true
 }
 
 // flattenAlertAccessPolicy folds the backend's access policy into state,
@@ -3309,17 +3327,22 @@ func alertAccessFromGetResponse(result *alerts.GetAlertDefResponse) *string {
 // semantically equal to the backend's is preserved as written, otherwise the
 // backend text is stored in the canonical shape jsonencode produces.
 //
-// Unlike dashboards, an absent policy cannot be read as "no policy". The read
-// sends no include_access_permissions flag, so the access field stays empty
-// both when the alert has no policy and when the caller's key lacks the
-// alerts:ReadAccessPolicy permission — and create/replace responses carry no
-// access echo at all. Clearing the state here would drop a policy the apply
-// just wrote, or flap on every refresh for keys that cannot read policies.
-// An absent policy therefore preserves the prior state instead of nulling it:
-// absent means unknown, not deleted. A policy removed remotely while the
-// configuration still sets one is re-applied on the next update.
-func flattenAlertAccessPolicy(currentAccessPolicy types.String, accessPolicy *string) (types.String, diag.Diagnostics) {
+// readable reports whether the response authoritatively answers the policy
+// question (include_access_permissions accepted and an access block present).
+// Then a nil policy means the alert genuinely has none and a prior nonempty
+// state is cleared, so an externally removed policy shows as drift and the
+// next apply re-applies it. When the read could not observe policies (key
+// lacks alerts:ReadAccessPolicy, or a create/replace response which never
+// echoes access), an absent policy preserves the prior state: absent means
+// unknown, not deleted, so keys without the read scope neither flap nor wipe.
+func flattenAlertAccessPolicy(currentAccessPolicy types.String, accessPolicy *string, readable bool) (types.String, diag.Diagnostics) {
 	if accessPolicy == nil {
+		if readable {
+			// Authoritative "no policy": clear any prior value (including the
+			// "" sentinel — the deletion already happened) so the
+			// configuration plans a repair if it still sets a policy.
+			return types.StringNull(), nil
+		}
 		if currentAccessPolicy.IsNull() || currentAccessPolicy.IsUnknown() {
 			return types.StringNull(), nil
 		}

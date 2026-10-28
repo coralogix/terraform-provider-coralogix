@@ -1023,10 +1023,11 @@ func V3() schema.Schema {
 					stringplanmodifier.UseStateForUnknown(),
 				},
 				MarkdownDescription: "JSON string representing the access policy for this alert. It defines granular permissions for users and groups. " +
-					"When set, the provider owns the policy and re-applies it on every update, reverting changes made elsewhere. " +
+					"When set, the provider owns the policy and re-applies it whenever the alert is updated, reverting changes made elsewhere; for keys with `alerts:ReadAccessPolicy`, changes made elsewhere also show as drift on refresh. " +
 					"Set to `\"\"` to delete the existing policy without a replacement; a policy added elsewhere is then removed on the next update. " +
 					"When omitted, the policy is left unmanaged and unchanged. " +
-					"Setting, changing, or deleting the policy requires the `alerts:UpdateAccessPolicy` permission, and reading it back requires `alerts:ReadAccessPolicy`.",
+					"While this attribute is set (including `\"\"`), every update of the alert sends the policy and therefore requires the `alerts:UpdateAccessPolicy` permission; remove the line to stop managing it. " +
+					"Reading the policy back requires `alerts:ReadAccessPolicy`: without it the attribute is not refreshed from the backend and drift is not detected.",
 			},
 		},
 	}
