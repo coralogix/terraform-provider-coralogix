@@ -1,0 +1,450 @@
+{
+  "cases": [
+    {
+      "name": "lifecycle: test, save, read, update, delete",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "/metadata/v1/test",
+          "body": {
+            "integrationData": {
+              "integrationKey": "aws-resource-catalog",
+              "version": "0.1.0",
+              "integrationParameters": {
+                "parameters": [
+                  {
+                    "key": "IntegrationName",
+                    "stringValue": "tf-baseline-a"
+                  },
+                  {
+                    "key": "AwsRoleArn",
+                    "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/metadata/v1",
+          "body": {
+            "metadata": {
+              "integrationKey": "aws-resource-catalog",
+              "version": "0.1.0",
+              "integrationParameters": {
+                "parameters": [
+                  {
+                    "key": "IntegrationName",
+                    "stringValue": "tf-baseline-a"
+                  },
+                  {
+                    "key": "AwsRoleArn",
+                    "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                  }
+                ]
+              }
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/integrations/v1/deployed/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "/metadata/v1",
+          "body": {
+            "id": "{{id}}",
+            "metadata": {
+              "integrationKey": "aws-resource-catalog",
+              "version": "0.1.0",
+              "integrationParameters": {
+                "parameters": [
+                  {
+                    "key": "IntegrationName",
+                    "stringValue": "tf-baseline-b"
+                  },
+                  {
+                    "key": "AwsRoleArn",
+                    "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/integrations/v1/deployed/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/integrations/v1/instances/{{id}}"
+        },
+        {
+          "method": "GET",
+          "path": "/integrations/v1/deployed/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "/metadata/v1",
+          "body": {
+            "id": "{{id}}",
+            "metadata": {
+              "integrationKey": "aws-resource-catalog",
+              "version": "0.1.0",
+              "integrationParameters": {
+                "parameters": [
+                  {
+                    "key": "IntegrationName",
+                    "stringValue": "tf-baseline-c"
+                  },
+                  {
+                    "key": "AwsRoleArn",
+                    "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/integrations/v1/instances/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "parameter types",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "/metadata/v1",
+          "body": {
+            "metadata": {
+              "integrationKey": "aws-metrics-collector",
+              "version": "0.1.0",
+              "integrationParameters": {
+                "parameters": [
+                  {
+                    "key": "ApplicationName",
+                    "stringValue": "cxsdk"
+                  },
+                  {
+                    "key": "SubsystemName",
+                    "stringValue": "tf-baseline-types"
+                  },
+                  {
+                    "key": "MetricNamespaces",
+                    "stringList": {
+                      "values": [
+                        "AWS/S3"
+                      ]
+                    }
+                  },
+                  {
+                    "key": "AwsRoleArn",
+                    "stringValue": "arn:aws:iam::123456789012:role/example-role"
+                  },
+                  {
+                    "key": "IntegrationName",
+                    "stringValue": "tf-baseline-types"
+                  },
+                  {
+                    "key": "AwsRegion",
+                    "stringValue": "eu-north-1"
+                  },
+                  {
+                    "key": "WithAggregations",
+                    "booleanValue": false
+                  },
+                  {
+                    "key": "EnrichWithTags",
+                    "booleanValue": true
+                  }
+                ]
+              }
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/integrations/v1/deployed/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "/metadata/v1",
+          "body": {
+            "id": "{{id}}",
+            "metadata": {
+              "integrationKey": "aws-metrics-collector",
+              "version": "0.1.0",
+              "integrationParameters": {
+                "parameters": [
+                  {
+                    "key": "ApplicationName",
+                    "stringValue": "cxsdk"
+                  },
+                  {
+                    "key": "SubsystemName",
+                    "stringValue": "tf-baseline-types"
+                  },
+                  {
+                    "key": "MetricNamespaces",
+                    "stringList": {
+                      "values": [
+                        "AWS/S3"
+                      ]
+                    }
+                  },
+                  {
+                    "key": "AwsRoleArn",
+                    "stringValue": "arn:aws:iam::123456789012:role/example-role"
+                  },
+                  {
+                    "key": "IntegrationName",
+                    "stringValue": "tf-baseline-types"
+                  },
+                  {
+                    "key": "WithAggregations",
+                    "booleanValue": true
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/integrations/v1/deployed/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/integrations/v1/instances/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "test failures",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "/metadata/v1/test",
+          "body": {
+            "integrationData": {
+              "integrationKey": "aws-metrics-collector",
+              "version": "0.1.0",
+              "integrationParameters": {
+                "parameters": [
+                  {
+                    "key": "ApplicationName",
+                    "stringValue": "cxsdk"
+                  },
+                  {
+                    "key": "SubsystemName",
+                    "stringValue": "tf-baseline-fail"
+                  },
+                  {
+                    "key": "MetricNamespaces",
+                    "stringList": {
+                      "values": [
+                        "AWS/S3"
+                      ]
+                    }
+                  },
+                  {
+                    "key": "AwsRoleArn",
+                    "stringValue": "arn:aws:iam::123456789012:role/example-role"
+                  },
+                  {
+                    "key": "IntegrationName",
+                    "stringValue": "tf-baseline-fail"
+                  },
+                  {
+                    "key": "AwsRegion",
+                    "stringValue": "eu-north-1"
+                  },
+                  {
+                    "key": "WithAggregations",
+                    "booleanValue": false
+                  },
+                  {
+                    "key": "EnrichWithTags",
+                    "booleanValue": true
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/metadata/v1/test",
+          "body": {
+            "integrationData": {
+              "integrationKey": "aws-resource-catalog",
+              "version": "0.1.0",
+              "integrationParameters": {
+                "parameters": [
+                  {
+                    "key": "IntegrationName",
+                    "stringValue": "tf-baseline-x"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/metadata/v1/test",
+          "body": {
+            "integrationData": {
+              "integrationKey": "does-not-exist",
+              "version": "0.1.0",
+              "integrationParameters": {
+                "parameters": [
+                  {
+                    "key": "IntegrationName",
+                    "stringValue": "tf-baseline-x"
+                  },
+                  {
+                    "key": "AwsRoleArn",
+                    "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/metadata/v1/test",
+          "body": {
+            "integrationData": {
+              "integrationKey": "aws-resource-catalog",
+              "version": "9.9.9",
+              "integrationParameters": {
+                "parameters": [
+                  {
+                    "key": "IntegrationName",
+                    "stringValue": "tf-baseline-x"
+                  },
+                  {
+                    "key": "AwsRoleArn",
+                    "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "save failures",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "/metadata/v1",
+          "body": {
+            "metadata": {
+              "integrationKey": "does-not-exist",
+              "version": "0.1.0",
+              "integrationParameters": {
+                "parameters": [
+                  {
+                    "key": "IntegrationName",
+                    "stringValue": "tf-baseline-x"
+                  },
+                  {
+                    "key": "AwsRoleArn",
+                    "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/metadata/v1",
+          "body": {
+            "metadata": {
+              "integrationKey": "aws-resource-catalog",
+              "version": "0.1.0",
+              "integrationParameters": {
+                "parameters": [
+                  {
+                    "key": "IntegrationName",
+                    "stringValue": "tf-baseline-x"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/metadata/v1",
+          "body": {
+            "metadata": {
+              "integrationKey": "aws-resource-catalog",
+              "version": "9.9.9",
+              "integrationParameters": {
+                "parameters": [
+                  {
+                    "key": "IntegrationName",
+                    "stringValue": "tf-baseline-x"
+                  },
+                  {
+                    "key": "AwsRoleArn",
+                    "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/metadata/v1",
+          "body": {
+            "metadata": {
+              "integrationKey": "aws-resource-catalog",
+              "version": "0.1.0",
+              "integrationParameters": {
+                "parameters": [
+                  {
+                    "key": "IntegrationName",
+                    "stringValue": "tf-baseline-x"
+                  },
+                  {
+                    "key": "AwsRoleArn",
+                    "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                  },
+                  {
+                    "key": "Unknown",
+                    "stringValue": "x"
+                  }
+                ]
+              }
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/integrations/v1/deployed/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/integrations/v1/instances/{{id}}"
+        }
+      ]
+    }
+  ]
+}
