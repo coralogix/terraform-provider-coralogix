@@ -92,10 +92,10 @@ func (d *DataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp 
 	id := s.Attributes[{{printf "%q" .IDAttr}}]
 	resp.Schema.Attributes[{{printf "%q" .IDAttr}}] = schema.{{.IDTFType}}Attribute{
 {{- if .Singleton}}
-		{{if $.DataSource.QueryID}}Optional:            true,
-		Computed:            true,{{else}}
+{{- if $.DataSource.QueryID}}
+		Optional:            true,
+{{- end}}
 		Computed:            true,
-{{end}}
 {{- else if $name}}
 		Optional:            true,
 {{- else}}
