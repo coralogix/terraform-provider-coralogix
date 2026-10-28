@@ -21,6 +21,7 @@ import (
 
 	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
 	alerttypes "github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_types"
+	dashboardschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards/dashboard_schema"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
@@ -194,25 +195,11 @@ type ComputedForSomeAlerts struct {
 // policy is semantically identical JSON under a different formatting. The
 // backend returns its own key order, while configurations are usually written
 // with jsonencode; without this, a reordered-but-equal policy would plan a
-// diff on every run. It mirrors the dashboard access_policy behaviour.
-type preserveStateForEquivalentJSON struct{}
-
-func (m preserveStateForEquivalentJSON) Description(ctx context.Context) string {
-	return "Preserves the previous state value when the configured JSON is semantically equivalent."
-}
-
-func (m preserveStateForEquivalentJSON) MarkdownDescription(ctx context.Context) string {
-	return m.Description(ctx)
-}
-
-func (m preserveStateForEquivalentJSON) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
-	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() || req.StateValue.IsNull() || req.StateValue.IsUnknown() {
-		return
-	}
-	if utils.JSONStringsEqual(req.ConfigValue.ValueString(), req.StateValue.ValueString()) {
-		resp.PlanValue = req.StateValue
-	}
-}
+// diff on every run. It reuses the dashboard package's plan modifier: the
+// logic is identical, so there is exactly one implementation (hoisting it to
+// internal/utils would export framework types from a utils package; a second
+// copy here would drift). If a fourth consumer appears, hoist then.
+var preserveStateForEquivalentJSON = dashboardschema.PreserveStateForEquivalentJSON{}
 
 func (c ComputedForSomeAlerts) Description(ctx context.Context) string {
 	return "Computed for metric alerts."

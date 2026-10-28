@@ -1019,7 +1019,7 @@ func V3() schema.Schema {
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
-					preserveStateForEquivalentJSON{},
+					preserveStateForEquivalentJSON,
 					stringplanmodifier.UseStateForUnknown(),
 				},
 				MarkdownDescription: "JSON string representing the access policy for this alert. It defines granular permissions for users and groups. " +
