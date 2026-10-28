@@ -9,6 +9,10 @@ import (
 // source only with this section, which is {} when the data source keeps every default. A new
 // resource always gets one.
 type DataSource struct {
+	// QueryID lets a released singleton data source pass an optional id input to the Get
+	// operation's optional string query parameter named id. Without it, a singleton data
+	// source takes no input.
+	QueryID bool `yaml:"queryID"`
 	// Lookup names the attributes that find the resource. [id] is the default, so the generator
 	// reports it as a line that changes nothing. [id, name] also finds the resource by its name,
 	// through the List of the API.
