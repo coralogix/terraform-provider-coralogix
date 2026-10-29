@@ -17,6 +17,7 @@ package provider
 import (
 	"fmt"
 	"maps"
+	"net/http"
 	"testing"
 )
 
@@ -58,6 +59,7 @@ var dataSourceBaselines = map[string]dataSourceBaseline{
 	}, alDataSourceScenarios},
 	"quota_allocation_rule_set": {quotaGoldenDir, newQuotaHarness, quotaDataSourceScenarios},
 	"action":                    {actionGoldenDir, newActionHarness, actionDataSourceScenarios},
+	"integration":               {integrationGoldenDir, newIntegrationHarness, integrationDataSourceScenarios},
 }
 
 func TestDataSourceBaselineSchema(t *testing.T) {
@@ -343,5 +345,50 @@ var quotaDataSourceScenarios = map[string]func(h *grHarness){
 	"not-found": func(h *grHarness) {
 		h.quota().notFound = true
 		h.ReadDataSource("read when the API answers 404", j{})
+	},
+}
+
+// --- integration ---
+
+// The data source reads a deployed integration by id. A configured `parameters` object filters the
+// parameters that the data source shows to its keys.
+var integrationDataSourceScenarios = map[string]func(h *grHarness){
+	"read-by-id": func(h *grHarness) {
+		id := h.integrations().seed(integrationCatalog, integrationVersion1,
+			j{"key": "IntegrationName", "stringValue": "seeded"},
+			j{"key": "AwsRoleArn", "stringValue": integrationOKRole})
+		h.ReadDataSource("read by id", byID(id))
+	},
+	"read-by-id-filtered-by-parameter-keys": func(h *grHarness) {
+		id := h.integrations().seed(integrationCollect, integrationVersion1,
+			j{"key": "IntegrationName", "stringValue": "seeded"},
+			j{"key": "AwsRoleArn", "stringValue": integrationOKRole},
+			j{"key": "AwsRegion", "stringValue": "eu-north-1"},
+			j{"key": "MetricNamespaces", "stringList": j{"values": l{"AWS/S3"}}},
+			j{"key": "WithAggregations", "booleanValue": false})
+		h.ReadDataSource("read with parameters set: the state keeps the configured value", j{
+			"id":         id,
+			"parameters": j{"IntegrationName": "x", "AwsRegion": "y"},
+		})
+	},
+	"read-by-id-with-unwanted-attributes": func(h *grHarness) {
+		id := h.integrations().seed(integrationCatalog, integrationVersion1,
+			j{"key": "IntegrationName", "stringValue": "seeded"},
+			j{"key": "AwsRoleArn", "stringValue": integrationOKRole})
+		h.ReadDataSource("config sets the computed integration_key", j{"id": id, "integration_key": "other"})
+	},
+	"not-found": func(h *grHarness) {
+		h.ReadDataSource("read an id that does not exist", byID(missingID))
+	},
+	"read-api-error": func(h *grHarness) {
+		h.integrations().notFound = false
+		id := h.integrations().seed(integrationCatalog, integrationVersion1,
+			j{"key": "IntegrationName", "stringValue": "seeded"},
+			j{"key": "AwsRoleArn", "stringValue": integrationOKRole})
+		h.integrations().readStatus = http.StatusInternalServerError
+		h.ReadDataSource("read when the API answers 500", byID(id))
+	},
+	"no-id": func(h *grHarness) {
+		h.ReadDataSource("config sets no id", j{})
 	},
 }

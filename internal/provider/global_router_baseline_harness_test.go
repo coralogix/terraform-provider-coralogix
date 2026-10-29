@@ -529,6 +529,8 @@ func fromJSON(t *testing.T, typ tftypes.Type, v any) tftypes.Value {
 		return tftypes.NewValue(typ, nil)
 	}
 	switch {
+	case typ.Is(tftypes.DynamicPseudoType):
+		return dynamicFromJSON(t, v)
 	case typ.Is(tftypes.String):
 		return tftypes.NewValue(typ, v.(string))
 	case typ.Is(tftypes.Bool):
@@ -562,6 +564,38 @@ func fromJSON(t *testing.T, typ tftypes.Type, v any) tftypes.Value {
 	return tftypes.Value{}
 }
 
+// dynamicFromJSON gives a value of a dynamic attribute the type that Terraform infers from HCL: a
+// JSON object is an object, a JSON array is a tuple, and the scalars are string, number, and bool.
+func dynamicFromJSON(t *testing.T, v any) tftypes.Value {
+	t.Helper()
+	switch x := v.(type) {
+	case string:
+		return tftypes.NewValue(tftypes.String, x)
+	case bool:
+		return tftypes.NewValue(tftypes.Bool, x)
+	case float64:
+		return tftypes.NewValue(tftypes.Number, big.NewFloat(x))
+	case []any:
+		types := make([]tftypes.Type, len(x))
+		values := make([]tftypes.Value, len(x))
+		for i, e := range x {
+			values[i] = dynamicFromJSON(t, e)
+			types[i] = values[i].Type()
+		}
+		return tftypes.NewValue(tftypes.Tuple{ElementTypes: types}, values)
+	case map[string]any:
+		types := map[string]tftypes.Type{}
+		values := map[string]tftypes.Value{}
+		for k, e := range x {
+			values[k] = dynamicFromJSON(t, e)
+			types[k] = values[k].Type()
+		}
+		return tftypes.NewValue(tftypes.Object{AttributeTypes: types}, values)
+	}
+	t.Fatalf("unsupported dynamic value %T", v)
+	return tftypes.Value{}
+}
+
 func elems(t *testing.T, elem tftypes.Type, v any) []tftypes.Value {
 	out := make([]tftypes.Value, 0)
 	for _, e := range v.([]any) {
@@ -592,7 +626,7 @@ func toJSON(v tftypes.Value) any {
 		_ = v.As(&n)
 		f, _ := n.Float64()
 		return f
-	case v.Type().Is(tftypes.List{}), v.Type().Is(tftypes.Set{}):
+	case v.Type().Is(tftypes.List{}), v.Type().Is(tftypes.Set{}), v.Type().Is(tftypes.Tuple{}):
 		var l []tftypes.Value
 		_ = v.As(&l)
 		out := make([]any, 0, len(l))

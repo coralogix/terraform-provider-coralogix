@@ -1,0 +1,24 @@
+[
+  {
+    "step": "read when the API answers 500",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/integrations/v1/deployed/00000000-0000-4000-8000-000000000001",
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error reading coralogix_integration | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: the integration could not be read\"}\noperation - Read"
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "integration_key": null,
+      "parameters": null,
+      "version": null
+    }
+  }
+]
