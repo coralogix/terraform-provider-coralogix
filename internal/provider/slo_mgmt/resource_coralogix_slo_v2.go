@@ -22,10 +22,22 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 )
 
 func NewSLOV2Resource() resource.Resource {
-	return slov2.NewResource(slov2.Hooks{BeforeFlatten: normalizeLegacySLO})
+	return slov2.NewResource(slov2.Hooks{BeforeWrite: clearOwnershipOnReplace, BeforeFlatten: normalizeLegacySLO})
+}
+
+// clearOwnershipOnReplace sends an empty ownershipTags with a request that has none. A metric SLO
+// drops its ownership tags when a replace omits them, but an APM SLO keeps them, so removing
+// `ownership_tags` from the configuration of an APM SLO ended in an inconsistent result. An empty
+// object clears the tags of both, and on a create it stores none (checked against the API).
+func clearOwnershipOnReplace(_ context.Context, _ tfsdk.Config, body any) diag.Diagnostics {
+	if slo, ok := body.(*slos.Slo1); ok && slo.OwnershipTags == nil {
+		slo.OwnershipTags = &slos.SloOwnershipTags{}
+	}
+	return nil
 }
 
 // normalizeLegacySLO reads the values that an older record does not have as the values that the
