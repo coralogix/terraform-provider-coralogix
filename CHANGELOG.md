@@ -1,5 +1,12 @@
 # Unreleased
 
+#### resource/coralogix_slo_v2
+- FEAT: New optional `sli.apm_sli.filters[].match_operator` (`is`, `starts_with`, `ends_with`, `includes`, or `unspecified`), from the new API contract. All items of a list use the same mode: all omitted, or all set. The data source shows it too.
+- CHORE: The generated acceptance test covers the APM SLI, with the service in `CORALOGIX_SLO_V2_APM_SERVICE`.
+
+#### resource/coralogix_configuration_group
+- DOCS: The descriptions of the attributes follow the new API contract.
+
 #### provider
 - CHORE: Bump `coralogix-management-sdk` to the version with the integrations contract. The SDK holds the required fields of `IntegrationMetadata` and `DeployedIntegrationInformation` as values; `coralogix_integration` adapts, with no change to plans. The dashboard tests answer a Get with the `permissions` object that the SDK now requires in the response.
 

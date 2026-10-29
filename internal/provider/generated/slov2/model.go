@@ -25,8 +25,9 @@ type ApmErrorSliModel struct {
 }
 
 type ApmFilterModel struct {
-	Key    types.String `tfsdk:"key"`
-	Values types.List   `tfsdk:"values"`
+	Key           types.String `tfsdk:"key"`
+	MatchOperator types.String `tfsdk:"match_operator"`
+	Values        types.List   `tfsdk:"values"`
 }
 
 type ApmLatencyAverageModel struct {

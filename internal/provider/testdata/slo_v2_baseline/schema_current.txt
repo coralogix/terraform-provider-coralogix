@@ -9,6 +9,8 @@ apm_sli_metadata.filters  ListNestedAttribute computed
 apm_sli_metadata.filters[]  NestedObject
 apm_sli_metadata.filters[].key  StringAttribute computed
     markdown: "Label or tag name to filter on."
+apm_sli_metadata.filters[].match_operator  StringAttribute computed
+    markdown: "How literals on `key` are compared. Every item in `apmSli.filters` must use the same mode: all implicit (legacy) or all explicit — mixing modes in one list is rejected. Implicit: omitted or `APM_FILTER_MATCH_OPERATOR_UNSPECIFIED` on every item — multiple items with the same `key` OR-merge literals with exact (IS) comparison; sending `UNSPECIFIED` is equivalent to omitting the field (neither is stored as explicit `IS`). Explicit: `APM_FILTER_MATCH_OPERATOR_IS`, `STARTS_WITH`, `ENDS_WITH`, or `INCLUDES` on every item — each item is a separate AND criterion; OR applies only among literals in that item (explicit `IS` differs from implicit when several items share a `key`). Items on different keys are AND-combined. Pattern operators use literal substring matching (not caller-supplied regex). Applies only when the item has at least one literal: non-empty `values`, or deprecated `value` when `values` is omitted or empty (non-empty `values` takes precedence over `value`); otherwise rejected."
 apm_sli_metadata.filters[].values  ListAttribute computed elem=basetypes.StringType
     markdown: "Values to match, with OR semantics."
 apm_sli_metadata.grouping_keys  ListAttribute computed elem=basetypes.StringType
@@ -97,6 +99,9 @@ sli.apm_sli.filters  ListNestedAttribute optional
 sli.apm_sli.filters[]  NestedObject
 sli.apm_sli.filters[].key  StringAttribute required
     markdown: "Label or tag name to filter on."
+sli.apm_sli.filters[].match_operator  StringAttribute optional
+    markdown: "How literals on `key` are compared. Every item in `apmSli.filters` must use the same mode: all implicit (legacy) or all explicit — mixing modes in one list is rejected. Implicit: omitted or `APM_FILTER_MATCH_OPERATOR_UNSPECIFIED` on every item — multiple items with the same `key` OR-merge literals with exact (IS) comparison; sending `UNSPECIFIED` is equivalent to omitting the field (neither is stored as explicit `IS`). Explicit: `APM_FILTER_MATCH_OPERATOR_IS`, `STARTS_WITH`, `ENDS_WITH`, or `INCLUDES` on every item — each item is a separate AND criterion; OR applies only among literals in that item (explicit `IS` differs from implicit when several items share a `key`). Items on different keys are AND-combined. Pattern operators use literal substring matching (not caller-supplied regex). Applies only when the item has at least one literal: non-empty `values`, or deprecated `value` when `values` is omitted or empty (non-empty `values` takes precedence over `value`); otherwise rejected."
+    validator: stringvalidator.oneOfValidator value must be one of: ["ends_with" "includes" "is" "starts_with" "unspecified"]
 sli.apm_sli.filters[].values  ListAttribute required elem=basetypes.StringType
     markdown: "Values to match, with OR semantics."
     validator: listvalidator.sizeAtLeastValidator list must contain at least 1 elements

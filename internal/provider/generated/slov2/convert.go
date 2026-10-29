@@ -22,6 +22,24 @@ import (
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 )
 
+// apmFilterMatchOperatorToAPI maps the Terraform values of the enum to its API values.
+var apmFilterMatchOperatorToAPI = map[string]slos_service.ApmFilterMatchOperator{
+	"unspecified": slos_service.ApmFilterMatchOperator("APM_FILTER_MATCH_OPERATOR_UNSPECIFIED"),
+	"is":          slos_service.ApmFilterMatchOperator("APM_FILTER_MATCH_OPERATOR_IS"),
+	"starts_with": slos_service.ApmFilterMatchOperator("APM_FILTER_MATCH_OPERATOR_STARTS_WITH"),
+	"ends_with":   slos_service.ApmFilterMatchOperator("APM_FILTER_MATCH_OPERATOR_ENDS_WITH"),
+	"includes":    slos_service.ApmFilterMatchOperator("APM_FILTER_MATCH_OPERATOR_INCLUDES"),
+}
+
+// apmFilterMatchOperatorFromAPI maps the API values of the enum to its Terraform values.
+var apmFilterMatchOperatorFromAPI = map[slos_service.ApmFilterMatchOperator]string{
+	slos_service.ApmFilterMatchOperator("APM_FILTER_MATCH_OPERATOR_UNSPECIFIED"): "unspecified",
+	slos_service.ApmFilterMatchOperator("APM_FILTER_MATCH_OPERATOR_IS"):          "is",
+	slos_service.ApmFilterMatchOperator("APM_FILTER_MATCH_OPERATOR_STARTS_WITH"): "starts_with",
+	slos_service.ApmFilterMatchOperator("APM_FILTER_MATCH_OPERATOR_ENDS_WITH"):   "ends_with",
+	slos_service.ApmFilterMatchOperator("APM_FILTER_MATCH_OPERATOR_INCLUDES"):    "includes",
+}
+
 // windowSloWindowToAPI maps the Terraform values of the enum to its API values.
 var windowSloWindowToAPI = map[string]slos_service.WindowSloWindow{
 	"unspecified": slos_service.WindowSloWindow("WINDOW_SLO_WINDOW_UNSPECIFIED"),
@@ -265,6 +283,7 @@ var computedAttrs = map[string]bool{
 	"apm_sli_metadata.error_config":                       true,
 	"apm_sli_metadata.filters":                            true,
 	"apm_sli_metadata.filters.key":                        true,
+	"apm_sli_metadata.filters.match_operator":             true,
 	"apm_sli_metadata.filters.values":                     true,
 	"apm_sli_metadata.grouping_keys":                      true,
 	"apm_sli_metadata.latency_config":                     true,
@@ -528,6 +547,7 @@ func expandApmFilter(ctx context.Context, p path.Path, m *ApmFilterModel, diags 
 	}
 	out := &slos_service.ApmFilter{}
 	out.Key = valueOf(expandString(m.Key))
+	out.MatchOperator = expandEnumMapped(p.AtName("match_operator"), m.MatchOperator, apmFilterMatchOperatorToAPI, diags)
 	out.Values = expandStrings[string](ctx, p.AtName("values"), m.Values, diags)
 	return out
 }
@@ -538,14 +558,16 @@ func flattenApmFilter(ctx context.Context, p path.Path, v *slos_service.ApmFilte
 	}
 	out := &ApmFilterModel{}
 	out.Key = types.StringPointerValue(&v.Key)
+	out.MatchOperator = flattenEnumMapped(p.AtName("match_operator"), v.MatchOperator, apmFilterMatchOperatorFromAPI, diags)
 	out.Values = flattenStringsList(ctx, v.Values, diags)
 	return out
 }
 
 func apmFilterAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"key":    types.StringType,
-		"values": types.ListType{ElemType: types.StringType},
+		"key":            types.StringType,
+		"match_operator": types.StringType,
+		"values":         types.ListType{ElemType: types.StringType},
 	}
 }
 

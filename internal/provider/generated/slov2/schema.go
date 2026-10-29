@@ -50,6 +50,13 @@ func Schema() schema.Schema {
 											Required:            true,
 											MarkdownDescription: "Label or tag name to filter on.",
 										},
+										"match_operator": schema.StringAttribute{
+											Optional: true,
+											Validators: []validator.String{
+												stringvalidator.OneOf("ends_with", "includes", "is", "starts_with", "unspecified"),
+											},
+											MarkdownDescription: "How literals on `key` are compared. Every item in `apmSli.filters` must use the same mode: all implicit (legacy) or all explicit — mixing modes in one list is rejected. Implicit: omitted or `APM_FILTER_MATCH_OPERATOR_UNSPECIFIED` on every item — multiple items with the same `key` OR-merge literals with exact (IS) comparison; sending `UNSPECIFIED` is equivalent to omitting the field (neither is stored as explicit `IS`). Explicit: `APM_FILTER_MATCH_OPERATOR_IS`, `STARTS_WITH`, `ENDS_WITH`, or `INCLUDES` on every item — each item is a separate AND criterion; OR applies only among literals in that item (explicit `IS` differs from implicit when several items share a `key`). Items on different keys are AND-combined. Pattern operators use literal substring matching (not caller-supplied regex). Applies only when the item has at least one literal: non-empty `values`, or deprecated `value` when `values` is omitted or empty (non-empty `values` takes precedence over `value`); otherwise rejected.",
+										},
 										"values": schema.ListAttribute{
 											Required:    true,
 											ElementType: types.StringType,
@@ -225,6 +232,10 @@ func Schema() schema.Schema {
 								"key": schema.StringAttribute{
 									Computed:            true,
 									MarkdownDescription: "Label or tag name to filter on.",
+								},
+								"match_operator": schema.StringAttribute{
+									Computed:            true,
+									MarkdownDescription: "How literals on `key` are compared. Every item in `apmSli.filters` must use the same mode: all implicit (legacy) or all explicit — mixing modes in one list is rejected. Implicit: omitted or `APM_FILTER_MATCH_OPERATOR_UNSPECIFIED` on every item — multiple items with the same `key` OR-merge literals with exact (IS) comparison; sending `UNSPECIFIED` is equivalent to omitting the field (neither is stored as explicit `IS`). Explicit: `APM_FILTER_MATCH_OPERATOR_IS`, `STARTS_WITH`, `ENDS_WITH`, or `INCLUDES` on every item — each item is a separate AND criterion; OR applies only among literals in that item (explicit `IS` differs from implicit when several items share a `key`). Items on different keys are AND-combined. Pattern operators use literal substring matching (not caller-supplied regex). Applies only when the item has at least one literal: non-empty `values`, or deprecated `value` when `values` is omitted or empty (non-empty `values` takes precedence over `value`); otherwise rejected.",
 								},
 								"values": schema.ListAttribute{
 									Computed:            true,

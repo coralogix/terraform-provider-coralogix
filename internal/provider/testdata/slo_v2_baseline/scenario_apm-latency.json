@@ -50,6 +50,7 @@
           "filters": [
             {
               "key": "environment",
+              "match_operator": null,
               "values": [
                 "prod",
                 "staging"
@@ -123,6 +124,7 @@
         "filters": [
           {
             "key": "environment",
+            "match_operator": null,
             "values": [
               "prod",
               "staging"
@@ -161,6 +163,7 @@
           "filters": [
             {
               "key": "environment",
+              "match_operator": null,
               "values": [
                 "prod",
                 "staging"
@@ -207,6 +210,7 @@
         "filters": [
           {
             "key": "environment",
+            "match_operator": null,
             "values": [
               "prod",
               "staging"
@@ -245,6 +249,7 @@
           "filters": [
             {
               "key": "environment",
+              "match_operator": null,
               "values": [
                 "prod",
                 "staging"

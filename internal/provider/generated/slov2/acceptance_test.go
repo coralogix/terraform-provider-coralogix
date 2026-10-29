@@ -21,7 +21,7 @@ import (
 const resourceAddress = "coralogix_slo_v2.test"
 
 // requiredEnv are the variables that the test config reads, besides the API key.
-var requiredEnv = []string{}
+var requiredEnv = []string{"CORALOGIX_SLO_V2_APM_SERVICE"}
 
 // providerFactories serve the provider as the binary does: the SDKv2 and the framework providers
 // behind one mux, so a prerequisite can be any resource of the provider.
@@ -63,13 +63,17 @@ const prerequisites = ``
 
 const fullConfig = `resource "coralogix_slo_v2" "test" {
   sli = {
-    request_based_metric_sli = {
-      good_events = {
-        query = "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
-      }
-      total_events = {
-        query = "sum(rate(http_requests_total[1m])) by (service)"
-      }
+    apm_sli = {
+      error_config = {}
+      filters = [
+        {
+          key = "http.status_code"
+          match_operator = "ends_with"
+          values = ["@{run}-values"]
+        },
+      ]
+      grouping_keys = ["@{run}-grouping_keys"]
+      services = ["@{env.CORALOGIX_SLO_V2_APM_SERVICE}"]
     }
   }
   description = "@{run}-description"
@@ -86,7 +90,7 @@ const fullConfig = `resource "coralogix_slo_v2" "test" {
       static_values = ["payments"]
     }
   }
-  product_type = "unspecified"
+  product_type = "apm"
   window = {
     slo_time_frame = "7_days"
   }
@@ -95,13 +99,17 @@ const fullConfig = `resource "coralogix_slo_v2" "test" {
 
 const updatedConfig = `resource "coralogix_slo_v2" "test" {
   sli = {
-    request_based_metric_sli = {
-      good_events = {
-        query = "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
-      }
-      total_events = {
-        query = "sum(rate(http_requests_total[1m])) by (service)"
-      }
+    apm_sli = {
+      error_config = {}
+      filters = [
+        {
+          key = "http.status_code"
+          match_operator = "ends_with"
+          values = ["@{run}-values-updated"]
+        },
+      ]
+      grouping_keys = ["@{run}-grouping_keys-updated"]
+      services = ["@{env.CORALOGIX_SLO_V2_APM_SERVICE}"]
     }
   }
   description = "@{run}-description-updated"
@@ -118,7 +126,7 @@ const updatedConfig = `resource "coralogix_slo_v2" "test" {
       static_values = ["payments"]
     }
   }
-  product_type = "unspecified"
+  product_type = "apm"
   window = {
     slo_time_frame = "7_days"
   }
@@ -127,13 +135,16 @@ const updatedConfig = `resource "coralogix_slo_v2" "test" {
 
 const minimalConfig = `resource "coralogix_slo_v2" "test" {
   sli = {
-    request_based_metric_sli = {
-      good_events = {
-        query = "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
-      }
-      total_events = {
-        query = "sum(rate(http_requests_total[1m])) by (service)"
-      }
+    apm_sli = {
+      error_config = {}
+      filters = [
+        {
+          key = "http.status_code"
+          values = ["@{run}-values"]
+        },
+      ]
+      grouping_keys = ["@{run}-grouping_keys"]
+      services = ["@{env.CORALOGIX_SLO_V2_APM_SERVICE}"]
     }
   }
   name = "@{run}-slo"
@@ -143,16 +154,55 @@ const minimalConfig = `resource "coralogix_slo_v2" "test" {
   target_threshold_percentage = 99.5
 }`
 
+// upgradeFullConfig is the full config without the attributes that provider 3.21.0 does not have.
+const upgradeFullConfig = `resource "coralogix_slo_v2" "test" {
+  sli = {
+    apm_sli = {
+      error_config = {}
+      filters = [
+        {
+          key = "http.status_code"
+          values = ["@{run}-values"]
+        },
+      ]
+      grouping_keys = ["@{run}-grouping_keys"]
+      services = ["@{env.CORALOGIX_SLO_V2_APM_SERVICE}"]
+    }
+  }
+  description = "@{run}-description"
+  labels = { team = "payments" }
+  name = "@{run}-slo"
+  ownership_tags = {
+    environment = {
+      static_values = ["production"]
+    }
+    service = {
+      label_keys = ["service_name"]
+    }
+    team = {
+      static_values = ["payments"]
+    }
+  }
+  product_type = "apm"
+  window = {
+    slo_time_frame = "7_days"
+  }
+  target_threshold_percentage = 99.5
+}`
+
 // upgradeMinimalConfig is the minimal config plus the fields that the released provider needs.
 const upgradeMinimalConfig = `resource "coralogix_slo_v2" "test" {
   sli = {
-    request_based_metric_sli = {
-      good_events = {
-        query = "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
-      }
-      total_events = {
-        query = "sum(rate(http_requests_total[1m])) by (service)"
-      }
+    apm_sli = {
+      error_config = {}
+      filters = [
+        {
+          key = "http.status_code"
+          values = ["@{run}-values"]
+        },
+      ]
+      grouping_keys = ["@{run}-grouping_keys"]
+      services = ["@{env.CORALOGIX_SLO_V2_APM_SERVICE}"]
     }
   }
   name = "@{run}-slo"
@@ -177,30 +227,70 @@ const dataSourceConfig = `data "coralogix_slo_v2" "test" {
 func dataSourceChecks() resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "sli.apm_sli.filters.#", resourceAddress, "sli.apm_sli.filters.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "sli.apm_sli.filters.0.match_operator", resourceAddress, "sli.apm_sli.filters.0.match_operator"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "sli.apm_sli.filters.0.values.#", resourceAddress, "sli.apm_sli.filters.0.values.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "sli.apm_sli.filters.0.values.0", resourceAddress, "sli.apm_sli.filters.0.values.0"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "sli.apm_sli.grouping_keys.#", resourceAddress, "sli.apm_sli.grouping_keys.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "sli.apm_sli.grouping_keys.0", resourceAddress, "sli.apm_sli.grouping_keys.0"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "description", resourceAddress, "description"),
 	)
 }
 
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.match_operator", "ends_with"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values")),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.0", render(run, "@{run}-grouping_keys")),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 	)
 }
 
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.match_operator", "ends_with"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.0", render(run, "@{run}-grouping_keys-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description-updated")),
 	)
 }
 
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values")),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.0", render(run, "@{run}-grouping_keys")),
 		resource.TestCheckNoResourceAttr(resourceAddress, "description"),
 	)
 }
 
+func upgradeFullChecks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values")),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.0", render(run, "@{run}-grouping_keys")),
+		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+	)
+}
+
 func upgradeMinimalChecks(run string) resource.TestCheckFunc {
-	return resource.ComposeAggregateTestCheckFunc()
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values")),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.0", render(run, "@{run}-grouping_keys")),
+	)
 }
 
 func newRun() string { return "acc-" + uuid.NewString()[:8] }
@@ -325,7 +415,7 @@ func TestAccCoralogixResourceSloV2GeneratedUpgrade(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
-			Steps: upgradeSteps(run, fullConfig, fullChecks(run),
+			Steps: upgradeSteps(run, upgradeFullConfig, upgradeFullChecks(run),
 				updatedConfig, updatedChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
 		})
 	})
