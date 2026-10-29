@@ -110,11 +110,11 @@ func (f *ipAccessFake) handle(method, path string, body any) (int, any) {
 	switch method {
 	case http.MethodPost:
 		if len(asObject(f.settings["ipAccess"])) > 0 {
-			return http.StatusConflict, map[string]any{"code": http.StatusConflict, "message": "Company already has IP access settings. Use replace method to update."}
+			return http.StatusConflict, map[string]any{"code": http.StatusConflict, "message": "Already Exists: Company already has IP access settings. Use replace method to update."}
 		}
 		request := asObject(body)
 		if err := validateIpAccessInput(request); err != "" {
-			return http.StatusBadRequest, map[string]any{"code": http.StatusBadRequest, "message": err}
+			return http.StatusBadRequest, map[string]any{"code": http.StatusBadRequest, "message": "Bad Request: " + err}
 		}
 		f.applyWrite(request)
 		return http.StatusOK, map[string]any{"settings": f.copySettingsWithAccess(enumValue(request))}
@@ -122,7 +122,7 @@ func (f *ipAccessFake) handle(method, path string, body any) (int, any) {
 		request := asObject(body)
 		responseAccess := enumValue(request)
 		if err := validateIpAccessInput(request); err != "" {
-			return http.StatusBadRequest, map[string]any{"code": http.StatusBadRequest, "message": err}
+			return http.StatusBadRequest, map[string]any{"code": http.StatusBadRequest, "message": "Bad Request: " + err}
 		}
 		f.applyWrite(request)
 		return http.StatusOK, map[string]any{"settings": f.copySettingsWithAccess(responseAccess)}
@@ -169,11 +169,11 @@ func (f *ipAccessFake) makeSettings(input map[string]any) map[string]any {
 	if raw, ok := input["ipAccess"].([]any); ok {
 		for _, entry := range raw {
 			f.seq++
-			items[fmtEntryID(f.seq)] = entry
+			items[fmtEntryID(f.seq)] = ipAccessResponseEntry(entry)
 		}
 	} else if raw, ok := input["ipAccess"].(map[string]any); ok {
 		for key, entry := range raw {
-			items[key] = entry
+			items[key] = ipAccessResponseEntry(entry)
 		}
 	}
 	return map[string]any{
@@ -181,6 +181,18 @@ func (f *ipAccessFake) makeSettings(input map[string]any) map[string]any {
 		"ipAccess":                             items,
 		"enableCoralogixCustomerSupportAccess": access,
 	}
+}
+
+func ipAccessResponseEntry(value any) map[string]any {
+	entry := asObject(value)
+	out := make(map[string]any, len(entry)+1)
+	for key, field := range entry {
+		out[key] = field
+	}
+	if _, ok := out["scopes"]; !ok {
+		out["scopes"] = []any{}
+	}
+	return out
 }
 
 func (f *ipAccessFake) copySettings() map[string]any {
