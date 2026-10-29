@@ -18,10 +18,8 @@ values:
   ownership_tags.environment.static_values: '["production"]'
   ownership_tags.team.static_values: '["payments"]'
 
+# Each ownership tag takes static_values or label_keys, never both: the config sets one of them.
 skip:
-  - sli.request_based_metric_sli
-  - sli.window_based_metric_sli
-  - sli.apm_sli.latency_config
   - ownership_tags.service.static_values
   - ownership_tags.environment.label_keys
   - ownership_tags.team.label_keys
