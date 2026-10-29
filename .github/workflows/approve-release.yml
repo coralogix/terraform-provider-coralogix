@@ -1,14 +1,17 @@
-# Approves the release PRs that `make bump` opens, so that a release needs no human review.
+# Approves the release PRs that `make bump` opens once their CI is green, so that a release
+# needs no human review. `make bump` turns on auto-merge, so the PR merges right after.
 #
 # A release PR only versions code that was already reviewed on master. This workflow approves
 # one only when its branch is release-X.Y.Z in this repository, it changes nothing but
 # CHANGELOG.md and the version line in internal/clientset/version.go, X.Y.Z is that new
-# version, and `release.py check` passes. CODEOWNERS leaves those two files without owners, so
-# this approval is the one review the PR needs. Every run first dismisses this workflow's
-# earlier approvals, so a later push to the branch is never merged on an old approval.
+# version, `release.py check` passes, and every check on the PR's latest commit has passed,
+# including the acceptance tests. CODEOWNERS leaves those two files without owners, so this
+# approval is the one review the PR needs. Approvals of an older commit are dismissed, so a
+# later push is never merged on an old approval.
 #
-# pull_request_target runs this file and release.py as they are on master, never a copy that
-# the PR changed. The PR's files are only read, never executed.
+# It runs when the release PR changes (to dismiss stale approvals) and whenever a PR workflow
+# finishes (to approve once the last check passes). Both triggers run this file and release.py
+# as they are on master, never a copy that the PR changed. The PR's files are only read.
 name: approve-release
 
 on:
@@ -16,44 +19,65 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - master
-
-concurrency:
-  group: approve-release-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  workflow_run:
+    workflows: ["Acceptance Tests", "build", "release", "changelog-check", "tfsec"]
+    types: [completed]
 
 permissions:
   contents: read
 
 jobs:
   approve:
-    name: Approve the release PR
+    # Check runs named "Release PR: ..." are this workflow's own and are not waited for.
+    name: "Release PR: approve"
     runs-on: ubuntu-latest
     if: >-
-      startsWith(github.head_ref, 'release-') &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      !github.event.pull_request.draft
+      (github.event_name == 'pull_request_target' &&
+       startsWith(github.head_ref, 'release-') &&
+       github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.event == 'pull_request' &&
+       startsWith(github.event.workflow_run.head_branch, 'release-') &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    concurrency:
+      group: approve-release-${{ github.head_ref || github.event.workflow_run.head_branch }}
+      cancel-in-progress: true
     permissions:
       contents: read
       pull-requests: write
+      checks: read
     env:
       GH_TOKEN: ${{ github.token }}
-      PR: ${{ github.event.pull_request.number }}
-      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      HEAD_REF: ${{ github.head_ref }}
+      HEAD_REF: ${{ github.head_ref || github.event.workflow_run.head_branch }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Dismiss earlier approvals
+      - id: pr
+        name: Find the release PR
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$HEAD_REF" --base master --state open \
+            --json number,headRefOid,isDraft --jq '.[0] // empty')
+          if [ -z "$pr" ]; then echo "::notice::No open PR from $HEAD_REF"; exit 0; fi
+          jq -r '"number=\(.number)\nsha=\(.headRefOid)\ndraft=\(.isDraft)"' <<<"$pr" >> "$GITHUB_OUTPUT"
+      - name: Dismiss approvals of older commits
+        if: steps.pr.outputs.number != ''
+        env:
+          PR: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
         run: |
           gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" \
-            --jq '.[] | select(.user.login == "github-actions[bot]" and .state == "APPROVED") | .id' |
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and .state == \"APPROVED\" and .commit_id != \"$HEAD_SHA\") | .id" |
             while read -r id; do
               gh api -X PUT "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews/$id/dismissals" \
                 -f message="Superseded by a new push; re-checking the release PR." -f event=DISMISS >/dev/null
             done
       - name: Check the release PR
+        if: steps.pr.outputs.number != '' && steps.pr.outputs.draft == 'false'
+        env:
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
         run: |
           cp .github/scripts/release/release.py "$RUNNER_TEMP/release.py"
           git fetch --quiet --no-tags origin "$HEAD_SHA"
@@ -71,8 +95,37 @@ jobs:
             echo "::error::Branch $HEAD_REF does not match version $version; open release PRs with \`make bump\`"; exit 1
           fi
           python3 -I "$RUNNER_TEMP/release.py" check origin/master
-      - name: Approve
+      - id: ci
+        name: Wait for green CI
+        if: steps.pr.outputs.number != '' && steps.pr.outputs.draft == 'false'
+        env:
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
         run: |
+          # The latest run of every check on the head commit, except this workflow's own.
+          runs=$(gh api --paginate "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/check-runs?per_page=100" \
+            --jq '.check_runs[] | select(.name | startswith("Release PR:") | not) | [.name, .status, (.conclusion // "")] | @tsv')
+          # The checks that sum up the others; until they report, CI has not finished.
+          for required in "version-bump" "Acceptance tests result"; do
+            if ! cut -f1 <<<"$runs" | grep -qxF "$required"; then
+              echo "::notice::Waiting: '$required' has not reported yet"; exit 0
+            fi
+          done
+          pending=$(awk -F'\t' '$2 != "completed" {print $1}' <<<"$runs")
+          if [ -n "$pending" ]; then echo "::notice::Waiting for: $(tr '\n' ',' <<<"$pending")"; exit 0; fi
+          failed=$(awk -F'\t' '$3 != "success" && $3 != "skipped" && $3 != "neutral" {print $1 " (" $3 ")"}' <<<"$runs")
+          if [ -n "$failed" ]; then
+            echo "::warning::Not approving: failed checks: $(tr '\n' ',' <<<"$failed"). Re-run them; approval follows when they pass."; exit 0
+          fi
+          echo "green=true" >> "$GITHUB_OUTPUT"
+      - name: Approve
+        if: steps.ci.outputs.green == 'true'
+        env:
+          PR: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
+        run: |
+          approved=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" \
+            --jq "[.[] | select(.user.login == \"github-actions[bot]\" and .state == \"APPROVED\" and .commit_id == \"$HEAD_SHA\")] | length")
+          if [ "$approved" != "0" ]; then echo "Already approved $HEAD_SHA"; exit 0; fi
           gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" -f commit_id="$HEAD_SHA" -f event=APPROVE \
-            -f body="Release PR from \`make bump\`: only the version and changelog change, and the release check passes." >/dev/null
+            -f body="Release PR from \`make bump\`: only the version and changelog change, the release check passes, and CI is green." >/dev/null
           echo "Approved $HEAD_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
