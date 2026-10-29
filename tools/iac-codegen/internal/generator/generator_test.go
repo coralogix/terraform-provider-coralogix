@@ -3166,6 +3166,30 @@ func TestRequestShapeRefusesAnOptionalPathThroughAPointerObject(t *testing.T) {
 	}
 }
 
+// A dynamic extra attribute in a nested component is refused: only the top level keeps its value.
+func TestDynamicExtraInANestedComponentIsRefused(t *testing.T) {
+	overrides, err := os.ReadFile(filepath.Join("testdata", "renamething-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, "overrides.yaml")
+	nested := string(overrides) + "  RenameParam:\n    extraAttributes:\n      note:\n        dynamic: true\n        markdownDescription: A note.\n"
+	if err := os.WriteFile(path, []byte(nested), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	spec, err := os.ReadFile(filepath.Join("testdata", "renamething.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	err = generateFromInput(Options{Resource: "RenameThing", OutputDir: filepath.Join(dir, "out"), OverridesPath: path}, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "dynamic applies to an attribute of the resource") {
+		t.Fatalf("generate = %v, want the dynamic-in-a-nested-component error", err)
+	}
+}
+
 // A skipped field has no request path in the generated code: the object that only it goes through
 // is not set, and the field is not an attribute.
 func TestRequestShapeSkippedFieldHasNoRequestPath(t *testing.T) {
