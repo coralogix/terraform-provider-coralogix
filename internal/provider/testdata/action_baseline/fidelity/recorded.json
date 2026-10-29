@@ -1,0 +1,836 @@
+{
+  "cases": [
+    {
+      "name": "create full, read, replace, clear optional fields, delete",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [
+                "app-a",
+                "app-b"
+              ],
+              "description": "first",
+              "dpxlFilter": "\u003cv1\u003e $d.severity == 'ERROR'",
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-a",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [
+                "sub-a"
+              ],
+              "url": "https://example.com/{{p}}",
+              "urlFields": [
+                {
+                  "name": "p",
+                  "required": true
+                },
+                {
+                  "name": "q",
+                  "required": false
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [
+                "app-a",
+                "app-b"
+              ],
+              "description": "first",
+              "dpxlFilter": "\u003cv1\u003e $d.severity == 'ERROR'",
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-a",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [
+                "sub-a"
+              ],
+              "url": "https://example.com/{{p}}",
+              "urlFields": [
+                {
+                  "name": "p",
+                  "required": true
+                },
+                {
+                  "name": "q",
+                  "required": false
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [
+                "app-a"
+              ],
+              "description": "second",
+              "dpxlFilter": "\u003cv1\u003e $d.severity == 'INFO'",
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-a2",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [
+                "sub-b"
+              ],
+              "url": "https://example.com/{{p}}",
+              "urlFields": [
+                {
+                  "name": "p",
+                  "required": false
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [
+                "app-a"
+              ],
+              "description": "second",
+              "dpxlFilter": "\u003cv1\u003e $d.severity == 'INFO'",
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-a2",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [
+                "sub-b"
+              ],
+              "url": "https://example.com/{{p}}",
+              "urlFields": [
+                {
+                  "name": "p",
+                  "required": false
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "description": "",
+              "dpxlFilter": "",
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-a2",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "description": "",
+              "dpxlFilter": "",
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-a2",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "description": "",
+              "dpxlFilter": "",
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-a2",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "description": "",
+              "dpxlFilter": "",
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-a2",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Action not found, id {{id}}, companyId \u003ccompany\u003e"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Action not found, id {{id}}, companyId \u003ccompany\u003e"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Action not found, id {{id}}, companyId \u003ccompany\u003e"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create minimal and the second source type",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-min",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-min",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-min",
+              "sourceType": "SOURCE_TYPE_DATA_MAP",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-min",
+              "sourceType": "SOURCE_TYPE_DATA_MAP",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "create validation",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Private actions need to be linked to a user"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Private actions need to be linked to a user"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.actions.v2.ActionsService/CreateAction: ValidationError: \"name\" is not allowed to be empty"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.actions.v2.ActionsService/CreateAction: ValidationError: \"name\" is required"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "id": "{{long}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.actions.v2.ActionsService/CreateAction: ValidationError: \"name\" length must be less than or equal to 50 characters long"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.actions.v2.ActionsService/CreateAction: ValidationError: \"url\" is not allowed to be empty"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.actions.v2.ActionsService/CreateAction: ValidationError: \"url\" with value \"example.com\" fails to match the required pattern: /^http[s]?:\\/\\/.*/"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.actions.v2.ActionsService/CreateAction: ValidationError: \"url\" with value \"ftp://example.com\" fails to match the required pattern: /^http[s]?:\\/\\/.*/"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.actions.v2.ActionsService/CreateAction: ValidationError: \"url\" is required"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Invalid source type"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Invalid source type"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: proto: (line L:C): invalid value for enum field sourceType: \"SOURCE_TYPE_NOPE\""
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "dpxlFilter": "\u003cv1\u003e $d.severity == 'ERROR'",
+              "id": "{{nf}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-nofilter",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "dpxlFilter": "",
+              "id": "{{ef}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-emptyfilter",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.actions.v2.ActionsService/CreateAction: ValidationError: \"urlFields[1]\" contains a duplicate value"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.actions.v2.ActionsService/CreateAction: ValidationError: \"urlFields[0].name\" is not allowed to be empty"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [
+                "a",
+                "a"
+              ],
+              "id": "{{da}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-dupapps",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "dpxlFilter": "\u003cv1\u003e $d.severity == 'ERROR'",
+              "id": "{{nf}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-nofilter",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "dpxlFilter": "",
+              "id": "{{ef}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-emptyfilter",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [
+                "a",
+                "a"
+              ],
+              "id": "{{da}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-dupapps",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "replace omits optional fields",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [
+                "a"
+              ],
+              "description": "d",
+              "dpxlFilter": "\u003cv1\u003e true",
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-omit",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [
+                "s"
+              ],
+              "url": "https://example.com/{{p}}",
+              "urlFields": [
+                {
+                  "name": "p",
+                  "required": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "description": "d",
+              "dpxlFilter": "\u003cv1\u003e true",
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-omit",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "description": "d",
+              "dpxlFilter": "\u003cv1\u003e true",
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-omit",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "duplicate names",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-dup",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 409,
+          "response": {
+            "code": 409,
+            "message": "Already Exists: Action with name tf-fidelity-dup already exists"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "id": "{{id3}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-other",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 409,
+          "response": {
+            "code": 409,
+            "message": "Already Exists: Action with name tf-fidelity-dup already exists"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Action not found, id {{id2}}, companyId \u003ccompany\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "replace validation and malformed ids",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity-rv",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.actions.v2.ActionsService/ReplaceAction: ValidationError: \"action.isHidden\" is required"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.actions.v2.ActionsService/ReplaceAction: ValidationError: \"action.id\" is required"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.actions.v2.ActionsService/ReplaceAction: ValidationError: \"action.name\" is not allowed to be empty"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.actions.v2.ActionsService/ReplaceAction: ValidationError: \"action.name\" length must be less than or equal to 50 characters long"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogixapis.actions.v2.ActionsService/ReplaceAction: ValidationError: \"action.url\" with value \"example.com\" fails to match the required pattern: /^http[s]?:\\/\\/.*/"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "dpxlFilter": "\u003cv1\u003e $d.severity == 'ERROR'",
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 412,
+          "response": {
+            "code": 412,
+            "message": "Failed Precondition: Can not change visibility of shared actions, delete it instead"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "dpxlFilter": "\u003cv1\u003e $d.severity == 'ERROR'",
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "action": {
+              "applicationNames": [],
+              "dpxlFilter": "\u003cv1\u003e $d.severity == 'ERROR'",
+              "id": "{{id}}",
+              "isHidden": false,
+              "isPrivate": false,
+              "name": "tf-fidelity",
+              "sourceType": "SOURCE_TYPE_LOG",
+              "subsystemNames": [],
+              "url": "https://example.com/{{p}}",
+              "urlFields": []
+            }
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Action not found, id not-a-uuid, companyId \u003ccompany\u003e"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Action not found, id \u003cid\u003e, companyId \u003ccompany\u003e"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Action not found, id not-a-uuid, companyId \u003ccompany\u003e"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Action not found, id not-a-uuid, companyId \u003ccompany\u003e"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Action not found, id \u003cid\u003e, companyId \u003ccompany\u003e"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Action not found, id \u003cid\u003e, companyId \u003ccompany\u003e"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    }
+  ]
+}

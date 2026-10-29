@@ -1,0 +1,180 @@
+[
+  {
+    "step": "create: an empty list",
+    "config": {
+      "integration_key": "aws-metrics-collector",
+      "parameters": {
+        "ApplicationName": "cxsdk",
+        "AwsRegion": "eu-north-1",
+        "AwsRoleArn": "arn:aws:iam::123456789012:role/S3Access",
+        "EnrichWithTags": true,
+        "IntegrationName": "a",
+        "MetricNamespaces": [],
+        "SubsystemName": "a",
+        "WithAggregations": false
+      },
+      "version": "0.1.0"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "integration_key": "aws-metrics-collector",
+      "parameters": {
+        "ApplicationName": "cxsdk",
+        "AwsRegion": "eu-north-1",
+        "AwsRoleArn": "arn:aws:iam::123456789012:role/S3Access",
+        "EnrichWithTags": true,
+        "IntegrationName": "a",
+        "MetricNamespaces": [],
+        "SubsystemName": "a",
+        "WithAggregations": false
+      },
+      "version": "0.1.0"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/metadata/v1/test",
+        "body": {
+          "integrationData": {
+            "integrationKey": "aws-metrics-collector",
+            "integrationParameters": {
+              "parameters": [
+                {
+                  "key": "ApplicationName",
+                  "stringValue": "cxsdk"
+                },
+                {
+                  "key": "AwsRegion",
+                  "stringValue": "eu-north-1"
+                },
+                {
+                  "key": "AwsRoleArn",
+                  "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                },
+                {
+                  "booleanValue": true,
+                  "key": "EnrichWithTags"
+                },
+                {
+                  "key": "IntegrationName",
+                  "stringValue": "a"
+                },
+                {
+                  "key": "MetricNamespaces",
+                  "stringList": {
+                    "values": []
+                  }
+                },
+                {
+                  "key": "SubsystemName",
+                  "stringValue": "a"
+                },
+                {
+                  "booleanValue": false,
+                  "key": "WithAggregations"
+                }
+              ]
+            },
+            "version": "0.1.0"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/metadata/v1",
+        "body": {
+          "metadata": {
+            "integrationKey": "aws-metrics-collector",
+            "integrationParameters": {
+              "parameters": [
+                {
+                  "key": "ApplicationName",
+                  "stringValue": "cxsdk"
+                },
+                {
+                  "key": "AwsRegion",
+                  "stringValue": "eu-north-1"
+                },
+                {
+                  "key": "AwsRoleArn",
+                  "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                },
+                {
+                  "booleanValue": true,
+                  "key": "EnrichWithTags"
+                },
+                {
+                  "key": "IntegrationName",
+                  "stringValue": "a"
+                },
+                {
+                  "key": "MetricNamespaces",
+                  "stringList": {
+                    "values": []
+                  }
+                },
+                {
+                  "key": "SubsystemName",
+                  "stringValue": "a"
+                },
+                {
+                  "booleanValue": false,
+                  "key": "WithAggregations"
+                }
+              ]
+            },
+            "version": "0.1.0"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/integrations/v1/deployed/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "integration_key": "aws-metrics-collector",
+      "parameters": {
+        "ApplicationName": "cxsdk",
+        "AwsRegion": "eu-north-1",
+        "AwsRoleArn": "arn:aws:iam::123456789012:role/S3Access",
+        "EnrichWithTags": true,
+        "IntegrationName": "a",
+        "MetricNamespaces": [],
+        "SubsystemName": "a",
+        "WithAggregations": false
+      },
+      "version": "0.1.0"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/integrations/v1/deployed/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "integration_key": "aws-metrics-collector",
+      "parameters": {
+        "ApplicationName": "cxsdk",
+        "AwsRegion": "eu-north-1",
+        "AwsRoleArn": "arn:aws:iam::123456789012:role/S3Access",
+        "EnrichWithTags": true,
+        "IntegrationName": "a",
+        "MetricNamespaces": [],
+        "SubsystemName": "a",
+        "WithAggregations": false
+      },
+      "version": "0.1.0"
+    }
+  }
+]

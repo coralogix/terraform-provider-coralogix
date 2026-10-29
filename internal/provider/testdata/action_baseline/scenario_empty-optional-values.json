@@ -1,0 +1,223 @@
+[
+  {
+    "step": "create with empty description, dpxl_filter, and url_fields",
+    "config": {
+      "description": "",
+      "dpxl_filter": "",
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}",
+      "url_fields": []
+    },
+    "plan": {
+      "applications": "(unknown)",
+      "created_by": "(unknown)",
+      "description": "",
+      "dpxl_filter": "",
+      "id": "(unknown)",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": "(unknown)",
+      "url": "https://example.com/{{p}}",
+      "url_fields": []
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "description": "",
+          "dpxlFilter": "",
+          "isPrivate": false,
+          "name": "tf-action",
+          "sourceType": "SOURCE_TYPE_LOG",
+          "url": "https://example.com/{{p}}"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": "",
+      "dpxl_filter": "",
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": null,
+      "url": "https://example.com/{{p}}",
+      "url_fields": []
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/actions/actions/v2/00000000-0000-4000-9000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": "",
+      "dpxl_filter": "",
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": null,
+      "url": "https://example.com/{{p}}",
+      "url_fields": []
+    }
+  },
+  {
+    "step": "update: remove them",
+    "config": {
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}"
+    },
+    "plan": {
+      "applications": "(unknown)",
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": "(unknown)",
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "action": {
+            "description": "",
+            "dpxlFilter": "",
+            "id": "00000000-0000-4000-9000-000000000001",
+            "isHidden": false,
+            "isPrivate": false,
+            "name": "tf-action",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "url": "https://example.com/{{p}}"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": null,
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: set them empty again",
+    "config": {
+      "description": "",
+      "dpxl_filter": "",
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}",
+      "url_fields": []
+    },
+    "plan": {
+      "applications": "(unknown)",
+      "created_by": "",
+      "description": "",
+      "dpxl_filter": "",
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": "(unknown)",
+      "url": "https://example.com/{{p}}",
+      "url_fields": []
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "action": {
+            "description": "",
+            "dpxlFilter": "",
+            "id": "00000000-0000-4000-9000-000000000001",
+            "isHidden": false,
+            "isPrivate": false,
+            "name": "tf-action",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "url": "https://example.com/{{p}}"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": "",
+      "dpxl_filter": "",
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": null,
+      "url": "https://example.com/{{p}}",
+      "url_fields": []
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/actions/actions/v2/00000000-0000-4000-9000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": "",
+      "dpxl_filter": "",
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": null,
+      "url": "https://example.com/{{p}}",
+      "url_fields": []
+    }
+  }
+]

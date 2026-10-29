@@ -1,0 +1,38 @@
+[
+  {
+    "step": "read by id",
+    "config": {
+      "id": "00000000-0000-4000-9000-000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/actions/actions/v2/00000000-0000-4000-9000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": [
+        "app"
+      ],
+      "created_by": "",
+      "description": "made outside Terraform",
+      "dpxl_filter": "<v1> $d.severity == 'ERROR'",
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "seeded",
+      "source_type": "Log",
+      "subsystems": [
+        "sub"
+      ],
+      "url": "https://example.com/hook",
+      "url_fields": [
+        {
+          "name": "field",
+          "required": true
+        }
+      ]
+    }
+  }
+]

@@ -1,0 +1,509 @@
+[
+  {
+    "step": "create with every field",
+    "config": {
+      "applications": [
+        "app-a",
+        "app-b"
+      ],
+      "description": "first",
+      "dpxl_filter": "<v1> $d.severity == 'ERROR'",
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": [
+        "sub-a"
+      ],
+      "url": "https://example.com/{{p}}",
+      "url_fields": [
+        {
+          "name": "p",
+          "required": true
+        },
+        {
+          "name": "q",
+          "required": false
+        }
+      ]
+    },
+    "plan": {
+      "applications": [
+        "app-a",
+        "app-b"
+      ],
+      "created_by": "(unknown)",
+      "description": "first",
+      "dpxl_filter": "<v1> $d.severity == 'ERROR'",
+      "id": "(unknown)",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": [
+        "sub-a"
+      ],
+      "url": "https://example.com/{{p}}",
+      "url_fields": [
+        {
+          "name": "p",
+          "required": true
+        },
+        {
+          "name": "q",
+          "required": false
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "applicationNames": [
+            "app-a",
+            "app-b"
+          ],
+          "description": "first",
+          "dpxlFilter": "<v1> $d.severity == 'ERROR'",
+          "isPrivate": false,
+          "name": "tf-action",
+          "sourceType": "SOURCE_TYPE_LOG",
+          "subsystemNames": [
+            "sub-a"
+          ],
+          "url": "https://example.com/{{p}}",
+          "urlFields": [
+            {
+              "name": "p",
+              "required": true
+            },
+            {
+              "name": "q",
+              "required": false
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": [
+        "app-a",
+        "app-b"
+      ],
+      "created_by": "",
+      "description": "first",
+      "dpxl_filter": "<v1> $d.severity == 'ERROR'",
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": [
+        "sub-a"
+      ],
+      "url": "https://example.com/{{p}}",
+      "url_fields": [
+        {
+          "name": "p",
+          "required": true
+        },
+        {
+          "name": "q",
+          "required": false
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/actions/actions/v2/00000000-0000-4000-9000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": [
+        "app-a",
+        "app-b"
+      ],
+      "created_by": "",
+      "description": "first",
+      "dpxl_filter": "<v1> $d.severity == 'ERROR'",
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": [
+        "sub-a"
+      ],
+      "url": "https://example.com/{{p}}",
+      "url_fields": [
+        {
+          "name": "p",
+          "required": true
+        },
+        {
+          "name": "q",
+          "required": false
+        }
+      ]
+    }
+  },
+  {
+    "step": "update: change every field",
+    "config": {
+      "applications": [
+        "app-a"
+      ],
+      "description": "second",
+      "dpxl_filter": "<v1> $d.severity == 'INFO'",
+      "is_private": false,
+      "name": "tf-action-2",
+      "source_type": "DataMap",
+      "subsystems": [
+        "sub-b"
+      ],
+      "url": "https://example.org/",
+      "url_fields": [
+        {
+          "name": "p",
+          "required": false
+        }
+      ]
+    },
+    "plan": {
+      "applications": [
+        "app-a"
+      ],
+      "created_by": "",
+      "description": "second",
+      "dpxl_filter": "<v1> $d.severity == 'INFO'",
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action-2",
+      "source_type": "DataMap",
+      "subsystems": [
+        "sub-b"
+      ],
+      "url": "https://example.org/",
+      "url_fields": [
+        {
+          "name": "p",
+          "required": false
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "action": {
+            "applicationNames": [
+              "app-a"
+            ],
+            "description": "second",
+            "dpxlFilter": "<v1> $d.severity == 'INFO'",
+            "id": "00000000-0000-4000-9000-000000000001",
+            "isHidden": false,
+            "isPrivate": false,
+            "name": "tf-action-2",
+            "sourceType": "SOURCE_TYPE_DATA_MAP",
+            "subsystemNames": [
+              "sub-b"
+            ],
+            "url": "https://example.org/",
+            "urlFields": [
+              {
+                "name": "p",
+                "required": false
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": [
+        "app-a"
+      ],
+      "created_by": "",
+      "description": "second",
+      "dpxl_filter": "<v1> $d.severity == 'INFO'",
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action-2",
+      "source_type": "DataMap",
+      "subsystems": [
+        "sub-b"
+      ],
+      "url": "https://example.org/",
+      "url_fields": [
+        {
+          "name": "p",
+          "required": false
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: remove every optional field",
+    "config": {
+      "is_private": false,
+      "name": "tf-action-2",
+      "source_type": "DataMap",
+      "url": "https://example.com/{{p}}"
+    },
+    "plan": {
+      "applications": "(unknown)",
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action-2",
+      "source_type": "DataMap",
+      "subsystems": "(unknown)",
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "action": {
+            "description": "",
+            "dpxlFilter": "",
+            "id": "00000000-0000-4000-9000-000000000001",
+            "isHidden": false,
+            "isPrivate": false,
+            "name": "tf-action-2",
+            "sourceType": "SOURCE_TYPE_DATA_MAP",
+            "url": "https://example.com/{{p}}"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action-2",
+      "source_type": "DataMap",
+      "subsystems": null,
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/actions/actions/v2/00000000-0000-4000-9000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action-2",
+      "source_type": "DataMap",
+      "subsystems": null,
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    }
+  },
+  {
+    "step": "update: set them again",
+    "config": {
+      "applications": [
+        "app-a",
+        "app-b"
+      ],
+      "description": "first",
+      "dpxl_filter": "<v1> $d.severity == 'ERROR'",
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": [
+        "sub-a"
+      ],
+      "url": "https://example.com/{{p}}",
+      "url_fields": [
+        {
+          "name": "p",
+          "required": true
+        },
+        {
+          "name": "q",
+          "required": false
+        }
+      ]
+    },
+    "plan": {
+      "applications": [
+        "app-a",
+        "app-b"
+      ],
+      "created_by": "",
+      "description": "first",
+      "dpxl_filter": "<v1> $d.severity == 'ERROR'",
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": [
+        "sub-a"
+      ],
+      "url": "https://example.com/{{p}}",
+      "url_fields": [
+        {
+          "name": "p",
+          "required": true
+        },
+        {
+          "name": "q",
+          "required": false
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "action": {
+            "applicationNames": [
+              "app-a",
+              "app-b"
+            ],
+            "description": "first",
+            "dpxlFilter": "<v1> $d.severity == 'ERROR'",
+            "id": "00000000-0000-4000-9000-000000000001",
+            "isHidden": false,
+            "isPrivate": false,
+            "name": "tf-action",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "subsystemNames": [
+              "sub-a"
+            ],
+            "url": "https://example.com/{{p}}",
+            "urlFields": [
+              {
+                "name": "p",
+                "required": true
+              },
+              {
+                "name": "q",
+                "required": false
+              }
+            ]
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": [
+        "app-a",
+        "app-b"
+      ],
+      "created_by": "",
+      "description": "first",
+      "dpxl_filter": "<v1> $d.severity == 'ERROR'",
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": [
+        "sub-a"
+      ],
+      "url": "https://example.com/{{p}}",
+      "url_fields": [
+        {
+          "name": "p",
+          "required": true
+        },
+        {
+          "name": "q",
+          "required": false
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/actions/actions/v2/00000000-0000-4000-9000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": [
+        "app-a",
+        "app-b"
+      ],
+      "created_by": "",
+      "description": "first",
+      "dpxl_filter": "<v1> $d.severity == 'ERROR'",
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": [
+        "sub-a"
+      ],
+      "url": "https://example.com/{{p}}",
+      "url_fields": [
+        {
+          "name": "p",
+          "required": true
+        },
+        {
+          "name": "q",
+          "required": false
+        }
+      ]
+    }
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/actions/actions/v2/00000000-0000-4000-9000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

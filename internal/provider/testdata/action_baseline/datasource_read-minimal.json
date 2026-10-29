@@ -1,0 +1,29 @@
+[
+  {
+    "step": "read an action with no optional values",
+    "config": {
+      "id": "00000000-0000-4000-9000-000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/actions/actions/v2/00000000-0000-4000-9000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "bare",
+      "source_type": "Log",
+      "subsystems": null,
+      "url": "https://example.com/hook",
+      "url_fields": []
+    }
+  }
+]

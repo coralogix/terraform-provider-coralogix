@@ -1,0 +1,57 @@
+[
+  {
+    "step": "create: the API refuses an unknown parameter",
+    "config": {
+      "integration_key": "aws-resource-catalog",
+      "parameters": {
+        "AwsRoleArn": "arn:aws:iam::123456789012:role/S3Access",
+        "IntegrationName": "a",
+        "Unknown": "x"
+      },
+      "version": "0.1.0"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "integration_key": "aws-resource-catalog",
+      "parameters": {
+        "AwsRoleArn": "arn:aws:iam::123456789012:role/S3Access",
+        "IntegrationName": "a",
+        "Unknown": "x"
+      },
+      "version": "0.1.0"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/metadata/v1/test",
+        "body": {
+          "integrationData": {
+            "integrationKey": "aws-resource-catalog",
+            "integrationParameters": {
+              "parameters": [
+                {
+                  "key": "AwsRoleArn",
+                  "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                },
+                {
+                  "key": "IntegrationName",
+                  "stringValue": "a"
+                },
+                {
+                  "key": "Unknown",
+                  "stringValue": "x"
+                }
+              ]
+            },
+            "version": "0.1.0"
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Testing the integration has failed | API responded with an error: 400 Bad Request"
+    ],
+    "state": null
+  }
+]

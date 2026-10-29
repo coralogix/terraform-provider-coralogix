@@ -1,0 +1,127 @@
+[
+  {
+    "step": "import",
+    "state": null
+  },
+  {
+    "step": "import (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/integrations/v1/deployed/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "integration_key": "aws-resource-catalog",
+      "parameters": {
+        "AwsRoleArn": "arn:aws:iam::123456789012:role/S3Access",
+        "Count": 3,
+        "IntegrationName": "a",
+        "List": [
+          "x",
+          "y"
+        ],
+        "Secret": "<redacted>",
+        "Token": "token-value"
+      },
+      "version": "0.1.0"
+    },
+    "drift": [
+      "AttributeName(\"integration_key\")",
+      "AttributeName(\"parameters\")",
+      "AttributeName(\"parameters\").AttributeName(\"AwsRoleArn\")",
+      "AttributeName(\"parameters\").AttributeName(\"Count\")",
+      "AttributeName(\"parameters\").AttributeName(\"IntegrationName\")",
+      "AttributeName(\"parameters\").AttributeName(\"List\")",
+      "AttributeName(\"parameters\").AttributeName(\"Secret\")",
+      "AttributeName(\"parameters\").AttributeName(\"Token\")",
+      "AttributeName(\"version\")"
+    ]
+  },
+  {
+    "step": "plan the matching config after the import",
+    "config": {
+      "integration_key": "aws-resource-catalog",
+      "parameters": {
+        "AwsRoleArn": "arn:aws:iam::123456789012:role/S3Access",
+        "IntegrationName": "a"
+      },
+      "version": "0.1.0"
+    },
+    "plan": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "integration_key": "aws-resource-catalog",
+      "parameters": {
+        "AwsRoleArn": "arn:aws:iam::123456789012:role/S3Access",
+        "IntegrationName": "a"
+      },
+      "version": "0.1.0"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/metadata/v1/test",
+        "body": {
+          "integrationData": {
+            "integrationKey": "aws-resource-catalog",
+            "integrationParameters": {
+              "parameters": [
+                {
+                  "key": "AwsRoleArn",
+                  "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                },
+                {
+                  "key": "IntegrationName",
+                  "stringValue": "a"
+                }
+              ]
+            },
+            "version": "0.1.0"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/integrations/metadata/v1",
+        "body": {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "metadata": {
+            "integrationKey": "aws-resource-catalog",
+            "integrationParameters": {
+              "parameters": [
+                {
+                  "key": "AwsRoleArn",
+                  "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                },
+                {
+                  "key": "IntegrationName",
+                  "stringValue": "a"
+                }
+              ]
+            },
+            "version": "0.1.0"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/integrations/v1/deployed/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "integration_key": "aws-resource-catalog",
+      "parameters": {
+        "AwsRoleArn": "arn:aws:iam::123456789012:role/S3Access",
+        "IntegrationName": "a"
+      },
+      "version": "0.1.0"
+    },
+    "replanEmpty": true
+  }
+]

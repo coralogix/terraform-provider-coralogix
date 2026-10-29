@@ -1,0 +1,32 @@
+[
+  {
+    "step": "create: a value that is an object",
+    "config": {
+      "integration_key": "aws-resource-catalog",
+      "parameters": {
+        "AwsRoleArn": "arn:aws:iam::123456789012:role/S3Access",
+        "IntegrationName": "a",
+        "Nested": {
+          "a": "b"
+        }
+      },
+      "version": "0.1.0"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "integration_key": "aws-resource-catalog",
+      "parameters": {
+        "AwsRoleArn": "arn:aws:iam::123456789012:role/S3Access",
+        "IntegrationName": "a",
+        "Nested": {
+          "a": "b"
+        }
+      },
+      "version": "0.1.0"
+    },
+    "applyDiagnostics": [
+      "error: Invalid parameter type | Invalid parameter type {\"a\":\"b\"}: {\"AwsRoleArn\":\"arn:aws:iam::123456789012:role/S3Access\",\"IntegrationName\":\"a\",\"Nested\":{\"a\":\"b\"}}"
+    ],
+    "state": null
+  }
+]

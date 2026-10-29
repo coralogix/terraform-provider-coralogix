@@ -1,0 +1,209 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}"
+    },
+    "plan": {
+      "applications": "(unknown)",
+      "created_by": "(unknown)",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "(unknown)",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": "(unknown)",
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "isPrivate": false,
+          "name": "tf-action",
+          "sourceType": "SOURCE_TYPE_LOG",
+          "url": "https://example.com/{{p}}"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": null,
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: is_hidden = true",
+    "config": {
+      "is_hidden": true,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}"
+    },
+    "validateDiagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"is_hidden\")] | `is_hidden` is a per-user UI preference, not a property of the action. It will be removed in a future version."
+    ],
+    "plan": {
+      "applications": "(unknown)",
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": true,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": "(unknown)",
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "action": {
+            "description": "",
+            "dpxlFilter": "",
+            "id": "00000000-0000-4000-9000-000000000001",
+            "isHidden": true,
+            "isPrivate": false,
+            "name": "tf-action",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "url": "https://example.com/{{p}}"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "is_hidden"
+    ],
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": null,
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"applications\")",
+      "AttributeName(\"is_hidden\")",
+      "AttributeName(\"subsystems\")"
+    ]
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/actions/actions/v2/00000000-0000-4000-9000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": null,
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    }
+  },
+  {
+    "step": "create with is_hidden = true",
+    "config": {
+      "is_hidden": true,
+      "is_private": false,
+      "name": "tf-hidden",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}"
+    },
+    "validateDiagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"is_hidden\")] | `is_hidden` is a per-user UI preference, not a property of the action. It will be removed in a future version."
+    ],
+    "plan": {
+      "applications": "(unknown)",
+      "created_by": "(unknown)",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "(unknown)",
+      "is_hidden": true,
+      "is_private": false,
+      "name": "tf-hidden",
+      "source_type": "Log",
+      "subsystems": "(unknown)",
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "isPrivate": false,
+          "name": "tf-hidden",
+          "sourceType": "SOURCE_TYPE_LOG",
+          "url": "https://example.com/{{p}}"
+        },
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "is_hidden"
+    ],
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000002",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "tf-hidden",
+      "source_type": "Log",
+      "subsystems": null,
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"applications\")",
+      "AttributeName(\"is_hidden\")",
+      "AttributeName(\"subsystems\")"
+    ]
+  }
+]
