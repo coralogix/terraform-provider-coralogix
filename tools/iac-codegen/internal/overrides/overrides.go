@@ -898,6 +898,9 @@ func (e ExtraAttribute) check(name string) error {
 			return errors.New("required applies to a dynamic attribute only")
 		}
 	}
+	if e.WriteOnly && e.InUpdate {
+		return errors.New("inUpdate cannot be combined with writeOnly: a write-only value is not in the plan or the state, so a change of only that value cannot make an Update")
+	}
 	if e.MarkdownDescription == "" {
 		return errors.New("markdownDescription is required")
 	}
