@@ -173,6 +173,8 @@ types:
         markdownDescription: "Values to match, with OR semantics."
         validators: [{sizeAtLeast: 1}]
       matchOperator:
+        computed: true
+        default: unspecified
         validators: [{enum: true}]
       # The released resource never sends the deprecated singular value.
       value: {skip: true}

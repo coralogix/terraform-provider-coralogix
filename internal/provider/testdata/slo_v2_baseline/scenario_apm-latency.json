@@ -50,7 +50,7 @@
           "filters": [
             {
               "key": "environment",
-              "match_operator": null,
+              "match_operator": "unspecified",
               "values": [
                 "prod",
                 "staging"
@@ -89,6 +89,7 @@
             "filters": [
               {
                 "key": "environment",
+                "matchOperator": "APM_FILTER_MATCH_OPERATOR_UNSPECIFIED",
                 "values": [
                   "prod",
                   "staging"
@@ -124,7 +125,7 @@
         "filters": [
           {
             "key": "environment",
-            "match_operator": null,
+            "match_operator": "unspecified",
             "values": [
               "prod",
               "staging"
@@ -163,7 +164,7 @@
           "filters": [
             {
               "key": "environment",
-              "match_operator": null,
+              "match_operator": "unspecified",
               "values": [
                 "prod",
                 "staging"
@@ -210,7 +211,7 @@
         "filters": [
           {
             "key": "environment",
-            "match_operator": null,
+            "match_operator": "unspecified",
             "values": [
               "prod",
               "staging"
@@ -249,7 +250,7 @@
           "filters": [
             {
               "key": "environment",
-              "match_operator": null,
+              "match_operator": "unspecified",
               "values": [
                 "prod",
                 "staging"

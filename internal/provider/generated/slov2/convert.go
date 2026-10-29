@@ -276,9 +276,10 @@ var oneOfArms = map[string]bool{
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
-	"sli.apm_sli.latency_config.quantile.percentile":    true,
-	"sli.apm_sli.latency_config.threshold":              true,
-	"sli.window_based_metric_sli.missing_data_strategy": true,
+	"sli.apm_sli.filters.match_operator":                  true,
+	"sli.apm_sli.latency_config.quantile.percentile":      true,
+	"sli.apm_sli.latency_config.threshold":                true,
+	"sli.window_based_metric_sli.missing_data_strategy":   true,
 	"apm_sli_metadata":                                    true,
 	"apm_sli_metadata.error_config":                       true,
 	"apm_sli_metadata.filters":                            true,

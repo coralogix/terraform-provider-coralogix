@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float32planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -52,6 +53,8 @@ func Schema() schema.Schema {
 										},
 										"match_operator": schema.StringAttribute{
 											Optional: true,
+											Computed: true,
+											Default:  stringdefault.StaticString("unspecified"),
 											Validators: []validator.String{
 												stringvalidator.OneOf("ends_with", "includes", "is", "starts_with", "unspecified"),
 											},

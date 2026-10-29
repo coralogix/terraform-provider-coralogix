@@ -1,7 +1,7 @@
 # Unreleased
 
 #### resource/coralogix_slo_v2
-- FEAT: New optional `sli.apm_sli.filters[].match_operator` (`is`, `starts_with`, `ends_with`, `includes`, or `unspecified`), from the new API contract. All items of a list use the same mode: all omitted, or all set. The data source shows it too.
+- FEAT: New optional `sli.apm_sli.filters[].match_operator` (`is`, `starts_with`, `ends_with`, `includes`, or `unspecified`), from the new API contract. All items of a list use the same mode: all `unspecified` (the default, the legacy mode) or all set. The API returns `unspecified` for a filter that has none, so the attribute is computed with that default. The data source shows it too.
 - CHORE: The generated acceptance test covers the APM SLI, with the service in `CORALOGIX_SLO_V2_APM_SERVICE`.
 
 #### resource/coralogix_configuration_group
