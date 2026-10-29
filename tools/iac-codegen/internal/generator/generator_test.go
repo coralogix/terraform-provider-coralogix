@@ -3148,6 +3148,24 @@ func generateRenameThing(t *testing.T) string {
 	return out
 }
 
+// An optional field whose request path goes through an optional object that the SDK holds in a
+// pointer is refused: expand would send the empty object for a null value.
+func TestRequestShapeRefusesAnOptionalPathThroughAPointerObject(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "renamething.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec = []byte(strings.Replace(string(spec), "required: [specKind, holder]", "required: [specKind]", 1))
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "renamething")
+	options := Options{Resource: "RenameThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "renamething-overrides.yaml")}
+	err = generateFromInput(options, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "optional object") {
+		t.Fatalf("generate = %v, want an error about the optional object on the request path", err)
+	}
+}
+
 // A skipped field has no request path in the generated code: the object that only it goes through
 // is not set, and the field is not an attribute.
 func TestRequestShapeSkippedFieldHasNoRequestPath(t *testing.T) {

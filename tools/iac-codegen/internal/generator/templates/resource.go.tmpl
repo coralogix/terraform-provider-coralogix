@@ -739,7 +739,6 @@ func (r *Resource) setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prio
 	if diags.HasError() {
 		return diags
 	}
-{{- if .Existing}}
 {{- range .DynamicExtras}}
 	if prior != nil {
 		// The API holds no value of this attribute, so the state keeps the one of the plan or the
@@ -750,6 +749,7 @@ func (r *Resource) setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prio
 		}
 	}
 {{- end}}
+{{- if .Existing}}
 	if prior != nil {
 		diags.Append(keepPriorEmpty(ctx, prior, state)...)
 	}

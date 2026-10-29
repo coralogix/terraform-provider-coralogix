@@ -645,6 +645,11 @@ func (b *convBuilder) requestObjects(obj *convObject, root convRoot, f *model.Re
 		switch ref.Want {
 		case typ.Name:
 		case "*" + typ.Name:
+			if attrs := requestAttrs(root, f); attrs != nil && !attrs.Required {
+				// expand allocates the object before it reads the field, so a null value would
+				// send an empty object, which the API can read as a value.
+				return "", fmt.Errorf("the request path %q goes through the optional object %s, which expand would send empty for a null %s: make the object required in the contract, or set the field in a hook", f.RequestPath, ref.SDKName(), f.Name)
+			}
 			if at := strings.TrimSuffix(prefix, "."); !slices.ContainsFunc(obj.Parents, func(p convParent) bool { return p.SDK == at }) {
 				obj.Parents = append(obj.Parents, convParent{SDK: at, Type: b.qualify(typ.Name)})
 			}
@@ -653,6 +658,14 @@ func (b *convBuilder) requestObjects(obj *convObject, root convRoot, f *model.Re
 		}
 	}
 	return prefix, nil
+}
+
+// requestAttrs returns the lifecycle attributes of f in the request of the root, or nil.
+func requestAttrs(root convRoot, f *model.ResourceField) *model.Attrs {
+	if root.path == "update.body" {
+		return f.Update
+	}
+	return f.Create
 }
 
 // buildRoot builds one root object and its fields.
