@@ -27,7 +27,7 @@
     "replanEmpty": true
   },
   {
-    "step": "refresh",
+    "step": "refresh and replan defaults",
     "requests": [
       {
         "method": "GET",
@@ -42,6 +42,11 @@
     },
     "drift": [
       "AttributeName(\"enable_coralogix_customer_support_access\")"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"enable_coralogix_customer_support_access\")",
+      "AttributeName(\"id\")"
     ]
   },
   {

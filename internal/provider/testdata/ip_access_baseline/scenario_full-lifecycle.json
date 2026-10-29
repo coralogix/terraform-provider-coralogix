@@ -148,6 +148,56 @@
     }
   },
   {
+    "step": "update: clear rules and omit support access",
+    "config": {
+      "ip_access": []
+    },
+    "plan": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "(unknown)",
+      "ip_access": []
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "body": {
+          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "<masked-id>",
+      "ip_access": []
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after clearing rules",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "disabled",
+      "id": "<masked-id>",
+      "ip_access": []
+    },
+    "drift": [
+      "AttributeName(\"enable_coralogix_customer_support_access\")"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"enable_coralogix_customer_support_access\")",
+      "AttributeName(\"id\")"
+    ]
+  },
+  {
     "step": "destroy",
     "requests": [
       {
