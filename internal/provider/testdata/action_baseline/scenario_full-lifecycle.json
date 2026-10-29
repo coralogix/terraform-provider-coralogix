@@ -91,7 +91,7 @@
         "app-a",
         "app-b"
       ],
-      "created_by": "",
+      "created_by": null,
       "description": "first",
       "dpxl_filter": "<v1> $d.severity == 'ERROR'",
       "id": "00000000-0000-4000-9000-000000000001",
@@ -130,7 +130,7 @@
         "app-a",
         "app-b"
       ],
-      "created_by": "",
+      "created_by": null,
       "description": "first",
       "dpxl_filter": "<v1> $d.severity == 'ERROR'",
       "id": "00000000-0000-4000-9000-000000000001",
@@ -180,7 +180,7 @@
       "applications": [
         "app-a"
       ],
-      "created_by": "",
+      "created_by": null,
       "description": "second",
       "dpxl_filter": "<v1> $d.severity == 'INFO'",
       "id": "00000000-0000-4000-9000-000000000001",
@@ -234,7 +234,7 @@
       "applications": [
         "app-a"
       ],
-      "created_by": "",
+      "created_by": null,
       "description": "second",
       "dpxl_filter": "<v1> $d.severity == 'INFO'",
       "id": "00000000-0000-4000-9000-000000000001",
@@ -265,7 +265,7 @@
     },
     "plan": {
       "applications": "(unknown)",
-      "created_by": "",
+      "created_by": null,
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",
@@ -298,7 +298,7 @@
     ],
     "state": {
       "applications": null,
-      "created_by": "",
+      "created_by": null,
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",
@@ -323,7 +323,7 @@
     ],
     "state": {
       "applications": null,
-      "created_by": "",
+      "created_by": null,
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",
@@ -368,7 +368,7 @@
         "app-a",
         "app-b"
       ],
-      "created_by": "",
+      "created_by": null,
       "description": "first",
       "dpxl_filter": "<v1> $d.severity == 'ERROR'",
       "id": "00000000-0000-4000-9000-000000000001",
@@ -432,7 +432,7 @@
         "app-a",
         "app-b"
       ],
-      "created_by": "",
+      "created_by": null,
       "description": "first",
       "dpxl_filter": "<v1> $d.severity == 'ERROR'",
       "id": "00000000-0000-4000-9000-000000000001",
@@ -471,7 +471,7 @@
         "app-a",
         "app-b"
       ],
-      "created_by": "",
+      "created_by": null,
       "description": "first",
       "dpxl_filter": "<v1> $d.severity == 'ERROR'",
       "id": "00000000-0000-4000-9000-000000000001",

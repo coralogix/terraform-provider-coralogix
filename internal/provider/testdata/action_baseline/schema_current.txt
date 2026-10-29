@@ -3,13 +3,17 @@
 applications  SetAttribute optional computed elem=basetypes.StringType
     markdown: "Applies the action for specific applications."
     validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
+    validator: setvalidator.sizeAtMostValidator set must contain at most 1000 elements
+    validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: string length must be between 0 and 1024
 created_by  StringAttribute computed
     markdown: "The user who created the action."
     plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 description  StringAttribute optional
     markdown: "Free-text description of the action. Removing this line clears the description."
+    validator: stringvalidator.lengthBetweenValidator string length must be between 0 and 65535
 dpxl_filter  StringAttribute optional
     markdown: "DPXL expression that scopes when the action is offered. The expression must include a version prefix, e.g. `<v1> $d.severity == 'ERROR'`. Removing this line clears the filter."
+    validator: stringvalidator.lengthBetweenValidator string length must be between 0 and 65535
     validator: stringvalidator.regexMatchesValidator must be empty or start with a version prefix, e.g. `<v1> $d.severity == 'ERROR'`
 id  StringAttribute computed
     markdown: "Action ID."
@@ -23,22 +27,26 @@ is_private  BoolAttribute optional computed
     markdown: "Determines weather the action will be shared with the entire team. Can be set to false only by admin."
 name  StringAttribute required
     markdown: "Action name."
-    validator: stringvalidator.lengthAtLeastValidator string length must be at least 1
+    validator: stringvalidator.lengthBetweenValidator string length must be between 1 and 50
 source_type  StringAttribute required
     markdown: "By selecting the data type, you can make sure that the action will be displayed only in the relevant context. Can be one of [\"DataMap\" \"Log\"]"
+    validator: stringvalidator.oneOfValidator value must be one of: ["DataMap" "Log" "unspecified"]
     validator: stringvalidator.oneOfValidator value must be one of: ["DataMap" "Log"]
 subsystems  SetAttribute optional computed elem=basetypes.StringType
     markdown: "Applies the action for specific subsystems."
     validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
+    validator: setvalidator.sizeAtMostValidator set must contain at most 1000 elements
+    validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: string length must be between 0 and 1024
 url  StringAttribute required
     markdown: "URL for the external tool."
-    validator: utils.UrlValidationFuncFramework string must be a valid url format
+    validator: stringvalidator.lengthBetweenValidator string length must be between 1 and 32768
+    validator: stringvalidator.regexMatchesValidator must start with http:// or https://
 url_fields  ListNestedAttribute optional
     markdown: "Declarations for the `{{placeholder}}` slots in `url`, in the configured order."
     validator: listvalidator.sizeAtMostValidator list must contain at most 1000 elements
 url_fields[]  NestedObject
 url_fields[].name  StringAttribute required
     markdown: "URL field name. Must be unique within `url_fields`."
-    validator: stringvalidator.lengthAtLeastValidator string length must be at least 1
+    validator: stringvalidator.lengthBetweenValidator string length must be between 1 and 1024
 url_fields[].required  BoolAttribute required
     markdown: "Whether the field must be present for the action to be invokable."

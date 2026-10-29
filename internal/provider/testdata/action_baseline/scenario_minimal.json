@@ -26,6 +26,8 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/actions/actions/v2",
         "body": {
+          "description": "",
+          "dpxlFilter": "",
           "isPrivate": false,
           "name": "tf-action",
           "sourceType": "SOURCE_TYPE_LOG",
@@ -36,7 +38,7 @@
     ],
     "state": {
       "applications": null,
-      "created_by": "",
+      "created_by": null,
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",
@@ -61,7 +63,7 @@
     ],
     "state": {
       "applications": null,
-      "created_by": "",
+      "created_by": null,
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",

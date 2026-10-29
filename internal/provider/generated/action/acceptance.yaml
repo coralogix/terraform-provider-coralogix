@@ -1,0 +1,18 @@
+# What the generated acceptance test needs for coralogix_action, besides the schema.
+# A private action needs a user, which an API key does not have, so the test shares its actions
+# (the released default of is_private is true).
+resource: v2.Action
+
+values:
+  is_private: "false"
+  dpxl_filter: '"<v1> $d.severity == ''ERROR''"'
+
+# The API keeps isHidden as a per-user preference and ignores the value of a request, so a config
+# that sets it reads back false.
+skip: [is_hidden]
+
+minimal: [is_private]
+
+upgradeMinimal: [is_private]
+
+upgradeFrom: "3.22.1"

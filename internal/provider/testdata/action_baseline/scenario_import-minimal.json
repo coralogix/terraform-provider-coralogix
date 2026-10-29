@@ -14,7 +14,7 @@
     ],
     "state": {
       "applications": null,
-      "created_by": "",
+      "created_by": null,
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",
@@ -27,7 +27,6 @@
       "url_fields": null
     },
     "drift": [
-      "AttributeName(\"created_by\")",
       "AttributeName(\"is_hidden\")",
       "AttributeName(\"is_private\")",
       "AttributeName(\"name\")",
@@ -45,7 +44,7 @@
     },
     "plan": {
       "applications": null,
-      "created_by": "",
+      "created_by": null,
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",
@@ -60,7 +59,7 @@
     "noChange": true,
     "state": {
       "applications": null,
-      "created_by": "",
+      "created_by": null,
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",

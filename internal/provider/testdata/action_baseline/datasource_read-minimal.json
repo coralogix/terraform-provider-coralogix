@@ -13,7 +13,7 @@
     ],
     "state": {
       "applications": null,
-      "created_by": "",
+      "created_by": null,
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",
@@ -23,7 +23,7 @@
       "source_type": "Log",
       "subsystems": null,
       "url": "https://example.com/hook",
-      "url_fields": []
+      "url_fields": null
     }
   }
 ]

@@ -1,5 +1,19 @@
 # Unreleased
 
+#### resource/coralogix_action
+- CHORE: The resource is generated from the API contract. The schema, the import by id, and the state version are the same. A plan with an action that was created by 3.22.1 shows no change.
+- FIX: An update of an action that was deleted outside Terraform fails with `Resource no longer exists` and the next refresh removes it from state. Before, it printed a warning with a pointer instead of the id, and Terraform failed with `Missing Resource State After Update`.
+- CHORE: The plan rejects what the API rejects at apply: a `name` of more than 50 characters, a `url` that does not start with `http://` or `https://`, and values over the API size limits (`description`, `dpxl_filter`, `applications`, `subsystems`, `url_fields`). Before, `url` accepted any text that parsed as a URL, so `ftp://example.com` failed at apply.
+- CHORE: Create sends `description = ""` and `dpxl_filter = ""` when they are not set, so removing them later clears them with the same call. They still read back as null.
+- CHORE: `created_by` is null when the API has no creator for the action (an action that an API key made). Before, it was `""`.
+- CHORE: API errors read `Unable to create action`, `Unable to update action`, and `Unable to read action` instead of `Error creating coralogix_action`, and so on. A refresh that finds the action deleted warns `Resource disappeared during read`.
+
+#### data-source/coralogix_action
+- CHORE: The data source is generated with the resource and uses its schema.
+- FIX: A read of an id that does not exist fails with `coralogix_action not found`. Before, it warned that the action would be recreated, which a data source cannot do.
+- CHORE: API errors read `Unable to read coralogix_action` instead of `Error reading coralogix_action`.
+- CHORE: `url_fields` is null for an action that has none, as in the resource. Before, it was `[]`.
+
 #### resource/coralogix_integration
 - CHORE: The resource is generated from the API contract. The schema, the requests, and the state are the same as before, including that a change of `version` updates in place and a change of `integration_key` replaces the resource.
 - FIX: When the test call of Create or Update fails, the error shows the message of the API (`API responded with an error: 400 Bad Request — {...}`). Before, it showed only the status line.
@@ -22,6 +36,7 @@
 - DOCS: The descriptions of the attributes follow the new API contract.
 
 #### provider
+- CHORE: Bump `coralogix-management-sdk` to the version with the actions contract: the defaults of `isHidden` and `isPrivate`, `createdBy` as output-only, and the description of the replace.
 - CHORE: Bump `coralogix-management-sdk` to the version with the integrations contract. The SDK holds the required fields of `IntegrationMetadata` and `DeployedIntegrationInformation` as values; `coralogix_integration` adapts, with no change to plans. The dashboard tests answer a Get with the `permissions` object that the SDK now requires in the response.
 
 #### tools/iac-codegen
