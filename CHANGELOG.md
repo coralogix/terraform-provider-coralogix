@@ -45,6 +45,9 @@
 - FEAT: An existing resource whose Create and Update requests hold another component than the resource in their wrapper can map a field to its request path with `requestAs` on the field line (a renamed property, or one inside an object), and send the Update id beside the wrapper with `api.updateIDOutsideWrapper`.
 - FEAT: `upgradeValues` in `acceptance.yaml` gives every config of the generated upgrade test another expression for a field that `values` sets, for a value that must differ from the lifecycle test's, such as a routing label that is unique across routers. A line without `upgradeFrom`, for a path that `values` does not set, or for a path that an `upgradeCases` entry also sets, is an error.
 
+#### resource/coralogix_ip_access
+- CHORE: Add a schema and lifecycle baseline for the handwritten resource, with an opt-in recorder for checking the API fake against a disposable tenant.
+
 # Release 3.23.0
 
 #### resource/coralogix_alert

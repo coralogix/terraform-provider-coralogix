@@ -1,0 +1,54 @@
+{
+  "comment": "Live API requests used to validate the IP access fake. Recording is only safe on a disposable team with no IP access entries and customer-support access disabled. Every created IP entry is disabled.",
+  "cases": [
+    {
+      "name": "singleton-lifecycle",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+            "ipAccess": [
+              {"enabled": false, "ipRange": "not-a-cidr", "name": "{{NAME}}-invalid"}
+            ]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+            "ipAccess": [
+              {"enabled": false, "ipRange": "192.0.2.0/24", "name": "{{NAME}}-first"}
+            ]
+          }
+        },
+        {"method": "GET", "path": ""},
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+            "ipAccess": [
+              {"enabled": false, "ipRange": "198.51.100.0/24", "name": "{{NAME}}-duplicate"}
+            ]
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
+            "ipAccess": [
+              {"enabled": false, "ipRange": "198.51.100.0/24", "name": "{{NAME}}-replacement"}
+            ]
+          }
+        },
+        {"method": "GET", "path": ""},
+        {"method": "DELETE", "path": ""},
+        {"method": "GET", "path": ""}
+      ]
+    }
+  ]
+}
