@@ -127,7 +127,12 @@ func TestRecordIntegrationFidelity(t *testing.T) {
 	var created []string
 	t.Cleanup(func() {
 		for _, id := range created {
-			recordIntegrationStep(t, base, apiKey, fidelityStep{Method: http.MethodDelete, Path: "/integrations/v1/instances/" + id}, nil)
+			// A case may have deleted the integration already, which answers 404. Any other status
+			// leaves a test integration in the tenant.
+			status, _ := recordIntegrationStep(t, base, apiKey, fidelityStep{Method: http.MethodDelete, Path: "/integrations/v1/instances/" + id}, nil)
+			if status != http.StatusOK && status != http.StatusNotFound {
+				t.Errorf("cleanup: deleting the integration %s answered %d, so it may still exist in the tenant", id, status)
+			}
 		}
 	})
 
