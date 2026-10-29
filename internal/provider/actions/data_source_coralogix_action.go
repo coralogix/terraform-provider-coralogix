@@ -15,92 +15,11 @@
 package actions
 
 import (
-	"context"
-	"fmt"
-	"net/http"
-
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-
-	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-	actionss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/actions_service"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/action"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
-var _ datasource.DataSourceWithConfigure = &ActionDataSource{}
-
 func NewActionDataSource() datasource.DataSource {
-	return &ActionDataSource{}
-}
-
-type ActionDataSource struct {
-	client *actionss.ActionsServiceAPIService
-}
-
-func (d *ActionDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_action"
-}
-
-func (d *ActionDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	d.client = clientSet.Actions()
-}
-
-func (d *ActionDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r ActionResource
-	var resourceResp resource.SchemaResponse
-	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
-
-	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
-}
-
-func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data ActionResourceModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	id := data.ID.ValueString()
-
-	rq := d.client.
-		ActionsServiceGetAction(ctx, id)
-
-	result, httpResponse, err := rq.
-		Execute()
-
-	if err != nil {
-		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("coralogix_action %v is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%v will be recreated when you apply", id),
-			)
-			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError("Error reading coralogix_action", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
-		}
-		return
-	}
-	// A read-only source echoes the backend values verbatim: an API [] stays [],
-	// an "" stays "" and dpxl_filter keeps its `<v1> ` prefixed form.
-	state, diags := flattenAction(ctx, nil, result.Action)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+	return action.NewDataSource(action.Hooks{})
 }

@@ -26,6 +26,8 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/actions/actions/v2",
         "body": {
+          "description": "",
+          "dpxlFilter": "",
           "isPrivate": false,
           "name": "tf-action",
           "sourceType": "SOURCE_TYPE_LOG",
@@ -36,7 +38,7 @@
     ],
     "state": {
       "applications": null,
-      "created_by": "",
+      "created_by": null,
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",
@@ -60,7 +62,7 @@
     },
     "plan": {
       "applications": "(unknown)",
-      "created_by": "",
+      "created_by": null,
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",
@@ -92,11 +94,11 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating coralogix_action | error - 412 Precondition Failed — {\"code\":412,\"message\":\"Failed Precondition: Can not change visibility of shared actions, delete it instead\"}\noperation - Update"
+      "error: Unable to update action | id 00000000-0000-4000-9000-000000000001: 412 Precondition Failed — {\"code\":412,\"message\":\"Failed Precondition: Can not change visibility of shared actions, delete it instead\"}"
     ],
     "state": {
       "applications": null,
-      "created_by": "",
+      "created_by": null,
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",

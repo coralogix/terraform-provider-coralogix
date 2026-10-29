@@ -25,6 +25,8 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/actions/actions/v2",
         "body": {
+          "description": "",
+          "dpxlFilter": "",
           "isPrivate": true,
           "name": "tf-action",
           "sourceType": "SOURCE_TYPE_LOG",
@@ -34,7 +36,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_action | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Private actions need to be linked to a user\"}\noperation - Create"
+      "error: Unable to create action | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Private actions need to be linked to a user\"}"
     ],
     "state": null
   },
@@ -65,6 +67,8 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/actions/actions/v2",
         "body": {
+          "description": "",
+          "dpxlFilter": "",
           "isPrivate": true,
           "name": "tf-action",
           "sourceType": "SOURCE_TYPE_LOG",
@@ -74,7 +78,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_action | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Private actions need to be linked to a user\"}\noperation - Create"
+      "error: Unable to create action | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Private actions need to be linked to a user\"}"
     ],
     "state": null
   }

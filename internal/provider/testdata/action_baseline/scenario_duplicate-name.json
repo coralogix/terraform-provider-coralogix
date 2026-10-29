@@ -26,6 +26,8 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/actions/actions/v2",
         "body": {
+          "description": "",
+          "dpxlFilter": "",
           "isPrivate": false,
           "name": "first",
           "sourceType": "SOURCE_TYPE_LOG",
@@ -36,7 +38,7 @@
     ],
     "state": {
       "applications": null,
-      "created_by": "",
+      "created_by": null,
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",
@@ -77,6 +79,8 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/actions/actions/v2",
         "body": {
+          "description": "",
+          "dpxlFilter": "",
           "isPrivate": false,
           "name": "second",
           "sourceType": "SOURCE_TYPE_LOG",
@@ -87,7 +91,7 @@
     ],
     "state": {
       "applications": null,
-      "created_by": "",
+      "created_by": null,
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000002",
@@ -128,6 +132,8 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/actions/actions/v2",
         "body": {
+          "description": "",
+          "dpxlFilter": "",
           "isPrivate": false,
           "name": "first",
           "sourceType": "SOURCE_TYPE_LOG",
@@ -137,7 +143,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_action | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Action with name first already exists\"}\noperation - Create"
+      "error: Unable to create action | 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Action with name first already exists\"}"
     ],
     "state": null
   },
@@ -151,7 +157,7 @@
     },
     "plan": {
       "applications": "(unknown)",
-      "created_by": "",
+      "created_by": null,
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000002",
@@ -183,11 +189,11 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating coralogix_action | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Action with name first already exists\"}\noperation - Update"
+      "error: Unable to update action | id 00000000-0000-4000-9000-000000000002: 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Action with name first already exists\"}"
     ],
     "state": {
       "applications": null,
-      "created_by": "",
+      "created_by": null,
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000002",

@@ -26,6 +26,8 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/actions/actions/v2",
         "body": {
+          "description": "",
+          "dpxlFilter": "",
           "isPrivate": false,
           "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
           "sourceType": "SOURCE_TYPE_LOG",
@@ -36,7 +38,7 @@
     ],
     "state": {
       "applications": null,
-      "created_by": "",
+      "created_by": null,
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",
@@ -58,35 +60,8 @@
       "source_type": "Log",
       "url": "https://example.com/{{p}}"
     },
-    "plan": {
-      "applications": "(unknown)",
-      "created_by": "(unknown)",
-      "description": null,
-      "dpxl_filter": null,
-      "id": "(unknown)",
-      "is_hidden": false,
-      "is_private": false,
-      "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
-      "source_type": "Log",
-      "subsystems": "(unknown)",
-      "url": "https://example.com/{{p}}",
-      "url_fields": null
-    },
-    "requests": [
-      {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/actions/actions/v2",
-        "body": {
-          "isPrivate": false,
-          "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
-          "sourceType": "SOURCE_TYPE_LOG",
-          "url": "https://example.com/{{p}}"
-        },
-        "status": 400
-      }
-    ],
-    "applyDiagnostics": [
-      "error: Error creating coralogix_action | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: validation failed for method /com.coralogixapis.actions.v2.ActionsService/CreateAction: ValidationError: \\\"name\\\" length must be less than or equal to 50 characters long\"}\noperation - Create"
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"name\")] | Attribute name string length must be between 1 and 50, got: 51"
     ],
     "state": null
   }

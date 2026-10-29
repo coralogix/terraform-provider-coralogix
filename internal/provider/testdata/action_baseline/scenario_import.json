@@ -16,7 +16,7 @@
       "applications": [
         "app-a"
       ],
-      "created_by": "",
+      "created_by": null,
       "description": "seeded",
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",
@@ -38,7 +38,6 @@
     "drift": [
       "AttributeName(\"applications\")",
       "AttributeName(\"applications\").ElementKeyValue(tftypes.String<\"app-a\">)",
-      "AttributeName(\"created_by\")",
       "AttributeName(\"description\")",
       "AttributeName(\"is_hidden\")",
       "AttributeName(\"is_private\")",
@@ -76,7 +75,7 @@
       "applications": [
         "app-a"
       ],
-      "created_by": "",
+      "created_by": null,
       "description": "seeded",
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",
@@ -100,7 +99,7 @@
       "applications": [
         "app-a"
       ],
-      "created_by": "",
+      "created_by": null,
       "description": "seeded",
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",
