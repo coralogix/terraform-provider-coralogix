@@ -1,0 +1,211 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "enable_coralogix_customer_support_access": "enabled",
+      "ip_access": [
+        {
+          "enabled": true,
+          "ip_range": "192.0.2.0/24",
+          "name": "office"
+        }
+      ]
+    },
+    "plan": {
+      "enable_coralogix_customer_support_access": "enabled",
+      "id": "(unknown)",
+      "ip_access": [
+        {
+          "enabled": true,
+          "ip_range": "192.0.2.0/24",
+          "name": "office"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "body": {
+          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_ENABLED",
+          "ipAccess": [
+            {
+              "enabled": true,
+              "ipRange": "192.0.2.0/24",
+              "name": "office"
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "enabled",
+      "id": "<masked-id>",
+      "ip_access": [
+        {
+          "enabled": true,
+          "ip_range": "192.0.2.0/24",
+          "name": "office"
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "enabled",
+      "id": "<masked-id>",
+      "ip_access": [
+        {
+          "enabled": true,
+          "ip_range": "192.0.2.0/24",
+          "name": "office"
+        }
+      ]
+    }
+  },
+  {
+    "step": "update: replace settings",
+    "config": {
+      "enable_coralogix_customer_support_access": "disabled",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "198.51.100.0/24",
+          "name": "vpn"
+        }
+      ]
+    },
+    "plan": {
+      "enable_coralogix_customer_support_access": "disabled",
+      "id": "(unknown)",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "198.51.100.0/24",
+          "name": "vpn"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "body": {
+          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+          "ipAccess": [
+            {
+              "enabled": false,
+              "ipRange": "198.51.100.0/24",
+              "name": "vpn"
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "disabled",
+      "id": "<masked-id>",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "198.51.100.0/24",
+          "name": "vpn"
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after replace",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "disabled",
+      "id": "<masked-id>",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "198.51.100.0/24",
+          "name": "vpn"
+        }
+      ]
+    }
+  },
+  {
+    "step": "update: clear rules and omit support access",
+    "config": {
+      "ip_access": []
+    },
+    "plan": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "(unknown)",
+      "ip_access": []
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "body": {
+          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "<masked-id>",
+      "ip_access": []
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after clearing rules",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "disabled",
+      "id": "<masked-id>",
+      "ip_access": []
+    },
+    "drift": [
+      "AttributeName(\"enable_coralogix_customer_support_access\")"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"enable_coralogix_customer_support_access\")",
+      "AttributeName(\"id\")"
+    ]
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

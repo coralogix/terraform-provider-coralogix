@@ -1,0 +1,63 @@
+[
+  {
+    "step": "create with default support access and empty rules",
+    "config": {
+      "ip_access": []
+    },
+    "plan": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "(unknown)",
+      "ip_access": []
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "body": {
+          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "<masked-id>",
+      "ip_access": []
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and replan defaults",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "disabled",
+      "id": "<masked-id>",
+      "ip_access": []
+    },
+    "drift": [
+      "AttributeName(\"enable_coralogix_customer_support_access\")"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"enable_coralogix_customer_support_access\")",
+      "AttributeName(\"id\")"
+    ]
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]
