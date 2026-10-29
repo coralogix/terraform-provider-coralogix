@@ -1,8 +1,9 @@
 # Releases the provider when a merge to master bumps internal/clientset/version.go.
 #
-# A PR that should be released runs `make bump` (or `make bump BUMP=minor` / `BUMP=major`),
-# which sets the next version and moves the "# Unreleased" changelog entries under
-# "# Release X.Y.Z". The `changelog-check` workflow validates the bump on the PR.
+# PRs add changelog entries under "# Unreleased". To release, run `make bump` (or
+# `make bump BUMP=minor` / `BUMP=major`): it opens a "Release X.Y.Z" PR from master that
+# sets the next version and moves those entries under "# Release X.Y.Z". The
+# `changelog-check` workflow validates the bump on the PR.
 #
 # On merge this workflow tags the merge commit, runs goreleaser (release.yml) with
 # GitHub's generated notes, and waits until the Terraform Registry serves the version.
@@ -15,10 +16,7 @@ on:
     branches:
       - master
     paths:
-      # CHANGELOG.md too, so that a release section merged without a version bump
-      # fails the check here instead of going unreleased.
       - internal/clientset/version.go
-      - CHANGELOG.md
 
 concurrency:
   group: release-provider

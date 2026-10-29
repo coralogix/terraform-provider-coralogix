@@ -36,8 +36,8 @@ jobs:
               exit 1; }
 
   version-bump:
-    # Every merge with changelog entries is a release: the PR runs `make bump`, and
-    # release-provider.yml publishes the version on merge.
+    # A PR keeps the version, or is a release PR from `make bump`; release-provider.yml
+    # publishes the version when a release PR merges.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
