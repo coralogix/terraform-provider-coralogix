@@ -11,12 +11,17 @@ values:
   sli.apm_sli.services: '["@{env.CORALOGIX_SLO_V2_APM_SERVICE}"]'
   sli.apm_sli.error_config: '{}'
   sli.apm_sli.filters[].key: '"http.status_code"'
+  # The backend turns the grouping keys into a PromQL by (...) clause, so they must be label names.
+  sli.apm_sli.grouping_keys: '["http_method"]'
   window.slo_time_frame: '"7_days"'
   product_type: '"apm"'
   labels: '{ team = "payments" }'
   ownership_tags.service.label_keys: '["service_name"]'
   ownership_tags.environment.static_values: '["production"]'
   ownership_tags.team.static_values: '["payments"]'
+
+updatedValues:
+  sli.apm_sli.grouping_keys: '["http_route"]'
 
 # Each ownership tag takes static_values or label_keys, never both: the config sets one of them.
 skip:

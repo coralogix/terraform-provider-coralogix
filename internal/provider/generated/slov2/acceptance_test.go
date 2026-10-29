@@ -72,7 +72,7 @@ const fullConfig = `resource "coralogix_slo_v2" "test" {
           values = ["@{run}-values"]
         },
       ]
-      grouping_keys = ["@{run}-grouping_keys"]
+      grouping_keys = ["http_method"]
       services = ["@{env.CORALOGIX_SLO_V2_APM_SERVICE}"]
     }
   }
@@ -108,7 +108,7 @@ const updatedConfig = `resource "coralogix_slo_v2" "test" {
           values = ["@{run}-values-updated"]
         },
       ]
-      grouping_keys = ["@{run}-grouping_keys-updated"]
+      grouping_keys = ["http_route"]
       services = ["@{env.CORALOGIX_SLO_V2_APM_SERVICE}"]
     }
   }
@@ -143,7 +143,7 @@ const minimalConfig = `resource "coralogix_slo_v2" "test" {
           values = ["@{run}-values"]
         },
       ]
-      grouping_keys = ["@{run}-grouping_keys"]
+      grouping_keys = ["http_method"]
       services = ["@{env.CORALOGIX_SLO_V2_APM_SERVICE}"]
     }
   }
@@ -166,7 +166,7 @@ const upgradeFullConfig = `resource "coralogix_slo_v2" "test" {
           values = ["@{run}-values"]
         },
       ]
-      grouping_keys = ["@{run}-grouping_keys"]
+      grouping_keys = ["http_method"]
       services = ["@{env.CORALOGIX_SLO_V2_APM_SERVICE}"]
     }
   }
@@ -202,7 +202,7 @@ const upgradeMinimalConfig = `resource "coralogix_slo_v2" "test" {
           values = ["@{run}-values"]
         },
       ]
-      grouping_keys = ["@{run}-grouping_keys"]
+      grouping_keys = ["http_method"]
       services = ["@{env.CORALOGIX_SLO_V2_APM_SERVICE}"]
     }
   }
@@ -233,8 +233,6 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "sli.apm_sli.filters.0.match_operator", resourceAddress, "sli.apm_sli.filters.0.match_operator"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "sli.apm_sli.filters.0.values.#", resourceAddress, "sli.apm_sli.filters.0.values.#"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "sli.apm_sli.filters.0.values.0", resourceAddress, "sli.apm_sli.filters.0.values.0"),
-		resource.TestCheckResourceAttrPair(dataSourceAddress, "sli.apm_sli.grouping_keys.#", resourceAddress, "sli.apm_sli.grouping_keys.#"),
-		resource.TestCheckResourceAttrPair(dataSourceAddress, "sli.apm_sli.grouping_keys.0", resourceAddress, "sli.apm_sli.grouping_keys.0"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "description", resourceAddress, "description"),
 	)
 }
@@ -245,8 +243,6 @@ func fullChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.match_operator", "ends_with"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values")),
-		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.#", "1"),
-		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.0", render(run, "@{run}-grouping_keys")),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 	)
 }
@@ -257,8 +253,6 @@ func updatedChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.match_operator", "ends_with"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values-updated")),
-		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.#", "1"),
-		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.0", render(run, "@{run}-grouping_keys-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description-updated")),
 	)
 }
@@ -268,8 +262,6 @@ func minimalChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values")),
-		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.#", "1"),
-		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.0", render(run, "@{run}-grouping_keys")),
 		resource.TestCheckNoResourceAttr(resourceAddress, "description"),
 	)
 }
@@ -279,8 +271,6 @@ func upgradeFullChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values")),
-		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.#", "1"),
-		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.0", render(run, "@{run}-grouping_keys")),
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 	)
 }
@@ -290,8 +280,6 @@ func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.filters.0.values.0", render(run, "@{run}-values")),
-		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.#", "1"),
-		resource.TestCheckResourceAttr(resourceAddress, "sli.apm_sli.grouping_keys.0", render(run, "@{run}-grouping_keys")),
 	)
 }
 
