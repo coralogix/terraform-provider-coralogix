@@ -14,22 +14,30 @@ import (
 func Schema() schema.Schema {
 	return schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"definition_key": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "The definition key.",
+			"integration_key": schema.StringAttribute{
+				Required: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				MarkdownDescription: "Selector for the integration.",
 			},
-			"definition_version": schema.StringAttribute{
+			"version": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "The definition version.",
+				MarkdownDescription: "The integration version",
 			},
 			"id": schema.StringAttribute{
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
-				MarkdownDescription: "Unique identifier.",
+				MarkdownDescription: "Integration ID.",
+			},
+			"parameters": schema.DynamicAttribute{
+				Required:            true,
+				MarkdownDescription: "Parameters required by the integration.",
 			},
 		},
+		MarkdownDescription: "A Coralogix Integration. Check https://coralogix.com/docs/developer-portal/infrastructure-as-code/terraform-provider/integrations/aws-metrics-collector/ for available options.",
 	}
 }
 

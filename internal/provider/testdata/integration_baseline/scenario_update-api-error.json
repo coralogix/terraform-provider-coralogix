@@ -151,7 +151,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error update coralogix_integration | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: the integration could not be updated\"}\noperation - Update"
+      "error: Unable to update integration | id 00000000-0000-4000-8000-000000000001: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: the integration could not be updated\"}"
     ],
     "state": {
       "id": "00000000-0000-4000-8000-000000000001",

@@ -8,7 +8,8 @@ import (
 )
 
 type DeployedIntegrationInformationModel struct {
-	DefinitionKey     types.String `tfsdk:"definition_key"`
-	DefinitionVersion types.String `tfsdk:"definition_version"`
-	Id                types.String `tfsdk:"id"`
+	DefinitionKey     types.String  `tfsdk:"integration_key"`
+	DefinitionVersion types.String  `tfsdk:"version"`
+	Id                types.String  `tfsdk:"id"`
+	Parameters        types.Dynamic `tfsdk:"parameters"`
 }
