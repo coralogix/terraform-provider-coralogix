@@ -16,6 +16,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"sort"
 	"testing"
 
@@ -151,6 +152,23 @@ var sloScenarios = map[string]func(h *grHarness){
 		h.Destroy("destroy", s)
 	},
 
+	// State that the released provider wrote has filters with only key and values. It upgrades
+	// without a state upgrader, and the next refresh reads the operator the API returns.
+	"upgrade-state-without-match-operator": func(h *grHarness) {
+		cfg := sloConfig("apm-upgrade", sloAPMSLI(j{
+			"error_config": j{},
+			"filters":      l{j{"key": "environment", "values": l{"prod"}}},
+		}), j{"product_type": "apm"})
+		s := h.Apply("create", h.null(), cfg)
+		old := toJSON(s).(map[string]any)
+		dropMatchOperator(old)
+		raw, err := json.Marshal(old)
+		h.must(err)
+		s = h.UpgradeV0("upgrade the state of the released provider", string(raw))
+		s = h.Refresh("refresh", s)
+		h.RefreshPlan("plan the applied config again", s)
+	},
+
 	"apm-error": func(h *grHarness) {
 		cfg := sloConfig("apm-error", sloAPMSLI(j{"error_config": j{}}), j{"product_type": "apm"})
 		s := h.Apply("create", h.null(), cfg)
@@ -262,4 +280,20 @@ var sloScenarios = map[string]func(h *grHarness){
 		h.slos().forget(idOf(s))
 		h.Apply("update: SLO was deleted outside Terraform", s, sloConfig("gone", sloRequestSLI, j{"description": "changed"}))
 	},
+}
+
+// dropMatchOperator removes match_operator from every filter of the state, the way the state of a
+// provider version without the attribute holds them.
+func dropMatchOperator(v any) {
+	switch t := v.(type) {
+	case map[string]any:
+		delete(t, "match_operator")
+		for _, child := range t {
+			dropMatchOperator(child)
+		}
+	case []any:
+		for _, child := range t {
+			dropMatchOperator(child)
+		}
+	}
 }
