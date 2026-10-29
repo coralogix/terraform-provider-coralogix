@@ -1,1 +1,6 @@
 * @coralogix/team-ido @coralogix/team-eco-system
+
+# No owners: release PRs from `make bump` change only these files, and
+# approve-release.yml approves them. Other PRs still need a code owner for their other files.
+/CHANGELOG.md
+/internal/clientset/version.go

@@ -1,0 +1,78 @@
+# Approves the release PRs that `make bump` opens, so that a release needs no human review.
+#
+# A release PR only versions code that was already reviewed on master. This workflow approves
+# one only when its branch is release-X.Y.Z in this repository, it changes nothing but
+# CHANGELOG.md and the version line in internal/clientset/version.go, X.Y.Z is that new
+# version, and `release.py check` passes. CODEOWNERS leaves those two files without owners, so
+# this approval is the one review the PR needs. Every run first dismisses this workflow's
+# earlier approvals, so a later push to the branch is never merged on an old approval.
+#
+# pull_request_target runs this file and release.py as they are on master, never a copy that
+# the PR changed. The PR's files are only read, never executed.
+name: approve-release
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - master
+
+concurrency:
+  group: approve-release-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  approve:
+    name: Approve the release PR
+    runs-on: ubuntu-latest
+    if: >-
+      startsWith(github.head_ref, 'release-') &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !github.event.pull_request.draft
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      HEAD_REF: ${{ github.head_ref }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Dismiss earlier approvals
+        run: |
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and .state == "APPROVED") | .id' |
+            while read -r id; do
+              gh api -X PUT "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews/$id/dismissals" \
+                -f message="Superseded by a new push; re-checking the release PR." -f event=DISMISS >/dev/null
+            done
+      - name: Check the release PR
+        run: |
+          cp .github/scripts/release/release.py "$RUNNER_TEMP/release.py"
+          git fetch --quiet --no-tags origin "$HEAD_SHA"
+          git checkout --quiet --detach "$HEAD_SHA"
+          version_of() { sed -n 's/^const TF_PROVIDER_VERSION = "\(.*\)"$/\1/p'; }
+          files=$(git diff --name-only origin/master...HEAD | sort | tr '\n' ' ')
+          if [ "$files" != "CHANGELOG.md internal/clientset/version.go " ]; then
+            echo "::error::A release PR changes only CHANGELOG.md and internal/clientset/version.go; this one changes: $files"; exit 1
+          fi
+          if [ "$(git diff --numstat origin/master...HEAD -- internal/clientset/version.go | cut -f1,2)" != "$(printf '1\t1')" ]; then
+            echo "::error::A release PR changes only the version line of internal/clientset/version.go"; exit 1
+          fi
+          version=$(version_of < internal/clientset/version.go)
+          if [ "$HEAD_REF" != "release-$version" ]; then
+            echo "::error::Branch $HEAD_REF does not match version $version; open release PRs with \`make bump\`"; exit 1
+          fi
+          python3 -I "$RUNNER_TEMP/release.py" check origin/master
+      - name: Approve
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" -f commit_id="$HEAD_SHA" -f event=APPROVE \
+            -f body="Release PR from \`make bump\`: only the version and changelog change, and the release check passes." >/dev/null
+          echo "Approved $HEAD_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
