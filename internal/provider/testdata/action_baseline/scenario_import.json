@@ -1,0 +1,123 @@
+[
+  {
+    "step": "import",
+    "state": null
+  },
+  {
+    "step": "import (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/actions/actions/v2/00000000-0000-4000-9000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": [
+        "app-a"
+      ],
+      "created_by": "",
+      "description": "seeded",
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "seeded",
+      "source_type": "DataMap",
+      "subsystems": [
+        "sub-a"
+      ],
+      "url": "https://example.com/",
+      "url_fields": [
+        {
+          "name": "p",
+          "required": true
+        }
+      ]
+    },
+    "drift": [
+      "AttributeName(\"applications\")",
+      "AttributeName(\"applications\").ElementKeyValue(tftypes.String<\"app-a\">)",
+      "AttributeName(\"created_by\")",
+      "AttributeName(\"description\")",
+      "AttributeName(\"is_hidden\")",
+      "AttributeName(\"is_private\")",
+      "AttributeName(\"name\")",
+      "AttributeName(\"source_type\")",
+      "AttributeName(\"subsystems\")",
+      "AttributeName(\"subsystems\").ElementKeyValue(tftypes.String<\"sub-a\">)",
+      "AttributeName(\"url\")",
+      "AttributeName(\"url_fields\")",
+      "AttributeName(\"url_fields\").ElementKeyInt(0)"
+    ]
+  },
+  {
+    "step": "plan the matching config",
+    "config": {
+      "applications": [
+        "app-a"
+      ],
+      "description": "seeded",
+      "is_private": false,
+      "name": "seeded",
+      "source_type": "DataMap",
+      "subsystems": [
+        "sub-a"
+      ],
+      "url": "https://example.com/",
+      "url_fields": [
+        {
+          "name": "p",
+          "required": true
+        }
+      ]
+    },
+    "plan": {
+      "applications": [
+        "app-a"
+      ],
+      "created_by": "",
+      "description": "seeded",
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "seeded",
+      "source_type": "DataMap",
+      "subsystems": [
+        "sub-a"
+      ],
+      "url": "https://example.com/",
+      "url_fields": [
+        {
+          "name": "p",
+          "required": true
+        }
+      ]
+    },
+    "noChange": true,
+    "state": {
+      "applications": [
+        "app-a"
+      ],
+      "created_by": "",
+      "description": "seeded",
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "seeded",
+      "source_type": "DataMap",
+      "subsystems": [
+        "sub-a"
+      ],
+      "url": "https://example.com/",
+      "url_fields": [
+        {
+          "name": "p",
+          "required": true
+        }
+      ]
+    }
+  }
+]

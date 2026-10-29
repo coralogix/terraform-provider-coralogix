@@ -1,0 +1,81 @@
+[
+  {
+    "step": "create without is_private",
+    "config": {
+      "name": "tf-action",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}"
+    },
+    "plan": {
+      "applications": "(unknown)",
+      "created_by": "(unknown)",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "(unknown)",
+      "is_hidden": false,
+      "is_private": true,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": "(unknown)",
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "isPrivate": true,
+          "name": "tf-action",
+          "sourceType": "SOURCE_TYPE_LOG",
+          "url": "https://example.com/{{p}}"
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_action | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Private actions need to be linked to a user\"}\noperation - Create"
+    ],
+    "state": null
+  },
+  {
+    "step": "create with is_private = true",
+    "config": {
+      "is_private": true,
+      "name": "tf-action",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}"
+    },
+    "plan": {
+      "applications": "(unknown)",
+      "created_by": "(unknown)",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "(unknown)",
+      "is_hidden": false,
+      "is_private": true,
+      "name": "tf-action",
+      "source_type": "Log",
+      "subsystems": "(unknown)",
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "isPrivate": true,
+          "name": "tf-action",
+          "sourceType": "SOURCE_TYPE_LOG",
+          "url": "https://example.com/{{p}}"
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_action | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Private actions need to be linked to a user\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

@@ -1,0 +1,203 @@
+[
+  {
+    "step": "create the first action",
+    "config": {
+      "is_private": false,
+      "name": "first",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}"
+    },
+    "plan": {
+      "applications": "(unknown)",
+      "created_by": "(unknown)",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "(unknown)",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "first",
+      "source_type": "Log",
+      "subsystems": "(unknown)",
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "isPrivate": false,
+          "name": "first",
+          "sourceType": "SOURCE_TYPE_LOG",
+          "url": "https://example.com/{{p}}"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000001",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "first",
+      "source_type": "Log",
+      "subsystems": null,
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create the second action",
+    "config": {
+      "is_private": false,
+      "name": "second",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}"
+    },
+    "plan": {
+      "applications": "(unknown)",
+      "created_by": "(unknown)",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "(unknown)",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "second",
+      "source_type": "Log",
+      "subsystems": "(unknown)",
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "isPrivate": false,
+          "name": "second",
+          "sourceType": "SOURCE_TYPE_LOG",
+          "url": "https://example.com/{{p}}"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000002",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "second",
+      "source_type": "Log",
+      "subsystems": null,
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create another action named first",
+    "config": {
+      "is_private": false,
+      "name": "first",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}"
+    },
+    "plan": {
+      "applications": "(unknown)",
+      "created_by": "(unknown)",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "(unknown)",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "first",
+      "source_type": "Log",
+      "subsystems": "(unknown)",
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "isPrivate": false,
+          "name": "first",
+          "sourceType": "SOURCE_TYPE_LOG",
+          "url": "https://example.com/{{p}}"
+        },
+        "status": 409
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_action | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Action with name first already exists\"}\noperation - Create"
+    ],
+    "state": null
+  },
+  {
+    "step": "update: rename to the name of the first",
+    "config": {
+      "is_private": false,
+      "name": "first",
+      "source_type": "Log",
+      "url": "https://example.com/{{p}}"
+    },
+    "plan": {
+      "applications": "(unknown)",
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000002",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "first",
+      "source_type": "Log",
+      "subsystems": "(unknown)",
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "action": {
+            "description": "",
+            "dpxlFilter": "",
+            "id": "00000000-0000-4000-9000-000000000002",
+            "isHidden": false,
+            "isPrivate": false,
+            "name": "first",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "url": "https://example.com/{{p}}"
+          }
+        },
+        "status": 409
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error updating coralogix_action | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Action with name first already exists\"}\noperation - Update"
+    ],
+    "state": {
+      "applications": null,
+      "created_by": "",
+      "description": null,
+      "dpxl_filter": null,
+      "id": "00000000-0000-4000-9000-000000000002",
+      "is_hidden": false,
+      "is_private": false,
+      "name": "second",
+      "source_type": "Log",
+      "subsystems": null,
+      "url": "https://example.com/{{p}}",
+      "url_fields": null
+    }
+  }
+]
