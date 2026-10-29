@@ -122,7 +122,8 @@ func ipAccessFidelityVars(run string) map[string]string {
 // TestRecordIpAccessFidelity writes real API answers for cases.json. The IP access API is a
 // singleton: recording creates and deletes team IP access entries. Run only against a disposable
 // team with no existing IP access entries and customer-support access disabled. The entries used
-// here are disabled, so they do not change the team's access policy while the recording runs.
+// here are disabled and use 0.0.0.0/0, so the range is universal even if the backend unexpectedly
+// applies it. The recorder refuses to delete unless the only current entry is its disabled rule.
 func TestRecordIpAccessFidelity(t *testing.T) {
 	if os.Getenv("RECORD_IP_ACCESS_FIDELITY") != "1" {
 		t.Skip("set RECORD_IP_ACCESS_FIDELITY=1 to record against a disposable tenant")
@@ -170,6 +171,28 @@ func ensureIpAccessFidelityTeamSafe(t *testing.T, base, apiKey string) {
 	}
 }
 
+func ensureIpAccessFidelityEntriesOwned(t *testing.T, base, apiKey, run string) {
+	t.Helper()
+	status, body := sendIpAccessFidelityRequest(t, base, apiKey, fidelityStep{Method: http.MethodGet})
+	if status != http.StatusOK {
+		t.Fatalf("pre-delete Get answered %d; refusing to delete IP access entries", status)
+	}
+	settings := asObject(asObject(body)["settings"])
+	access, _ := settings["enableCoralogixCustomerSupportAccess"].(string)
+	entries := asObject(settings["ipAccess"])
+	if access != "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED" || len(entries) != 1 {
+		t.Fatalf("pre-delete found changed support access or unexpected entry count; refusing to delete IP access entries")
+	}
+	for _, raw := range entries {
+		entry := asObject(raw)
+		name, _ := entry["name"].(string)
+		enabled, _ := entry["enabled"].(bool)
+		if !strings.HasPrefix(name, run+"-") || enabled {
+			t.Fatalf("pre-delete found an entry not created by this run or an enabled rule; refusing to delete IP access entries")
+		}
+	}
+}
+
 func recordIpAccessFidelity(t *testing.T, base, apiKey, outPath string) {
 	t.Helper()
 	rawCases, err := os.ReadFile(filepath.Join(ipAccessGoldenDir, "fidelity", "cases.json"))
@@ -200,6 +223,9 @@ func recordIpAccessFidelity(t *testing.T, base, apiKey, outPath string) {
 			} `json:"steps"`
 		}{Name: c.Name}
 		for _, step := range c.Steps {
+			if step.Method == http.MethodDelete {
+				ensureIpAccessFidelityEntriesOwned(t, base, apiKey, vars["NAME"])
+			}
 			status, body := sendIpAccessFidelityRequest(t, base, apiKey, fidelityStep{
 				Method: step.Method,
 				Path:   substString(step.Path, vars),

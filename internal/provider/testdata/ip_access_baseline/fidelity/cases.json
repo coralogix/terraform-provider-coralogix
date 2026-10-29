@@ -20,7 +20,7 @@
           "body": {
             "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
             "ipAccess": [
-              {"enabled": false, "ipRange": "192.0.2.0/24", "name": "{{NAME}}-first"}
+              {"enabled": false, "ipRange": "0.0.0.0/0", "name": "{{NAME}}-first"}
             ]
           }
         },
@@ -31,7 +31,7 @@
           "body": {
             "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
             "ipAccess": [
-              {"enabled": false, "ipRange": "198.51.100.0/24", "name": "{{NAME}}-duplicate"}
+              {"enabled": false, "ipRange": "0.0.0.0/0", "name": "{{NAME}}-duplicate"}
             ]
           }
         },
@@ -41,7 +41,7 @@
           "body": {
             "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
             "ipAccess": [
-              {"enabled": false, "ipRange": "198.51.100.0/24", "name": "{{NAME}}-replacement"}
+              {"enabled": false, "ipRange": "0.0.0.0/0", "name": "{{NAME}}-replacement"}
             ]
           }
         },
