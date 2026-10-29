@@ -114,7 +114,7 @@ func TestRecordActionFidelity(t *testing.T) {
 		for _, s := range c.Steps {
 			status, got := recordActionStep(t, base, apiKey, s, vars, &created)
 			// A 403 on a call about an action that does not exist is an answer to record. A 403 on a
-			// create means that the key cannot manage dashboards.
+			// create means that the key cannot manage actions.
 			if (status == http.StatusForbidden || status == http.StatusUnauthorized) && s.Method == http.MethodPost {
 				t.Fatalf("the actions API returned %d on %s %s. Recording needs a management API key that can manage actions.", status, s.Method, s.Path)
 			}

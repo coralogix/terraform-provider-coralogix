@@ -57,6 +57,7 @@ var dataSourceBaselines = map[string]dataSourceBaseline{
 		return newProtocolHarness(t, alTypeName, newALFake(t))
 	}, alDataSourceScenarios},
 	"quota_allocation_rule_set": {quotaGoldenDir, newQuotaHarness, quotaDataSourceScenarios},
+	"action":                    {actionGoldenDir, newActionHarness, actionDataSourceScenarios},
 }
 
 func TestDataSourceBaselineSchema(t *testing.T) {

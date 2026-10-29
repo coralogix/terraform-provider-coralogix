@@ -45,6 +45,28 @@ func (h *grHarness) actionAPI() *actionFake {
 	return f
 }
 
+// actionDataSourceScenarios are the scenarios of the data source. It finds an action by id only. A
+// reading by id of an action that has no optional values shows how the data source reads an API
+// [] and "".
+var actionDataSourceScenarios = func() map[string]func(h *grHarness) {
+	out := idLookupScenarios(func(h *grHarness) string {
+		return h.actionAPI().seed(map[string]any{
+			"name": "seeded", "url": "https://example.com/hook", "sourceType": "SOURCE_TYPE_LOG",
+			"isPrivate": false, "description": "made outside Terraform",
+			"dpxlFilter":       "<v1> $d.severity == 'ERROR'",
+			"applicationNames": []any{"app"}, "subsystemNames": []any{"sub"},
+			"urlFields": []any{map[string]any{"name": "field", "required": true}},
+		})
+	})
+	out["read-minimal"] = func(h *grHarness) {
+		id := h.actionAPI().seed(map[string]any{
+			"name": "bare", "url": "https://example.com/hook", "sourceType": "SOURCE_TYPE_LOG", "isPrivate": false,
+		})
+		h.ReadDataSource("read an action with no optional values", byID(id))
+	}
+	return out
+}()
+
 func TestActionBaselineSchema(t *testing.T) {
 	var current resource.SchemaResponse
 	actions.NewActionResource().Schema(context.Background(), resource.SchemaRequest{}, &current)
