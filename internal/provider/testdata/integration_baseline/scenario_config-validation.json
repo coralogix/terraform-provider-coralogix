@@ -1,0 +1,47 @@
+[
+  {
+    "step": "missing integration_key",
+    "config": {
+      "parameters": {},
+      "version": "0.1.0"
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"integration_key\")] | Must set a configuration value for the integration_key attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "missing version",
+    "config": {
+      "integration_key": "aws-resource-catalog",
+      "parameters": {}
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"version\")] | Must set a configuration value for the version attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "missing parameters",
+    "config": {
+      "integration_key": "aws-resource-catalog",
+      "version": "0.1.0"
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"parameters\")] | Must set a configuration value for the parameters attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "valid",
+    "config": {
+      "integration_key": "aws-resource-catalog",
+      "parameters": {
+        "AwsRoleArn": "arn:aws:iam::123456789012:role/S3Access",
+        "IntegrationName": "a"
+      },
+      "version": "0.1.0"
+    },
+    "state": null
+  }
+]

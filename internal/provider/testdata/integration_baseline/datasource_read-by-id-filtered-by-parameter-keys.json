@@ -1,0 +1,16 @@
+[
+  {
+    "step": "read with parameters set: the state keeps the configured value",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "parameters": {
+        "AwsRegion": "y",
+        "IntegrationName": "x"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Configuration for Read-Only Attribute [AttributeName(\"parameters\")] | Cannot set value for this attribute as the provider has marked it as read-only. Remove the configuration line setting the value.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable and read-only attributes that are supported."
+    ],
+    "state": null
+  }
+]

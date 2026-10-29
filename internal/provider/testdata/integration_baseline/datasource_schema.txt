@@ -1,0 +1,10 @@
+(data source schema)
+    description: A Coralogix Integration. Check https://coralogix.com/docs/developer-portal/infrastructure-as-code/terraform-provider/integrations/aws-metrics-collector/ for available options.
+id  tftypes.String required
+    description: Integration ID.
+integration_key  tftypes.String computed
+    description: Selector for the integration.
+parameters  tftypes.DynamicPseudoType computed
+    description: Parameters required by the integration.
+version  tftypes.String computed
+    description: The integration version

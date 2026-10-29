@@ -1,0 +1,12 @@
+(schema)  version=0
+    markdown: "A Coralogix Integration. Check https://coralogix.com/docs/developer-portal/infrastructure-as-code/terraform-provider/integrations/aws-metrics-collector/ for available options."
+id  StringAttribute computed
+    markdown: "Integration ID."
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+integration_key  StringAttribute required
+    markdown: "Selector for the integration."
+    plan modifier: stringplanmodifier.requiresReplaceIfModifier If the value of this attribute changes, Terraform will destroy and recreate the resource.
+parameters  DynamicAttribute required
+    markdown: "Parameters required by the integration."
+version  StringAttribute required
+    markdown: "The integration version"

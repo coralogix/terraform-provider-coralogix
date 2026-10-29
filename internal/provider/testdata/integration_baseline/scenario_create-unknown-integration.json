@@ -1,0 +1,45 @@
+[
+  {
+    "step": "create: the integration key does not exist",
+    "config": {
+      "integration_key": "does-not-exist",
+      "parameters": {
+        "IntegrationName": "a"
+      },
+      "version": "0.1.0"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "integration_key": "does-not-exist",
+      "parameters": {
+        "IntegrationName": "a"
+      },
+      "version": "0.1.0"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/metadata/v1/test",
+        "body": {
+          "integrationData": {
+            "integrationKey": "does-not-exist",
+            "integrationParameters": {
+              "parameters": [
+                {
+                  "key": "IntegrationName",
+                  "stringValue": "a"
+                }
+              ]
+            },
+            "version": "0.1.0"
+          }
+        },
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Testing the integration has failed | API responded with an error: 404 Not Found"
+    ],
+    "state": null
+  }
+]

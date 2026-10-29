@@ -1,0 +1,99 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "integration_key": "aws-resource-catalog",
+      "parameters": {
+        "AwsRoleArn": "arn:aws:iam::123456789012:role/S3Access",
+        "IntegrationName": "a"
+      },
+      "version": "0.1.0"
+    },
+    "plan": {
+      "id": "(unknown)",
+      "integration_key": "aws-resource-catalog",
+      "parameters": {
+        "AwsRoleArn": "arn:aws:iam::123456789012:role/S3Access",
+        "IntegrationName": "a"
+      },
+      "version": "0.1.0"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/metadata/v1/test",
+        "body": {
+          "integrationData": {
+            "integrationKey": "aws-resource-catalog",
+            "integrationParameters": {
+              "parameters": [
+                {
+                  "key": "AwsRoleArn",
+                  "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                },
+                {
+                  "key": "IntegrationName",
+                  "stringValue": "a"
+                }
+              ]
+            },
+            "version": "0.1.0"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/metadata/v1",
+        "body": {
+          "metadata": {
+            "integrationKey": "aws-resource-catalog",
+            "integrationParameters": {
+              "parameters": [
+                {
+                  "key": "AwsRoleArn",
+                  "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                },
+                {
+                  "key": "IntegrationName",
+                  "stringValue": "a"
+                }
+              ]
+            },
+            "version": "0.1.0"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/integrations/v1/deployed/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "integration_key": "aws-resource-catalog",
+      "parameters": {
+        "AwsRoleArn": "arn:aws:iam::123456789012:role/S3Access",
+        "IntegrationName": "a"
+      },
+      "version": "0.1.0"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: the integration was deleted outside Terraform",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/integrations/v1/deployed/00000000-0000-4000-8000-000000000001",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: Resource \"00000000-0000-4000-8000-000000000001\" is in state, but no longer exists in Coralogix backend | 00000000-0000-4000-8000-000000000001 will be recreated when you apply"
+    ],
+    "state": null
+  }
+]

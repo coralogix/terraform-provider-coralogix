@@ -1,0 +1,316 @@
+{
+  "cases": [
+    {
+      "name": "lifecycle: test, save, read, update, delete",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "result": {
+              "success": {}
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "integrationId": "{{id}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "integration": {
+              "definitionKey": "aws-resource-catalog",
+              "definitionVersion": "0.1.0",
+              "id": "{{id}}",
+              "integrationStatus": {
+                "connectionStatus": "STATUS_UNKNOWN",
+                "details": {},
+                "messages": [
+                  "This integration is no longer maintained, new version will be available soon"
+                ]
+              },
+              "parameters": [
+                {
+                  "key": "IntegrationName",
+                  "stringValue": "tf-baseline-a"
+                },
+                {
+                  "key": "AwsRoleArn",
+                  "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "integration": {
+              "definitionKey": "aws-resource-catalog",
+              "definitionVersion": "0.1.0",
+              "id": "{{id}}",
+              "integrationStatus": {
+                "connectionStatus": "STATUS_UNKNOWN",
+                "details": {},
+                "messages": [
+                  "This integration is no longer maintained, new version will be available soon"
+                ]
+              },
+              "parameters": [
+                {
+                  "key": "IntegrationName",
+                  "stringValue": "tf-baseline-b"
+                },
+                {
+                  "key": "AwsRoleArn",
+                  "stringValue": "arn:aws:iam::123456789012:role/S3Access"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Integration not found: {{id}}"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Integration not found: {{id}}"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Integration not found: {{id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "parameter types",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "integrationId": "{{id}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "integration": {
+              "definitionKey": "aws-metrics-collector",
+              "definitionVersion": "0.1.0",
+              "id": "{{id}}",
+              "integrationStatus": {
+                "connectionStatus": "ACTIVE",
+                "details": {},
+                "messages": []
+              },
+              "parameters": [
+                {
+                  "booleanValue": false,
+                  "key": "WithAggregations"
+                },
+                {
+                  "key": "AwsRegion",
+                  "stringValue": "eu-north-1"
+                },
+                {
+                  "key": "SubsystemName",
+                  "stringValue": "tf-baseline-types"
+                },
+                {
+                  "key": "MetricNamespaces",
+                  "stringList": {
+                    "values": [
+                      "AWS/S3"
+                    ]
+                  }
+                },
+                {
+                  "key": "ApplicationName",
+                  "stringValue": "cxsdk"
+                },
+                {
+                  "booleanValue": true,
+                  "key": "EnrichWithTags"
+                },
+                {
+                  "key": "IntegrationName",
+                  "stringValue": "tf-baseline-types"
+                },
+                {
+                  "key": "AwsRoleArn",
+                  "stringValue": "arn:aws:iam::123456789012:role/example-role"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "integration": {
+              "definitionKey": "aws-metrics-collector",
+              "definitionVersion": "0.1.0",
+              "id": "{{id}}",
+              "integrationStatus": {
+                "connectionStatus": "FAILING",
+                "details": {},
+                "messages": [
+                  "Wrong IAM role and or external id combination provided"
+                ]
+              },
+              "parameters": [
+                {
+                  "booleanValue": true,
+                  "key": "WithAggregations"
+                },
+                {
+                  "key": "AwsRegion",
+                  "stringValue": "eu-north-1"
+                },
+                {
+                  "key": "SubsystemName",
+                  "stringValue": "tf-baseline-types"
+                },
+                {
+                  "key": "MetricNamespaces",
+                  "stringList": {
+                    "values": [
+                      "AWS/S3"
+                    ]
+                  }
+                },
+                {
+                  "key": "ApplicationName",
+                  "stringValue": "cxsdk"
+                },
+                {
+                  "booleanValue": true,
+                  "key": "EnrichWithTags"
+                },
+                {
+                  "key": "IntegrationName",
+                  "stringValue": "tf-baseline-types"
+                },
+                {
+                  "key": "AwsRoleArn",
+                  "stringValue": "arn:aws:iam::123456789012:role/example-role"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "test failures",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "result": {
+              "failure": {
+                "errorMessage": "Failed to get sdk config: Wrong IAM role and or external id combination provided. RoleArn: arn:aws:iam::123456789012:role/example-role"
+              }
+            }
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Request errors:\n* Required field AwsRoleArn not provided"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Integration type by integration key not found: does-not-exist"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Request errors:\n* Invalid version"
+          }
+        }
+      ]
+    },
+    {
+      "name": "save failures",
+      "steps": [
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Integration type by integration key not found: does-not-exist"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Request errors:\n* Required field AwsRoleArn not provided"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Request errors:\n* Invalid version"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Request errors:\n* Unknown field Unknown provided"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Integration not found: {{id}}"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Integration not found: {{id}}"
+          }
+        }
+      ]
+    }
+  ]
+}
