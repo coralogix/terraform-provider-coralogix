@@ -3,11 +3,11 @@
 archived  tftypes.Bool computed
     description: Whether this configuration group is archived.
 description  tftypes.String computed
-    description: Human-readable description.
+    description: Description of the group's purpose.
 family  nested SINGLE computed
     description: Latest configuration family of the group.
 family.active  tftypes.Bool computed
-    description: Whether this family is active.
+    description: Whether this family is eligible for delivery to matching agents. This is not confirmation that an agent has applied it.
 family.based_on_configuration_family_id  tftypes.String computed
     description: Configuration family UUID v7 this family is based on.
 family.description  tftypes.String computed
@@ -27,15 +27,15 @@ family.preset.collector_version  tftypes.String computed
 family.preset.integration_version  tftypes.String computed
     description: Version of the observability features format used for this configuration family.
 family.preset.metadata  tftypes.Map[tftypes.String] computed
-    description: Environment setup values for the configuration template, such as ClusterName, KubernetesRunningOn, ApplicationName, or SubsystemName.
+    description: Environment setup values for the configuration template, such as ClusterName, KubernetesRunningOn, ApplicationName, or SubsystemName. Example: `{"ClusterName":"production-eu2"}`.
 family.preset.observability_features  tftypes.String computed
-    description: Observability feature settings for the configuration template, as a JSON object string; the available features depend on chartName and integrationVersion.
+    description: Observability feature settings for the configuration template, as a JSON object string; the available features depend on chartName and integrationVersion. Example: `{"logs":{"enabled":true}}`.
 family.preset.remote_configurations  nested LIST computed
     description: Remote configurations Coralogix generated from the configuration template settings.
 family.preset.remote_configurations.agent_selector  nested SINGLE computed
     description: Flat agent attributes that match agents for this configuration.
 family.preset.remote_configurations.agent_selector.attributes  tftypes.Map[tftypes.String] computed
-    description: Flat agent attributes matched by the selector.
+    description: Attributes of the stored selector. A remote configuration saved with an omitted or empty selector is returned without agentSelector, so the empty match-all selection is preserved; attributes are not expanded to the currently matched agents. Example: `{"cx.agent.type":"docker","host.name":"collector-host-01","service.version":"0.160.0"}`.
 family.preset.remote_configurations.created_at  tftypes.String computed
     description: Time when this remote configuration was created.
 family.preset.remote_configurations.hash  tftypes.String computed
@@ -45,21 +45,21 @@ family.preset.remote_configurations.id  tftypes.String computed
 family.preset.remote_configurations.name  tftypes.String computed
     description: Remote configuration name.
 family.preset.remote_configurations.raw_configuration  tftypes.String computed
-    description: Normalized OpenTelemetry Collector configuration YAML.
+    description: Collector YAML sent to matching agents.
 family.preset.remote_configurations.updated_at  tftypes.String computed
     description: Time when this remote configuration was last updated.
 family.raw  nested SINGLE computed
     description: Inputs of a configuration family defined directly by its remote configurations; present when the family has no chartName.
 family.raw.collector_version  tftypes.String computed
-    description: Collector semantic version this family targets, without a leading v prefix.
+    description: Collector semantic version targeted by this family. This is separate from the family version and the Supervisor image tag.
 family.raw.metadata  tftypes.Map[tftypes.String] computed
-    description: Metadata stored with this configuration family.
+    description: Metadata stored with this configuration family. Example: `{"team":"platform"}`.
 family.raw.remote_configurations  nested LIST computed
     description: Remote configurations of this configuration family.
 family.raw.remote_configurations.agent_selector  nested SINGLE computed
     description: Flat agent attributes that match agents for this configuration.
 family.raw.remote_configurations.agent_selector.attributes  tftypes.Map[tftypes.String] computed
-    description: Flat agent attributes matched by the selector.
+    description: Attributes of the stored selector. A remote configuration saved with an omitted or empty selector is returned without agentSelector, so the empty match-all selection is preserved; attributes are not expanded to the currently matched agents. Example: `{"cx.agent.type":"docker","host.name":"collector-host-01","service.version":"0.160.0"}`.
 family.raw.remote_configurations.created_at  tftypes.String computed
     description: Time when this remote configuration was created.
 family.raw.remote_configurations.hash  tftypes.String computed
@@ -69,7 +69,7 @@ family.raw.remote_configurations.id  tftypes.String computed
 family.raw.remote_configurations.name  tftypes.String computed
     description: Remote configuration name.
 family.raw.remote_configurations.raw_configuration  tftypes.String computed
-    description: Normalized OpenTelemetry Collector configuration YAML.
+    description: Collector YAML sent to matching agents.
 family.raw.remote_configurations.updated_at  tftypes.String computed
     description: Time when this remote configuration was last updated.
 family.sources  nested LIST computed
@@ -83,12 +83,12 @@ family.sources.configuration_overlay.overlay_name  tftypes.String computed
 family.sources.configuration_overlay.overlay_version_id  tftypes.String computed
     description: Configuration overlay version UUID v7.
 family.version  tftypes.String computed
-    description: Monotonic version number of this configuration family within its group.
+    description: Increasing family version within this group, returned as a string. The initial version is "1"; changed configuration content creates a new version.
 id  tftypes.String required
     description: Configuration group UUID v7.
 name  tftypes.String computed
-    description: Display name, unique among the team's configuration groups.
+    description: Display name shown in Fleet Management, unique among the team's configuration groups.
 priority_order  tftypes.Number computed
-    description: Selection precedence. Higher values win on ties and 0 is the default.
+    description: Selection priority when multiple configurations match an agent. Higher values take precedence.
 tags  tftypes.List[tftypes.String] computed
-    description: Tags attached to the configuration group.
+    description: Tags for organizing the group. Tags do not select agents.

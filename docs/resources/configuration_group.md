@@ -91,13 +91,13 @@ resource "coralogix_configuration_group" "preset" {
 ### Required
 
 - `family` (Attributes) Latest configuration family of the group. (see [below for nested schema](#nestedatt--family))
-- `name` (String) Display name, unique among the team's configuration groups.
+- `name` (String) Display name shown in Fleet Management, unique among the team's configuration groups.
 
 ### Optional
 
-- `description` (String) Human-readable description.
-- `priority_order` (Number) Selection precedence. Higher values win on ties and 0 is the default.
-- `tags` (List of String) Tags attached to the configuration group.
+- `description` (String) Description of the group's purpose.
+- `priority_order` (Number) Selection priority when multiple configurations match an agent. Higher values take precedence.
+- `tags` (List of String) Tags for organizing the group. Tags do not select agents.
 
 ### Read-Only
 
@@ -109,7 +109,7 @@ resource "coralogix_configuration_group" "preset" {
 
 Optional:
 
-- `active` (Boolean) Whether this family is active.
+- `active` (Boolean) Whether this family is eligible for delivery to matching agents. This is not confirmation that an agent has applied it.
 - `description` (String) Human-readable description.
 - `preset` (Attributes) Configuration template settings; present when the family has a chartName and observability features. (see [below for nested schema](#nestedatt--family--preset))
 - `raw` (Attributes) Inputs of a configuration family defined directly by its remote configurations; present when the family has no chartName. (see [below for nested schema](#nestedatt--family--raw))
@@ -120,7 +120,7 @@ Read-Only:
 - `id` (String) Configuration family UUID v7.
 - `last_activated_at` (String) Time when this family was last activated.
 - `sources` (Attributes List) Immutable inputs that produced this configuration family version. (see [below for nested schema](#nestedatt--family--sources))
-- `version` (String) Monotonic version number of this configuration family within its group.
+- `version` (String) Increasing family version within this group, returned as a string. The initial version is "1"; changed configuration content creates a new version.
 
 <a id="nestedatt--family--preset"></a>
 ### Nested Schema for `family.preset`
@@ -129,12 +129,12 @@ Required:
 
 - `chart_name` (String) Configuration template type: `chart_name_otel_integration` for Kubernetes, `chart_name_otel_ecs_ec2` for ECS on EC2, or `chart_name_otel_linux_standalone`, `chart_name_otel_windows_standalone`, or `chart_name_otel_macos_standalone` for hosts.
 - `chart_version` (String) Configuration template version. It determines the OTel Collector version, the generated collector configuration, and which integrationVersion values are supported. Unsupported versions are rejected.
-- `observability_features` (String) Observability feature settings for the configuration template, as a JSON object string; the available features depend on chartName and integrationVersion.
+- `observability_features` (String) Observability feature settings for the configuration template, as a JSON object string; the available features depend on chartName and integrationVersion. Example: `{"logs":{"enabled":true}}`.
 
 Optional:
 
 - `integration_version` (String) Version of the observability features format used for this configuration family.
-- `metadata` (Map of String) Environment setup values for the configuration template, such as ClusterName, KubernetesRunningOn, ApplicationName, or SubsystemName.
+- `metadata` (Map of String) Environment setup values for the configuration template, such as ClusterName, KubernetesRunningOn, ApplicationName, or SubsystemName. Example: `{"ClusterName":"production-eu2"}`.
 
 Read-Only:
 
@@ -151,7 +151,7 @@ Read-Only:
 - `hash` (String) SHA-256 hash of the normalized raw configuration content.
 - `id` (String) Remote configuration UUID v7.
 - `name` (String) Remote configuration name.
-- `raw_configuration` (String) Normalized OpenTelemetry Collector configuration YAML.
+- `raw_configuration` (String) Collector YAML sent to matching agents.
 - `updated_at` (String) Time when this remote configuration was last updated.
 
 <a id="nestedatt--family--preset--remote_configurations--agent_selector"></a>
@@ -159,7 +159,7 @@ Read-Only:
 
 Read-Only:
 
-- `attributes` (Map of String) Flat agent attributes matched by the selector.
+- `attributes` (Map of String) Attributes of the stored selector. A remote configuration saved with an omitted or empty selector is returned without agentSelector, so the empty match-all selection is preserved; attributes are not expanded to the currently matched agents. Example: `{"cx.agent.type":"docker","host.name":"collector-host-01","service.version":"0.160.0"}`.
 
 
 
@@ -173,15 +173,15 @@ Required:
 
 Optional:
 
-- `collector_version` (String) Collector semantic version this family targets, without a leading v prefix.
-- `metadata` (Map of String) Metadata stored with this configuration family.
+- `collector_version` (String) Collector semantic version targeted by this family. This is separate from the family version and the Supervisor image tag.
+- `metadata` (Map of String) Metadata stored with this configuration family. Example: `{"team":"platform"}`.
 
 <a id="nestedatt--family--raw--remote_configurations"></a>
 ### Nested Schema for `family.raw.remote_configurations`
 
 Required:
 
-- `raw_configuration` (String) Normalized OpenTelemetry Collector configuration YAML.
+- `raw_configuration` (String) Collector YAML sent to matching agents.
 
 Optional:
 
@@ -200,7 +200,7 @@ Read-Only:
 
 Optional:
 
-- `attributes` (Map of String) Flat agent attributes matched by the selector.
+- `attributes` (Map of String) Attributes of the stored selector. A remote configuration saved with an omitted or empty selector is returned without agentSelector, so the empty match-all selection is preserved; attributes are not expanded to the currently matched agents. Example: `{"cx.agent.type":"docker","host.name":"collector-host-01","service.version":"0.160.0"}`.
 
 
 

@@ -28,7 +28,7 @@ func Schema() schema.Schema {
 			},
 			"description": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "Human-readable description.",
+				MarkdownDescription: "Description of the group's purpose.",
 			},
 			"family": schema.SingleNestedAttribute{
 				Required: true,
@@ -37,7 +37,7 @@ func Schema() schema.Schema {
 						Optional:            true,
 						Computed:            true,
 						Default:             booldefault.StaticBool(false),
-						MarkdownDescription: "Whether this family is active.",
+						MarkdownDescription: "Whether this family is eligible for delivery to matching agents. This is not confirmation that an agent has applied it.",
 					},
 					"based_on_configuration_family_id": schema.StringAttribute{
 						Computed:            true,
@@ -84,14 +84,14 @@ func Schema() schema.Schema {
 							"metadata": schema.MapAttribute{
 								Optional:            true,
 								ElementType:         types.StringType,
-								MarkdownDescription: "Environment setup values for the configuration template, such as ClusterName, KubernetesRunningOn, ApplicationName, or SubsystemName.",
+								MarkdownDescription: "Environment setup values for the configuration template, such as ClusterName, KubernetesRunningOn, ApplicationName, or SubsystemName. Example: `{\"ClusterName\":\"production-eu2\"}`.",
 							},
 							"observability_features": schema.StringAttribute{
 								Required: true,
 								PlanModifiers: []planmodifier.String{
 									equivalentDocument{equal: jsonEqual},
 								},
-								MarkdownDescription: "Observability feature settings for the configuration template, as a JSON object string; the available features depend on chartName and integrationVersion.",
+								MarkdownDescription: "Observability feature settings for the configuration template, as a JSON object string; the available features depend on chartName and integrationVersion. Example: `{\"logs\":{\"enabled\":true}}`.",
 							},
 							"remote_configurations": schema.ListNestedAttribute{
 								Computed: true,
@@ -103,7 +103,7 @@ func Schema() schema.Schema {
 												"attributes": schema.MapAttribute{
 													Computed:            true,
 													ElementType:         types.StringType,
-													MarkdownDescription: "Flat agent attributes matched by the selector.",
+													MarkdownDescription: "Attributes of the stored selector. A remote configuration saved with an omitted or empty selector is returned without agentSelector, so the empty match-all selection is preserved; attributes are not expanded to the currently matched agents. Example: `{\"cx.agent.type\":\"docker\",\"host.name\":\"collector-host-01\",\"service.version\":\"0.160.0\"}`.",
 												},
 											},
 											MarkdownDescription: "Flat agent attributes that match agents for this configuration.",
@@ -126,7 +126,7 @@ func Schema() schema.Schema {
 										},
 										"raw_configuration": schema.StringAttribute{
 											Computed:            true,
-											MarkdownDescription: "Normalized OpenTelemetry Collector configuration YAML.",
+											MarkdownDescription: "Collector YAML sent to matching agents.",
 										},
 										"updated_at": schema.StringAttribute{
 											Computed:            true,
@@ -147,12 +147,12 @@ func Schema() schema.Schema {
 						Attributes: map[string]schema.Attribute{
 							"collector_version": schema.StringAttribute{
 								Optional:            true,
-								MarkdownDescription: "Collector semantic version this family targets, without a leading v prefix.",
+								MarkdownDescription: "Collector semantic version targeted by this family. This is separate from the family version and the Supervisor image tag.",
 							},
 							"metadata": schema.MapAttribute{
 								Optional:            true,
 								ElementType:         types.StringType,
-								MarkdownDescription: "Metadata stored with this configuration family.",
+								MarkdownDescription: "Metadata stored with this configuration family. Example: `{\"team\":\"platform\"}`.",
 							},
 							"remote_configurations": schema.ListNestedAttribute{
 								Required: true,
@@ -167,7 +167,7 @@ func Schema() schema.Schema {
 												"attributes": schema.MapAttribute{
 													Optional:            true,
 													ElementType:         types.StringType,
-													MarkdownDescription: "Flat agent attributes matched by the selector.",
+													MarkdownDescription: "Attributes of the stored selector. A remote configuration saved with an omitted or empty selector is returned without agentSelector, so the empty match-all selection is preserved; attributes are not expanded to the currently matched agents. Example: `{\"cx.agent.type\":\"docker\",\"host.name\":\"collector-host-01\",\"service.version\":\"0.160.0\"}`.",
 												},
 											},
 											MarkdownDescription: "Flat agent attributes that match agents for this configuration.",
@@ -196,7 +196,7 @@ func Schema() schema.Schema {
 											PlanModifiers: []planmodifier.String{
 												equivalentDocument{equal: yamlEqual},
 											},
-											MarkdownDescription: "Normalized OpenTelemetry Collector configuration YAML.",
+											MarkdownDescription: "Collector YAML sent to matching agents.",
 										},
 										"updated_at": schema.StringAttribute{
 											Computed:            true,
@@ -237,7 +237,7 @@ func Schema() schema.Schema {
 					},
 					"version": schema.StringAttribute{
 						Computed:            true,
-						MarkdownDescription: "Monotonic version number of this configuration family within its group.",
+						MarkdownDescription: "Increasing family version within this group, returned as a string. The initial version is \"1\"; changed configuration content creates a new version.",
 					},
 				},
 				MarkdownDescription: "Latest configuration family of the group.",
@@ -254,18 +254,18 @@ func Schema() schema.Schema {
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
 				},
-				MarkdownDescription: "Display name, unique among the team's configuration groups.",
+				MarkdownDescription: "Display name shown in Fleet Management, unique among the team's configuration groups.",
 			},
 			"priority_order": schema.Int32Attribute{
 				Optional:            true,
 				Computed:            true,
 				Default:             int32default.StaticInt32(0),
-				MarkdownDescription: "Selection precedence. Higher values win on ties and 0 is the default.",
+				MarkdownDescription: "Selection priority when multiple configurations match an agent. Higher values take precedence.",
 			},
 			"tags": schema.ListAttribute{
 				Optional:            true,
 				ElementType:         types.StringType,
-				MarkdownDescription: "Tags attached to the configuration group.",
+				MarkdownDescription: "Tags for organizing the group. Tags do not select agents.",
 			},
 		},
 		MarkdownDescription: "Coralogix Fleet Management configuration group: the OpenTelemetry Collector configurations that matching agents receive. Its family is either `raw` (collector configurations you write) or `preset` (generated from a configuration template). Destroy archives the group. **Note:** This resource is in Beta stage.",

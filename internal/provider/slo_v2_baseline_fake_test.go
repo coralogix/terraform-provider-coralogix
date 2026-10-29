@@ -395,6 +395,20 @@ func sloAPMDefaults(in map[string]any) map[string]any {
 	if sli["filters"] == nil {
 		sli["filters"] = []any{}
 	}
+	// The API returns matchOperator on every filter, UNSPECIFIED when the request left it out
+	// (a live read of an SLO created without it).
+	if filters, ok := sli["filters"].([]any); ok {
+		withOperator := make([]any, len(filters))
+		for i, f := range filters {
+			filter, _ := f.(map[string]any)
+			filter = cloneMap(filter)
+			if filter["matchOperator"] == nil {
+				filter["matchOperator"] = "APM_FILTER_MATCH_OPERATOR_UNSPECIFIED"
+			}
+			withOperator[i] = filter
+		}
+		sli["filters"] = withOperator
+	}
 	if sli["groupingKeys"] == nil {
 		sli["groupingKeys"] = []any{}
 	}

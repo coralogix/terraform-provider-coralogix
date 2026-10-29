@@ -8,6 +8,8 @@ apm_sli_metadata.filters  nested LIST computed
     description: Additional label-based filters applied to the generated metrics. Omit the attribute for no filters; an explicit empty list is rejected.
 apm_sli_metadata.filters.key  tftypes.String computed
     description: Label or tag name to filter on.
+apm_sli_metadata.filters.match_operator  tftypes.String computed
+    description: How literals on `key` are compared. Every item in `apmSli.filters` must use the same mode: all implicit (legacy) or all explicit — mixing modes in one list is rejected. Implicit: omitted or `APM_FILTER_MATCH_OPERATOR_UNSPECIFIED` on every item — multiple items with the same `key` OR-merge literals with exact (IS) comparison; sending `UNSPECIFIED` is equivalent to omitting the field (neither is stored as explicit `IS`). Explicit: `APM_FILTER_MATCH_OPERATOR_IS`, `STARTS_WITH`, `ENDS_WITH`, or `INCLUDES` on every item — each item is a separate AND criterion; OR applies only among literals in that item (explicit `IS` differs from implicit when several items share a `key`). Items on different keys are AND-combined. Pattern operators use literal substring matching (not caller-supplied regex). Applies only when the item has at least one literal: non-empty `values`, or deprecated `value` when `values` is omitted or empty (non-empty `values` takes precedence over `value`); otherwise rejected.
 apm_sli_metadata.filters.values  tftypes.List[tftypes.String] computed
     description: Values to match, with OR semantics.
 apm_sli_metadata.grouping_keys  tftypes.List[tftypes.String] computed
@@ -76,6 +78,8 @@ sli.apm_sli.filters  nested LIST computed
     description: Additional label-based filters applied to the generated metrics. Omit the attribute for no filters; an explicit empty list is rejected.
 sli.apm_sli.filters.key  tftypes.String computed
     description: Label or tag name to filter on.
+sli.apm_sli.filters.match_operator  tftypes.String computed
+    description: How literals on `key` are compared. Every item in `apmSli.filters` must use the same mode: all implicit (legacy) or all explicit — mixing modes in one list is rejected. Implicit: omitted or `APM_FILTER_MATCH_OPERATOR_UNSPECIFIED` on every item — multiple items with the same `key` OR-merge literals with exact (IS) comparison; sending `UNSPECIFIED` is equivalent to omitting the field (neither is stored as explicit `IS`). Explicit: `APM_FILTER_MATCH_OPERATOR_IS`, `STARTS_WITH`, `ENDS_WITH`, or `INCLUDES` on every item — each item is a separate AND criterion; OR applies only among literals in that item (explicit `IS` differs from implicit when several items share a `key`). Items on different keys are AND-combined. Pattern operators use literal substring matching (not caller-supplied regex). Applies only when the item has at least one literal: non-empty `values`, or deprecated `value` when `values` is omitted or empty (non-empty `values` takes precedence over `value`); otherwise rejected.
 sli.apm_sli.filters.values  tftypes.List[tftypes.String] computed
     description: Values to match, with OR semantics.
 sli.apm_sli.grouping_keys  tftypes.List[tftypes.String] computed

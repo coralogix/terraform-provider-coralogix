@@ -1,5 +1,13 @@
 # Unreleased
 
+#### resource/coralogix_slo_v2
+- FEAT: New optional `sli.apm_sli.filters[].match_operator` (`is`, `starts_with`, `ends_with`, `includes`, or `unspecified`), from the new API contract. All items of a list use the same mode: all `unspecified` (the default, the legacy mode) or all set. The API returns `unspecified` for a filter that has none, so the attribute is computed with that default. The data source shows it too.
+- CHORE: The generated acceptance test covers the APM SLI, with the service in `CORALOGIX_SLO_V2_APM_SERVICE`.
+- FIX: Removing `ownership_tags` from the configuration of an APM SLO (a `coralogix_slo_v2` with `sli.apm_sli`) clears the tags. Before, the API kept them when a request left them out, and the apply failed with "Provider produced inconsistent result after apply: .ownership_tags: was null, but now ...". The provider now sends an empty `ownershipTags` with a request that has none; a metric SLO clears its tags the same way as before.
+
+#### resource/coralogix_configuration_group
+- DOCS: The descriptions of the attributes follow the new API contract.
+
 #### provider
 - CHORE: Bump `coralogix-management-sdk` to the version with the integrations contract. The SDK holds the required fields of `IntegrationMetadata` and `DeployedIntegrationInformation` as values; `coralogix_integration` adapts, with no change to plans. The dashboard tests answer a Get with the `permissions` object that the SDK now requires in the response.
 
