@@ -17,6 +17,8 @@
 - FEAT: `updatedValues` in `acceptance.yaml` gives the updated config of the generated acceptance test another expression for a field that `values` sets, for a value that the generator cannot change on its own, such as the object of a dynamic attribute. A line for an immutable or skipped field, or one that `values` does not set, is an error.
 - FEAT: An existing resource whose Create and Update requests hold another component than the resource in their wrapper can map a field to its request path with `requestAs` on the field line (a renamed property, or one inside an object), and send the Update id beside the wrapper with `api.updateIDOutsideWrapper`.
 
+#### resource/coralogix_ip_access
+- CHORE: Add a schema and lifecycle baseline for the handwritten resource, with an opt-in recorder for checking the API fake against a disposable tenant.
 
 # Release 3.23.0
 

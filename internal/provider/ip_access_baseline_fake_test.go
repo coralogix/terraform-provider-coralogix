@@ -20,6 +20,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"net/url"
 	"strings"
 	"sync"
@@ -42,7 +43,11 @@ type ipAccessFake struct {
 
 func newIpAccessFake(t *testing.T) *ipAccessFake {
 	t.Helper()
-	f := &ipAccessFake{}
+	f := &ipAccessFake{settings: map[string]any{
+		"id":                                   ipAccessSettingsID,
+		"ipAccess":                             map[string]any{},
+		"enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+	}}
 	srv := httptest.NewServer(f)
 	t.Cleanup(srv.Close)
 
@@ -104,35 +109,55 @@ func (f *ipAccessFake) handle(method, path string, body any) (int, any) {
 	}
 	switch method {
 	case http.MethodPost:
-		if f.settings != nil {
-			return http.StatusConflict, map[string]any{"code": http.StatusConflict, "message": "Already Exists"}
+		if len(asObject(f.settings["ipAccess"])) > 0 {
+			return http.StatusConflict, map[string]any{"code": http.StatusConflict, "message": "Company already has IP access settings. Use replace method to update."}
 		}
 		request := asObject(body)
-		f.settings = f.makeSettings(request)
+		if err := validateIpAccessInput(request); err != "" {
+			return http.StatusBadRequest, map[string]any{"code": http.StatusBadRequest, "message": err}
+		}
+		f.applyWrite(request)
 		return http.StatusOK, map[string]any{"settings": f.copySettingsWithAccess(enumValue(request))}
 	case http.MethodPut:
-		if f.settings == nil {
-			return http.StatusNotFound, map[string]any{"code": http.StatusNotFound, "message": "Not Found"}
-		}
 		request := asObject(body)
 		responseAccess := enumValue(request)
-		// Replace with UNSPECIFIED preserves the stored support-access setting.
-		if request["enableCoralogixCustomerSupportAccess"] == "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED" {
-			request["enableCoralogixCustomerSupportAccess"] = f.settings["enableCoralogixCustomerSupportAccess"]
+		if err := validateIpAccessInput(request); err != "" {
+			return http.StatusBadRequest, map[string]any{"code": http.StatusBadRequest, "message": err}
 		}
-		f.settings = f.makeSettings(request)
+		f.applyWrite(request)
 		return http.StatusOK, map[string]any{"settings": f.copySettingsWithAccess(responseAccess)}
 	case http.MethodGet:
-		if f.settings == nil {
-			return http.StatusNotFound, map[string]any{"code": http.StatusNotFound, "message": "Not Found"}
-		}
 		return http.StatusOK, map[string]any{"settings": f.copySettings()}
 	case http.MethodDelete:
-		f.settings = nil
+		f.settings["ipAccess"] = map[string]any{}
 		return http.StatusOK, map[string]any{}
 	default:
 		return http.StatusNotFound, map[string]any{"code": http.StatusNotFound, "message": "Not Found"}
 	}
+}
+
+func validateIpAccessInput(input map[string]any) string {
+	items, _ := input["ipAccess"].([]any)
+	for _, raw := range items {
+		item := asObject(raw)
+		rangeValue, _ := item["ipRange"].(string)
+		if _, err := netip.ParsePrefix(rangeValue); err != nil {
+			return "Invalid IP range format"
+		}
+	}
+	return ""
+}
+
+func (f *ipAccessFake) applyWrite(input map[string]any) {
+	access := enumValue(input)
+	if access == "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED" {
+		access, _ = f.settings["enableCoralogixCustomerSupportAccess"].(string)
+	} else {
+		f.settings["enableCoralogixCustomerSupportAccess"] = access
+	}
+	updated := f.makeSettings(input)
+	updated["enableCoralogixCustomerSupportAccess"] = access
+	f.settings = updated
 }
 
 func (f *ipAccessFake) makeSettings(input map[string]any) map[string]any {
