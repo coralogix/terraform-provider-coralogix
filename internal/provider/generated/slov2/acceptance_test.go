@@ -148,6 +148,7 @@ const minimalConfig = `resource "coralogix_slo_v2" "test" {
     }
   }
   name = "@{run}-slo"
+  product_type = "apm"
   window = {
     slo_time_frame = "7_days"
   }
@@ -206,6 +207,7 @@ const upgradeMinimalConfig = `resource "coralogix_slo_v2" "test" {
     }
   }
   name = "@{run}-slo"
+  product_type = "apm"
   window = {
     slo_time_frame = "7_days"
   }

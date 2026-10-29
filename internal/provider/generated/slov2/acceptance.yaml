@@ -26,4 +26,8 @@ skip:
   - ownership_tags.environment.label_keys
   - ownership_tags.team.label_keys
 
+# An APM SLI is accepted only with product_type = "apm", so the minimal configs set it too.
+minimal: [product_type]
+upgradeMinimal: [product_type]
+
 upgradeFrom: "3.21.0"
