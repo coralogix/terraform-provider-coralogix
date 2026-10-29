@@ -18,9 +18,11 @@ on:
     paths:
       - internal/clientset/version.go
 
+# One release at a time. queue: max keeps every pending run (the default keeps only
+# the newest), so a version merged while another is publishing is not skipped.
 concurrency:
   group: release-provider
-  cancel-in-progress: false
+  queue: max
 
 permissions:
   contents: read

@@ -195,9 +195,10 @@ def check(base_ref):
     if set(new_entries) & released:
         fail(f"'# Release {current}' repeats entries that master already released. {redo}")
     if entries(changelog, UNRELEASED):
-        # Changes merged after the release branch was cut ship in this version too.
-        print(f"::warning::'{UNRELEASED}' has entries that merged after this release branch was cut. "
-              f"Their code ships in v{current}; move the entries under '# Release {current}' to list them there.")
+        # Changes merged after the release branch was cut ship in this version too, and
+        # release PRs are approved without a human, so the changelog must say so.
+        fail(f"'{UNRELEASED}' has entries that merged after this release branch was cut. Their code "
+             f"ships in v{current}: move the entries under '# Release {current}'.")
     kind = next(k for k, v in allowed.items() if v == current)
     print(f"{base} -> {current} ({kind}). Merging releases v{current}.")
 
