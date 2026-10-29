@@ -75,16 +75,6 @@ type File struct {
 	// DataSource is the data source of the resource. Without it, a released resource gets no
 	// generated data source.
 	DataSource *DataSource `yaml:"dataSource"`
-	// Hooks adds optional steps to the generated Hooks struct of the resource.
-	Hooks *Hooks `yaml:"hooks"`
-}
-
-// Hooks is the hooks section of the file.
-type Hooks struct {
-	// Client: true adds Hooks.BeforeWriteWithClient. Create and Update call it after
-	// BeforeWrite and before the API call, with the typed API client of the resource, for a
-	// step that needs another API call first, such as a test call that validates the request.
-	Client bool `yaml:"client"`
 }
 
 // UpdateMaskOmit is the updateMask value that sends no update mask.
@@ -657,9 +647,6 @@ func (f *File) check() error {
 	}
 	if err := f.API.Check(); err != nil {
 		return err
-	}
-	if f.Hooks != nil && !f.Hooks.Client {
-		return errors.New("hooks sets nothing: remove it, or set client: true")
 	}
 	if f.UpdateMask != "" && f.UpdateMask != UpdateMaskOmit {
 		return fmt.Errorf("updateMask is %q, want %q", f.UpdateMask, UpdateMaskOmit)

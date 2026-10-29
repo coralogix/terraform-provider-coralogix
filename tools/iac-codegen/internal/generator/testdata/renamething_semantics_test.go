@@ -120,8 +120,8 @@ func withSettings(root tftypes.Type, v tftypes.Value, setting string) tftypes.Va
 	return tftypes.NewValue(root, values)
 }
 
-// A change of only the dynamic attribute with inUpdate sends an Update, and the hook with the
-// client runs after BeforeWrite and before the call, with the client of the resource.
+// A change of only the dynamic attribute with inUpdate sends an Update, and BeforeWrite runs before
+// the call.
 func TestUpdateWhenOnlyTheDynamicAttributeChanges(t *testing.T) {
 	ctx := context.Background()
 	rename_things_service.Updated, rename_things_service.GetIDs = nil, nil
@@ -131,13 +131,6 @@ func TestUpdateWhenOnlyTheDynamicAttributeChanges(t *testing.T) {
 	var order []string
 	r.hooks.BeforeWrite = func(context.Context, tfsdk.Config, any) diag.Diagnostics {
 		order = append(order, "BeforeWrite")
-		return nil
-	}
-	r.hooks.BeforeWriteWithClient = func(_ context.Context, client *rename_things_service.RenameThingsServiceAPIService, _ tfsdk.Config, _ any) diag.Diagnostics {
-		if client != r.client {
-			t.Error("the hook did not get the client of the resource")
-		}
-		order = append(order, "BeforeWriteWithClient")
 		return nil
 	}
 	idValue := tftypes.NewValue(tftypes.String, id)
@@ -155,8 +148,8 @@ func TestUpdateWhenOnlyTheDynamicAttributeChanges(t *testing.T) {
 	if len(rename_things_service.Updated) != 1 {
 		t.Fatalf("update bodies = %+v, want one for the change of the dynamic attribute", rename_things_service.Updated)
 	}
-	if len(order) != 2 || order[0] != "BeforeWrite" || order[1] != "BeforeWriteWithClient" {
-		t.Fatalf("hook order = %v, want BeforeWrite then BeforeWriteWithClient", order)
+	if len(order) != 1 || order[0] != "BeforeWrite" {
+		t.Fatalf("hook calls = %v, want one BeforeWrite", order)
 	}
 	// The API holds no value of the dynamic attribute, so the state keeps the planned one with no hook.
 	var planned, got map[string]tftypes.Value
@@ -168,27 +161,5 @@ func TestUpdateWhenOnlyTheDynamicAttributeChanges(t *testing.T) {
 	}
 	if !got["settings"].Equal(planned["settings"]) {
 		t.Fatalf("state settings = %v, want the planned %v", got["settings"], planned["settings"])
-	}
-}
-
-// A BeforeWriteWithClient error stops Create before the API call.
-func TestClientHookErrorStopsCreate(t *testing.T) {
-	ctx := context.Background()
-	rename_things_service.Saved = nil
-	r, schemaResp, root := thingSchema(t)
-	r.hooks.BeforeWriteWithClient = func(context.Context, *rename_things_service.RenameThingsServiceAPIService, tfsdk.Config, any) diag.Diagnostics {
-		return diag.Diagnostics{diag.NewErrorDiagnostic("refused", "by the hook")}
-	}
-	plan := withSettings(root, thingValue(root, tftypes.NewValue(tftypes.String, tftypes.UnknownValue), "k"), "a")
-	resp := &frameworkresource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(root, nil)}}
-	r.Create(ctx, frameworkresource.CreateRequest{
-		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: thingValue(root, tftypes.NewValue(tftypes.String, nil), "k")},
-		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan},
-	}, resp)
-	if !resp.Diagnostics.HasError() {
-		t.Fatal("want the hook error")
-	}
-	if len(rename_things_service.Saved) != 0 {
-		t.Fatalf("create bodies = %+v, want none after the hook error", rename_things_service.Saved)
 	}
 }

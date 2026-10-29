@@ -52,8 +52,6 @@ type crudData struct {
 	// DynamicExtras are the Terraform names of the dynamic extra attributes of the resource. The API
 	// holds no value for them, so setState keeps the value of the plan or the prior state.
 	DynamicExtras []string
-	// ClientHook: Hooks has BeforeWriteWithClient (hooks.client of the behavior-overrides file).
-	ClientHook bool
 	// UpdateOnly are the attributes that Create cannot send. Create follows with an Update
 	// when the configuration sets another value than the one Create stored, or omits the
 	// attribute and Create stored another value than the declared server default.
@@ -158,7 +156,6 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if file != nil && file.TypeName != "" {
 		out.TypeName = file.TypeName
 	}
-	out.ClientHook = file != nil && file.Hooks != nil && file.Hooks.Client
 	if err := updateOnlyAttrs(r, out); err != nil {
 		return nil, err
 	}

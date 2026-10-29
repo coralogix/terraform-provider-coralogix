@@ -21,10 +21,7 @@ api:
     update: RenameThingsService_UpdateRenameThing
     delete: RenameThingsService_DeleteRenameThing
 
-# A handwritten hook gets the typed API client, and a Terraform-only dynamic attribute that the hook
-# sends: a change of only that attribute is an update.
-hooks:
-  client: true
+# A Terraform-only dynamic attribute that a hook sends: a change of only that attribute is an update.
 types:
   RenameThing:
     fields:
