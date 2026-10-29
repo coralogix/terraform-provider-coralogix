@@ -49,6 +49,9 @@ type crudData struct {
 	UpdateBodyIDValue bool
 	// Existing: the resource has users. The package exports Flatten for a handwritten data source.
 	Existing bool
+	// DynamicExtras are the Terraform names of the dynamic extra attributes of the resource. The API
+	// holds no value for them, so setState keeps the value of the plan or the prior state.
+	DynamicExtras []string
 	// UpdateOnly are the attributes that Create cannot send. Create follows with an Update
 	// when the configuration sets another value than the one Create stored, or omits the
 	// attribute and Create stored another value than the declared server default.
@@ -252,7 +255,7 @@ func updateIDFromState(r *model.Resource, ix *refIndex, out *crudData) error {
 	if sdkcheck.ServerSetBodyID(r) == nil {
 		return nil
 	}
-	if wrapper := r.Policy.RequestWrapper; wrapper != "" {
+	if wrapper := r.Policy.RequestWrapper; wrapper != "" && !r.UpdateIDOutsideWrapper {
 		out.UpdateBodyID, out.UpdateBodyIDValue = goFieldName(wrapper)+"."+out.IDField, out.IDValue
 		return nil
 	}

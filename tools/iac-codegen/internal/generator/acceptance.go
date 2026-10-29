@@ -113,6 +113,7 @@ type accSynth struct {
 	// releasedRequired are the attributes that the released provider requires.
 	releasedRequired map[string]bool
 	used             map[string]bool // every value path that a config used
+	updated          map[string]bool // every value path that the updated config replaced with an updatedValues line
 	// immutables records the HCL of each immutable value that a walk sets, by its state path. nil
 	// records nothing.
 	immutables map[string]string
@@ -124,7 +125,7 @@ var quoted = regexp.MustCompile(`"([^"]*)"`)
 // prior is the upgrade attributes file of the last run, or nil.
 func buildAcceptance(res *tfResource, providerModule string, file *acceptance.File, prior *acceptance.UpgradeAttributes) (*acceptanceData, error) {
 	typeName := res.CRUD.TypeName
-	s := &accSynth{file: file, minimal: file.Minimal, idAttr: res.CRUD.IDAttr, known: map[string]bool{}, settable: map[string]bool{}, required: map[string]bool{}, used: map[string]bool{}}
+	s := &accSynth{file: file, minimal: file.Minimal, idAttr: res.CRUD.IDAttr, known: map[string]bool{}, settable: map[string]bool{}, required: map[string]bool{}, used: map[string]bool{}, updated: map[string]bool{}}
 	out := &acceptanceData{
 		Package:        res.Package,
 		VersionHeader:  version.Header,
@@ -494,6 +495,16 @@ func (s *accSynth) checkFile() error {
 			return fmt.Errorf("values: %q is not set by the full config: it names no attribute, or the attribute is skipped, computed, or in a oneOf arm that the test leaves out", path)
 		}
 	}
+	paths := make([]string, 0, len(s.file.UpdatedValues))
+	for path := range s.file.UpdatedValues {
+		paths = append(paths, path)
+	}
+	slices.Sort(paths)
+	for _, path := range paths {
+		if !s.updated[path] {
+			return fmt.Errorf("updatedValues: %q is not set by the updated config: the attribute is immutable, skipped, or left out of it", path)
+		}
+	}
 	return nil
 }
 
@@ -711,6 +722,13 @@ func (s *accSynth) makeValue(a *tfAttr, tfPath, key string, mode accMode) (strin
 	}
 	if v, ok := s.file.Values[key]; ok {
 		s.used[key] = true
+		if u, ok := s.file.UpdatedValues[key]; ok && mode == accUpdated {
+			if s.updated == nil {
+				s.updated = map[string]bool{}
+			}
+			s.updated[key] = true
+			v = u
+		}
 		var checks []accCheck
 		if a.WriteOnly {
 			checks = []accCheck{{Path: tfPath, Absent: true}}

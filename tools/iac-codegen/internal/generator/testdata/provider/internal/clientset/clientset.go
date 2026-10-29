@@ -8,6 +8,7 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/eval_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/folder_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/legacy_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/rename_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/rulebook_service"
 	"example.com/iac-test-sdk/go/openapi/gen/settings_service"
 	"example.com/iac-test-sdk/go/openapi/gen/shared_things_service"
@@ -32,6 +33,7 @@ type ClientSet struct {
 	Suppressed     *suppressed_things_service.SuppressedThingsServiceAPIService
 	RulebookClient *rulebook_service.RulebookServiceAPIService
 	UpsertClient   *upsert_service.UpsertServiceAPIService
+	Rename         *rename_things_service.RenameThingsServiceAPIService
 }
 
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
@@ -79,4 +81,8 @@ func (c *ClientSet) Upsert() *upsert_service.UpsertServiceAPIService { return c.
 
 func (c *ClientSet) FolderThings() *folder_things_service.FolderThingsServiceAPIService {
 	return c.Folder
+}
+
+func (c *ClientSet) RenameThings() *rename_things_service.RenameThingsServiceAPIService {
+	return c.Rename
 }

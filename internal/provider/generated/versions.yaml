@@ -8,6 +8,7 @@ connector: v0.1.0-beta.49
 dashboardsfolder: v0.1.0-beta.49
 events2metric: v0.1.0-beta.49
 globalrouter: v0.1.0-beta.49
+integration: v0.1.0-beta.51
 preset: v0.1.0-beta.49
 quotaallocationruleset: v0.1.0-beta.49
 slov2: v0.1.0-beta.49

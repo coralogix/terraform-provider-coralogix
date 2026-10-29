@@ -67,9 +67,9 @@ func TestIntegrationDetailWithNilKeysIncludesBackendParameters(t *testing.T) {
 
 	state, diags := integrationDetail(&cxsdk.GetDeployedIntegrationResponse{
 		Integration: &cxsdk.DeployedIntegrationInformation{
-			Id:                &id,
-			DefinitionKey:     &definitionKey,
-			DefinitionVersion: &definitionVersion,
+			Id:                id,
+			DefinitionKey:     definitionKey,
+			DefinitionVersion: definitionVersion,
 			Parameters: []cxsdk.Parameter{
 				{
 					Key:         &applicationNameKey,

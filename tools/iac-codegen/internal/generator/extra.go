@@ -41,27 +41,29 @@ func attachExtraAttributes(out *tfResource, file *overrides.File) error {
 				return fmt.Errorf("types.%s.extraAttributes.%s: the generated object already has this attribute", component, name)
 			}
 			extra := extras[name]
-			elem, nullExpr, err := extraElem(extra.ElementType)
+			attribute, field, attrType, nullExpr, err := extraAttr(name, extra)
 			if err != nil {
 				return fmt.Errorf("types.%s.extraAttributes.%s: %w", component, name, err)
 			}
-			parent = append(parent, &tfAttr{
-				Name:        name,
-				Kind:        "Map",
-				ValueKind:   "Map",
-				Optional:    true,
-				WriteOnly:   extra.WriteOnly,
-				Extra:       true,
-				ElementType: elem,
-				Description: extra.MarkdownDescription,
-			})
-			model.Fields = append(model.Fields, tfModelField{
-				Name:   camelize(name),
-				Type:   "types.Map",
-				TFName: name,
-			})
-			if err := attachConvExtra(out.Conv, model.Name, name, camelize(name), elem, nullExpr); err != nil {
+			parent = append(parent, attribute)
+			model.Fields = append(model.Fields, field)
+			if err := attachConvExtra(out.Conv, model.Name, name, camelize(name), attrType, nullExpr); err != nil {
 				return fmt.Errorf("types.%s.extraAttributes.%s: %w", component, name, err)
+			}
+			if extra.Dynamic && component != file.Resource {
+				return fmt.Errorf("types.%s.extraAttributes.%s: dynamic applies to an attribute of the resource %s: the state keeps the value of a dynamic attribute only at the top level", component, name, file.Resource)
+			}
+			if extra.Dynamic && out.CRUD != nil {
+				out.CRUD.DynamicExtras = append(out.CRUD.DynamicExtras, name)
+			}
+			if extra.InUpdate {
+				if component != file.Resource {
+					return fmt.Errorf("types.%s.extraAttributes.%s: inUpdate applies to an attribute of the resource %s", component, name, file.Resource)
+				}
+				if out.Conv == nil || !out.Conv.Replace {
+					return fmt.Errorf("types.%s.extraAttributes.%s: inUpdate needs an Update that replaces the resource", component, name)
+				}
+				out.Conv.UpdateFields = append(out.Conv.UpdateFields, &maskField{TFName: name})
 			}
 		}
 		if err := setExtraParent(out, file.Resource, component, parent); err != nil {
@@ -160,7 +162,37 @@ func fieldNamed(model *tfModel, name string) bool {
 	return slices.ContainsFunc(model.Fields, func(f tfModelField) bool { return f.TFName == name })
 }
 
-func attachConvExtra(conv *convData, model, tfName, goName, elem, nullExpr string) error {
+// extraAttr returns the schema attribute, the model field, the attr.Type expression, and the typed
+// null of an extra attribute.
+func extraAttr(name string, extra overrides.ExtraAttribute) (*tfAttr, tfModelField, string, string, error) {
+	if extra.Dynamic {
+		return &tfAttr{
+			Name:        name,
+			Kind:        "Dynamic",
+			ValueKind:   "Dynamic",
+			Required:    extra.Required,
+			Optional:    !extra.Required,
+			Extra:       true,
+			Description: extra.MarkdownDescription,
+		}, tfModelField{Name: camelize(name), Type: "types.Dynamic", TFName: name}, "types.DynamicType", "types.DynamicNull()", nil
+	}
+	elem, nullExpr, err := extraElem(extra.ElementType)
+	if err != nil {
+		return nil, tfModelField{}, "", "", err
+	}
+	return &tfAttr{
+		Name:        name,
+		Kind:        "Map",
+		ValueKind:   "Map",
+		Optional:    true,
+		WriteOnly:   extra.WriteOnly,
+		Extra:       true,
+		ElementType: elem,
+		Description: extra.MarkdownDescription,
+	}, tfModelField{Name: camelize(name), Type: "types.Map", TFName: name}, "types.MapType{ElemType: " + elem + "}", nullExpr, nil
+}
+
+func attachConvExtra(conv *convData, model, tfName, goName, attrType, nullExpr string) error {
 	if conv == nil {
 		return nil
 	}
@@ -173,7 +205,7 @@ func attachConvExtra(conv *convData, model, tfName, goName, elem, nullExpr strin
 		if obj.AttrTypes != nil {
 			obj.AttrTypes = append(obj.AttrTypes, convAttrType{
 				TFName: tfName,
-				Expr:   "types.MapType{ElemType: " + elem + "}",
+				Expr:   attrType,
 			})
 		}
 		obj.ExtraFlatten = append(obj.ExtraFlatten, extraFlatten{Name: goName, Expr: nullExpr})

@@ -149,7 +149,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	readRq := r.client.IntegrationServiceGetDeployedIntegration(ctx, *result.IntegrationId)
+	readRq := r.client.IntegrationServiceGetDeployedIntegration(ctx, result.IntegrationId)
 	readResult, _, err := readRq.Execute()
 
 	if err != nil {
@@ -201,10 +201,10 @@ func extractCreateIntegration(plan *IntegrationResourceModel) (*integrations.Sav
 		return nil, diags
 	}
 	return &integrations.SaveIntegrationRequest{
-		Metadata: &integrations.IntegrationMetadata{
-			IntegrationKey: plan.IntegrationKey.ValueStringPointer(),
-			Version:        plan.Version.ValueStringPointer(),
-			IntegrationParameters: &integrations.GenericIntegrationParameters{
+		Metadata: integrations.IntegrationMetadata{
+			IntegrationKey: plan.IntegrationKey.ValueString(),
+			Version:        plan.Version.ValueString(),
+			IntegrationParameters: integrations.GenericIntegrationParameters{
 				Parameters: parameters,
 			},
 		},
@@ -218,11 +218,11 @@ func extractUpdateIntegration(plan *IntegrationResourceModel) (*integrations.Upd
 		return nil, diags
 	}
 	return &integrations.UpdateIntegrationRequest{
-		Id: plan.ID.ValueStringPointer(),
-		Metadata: &integrations.IntegrationMetadata{
-			IntegrationKey: plan.IntegrationKey.ValueStringPointer(),
-			Version:        plan.Version.ValueStringPointer(),
-			IntegrationParameters: &integrations.GenericIntegrationParameters{
+		Id: plan.ID.ValueString(),
+		Metadata: integrations.IntegrationMetadata{
+			IntegrationKey: plan.IntegrationKey.ValueString(),
+			Version:        plan.Version.ValueString(),
+			IntegrationParameters: integrations.GenericIntegrationParameters{
 				Parameters: parameters,
 			},
 		},
@@ -313,9 +313,9 @@ func integrationDetail(resp *integrations.GetDeployedIntegrationResponse, keys [
 	}
 
 	return &IntegrationResourceModel{
-		ID:             types.StringPointerValue(integration.Id),
-		IntegrationKey: types.StringPointerValue(integration.DefinitionKey),
-		Version:        types.StringPointerValue(integration.DefinitionVersion),
+		ID:             types.StringValue(integration.Id),
+		IntegrationKey: types.StringValue(integration.DefinitionKey),
+		Version:        types.StringValue(integration.DefinitionVersion),
 		Parameters:     parameters,
 	}, diag.Diagnostics{}
 }
