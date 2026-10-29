@@ -49,7 +49,8 @@ release:
 
 # Open a "Release X.Y.Z" PR from origin/master: set the next version in
 # internal/clientset/version.go and move the "# Unreleased" changelog entries under
-# "# Release X.Y.Z". Runs from any branch; merging the PR releases it.
+# "# Release X.Y.Z". Runs from any branch. The PR is approved once CI is green and merges
+# itself (auto-merge), which releases it.
 # BUMP=minor or BUMP=major for a bigger step.
 BUMP ?= patch
 bump:
