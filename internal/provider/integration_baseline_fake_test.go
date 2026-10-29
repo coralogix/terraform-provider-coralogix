@@ -78,8 +78,9 @@ func (h *grHarness) integrations() *integrationFake {
 // object, and answers 404 for an id that does not exist. A delete answers an empty object, and
 // 404 for an id that does not exist.
 //
-// Not recorded, because the tenant never answered them: notFound makes every call answer 404, and
-// status makes a Save, an Update, or a Delete answer that status.
+// Not recorded, because the tenant never answered them: notFound makes every call answer 404,
+// failStatus makes a Save, an Update, or a Delete answer that status, testStatus does the same for
+// a Test, and readStatus for a read.
 type integrationFake struct {
 	mu       sync.Mutex
 	items    map[string]map[string]any

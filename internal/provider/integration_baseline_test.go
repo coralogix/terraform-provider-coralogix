@@ -185,6 +185,24 @@ var integrationScenarios = map[string]func(h *grHarness){
 		h.Refresh("refresh", s)
 	},
 
+	// A refresh whose read answers 500 fails and keeps the state, and the next refresh works.
+	"read-api-error": func(h *grHarness) {
+		s := h.Apply("create", h.null(), catalogConfig("a"))
+		h.integrations().readStatus = 500
+		s = h.Refresh("refresh: the read answers 500", s)
+		h.integrations().readStatus = 0
+		h.Refresh("refresh: the read works again", s)
+	},
+
+	// Save succeeds and the read after it fails: the integration exists in the backend, and the
+	// state holds nothing. A second apply saves another integration.
+	"create-read-after-save-fails": func(h *grHarness) {
+		h.integrations().readStatus = 500
+		s := h.Apply("create: the save works and the read after it answers 500", h.null(), catalogConfig("a"))
+		h.integrations().readStatus = 0
+		h.Apply("create again: the retry saves a second integration", s, catalogConfig("a"))
+	},
+
 	"update-invalid-version": func(h *grHarness) {
 		s := h.Apply("create", h.null(), catalogConfig("a"))
 		c := catalogConfig("a")
