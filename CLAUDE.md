@@ -85,9 +85,9 @@ Every PR must update `CHANGELOG.md`. The CI `changelog-check` workflow enforces 
 
 Exception: non-user-facing repository hygiene changes, such as pre-commit hook updates or CI-only changes, do not need a changelog entry unless the user explicitly asks for one.
 
-**Every merge with changelog entries is a release.** Add your bullet points under `# Unreleased`, then run `make bump` in the same PR (`make bump BUMP=minor` or `BUMP=major` for a bigger step). It sets the next version in `internal/clientset/version.go` and moves the entries under `# Release X.Y.Z`. On merge, `release-provider.yml` tags the commit, publishes the release, and waits for the Terraform Registry. The `version-bump` job of `changelog-check` fails a PR that adds `# Unreleased` entries without a bump, skips a version, or bumps from an outdated base.
+Add your bullet points under `# Unreleased`. Don't bump the version or add a `# Release X.Y.Z` heading in a normal PR.
 
-If another release merges first, update the branch, move your entries back under `# Unreleased`, reset `version.go` to master's version, and run `make bump` again.
+**Releases are on demand.** `make bump` (`make bump BUMP=minor` or `BUMP=major` for a bigger step) opens a "Release X.Y.Z" PR from `origin/master`, from any branch and without touching the current checkout. The PR sets the next version in `internal/clientset/version.go` and moves the `# Unreleased` entries under `# Release X.Y.Z`. When it merges, `release-provider.yml` tags the commit, publishes the release, and waits for the Terraform Registry. The `version-bump` job of `changelog-check` fails a PR that adds a release heading by hand, skips a version, edits a released section, or bumps from an outdated base; for the last, close the release PR, delete its branch, and run `make bump` again.
 
 Keep entries concise: one line per change, prefixed with the affected resource/data-source path when relevant. Examples:
 
