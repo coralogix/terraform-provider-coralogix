@@ -100,13 +100,18 @@ def check(base_ref):
     # Released sections are immutable: an entry added to one would never be released.
     # Rewording an entry keeps the count and is fine.
     base_changelog = git_show(base_ref, CHANGELOG)
+    base_headings = set(re.findall(r"^# Release (\S+)$", base_changelog, re.M))
     released = set()
-    for version in set(re.findall(r"^# Release (\S+)$", base_changelog, re.M)):
+    for version in base_headings:
         before, after = entries(base_changelog, f"# Release {version}"), entries(changelog, f"# Release {version}") or []
         released.update(entries(base_changelog, f"# Release {version}", keyed=True))
         if len(after) > len(before):
             fail(f"This change adds entries to '# Release {version}', which is already released. Move them "
                  f"under '{UNRELEASED}' and run `make bump`.")
+    # Only the bump adds a release section; any other new one would never be tagged.
+    for version in sorted(set(headings) - base_headings - ({current} if current != base else set())):
+        fail(f"This change adds '# Release {version}' but {VERSION_GO} is {current}. Move its entries "
+             f"under '{UNRELEASED}' and run `make bump` instead of adding the heading by hand.")
     unreleased = entries(changelog, UNRELEASED) or []
     if current == base:
         # Entries that were already unreleased at the fork point are not this change's to release.
