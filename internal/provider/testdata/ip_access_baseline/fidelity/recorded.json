@@ -1,0 +1,105 @@
+{
+  "cases": [
+    {
+      "name": "singleton-lifecycle",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Invalid IP range format"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "settings": {
+              "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+              "id": "\u003csettings-id\u003e",
+              "ipAccess": {
+                "\u003centry-1\u003e": {
+                  "enabled": false,
+                  "ipRange": "0.0.0.0/0",
+                  "name": "{{NAME}}-first",
+                  "scopes": []
+                }
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "settings": {
+              "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+              "id": "\u003csettings-id\u003e",
+              "ipAccess": {
+                "\u003centry-1\u003e": {
+                  "enabled": false,
+                  "ipRange": "0.0.0.0/0",
+                  "name": "{{NAME}}-first",
+                  "scopes": []
+                }
+              }
+            }
+          }
+        },
+        {
+          "status": 409,
+          "response": {
+            "code": 409,
+            "message": "Already Exists: Company already has IP access settings. Use replace method to update."
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "settings": {
+              "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
+              "id": "\u003csettings-id\u003e",
+              "ipAccess": {
+                "\u003centry-1\u003e": {
+                  "enabled": false,
+                  "ipRange": "0.0.0.0/0",
+                  "name": "{{NAME}}-replacement",
+                  "scopes": []
+                }
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "settings": {
+              "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+              "id": "\u003csettings-id\u003e",
+              "ipAccess": {
+                "\u003centry-1\u003e": {
+                  "enabled": false,
+                  "ipRange": "0.0.0.0/0",
+                  "name": "{{NAME}}-replacement",
+                  "scopes": []
+                }
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "settings": {
+              "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+              "id": "\u003csettings-id\u003e",
+              "ipAccess": {}
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
