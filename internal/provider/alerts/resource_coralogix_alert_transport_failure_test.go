@@ -71,9 +71,10 @@ func TestAlertResourceTransportFailureDoesNotPanic(t *testing.T) {
 	t.Run("update", func(t *testing.T) {
 		plan := alertTransportFailurePlan(ctx, resourceSchema, alertTransportFailureTestID)
 		priorState := alertTransportFailureState(ctx, resourceSchema, alertTransportFailureTestID)
+		config := alertTransportFailureConfig(ctx, resourceSchema, alertTransportFailureTestID)
 		response := frameworkresource.UpdateResponse{State: priorState}
 
-		alertTransportFailureResource().Update(ctx, frameworkresource.UpdateRequest{Plan: plan, State: priorState}, &response)
+		alertTransportFailureResource().Update(ctx, frameworkresource.UpdateRequest{Plan: plan, State: priorState, Config: config}, &response)
 
 		assertAlertTransportFailureDiagnostics(t, response.Diagnostics, "Error replacing coralogix_alert")
 		if response.State.Raw.IsNull() {
@@ -118,6 +119,13 @@ func alertTransportFailurePlan(ctx context.Context, resourceSchema schema.Schema
 
 func alertTransportFailureState(ctx context.Context, resourceSchema schema.Schema, id string) tfsdk.State {
 	return tfsdk.State{
+		Raw:    alertTransportFailureRawValue(ctx, resourceSchema, id),
+		Schema: resourceSchema,
+	}
+}
+
+func alertTransportFailureConfig(ctx context.Context, resourceSchema schema.Schema, id string) tfsdk.Config {
+	return tfsdk.Config{
 		Raw:    alertTransportFailureRawValue(ctx, resourceSchema, id),
 		Schema: resourceSchema,
 	}

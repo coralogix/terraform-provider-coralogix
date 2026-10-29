@@ -17,6 +17,7 @@ package alerts
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 
@@ -27,6 +28,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var _ datasource.DataSourceWithConfigure = &AlertDataSource{}
@@ -77,7 +79,13 @@ func (d *AlertDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 
 	// Get refreshed Alert value from Coralogix
 	id := data.ID.ValueString()
-	getAlertResp, httpResponse, err := d.client.AlertDefsServiceGetAlertDef(ctx, id).Execute()
+	getAlertResp, httpResponse, err := d.client.AlertDefsServiceGetAlertDef(ctx, id).IncludeAccessPermissions(true).Execute()
+	if err != nil && httpResponse != nil && httpResponse.StatusCode == http.StatusForbidden {
+		// The key lacks alerts:ReadAccessPolicy and the backend rejects the
+		// include flag instead of omitting the field. Retry without it; the
+		// policy reads back null.
+		getAlertResp, httpResponse, err = d.client.AlertDefsServiceGetAlertDef(ctx, id).Execute()
+	}
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading alert",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", id),
@@ -85,7 +93,8 @@ func (d *AlertDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	data, diags := flattenAlert(ctx, getAlertResp.GetAlertDef(), &data.Schedule, nil)
+	policy, readable := alertAccessFromGetResponse(getAlertResp)
+	data, diags := flattenAlert(ctx, getAlertResp.GetAlertDef(), &data.Schedule, nil, types.StringNull(), policy, readable)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
