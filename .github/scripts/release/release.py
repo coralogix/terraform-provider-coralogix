@@ -50,17 +50,20 @@ def next_versions(version):
     }
 
 
-def entries(text, heading):
-    """Return the "- " entries between `heading` and the next top-level heading, or None."""
+def entries(text, heading, keyed=False):
+    """Return the "- " entries between `heading` and the next top-level heading, or None.
+    With keyed, each entry is (subheading, entry): the same text recurs under different resources."""
     lines = text.splitlines()
     if heading not in lines:
         return None
-    found = []
+    found, subheading = [], None
     for line in lines[lines.index(heading) + 1:]:
         if line.startswith("# "):
             break
-        if line.lstrip().startswith("- "):
-            found.append(line.strip())
+        if line.startswith("#"):
+            subheading = line.strip()
+        elif line.lstrip().startswith("- "):
+            found.append((subheading, line.strip()) if keyed else line.strip())
     return found
 
 
@@ -97,8 +100,10 @@ def check(base_ref):
     # Released sections are immutable: an entry added to one would never be released.
     # Rewording an entry keeps the count and is fine.
     base_changelog = git_show(base_ref, CHANGELOG)
+    released = set()
     for version in set(re.findall(r"^# Release (\S+)$", base_changelog, re.M)):
         before, after = entries(base_changelog, f"# Release {version}"), entries(changelog, f"# Release {version}") or []
+        released.update(entries(base_changelog, f"# Release {version}", keyed=True))
         if len(after) > len(before):
             fail(f"This change adds entries to '# Release {version}', which is already released. Move them "
                  f"under '{UNRELEASED}' and run `make bump`.")
@@ -116,8 +121,14 @@ def check(base_ref):
     if current not in allowed.values():
         fail(f"Version {base} -> {current} is not the next patch, minor, or major version "
              f"({', '.join(allowed.values())}). Reset {VERSION_GO} and run `make bump` once.")
-    if not entries(changelog, f"# Release {current}"):
+    new_entries = entries(changelog, f"# Release {current}", keyed=True)
+    if not new_entries:
         fail(f"{CHANGELOG} has no entries under '# Release {current}'. Run `make bump` instead of editing by hand.")
+    # After updating the branch, the merge base is master's tip, so a stale bump can look
+    # valid; entries that master already released give it away.
+    if set(new_entries) & released:
+        fail(f"'# Release {current}' repeats entries that master already released. Move only this change's "
+             f"entries back under '{UNRELEASED}', reset {VERSION_GO} to {tip}, and run `make bump` again.")
     if unreleased:
         fail(f"'{UNRELEASED}' still has entries; they would not be part of v{current}. Run `make bump` after adding them.")
     kind = next(k for k, v in allowed.items() if v == current)
