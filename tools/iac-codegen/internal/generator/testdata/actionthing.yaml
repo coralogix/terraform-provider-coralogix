@@ -1,0 +1,90 @@
+# A released resource like the actions. The API keeps a stored note and tags that an Update omits. Create takes the fields of the thing directly, and Replace
+# takes the thing in a wrapper with its id in the body. The field "hidden" is in Replace and Get,
+# but not in Create: the API refuses it there, and the contract declares its default.
+openapi: 3.1.0
+info: {title: action, version: 1.0.0}
+paths:
+  /action/v1/things:
+    post:
+      tags: [Action Things Service]
+      operationId: ActionThingsService_CreateActionThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CreateActionThingBody
+              type: object
+              properties:
+                name: {type: string, x-coralogix-presence: true}
+                note: {type: string, x-coralogix-presence: true}
+                tags: {type: array, items: {type: string}}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreateActionThingResponse'}
+    put:
+      tags: [Action Things Service]
+      operationId: ActionThingsService_ReplaceActionThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: ReplaceActionThingBody
+              type: object
+              properties:
+                thing: {$ref: '#/components/schemas/ActionThing'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReplaceActionThingResponse'}
+  /action/v1/things/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Action Things Service]
+      operationId: ActionThingsService_GetActionThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetActionThingResponse'}
+    delete:
+      tags: [Action Things Service]
+      operationId: ActionThingsService_DeleteActionThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteActionThingResponse'}
+components:
+  schemas:
+    CreateActionThingResponse:
+      type: object
+      properties:
+        thing: {$ref: '#/components/schemas/ActionThing'}
+    ReplaceActionThingResponse:
+      type: object
+      properties:
+        thing: {$ref: '#/components/schemas/ActionThing'}
+    GetActionThingResponse:
+      type: object
+      properties:
+        thing: {$ref: '#/components/schemas/ActionThing'}
+    DeleteActionThingResponse:
+      type: object
+    ActionThing:
+      type: object
+      properties:
+        id: {type: string, x-coralogix-presence: true}
+        name: {type: string, x-coralogix-presence: true}
+        hidden: {type: boolean, default: false, x-coralogix-presence: true}
+        note: {type: string, x-coralogix-presence: true}
+        tags: {type: array, items: {type: string}}

@@ -1,6 +1,7 @@
 package clientset
 
 import (
+	"example.com/iac-test-sdk/go/openapi/gen/action_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/archived_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/config_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/custom_things_service"
@@ -19,6 +20,7 @@ import (
 )
 
 type ClientSet struct {
+	ActionThing    *action_things_service.ActionThingsServiceAPIService
 	Folder         *folder_things_service.FolderThingsServiceAPIService
 	Client         *things_service.ThingsServiceAPIService
 	SettingsClient *settings_service.SettingsServiceAPIService
@@ -85,4 +87,8 @@ func (c *ClientSet) FolderThings() *folder_things_service.FolderThingsServiceAPI
 
 func (c *ClientSet) RenameThings() *rename_things_service.RenameThingsServiceAPIService {
 	return c.Rename
+}
+
+func (c *ClientSet) ActionThings() *action_things_service.ActionThingsServiceAPIService {
+	return c.ActionThing
 }
