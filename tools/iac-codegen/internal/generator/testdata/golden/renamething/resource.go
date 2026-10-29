@@ -315,6 +315,14 @@ func (r *Resource) setState(ctx context.Context, v *rename_things_service.Rename
 		return diags
 	}
 	if prior != nil {
+		// The API holds no value of this attribute, so the state keeps the one of the plan or the
+		// prior state.
+		var kept types.Dynamic
+		if !prior.GetAttribute(ctx, path.Root("settings"), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
+			diags.Append(state.SetAttribute(ctx, path.Root("settings"), kept)...)
+		}
+	}
+	if prior != nil {
 		diags.Append(keepPriorEmpty(ctx, prior, state)...)
 	}
 	if r.hooks.AfterRead != nil && !diags.HasError() {

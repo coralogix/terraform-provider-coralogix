@@ -50,6 +50,9 @@ func attachExtraAttributes(out *tfResource, file *overrides.File) error {
 			if err := attachConvExtra(out.Conv, model.Name, name, camelize(name), attrType, nullExpr); err != nil {
 				return fmt.Errorf("types.%s.extraAttributes.%s: %w", component, name, err)
 			}
+			if extra.Dynamic && component == file.Resource && out.CRUD != nil {
+				out.CRUD.DynamicExtras = append(out.CRUD.DynamicExtras, name)
+			}
 			if extra.InUpdate {
 				if component != file.Resource {
 					return fmt.Errorf("types.%s.extraAttributes.%s: inUpdate applies to an attribute of the resource %s", component, name, file.Resource)

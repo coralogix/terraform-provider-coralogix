@@ -49,6 +49,9 @@ type crudData struct {
 	UpdateBodyIDValue bool
 	// Existing: the resource has users. The package exports Flatten for a handwritten data source.
 	Existing bool
+	// DynamicExtras are the Terraform names of the dynamic extra attributes of the resource. The API
+	// holds no value for them, so setState keeps the value of the plan or the prior state.
+	DynamicExtras []string
 	// ClientHook: Hooks has BeforeWriteWithClient (hooks.client of the behavior-overrides file).
 	ClientHook bool
 	// UpdateOnly are the attributes that Create cannot send. Create follows with an Update

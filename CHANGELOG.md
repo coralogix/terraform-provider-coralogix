@@ -5,7 +5,7 @@
 
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.51`.
-- FEAT: `types.<Type>.extraAttributes` can set `dynamic: true` for a Terraform-only `DynamicAttribute` (a `types.Dynamic` model field), `required: true` for a required one, and `inUpdate: true` on an attribute of a resource whose Update replaces it, so that a change of only that attribute makes an Update. A handwritten `BeforeWrite` hook turns the value into request values. An extra attribute can take the name of a skipped API field.
+- FEAT: `types.<Type>.extraAttributes` can set `dynamic: true` for a Terraform-only `DynamicAttribute` (a `types.Dynamic` model field), `required: true` for a required one, and `inUpdate: true` on an attribute of a resource whose Update replaces it, so that a change of only that attribute makes an Update. A handwritten `BeforeWrite` hook turns the value into request values. An extra attribute can take the name of a skipped API field. The API holds no value of it, so a Create, Update, or Read keeps the value of the plan or the prior state, with no hook.
 - FEAT: `hooks: {client: true}` adds `Hooks.BeforeWriteWithClient`: Create and Update call it after `BeforeWrite` and before the API call with the typed API client, for a step that needs another call first.
 - FEAT: An existing resource whose Create and Update requests hold another component than the resource in their wrapper can map a field to its request path with `requestAs` on the field line (a renamed property, or one inside an object), and send the Update id beside the wrapper with `api.updateIDOutsideWrapper`.
 

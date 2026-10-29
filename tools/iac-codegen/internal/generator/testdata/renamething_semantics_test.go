@@ -158,6 +158,17 @@ func TestUpdateWhenOnlyTheDynamicAttributeChanges(t *testing.T) {
 	if len(order) != 2 || order[0] != "BeforeWrite" || order[1] != "BeforeWriteWithClient" {
 		t.Fatalf("hook order = %v, want BeforeWrite then BeforeWriteWithClient", order)
 	}
+	// The API holds no value of the dynamic attribute, so the state keeps the planned one with no hook.
+	var planned, got map[string]tftypes.Value
+	if err := plan.As(&planned); err != nil {
+		t.Fatal(err)
+	}
+	if err := resp.State.Raw.As(&got); err != nil {
+		t.Fatal(err)
+	}
+	if !got["settings"].Equal(planned["settings"]) {
+		t.Fatalf("state settings = %v, want the planned %v", got["settings"], planned["settings"])
+	}
 }
 
 // A BeforeWriteWithClient error stops Create before the API call.
