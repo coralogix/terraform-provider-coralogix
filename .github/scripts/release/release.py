@@ -23,6 +23,9 @@ VERSION_GO = "internal/clientset/version.go"
 UNRELEASED = "# Unreleased"
 VERSION_LINE = re.compile(r'^const TF_PROVIDER_VERSION = "([^"]*)"$', re.M)
 SEMVER = re.compile(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)")
+# A top-level Markdown heading. Subheadings ("#### resource/...") start with "##".
+HEADING = re.compile(r"^ {0,3}#[ \t]")
+RELEASE_HEADING = re.compile(r"# Release (" + SEMVER.pattern + ")")
 
 
 def fail(message):
@@ -71,7 +74,7 @@ def entries(text, heading, keyed=False):
         return None
     found, subheading = [], None
     for line in lines[lines.index(heading) + 1:]:
-        if line.startswith("# "):
+        if HEADING.match(line):
             break
         if line.startswith("#"):
             subheading = line.strip()
@@ -84,8 +87,17 @@ def section(text, heading):
     """Return the lines between `heading` and the next top-level heading."""
     lines = text.splitlines()
     rest = lines[lines.index(heading) + 1:]
-    end = next((i for i, line in enumerate(rest) if line.startswith("# ")), len(rest))
+    end = next((i for i, line in enumerate(rest) if HEADING.match(line)), len(rest))
     return "\n".join(rest[:end]).strip()
+
+
+def headings(text):
+    return [line for line in text.splitlines() if HEADING.match(line)]
+
+
+def content(text, heading):
+    """The non-blank lines of a section, ignoring trailing whitespace."""
+    return [line.rstrip() for line in section(text, heading).splitlines() if line.strip()]
 
 
 def bump(kind):
@@ -97,6 +109,8 @@ def bump(kind):
     source, changelog = git_show("origin/master", VERSION_GO), git_show("origin/master", CHANGELOG)
     current = version_of(source)
     new = next_versions(current)[kind]
+    if headings(changelog).count(UNRELEASED) != 1:
+        fail(f"{CHANGELOG} on master needs exactly one '{UNRELEASED}' heading.")
     if not entries(changelog, UNRELEASED):
         fail(f"'{UNRELEASED}' in {CHANGELOG} on master has no entries, so there is nothing to release.")
     if entries(changelog, f"# Release {new}") is not None:
@@ -130,32 +144,42 @@ def bump(kind):
 
 
 def check(base_ref):
-    changelog = read(CHANGELOG)
-    headings = re.findall(r"^# Release (\S+)$", changelog, re.M)
+    changelog, base_changelog = read(CHANGELOG), git_show(base_ref, CHANGELOG)
     redo = "Close this release PR, delete its branch, and run `make bump` again."
-    duplicates = sorted({h for h in headings if headings.count(h) > 1})
+    heads, base_heads = headings(changelog), headings(base_changelog)
+    if heads.count(UNRELEASED) != 1:
+        fail(f"{CHANGELOG} needs exactly one '{UNRELEASED}' heading; entries under another one are never released.")
+    # A heading the tooling doesn't recognize (a typo, trailing whitespace) would hide its
+    # entries from the release; headings already on master are grandfathered.
+    for heading in heads:
+        if heading != UNRELEASED and not RELEASE_HEADING.fullmatch(heading) and heading not in base_heads:
+            fail(f"{CHANGELOG} has the heading '{heading}'. Top-level headings are '{UNRELEASED}' and "
+                 "'# Release X.Y.Z' (added by `make bump`); put entries under '# Unreleased'.")
+    duplicates = sorted({h for h in heads if heads.count(h) > 1})
     if duplicates:
-        fail(f"{CHANGELOG} has '# Release {duplicates[0]}' more than once: another release merged first. {redo}")
+        fail(f"{CHANGELOG} has '{duplicates[0]}' more than once: another release merged first. {redo}")
     fork = run("git", "merge-base", base_ref, "HEAD")
     base, tip = version_of(git_show(fork, VERSION_GO)), version_of(git_show(base_ref, VERSION_GO))
     current = version_of(read(VERSION_GO))
     if current != base and tip != base:
         fail(f"master released v{tip} after this branch started from v{base}. {redo}")
-    # Released sections are immutable: an entry added to one would never be released.
-    # Rewording an entry keeps the count and is fine.
-    base_changelog = git_show(base_ref, CHANGELOG)
-    base_headings = set(re.findall(r"^# Release (\S+)$", base_changelog, re.M))
+    # Released sections are immutable: an entry added to one would never be released, and
+    # a removed or replaced one rewrites published history.
     released = set()
-    for version in base_headings:
-        before, after = entries(base_changelog, f"# Release {version}"), entries(changelog, f"# Release {version}") or []
-        released.update(entries(base_changelog, f"# Release {version}", keyed=True))
-        if len(after) > len(before):
-            fail(f"This change adds entries to '# Release {version}', which is already released. "
-                 f"Add them under '{UNRELEASED}' instead.")
+    for heading in base_heads:
+        if heading == UNRELEASED:
+            continue
+        released.update(entries(base_changelog, heading, keyed=True))
+        if heading not in heads:
+            fail(f"This change removes '{heading}', which is already released. Restore it.")
+        if content(changelog, heading) != content(base_changelog, heading):
+            fail(f"This change edits '{heading}', which is already released. Restore it, and add new "
+                 f"entries under '{UNRELEASED}'.")
     # Only the bump adds a release section; any other new one would never be tagged.
-    for version in sorted(set(headings) - base_headings - ({current} if current != base else set())):
-        fail(f"This change adds '# Release {version}' but {VERSION_GO} is {current}. Add the entries "
-             f"under '{UNRELEASED}'; `make bump` opens the release PR.")
+    for heading in heads:
+        if heading not in base_heads and heading != UNRELEASED and (current == base or heading != f"# Release {current}"):
+            fail(f"This change adds '{heading}' but {VERSION_GO} is {current}. Add the entries "
+                 f"under '{UNRELEASED}'; `make bump` opens the release PR.")
     if current == base:
         print(f"Version stays {current}; no release.")
         return
