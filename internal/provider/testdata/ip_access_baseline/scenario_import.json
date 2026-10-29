@@ -1,0 +1,69 @@
+[
+  {
+    "step": "import",
+    "state": null
+  },
+  {
+    "step": "import (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "enabled",
+      "id": "<masked-id>",
+      "ip_access": [
+        {
+          "enabled": true,
+          "ip_range": "203.0.113.0/24",
+          "name": "seeded"
+        }
+      ]
+    },
+    "drift": [
+      "AttributeName(\"enable_coralogix_customer_support_access\")",
+      "AttributeName(\"id\")",
+      "AttributeName(\"ip_access\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"true\">, \"ip_range\":tftypes.String<\"203.0.113.0/24\">, \"name\":tftypes.String<\"seeded\">>)"
+    ]
+  },
+  {
+    "step": "plan matching config",
+    "config": {
+      "enable_coralogix_customer_support_access": "enabled",
+      "ip_access": [
+        {
+          "enabled": true,
+          "ip_range": "203.0.113.0/24",
+          "name": "seeded"
+        }
+      ]
+    },
+    "plan": {
+      "enable_coralogix_customer_support_access": "enabled",
+      "id": "<masked-id>",
+      "ip_access": [
+        {
+          "enabled": true,
+          "ip_range": "203.0.113.0/24",
+          "name": "seeded"
+        }
+      ]
+    },
+    "noChange": true,
+    "state": {
+      "enable_coralogix_customer_support_access": "enabled",
+      "id": "<masked-id>",
+      "ip_access": [
+        {
+          "enabled": true,
+          "ip_range": "203.0.113.0/24",
+          "name": "seeded"
+        }
+      ]
+    }
+  }
+]
