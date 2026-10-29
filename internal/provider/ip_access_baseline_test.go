@@ -59,7 +59,7 @@ func TestIpAccessBaselineScenarios(t *testing.T) {
 var ipAccessScenarios = map[string]func(h *grHarness){
 	"default-create-read-destroy": func(h *grHarness) {
 		s := h.Apply("create with default support access and empty rules", h.null(), j{"ip_access": l{}})
-		s = h.Refresh("refresh", s)
+		s = h.RefreshPlan("refresh and replan defaults", s)
 		h.Destroy("destroy", s)
 	},
 	"full-lifecycle": func(h *grHarness) {
@@ -77,6 +77,8 @@ var ipAccessScenarios = map[string]func(h *grHarness){
 		}
 		s = h.Apply("update: replace settings", s, updated)
 		s = h.Refresh("refresh after replace", s)
+		s = h.Apply("update: clear rules and omit support access", s, j{"ip_access": l{}})
+		h.RefreshPlan("refresh after clearing rules", s)
 		h.Destroy("destroy", s)
 	},
 	"import": func(h *grHarness) {
