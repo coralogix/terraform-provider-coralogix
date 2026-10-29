@@ -1,5 +1,18 @@
 # Unreleased
 
+#### resource/coralogix_integration
+- CHORE: The resource is generated from the API contract. The schema, the requests, and the state are the same as before, including that a change of `version` updates in place and a change of `integration_key` replaces the resource.
+- FIX: When the test call of Create or Update fails, the error shows the message of the API (`API responded with an error: 400 Bad Request — {...}`). Before, it showed only the status line.
+- FIX: An update of an integration that was deleted outside Terraform fails with `Resource no longer exists`, and the next refresh removes it from state. Before, it failed with the raw 404 of the API.
+- CHORE: Parameters are sent sorted by key. Before, their order was random.
+- CHORE: API errors read `Unable to create integration`, `Unable to update integration`, `Unable to delete integration`, instead of `Error creating coralogix_integration`, `Error update coralogix_integration`, `Error deleting coralogix_integration`. A refresh that finds no integration warns `Resource disappeared during read`.
+- FEAT: The resource has a generated acceptance test (`AWS_TEST_ROLE`, which the acceptance workflow already has, names a role that the tenant can assume).
+
+#### data-source/coralogix_integration
+- CHORE: The data source is generated with the resource. The schema, and the state of a read by id, are the same as before: every parameter of the backend, a secret as `<redacted>`.
+- FIX: A read of an id that the API does not find fails with `coralogix_integration not found`. Before, it only warned and returned an empty result.
+- CHORE: API errors read `Unable to read coralogix_integration` instead of `Error reading coralogix_integration`.
+
 #### resource/coralogix_slo_v2
 - FEAT: New optional `sli.apm_sli.filters[].match_operator` (`is`, `starts_with`, `ends_with`, `includes`, or `unspecified`), from the new API contract. All items of a list use the same mode: all `unspecified` (the default, the legacy mode) or all set. The API returns `unspecified` for a filter that has none, so the attribute is computed with that default. The data source shows it too.
 - CHORE: The generated acceptance test covers the APM SLI, with the service in `CORALOGIX_SLO_V2_APM_SERVICE`.
@@ -16,7 +29,6 @@
 - FEAT: `types.<Type>.extraAttributes` can set `dynamic: true` for a Terraform-only `DynamicAttribute` (a `types.Dynamic` model field), `required: true` for a required one, and `inUpdate: true` on an attribute of a resource whose Update replaces it, so that a change of only that attribute makes an Update. A handwritten `BeforeWrite` hook turns the value into request values. An extra attribute can take the name of a skipped API field. The API holds no value of it, so a Create, Update, or Read keeps the value of the plan or the prior state, with no hook.
 - FEAT: `updatedValues` in `acceptance.yaml` gives the updated config of the generated acceptance test another expression for a field that `values` sets, for a value that the generator cannot change on its own, such as the object of a dynamic attribute. A line for an immutable or skipped field, or one that `values` does not set, is an error.
 - FEAT: An existing resource whose Create and Update requests hold another component than the resource in their wrapper can map a field to its request path with `requestAs` on the field line (a renamed property, or one inside an object), and send the Update id beside the wrapper with `api.updateIDOutsideWrapper`.
-
 
 # Release 3.23.0
 

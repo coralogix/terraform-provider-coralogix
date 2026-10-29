@@ -1,0 +1,16 @@
+# What the generated acceptance test needs for coralogix_integration, besides the schema.
+# The test calls the integration test of the API, so it needs a role that the tenant can assume.
+resource: DeployedIntegrationInformation
+
+env: [AWS_TEST_ROLE]
+
+values:
+  integration_key: '"aws-resource-catalog"'
+  version: '"0.1.0"'
+  parameters: '{ IntegrationName = "@{run}-catalog", AwsRoleArn = "@{env.AWS_TEST_ROLE}" }'
+# The update changes a value inside parameters, so the apply sends the test call, the PUT, and the read.
+updatedValues:
+  parameters: '{ IntegrationName = "@{run}-catalog-updated", AwsRoleArn = "@{env.AWS_TEST_ROLE}" }'
+
+# The released provider creates the same configuration, and this build must plan no change for it.
+upgradeFrom: "3.23.0"

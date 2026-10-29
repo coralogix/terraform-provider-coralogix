@@ -50,7 +50,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Testing the integration has failed | API responded with an error: 400 Bad Request"
+      "error: Testing the integration has failed | API responded with an error: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Request errors:\\n* Unknown field Unknown provided\"}"
     ],
     "state": null
   }

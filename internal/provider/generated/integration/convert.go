@@ -28,8 +28,8 @@ var createFields = []struct {
 	attr          string
 	serverDefault bool
 }{
-	{attr: "definition_key", serverDefault: false},
-	{attr: "definition_version", serverDefault: false},
+	{attr: "integration_key", serverDefault: false},
+	{attr: "version", serverDefault: false},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -88,8 +88,8 @@ var computedAttrs = map[string]bool{
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
 var requiredAttrs = map[string]bool{
-	"definition_key":     true,
-	"definition_version": true,
+	"integration_key": true,
+	"version":         true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -259,6 +259,7 @@ func flattenDeployedIntegrationInformation(ctx context.Context, p path.Path, v *
 	out.DefinitionKey = types.StringPointerValue(&v.DefinitionKey)
 	out.DefinitionVersion = types.StringPointerValue(&v.DefinitionVersion)
 	out.Id = types.StringPointerValue(&v.Id)
+	out.Parameters = types.DynamicNull()
 	return out
 }
 

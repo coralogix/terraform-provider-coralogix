@@ -12,8 +12,13 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_integration \"00000000-0000-4000-8000-999999999999\" is in state, but no longer exists in Coralogix backend | 00000000-0000-4000-8000-999999999999 will be recreated when you apply"
+      "error: coralogix_integration not found | The API did not find coralogix_integration with id 00000000-0000-4000-8000-999999999999: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Integration not found: 00000000-0000-4000-8000-999999999999\"}"
     ],
-    "state": null
+    "state": {
+      "id": "00000000-0000-4000-8000-999999999999",
+      "integration_key": null,
+      "parameters": null,
+      "version": null
+    }
   }
 ]

@@ -1,6 +1,7 @@
 resource: DeployedIntegrationInformation
 mode: existing
 typeName: integration
+markdownDescription: "A Coralogix Integration. Check https://coralogix.com/docs/developer-portal/infrastructure-as-code/terraform-provider/integrations/aws-metrics-collector/ for available options."
 validators:
   inferred: false
 api:
@@ -19,6 +20,23 @@ types:
   DeployedIntegrationInformation:
     fields:
       parameters: {skip: true, requestAs: integrationParameters.parameters}
-      definitionKey: {requestAs: integrationKey}
-      definitionVersion: {requestAs: version}
       integrationStatus: {skip: true}
+      id:
+        markdownDescription: "Integration ID."
+      definitionKey:
+        name: integration_key
+        requestAs: integrationKey
+        requiresReplace: true
+        markdownDescription: "Selector for the integration."
+      definitionVersion:
+        name: version
+        requestAs: version
+        markdownDescription: "The integration version"
+    extraAttributes:
+      parameters:
+        dynamic: true
+        required: true
+        inUpdate: true
+        markdownDescription: "Parameters required by the integration."
+
+dataSource: {}
