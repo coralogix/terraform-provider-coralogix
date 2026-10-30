@@ -14,7 +14,7 @@
     ],
     "state": {
       "applications": null,
-      "created_by": null,
+      "created_by": "",
       "description": null,
       "dpxl_filter": "<v1> $d.severity == 'ERROR'",
       "id": "00000000-0000-4000-9000-000000000001",
@@ -27,6 +27,7 @@
       "url_fields": null
     },
     "drift": [
+      "AttributeName(\"created_by\")",
       "AttributeName(\"dpxl_filter\")",
       "AttributeName(\"is_hidden\")",
       "AttributeName(\"is_private\")",
@@ -46,7 +47,7 @@
     },
     "plan": {
       "applications": null,
-      "created_by": null,
+      "created_by": "",
       "description": null,
       "dpxl_filter": "<v1> $d.severity == 'ERROR'",
       "id": "00000000-0000-4000-9000-000000000001",
@@ -61,7 +62,7 @@
     "noChange": true,
     "state": {
       "applications": null,
-      "created_by": null,
+      "created_by": "",
       "description": null,
       "dpxl_filter": "<v1> $d.severity == 'ERROR'",
       "id": "00000000-0000-4000-9000-000000000001",

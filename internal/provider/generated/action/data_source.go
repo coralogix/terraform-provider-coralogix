@@ -87,5 +87,15 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	// The data source shows the description that the API returns, also an empty one, which the
+	// resource reads as null.
+	if v.Description != nil {
+		m.Description = types.StringValue(*v.Description)
+	}
+	// The data source shows the dpxl_filter that the API returns, also an empty one, which the
+	// resource reads as null.
+	if v.DpxlFilter != nil {
+		m.DpxlFilter = types.StringValue(*v.DpxlFilter)
+	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, m)...)
 }

@@ -110,4 +110,10 @@ enums:
       SOURCE_TYPE_LOG: Log
       SOURCE_TYPE_DATA_MAP: DataMap
 
-dataSource: {}
+# The released data source showed the value of the API, also "", where the resource reads "" as null.
+dataSource:
+  types:
+    v2.Action:
+      fields:
+        description: {readEmptyAs: value}
+        dpxlFilter: {readEmptyAs: value}

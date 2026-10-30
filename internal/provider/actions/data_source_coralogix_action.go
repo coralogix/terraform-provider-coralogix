@@ -21,5 +21,5 @@ import (
 )
 
 func NewActionDataSource() datasource.DataSource {
-	return action.NewDataSource(action.Hooks{})
+	return action.NewDataSource(actionHooks)
 }

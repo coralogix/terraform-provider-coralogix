@@ -13,7 +13,7 @@
     ],
     "state": {
       "applications": null,
-      "created_by": null,
+      "created_by": "",
       "description": null,
       "dpxl_filter": null,
       "id": "00000000-0000-4000-9000-000000000001",

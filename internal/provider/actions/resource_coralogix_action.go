@@ -23,5 +23,5 @@ import (
 // NewActionResource returns coralogix_action, which is generated from the API contract
 // (internal/provider/generated/action).
 func NewActionResource() resource.Resource {
-	return action.NewResource(action.Hooks{})
+	return action.NewResource(actionHooks)
 }
