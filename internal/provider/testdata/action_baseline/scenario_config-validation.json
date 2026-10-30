@@ -18,7 +18,7 @@
       "url": "https://example.com/{{p}}"
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value Length [AttributeName(\"name\")] | Attribute name string length must be at least 1, got: 0"
+      "error: Invalid Attribute Value Length [AttributeName(\"name\")] | Attribute name string length must be between 1 and 50, got: 0"
     ],
     "state": null
   },
@@ -31,7 +31,8 @@
       "url": ""
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value Format [AttributeName(\"url\")] | Attribute url in not a valid url - "
+      "error: Invalid Attribute Value Length [AttributeName(\"url\")] | Attribute url string length must be between 1 and 32768, got: 0",
+      "error: Invalid Attribute Value Match [AttributeName(\"url\")] | Attribute url must start with http:// or https://, got: "
     ],
     "state": null
   },
@@ -44,7 +45,7 @@
       "url": "example.com"
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value Format [AttributeName(\"url\")] | Attribute url in not a valid url - example.com"
+      "error: Invalid Attribute Value Match [AttributeName(\"url\")] | Attribute url must start with http:// or https://, got: example.com"
     ],
     "state": null
   },
@@ -56,6 +57,9 @@
       "source_type": "Log",
       "url": "ftp://example.com"
     },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"url\")] | Attribute url must start with http:// or https://, got: ftp://example.com"
+    ],
     "state": null
   },
   {
@@ -67,6 +71,7 @@
       "url": "https://example.com/{{p}}"
     },
     "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"source_type\")] | Attribute source_type value must be one of: [\"DataMap\" \"Log\" \"unspecified\"], got: \"Metric\"",
       "error: Invalid Attribute Value Match [AttributeName(\"source_type\")] | Attribute source_type value must be one of: [\"DataMap\" \"Log\"], got: \"Metric\""
     ],
     "state": null
@@ -111,7 +116,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value Length [AttributeName(\"url_fields\").ElementKeyInt(0).AttributeName(\"name\")] | Attribute url_fields[0].name string length must be at least 1, got: 0"
+      "error: Invalid Attribute Value Length [AttributeName(\"url_fields\").ElementKeyInt(0).AttributeName(\"name\")] | Attribute url_fields[0].name string length must be between 1 and 1024, got: 0"
     ],
     "state": null
   },
@@ -169,6 +174,9 @@
       "source_type": "Log",
       "url": "https://example.com/{{p}}"
     },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"name\")] | Attribute name string length must be between 1 and 50, got: 51"
+    ],
     "state": null
   }
 ]

@@ -180,6 +180,23 @@
           "url": "https://example.com/{{p}}"
         },
         "status": 200
+      },
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/actions/actions/v2",
+        "body": {
+          "action": {
+            "description": "",
+            "dpxlFilter": "",
+            "id": "00000000-0000-4000-9000-000000000002",
+            "isHidden": true,
+            "isPrivate": false,
+            "name": "tf-hidden",
+            "sourceType": "SOURCE_TYPE_LOG",
+            "url": "https://example.com/{{p}}"
+          }
+        },
+        "status": 200
       }
     ],
     "inconsistentResult": [

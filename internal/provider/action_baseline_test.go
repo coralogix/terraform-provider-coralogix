@@ -64,6 +64,13 @@ var actionDataSourceScenarios = func() map[string]func(h *grHarness) {
 		})
 		h.ReadDataSource("read an action with no optional values", byID(id))
 	}
+	out["read-empty-strings"] = func(h *grHarness) {
+		id := h.actionAPI().seed(map[string]any{
+			"name": "empty", "url": "https://example.com/hook", "sourceType": "SOURCE_TYPE_LOG", "isPrivate": false,
+			"description": "", "dpxlFilter": "",
+		})
+		h.ReadDataSource("read an action whose description and filter are empty strings", byID(id))
+	}
 	return out
 }()
 
