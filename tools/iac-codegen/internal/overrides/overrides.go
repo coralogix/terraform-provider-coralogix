@@ -328,8 +328,18 @@ func (t Type) GroupOf(field string) string {
 
 // ExtraAttribute is one Terraform-only attribute of a generated object.
 type ExtraAttribute struct {
-	// ElementType is the map value type: "string" or "int64".
+	// ElementType is the map value type: "string" or "int64". A dynamic attribute has none.
 	ElementType string `yaml:"elementType"`
+	// Dynamic: true makes the attribute a DynamicAttribute (types.Dynamic) in place of a map,
+	// for a value of any Terraform type that a handwritten hook turns into request values.
+	Dynamic bool `yaml:"dynamic"`
+	// Required: true makes the attribute Required. Only a dynamic attribute can be required: a
+	// map extra attribute stays optional.
+	Required bool `yaml:"required"`
+	// InUpdate: true says that a handwritten BeforeWrite hook sends this attribute, so a change
+	// of it makes an Update. Without it, a change of only this attribute plans an update that
+	// sends no request. It needs a resource whose Update replaces the resource (PUT).
+	InUpdate bool `yaml:"inUpdate"`
 	// WriteOnly: Terraform sends the value and does not store it.
 	WriteOnly bool `yaml:"writeOnly"`
 	// MarkdownDescription is the docs text of the attribute.
@@ -703,6 +713,10 @@ func (f *File) checkTypes() error {
 			if err := line.check(); err != nil {
 				return fmt.Errorf("types.%s.fields.%s: %w", name, field, err)
 			}
+			if line.RequestAs != "" && name != f.Resource {
+				// Only a field of the resource component has a request path of its own.
+				return fmt.Errorf("types.%s.fields.%s: requestAs works on a field of the resource component %s only", name, field, f.Resource)
+			}
 			if len(line.CreateAs) != 0 && name != f.Resource {
 				// Only the Create body of the resource has top-level fields to fold.
 				return fmt.Errorf("types.%s.fields.%s: createAs works on a field of the resource component %s only", name, field, f.Resource)
@@ -719,7 +733,8 @@ func (f *File) checkTypes() error {
 			if err := extra.check(field); err != nil {
 				return fmt.Errorf("types.%s.extraAttributes.%s: %w", name, field, err)
 			}
-			if _, ok := t.Fields[field]; ok {
+			// A skipped API field is no attribute, so an extra attribute can take its name.
+			if line, ok := t.Fields[field]; ok && !line.Skip {
 				return fmt.Errorf("types.%s.extraAttributes.%s: the type already has a field override of that name", name, field)
 			}
 		}
@@ -871,8 +886,20 @@ func (e ExtraAttribute) check(name string) error {
 	if name[0] < 'a' || name[0] > 'z' {
 		return fmt.Errorf("the attribute name %q must start with a letter", name)
 	}
-	if e.ElementType != "string" && e.ElementType != "int64" {
-		return fmt.Errorf("elementType is %q, want string or int64", e.ElementType)
+	if e.Dynamic {
+		if e.ElementType != "" || e.WriteOnly {
+			return errors.New("a dynamic attribute has no elementType and cannot be writeOnly")
+		}
+	} else {
+		if e.ElementType != "string" && e.ElementType != "int64" {
+			return fmt.Errorf("elementType is %q, want string or int64", e.ElementType)
+		}
+		if e.Required {
+			return errors.New("required applies to a dynamic attribute only")
+		}
+	}
+	if e.WriteOnly && e.InUpdate {
+		return errors.New("inUpdate cannot be combined with writeOnly: a write-only value is not in the plan or the state, so a change of only that value cannot make an Update")
 	}
 	if e.MarkdownDescription == "" {
 		return errors.New("markdownDescription is required")
@@ -891,7 +918,7 @@ func (l Field) emptyMode() bool {
 
 func (l Field) emptyValue() bool {
 	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.KeyedBy == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() &&
-		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == ""
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == ""
 }
 
 func (l Field) check() error {

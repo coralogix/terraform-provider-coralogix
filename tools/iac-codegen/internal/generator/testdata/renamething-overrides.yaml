@@ -1,0 +1,36 @@
+# A released resource whose requests have a shape of their own: the wrapper holds RenameSpec, three
+# fields have other names there (the list one object deeper), and Update sends the id beside the wrapper.
+resource: RenameThing
+mode: existing
+typeName: rename_thing
+
+validators:
+  inferred: false
+
+api:
+  requestWrapper: spec
+  updateIDInBody: true
+  updateIDOutsideWrapper: true
+  idProperty: id
+  serverSetID: true
+  customMethods: true
+  createResponseOnlyIDProperty: thingId
+  operations:
+    create: RenameThingsService_SaveRenameThing
+    get: RenameThingsService_GetRenameThing
+    update: RenameThingsService_UpdateRenameThing
+    delete: RenameThingsService_DeleteRenameThing
+
+# A Terraform-only dynamic attribute that a hook sends: a change of only that attribute is an update.
+types:
+  RenameThing:
+    fields:
+      kind: {requestAs: specKind}
+      version: {requestAs: specVersion}
+      parameters: {requestAs: holder.items}
+    extraAttributes:
+      settings:
+        dynamic: true
+        required: true
+        inUpdate: true
+        markdownDescription: Settings that a hook turns into request values.

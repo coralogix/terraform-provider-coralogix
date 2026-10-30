@@ -16,101 +16,36 @@ package integrations
 
 import (
 	"context"
-	"fmt"
-	"net/http"
-
-	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-
-	integrations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/integration_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/integration"
 )
 
-var (
-	_ datasource.DataSourceWithConfigure = &IntegrationDataSource{}
-)
-
+// NewIntegrationDataSource returns the generated data source. The generated data source reads the
+// id, the key, and the version. It does not run AfterRead, so this wrapper shows `parameters`
+// itself: every parameter that the backend holds, a secret as <redacted>.
 func NewIntegrationDataSource() datasource.DataSource {
-	return &IntegrationDataSource{}
+	h := &integrationHooks{}
+	generated := integration.NewDataSource(integration.Hooks{BeforeFlatten: h.rememberParameters})
+	return &integrationDataSource{DataSource: generated.(*integration.DataSource)}
 }
 
-type IntegrationDataSource struct {
-	client *integrations.IntegrationServiceAPIService
+type integrationDataSource struct {
+	*integration.DataSource
 }
 
-func (d *IntegrationDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_integration"
-}
-
-func (d *IntegrationDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	if req.ProviderData == nil {
+func (d *integrationDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	ctx, handoff := withHandoff(ctx)
+	d.DataSource.Read(ctx, req, resp)
+	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	d.client = clientSet.Integrations()
-}
-
-func (d *IntegrationDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r IntegrationResource
-	var resourceResp resource.SchemaResponse
-	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
-
-	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
-}
-
-func (d *IntegrationDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *IntegrationResourceModel
-	diags := req.Config.Get(ctx, &data)
+	parameters, diags := parametersToDynamic(handoff.parameters, nil)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	id := data.ID.ValueString()
-
-	rq := d.client.IntegrationServiceGetDeployedIntegration(ctx, id)
-	result, httpResponse, err := rq.Execute()
-
-	if err != nil {
-		if httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("coralogix_integration %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
-			)
-			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError("Error reading coralogix_integration",
-				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
-			)
-		}
-		return
-	}
-
-	keys, diags := KeysFromPlan(ctx, data)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-	state, e := integrationDetail(result, keys)
-	if e.HasError() {
-		resp.Diagnostics.Append(e...)
-		return
-	}
-	if hasKnownParameters(data.Parameters) {
-		state.Parameters = data.Parameters
-	}
-
-	diags = resp.State.Set(ctx, state)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("parameters"), parameters)...)
 }

@@ -23,6 +23,7 @@ func applyReleasedShape(r *model.Resource, file *overrides.File, full []sdkcheck
 	if err := applyRequiresReplace(r, file); err != nil {
 		return nil, err
 	}
+	moveOutsideUpdateID(r)
 	before := reachableComponents(r)
 	paths, err := removeUnsupportedArms(r, file)
 	if err != nil {
@@ -255,4 +256,19 @@ func checkReachableLines(file *overrides.File, before, after map[string]bool) er
 		}
 	}
 	return nil
+}
+
+// moveOutsideUpdateID makes the Update id that the body carries beside the request wrapper a
+// server-set body id. The model has it as a field that Update sends, but the user never changes
+// it: Update copies the id of the state into the body field, as for any server-set id in the body,
+// and the id is no value of the update mask or of the request fields.
+func moveOutsideUpdateID(r *model.Resource) {
+	if !r.UpdateIDOutsideWrapper || r.Singleton {
+		return
+	}
+	for _, f := range r.Fields {
+		if f.Name == r.ID() {
+			f.Update = nil
+		}
+	}
 }

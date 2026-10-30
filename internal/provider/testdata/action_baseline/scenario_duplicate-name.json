@@ -137,7 +137,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_action | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Action with name first already exists\"}\noperation - Create"
+      "error: Unable to create action | 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Action with name first already exists\"}"
     ],
     "state": null
   },
@@ -183,7 +183,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating coralogix_action | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Action with name first already exists\"}\noperation - Update"
+      "error: Unable to update action | id 00000000-0000-4000-9000-000000000002: 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Action with name first already exists\"}"
     ],
     "state": {
       "applications": null,

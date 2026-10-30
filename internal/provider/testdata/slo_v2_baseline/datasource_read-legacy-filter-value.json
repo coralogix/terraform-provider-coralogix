@@ -26,6 +26,7 @@
           "filters": [
             {
               "key": "environment",
+              "match_operator": null,
               "values": [
                 "prod"
               ]

@@ -67,7 +67,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_integration | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: the integration could not be saved\"}\noperation - Create"
+      "error: Unable to create integration | 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: the integration could not be saved\"}"
     ],
     "state": null
   }

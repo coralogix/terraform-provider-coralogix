@@ -38,7 +38,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Testing the integration has failed | API responded with an error: 404 Not Found"
+      "error: Testing the integration has failed | API responded with an error: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Integration type by integration key not found: does-not-exist\"}"
     ],
     "state": null
   }

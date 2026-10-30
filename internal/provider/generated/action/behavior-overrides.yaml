@@ -1,0 +1,119 @@
+# Where coralogix_action differs from the API contract, because users already have it.
+#
+# A field with a line here keeps its released behavior. A field without a line follows the API
+# contract.
+resource: v2.Action
+mode: existing
+typeName: action
+
+markdownDescription: "Coralogix action. For more info please review - https://coralogix.com/docs/coralogix-action-extension/."
+
+schema:
+  version: 0
+
+# The limits of the contract are the validators. They are limits that the API enforces: the name
+# is 1 to 50 characters and the url must start with http:// or https:// (both recorded).
+validators:
+  inferred: true
+
+api:
+  operations:
+    create: ActionsService_CreateAction
+    get: ActionsService_GetAction
+    update: ActionsService_ReplaceAction
+    delete: ActionsService_DeleteAction
+  # Replace has no id in its path, and takes the action in {action: ...}. Create takes the
+  # fields of the action directly.
+  requestWrapper: action
+  updateIDInBody: true
+  # The id is in every response, but the contract shares the action schema between the requests
+  # and the response, so it cannot require it in Get.
+  serverSetID: true
+
+types:
+  v2.Action:
+    fields:
+      id:
+        readOnly: true
+        markdownDescription: "Action ID."
+      name:
+        required: true # the contract has no required list: the request shares the action schema
+        markdownDescription: "Action name."
+      url:
+        required: true
+        validators:
+          - regexMatches:
+              pattern: "^https?://.*$"
+              message: "must start with http:// or https://"
+        markdownDescription: "URL for the external tool."
+      sourceType:
+        required: true
+        validators: [{enumExceptZero: true}]
+        markdownDescription: "By selecting the data type, you can make sure that the action will be displayed only in the relevant context. Can be one of [\"DataMap\" \"Log\"]"
+      description:
+        sendNullAsEmpty: true # the API keeps a stored value that a request omits
+        readEmptyAs: "null"
+        markdownDescription: "Free-text description of the action. Removing this line clears the description."
+      dpxlFilter:
+        sendNullAsEmpty: true
+        readEmptyAs: "null"
+        validators:
+          - regexMatches:
+              pattern: "^(<v1>|$)"
+              message: "must be empty or start with a version prefix, e.g. `<v1> $d.severity == 'ERROR'`"
+        markdownDescription: "DPXL expression that scopes when the action is offered. The expression must include a version prefix, e.g. `<v1> $d.severity == 'ERROR'`. Removing this line clears the filter."
+      urlFields:
+        readEmptyAs: "null"
+        markdownDescription: "Declarations for the `{{placeholder}}` slots in `url`, in the configured order."
+      createdBy:
+        useStateForUnknown: true
+        markdownDescription: "The user who created the action."
+      # The API sets isHidden only on Replace and returns it in every response (the Create
+      # request has no such field). The released attribute is deprecated and has a default.
+      isHidden:
+        optional: true
+        computed: true
+        default: false
+        deprecation: "`is_hidden` is a per-user UI preference, not a property of the action. It will be removed in a future version."
+        markdownDescription: "Deprecated: `is_hidden` is a per-user UI preference, not a property of the action. It will be removed in a future version."
+      isPrivate:
+        optional: true
+        computed: true
+        default: true
+        markdownDescription: "Determines weather the action will be shared with the entire team. Can be set to false only by admin."
+      applicationNames:
+        name: applications
+        collection: set
+        computed: true
+        readEmptyAs: "null" # the released attribute is null when the action has none
+        validators: [{sizeAtLeast: 1}]
+        markdownDescription: "Applies the action for specific applications."
+      subsystemNames:
+        name: subsystems
+        collection: set
+        computed: true
+        readEmptyAs: "null" # the released attribute is null when the action has none
+        validators: [{sizeAtLeast: 1}]
+        markdownDescription: "Applies the action for specific subsystems."
+  UrlField:
+    fields:
+      name:
+        markdownDescription: "URL field name. Must be unique within `url_fields`."
+      required:
+        markdownDescription: "Whether the field must be present for the action to be invokable."
+
+enums:
+  v2.SourceType:
+    zero: unspecified
+    values: [SOURCE_TYPE_LOG, SOURCE_TYPE_DATA_MAP]
+    names:
+      SOURCE_TYPE_LOG: Log
+      SOURCE_TYPE_DATA_MAP: DataMap
+
+# The released data source showed the value of the API, also "", where the resource reads "" as null.
+dataSource:
+  types:
+    v2.Action:
+      fields:
+        description: {readEmptyAs: value}
+        dpxlFilter: {readEmptyAs: value}

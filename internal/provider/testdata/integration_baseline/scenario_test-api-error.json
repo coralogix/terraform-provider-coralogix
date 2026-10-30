@@ -44,7 +44,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Testing the integration has failed | API responded with an error: 500 Internal Server Error"
+      "error: Testing the integration has failed | API responded with an error: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: the integration could not be tested\"}"
     ],
     "state": null
   }

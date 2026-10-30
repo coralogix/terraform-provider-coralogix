@@ -1,0 +1,118 @@
+# A resource that users already have, whose Create and Update bodies hold the values under other
+# names than the resource has: the inline request wraps them in spec (a component that is not the
+# resource), names two of them differently, and puts the list one object deeper. Update sends the id
+# beside the wrapper, and the id path parameter is not named like the id property.
+openapi: 3.1.0
+info: {title: rename, version: 1.0.0}
+paths:
+  /rename/v1/things:
+    post:
+      tags: [Rename Things Service]
+      operationId: RenameThingsService_SaveRenameThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: SaveRenameThingRequest
+              type: object
+              required: [spec]
+              properties:
+                spec: {$ref: '#/components/schemas/RenameSpec'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SaveRenameThingResponse'}
+    put:
+      tags: [Rename Things Service]
+      operationId: RenameThingsService_UpdateRenameThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: UpdateRenameThingRequest
+              type: object
+              required: [spec]
+              properties:
+                id: {type: string, x-coralogix-presence: true}
+                spec: {$ref: '#/components/schemas/RenameSpec'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/UpdateRenameThingResponse'}
+  /rename/v1/things/{thing_id}:
+    parameters:
+      - {name: thing_id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Rename Things Service]
+      operationId: RenameThingsService_GetRenameThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetRenameThingResponse'}
+    delete:
+      tags: [Rename Things Service]
+      operationId: RenameThingsService_DeleteRenameThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteRenameThingResponse'}
+components:
+  schemas:
+    SaveRenameThingResponse:
+      type: object
+      required: [thingId]
+      properties:
+        thingId: {type: string, minLength: 1}
+    UpdateRenameThingResponse:
+      type: object
+      required: []
+    GetRenameThingResponse:
+      type: object
+      required: [thing]
+      properties:
+        thing: {$ref: '#/components/schemas/RenameThing'}
+    DeleteRenameThingResponse:
+      type: object
+      required: []
+    RenameSpec:
+      type: object
+      required: [specKind, holder]
+      properties:
+        specKind: {type: string, minLength: 1}
+        specVersion: {type: string, x-coralogix-presence: true}
+        holder: {$ref: '#/components/schemas/RenameHolder'}
+    RenameHolder:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          items: {$ref: '#/components/schemas/RenameParam'}
+    RenameThing:
+      type: object
+      required: [kind]
+      properties:
+        id: {type: string, x-coralogix-presence: true}
+        kind: {type: string, minLength: 1}
+        version: {type: string, x-coralogix-presence: true}
+        parameters:
+          type: array
+          minItems: 1
+          items: {$ref: '#/components/schemas/RenameParam'}
+    RenameParam:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string, minLength: 1}
+        value: {type: string, x-coralogix-presence: true}

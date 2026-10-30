@@ -413,7 +413,7 @@ func TestDashboardOpenAPIClientReplaceRejectionLeavesPriorDashboardReadable(t *t
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			_, _ = w.Write([]byte(`{"code":422,"message":"` + backendDetail + `"}`))
 		case r.Method == http.MethodGet && r.URL.Path == "/dashboards/dashboards/v1/"+dashboardID:
-			_, _ = w.Write([]byte(`{"dashboard":{"id":"` + dashboardID + `","name":"prior dashboard","layout":{"sections":[]}}}`))
+			_, _ = w.Write([]byte(`{"dashboard":{"id":"` + dashboardID + `","name":"prior dashboard","layout":{"sections":[]}},"permissions":{"canRead":true,"canReadAccessPolicy":true,"canUpdate":true,"canUpdateAccessPolicy":true}}`))
 		default:
 			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
 		}

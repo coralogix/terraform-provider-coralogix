@@ -72,7 +72,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_integration | error - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: the integration could not be read\"}\noperation - Read"
+      "error: Unable to create integration | created integration with id 00000000-0000-4000-8000-000000000001, but could not read it: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: the integration could not be read\"}"
     ],
     "state": null
   },

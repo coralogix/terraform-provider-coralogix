@@ -172,6 +172,10 @@ types:
         required: true
         markdownDescription: "Values to match, with OR semantics."
         validators: [{sizeAtLeast: 1}]
+      matchOperator:
+        computed: true
+        default: unspecified
+        validators: [{enum: true}]
       # The released resource never sends the deprecated singular value.
       value: {skip: true}
 
@@ -212,6 +216,10 @@ enums:
   MissingDataStrategy:
     trimPrefix: MISSING_DATA_STRATEGY_
     values: [MISSING_DATA_STRATEGY_UNCOUNTED, MISSING_DATA_STRATEGY_GOOD, MISSING_DATA_STRATEGY_BAD]
+  ApmFilterMatchOperator:
+    zero: unspecified
+    trimPrefix: APM_FILTER_MATCH_OPERATOR_
+    values: [APM_FILTER_MATCH_OPERATOR_IS, APM_FILTER_MATCH_OPERATOR_STARTS_WITH, APM_FILTER_MATCH_OPERATOR_ENDS_WITH, APM_FILTER_MATCH_OPERATOR_INCLUDES]
   SloProductType:
     zero: unspecified
     trimPrefix: SLO_PRODUCT_TYPE_

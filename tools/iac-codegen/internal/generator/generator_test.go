@@ -3096,3 +3096,135 @@ func TestCreateResponseIDAsAValue(t *testing.T) {
 	}
 	compileGenerated(t, out, input)
 }
+
+// The golden output of a released resource whose Create and Update requests hold a component of
+// their own in the wrapper: two fields have other names there, the list is one object deeper, and
+// Update sends the id beside the wrapper.
+func TestGoldenOutputRequestShape(t *testing.T) {
+	out := generateRenameThing(t)
+	golden := filepath.Join("testdata", "golden", "renamething")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputRequestShape -update:\n%s", diff)
+	}
+}
+
+// Create and Update write the fields of the request component under the names of their request
+// paths, and Update sends the id of the state beside the wrapper.
+func TestRequestShapeRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateRenameThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "renamething_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// generateRenameThing generates the synthetic resource whose requests differ in shape from its read.
+func generateRenameThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "renamething.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "renamething")
+	options := Options{Resource: "RenameThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "renamething-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// An optional field whose request path goes through an optional object that the SDK holds in a
+// pointer is refused: expand would send the empty object for a null value.
+func TestRequestShapeRefusesAnOptionalPathThroughAPointerObject(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "renamething.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec = []byte(strings.Replace(string(spec), "required: [specKind, holder]", "required: [specKind]", 1))
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "renamething")
+	options := Options{Resource: "RenameThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "renamething-overrides.yaml")}
+	err = generateFromInput(options, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "optional object") {
+		t.Fatalf("generate = %v, want an error about the optional object on the request path", err)
+	}
+}
+
+// A dynamic extra attribute in a nested component is refused: only the top level keeps its value.
+func TestDynamicExtraInANestedComponentIsRefused(t *testing.T) {
+	overrides, err := os.ReadFile(filepath.Join("testdata", "renamething-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, "overrides.yaml")
+	nested := string(overrides) + "  RenameParam:\n    extraAttributes:\n      note:\n        dynamic: true\n        markdownDescription: A note.\n"
+	if err := os.WriteFile(path, []byte(nested), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	spec, err := os.ReadFile(filepath.Join("testdata", "renamething.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	err = generateFromInput(Options{Resource: "RenameThing", OutputDir: filepath.Join(dir, "out"), OverridesPath: path}, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "dynamic applies to an attribute of the resource") {
+		t.Fatalf("generate = %v, want the dynamic-in-a-nested-component error", err)
+	}
+}
+
+// A skipped field has no request path in the generated code: the object that only it goes through
+// is not set, and the field is not an attribute.
+func TestRequestShapeSkippedFieldHasNoRequestPath(t *testing.T) {
+	overrides, err := os.ReadFile(filepath.Join("testdata", "renamething-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec, err := os.ReadFile(filepath.Join("testdata", "renamething.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The skip needs a request that does not require the field, so the holder becomes optional.
+	spec = []byte(strings.Replace(string(spec), "required: [specKind, holder]", "required: [specKind]", 1))
+	dir := t.TempDir()
+	path := filepath.Join(dir, "overrides.yaml")
+	skipped := strings.Replace(string(overrides), "      parameters: {requestAs: holder.items}", "      parameters: {skip: true, requestAs: holder.items}", 1)
+	if err := os.WriteFile(path, []byte(skipped), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(dir, "renamething")
+	if err := generateFromInput(Options{Resource: "RenameThing", OutputDir: out, OverridesPath: path}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	convert, err := os.ReadFile(filepath.Join(out, "convert.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, unwanted := range []string{"Holder", "Parameters", "RenameParam"} {
+		if strings.Contains(string(convert), unwanted) {
+			t.Errorf("convert.go mentions %s of the skipped field", unwanted)
+		}
+	}
+	if !strings.Contains(string(convert), "out.SpecKind = expandString(m.Kind)") {
+		t.Error("convert.go does not write the renamed kind")
+	}
+}

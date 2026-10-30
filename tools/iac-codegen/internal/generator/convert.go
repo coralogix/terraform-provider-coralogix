@@ -612,6 +612,62 @@ func (b *convBuilder) parentField(obj *convObject, root convRoot, parent *overri
 	return ref.Name, nil
 }
 
+// requestComponent returns the component that the request wrapper of the body at path holds when
+// it is not the resource, and "" otherwise.
+func (b *convBuilder) requestComponent(path string) string {
+	op := b.resource.Create
+	if path == "update.body" {
+		op = b.resource.Update
+	}
+	if op.RequestComponent == b.resource.Name {
+		return ""
+	}
+	return op.RequestComponent
+}
+
+// requestObjects returns the Go selector prefix of the objects that the request path of f goes
+// through, for example "IntegrationParameters.". An object that the SDK holds in a pointer is set
+// by expand before the fields that it holds, so they are always sent.
+func (b *convBuilder) requestObjects(obj *convObject, root convRoot, f *model.ResourceField) (string, error) {
+	segments := strings.Split(f.RequestPath, ".")
+	prefix := ""
+	for _, segment := range segments[:len(segments)-1] {
+		via := root.path + "." + f.Name + ".via." + segment
+		ref, err := b.ix.fieldRef(via)
+		if err != nil {
+			return "", err
+		}
+		typ, err := b.ix.typeRef(via)
+		if err != nil {
+			return "", err
+		}
+		prefix += ref.Name + "."
+		switch ref.Want {
+		case typ.Name:
+		case "*" + typ.Name:
+			if attrs := requestAttrs(root, f); attrs != nil && !attrs.Required {
+				// expand allocates the object before it reads the field, so a null value would
+				// send an empty object, which the API can read as a value.
+				return "", fmt.Errorf("the request path %q goes through the optional object %s, which expand would send empty for a null %s: make the object required in the contract, or set the field in a hook", f.RequestPath, ref.SDKName(), f.Name)
+			}
+			if at := strings.TrimSuffix(prefix, "."); !slices.ContainsFunc(obj.Parents, func(p convParent) bool { return p.SDK == at }) {
+				obj.Parents = append(obj.Parents, convParent{SDK: at, Type: b.qualify(typ.Name)})
+			}
+		default:
+			return "", fmt.Errorf("SDK field %s has type %s, want %s or *%s", ref.SDKName(), ref.Want, typ.Name, typ.Name)
+		}
+	}
+	return prefix, nil
+}
+
+// requestAttrs returns the lifecycle attributes of f in the request of the root, or nil.
+func requestAttrs(root convRoot, f *model.ResourceField) *model.Attrs {
+	if root.path == "update.body" {
+		return f.Update
+	}
+	return f.Create
+}
+
 // buildRoot builds one root object and its fields.
 func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 	ref, err := b.ix.typeRef(root.path)
@@ -646,6 +702,14 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 		cf, err := b.field(fieldsPath, b.resource.Name, f.Name, typ, responseOnly(f.Behavior), hasPresence(f.Get))
 		if err != nil {
 			return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+		}
+		if root.expand && fieldsPath == root.path && f.RequestPath != "" {
+			// The request holds the field deeper than the wrapper, so the Go expression goes through the objects.
+			prefix, err := b.requestObjects(obj, root, f)
+			if err != nil {
+				return fmt.Errorf("%s.%s: %w", root.path, f.Name, err)
+			}
+			cf.SDK = prefix + cf.SDK
 		}
 		if parent := root.parent(f); parent != nil {
 			// The SDK holds the field in the inlined object, so the Go expression goes through it.
@@ -691,23 +755,35 @@ func (b *convBuilder) rootObject(out *convData, root convRoot, ref sdkcheck.Ref)
 	switch {
 	case root.path == "fields":
 		return b.object(r.Name, ref), root.path, nil
-	case r.Policy.RequestWrapper != "" && root.expand:
-		body, wrap, err := b.bodyWrapper(root.path, r.Policy.RequestWrapper)
-		if err != nil {
-			return nil, "", err
-		}
+	case r.Policy.WrapperOf(root.path == "create.body") != "" && root.expand:
+		// The wrapper holds the resource, or another component of the spec when the request has a
+		// shape of its own (the request component). Expand then writes that component, and each
+		// field has the SDK name that its request path gives.
+		wrapped, fieldsPath := "", "fields"
 		resourceRef, err := b.ix.typeRef("fields")
 		if err != nil {
 			return nil, "", err
 		}
+		wrapped = resourceRef.Name
+		if b.requestComponent(root.path) != "" {
+			requestRef, err := b.ix.typeRef(root.path + "." + r.Policy.RequestWrapper)
+			if err != nil {
+				return nil, "", err
+			}
+			wrapped, fieldsPath = requestRef.Name, root.path
+		}
+		body, wrap, err := b.bodyWrapper(root.path, r.Policy.RequestWrapper, wrapped)
+		if err != nil {
+			return nil, "", err
+		}
 		verb := strings.ToUpper(root.path[:1]) + root.path[1:strings.Index(root.path, ".")]
-		obj := &convObject{Func: camelize(r.Name) + verb, Model: modelTypeName(r.Name), SDK: resourceRef.Name}
+		obj := &convObject{Func: camelize(r.Name) + verb, Model: modelTypeName(r.Name), SDK: wrapped}
 		if root.path == "create.body" {
 			out.CreateBody, out.CreateWrap = body, wrap
 		} else {
 			out.UpdateBody, out.UpdateWrap = body, wrap
 		}
-		return obj, "fields", nil
+		return obj, fieldsPath, nil
 	}
 	function := camelize(ref.Name)
 	if root.path == "create.body" {
@@ -952,7 +1028,7 @@ func serverDefault(r *model.Resource, f *model.ResourceField) bool {
 }
 
 // bodyWrapper returns the SDK request body type and the field that holds the resource.
-func (b *convBuilder) bodyWrapper(bodyPath, wrapper string) (string, *bodyWrap, error) {
+func (b *convBuilder) bodyWrapper(bodyPath, wrapper, wrapped string) (string, *bodyWrap, error) {
 	body, err := b.ix.typeRef(bodyPath)
 	if err != nil {
 		return "", nil, err
@@ -961,17 +1037,13 @@ func (b *convBuilder) bodyWrapper(bodyPath, wrapper string) (string, *bodyWrap, 
 	if err != nil {
 		return "", nil, err
 	}
-	resource, err := b.ix.typeRef("fields")
-	if err != nil {
-		return "", nil, err
-	}
 	switch field.Want {
-	case "*" + resource.Name:
+	case "*" + wrapped:
 		return body.Name, &bodyWrap{Field: field.Name}, nil
-	case resource.Name:
+	case wrapped:
 		return body.Name, &bodyWrap{Field: field.Name, Value: true}, nil
 	}
-	return "", nil, fmt.Errorf("SDK field %s has type %s, want *%s", field.SDKName(), field.Want, resource.Name)
+	return "", nil, fmt.Errorf("SDK field %s has type %s, want *%s", field.SDKName(), field.Want, wrapped)
 }
 
 // enumMapFor returns the mapping of the enum, or nil when the overrides do not state it.

@@ -210,7 +210,7 @@ func dashboardStateUpgradeTestServer(t *testing.T) *httptest.Server {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"dashboard":{"id":"` + dashboardErrorPathTestID + `","name":"upgraded dashboard","layout":{"sections":[]}}}`))
+		_, _ = w.Write([]byte(`{"dashboard":{"id":"` + dashboardErrorPathTestID + `","name":"upgraded dashboard","layout":{"sections":[]}},"permissions":{"canRead":true,"canReadAccessPolicy":true,"canUpdate":true,"canUpdateAccessPolicy":true}}`))
 	}))
 	t.Cleanup(server.Close)
 	return server

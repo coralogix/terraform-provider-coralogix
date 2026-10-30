@@ -151,7 +151,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error update coralogix_integration | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Integration not found: 00000000-0000-4000-8000-000000000001\"}\noperation - Update"
+      "error: Resource no longer exists | The API did not find integration with id 00000000-0000-4000-8000-000000000001. Run terraform apply without -refresh=false: the refresh removes it from state, and the plan creates it again."
     ],
     "state": {
       "id": "00000000-0000-4000-8000-000000000001",

@@ -46,6 +46,10 @@ type File struct {
 	// Values maps the path of a field to an HCL expression. A path names the attributes from the
 	// resource down, and [] marks a list or set element: rules[].targets[].connector_id.
 	Values map[string]string `yaml:"values"`
+	// UpdatedValues maps the path of a field that values sets to the HCL expression of the updated
+	// config, for a value that the generator cannot change on its own, such as the object of a
+	// dynamic attribute. An immutable field keeps its value of the full config.
+	UpdatedValues map[string]string `yaml:"updatedValues"`
 	// Skip lists the fields that the test configs leave out, for example a deprecated field that
 	// the API refuses next to its replacement. A path has the same form as in values.
 	Skip []string `yaml:"skip"`
@@ -106,7 +110,7 @@ func (f *File) check() error {
 	if f.Resource == "" {
 		return errors.New("resource is required")
 	}
-	steps := []func() error{f.checkEnv, f.checkValues, f.checkPaths, f.checkVersionAndText, f.checkUpgradeCases}
+	steps := []func() error{f.checkEnv, f.checkValues, f.checkUpdatedValues, f.checkPaths, f.checkVersionAndText, f.checkUpgradeCases}
 	for _, step := range steps {
 		if err := step(); err != nil {
 			return err
@@ -144,6 +148,26 @@ func (f *File) checkValues() error {
 	return nil
 }
 
+func (f *File) checkUpdatedValues() error {
+	paths := make([]string, 0, len(f.UpdatedValues))
+	for path := range f.UpdatedValues {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+	for _, path := range paths {
+		if _, ok := f.Values[path]; !ok {
+			return fmt.Errorf("updatedValues: %q is not in values: it changes a value that values sets", path)
+		}
+		if strings.TrimSpace(f.UpdatedValues[path]) == "" {
+			return fmt.Errorf("updatedValues.%s is empty", path)
+		}
+		if err := f.checkPlaceholders("updatedValues."+path, f.UpdatedValues[path]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (f *File) checkPaths() error {
 	for name, paths := range map[string][]string{"skip": f.Skip, "minimal": f.Minimal, "upgradeMinimal": f.UpgradeMinimal} {
 		for _, path := range paths {
@@ -163,6 +187,9 @@ func (f *File) checkVersionAndText() error {
 		return errors.New("upgradeMinimal needs upgradeFrom: without it there is no upgrade test")
 	}
 	texts := append([]string{f.Prerequisites}, f.valueTexts()...)
+	for _, text := range f.UpdatedValues {
+		texts = append(texts, text)
+	}
 	for _, c := range f.UpgradeCases {
 		for _, path := range c.ValuePaths() {
 			texts = append(texts, c.Values[path])

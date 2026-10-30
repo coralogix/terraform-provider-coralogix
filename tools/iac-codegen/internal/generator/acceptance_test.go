@@ -135,6 +135,42 @@ func TestAcceptanceSetsExtraAttributesWhenValuesNameThem(t *testing.T) {
 	}
 }
 
+// updatedValues replaces a value of the full config in the updated config only, for a value that
+// the generator cannot change on its own, such as the object of a dynamic attribute.
+func TestAcceptanceUpdatedValuesChangeOnlyTheUpdatedConfig(t *testing.T) {
+	dynamic := &tfAttr{Name: "settings", Kind: "Dynamic", ValueKind: "Dynamic", Required: true, Extra: true}
+	s := testSynth(t, "values:\n  settings: '{ mode = \"a\" }'\nupdatedValues:\n  settings: '{ mode = \"b\" }'\n")
+	full, _, err := s.attrs([]*tfAttr{dynamic}, "", "", accFull, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	updated, _, err := s.attrs([]*tfAttr{dynamic}, "", "", accUpdated, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(full, `mode = "a"`) || !strings.Contains(updated, `mode = "b"`) {
+		t.Fatalf("full:\n%s\nupdated:\n%s\nwant the value of values, then the one of updatedValues", full, updated)
+	}
+	if err := s.checkFile(); err != nil {
+		t.Fatalf("checkFile = %v, want nil: the updated config used the line", err)
+	}
+}
+
+// An updatedValues line that no updated config uses is an error, and so is one without a values line.
+func TestAcceptanceUpdatedValuesNeedAValueAndAnAttribute(t *testing.T) {
+	if _, err := acceptance.Parse([]byte("resource: Thing\nupdatedValues:\n  settings: '{}'\n")); err == nil || !strings.Contains(err.Error(), "updatedValues") {
+		t.Fatalf("Parse = %v, want an error that names updatedValues: it changes a value that values sets", err)
+	}
+	dynamic := &tfAttr{Name: "settings", Kind: "Dynamic", ValueKind: "Dynamic", Required: true, Extra: true}
+	s := testSynth(t, "values:\n  settings: '{ mode = \"a\" }'\nupdatedValues:\n  settings: '{ mode = \"b\" }'\n")
+	if _, _, err := s.attrs([]*tfAttr{dynamic}, "", "", accFull, true); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.checkFile(); err == nil || !strings.Contains(err.Error(), "updatedValues") {
+		t.Fatalf("checkFile = %v, want an error: no updated config used the line", err)
+	}
+}
+
 func extraUpgradeResource() *tfResource {
 	return &tfResource{Package: "p", CRUD: &crudData{TypeName: "thing", IDAttr: "id", Resource: "Thing"}, Attributes: []*tfAttr{
 		{Name: "name", Kind: "String", Required: true},
