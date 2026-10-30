@@ -26,8 +26,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/actions/actions/v2",
         "body": {
-          "description": "",
-          "dpxlFilter": "",
           "isPrivate": false,
           "name": "tf-action",
           "sourceType": "SOURCE_TYPE_LOG",

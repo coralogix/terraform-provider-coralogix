@@ -4,7 +4,7 @@
 - CHORE: The resource is generated from the API contract. The schema, the import by id, and the state version are the same. A plan with an action that was created by 3.22.1 shows no change.
 - FIX: An update of an action that was deleted outside Terraform fails with `Resource no longer exists` and the next refresh removes it from state. Before, it printed a warning with a pointer instead of the id, and Terraform failed with `Missing Resource State After Update`.
 - CHORE: The plan rejects what the API rejects at apply: a `name` of more than 50 characters, a `url` that does not start with `http://` or `https://`, and values over the API size limits (`description`, `dpxl_filter`, `applications`, `subsystems`, `url_fields`). Before, `url` accepted any text that parsed as a URL, so `ftp://example.com` failed at apply.
-- CHORE: Create sends `description = ""` and `dpxl_filter = ""` when they are not set, so removing them later clears them with the same call. They still read back as null.
+- CHORE: Update sends `description = ""` and `dpxl_filter = ""` when they are not set, so removing them from the configuration clears them (the API keeps a value that a request omits). Create omits them, as before. They still read back as null.
 - CHORE: API errors read `Unable to create action`, `Unable to update action`, and `Unable to read action` instead of `Error creating coralogix_action`, and so on. A refresh that finds the action deleted warns `Resource disappeared during read`.
 
 #### data-source/coralogix_action
