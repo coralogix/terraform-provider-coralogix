@@ -184,6 +184,12 @@ def check(base_ref):
             fail(f"This change adds '{heading}' but {VERSION_GO} is {current}. Add the entries "
                  f"under '{UNRELEASED}'; `make bump` opens the release PR.")
     if current == base:
+        # A pending entry that a PR drops would be missing from the next release's notes.
+        kept = entries(changelog, UNRELEASED)
+        dropped = [e for e in entries(base_changelog, UNRELEASED) or [] if e not in kept]
+        if dropped:
+            fail(f"This change removes or edits '{dropped[0]}' under '{UNRELEASED}', which master already "
+                 f"has. Restore it, and add your own entries next to it.")
         print(f"Version stays {current}; no release.")
         return
     allowed = next_versions(base)
