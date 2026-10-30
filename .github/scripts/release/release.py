@@ -140,16 +140,10 @@ def bump(kind):
     finally:
         run("git", "worktree", "remove", "--force", worktree)
         run("git", "branch", "-D", branch)
-    # Auto-merge for this PR only. It is enabled with your login, so the merge counts as yours
-    # and starts release-provider.yml (a merge by the Actions token would not).
-    try:
-        run("gh", "pr", "merge", url, "--auto", "--squash")
-    except subprocess.CalledProcessError as e:
-        print(f"::warning::Could not turn on auto-merge ({e.stderr.strip()}); merge {url} once it is approved.")
-        print(f"{current} -> {new}. Merging {url} releases v{new}.")
-        return
-    print(f"{current} -> {new}. {url} merges itself once CI is green and approve-release.yml approves it; "
-          f"that releases v{new}.")
+    # No auto-merge: it would merge on any approval once the required checks pass, before
+    # the rest of CI finishes. approve-release.yml merges the PR after every check is green.
+    print(f"{current} -> {new}. Once every check on {url} is green, approve-release.yml approves and "
+          f"merges it; that releases v{new}.")
 
 
 def check(base_ref):

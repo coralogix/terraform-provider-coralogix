@@ -9,6 +9,10 @@
 # GitHub's generated notes, and waits until the Terraform Registry serves the version.
 # If the Registry never lists it, the run fails; release the next patch with `make bump`.
 # A failed job can be re-run from the Actions UI: tagging is idempotent.
+#
+# approve-release.yml merges release PRs with the Actions token, and a push by that token
+# starts no workflow, so it starts this one by workflow_dispatch with the merge commit.
+# A release PR merged by a person starts it by push.
 name: release-provider
 
 on:
@@ -17,6 +21,12 @@ on:
       - master
     paths:
       - internal/clientset/version.go
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Commit on master that bumps internal/clientset/version.go.
+        required: true
+        type: string
 
 # One release at a time. queue: max keeps every pending run (the default keeps only
 # the newest), so a version merged while another is publishing is not skipped.
@@ -39,17 +49,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.sha || github.sha }}
           fetch-depth: 0
-      - name: Check the bump
-        # The same check as on the PR, against master before this push.
+      - id: commit
+        name: Find the release commit
         env:
-          BEFORE: ${{ github.event.before }}
+          SHA: ${{ inputs.sha || github.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          sha=$(git rev-parse --verify "$SHA^{commit}")
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            # master has linear history, so master before the merge is the commit's parent.
+            if ! git merge-base --is-ancestor "$sha" origin/master; then
+              echo "::error::$SHA is not a commit on master"; exit 1
+            fi
+            before=$(git rev-parse "$sha^")
+          else
+            before=$PUSH_BEFORE
+          fi
+          { echo "sha=$sha"; echo "before=$before"; } >> "$GITHUB_OUTPUT"
+      - name: Check the bump
+        # The same check as on the PR, against master before this merge.
+        env:
+          BEFORE: ${{ steps.commit.outputs.before }}
         run: python3 .github/scripts/release/release.py check "$BEFORE"
       - id: tag
         name: Create the tag
         env:
           GH_TOKEN: ${{ github.token }}
-          BEFORE: ${{ github.event.before }}
+          BEFORE: ${{ steps.commit.outputs.before }}
+          SHA: ${{ steps.commit.outputs.sha }}
         run: |
           read_version() { sed -n 's/^const TF_PROVIDER_VERSION = "\(.*\)"$/\1/p'; }
           version=$(read_version < internal/clientset/version.go)
@@ -60,10 +89,10 @@ jobs:
           tag="v$version"
           existing=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --jq .object.sha 2>/dev/null || true)
           if [ -z "$existing" ]; then
-            gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$tag" -f sha="$GITHUB_SHA" >/dev/null
-            echo "Tagged $GITHUB_SHA as $tag" | tee -a "$GITHUB_STEP_SUMMARY"
-          elif [ "$existing" != "$GITHUB_SHA" ]; then
-            echo "::error::Tag $tag already exists at $existing, not at $GITHUB_SHA"; exit 1
+            gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$tag" -f sha="$SHA" >/dev/null
+            echo "Tagged $SHA as $tag" | tee -a "$GITHUB_STEP_SUMMARY"
+          elif [ "$existing" != "$SHA" ]; then
+            echo "::error::Tag $tag already exists at $existing, not at $SHA"; exit 1
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
