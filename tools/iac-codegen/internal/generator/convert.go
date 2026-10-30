@@ -755,7 +755,7 @@ func (b *convBuilder) rootObject(out *convData, root convRoot, ref sdkcheck.Ref)
 	switch {
 	case root.path == "fields":
 		return b.object(r.Name, ref), root.path, nil
-	case r.Policy.RequestWrapper != "" && root.expand:
+	case r.Policy.WrapperOf(root.path == "create.body") != "" && root.expand:
 		// The wrapper holds the resource, or another component of the spec when the request has a
 		// shape of its own (the request component). Expand then writes that component, and each
 		// field has the SDK name that its request path gives.
