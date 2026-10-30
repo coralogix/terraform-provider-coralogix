@@ -11,7 +11,6 @@
 - CHORE: The data source is generated with the resource and uses its schema.
 - FIX: A read of an id that does not exist fails with `coralogix_action not found`. Before, it warned that the action would be recreated, which a data source cannot do.
 - CHORE: API errors read `Unable to read coralogix_action` instead of `Error reading coralogix_action`.
-- CHORE: `url_fields` is null for an action that has none, as in the resource. Before, it was `[]`.
 
 #### resource/coralogix_integration
 - CHORE: The resource is generated from the API contract. The schema, the requests, and the state are the same as before, including that a change of `version` updates in place and a change of `integration_key` replaces the resource.
