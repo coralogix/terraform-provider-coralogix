@@ -1,0 +1,165 @@
+# Approves and merges the release PRs that `make bump` opens once their CI is green, so that
+# a release needs no human review. The merge happens here, after the check, and not by
+# auto-merge: auto-merge would merge as soon as anyone approves and the required checks pass,
+# while other checks are still running. A merge by the Actions token starts no workflow, so
+# this workflow then starts release-provider.yml with the merge commit.
+#
+# A release PR only versions code that was already reviewed on master. This workflow approves
+# one only when its branch is release-X.Y.Z in this repository, it changes nothing but
+# CHANGELOG.md and the version line in internal/clientset/version.go, X.Y.Z is that new
+# version, `release.py check` passes, and every check on the PR's latest commit has passed,
+# including the acceptance tests. CODEOWNERS leaves those two files without owners, so this
+# approval is the one review the PR needs. Approvals of an older commit are dismissed, so a
+# later push is never merged on an old approval.
+#
+# It runs when the release PR changes (to dismiss stale approvals) and whenever a PR workflow
+# finishes (to approve once the last check passes). Both triggers run this file and release.py
+# as they are on master, never a copy that the PR changed. The PR's files are only read.
+name: approve-release
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - master
+  workflow_run:
+    workflows: ["Acceptance Tests", "build", "release", "changelog-check", "tfsec"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  approve:
+    # Check runs named "Release PR: ..." are this workflow's own and are not waited for.
+    name: "Release PR: approve"
+    runs-on: ubuntu-latest
+    if: >-
+      (github.event_name == 'pull_request_target' &&
+       startsWith(github.head_ref, 'release-') &&
+       github.event.pull_request.head.repo.full_name == github.repository) ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.event == 'pull_request' &&
+       startsWith(github.event.workflow_run.head_branch, 'release-') &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    concurrency:
+      group: approve-release-${{ github.head_ref || github.event.workflow_run.head_branch }}
+      cancel-in-progress: true
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: read
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      HEAD_REF: ${{ github.head_ref || github.event.workflow_run.head_branch }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+          persist-credentials: false
+      - id: pr
+        name: Find the release PR
+        run: |
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$HEAD_REF" --base master --state open \
+            --json number,headRefOid,isDraft --jq '.[0] // empty')
+          if [ -z "$pr" ]; then echo "::notice::No open PR from $HEAD_REF"; exit 0; fi
+          jq -r '"number=\(.number)\nsha=\(.headRefOid)\ndraft=\(.isDraft)"' <<<"$pr" >> "$GITHUB_OUTPUT"
+      - name: Dismiss approvals of older commits
+        if: steps.pr.outputs.number != ''
+        env:
+          PR: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
+        run: |
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and .state == \"APPROVED\" and .commit_id != \"$HEAD_SHA\") | .id" |
+            while read -r id; do
+              gh api -X PUT "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews/$id/dismissals" \
+                -f message="Superseded by a new push; re-checking the release PR." -f event=DISMISS >/dev/null
+            done
+      - name: Check the release PR
+        if: steps.pr.outputs.number != '' && steps.pr.outputs.draft == 'false'
+        env:
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
+        run: |
+          cp .github/scripts/release/release.py "$RUNNER_TEMP/release.py"
+          git fetch --quiet --no-tags origin "$HEAD_SHA"
+          git checkout --quiet --detach "$HEAD_SHA"
+          version_of() { sed -n 's/^const TF_PROVIDER_VERSION = "\(.*\)"$/\1/p'; }
+          files=$(git diff --name-only origin/master...HEAD | sort | tr '\n' ' ')
+          if [ "$files" != "CHANGELOG.md internal/clientset/version.go " ]; then
+            echo "::error::A release PR changes only CHANGELOG.md and internal/clientset/version.go; this one changes: $files"; exit 1
+          fi
+          if [ "$(git diff --numstat origin/master...HEAD -- internal/clientset/version.go | cut -f1,2)" != "$(printf '1\t1')" ]; then
+            echo "::error::A release PR changes only the version line of internal/clientset/version.go"; exit 1
+          fi
+          version=$(version_of < internal/clientset/version.go)
+          if [ "$HEAD_REF" != "release-$version" ]; then
+            echo "::error::Branch $HEAD_REF does not match version $version; open release PRs with \`make bump\`"; exit 1
+          fi
+          python3 -I "$RUNNER_TEMP/release.py" check origin/master
+      - id: ci
+        name: Wait for green CI
+        if: steps.pr.outputs.number != '' && steps.pr.outputs.draft == 'false'
+        env:
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
+        run: |
+          # The latest run of every check on the head commit, except this workflow's own.
+          runs=$(gh api --paginate "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/check-runs?per_page=100" \
+            --jq '.check_runs[] | select(.name | startswith("Release PR:") | not) | [.name, .status, (.conclusion // "")] | @tsv')
+          # The checks that sum up the others; until they report, CI has not finished.
+          for required in "version-bump" "Acceptance tests result"; do
+            if ! cut -f1 <<<"$runs" | grep -qxF "$required"; then
+              echo "::notice::Waiting: '$required' has not reported yet"; exit 0
+            fi
+          done
+          pending=$(awk -F'\t' '$2 != "completed" {print $1}' <<<"$runs")
+          if [ -n "$pending" ]; then echo "::notice::Waiting for: $(tr '\n' ',' <<<"$pending")"; exit 0; fi
+          failed=$(awk -F'\t' '$3 != "success" && $3 != "skipped" && $3 != "neutral" {print $1 " (" $3 ")"}' <<<"$runs")
+          if [ -n "$failed" ]; then
+            echo "::warning::Not approving: failed checks: $(tr '\n' ',' <<<"$failed"). Re-run them; approval follows when they pass."; exit 0
+          fi
+          echo "green=true" >> "$GITHUB_OUTPUT"
+      - name: Approve
+        if: steps.ci.outputs.green == 'true'
+        env:
+          PR: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
+        run: |
+          approved=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" \
+            --jq "[.[] | select(.user.login == \"github-actions[bot]\" and .state == \"APPROVED\" and .commit_id == \"$HEAD_SHA\")] | length")
+          if [ "$approved" != "0" ]; then echo "Already approved $HEAD_SHA"; exit 0; fi
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" -f commit_id="$HEAD_SHA" -f event=APPROVE \
+            -f body="Release PR from \`make bump\`: only the version and changelog change, the release check passes, and CI is green." >/dev/null
+          echo "Approved $HEAD_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Merge and release
+        if: steps.ci.outputs.green == 'true'
+        env:
+          PR: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
+        run: |
+          # master may have moved since CI checked the PR. Check the PR merged into master as it
+          # is now, the way version-bump checks the PR's merge commit, so a feature that merged
+          # meanwhile can't leave an unchecked changelog on master.
+          git fetch --quiet --no-tags origin master
+          base=$(git rev-parse origin/master)
+          if ! git -c user.name=approve-release -c user.email=approve-release@localhost \
+              merge --quiet --no-edit --no-ff origin/master; then
+            echo "::error::Release PR #$PR conflicts with master. Close it, delete its branch, and run \`make bump\` again."; exit 1
+          fi
+          python3 -I "$RUNNER_TEMP/release.py" check "$base"
+          # --match-head-commit refuses to merge if the branch moved after the checks above.
+          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --match-head-commit "$HEAD_SHA"
+          merged=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq '.mergeCommit.oid // empty')
+          if [ -z "$merged" ]; then echo "::error::PR #$PR has no merge commit after merging"; exit 1; fi
+          # GitHub can't merge against an expected base. If master moved in the seconds since the
+          # check, release-provider.yml repeats it against the real parent before tagging.
+          parent=$(gh api "repos/$GITHUB_REPOSITORY/commits/$merged" --jq '.parents[0].sha')
+          if [ "$parent" != "$base" ]; then
+            echo "::warning::master moved from $base to $parent while merging; release-provider.yml re-checks before tagging."
+          fi
+          if ! gh workflow run release-provider.yml --repo "$GITHUB_REPOSITORY" --ref master -f sha="$merged"; then
+            echo "::error::Merged #$PR as $merged but could not start release-provider.yml. Run it from the Actions tab with sha $merged."; exit 1
+          fi
+          echo "Merged #$PR as $merged; started release-provider.yml" | tee -a "$GITHUB_STEP_SUMMARY"
