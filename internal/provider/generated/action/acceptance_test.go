@@ -65,6 +65,7 @@ const fullConfig = `resource "coralogix_action" "test" {
   applications = ["@{run}-applications"]
   description = "@{run}-description"
   dpxl_filter = "<v1> $d.severity == 'ERROR'"
+  is_hidden = false
   is_private = false
   name = "@{run}-name"
   source_type = "DataMap"
@@ -82,6 +83,7 @@ const updatedConfig = `resource "coralogix_action" "test" {
   applications = ["@{run}-applications-updated"]
   description = "@{run}-description-updated"
   dpxl_filter = "<v1> $d.severity == 'ERROR'"
+  is_hidden = false
   is_private = false
   name = "@{run}-name-updated"
   source_type = "DataMap"

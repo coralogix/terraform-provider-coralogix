@@ -5,11 +5,13 @@ resource: v2.Action
 
 values:
   is_private: "false"
+  is_hidden: "false"
   dpxl_filter: '"<v1> $d.severity == ''ERROR''"'
 
-# The API keeps isHidden as a per-user preference and ignores the value of a request, so a config
-# that sets it reads back false.
-skip: [is_hidden]
+# The API keeps isHidden as a per-user preference and ignores the value of a request, so only false
+# can be configured: true would read back false. The updated config keeps false for the same reason.
+updatedValues:
+  is_hidden: "false"
 
 minimal: [is_private]
 
