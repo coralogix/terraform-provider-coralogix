@@ -1,5 +1,8 @@
-# Approves the release PRs that `make bump` opens once their CI is green, so that a release
-# needs no human review. `make bump` turns on auto-merge, so the PR merges right after.
+# Approves and merges the release PRs that `make bump` opens once their CI is green, so that
+# a release needs no human review. The merge happens here, after the check, and not by
+# auto-merge: auto-merge would merge as soon as anyone approves and the required checks pass,
+# while other checks are still running. A merge by the Actions token starts no workflow, so
+# this workflow then starts release-provider.yml with the merge commit.
 #
 # A release PR only versions code that was already reviewed on master. This workflow approves
 # one only when its branch is release-X.Y.Z in this repository, it changes nothing but
@@ -43,9 +46,10 @@ jobs:
       group: approve-release-${{ github.head_ref || github.event.workflow_run.head_branch }}
       cancel-in-progress: true
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
       checks: read
+      actions: write
     env:
       GH_TOKEN: ${{ github.token }}
       HEAD_REF: ${{ github.head_ref || github.event.workflow_run.head_branch }}
@@ -129,3 +133,17 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" -f commit_id="$HEAD_SHA" -f event=APPROVE \
             -f body="Release PR from \`make bump\`: only the version and changelog change, the release check passes, and CI is green." >/dev/null
           echo "Approved $HEAD_SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Merge and release
+        if: steps.ci.outputs.green == 'true'
+        env:
+          PR: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
+        run: |
+          # --match-head-commit refuses to merge if the branch moved after the checks above.
+          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --match-head-commit "$HEAD_SHA"
+          merged=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq '.mergeCommit.oid // empty')
+          if [ -z "$merged" ]; then echo "::error::PR #$PR has no merge commit after merging"; exit 1; fi
+          if ! gh workflow run release-provider.yml --repo "$GITHUB_REPOSITORY" --ref master -f sha="$merged"; then
+            echo "::error::Merged #$PR as $merged but could not start release-provider.yml. Run it from the Actions tab with sha $merged."; exit 1
+          fi
+          echo "Merged #$PR as $merged; started release-provider.yml" | tee -a "$GITHUB_STEP_SUMMARY"
