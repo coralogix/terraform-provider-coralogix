@@ -139,10 +139,26 @@ jobs:
           PR: ${{ steps.pr.outputs.number }}
           HEAD_SHA: ${{ steps.pr.outputs.sha }}
         run: |
+          # master may have moved since CI checked the PR. Check the PR merged into master as it
+          # is now, the way version-bump checks the PR's merge commit, so a feature that merged
+          # meanwhile can't leave an unchecked changelog on master.
+          git fetch --quiet --no-tags origin master
+          base=$(git rev-parse origin/master)
+          if ! git -c user.name=approve-release -c user.email=approve-release@localhost \
+              merge --quiet --no-edit --no-ff origin/master; then
+            echo "::error::Release PR #$PR conflicts with master. Close it, delete its branch, and run \`make bump\` again."; exit 1
+          fi
+          python3 -I "$RUNNER_TEMP/release.py" check "$base"
           # --match-head-commit refuses to merge if the branch moved after the checks above.
           gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --match-head-commit "$HEAD_SHA"
           merged=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq '.mergeCommit.oid // empty')
           if [ -z "$merged" ]; then echo "::error::PR #$PR has no merge commit after merging"; exit 1; fi
+          # GitHub can't merge against an expected base. If master moved in the seconds since the
+          # check, release-provider.yml repeats it against the real parent before tagging.
+          parent=$(gh api "repos/$GITHUB_REPOSITORY/commits/$merged" --jq '.parents[0].sha')
+          if [ "$parent" != "$base" ]; then
+            echo "::warning::master moved from $base to $parent while merging; release-provider.yml re-checks before tagging."
+          fi
           if ! gh workflow run release-provider.yml --repo "$GITHUB_REPOSITORY" --ref master -f sha="$merged"; then
             echo "::error::Merged #$PR as $merged but could not start release-provider.yml. Run it from the Actions tab with sha $merged."; exit 1
           fi
