@@ -1,0 +1,106 @@
+[
+  {
+    "step": "import",
+    "state": null
+  },
+  {
+    "step": "import (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "",
+      "retention_policy": null,
+      "s3": {
+        "bucket": "seeded-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    },
+    "drift": [
+      "AttributeName(\"prefix\")",
+      "AttributeName(\"s3\")",
+      "AttributeName(\"s3\").AttributeName(\"bucket\")",
+      "AttributeName(\"s3\").AttributeName(\"region\")",
+      "AttributeName(\"tenant_id\")"
+    ]
+  },
+  {
+    "step": "update: another bucket",
+    "config": {
+      "s3": {
+        "bucket": "other-bucket",
+        "region": "eu-north-1"
+      }
+    },
+    "plan": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "",
+      "retention_policy": null,
+      "s3": {
+        "bucket": "other-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "body": {
+          "s3": {
+            "bucket": "other-bucket",
+            "region": "eu-north-1"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "",
+      "retention_policy": null,
+      "s3": {
+        "bucket": "other-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "",
+      "retention_policy": null,
+      "s3": {
+        "bucket": "other-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    },
+    "replanEmpty": true
+  }
+]

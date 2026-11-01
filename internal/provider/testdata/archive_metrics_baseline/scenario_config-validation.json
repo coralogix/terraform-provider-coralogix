@@ -1,0 +1,86 @@
+[
+  {
+    "step": "no storage",
+    "config": {},
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"ibm\")] | No attribute specified when one (and only one) of [ibm.<.s3] is required",
+      "error: Invalid Attribute Combination [AttributeName(\"s3\")] | No attribute specified when one (and only one) of [s3.<.ibm] is required"
+    ],
+    "state": null
+  },
+  {
+    "step": "s3 and ibm",
+    "config": {
+      "ibm": {
+        "crn": "crn:v1:bluemix:public:cloud-object-storage:eu-de:a/0:0:bucket:metrics-bucket",
+        "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+      },
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"ibm\")] | 2 attributes specified when one (and only one) of [ibm.<.s3] is required",
+      "error: Invalid Attribute Combination [AttributeName(\"s3\")] | 2 attributes specified when one (and only one) of [s3.<.ibm] is required"
+    ],
+    "state": null
+  },
+  {
+    "step": "s3 without region",
+    "config": {
+      "s3": {
+        "bucket": "metrics-bucket"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"s3\").AttributeName(\"region\")] | Must set a configuration value for the s3.region attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "retention policy without raw_resolution",
+    "config": {
+      "retention_policy": {
+        "five_minutes_resolution": 1,
+        "one_hour_resolution": 1
+      },
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"retention_policy\").AttributeName(\"raw_resolution\")] | Must set a configuration value for the retention_policy.raw_resolution attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "set id",
+    "config": {
+      "id": "mine",
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Configuration for Read-Only Attribute [AttributeName(\"id\")] | Cannot set value for this attribute as the provider has marked it as read-only. Remove the configuration line setting the value.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable and read-only attributes that are supported."
+    ],
+    "state": null
+  },
+  {
+    "step": "set prefix",
+    "config": {
+      "prefix": "mine",
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Configuration for Read-Only Attribute [AttributeName(\"prefix\")] | Cannot set value for this attribute as the provider has marked it as read-only. Remove the configuration line setting the value.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable and read-only attributes that are supported."
+    ],
+    "state": null
+  }
+]

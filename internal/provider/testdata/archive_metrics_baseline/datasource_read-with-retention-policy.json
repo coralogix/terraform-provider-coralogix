@@ -1,0 +1,28 @@
+[
+  {
+    "step": "read a configuration with a retention policy",
+    "config": {},
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": null,
+      "id": "",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 20,
+        "one_hour_resolution": 30,
+        "raw_resolution": 10
+      },
+      "s3": {
+        "bucket": "seeded-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    }
+  }
+]

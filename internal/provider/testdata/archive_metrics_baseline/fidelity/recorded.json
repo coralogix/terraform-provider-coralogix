@@ -1,0 +1,252 @@
+{
+  "cases": [
+    {
+      "name": "get-without-config",
+      "steps": [
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Tenant config not found"
+          }
+        }
+      ]
+    },
+    {
+      "name": "rejected-before-save",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: missing storage config"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: missing storage config"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: invalid storage config"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Invalid bucket: Cannot write file"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Tenant config not found"
+          }
+        }
+      ]
+    },
+    {
+      "name": "disable-without-config",
+      "steps": [
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Tenant config not found"
+          }
+        }
+      ]
+    },
+    {
+      "name": "set-minimal",
+      "steps": [
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "tenantConfig": {
+              "disabled": false,
+              "managedBy": "MANAGED_BY_UNSPECIFIED",
+              "managedRetentionClass": "MANAGED_RETENTION_CLASS_UNSPECIFIED",
+              "prefix": "cx_metrics/",
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "region": "eu-north-1"
+              },
+              "tenantId": "\u003ctenantId\u003e"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "retention-policy-set-and-removed",
+      "steps": [
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "tenantConfig": {
+              "disabled": false,
+              "managedBy": "MANAGED_BY_UNSPECIFIED",
+              "managedRetentionClass": "MANAGED_RETENTION_CLASS_UNSPECIFIED",
+              "prefix": "cx_metrics/",
+              "retentionPolicy": {
+                "fiveMinutesResolution": 20,
+                "oneHourResolution": 30,
+                "rawResolution": 10
+              },
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "region": "eu-north-1"
+              },
+              "tenantId": "\u003ctenantId\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "tenantConfig": {
+              "disabled": false,
+              "managedBy": "MANAGED_BY_UNSPECIFIED",
+              "managedRetentionClass": "MANAGED_RETENTION_CLASS_UNSPECIFIED",
+              "prefix": "cx_metrics/",
+              "retentionPolicy": {
+                "fiveMinutesResolution": 5,
+                "oneHourResolution": 0,
+                "rawResolution": 0
+              },
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "region": "eu-north-1"
+              },
+              "tenantId": "\u003ctenantId\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "tenantConfig": {
+              "disabled": false,
+              "managedBy": "MANAGED_BY_UNSPECIFIED",
+              "managedRetentionClass": "MANAGED_RETENTION_CLASS_UNSPECIFIED",
+              "prefix": "cx_metrics/",
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "region": "eu-north-1"
+              },
+              "tenantId": "\u003ctenantId\u003e"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "disable-then-set",
+      "steps": [
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "tenantConfig": {
+              "disabled": true,
+              "managedBy": "MANAGED_BY_UNSPECIFIED",
+              "managedRetentionClass": "MANAGED_RETENTION_CLASS_UNSPECIFIED",
+              "prefix": "cx_metrics/",
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "region": "eu-north-1"
+              },
+              "tenantId": "\u003ctenantId\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "tenantConfig": {
+              "disabled": false,
+              "managedBy": "MANAGED_BY_UNSPECIFIED",
+              "managedRetentionClass": "MANAGED_RETENTION_CLASS_UNSPECIFIED",
+              "prefix": "cx_metrics/",
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "region": "eu-north-1"
+              },
+              "tenantId": "\u003ctenantId\u003e"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "rejected-over-existing",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Invalid bucket: Cannot write file"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: missing storage config"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "tenantConfig": {
+              "disabled": false,
+              "managedBy": "MANAGED_BY_UNSPECIFIED",
+              "managedRetentionClass": "MANAGED_RETENTION_CLASS_UNSPECIFIED",
+              "prefix": "cx_metrics/",
+              "s3": {
+                "bucket": "{{BUCKET}}",
+                "region": "eu-north-1"
+              },
+              "tenantId": "\u003ctenantId\u003e"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

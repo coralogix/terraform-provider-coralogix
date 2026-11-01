@@ -1,0 +1,24 @@
+[
+  {
+    "step": "read an IBM configuration",
+    "config": {},
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": {
+        "crn": "crn:v1:bluemix:public:cloud-object-storage:eu-de:a/0:0:bucket:metrics-bucket",
+        "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+      },
+      "id": "",
+      "prefix": "cx_metrics/",
+      "retention_policy": null,
+      "s3": null,
+      "tenant_id": 4711
+    }
+  }
+]

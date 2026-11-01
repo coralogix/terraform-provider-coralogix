@@ -1,0 +1,52 @@
+[
+  {
+    "step": "create sets the configuration that the company already has",
+    "config": {
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      }
+    },
+    "plan": {
+      "ibm": null,
+      "id": "(unknown)",
+      "prefix": "(unknown)",
+      "retention_policy": "(unknown)",
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "body": {
+          "s3": {
+            "bucket": "metrics-bucket",
+            "region": "eu-north-1"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": null,
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    },
+    "replanEmpty": true
+  }
+]
