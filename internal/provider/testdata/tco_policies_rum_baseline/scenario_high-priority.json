@@ -1,0 +1,65 @@
+[
+  {
+    "step": "create: the API refuses HIGH for RUM",
+    "config": {
+      "policies": [
+        {
+          "name": "first",
+          "priority": "high",
+          "severities": [
+            "error"
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": [
+            "error"
+          ],
+          "subsystems": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/rum-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_HIGH"
+              },
+              "rumRules": {
+                "severities": [
+                  "SEVERITY_ERROR"
+                ]
+              }
+            }
+          ]
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_tco_policies_rum | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: RUM policies do not support HIGH priority; use MEDIUM or lower.\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

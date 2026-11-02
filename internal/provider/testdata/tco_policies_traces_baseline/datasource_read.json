@@ -1,0 +1,64 @@
+[
+  {
+    "step": "read the policies",
+    "config": {},
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_SPANS",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "seeded-a",
+          "order": 1,
+          "priority": "medium",
+          "quota_based_priority_override": null,
+          "services": null,
+          "subsystems": null,
+          "tags": {
+            "tags.region": {
+              "names": [
+                "eu"
+              ],
+              "rule_type": "is"
+            }
+          }
+        },
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "seeded-b",
+          "order": 2,
+          "priority": "low",
+          "quota_based_priority_override": null,
+          "services": null,
+          "subsystems": null,
+          "tags": {
+            "tags.region": {
+              "names": [
+                "eu"
+              ],
+              "rule_type": "is"
+            }
+          }
+        }
+      ]
+    }
+  }
+]
