@@ -93,6 +93,231 @@
     "replanEmpty": true
   },
   {
+    "step": "set active false",
+    "config": {
+      "name": "default active",
+      "slack": {
+        "attachments": [
+          {
+            "active": false,
+            "type": "logs"
+          }
+        ],
+        "url": "https://example.invalid/slack"
+      }
+    },
+    "plan": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "default active",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": {
+        "attachments": [
+          {
+            "active": false,
+            "type": "logs"
+          }
+        ],
+        "notify_on": null,
+        "url": "https://example.invalid/slack"
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "name": "default active",
+            "slack": {
+              "attachments": [
+                {
+                  "isActive": false,
+                  "type": "LOGS"
+                }
+              ],
+              "digests": []
+            },
+            "type": "SLACK",
+            "url": "https://example.invalid/slack"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "default active",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": {
+        "attachments": [
+          {
+            "active": false,
+            "type": "logs"
+          }
+        ],
+        "notify_on": null,
+        "url": "https://example.invalid/slack"
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "remove active",
+    "config": {
+      "name": "default active",
+      "slack": {
+        "attachments": [
+          {
+            "type": "logs"
+          }
+        ],
+        "url": "https://example.invalid/slack"
+      }
+    },
+    "plan": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "default active",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": {
+        "attachments": [
+          {
+            "active": true,
+            "type": "logs"
+          }
+        ],
+        "notify_on": null,
+        "url": "https://example.invalid/slack"
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "name": "default active",
+            "slack": {
+              "attachments": [
+                {
+                  "isActive": true,
+                  "type": "LOGS"
+                }
+              ],
+              "digests": []
+            },
+            "type": "SLACK",
+            "url": "https://example.invalid/slack"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "default active",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": {
+        "attachments": [
+          {
+            "active": true,
+            "type": "logs"
+          }
+        ],
+        "notify_on": null,
+        "url": "https://example.invalid/slack"
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and plan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "default active",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": {
+        "attachments": [
+          {
+            "active": true,
+            "type": "logs"
+          }
+        ],
+        "notify_on": null,
+        "url": "https://example.invalid/slack"
+      }
+    },
+    "replanEmpty": true
+  },
+  {
     "step": "delete",
     "requests": [
       {

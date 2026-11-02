@@ -165,6 +165,7 @@ func TestWebhookBaselineOptionalFields(t *testing.T) {
 		"custom-uuid":        {"custom", "uuid"},
 		"custom-headers":     {"custom", "headers"},
 		"custom-payload":     {"custom", "payload"},
+		"custom-method":      {"custom", "method"},
 		"custom-url":         {"custom", "url"},
 		"slack-notify-on":    {"slack", "notify_on"},
 		"slack-attachments":  {"slack", "attachments"},
@@ -192,6 +193,11 @@ func TestWebhookBaselineOptionalFields(t *testing.T) {
 			withoutField := webhookConfig("full", tc.arm, fields)
 			state := h.Apply("create with field omitted", h.null(), withoutField)
 			if state.IsNull() {
+				state = h.Apply("create with field set", h.null(), before)
+				webhookState(t, h, state)
+				state = h.Apply("remove field from existing webhook", state, withoutField)
+				state = h.RefreshPlan("refresh after rejected removal and plan", state)
+				h.Destroy("delete", state)
 				checkGoldenAt(t, webhookGoldenDir, "optional_"+name+".json", webhookGoldenSteps(t, h))
 				return
 			}
@@ -284,7 +290,14 @@ func TestWebhookBaselineEdges(t *testing.T) {
 			h.Validate("name omitted", j{"opsgenie": j{"url": "https://example.invalid/opsgenie"}})
 		},
 		"missing-name-create": func(h *grHarness) {
-			h.Apply("create without name", h.null(), j{"opsgenie": j{"url": "https://example.invalid/opsgenie"}})
+			withoutName := with(webhookFullConfigs["opsgenie"], nil)
+			delete(withoutName, "name")
+			h.Apply("create without name", h.null(), withoutName)
+			state := h.Apply("create with name", h.null(), webhookFullConfigs["opsgenie"])
+			webhookState(h.t, h, state)
+			state = h.Apply("remove name from existing webhook", state, withoutName)
+			state = h.RefreshPlan("refresh after rejected removal and plan", state)
+			h.Destroy("delete", state)
 		},
 		"invalid-method": func(h *grHarness) {
 			h.Validate("invalid method", webhookConfig("invalid", "custom", j{"method": "patch", "url": "https://example.invalid/hook"}))
@@ -300,6 +313,12 @@ func TestWebhookBaselineEdges(t *testing.T) {
 			})
 			state := h.Apply("create without active", h.null(), config)
 			if !state.IsNull() {
+				withActive := webhookConfig("default active", "slack", with(config["slack"].(j), j{
+					"attachments": l{j{"type": "logs", "active": false}},
+				}))
+				state = h.Apply("set active false", state, withActive)
+				state = h.Apply("remove active", state, config)
+				state = h.RefreshPlan("refresh and plan", state)
 				h.Destroy("delete", state)
 			}
 		},
@@ -355,6 +374,7 @@ func TestWebhookBaselineEdges(t *testing.T) {
 			id := h.api.(*webhookFake).seed(j{"name": "outside", "type": "MICROSOFT_TEAMS", "url": "https://example.invalid/teams", "microsoftTeams": j{}})
 			state := h.Import("import legacy Teams", id)
 			h.Apply("update legacy Teams", state, webhookConfig("renamed", "microsoft_teams", j{"url": "https://example.invalid/teams"}))
+			h.Apply("remove legacy Teams URL", state, webhookConfig("outside", "microsoft_teams", j{}))
 		},
 		"read-missing": func(h *grHarness) {
 			s := h.Apply("create", h.null(), webhookFullConfigs["opsgenie"])
