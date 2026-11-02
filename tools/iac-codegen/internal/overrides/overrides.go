@@ -30,6 +30,9 @@ const ModeExisting = "existing"
 
 // File is the content of behavior-overrides.yaml.
 type File struct {
+	// AfterFlatten gives a released resource a hook that can project API fields into
+	// Terraform attributes after the generated conversion. The data source runs it too.
+	AfterFlatten bool `yaml:"afterFlatten"`
 	// Resource is the OpenAPI component of the resource. It must match the
 	// generator's --resource flag, so a file cannot be used for the wrong resource.
 	Resource string `yaml:"resource"`

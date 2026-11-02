@@ -81,6 +81,10 @@ type Hooks struct {
 	// BeforeFlatten mutates the API value before flatten, for a value that only an older
 	// record has, such as a deprecated field that a newer one replaces.
 	BeforeFlatten func(context.Context, *{{$sdk}}.{{.Resource}}) diag.Diagnostics
+{{- if $.AfterFlatten}}
+	// AfterFlatten projects API values into the Terraform model before it enters state.
+	AfterFlatten func(context.Context, *{{$.Model}}, *{{$sdk}}.{{.Resource}}) diag.Diagnostics
+{{- end}}
 	// ValidateConfig adds checks that no attribute validator expresses, such as a rule over
 	// the items of a set.
 	ValidateConfig func(context.Context, tfsdk.Config) diag.Diagnostics
@@ -741,6 +745,14 @@ func (r *Resource) setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prio
 	if diags.HasError() {
 		return diags
 	}
+{{- if $.AfterFlatten}}
+	if r.hooks.AfterFlatten != nil {
+		diags.Append(r.hooks.AfterFlatten(ctx, m, v)...)
+		if diags.HasError() {
+			return diags
+		}
+	}
+{{- end}}
 {{- if and .Singleton .SingletonID}}
 	if m.Id.IsNull() || m.Id.ValueString() == "" {
 		m.Id = types.StringValue(TypeName) // the API returned no id

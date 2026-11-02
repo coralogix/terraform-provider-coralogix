@@ -55,8 +55,13 @@ type DataSource struct {
 {{- if .Existing}}
 
 // NewDataSource returns the data source. Use it in provider.DataSources. Pass the hooks of the
+{{- if $.AfterFlatten}}
+// resource: the data source runs BeforeFlatten and AfterFlatten.
+// It has no prior plan or state, so it does not run AfterRead.
+{{- else}}
 // resource: the data source runs BeforeFlatten. It has no prior plan or state, so it does not run
 // AfterRead.
+{{- end}}
 func NewDataSource(hooks Hooks) datasource.DataSource {
 	return &DataSource{resource: Resource{hooks: hooks}}
 }
@@ -227,6 +232,14 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+{{- if $.AfterFlatten}}
+	if d.resource.hooks.AfterFlatten != nil {
+		resp.Diagnostics.Append(d.resource.hooks.AfterFlatten(ctx, m, v)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+{{- end}}
 {{- range $.DataSource.ValueFields}}
 	// The data source shows the {{.TFName}} that the API returns, also an empty one, which the
 	// resource reads as null.

@@ -17,6 +17,7 @@ import (
 // tfResource is the template data for the Terraform schema and model files.
 type tfResource struct {
 	Package            string
+	AfterFlatten       bool
 	VersionHeader      string
 	Model              string // Go type of the resource model, for example "WidgetModel"
 	Attributes         []*tfAttr
@@ -144,6 +145,9 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
 	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: modelTypeName(r.Name)}
+	if file != nil {
+		out.AfterFlatten = file.AfterFlatten
+	}
 	root := &tfModel{Name: out.Model}
 	if err := b.claimModel(root.Name, "the resource "+r.Name); err != nil {
 		return nil, err
