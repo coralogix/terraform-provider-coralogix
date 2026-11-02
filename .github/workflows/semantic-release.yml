@@ -31,13 +31,17 @@ jobs:
         # Only someone listed in .github/RELEASERS on master releases.
         env:
           GH_TOKEN: ${{ github.token }}
-          ACTOR: ${{ github.triggering_actor }}
+          # github.actor started the first run; a re-run keeps it and sets triggering_actor to
+          # whoever re-ran. Both must be listed, so a re-run can't pass someone else's run.
+          ACTORS: ${{ github.actor }} ${{ github.triggering_actor }}
         run: |
           gh api "repos/$GITHUB_REPOSITORY/contents/.github/RELEASERS?ref=master" \
             -H "Accept: application/vnd.github.raw" > "$RUNNER_TEMP/RELEASERS"
-          if ! sed -e 's/#.*//' -e 's/[[:space:]]//g' "$RUNNER_TEMP/RELEASERS" | grep -qixF "$ACTOR"; then
-            echo "::error::$ACTOR is not in .github/RELEASERS; only coralogix/team-eco-system releases"; exit 1
-          fi
+          for actor in $ACTORS; do
+            if ! sed -e 's/#.*//' -e 's/[[:space:]]//g' "$RUNNER_TEMP/RELEASERS" | grep -qixF "$actor"; then
+              echo "::error::$actor is not in .github/RELEASERS; only coralogix/team-eco-system releases"; exit 1
+            fi
+          done
       - name: Checkout
         uses: actions/checkout@v2
         with:

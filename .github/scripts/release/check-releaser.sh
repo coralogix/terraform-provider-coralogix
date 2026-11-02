@@ -12,7 +12,8 @@ pr="$1"
 
 # The allowlist as it is at the PR's base commit, which no commit of the PR can change, also
 # after a rebase merge. The base must be on the base branch, so it can't be another branch's list.
-read -r base_ref base_sha < <(gh pr view "$pr" --json baseRefName,baseRefOid --jq '"\(.baseRefName) \(.baseRefOid)"')
+base=$(gh pr view "$pr" --json baseRefName,baseRefOid --jq '"\(.baseRefName) \(.baseRefOid)"')
+read -r base_ref base_sha <<< "$base"
 status=$(gh api "repos/$GH_REPO/compare/$base_sha...$base_ref" --jq .status)
 if [[ "$status" != identical && "$status" != ahead ]]; then
   echo "::error::The base $base_sha of PR #$pr is not on $base_ref ($status)."
@@ -36,9 +37,16 @@ fi
 # A committer counts only with a verified signature, which ties the commit to that account.
 # A commit made on github.com (committer web-flow), such as "Update branch", stops the release:
 # close the PR and open a new one with `make bump`.
-for oid in $(gh pr view "$pr" --json commits --jq '.commits[].oid'); do
-  read -r verified committer < <(gh api "repos/$GH_REPO/commits/$oid" \
+# A separate assignment, so a failed listing stops the script instead of checking no commits.
+oids=$(gh pr view "$pr" --json commits --jq '.commits[].oid')
+if [[ -z "$oids" ]]; then
+  echo "::error::PR #$pr lists no commits."
+  exit 1
+fi
+for oid in $oids; do
+  commit=$(gh api "repos/$GH_REPO/commits/$oid" \
     --jq '"\(.commit.verification.verified) \(.committer.login // "unknown")"')
+  read -r verified committer <<< "$commit"
   if [[ "$verified" != true ]] || ! member "$committer"; then
     echo "::error::Commit $oid on PR #$pr is committed by $committer (signature verified: $verified). Every commit of a release PR must be signed by someone in .github/RELEASERS; close the PR and run \`make bump\` again."
     exit 1

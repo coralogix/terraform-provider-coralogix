@@ -92,6 +92,17 @@ def section(text, heading):
     return "\n".join(rest[:end]).strip()
 
 
+def preamble(text):
+    """The non-blank lines before the first top-level heading, which no release section holds."""
+    lines = []
+    for line in text.splitlines():
+        if HEADING.match(line):
+            break
+        if line.strip():
+            lines.append(line.rstrip())
+    return lines
+
+
 def headings(text):
     return [line for line in text.splitlines() if HEADING.match(line)]
 
@@ -167,6 +178,9 @@ def check(base_ref):
         if heading != UNRELEASED and not RELEASE_HEADING.fullmatch(heading) and heading not in base_heads:
             fail(f"{CHANGELOG} has the heading '{heading}'. Top-level headings are '{UNRELEASED}' and "
                  "'# Release X.Y.Z' (added by `make bump`); put entries under '# Unreleased'.")
+    # Text above the first heading belongs to no release, so `make bump` would never move it.
+    if preamble(changelog) != preamble(base_changelog):
+        fail(f"{CHANGELOG} has text above its first heading. Put entries under '{UNRELEASED}'.")
     duplicates = sorted({h for h in heads if heads.count(h) > 1})
     if duplicates:
         fail(f"{CHANGELOG} has '{duplicates[0]}' more than once: another release merged first. {redo}")
