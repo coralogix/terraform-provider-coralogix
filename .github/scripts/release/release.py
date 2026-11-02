@@ -21,6 +21,7 @@ import tempfile
 CHANGELOG = "CHANGELOG.md"
 VERSION_GO = "internal/clientset/version.go"
 UNRELEASED = "# Unreleased"
+RELEASE_TEAM = "team-eco-system"
 VERSION_LINE = re.compile(r'^const TF_PROVIDER_VERSION = "([^"]*)"$', re.M)
 SEMVER = re.compile(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)")
 # A top-level Markdown heading. Subheadings ("#### resource/...") start with "##".
@@ -105,6 +106,16 @@ def bump(kind):
         run("gh", "auth", "status")
     except (OSError, subprocess.CalledProcessError):
         fail("`gh` is not installed or not logged in. Run `gh auth login` first.")
+    # CI refuses a release PR from anyone else (check-releaser.sh); this only says so early.
+    login = run("gh", "api", "user", "--jq", ".login")
+    try:
+        state = run("gh", "api", f"orgs/coralogix/teams/{RELEASE_TEAM}/memberships/{login}", "--jq", ".state")
+    except subprocess.CalledProcessError as e:
+        state = "missing" if "404" in e.stderr else None
+        if state is None:
+            print(f"::warning::Could not check that {login} is in coralogix/{RELEASE_TEAM}: {e.stderr.strip()}")
+    if state not in (None, "active"):
+        fail(f"Only members of coralogix/{RELEASE_TEAM} release the provider, and {login} is not one.")
     run("git", "fetch", "--quiet", "origin", "master")
     source, changelog = git_show("origin/master", VERSION_GO), git_show("origin/master", CHANGELOG)
     current = version_of(source)
