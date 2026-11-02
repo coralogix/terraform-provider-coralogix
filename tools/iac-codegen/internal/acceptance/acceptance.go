@@ -260,6 +260,9 @@ func (f *File) checkUpgradeCases() error {
 			if strings.TrimSpace(c.Values[path]) == "" {
 				return fmt.Errorf("upgradeCases.%s.values.%s is empty", c.Name, path)
 			}
+			if _, ok := f.UpgradeValues[path]; ok {
+				return fmt.Errorf("upgradeCases.%s.values: %q is also in upgradeValues, which sets it in every upgrade config", c.Name, path)
+			}
 			if err := f.checkPlaceholders("upgradeCases."+c.Name+".values."+path, c.Values[path]); err != nil {
 				return err
 			}

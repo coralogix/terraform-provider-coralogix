@@ -215,13 +215,15 @@ upgradeFrom: "1.0.0"
 	}
 }
 
-// An upgradeValues line needs an upgrade test and a values line to replace.
+// An upgradeValues line needs an upgrade test and a values line to replace, and no upgrade case
+// may set its path: the case would replace it.
 func TestAcceptanceUpgradeValuesNeedAValueAndAnUpgrade(t *testing.T) {
 	for text, want := range map[string]string{
-		"values:\n  label: '\"a\"'\nupgradeValues:\n  label: '\"b\"'\n":                        "needs upgradeFrom",
-		"upgradeFrom: \"1.0.0\"\nupgradeValues:\n  label: '\"b\"'\n":                           "is not in values",
-		"upgradeFrom: \"1.0.0\"\nvalues:\n  label: '\"a\"'\nupgradeValues:\n  label: ' '\n":    "is empty",
-		"upgradeFrom: \"1.0.0\"\nvalues:\n  label: '\"a\"'\nupgradeValues:\n  label: '@{x}'\n": "is not @{run}",
+		"values:\n  label: '\"a\"'\nupgradeValues:\n  label: '\"b\"'\n":                                                                                        "needs upgradeFrom",
+		"upgradeFrom: \"1.0.0\"\nupgradeValues:\n  label: '\"b\"'\n":                                                                                           "is not in values",
+		"upgradeFrom: \"1.0.0\"\nvalues:\n  label: '\"a\"'\nupgradeValues:\n  label: ' '\n":                                                                    "is empty",
+		"upgradeFrom: \"1.0.0\"\nvalues:\n  label: '\"a\"'\nupgradeValues:\n  label: '@{x}'\n":                                                                 "is not @{run}",
+		"upgradeFrom: \"1.0.0\"\nvalues:\n  label: '\"a\"'\nupgradeValues:\n  label: '\"b\"'\nupgradeCases:\n  - name: c\n    values:\n      label: '\"c\"'\n": "is also in upgradeValues",
 	} {
 		if _, err := acceptance.Parse([]byte("resource: Thing\n" + text)); err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("Parse(%q) = %v, want an error with %q", text, err, want)
