@@ -79,7 +79,7 @@ func Schema() schema.Schema {
 							MarkdownDescription: "",
 						},
 						"order": schema.Int64Attribute{
-							Optional:            true,
+							Computed:            true,
 							MarkdownDescription: "",
 						},
 						"steps": schema.ListNestedAttribute{
@@ -99,7 +99,7 @@ func Schema() schema.Schema {
 										MarkdownDescription: "",
 									},
 									"order": schema.Int64Attribute{
-										Optional:            true,
+										Computed:            true,
 										MarkdownDescription: "",
 									},
 									"source": schema.StringAttribute{

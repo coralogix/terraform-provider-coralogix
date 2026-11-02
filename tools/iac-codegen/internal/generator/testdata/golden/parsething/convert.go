@@ -88,8 +88,10 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 // that a request sends, with list and map steps left out. The server sets
 // them.
 var serverAttrs = map[string]bool{
-	"groups.id":       true,
-	"groups.steps.id": true,
+	"groups.id":          true,
+	"groups.order":       true,
+	"groups.steps.id":    true,
+	"groups.steps.order": true,
 }
 
 // requestValue returns v with a null value for each attribute that the server
@@ -197,14 +199,16 @@ var oneOfArms = map[string]bool{
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
-	"id":              true,
-	"active":          true,
-	"order":           true,
-	"note":            true,
-	"apps":            true,
-	"severities":      true,
-	"groups.id":       true,
-	"groups.steps.id": true,
+	"id":                 true,
+	"active":             true,
+	"order":              true,
+	"note":               true,
+	"apps":               true,
+	"severities":         true,
+	"groups.id":          true,
+	"groups.order":       true,
+	"groups.steps.id":    true,
+	"groups.steps.order": true,
 	"groups.steps.params.copy_params.keep_source": true,
 }
 
@@ -404,6 +408,11 @@ func expandCreateParseThingBody(ctx context.Context, p path.Path, m *ParseThingM
 		for i := range items {
 			out.Groups = append(out.Groups, *expandCreateParseGroup(ctx, p.AtName("groups").AtListIndex(i), &items[i], diags))
 		}
+		for i := range out.Groups {
+			// The position of the item in the list, from 1.
+			position := int64(i + 1)
+			out.Groups[i].Order = &position
+		}
 	}
 	return out
 }
@@ -414,11 +423,15 @@ func expandCreateParseGroup(ctx context.Context, p path.Path, m *ParseGroupModel
 	}
 	out := &parse_things_service.CreateParseGroup{}
 	out.Enabled = expandBool(m.Enabled)
-	out.Order = expandInt64(m.Order)
 	if items := expandElements[ParseStepModel](ctx, p.AtName("steps"), m.Steps, diags); items != nil {
 		out.Steps = make([]parse_things_service.CreateParseStep, 0, len(items))
 		for i := range items {
 			out.Steps = append(out.Steps, *expandCreateParseStep(ctx, p.AtName("steps").AtListIndex(i), &items[i], diags))
+		}
+		for i := range out.Steps {
+			// The position of the item in the list, from 1.
+			position := int64(i + 1)
+			out.Steps[i].Order = &position
 		}
 	}
 	return out
@@ -431,7 +444,6 @@ func expandCreateParseStep(ctx context.Context, p path.Path, m *ParseStepModel, 
 	out := &parse_things_service.CreateParseStep{}
 	out.Name = expandString(m.Name)
 	out.Enabled = expandBool(m.Enabled)
-	out.Order = expandInt64(m.Order)
 	out.Source = expandString(m.Source)
 	out.Params = expandParseParams(ctx, p.AtName("params"), m.Params, diags)
 	return out
@@ -643,6 +655,11 @@ func expandReplaceParseThingBody(ctx context.Context, p path.Path, m *ParseThing
 		out.Groups = make([]parse_things_service.CreateParseGroup, 0, len(items))
 		for i := range items {
 			out.Groups = append(out.Groups, *expandCreateParseGroup(ctx, p.AtName("groups").AtListIndex(i), &items[i], diags))
+		}
+		for i := range out.Groups {
+			// The position of the item in the list, from 1.
+			position := int64(i + 1)
+			out.Groups[i].Order = &position
 		}
 	}
 	return out

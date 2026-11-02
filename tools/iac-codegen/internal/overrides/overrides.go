@@ -414,6 +414,10 @@ type Field struct {
 	ReadEmptyAs string `yaml:"readEmptyAs"`
 	// ReadNullAs: "empty" reads a missing list or set as an empty collection.
 	ReadNullAs string `yaml:"readNullAs"`
+	// Position makes an integer field of a list item computed-only, and Create and Update send
+	// the 1-based position of the item in its list, as a released resource that computed the
+	// order of each rule did. The read shows the value of the API.
+	Position bool `yaml:"position"`
 	// Negate shows a bool field as its opposite, as a released resource that showed
 	// keep_source_field for the API flag deleteSource did. Expand sends the negated value, and
 	// flatten reads it negated. A default on the line is a Terraform value.
@@ -888,6 +892,7 @@ func (l Field) keys() []string {
 	add(l.SendUnknownAsZero, "sendUnknownAsZero")
 	add(l.SplitArms, "splitArms")
 	add(l.Negate, "negate")
+	add(l.Position, "position")
 	add(l.RequireOne, "requireOne")
 	add(l.RequestValue != "", "requestValue")
 	add(len(l.RequestValueBy) != 0, "requestValueBy")
@@ -1002,8 +1007,8 @@ func (l Field) empty() bool {
 }
 
 func (l Field) emptyMode() bool {
-	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && !l.SchemaOptional && l.Name == "" && len(l.ValueNames) == 0 && !l.AsBool && l.TerraformType == "" && !l.DefaultArm && l.Deprecation == "" &&
-		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown && !l.RequiresReplace && !l.Inline
+	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && l.Name == "" && len(l.ValueNames) == 0 && !l.AsBool && l.TerraformType == "" && !l.DefaultArm && l.Deprecation == "" &&
+		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown && !l.RequiresReplace && !l.Inline && !l.Position
 }
 
 func (l Field) emptyValue() bool {
@@ -1096,6 +1101,9 @@ func (l Field) checkConflicts() error {
 	}
 	if l.SendUnknownAsZero && (l.Computed == nil || !*l.Computed) {
 		return errors.New("sendUnknownAsZero needs computed: true: only a computed attribute is unknown in a plan")
+	}
+	if l.Position && (l.Required || l.Optional || l.Computed != nil || l.Default != nil || l.Fixed() || len(l.Validators) != 0) {
+		return errors.New("position makes the attribute computed-only and sends the position of the item, so it takes no mode, default, requestValue, or validator")
 	}
 	if l.Negate && l.Fixed() {
 		return errors.New("a requestValue field is no Terraform attribute, so negate changes nothing: send the API value")

@@ -1582,7 +1582,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- end}}
 
 {{- define "expandField"}}
-{{- if .FlattenOnly}}
+{{- if or .FlattenOnly .Position}}
 {{- else if .Wrap}}
 	{
 		var inner {{.Wrap.Inner}}
@@ -1774,6 +1774,14 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 			{{.Dst}} = append({{.Dst}}, *expand{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &items[i], diags))
 			{{- end}}
 		}
+		{{- with .Object.PositionField}}
+		{{- $t := "int64"}}{{if eq .Conv "int32"}}{{$t = "int32"}}{{end}}
+		for i := range {{$.Dst}} {
+			// The position of the item in the list, from 1.
+			position := {{$t}}(i + 1)
+			{{$.Dst}}[i].{{.SDK}} = {{if not .Value}}&{{end}}position
+		}
+		{{- end}}
 	}
 {{- end}}
 {{- if .SendUnknownAsZero}}

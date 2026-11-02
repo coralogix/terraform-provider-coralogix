@@ -26,6 +26,13 @@ types:
       note: {computed: true}
       # One set per arm of the matchers: apps and severities.
       matchers: {splitArms: true, collection: set, computed: true, default: []}
+  # The released resource sent the position of each group and step as its order.
+  ParseGroup:
+    fields:
+      order: {position: true}
+  ParseStep:
+    fields:
+      order: {position: true}
   ParseCopyParams:
     fields:
       # The released resource showed the opposite of deleteSource, and always sent escaped.

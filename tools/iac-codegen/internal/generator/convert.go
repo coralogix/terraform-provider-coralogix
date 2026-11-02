@@ -297,8 +297,9 @@ type convField struct {
 	// CaseInsensitive: the enums line of a scalar enum field has caseInsensitive. Expand matches
 	// the value in any case, and flatten keeps the prior spelling of an equal value.
 	CaseInsensitive bool
-	// SplitArms: the line of the field has splitArms. Negate: the line has negate.
-	SplitArms, Negate bool
+	// SplitArms: the line of the field has splitArms. Negate: the line has negate. Position: the
+	// line has position; the list that holds the object sends the position of each item.
+	SplitArms, Negate, Position bool
 	// SendUnknownAsZero: expand sends the zero value of the scalar when the plan is unknown
 	// (sendUnknownAsZero). ZeroType is its Go type.
 	SendUnknownAsZero bool
@@ -376,6 +377,17 @@ func (f *convField) WrappedSrc() string {
 		return "&v." + f.SDK
 	}
 	return "v." + f.SDK
+}
+
+// PositionField returns the field of obj that a list of obj sets to the position of each item,
+// or nil.
+func (obj *convObject) PositionField() *convField {
+	for _, f := range obj.Fields {
+		if f.Position {
+			return f
+		}
+	}
+	return nil
 }
 
 // UsesCaseInsensitive reports whether a field is an enum that reads in any case.
@@ -1184,6 +1196,7 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	cf.SendUnknownAsZero = line.SendUnknownAsZero
 	cf.SplitArms = line.SplitArms
 	cf.Negate = line.Negate
+	cf.Position = line.Position
 	cf.Equality = line.Equality
 	cf.RequestValue = line.RequestValue
 	cf.RequestValueBy = nil
@@ -1325,6 +1338,9 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 			return nil, fmt.Errorf("%s: asBool needs an object without fields", cf.TFName)
 		}
 		cf.Conv, cf.Object = convEmptyBool, nil
+	}
+	if cf.Position && cf.Conv != convInt64 && cf.Conv != convInt32 {
+		return nil, fmt.Errorf("%s: position needs an int32 or int64 field, not a %s field", cf.TFName, cf.Conv)
 	}
 	if cf.Negate {
 		if cf.Conv != convBool || cf.Wrap != nil {

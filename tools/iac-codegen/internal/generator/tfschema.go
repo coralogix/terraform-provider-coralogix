@@ -540,11 +540,12 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 	if l.Required {
 		a.Required, a.Optional = true, false
 	}
-	if l.SchemaOptional {
-		if !a.Required {
-			return errors.New("schemaOptional needs a field that the API request requires")
+	if l.Position {
+		if a.Kind != "Int64" && a.Kind != "Int32" {
+			return fmt.Errorf("position needs an integer attribute, not %s", a.Kind)
 		}
-		a.Required, a.Optional = false, true
+		// The position in the list is the value, so the user does not set it.
+		a.Required, a.Optional, a.Computed, a.Validators = false, false, true, nil
 	}
 	if l.Description != nil {
 		a.Description, a.PlainDescription = *l.Description, true
