@@ -9,6 +9,7 @@ import (
 	"math"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -170,13 +171,13 @@ func expandUpdate(ctx context.Context, m *ParseThingModel) (*parse_things_servic
 
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
-func flatten(ctx context.Context, v *parse_things_service.ParseThing) (*ParseThingModel, diag.Diagnostics) {
+func flatten(ctx context.Context, v *parse_things_service.ParseThing, prior *ParseThingModel) (*ParseThingModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if v == nil {
 		diags.AddError("Missing resource", "The API response has no ParseThing.")
 		return nil, diags
 	}
-	out := flattenParseThing(ctx, path.Empty(), v, &diags)
+	out := flattenParseThing(ctx, path.Empty(), v, prior, &diags)
 	if out.Id.IsNull() {
 		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
 	}
@@ -448,7 +449,7 @@ func expandParseParams(ctx context.Context, p path.Path, m *ParseParamsModel, di
 	return out
 }
 
-func flattenParseParams(ctx context.Context, p path.Path, v *parse_things_service.ParseParams, diags *diag.Diagnostics) *ParseParamsModel {
+func flattenParseParams(ctx context.Context, p path.Path, v *parse_things_service.ParseParams, prior *ParseParamsModel, diags *diag.Diagnostics) *ParseParamsModel {
 	if v == nil {
 		return nil
 	}
@@ -456,7 +457,11 @@ func flattenParseParams(ctx context.Context, p path.Path, v *parse_things_servic
 	out.KeepParams = flattenParseKeepParams(ctx, p.AtName("keep_params"), v.KeepParams, diags)
 	out.DropParams = flattenParseDropParams(ctx, p.AtName("drop_params"), v.DropParams, diags)
 	out.CopyParams = flattenParseCopyParams(ctx, p.AtName("copy_params"), v.CopyParams, diags)
-	out.PickParams = flattenParsePickParams(ctx, p.AtName("pick_params"), v.PickParams, diags)
+	var priorPickParams *ParsePickParamsModel
+	if prior != nil {
+		priorPickParams = prior.PickParams
+	}
+	out.PickParams = flattenParsePickParams(ctx, p.AtName("pick_params"), v.PickParams, priorPickParams, diags)
 	return out
 }
 
@@ -562,17 +567,21 @@ func expandParsePickParams(ctx context.Context, p path.Path, m *ParsePickParamsM
 	}
 	out := &parse_things_service.ParsePickParams{}
 	out.Rule = expandString(m.Rule)
-	out.Field = expandEnumMapped(p.AtName("field"), m.Field, parsePickFieldToAPI, diags)
+	out.Field = expandEnumMappedFold(p.AtName("field"), m.Field, parsePickFieldToAPI, diags)
 	return out
 }
 
-func flattenParsePickParams(ctx context.Context, p path.Path, v *parse_things_service.ParsePickParams, diags *diag.Diagnostics) *ParsePickParamsModel {
+func flattenParsePickParams(ctx context.Context, p path.Path, v *parse_things_service.ParsePickParams, prior *ParsePickParamsModel, diags *diag.Diagnostics) *ParsePickParamsModel {
 	if v == nil {
 		return nil
 	}
 	out := &ParsePickParamsModel{}
 	out.Rule = types.StringPointerValue(v.Rule)
 	out.Field = flattenEnumMapped(p.AtName("field"), v.Field, parsePickFieldFromAPI, diags)
+	if prior != nil {
+		// The value is case-insensitive, so the spelling of the plan or the state stays.
+		out.Field = keepPriorCase(prior.Field, out.Field)
+	}
 	return out
 }
 
@@ -639,7 +648,7 @@ func expandReplaceParseThingBody(ctx context.Context, p path.Path, m *ParseThing
 	return out
 }
 
-func flattenParseThing(ctx context.Context, p path.Path, v *parse_things_service.ParseThing, diags *diag.Diagnostics) *ParseThingModel {
+func flattenParseThing(ctx context.Context, p path.Path, v *parse_things_service.ParseThing, prior *ParseThingModel, diags *diag.Diagnostics) *ParseThingModel {
 	if v == nil {
 		return nil
 	}
@@ -688,15 +697,24 @@ func flattenParseThing(ctx context.Context, p path.Path, v *parse_things_service
 	out.Groups = types.ListNull(types.ObjectType{AttrTypes: parseGroupAttrTypes()})
 	if v.Groups != nil {
 		items := make([]ParseGroupModel, 0, len(v.Groups))
+		var priorGroups []ParseGroupModel
+		if prior != nil {
+			priorGroups = priorItems[ParseGroupModel](ctx, prior.Groups)
+		}
 		for i := range v.Groups {
-			items = append(items, *flattenParseGroup(ctx, p.AtName("groups").AtListIndex(i), &v.Groups[i], diags))
+			// The prior item at the same index keeps the order of its own lists and the text of its documents.
+			var priorItem *ParseGroupModel
+			if i < len(priorGroups) {
+				priorItem = &priorGroups[i]
+			}
+			items = append(items, *flattenParseGroup(ctx, p.AtName("groups").AtListIndex(i), &v.Groups[i], priorItem, diags))
 		}
 		out.Groups = flattenList(ctx, types.ObjectType{AttrTypes: parseGroupAttrTypes()}, items, diags)
 	}
 	return out
 }
 
-func flattenParseGroup(ctx context.Context, p path.Path, v *parse_things_service.ParseGroup, diags *diag.Diagnostics) *ParseGroupModel {
+func flattenParseGroup(ctx context.Context, p path.Path, v *parse_things_service.ParseGroup, prior *ParseGroupModel, diags *diag.Diagnostics) *ParseGroupModel {
 	if v == nil {
 		return nil
 	}
@@ -707,8 +725,17 @@ func flattenParseGroup(ctx context.Context, p path.Path, v *parse_things_service
 	out.Steps = types.ListNull(types.ObjectType{AttrTypes: parseStepAttrTypes()})
 	if v.Steps != nil {
 		items := make([]ParseStepModel, 0, len(v.Steps))
+		var priorSteps []ParseStepModel
+		if prior != nil {
+			priorSteps = priorItems[ParseStepModel](ctx, prior.Steps)
+		}
 		for i := range v.Steps {
-			items = append(items, *flattenParseStep(ctx, p.AtName("steps").AtListIndex(i), &v.Steps[i], diags))
+			// The prior item at the same index keeps the order of its own lists and the text of its documents.
+			var priorItem *ParseStepModel
+			if i < len(priorSteps) {
+				priorItem = &priorSteps[i]
+			}
+			items = append(items, *flattenParseStep(ctx, p.AtName("steps").AtListIndex(i), &v.Steps[i], priorItem, diags))
 		}
 		out.Steps = flattenList(ctx, types.ObjectType{AttrTypes: parseStepAttrTypes()}, items, diags)
 	}
@@ -724,7 +751,7 @@ func parseGroupAttrTypes() map[string]attr.Type {
 	}
 }
 
-func flattenParseStep(ctx context.Context, p path.Path, v *parse_things_service.ParseStep, diags *diag.Diagnostics) *ParseStepModel {
+func flattenParseStep(ctx context.Context, p path.Path, v *parse_things_service.ParseStep, prior *ParseStepModel, diags *diag.Diagnostics) *ParseStepModel {
 	if v == nil {
 		return nil
 	}
@@ -734,7 +761,11 @@ func flattenParseStep(ctx context.Context, p path.Path, v *parse_things_service.
 	out.Enabled = types.BoolPointerValue(v.Enabled)
 	out.Order = types.Int64PointerValue(v.Order)
 	out.Source = types.StringPointerValue(v.Source)
-	out.Params = flattenParseParams(ctx, p.AtName("params"), v.Params, diags)
+	var priorParams *ParseParamsModel
+	if prior != nil {
+		priorParams = prior.Params
+	}
+	out.Params = flattenParseParams(ctx, p.AtName("params"), v.Params, priorParams, diags)
 	return out
 }
 
@@ -939,6 +970,34 @@ func expandEnumMapped[T ~string](p path.Path, v types.String, toAPI map[string]T
 	return &e
 }
 
+// expandEnumMappedFold is expandEnumMapped for a value that the configuration can write in any case.
+func expandEnumMappedFold[T ~string](p path.Path, v types.String, toAPI map[string]T, diags *diag.Diagnostics) *T {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	if e, ok := toAPI[v.ValueString()]; ok {
+		return &e
+	}
+	for name, e := range toAPI {
+		if strings.EqualFold(name, v.ValueString()) {
+			return &e
+		}
+	}
+	diags.AddAttributeError(p, "Unsupported value", fmt.Sprintf("The value %q is not supported.", v.ValueString()))
+	return nil
+}
+
+// keepPriorCase returns the prior value when the API value differs from it only in case.
+func keepPriorCase(prior, api types.String) types.String {
+	if prior.IsNull() || prior.IsUnknown() || api.IsNull() || api.IsUnknown() {
+		return api
+	}
+	if strings.EqualFold(prior.ValueString(), api.ValueString()) {
+		return prior
+	}
+	return api
+}
+
 // flattenEnumMapped returns the Terraform value of an API value. A value that the map lacks is an error.
 func flattenEnumMapped[T ~string](p path.Path, v *T, fromAPI map[T]string, diags *diag.Diagnostics) types.String {
 	if v == nil {
@@ -957,6 +1016,17 @@ func flattenEnum[T ~string](v *T, zero string) types.String {
 		return types.StringNull()
 	}
 	return types.StringValue(string(*v))
+}
+
+// priorItems returns the items of the prior list, or nil when it cannot be read. The prior only
+// keeps an order or the text of a document, so a prior that cannot be read is not an error.
+func priorItems[T any](ctx context.Context, v elements) []T {
+	var scratch diag.Diagnostics
+	items := expandElements[T](ctx, path.Empty(), v, &scratch)
+	if scratch.HasError() {
+		return nil
+	}
+	return items
 }
 
 func flattenTime(v *time.Time) types.String {

@@ -602,6 +602,11 @@ type Enum struct {
 	// percentage). The alias is the zero value or one of the values, and its target is one of
 	// the values.
 	Aliases map[string]string `yaml:"aliases"`
+	// CaseInsensitive accepts a Terraform value in any case, as a released resource whose
+	// validator was OneOfCaseInsensitive did. Expand matches the value in any case, and flatten
+	// keeps the spelling of the plan or the state when the API value differs only in case. A
+	// scalar field of the enum only: a list or set has no prior value to keep per element.
+	CaseInsensitive bool `yaml:"caseInsensitive"`
 	// Rejected are the values of the contract that the resource does not accept. The generator
 	// reports a value of the contract that is in neither list, so a new API value needs a decision.
 	Rejected []string `yaml:"rejected"`

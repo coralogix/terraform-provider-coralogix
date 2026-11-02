@@ -173,7 +173,10 @@ func Schema() schema.Schema {
 														MarkdownDescription: "",
 													},
 													"field": schema.StringAttribute{
-														Optional:            true,
+														Optional: true,
+														Validators: []validator.String{
+															stringvalidator.OneOfCaseInsensitive("category", "text", "threadID"),
+														},
 														MarkdownDescription: "",
 													},
 												},

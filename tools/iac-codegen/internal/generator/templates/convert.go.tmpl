@@ -12,6 +12,7 @@ import (
 	"slices"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
@@ -867,6 +868,36 @@ func expandEnumMapped[T ~string](p path.Path, v types.String, toAPI map[string]T
 	return &e
 }
 
+{{if .Conv.UsesCaseInsensitive -}}
+// expandEnumMappedFold is expandEnumMapped for a value that the configuration can write in any case.
+func expandEnumMappedFold[T ~string](p path.Path, v types.String, toAPI map[string]T, diags *diag.Diagnostics) *T {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	if e, ok := toAPI[v.ValueString()]; ok {
+		return &e
+	}
+	for name, e := range toAPI {
+		if strings.EqualFold(name, v.ValueString()) {
+			return &e
+		}
+	}
+	diags.AddAttributeError(p, "Unsupported value", fmt.Sprintf("The value %q is not supported.", v.ValueString()))
+	return nil
+}
+
+// keepPriorCase returns the prior value when the API value differs from it only in case.
+func keepPriorCase(prior, api types.String) types.String {
+	if prior.IsNull() || prior.IsUnknown() || api.IsNull() || api.IsUnknown() {
+		return api
+	}
+	if strings.EqualFold(prior.ValueString(), api.ValueString()) {
+		return prior
+	}
+	return api
+}
+
+{{end -}}
 // flattenEnumMapped returns the Terraform value of an API value. A value that the map lacks is an error.
 func flattenEnumMapped[T ~string](p path.Path, v *T, fromAPI map[T]string, diags *diag.Diagnostics) types.String {
 	if v == nil {
@@ -1620,6 +1651,8 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{.Dst}} = expandMap[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
 {{- else if eq .Conv "uint64"}}
 	{{.Dst}} = {{$l}}expandUint64({{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if and (eq .Conv "enum") .EnumMap .CaseInsensitive}}
+	{{.Dst}} = {{$l}}expandEnumMappedFold({{$p}}, m.{{.Model}}, {{.EnumMap.Name}}ToAPI, diags){{$r}}
 {{- else if and (eq .Conv "enum") .EnumMap}}
 	{{.Dst}} = {{$l}}expandEnumMapped({{$p}}, m.{{.Model}}, {{.EnumMap.Name}}ToAPI, diags){{$r}}
 {{- else if eq .Conv "enum"}}
@@ -1837,6 +1870,12 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 	{{- else}}
 	out.{{.Model}} = flattenEnumMapped({{$p}}, {{$v}}, {{.EnumMap.Name}}FromAPI, diags)
+	{{- end}}
+	{{- if .CaseInsensitive}}
+	if prior != nil {
+		// The value is case-insensitive, so the spelling of the plan or the state stays.
+		out.{{.Model}} = keepPriorCase(prior.{{.Model}}, out.{{.Model}})
+	}
 	{{- end}}
 {{- else if eq .Conv "enum"}}
 	out.{{.Model}} = flattenEnum({{$v}}, {{printf "%q" .EnumZero}})

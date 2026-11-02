@@ -31,6 +31,9 @@ types:
       # The released resource showed the opposite of deleteSource, and always sent escaped.
       deleteSource: {name: keep_source, negate: true, computed: true, default: false}
       escaped: {requestValue: "true"}
+  ParsePickParams:
+    fields:
+      field: {validators: [{enum: true}]}
   ParseMatcher:
     fields:
       appName: {name: apps}
@@ -50,3 +53,5 @@ enums:
     trimPrefix: PICK_FIELD_
     values: [PICK_FIELD_THREADID, PICK_FIELD_TEXT]
     names: {PICK_FIELD_THREADID: threadID}
+    # The released validator was OneOfCaseInsensitive: TEXT and Text are text.
+    caseInsensitive: true

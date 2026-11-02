@@ -294,6 +294,9 @@ type convField struct {
 	ReadNullAsEmpty bool
 	// SendNullAsEmpty: expand sends "" for a null string, so the API clears the stored value.
 	SendNullAsEmpty bool
+	// CaseInsensitive: the enums line of a scalar enum field has caseInsensitive. Expand matches
+	// the value in any case, and flatten keeps the prior spelling of an equal value.
+	CaseInsensitive bool
 	// SplitArms: the line of the field has splitArms. Negate: the line has negate.
 	SplitArms, Negate bool
 	// SendUnknownAsZero: expand sends the zero value of the scalar when the plan is unknown
@@ -373,6 +376,18 @@ func (f *convField) WrappedSrc() string {
 		return "&v." + f.SDK
 	}
 	return "v." + f.SDK
+}
+
+// UsesCaseInsensitive reports whether a field is an enum that reads in any case.
+func (d *convData) UsesCaseInsensitive() bool {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.CaseInsensitive {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // Uses reports whether a field uses the conversion kind conv. The template
@@ -1403,6 +1418,7 @@ func (b *convBuilder) fieldConv(cf *convField, t *model.Type, computed bool) (st
 			return "", err
 		}
 		cf.EnumMap = m
+		cf.CaseInsensitive = m != nil && b.file != nil && b.file.Enums[t.Schema].CaseInsensitive
 		return "*" + enum.Name, nil
 	case model.Object, model.OneOf:
 		if len(t.Fields) == 0 {
@@ -2085,6 +2101,10 @@ func markPriorFields(d *convData) error {
 				if f.Conv != convString {
 					return fmt.Errorf("%s.%s: equality needs a string field", obj.Model, f.TFName)
 				}
+				obj.NeedsPrior = true
+			}
+			// An enum read in any case keeps the spelling of the prior value.
+			if f.CaseInsensitive {
 				obj.NeedsPrior = true
 			}
 			// An empty string from the API is null when the value was omitted, and ""

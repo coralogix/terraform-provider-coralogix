@@ -745,6 +745,9 @@ func enumOneOf(a *tfAttr, file *overrides.File, exceptZero bool) (string, error)
 	for _, v := range values {
 		quoted = append(quoted, strconv.Quote(v))
 	}
+	if enum.CaseInsensitive {
+		return "stringvalidator.OneOfCaseInsensitive(" + strings.Join(quoted, ", ") + ")", nil
+	}
 	return "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")", nil
 }
 

@@ -36,7 +36,7 @@ func str(s string) tftypes.Value { return tftypes.NewValue(tftypes.String, s) }
 
 func unknown(typ tftypes.Type) tftypes.Value { return tftypes.NewValue(typ, tftypes.UnknownValue) }
 
-func strings(values ...string) tftypes.Value {
+func stringSet(values ...string) tftypes.Value {
 	out := []tftypes.Value{}
 	for _, v := range values {
 		out = append(out, str(v))
@@ -74,7 +74,7 @@ func create(t *testing.T, plan map[string]tftypes.Value) *frameworkresource.Crea
 func TestUnknownScalarsAreSentAsTheirZeroValue(t *testing.T) {
 	create(t, map[string]tftypes.Value{
 		"name": str("a"), "active": unknown(tftypes.Bool), "order": unknown(tftypes.Number),
-		"apps": strings(), "severities": strings(),
+		"apps": stringSet(), "severities": stringSet(),
 	})
 	body := parse_things_service.Created[0]
 	if body.Enabled == nil || *body.Enabled || body.Order == nil || *body.Order != 0 {
@@ -86,7 +86,7 @@ func TestUnknownScalarsAreSentAsTheirZeroValue(t *testing.T) {
 
 	create(t, map[string]tftypes.Value{
 		"name": str("a"), "active": tftypes.NewValue(tftypes.Bool, true), "order": tftypes.NewValue(tftypes.Number, 7),
-		"apps": strings(), "severities": strings(),
+		"apps": stringSet(), "severities": stringSet(),
 	})
 	body = parse_things_service.Created[0]
 	if body.Enabled == nil || !*body.Enabled || body.Order == nil || *body.Order != 7 {
@@ -99,7 +99,7 @@ func TestUnknownScalarsAreSentAsTheirZeroValue(t *testing.T) {
 func TestSplitArmsSendOneItemPerValueAndReadByArm(t *testing.T) {
 	resp := create(t, map[string]tftypes.Value{
 		"name": str("a"), "active": tftypes.NewValue(tftypes.Bool, true), "order": tftypes.NewValue(tftypes.Number, 1),
-		"apps": strings("app-a", "app-b"), "severities": strings("debug", "error"),
+		"apps": stringSet("app-a", "app-b"), "severities": stringSet("debug", "error"),
 	})
 	var apps, severities []string
 	for _, m := range parse_things_service.Created[0].Matchers {
@@ -139,7 +139,7 @@ func TestSplitArmsSendOneItemPerValueAndReadByArm(t *testing.T) {
 func TestSplitArmsReadNoItemAsEmptySets(t *testing.T) {
 	resp := create(t, map[string]tftypes.Value{
 		"name": str("a"), "active": tftypes.NewValue(tftypes.Bool, true), "order": tftypes.NewValue(tftypes.Number, 1),
-		"apps": strings(), "severities": strings(),
+		"apps": stringSet(), "severities": stringSet(),
 	})
 	if m := parse_things_service.Created[0].Matchers; m != nil {
 		t.Fatalf("matchers sent = %+v, want none", m)
