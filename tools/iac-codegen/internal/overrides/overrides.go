@@ -30,6 +30,9 @@ const ModeExisting = "existing"
 
 // File is the content of behavior-overrides.yaml.
 type File struct {
+	// AfterFlatten gives a released resource a hook that can project API fields into
+	// Terraform attributes after the generated conversion. The data source runs it too.
+	AfterFlatten bool `yaml:"afterFlatten"`
 	// Resource is the OpenAPI component of the resource. It must match the
 	// generator's --resource flag, so a file cannot be used for the wrong resource.
 	Resource string `yaml:"resource"`
@@ -328,14 +331,18 @@ func (t Type) GroupOf(field string) string {
 
 // ExtraAttribute is one Terraform-only attribute of a generated object.
 type ExtraAttribute struct {
-	// ElementType is the map value type: "string" or "int64". A dynamic attribute has none.
+	// Type is "string" for a scalar or "set" for a set. Without it, the attribute is a map.
+	Type string `yaml:"type"`
+	// ElementType is the map or set value type. A scalar or dynamic attribute has none.
 	ElementType string `yaml:"elementType"`
 	// Dynamic: true makes the attribute a DynamicAttribute (types.Dynamic) in place of a map,
 	// for a value of any Terraform type that a handwritten hook turns into request values.
 	Dynamic bool `yaml:"dynamic"`
-	// Required: true makes the attribute Required. Only a dynamic attribute can be required: a
-	// map extra attribute stays optional.
+	// Required: true makes a dynamic attribute Required. Other extra attributes stay optional.
 	Required bool `yaml:"required"`
+	// Computed makes a Terraform-only attribute read-only. A handwritten AfterFlatten hook
+	// can set it from an API value of another type or at another path.
+	Computed bool `yaml:"computed"`
 	// InUpdate: true says that a handwritten BeforeWrite hook sends this attribute, so a change
 	// of it makes an Update. Without it, a change of only this attribute plans an update that
 	// sends no request. It needs a resource whose Update replaces the resource (PUT).
@@ -875,6 +882,19 @@ func (l Field) replacesServerDefault() bool {
 }
 
 func (e ExtraAttribute) check(name string) error {
+	if err := checkExtraName(name); err != nil {
+		return err
+	}
+	if err := e.checkShape(); err != nil {
+		return err
+	}
+	if e.MarkdownDescription == "" {
+		return errors.New("markdownDescription is required")
+	}
+	return nil
+}
+
+func checkExtraName(name string) error {
 	if name == "" {
 		return errors.New("the attribute name is empty")
 	}
@@ -886,23 +906,54 @@ func (e ExtraAttribute) check(name string) error {
 	if name[0] < 'a' || name[0] > 'z' {
 		return fmt.Errorf("the attribute name %q must start with a letter", name)
 	}
+	return nil
+}
+
+func (e ExtraAttribute) checkShape() error {
 	if e.Dynamic {
-		if e.ElementType != "" || e.WriteOnly {
-			return errors.New("a dynamic attribute has no elementType and cannot be writeOnly")
-		}
-	} else {
-		if e.ElementType != "string" && e.ElementType != "int64" {
-			return fmt.Errorf("elementType is %q, want string or int64", e.ElementType)
-		}
-		if e.Required {
-			return errors.New("required applies to a dynamic attribute only")
-		}
+		return e.checkDynamic()
+	}
+	if err := e.checkType(); err != nil {
+		return err
+	}
+	if e.Required {
+		return errors.New("required applies to a dynamic attribute only")
+	}
+	if e.Computed && (e.WriteOnly || e.InUpdate) {
+		return errors.New("computed cannot be combined with required, writeOnly, or inUpdate")
 	}
 	if e.WriteOnly && e.InUpdate {
 		return errors.New("inUpdate cannot be combined with writeOnly: a write-only value is not in the plan or the state, so a change of only that value cannot make an Update")
 	}
-	if e.MarkdownDescription == "" {
-		return errors.New("markdownDescription is required")
+	return nil
+}
+
+func (e ExtraAttribute) checkDynamic() error {
+	if e.ElementType != "" || e.WriteOnly {
+		return errors.New("a dynamic attribute has no elementType and cannot be writeOnly")
+	}
+	if e.Type != "" || e.Computed {
+		return errors.New("a dynamic attribute has no type and cannot be computed")
+	}
+	return nil
+}
+
+func (e ExtraAttribute) checkType() error {
+	switch e.Type {
+	case "":
+		if e.ElementType != "string" && e.ElementType != "int64" {
+			return fmt.Errorf("elementType is %q, want string or int64", e.ElementType)
+		}
+	case "string":
+		if e.ElementType != "" {
+			return errors.New("a string attribute has no elementType")
+		}
+	case "set":
+		if e.ElementType != "string" {
+			return fmt.Errorf("a set attribute needs elementType string, got %q", e.ElementType)
+		}
+	default:
+		return fmt.Errorf("type is %q, want string or set", e.Type)
 	}
 	return nil
 }

@@ -1,0 +1,71 @@
+resource: SharedThing
+mode: existing
+typeName: shared_thing_v2
+afterFlatten: true
+
+validators:
+  inferred: false
+
+api:
+  updateIDInBody: true
+  serverSetID: true
+  operations:
+    list: SharedThingsService_ListSharedThingSummaries
+
+groups:
+  measure:
+    fields: [byCount]
+    requireOne: true
+    markdownDescription: "How the thing is measured."
+  window:
+    fields: [frame]
+    markdownDescription: "The time window."
+
+types:
+  SharedThing:
+    extraAttributes:
+      external_id:
+        type: string
+        computed: true
+        markdownDescription: External identifier as text.
+    unsupportedArms: [byRatio]
+    unsupportedSummary: Unsupported measure
+    unsupportedDetail: The API returned a ratio measure.
+    fields:
+      id:
+        readOnly: true
+      name:
+        required: true
+      note:
+        readEmptyAs: "null"
+        sendNullAsEmpty: true
+      size:
+        validators: [{between: [0, 100]}]
+      frame:
+        required: true
+        validators: [{enumExceptZero: true}]
+  SharedCount:
+    extraAttributes:
+      url:
+        type: string
+        markdownDescription: URL stored at another API path.
+      notify_on:
+        type: set
+        elementType: string
+        markdownDescription: Notifications stored in another API shape.
+enums:
+  SharedFrame:
+    zero: unspecified
+    trimPrefix: SHARED_FRAME_
+    values: [SHARED_FRAME_ONE_DAY, SHARED_FRAME_SEVEN_DAYS]
+
+# The data source finds the resource by id or by name. A name that more than one resource has
+# takes the first one, as the released data source did. It shows the note that the API stores,
+# also "", which the resource reads as null.
+dataSource:
+  lookup: [id, name]
+  duplicateNames: first
+  types:
+    SharedThing:
+      fields:
+        note: {readEmptyAs: value}
