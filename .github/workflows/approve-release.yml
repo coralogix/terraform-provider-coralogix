@@ -11,7 +11,7 @@
 # version, `release.py check` passes, and every check on the PR's latest commit has passed,
 # including the acceptance tests. CODEOWNERS leaves those two files without owners, so this
 # approval is the one review the PR needs. Approvals of an older commit are dismissed, so a
-# later push is never merged on an old approval.
+# later push is never merged on an old approval, and a failed check withdraws the approval.
 #
 # It runs when the release PR changes (to dismiss stale approvals) and whenever a PR workflow
 # finishes (to approve once the last check passes). Both triggers run this file and release.py
@@ -129,6 +129,37 @@ jobs:
             echo "::warning::Not approving: failed checks: $(tr '\n' ',' <<<"$failed"). Re-run them; approval follows when they pass."; exit 0
           fi
           echo "green=true" >> "$GITHUB_OUTPUT"
+      - id: current
+        name: Check against current master
+        if: steps.ci.outputs.green == 'true'
+        env:
+          PR: ${{ steps.pr.outputs.number }}
+        run: |
+          # master may have moved since CI checked the PR. Check the PR merged into master as it
+          # is now, the way version-bump checks the PR's merge commit, so a feature that merged
+          # meanwhile can't leave an unchecked changelog on master. This runs before the approval:
+          # the two release files have no CODEOWNER, so an approval lets anyone merge by hand.
+          git fetch --quiet --no-tags origin master
+          base=$(git rev-parse origin/master)
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          if ! git -c user.name=approve-release -c user.email=approve-release@localhost \
+              merge --quiet --no-edit --no-ff origin/master; then
+            echo "::error::Release PR #$PR conflicts with master. Close it, delete its branch, and run \`make bump\` again."; exit 1
+          fi
+          python3 -I "$RUNNER_TEMP/release.py" check "$base"
+      - name: Dismiss the approval
+        # A failed check above withdraws an approval that an earlier run gave the same commit, for
+        # example when master has since gained changelog entries that this PR does not release.
+        if: failure() && steps.pr.outputs.number != ''
+        env:
+          PR: ${{ steps.pr.outputs.number }}
+        run: |
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and .state == "APPROVED") | .id' |
+            while read -r id; do
+              gh api -X PUT "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews/$id/dismissals" \
+                -f message="The release PR no longer passes the release check against current master." -f event=DISMISS >/dev/null
+            done
       - name: Approve
         if: steps.ci.outputs.green == 'true'
         env:
@@ -146,17 +177,8 @@ jobs:
         env:
           PR: ${{ steps.pr.outputs.number }}
           HEAD_SHA: ${{ steps.pr.outputs.sha }}
+          BASE: ${{ steps.current.outputs.base }}
         run: |
-          # master may have moved since CI checked the PR. Check the PR merged into master as it
-          # is now, the way version-bump checks the PR's merge commit, so a feature that merged
-          # meanwhile can't leave an unchecked changelog on master.
-          git fetch --quiet --no-tags origin master
-          base=$(git rev-parse origin/master)
-          if ! git -c user.name=approve-release -c user.email=approve-release@localhost \
-              merge --quiet --no-edit --no-ff origin/master; then
-            echo "::error::Release PR #$PR conflicts with master. Close it, delete its branch, and run \`make bump\` again."; exit 1
-          fi
-          python3 -I "$RUNNER_TEMP/release.py" check "$base"
           # --match-head-commit refuses to merge if the branch moved after the checks above.
           gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --match-head-commit "$HEAD_SHA"
           merged=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq '.mergeCommit.oid // empty')
@@ -164,8 +186,8 @@ jobs:
           # GitHub can't merge against an expected base. If master moved in the seconds since the
           # check, release-provider.yml repeats it against the real parent before tagging.
           parent=$(gh api "repos/$GITHUB_REPOSITORY/commits/$merged" --jq '.parents[0].sha')
-          if [ "$parent" != "$base" ]; then
-            echo "::warning::master moved from $base to $parent while merging; release-provider.yml re-checks before tagging."
+          if [ "$parent" != "$BASE" ]; then
+            echo "::warning::master moved from $BASE to $parent while merging; release-provider.yml re-checks before tagging."
           fi
           if ! gh workflow run release-provider.yml --repo "$GITHUB_REPOSITORY" --ref master -f sha="$merged"; then
             echo "::error::Merged #$PR as $merged but could not start release-provider.yml. Run it from the Actions tab with sha $merged."; exit 1
