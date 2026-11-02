@@ -6,7 +6,7 @@
 #
 # A release PR only versions code that was already reviewed on master. This workflow approves
 # one only when its branch is release-X.Y.Z in this repository, its author and the signer of
-# each commit are in coralogix/team-eco-system (check-releaser.sh), it changes nothing but
+# each commit are listed in .github/RELEASERS (check-releaser.sh), it changes nothing but
 # CHANGELOG.md and the version line in internal/clientset/version.go, X.Y.Z is that new
 # version, `release.py check` passes, and every check on the PR's latest commit has passed,
 # including the acceptance tests. CODEOWNERS leaves those two files without owners, so this
@@ -80,13 +80,12 @@ jobs:
                 -f message="Superseded by a new push; re-checking the release PR." -f event=DISMISS >/dev/null
             done
       - name: Check who opened the release PR
-        # Before the PR head is checked out, so the script comes from master.
+        # Before the PR head is checked out, so the script and the allowlist come from master.
         if: steps.pr.outputs.number != '' && steps.pr.outputs.draft == 'false'
         env:
           GH_REPO: ${{ github.repository }}
           PR: ${{ steps.pr.outputs.number }}
-          RELEASE_TEAM_TOKEN: ${{ secrets.RELEASE_TEAM_TOKEN }}
-        run: .github/scripts/release/check-releaser.sh "$PR"
+        run: .github/scripts/release/check-releaser.sh "$PR" .github/RELEASERS
       - name: Check the release PR
         if: steps.pr.outputs.number != '' && steps.pr.outputs.draft == 'false'
         env:

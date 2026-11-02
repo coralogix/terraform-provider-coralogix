@@ -42,6 +42,19 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Check who released
+        # A run started by hand, or by semantic-release, must come from someone listed in
+        # .github/RELEASERS on master. release-provider.yml checks before it calls this with a tag.
+        if: github.event_name != 'pull_request' && inputs.tag == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.triggering_actor }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/contents/.github/RELEASERS?ref=master" \
+            -H "Accept: application/vnd.github.raw" > "$RUNNER_TEMP/RELEASERS"
+          if ! sed -e 's/#.*//' -e 's/[[:space:]]//g' "$RUNNER_TEMP/RELEASERS" | grep -qixF "$ACTOR"; then
+            echo "::error::$ACTOR is not in .github/RELEASERS; only coralogix/team-eco-system releases"; exit 1
+          fi
       - name: Checkout
         uses: actions/checkout@v3
         with:
