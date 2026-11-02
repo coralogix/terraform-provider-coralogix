@@ -44,12 +44,20 @@ func webhookGoldenSteps(t *testing.T, h *grHarness) []byte {
 	if bytes.Contains(raw, []byte(`"companyId"`)) || bytes.Contains(raw, []byte(`"company_id"`)) {
 		t.Fatal("a webhook recording contains a company ID")
 	}
-	return generatedWebhookUUID.ReplaceAllFunc(raw, func(id []byte) []byte {
+	raw = generatedWebhookUUID.ReplaceAllFunc(raw, func(id []byte) []byte {
 		if string(id) == webhookUUID || string(id) == webhookOtherUUID || string(id[:8]) == "00000000" {
 			return id
 		}
 		return []byte("<generated-uuid>")
 	})
+	for marker, replacement := range map[string]string{
+		"test-only-a": "<redacted-test-a>",
+		"test-only-b": "<redacted-test-b>",
+		"test-only-c": "<redacted-test-c>",
+	} {
+		raw = bytes.ReplaceAll(raw, []byte(marker), []byte(replacement))
+	}
+	return raw
 }
 
 func webhookConfig(name, arm string, fields j) j {
@@ -198,34 +206,48 @@ func TestWebhookBaselineOptionalFields(t *testing.T) {
 
 func TestWebhookBaselineWriteOnly(t *testing.T) {
 	cases := map[string]struct {
-		before j
-		after  j
+		arm            string
+		before         j
+		after          j
+		plainField     string
+		plainValue     any
+		writeOnlyField string
+		versionField   string
 	}{
 		"custom-header": {
+			arm: "custom",
 			before: webhookConfig("secret", "custom", j{
 				"uuid": webhookUUID, "method": "post", "url": "https://example.invalid/hook",
-				"headers_wo":          j{"Authorization": "synthetic-value-one"},
+				"headers_wo":          j{"Authorization": "test-only-a"},
 				"headers_wo_versions": j{"Authorization": float64(1)},
 			}),
 			after: webhookConfig("secret", "custom", j{
 				"uuid": webhookUUID, "method": "post", "url": "https://example.invalid/hook",
-				"headers_wo":          j{"Authorization": "synthetic-value-two"},
+				"headers_wo":          j{"Authorization": "test-only-b"},
 				"headers_wo_versions": j{"Authorization": float64(2)},
 			}),
+			plainField: "headers", plainValue: j{"Authorization": "test-only-c"},
+			writeOnlyField: "headers_wo", versionField: "headers_wo_versions",
 		},
 		"pager-duty-key": {
-			before: webhookConfig("secret", "pager_duty", j{"service_key_wo": "synthetic-value-one", "service_key_wo_version": float64(1)}),
-			after:  webhookConfig("secret", "pager_duty", j{"service_key_wo": "synthetic-value-two", "service_key_wo_version": float64(2)}),
+			arm:        "pager_duty",
+			before:     webhookConfig("secret", "pager_duty", j{"service_key_wo": "test-only-a", "service_key_wo_version": float64(1)}),
+			after:      webhookConfig("secret", "pager_duty", j{"service_key_wo": "test-only-b", "service_key_wo_version": float64(2)}),
+			plainField: "service_key", plainValue: "test-only-c",
+			writeOnlyField: "service_key_wo", versionField: "service_key_wo_version",
 		},
 		"jira-token": {
+			arm: "jira",
 			before: webhookConfig("secret", "jira", j{
 				"url": "https://example.invalid/jira", "email": "admin@example.invalid", "project_key": "TEST",
-				"api_token_wo": "synthetic-value-one", "api_token_wo_version": float64(1),
+				"api_token_wo": "test-only-a", "api_token_wo_version": float64(1),
 			}),
 			after: webhookConfig("secret", "jira", j{
 				"url": "https://example.invalid/jira", "email": "admin@example.invalid", "project_key": "TEST",
-				"api_token_wo": "synthetic-value-two", "api_token_wo_version": float64(2),
+				"api_token_wo": "test-only-b", "api_token_wo_version": float64(2),
 			}),
+			plainField: "api_token", plainValue: "test-only-c",
+			writeOnlyField: "api_token_wo", versionField: "api_token_wo_version",
 		},
 	}
 	for name, tc := range cases {
@@ -235,6 +257,11 @@ func TestWebhookBaselineWriteOnly(t *testing.T) {
 			webhookState(t, h, state)
 			state = h.RefreshPlan("refresh and plan", state)
 			state = h.Apply("rotate", state, tc.after)
+			plainFields := with(tc.after[tc.arm].(j), j{tc.plainField: tc.plainValue})
+			delete(plainFields, tc.writeOnlyField)
+			delete(plainFields, tc.versionField)
+			state = h.Apply("switch to ordinary field", state, webhookConfig("secret", tc.arm, plainFields))
+			state = h.RefreshPlan("refresh after switch and plan", state)
 			h.Destroy("delete", state)
 			checkGoldenAt(t, webhookGoldenDir, "write_only_"+name+".json", webhookGoldenSteps(t, h))
 		})
@@ -275,6 +302,13 @@ func TestWebhookBaselineEdges(t *testing.T) {
 			if !state.IsNull() {
 				h.Destroy("delete", state)
 			}
+		},
+		"sendlog-returned-url": func(h *grHarness) {
+			state := h.Apply("create", h.null(), webhookFullConfigs["sendlog"])
+			h.api.(*webhookFake).setReadURL(idOf(state), "service-value")
+			state = h.RefreshPlan("refresh returned value and plan", state)
+			state = h.Import("import returned value", idOf(state))
+			h.Destroy("delete", state)
 		},
 		"duplicate-header": func(h *grHarness) {
 			h.Validate("same header sent twice", webhookConfig("invalid", "custom", j{

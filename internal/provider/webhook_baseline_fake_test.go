@@ -60,6 +60,12 @@ func (f *webhookFake) forget(id string) {
 	delete(f.webhooks, id)
 }
 
+func (f *webhookFake) setReadURL(id, value string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.webhooks[id]["url"] = value
+}
+
 func (f *webhookFake) seed(data map[string]any) string {
 	f.mu.Lock()
 	defer f.mu.Unlock()

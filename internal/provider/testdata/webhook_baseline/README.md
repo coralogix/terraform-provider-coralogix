@@ -12,6 +12,9 @@ They make no live API calls.
 The edge files also record that legacy Teams Create fails before an API call,
 legacy Teams Update sends an ID without data, and an omitted generic method
 sends an empty enum value and gets a 400 response.
+They record a service-returned SendLog value without a usable address.
+The write-only files record rotation and a switch to the ordinary field.
+Their test values are synthetic and masked in the JSON files.
 
 The fake models the webhook read and write shapes. It also models duplicate
 email addresses and Slack items.
