@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -152,12 +153,10 @@ func Schema() schema.Schema {
 														Optional:            true,
 														MarkdownDescription: "",
 													},
-													"delete_source": schema.BoolAttribute{
+													"keep_source": schema.BoolAttribute{
 														Optional:            true,
-														MarkdownDescription: "",
-													},
-													"escaped": schema.BoolAttribute{
-														Optional:            true,
+														Computed:            true,
+														Default:             booldefault.StaticBool(false),
 														MarkdownDescription: "",
 													},
 												},

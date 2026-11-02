@@ -251,6 +251,9 @@ const (
 	// of the parent. The API has no object for it.
 	convGroup = "group"
 
+	// convNotBool is a bool that Terraform shows as its opposite (negate).
+	convNotBool = "notbool" // types.Bool ↔ *bool, negated
+
 	// convSplitArms is a list of oneOf items that Terraform shows as one collection per arm
 	// (splitArms). Object holds the conversion of each arm, whose Model is the attribute.
 	convSplitArms = "splitarms" // types.Set/List per arm ↔ []<SDK type>
@@ -291,14 +294,16 @@ type convField struct {
 	ReadNullAsEmpty bool
 	// SendNullAsEmpty: expand sends "" for a null string, so the API clears the stored value.
 	SendNullAsEmpty bool
-	// SplitArms: the line of the field has splitArms.
-	SplitArms bool
+	// SplitArms: the line of the field has splitArms. Negate: the line has negate.
+	SplitArms, Negate bool
 	// SendUnknownAsZero: expand sends the zero value of the scalar when the plan is unknown
 	// (sendUnknownAsZero). ZeroType is its Go type.
 	SendUnknownAsZero bool
 	ZeroType          string
 	// RequestValue is an API value expand always sends. The field is not in the Terraform model.
+	// FixedValue is its Go expression: an enum cast, a quoted string, or a bool.
 	RequestValue string
+	FixedValue   string
 	// RequestValueBy are the API values expand sends when an object field of the model is set,
 	// in the order of the field names.
 	RequestValueBy []fixedBy
@@ -1163,6 +1168,7 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	cf.SendNullAsEmpty = line.SendNullAsEmpty
 	cf.SendUnknownAsZero = line.SendUnknownAsZero
 	cf.SplitArms = line.SplitArms
+	cf.Negate = line.Negate
 	cf.Equality = line.Equality
 	cf.RequestValue = line.RequestValue
 	cf.RequestValueBy = nil
@@ -1204,15 +1210,27 @@ func (b *convBuilder) applyValueNames(cf *convField, component, name string) err
 	return nil
 }
 
-func (b *convBuilder) applyFixedRequest(cf *convField) {
+func (b *convBuilder) applyFixedRequest(cf *convField) error {
 	if cf.RequestValue == "" && len(cf.RequestValueBy) == 0 {
-		return
+		return nil
+	}
+	switch {
+	case cf.RequestValue == "":
+	case cf.Conv == convEnum:
+		cf.FixedValue = fmt.Sprintf("%s(%q)", cf.SDKType, cf.RequestValue)
+	case cf.Conv == convString:
+		cf.FixedValue, cf.SDKType = fmt.Sprintf("%q", cf.RequestValue), "string"
+	case cf.Conv == convBool && (cf.RequestValue == "true" || cf.RequestValue == "false"):
+		cf.FixedValue, cf.SDKType = cf.RequestValue, "bool"
+	default:
+		return fmt.Errorf("%s: requestValue %q needs an enum, a string, or a bool field (true or false), not a %s field", cf.TFName, cf.RequestValue, cf.Conv)
 	}
 	if cf.EnumMap != nil {
 		b.releaseEnumMap(cf.EnumMap)
 		cf.EnumMap = nil
 	}
 	cf.Conv = "fixed"
+	return nil
 }
 
 // applyMissingEnum reads a missing business-first enum as the string default.
@@ -1293,7 +1311,15 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 		}
 		cf.Conv, cf.Object = convEmptyBool, nil
 	}
-	b.applyFixedRequest(cf)
+	if cf.Negate {
+		if cf.Conv != convBool || cf.Wrap != nil {
+			return nil, fmt.Errorf("%s: negate needs a bool field without wrappers, not a %s field", cf.TFName, cf.Conv)
+		}
+		cf.Conv = convNotBool
+	}
+	if err := b.applyFixedRequest(cf); err != nil {
+		return nil, err
+	}
 	if err := applySendUnknownAsZero(cf); err != nil {
 		return nil, err
 	}
@@ -1800,7 +1826,7 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 // scalarAttrTypes are the Terraform attribute types of the scalar kinds.
 var scalarAttrTypes = map[string]string{
 	convString: "types.StringType", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
-	convBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
+	convBool: "types.BoolType", convNotBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
 	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
 	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
 }
@@ -2173,7 +2199,7 @@ func sameCheck(f *convField) (string, error) {
 			break
 		}
 		return "slices.EqualFunc(" + a + ", " + b + ", time.Time.Equal)", nil
-	case convString, convBool, convFloat64, convFloat32, convInt32, convInt32AsInt64, convInt64, convUint64, convEnum, convTime:
+	case convString, convBool, convNotBool, convFloat64, convFloat32, convInt32, convInt32AsInt64, convInt64, convUint64, convEnum, convTime:
 		if !value {
 			a, b = "pointerValue("+a+")", "pointerValue("+b+")"
 		}

@@ -791,6 +791,18 @@ func expandBool(v types.Bool) *bool {
 	return &b
 }
 
+{{- if .Conv.Uses "notbool"}}
+
+// negateBool returns the opposite of b, and nil for nil.
+func negateBool(b *bool) *bool {
+	if b == nil {
+		return nil
+	}
+	n := !*b
+	return &n
+}
+{{- end}}
+
 func expandFloat64(v types.Float64) *float64 {
 	if v.IsNull() || v.IsUnknown() {
 		return nil
@@ -1577,6 +1589,9 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{.Dst}} = {{$l}}expandString(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "bool"}}
 	{{.Dst}} = {{$l}}expandBool(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "notbool"}}
+	// Terraform shows the opposite of the API flag.
+	{{.Dst}} = {{$l}}negateBool(expandBool(m.{{.Model}})){{$r}}
 {{- else if eq .Conv "float64"}}
 	{{.Dst}} = {{$l}}expandFloat64(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "int32"}}
@@ -1620,7 +1635,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 {{- else if eq .Conv "fixed"}}
 	{
-		fixed := {{.SDKType}}({{printf "%q" .RequestValue}})
+		fixed := {{.FixedValue}}
 		{{.Dst}} = {{if .Value}}fixed{{else}}&fixed{{end}}
 	}
 {{- else if and (eq .Conv "object") .ObjectValue}}
@@ -1778,6 +1793,9 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{- end}}
 {{- else if eq .Conv "bool"}}
 	out.{{.Model}} = types.BoolPointerValue({{$v}})
+{{- else if eq .Conv "notbool"}}
+	// Terraform shows the opposite of the API flag.
+	out.{{.Model}} = types.BoolPointerValue(negateBool({{$v}}))
 {{- else if eq .Conv "float64"}}
 	out.{{.Model}} = types.Float64PointerValue({{$v}})
 	{{- template "readZeroAsNull" .}}

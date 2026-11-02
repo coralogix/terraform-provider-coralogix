@@ -414,6 +414,10 @@ type Field struct {
 	ReadEmptyAs string `yaml:"readEmptyAs"`
 	// ReadNullAs: "empty" reads a missing list or set as an empty collection.
 	ReadNullAs string `yaml:"readNullAs"`
+	// Negate shows a bool field as its opposite, as a released resource that showed
+	// keep_source_field for the API flag deleteSource did. Expand sends the negated value, and
+	// flatten reads it negated. A default on the line is a Terraform value.
+	Negate bool `yaml:"negate"`
 	// SplitArms shows a top-level list or set whose items are each one arm of a oneOf as one
 	// attribute per arm, holding the values of that arm, as a released resource that showed
 	// applications, subsystems, and severities for a list of rule matchers did. Each arm must be a
@@ -878,6 +882,7 @@ func (l Field) keys() []string {
 	add(l.SendNullAsEmpty, "sendNullAsEmpty")
 	add(l.SendUnknownAsZero, "sendUnknownAsZero")
 	add(l.SplitArms, "splitArms")
+	add(l.Negate, "negate")
 	add(l.RequireOne, "requireOne")
 	add(l.RequestValue != "", "requestValue")
 	add(len(l.RequestValueBy) != 0, "requestValueBy")
@@ -997,7 +1002,7 @@ func (l Field) emptyMode() bool {
 }
 
 func (l Field) emptyValue() bool {
-	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.KeyedBy == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() && !l.SendUnknownAsZero && !l.SplitArms &&
+	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.KeyedBy == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() && !l.SendUnknownAsZero && !l.SplitArms && !l.Negate &&
 		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == ""
 }
 
@@ -1086,6 +1091,9 @@ func (l Field) checkConflicts() error {
 	}
 	if l.SendUnknownAsZero && (l.Computed == nil || !*l.Computed) {
 		return errors.New("sendUnknownAsZero needs computed: true: only a computed attribute is unknown in a plan")
+	}
+	if l.Negate && l.Fixed() {
+		return errors.New("a requestValue field is no Terraform attribute, so negate changes nothing: send the API value")
 	}
 	if l.SendUnknownAsZero && l.Default != nil {
 		return errors.New("a default is never unknown, so sendUnknownAsZero changes nothing")

@@ -30,8 +30,7 @@ type ParseDropParamsModel struct {
 
 type ParseCopyParamsModel struct {
 	Target       types.String `tfsdk:"target"`
-	DeleteSource types.Bool   `tfsdk:"delete_source"`
-	Escaped      types.Bool   `tfsdk:"escaped"`
+	DeleteSource types.Bool   `tfsdk:"keep_source"`
 }
 
 type ParsePickParamsModel struct {

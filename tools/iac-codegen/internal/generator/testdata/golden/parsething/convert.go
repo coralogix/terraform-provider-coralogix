@@ -204,6 +204,7 @@ var computedAttrs = map[string]bool{
 	"severities":      true,
 	"groups.id":       true,
 	"groups.steps.id": true,
+	"groups.steps.params.copy_params.keep_source": true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
@@ -528,8 +529,12 @@ func expandParseCopyParams(ctx context.Context, p path.Path, m *ParseCopyParamsM
 	}
 	out := &parse_things_service.ParseCopyParams{}
 	out.Target = expandString(m.Target)
-	out.DeleteSource = expandBool(m.DeleteSource)
-	out.Escaped = expandBool(m.Escaped)
+	// Terraform shows the opposite of the API flag.
+	out.DeleteSource = negateBool(expandBool(m.DeleteSource))
+	{
+		fixed := true
+		out.Escaped = &fixed
+	}
 	return out
 }
 
@@ -539,16 +544,15 @@ func flattenParseCopyParams(ctx context.Context, p path.Path, v *parse_things_se
 	}
 	out := &ParseCopyParamsModel{}
 	out.Target = types.StringPointerValue(v.Target)
-	out.DeleteSource = types.BoolPointerValue(v.DeleteSource)
-	out.Escaped = types.BoolPointerValue(v.Escaped)
+	// Terraform shows the opposite of the API flag.
+	out.DeleteSource = types.BoolPointerValue(negateBool(v.DeleteSource))
 	return out
 }
 
 func parseCopyParamsAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"target":        types.StringType,
-		"delete_source": types.BoolType,
-		"escaped":       types.BoolType,
+		"target":      types.StringType,
+		"keep_source": types.BoolType,
 	}
 }
 
@@ -862,6 +866,15 @@ func expandBool(v types.Bool) *bool {
 	}
 	b := v.ValueBool()
 	return &b
+}
+
+// negateBool returns the opposite of b, and nil for nil.
+func negateBool(b *bool) *bool {
+	if b == nil {
+		return nil
+	}
+	n := !*b
+	return &n
 }
 
 func expandFloat64(v types.Float64) *float64 {
