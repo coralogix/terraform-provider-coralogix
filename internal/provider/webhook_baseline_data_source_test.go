@@ -53,6 +53,9 @@ var webhookDataSourceScenarios = func() map[string]func(*grHarness) {
 		cases["type-"+arm] = func(h *grHarness) {
 			state := h.Apply("create", h.null(), webhookFullConfigs[arm])
 			webhookState(h.t, h, state)
+			if arm == "sendlog" {
+				h.api.(*webhookFake).setReadURL(idOf(state), "service-value")
+			}
 			h.ReadDataSource("read by id", byID(idOf(state)))
 		}
 	}
