@@ -184,11 +184,12 @@ func upsertOperations(doc *yaml.Node, getID, setID string) (*yaml.Node, issue.Re
 		return nil, report
 	}
 	item := mapValue(mapValue(doc, "paths"), getPath)
-	for _, method := range []string{"put", "patch", "delete"} {
-		if mapValue(item, method) != nil {
-			return nil, issue.Report{upsertShapeIssue("", fmt.Sprintf("%s also has a %s operation, so the API has more than the two calls of a singleton that one call sets.", getPath, strings.ToUpper(method)))}
-		}
+	if mapValue(item, "delete") != nil {
+		return nil, issue.Report{upsertShapeIssue("", fmt.Sprintf("%s also has a DELETE operation, so the API can remove the singleton.", getPath))}
 	}
+	// The POST creates and replaces the singleton, so another write on its path is not used.
+	deleteMap(item, "put")
+	deleteMap(item, "patch")
 	// The PUT is the Set call; the DELETE makes no call in the renderer.
 	put := cloneMapping(set)
 	setMap(put, "operationId", &yaml.Node{Kind: yaml.ScalarNode, Value: setID + upsertPutSuffix})

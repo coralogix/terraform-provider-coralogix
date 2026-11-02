@@ -1,0 +1,107 @@
+# A resource that users already have, whose API is a singleton like the metrics archive: a GET
+# reads it, and a POST on the same path sets it and returns an empty object. The path also has a
+# PUT and a PATCH that the resource does not use. The configuration holds one storage arm of a
+# oneOf of the resource itself, and the released resource does not support the gcs arm.
+openapi: 3.1.0
+info: {title: storage, version: 1.0.0}
+paths:
+  /storage/v1/config:
+    get:
+      tags: [Storage Service]
+      operationId: StorageService_GetConfig
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetConfigResponse'}
+    post:
+      tags: [Storage Service]
+      operationId: StorageService_SetConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Set Config Request
+              type: object
+              oneOf:
+                - {type: object, required: [s3]}
+                - {type: object, required: [ibm]}
+                - {type: object, required: [gcs]}
+              properties:
+                s3: {$ref: '#/components/schemas/S3'}
+                ibm: {$ref: '#/components/schemas/Ibm'}
+                gcs: {$ref: '#/components/schemas/Gcs'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {type: object}
+    put:
+      tags: [Storage Service]
+      operationId: StorageService_UpdateConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                days: {type: integer, format: int64}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {type: object}
+    patch:
+      tags: [Storage Service]
+      operationId: StorageService_PatchConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                days: {type: integer, format: int64}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {type: object}
+components:
+  schemas:
+    GetConfigResponse:
+      type: object
+      properties:
+        config: {$ref: '#/components/schemas/StorageConfig'}
+    StorageConfig:
+      type: object
+      oneOf:
+        - {type: object, required: [s3]}
+        - {type: object, required: [ibm]}
+        - {type: object, required: [gcs]}
+      properties:
+        s3: {$ref: '#/components/schemas/S3'}
+        ibm: {$ref: '#/components/schemas/Ibm'}
+        gcs: {$ref: '#/components/schemas/Gcs'}
+        prefix: {type: string}
+    S3:
+      type: object
+      required: [bucket]
+      properties:
+        bucket: {type: string, minLength: 1}
+    Ibm:
+      type: object
+      required: [endpoint]
+      properties:
+        endpoint: {type: string, minLength: 1}
+    Gcs:
+      type: object
+      required: [bucket]
+      properties:
+        bucket: {type: string, minLength: 1}

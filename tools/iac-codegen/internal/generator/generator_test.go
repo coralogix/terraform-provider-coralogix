@@ -2558,9 +2558,9 @@ func TestReleasedShapeErrors(t *testing.T) {
 			lines: replace("      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        name: is_on\n        markdownDescription: Whether the thing is enabled.\n"),
 			want:  "is_on: updateMask: omit sends no mask, so removing this optional attribute would not clear it",
 		},
-		"unsupported arms of the resource itself": {
+		"unsupported arm of the resource that is no oneOf arm": {
 			lines: replace("  EvalThing:\n    fields:\n", "  EvalThing:\n    unsupportedArms: [config]\n    unsupportedSummary: Unsupported\n    unsupportedDetail: Not supported.\n    fields:\n"),
-			want:  "types.EvalThing.unsupportedArms: the oneOf arms of the resource itself are not supported",
+			want:  `types.EvalThing.unsupportedArms: "config" is not a oneOf arm`,
 		},
 		"requiresReplace on every Update field": {
 			lines: replace("      enabled:\n        computed: true\n        default: true\n", "      enabled:\n        requiresReplace: true\n      config:\n        requiresReplace: true\n"),

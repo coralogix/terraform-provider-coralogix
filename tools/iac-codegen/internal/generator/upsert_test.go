@@ -93,6 +93,12 @@ func TestUpsertAndInlineRejectIncompatibleContracts(t *testing.T) {
 			},
 			code: "UPSERT_SHAPE_UNSUPPORTED", location: "behavior-overrides.yaml:api.operations.create",
 		},
+		"delete on the path": {
+			spec: func(t *testing.T, s, o string) (string, string) {
+				return replaceOnce(t, s, "    post:\n", "    delete:\n      operationId: UpsertService_DeleteTarget\n      responses: {'200': {description: ok}}\n    post:\n"), o
+			},
+			code: "UPSERT_SHAPE_UNSUPPORTED", location: "behavior-overrides.yaml:api.operations",
+		},
 		"operation flag": {
 			ids:  model.OperationIDs{Get: "UpsertService_GetTarget"},
 			code: "UPSERT_OPERATION_CONFLICT", location: "behavior-overrides.yaml:api.operations",
@@ -253,4 +259,47 @@ components:
 `)
 	overrides = replaceOnce(t, overrides, "    update: UpsertService_SetTarget\n    delete: none\n", "    update: UpsertService_ReplaceTarget\n    delete: UpsertService_DeleteTarget\n")
 	return spec, overrides
+}
+
+// A PUT or a PATCH on the path of an upsert that the overrides do not name is not used: the POST
+// creates and replaces the singleton. The output is the golden output of the upsert without them.
+func TestUpsertIgnoresAnUnusedPutAndPatch(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "upsert.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	withPut := replaceOnce(t, string(spec), "    post:\n", `    put:
+      operationId: UpsertService_UpdateTarget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                days: {type: integer, format: int64}
+      responses: {'200': {description: ok}}
+    patch:
+      operationId: UpsertService_PatchTarget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                days: {type: integer, format: int64}
+      responses: {'200': {description: ok}}
+    post:
+`)
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = []byte(withPut)
+	out := filepath.Join(t.TempDir(), "upsertthing")
+	options := Options{Resource: "Target", OutputDir: out, OverridesPath: filepath.Join("testdata", "upsert-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	if diff := compareDirectories(filepath.Join("testdata", "golden", "upsertthing"), out); diff != "" {
+		t.Fatalf("an unused PUT and PATCH changed the output:\n%s", diff)
+	}
 }

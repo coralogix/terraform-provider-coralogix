@@ -277,6 +277,12 @@ func flatten(ctx context.Context, v *{{$sdk}}.{{.Resource.SDK}}{{if .HasPrior}},
 		diags.AddError("Missing resource", "The API response has no {{.Resource.SDK}}.")
 		return nil, diags
 	}
+{{- range .RootUnsupported}}
+	if v.{{.SDK}} != nil {
+		diags.AddError({{printf "%q" .Summary}}, {{printf "%q" .Detail}})
+		return nil, diags
+	}
+{{- end}}
 {{- range .Arms}}
 	if v.{{.SDK}} == nil {
 		// The top-level attributes are fields of this object, so a response without it has no resource.

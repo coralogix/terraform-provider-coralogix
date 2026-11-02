@@ -38,6 +38,9 @@ type crudData struct {
 	// Arms are the Go fields of the inlined oneOf arms of the resource. Read treats a response
 	// without one as a resource that does not exist.
 	Arms []string
+	// RootUnsupported are the Go fields of the oneOf arms of the resource that it does not
+	// configure. A response that selects one exists: flatten reports it.
+	RootUnsupported []string
 	// Replace: Update is a full replace (PUT, E11) with no update mask.
 	Replace bool
 	// UpdateIDInBody: the Update call takes no id. The id is a field of the body.
@@ -166,6 +169,15 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		return nil, err
 	}
 	out.FixedID = singletonID(file)
+	if file != nil {
+		for _, arm := range file.Types[r.Name].UnsupportedArms {
+			ref, err := ix.fieldRef("fields." + arm)
+			if err != nil {
+				return nil, err
+			}
+			out.RootUnsupported = append(out.RootUnsupported, ref.Name)
+		}
+	}
 	for _, parent := range inlinedParents(r, file) {
 		if parent.Arm {
 			ref, err := ix.fieldRef("fields." + parent.Field)
@@ -299,7 +311,7 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string) (crudOp, err
 	if (o.op.Body != "") != o.body {
 		return out, fmt.Errorf("%s: request body %q is not supported", o.name, o.op.Body)
 	}
-	readsBack := o.op.Response.ID != "" || o.name == "update" && o.op.Response.Empty
+	readsBack := o.op.Response.ID != "" || (o.name == "update" || o.name == "create") && o.op.Response.Empty
 	if (o.op.Response.Field != "" || o.op.Response.Direct) != o.resource && !readsBack {
 		return out, fmt.Errorf("%s: response field %q is not supported", o.name, o.op.Response.Field)
 	}
@@ -330,7 +342,7 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string) (crudOp, err
 		out.ResponseID, out.ResponseIDValue = field.Name, field.Want == "string"
 		return out, nil
 	}
-	if o.name == "update" && o.op.Response.Empty {
+	if (o.name == "update" || o.name == "create") && o.op.Response.Empty {
 		out.Empty = true
 		return out, nil
 	}

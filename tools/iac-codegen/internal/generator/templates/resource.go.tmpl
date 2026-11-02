@@ -306,6 +306,13 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 			// resource as tainted and can delete it.
 			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), {{if not .IDValue}}*{{end}}v.{{.IDField}})...)
 		}
+{{- else if .Create.Empty}}
+		if v != nil {
+			// The singleton is set, but reading it failed. Keep the plan with the fixed id, as the
+			// state of what was set, so Terraform marks the resource as tainted.
+			resp.State.Raw = req.Plan.Raw
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), SingletonID)...)
+		}
 {{- end}}
 		return
 	}
@@ -577,6 +584,23 @@ func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp 
 // The API calls. Each returns the error with its HTTP status and body.
 
 func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBody}}) (*{{$sdk}}.{{.Resource}}, error) {
+{{- if .Create.Empty}}
+	_, httpResp, err := r.client.{{.Create.Method}}(ctx).{{.Create.Body}}(*body).Execute()
+	if err != nil {
+		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
+	}
+	// The Create response has no fields. Read the singleton that it set.
+	v, err := r.get(ctx, SingletonID)
+	if err != nil {
+		// Return a value with the error, so Create keeps the id in the state.
+		return &{{$sdk}}.{{.Resource}}{}, fmt.Errorf("set %s, but could not read it: %w", TypeName, err)
+	}
+	if v == nil {
+		return &{{$sdk}}.{{.Resource}}{}, fmt.Errorf("set %s, but the API returned no resource", TypeName)
+	}
+	return v, nil
+}
+{{- else}}
 	out, httpResp, err := r.client.{{.Create.Method}}(ctx).{{.Create.Body}}(*body).Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
@@ -607,6 +631,7 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBod
 	}
 	return {{if .Create.Response}}{{if .Create.ResponseValue}}&{{end}}out.{{.Create.Response}}{{else}}out{{end}}, nil
 }
+{{- end}}
 {{- end}}
 
 func (r *Resource) get(ctx context.Context, id {{.IDGoType}}) (*{{$sdk}}.{{.Resource}}, error) {
@@ -680,6 +705,11 @@ func (r *Resource) delete(ctx context.Context, id {{.IDGoType}}) error {
 // absent reports whether a response has none of the arms that hold the resource. The API then
 // has no resource: it returns another arm, or an empty one.
 func absent(v *{{$sdk}}.{{.Resource}}) bool {
+{{- range .RootUnsupported}}
+	if v != nil && v.{{.}} != nil {
+		return false // flatten reports the arm that the resource does not support
+	}
+{{- end}}
 	return v == nil{{range .Arms}} || v.{{.}} == nil{{end}}
 }
 {{- end}}
