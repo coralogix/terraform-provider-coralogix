@@ -359,6 +359,26 @@ func TestWebhookBaselineEdges(t *testing.T) {
 				"headers_wo": j{"Authorization": "synthetic-value"},
 			}))
 		},
+		"version-without-header": func(h *grHarness) {
+			h.Validate("version has no write-only header", webhookConfig("invalid", "custom", j{
+				"method": "post", "url": "https://example.invalid/hook",
+				"headers_wo_versions": j{"Authorization": float64(1)},
+			}))
+		},
+		"null-header-value": func(h *grHarness) {
+			h.Validate("write-only header has null value", webhookConfig("invalid", "custom", j{
+				"method": "post", "url": "https://example.invalid/hook",
+				"headers_wo":          j{"Authorization": nil},
+				"headers_wo_versions": j{"Authorization": float64(1)},
+			}))
+		},
+		"null-header-version": func(h *grHarness) {
+			h.Validate("write-only header has null version", webhookConfig("invalid", "custom", j{
+				"method": "post", "url": "https://example.invalid/hook",
+				"headers_wo":          j{"Authorization": "synthetic-value"},
+				"headers_wo_versions": j{"Authorization": nil},
+			}))
+		},
 		"change-type": func(h *grHarness) {
 			s := h.Apply("create", h.null(), webhookFullConfigs["opsgenie"])
 			h.Apply("change webhook type", s, webhookFullConfigs["email_group"])

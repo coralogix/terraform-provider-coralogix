@@ -21,6 +21,8 @@ removal from an existing webhook on Update.
 The enum cases cover every allowed custom method, Slack digest, and Slack
 attachment type, including `empty`.
 The empty-email case records explicit `emails = []` separately from omission.
+The header validation cases record missing versions, unmatched versions,
+and null header values and versions.
 
 The fake models the webhook read and write shapes. It also models duplicate
 email addresses and Slack items.
