@@ -1,0 +1,90 @@
+[
+  {
+    "step": "import",
+    "state": null
+  },
+  {
+    "step": "import (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "groups": [
+        {
+          "interval": 180,
+          "limit": 0,
+          "name": "yaml-a",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {},
+              "record": "tf:yaml_a"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "from-yaml",
+      "yaml_content": null
+    },
+    "drift": [
+      "AttributeName(\"groups\")",
+      "AttributeName(\"groups\").ElementKeyValue(tftypes.Object[\"interval\":tftypes.Number, \"limit\":tftypes.Number, \"name\":tftypes.String, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]]<\"interval\":tftypes.Number<\"180\">, \"limit\":tftypes.Number<\"0\">, \"name\":tftypes.String<\"yaml-a\">, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]<tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]<\"evaluation_delay_ms\":tftypes.Number<null>, \"expr\":tftypes.String<\"vector(1)\">, \"labels\":tftypes.Map[tftypes.String]<>, \"record\":tftypes.String<\"tf:yaml_a\">>>>)",
+      "AttributeName(\"name\")"
+    ]
+  },
+  {
+    "step": "plan a yaml_content config",
+    "config": {
+      "yaml_content": "name: from-yaml\ngroups:\n  - name: yaml-a\n    interval: 180\n    rules:\n      - record: tf:yaml_a\n        expr: vector(1)\n"
+    },
+    "plan": {
+      "groups": [
+        {
+          "interval": 180,
+          "limit": 0,
+          "name": "yaml-a",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {},
+              "record": "tf:yaml_a"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "from-yaml",
+      "yaml_content": "name: from-yaml\ngroups:\n  - name: yaml-a\n    interval: 180\n    rules:\n      - record: tf:yaml_a\n        expr: vector(1)\n"
+    },
+    "requiresReplace": [
+      "AttributeName(\"yaml_content\")"
+    ],
+    "state": {
+      "groups": [
+        {
+          "interval": 180,
+          "limit": 0,
+          "name": "yaml-a",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {},
+              "record": "tf:yaml_a"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "from-yaml",
+      "yaml_content": null
+    }
+  }
+]

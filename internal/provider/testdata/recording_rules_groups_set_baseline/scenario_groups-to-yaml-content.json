@@ -1,0 +1,138 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "groups": [
+        {
+          "interval": 180,
+          "name": "yaml-a",
+          "rules": [
+            {
+              "expr": "vector(1)",
+              "record": "tf:yaml_a"
+            }
+          ]
+        }
+      ],
+      "name": "from-yaml"
+    },
+    "plan": {
+      "groups": [
+        {
+          "interval": 180,
+          "limit": "(unknown)",
+          "name": "yaml-a",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": "(unknown)",
+              "record": "tf:yaml_a"
+            }
+          ]
+        }
+      ],
+      "id": "(unknown)",
+      "name": "from-yaml",
+      "yaml_content": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1",
+        "body": {
+          "groups": [
+            {
+              "interval": 180,
+              "limit": "0",
+              "name": "yaml-a",
+              "rules": [
+                {
+                  "expr": "vector(1)",
+                  "record": "tf:yaml_a"
+                }
+              ]
+            }
+          ],
+          "name": "from-yaml"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "groups": [
+        {
+          "interval": 180,
+          "limit": 0,
+          "name": "yaml-a",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {},
+              "record": "tf:yaml_a"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "from-yaml",
+      "yaml_content": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: yaml_content instead of groups",
+    "config": {
+      "yaml_content": "name: from-yaml\ngroups:\n  - name: yaml-a\n    interval: 180\n    rules:\n      - record: tf:yaml_a\n        expr: vector(1)\n"
+    },
+    "plan": {
+      "groups": [
+        {
+          "interval": 180,
+          "limit": 0,
+          "name": "yaml-a",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {},
+              "record": "tf:yaml_a"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "from-yaml",
+      "yaml_content": "name: from-yaml\ngroups:\n  - name: yaml-a\n    interval: 180\n    rules:\n      - record: tf:yaml_a\n        expr: vector(1)\n"
+    },
+    "requiresReplace": [
+      "AttributeName(\"yaml_content\")"
+    ],
+    "state": {
+      "groups": [
+        {
+          "interval": 180,
+          "limit": 0,
+          "name": "yaml-a",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {},
+              "record": "tf:yaml_a"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "from-yaml",
+      "yaml_content": null
+    }
+  }
+]

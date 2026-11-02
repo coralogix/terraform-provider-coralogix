@@ -804,6 +804,29 @@ func inconsistent(path string, planned, actual tftypes.Value, out *[]string) {
 		for i := range pl {
 			inconsistent(fmt.Sprintf("%s[%d]", path, i), pl[i], al[i], out)
 		}
+	case planned.Type().Is(tftypes.Set{}) && !planned.IsFullyKnown():
+		// As Terraform core does, each planned item that has unknown values must match an item of
+		// the result, and each item of the result must match a planned item.
+		var ps, as []tftypes.Value
+		_ = planned.As(&ps)
+		_ = actual.As(&as)
+		matches := func(p, a tftypes.Value) bool {
+			var found []string
+			inconsistent("", p, a, &found)
+			return len(found) == 0
+		}
+		for _, p := range ps {
+			if !slices.ContainsFunc(as, func(a tftypes.Value) bool { return matches(p, a) }) {
+				*out = append(*out, at)
+				return
+			}
+		}
+		for _, a := range as {
+			if !slices.ContainsFunc(ps, func(p tftypes.Value) bool { return matches(p, a) }) {
+				*out = append(*out, at)
+				return
+			}
+		}
 	default:
 		if !planned.Equal(actual) {
 			*out = append(*out, at)

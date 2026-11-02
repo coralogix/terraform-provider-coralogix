@@ -1,0 +1,28 @@
+[
+  {
+    "step": "read a set without a name, interval, limit, or rules",
+    "config": {
+      "id": "01J00000000000000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "groups": [
+        {
+          "interval": 60,
+          "limit": 0,
+          "name": "g1",
+          "rules": null
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "01J00000000000000000000001",
+      "yaml_content": null
+    }
+  }
+]

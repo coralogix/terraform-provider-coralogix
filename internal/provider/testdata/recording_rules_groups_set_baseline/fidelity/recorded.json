@@ -1,0 +1,447 @@
+{
+  "cases": [
+    {
+      "name": "create without a name, read, delete, read",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "id": "{{id}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "groups": [
+              {
+                "id": "\u003cgroup-id\u003e",
+                "interval": 60,
+                "limit": "0",
+                "name": "tf-fidelity-g1",
+                "rules": [
+                  {
+                    "expr": "vector(1)",
+                    "labels": {},
+                    "record": "tf_fidelity:r1"
+                  }
+                ],
+                "version": 0
+              }
+            ],
+            "id": "{{id}}",
+            "name": "{{id}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: No rule group set with the given id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create with an empty name",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\n  \"name\": [\n    {\n      \"code\": \"length\",\n      \"message\": null,\n      \"params\": {\n        \"max\": 255,\n        \"min\": 1,\n        \"value\": \"\"\n      }\n    }\n  ]\n}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create full, replace, omit name, delete",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "id": "{{id}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "groups": [
+              {
+                "id": "\u003cgroup-id\u003e",
+                "interval": 60,
+                "limit": "0",
+                "name": "tf-fidelity-a",
+                "rules": [
+                  {
+                    "expr": "vector(1)",
+                    "labels": {},
+                    "record": "tf_fidelity:r1"
+                  }
+                ],
+                "version": 0
+              },
+              {
+                "id": "\u003cgroup-id\u003e",
+                "interval": 120,
+                "limit": "5",
+                "name": "tf-fidelity-z",
+                "rules": [
+                  {
+                    "evaluationDelayMs": 0,
+                    "expr": "vector(1)",
+                    "labels": {
+                      "a": "1",
+                      "empty": ""
+                    },
+                    "record": "tf_fidelity:b"
+                  },
+                  {
+                    "evaluationDelayMs": 60000,
+                    "expr": "vector(1)",
+                    "labels": {},
+                    "record": "tf_fidelity:a"
+                  }
+                ],
+                "version": 0
+              }
+            ],
+            "id": "{{id}}",
+            "name": "tf-fidelity-set"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "groups": [
+              {
+                "id": "\u003cgroup-id\u003e",
+                "interval": 60,
+                "limit": "0",
+                "name": "tf-fidelity-a",
+                "rules": [
+                  {
+                    "expr": "vector(1)",
+                    "labels": {},
+                    "record": "tf_fidelity:r1"
+                  }
+                ],
+                "version": 1
+              },
+              {
+                "id": "\u003cgroup-id\u003e",
+                "interval": 300,
+                "limit": "10",
+                "name": "tf-fidelity-m",
+                "rules": [],
+                "version": 0
+              }
+            ],
+            "id": "{{id}}",
+            "name": "tf-fidelity-set2"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "groups": [
+              {
+                "id": "\u003cgroup-id\u003e",
+                "interval": 60,
+                "limit": "0",
+                "name": "tf-fidelity-a",
+                "rules": [
+                  {
+                    "evaluationDelayMs": 1800000,
+                    "expr": "vector(1)",
+                    "labels": {},
+                    "record": "tf_fidelity:r1"
+                  }
+                ],
+                "version": 2
+              }
+            ],
+            "id": "{{id}}",
+            "name": "tf-fidelity-set2"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "create with a group that has no rules",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "id": "{{id}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "groups": [
+              {
+                "id": "\u003cgroup-id\u003e",
+                "interval": 60,
+                "limit": "0",
+                "name": "tf-fidelity-g5",
+                "rules": [],
+                "version": 0
+              }
+            ],
+            "id": "{{id}}",
+            "name": "tf-fidelity-norules"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "a set name is unique, a group name is not",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "id": "{{id}}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: duplicate_rule_group_set_name"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "id": "{{id2}}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: duplicate_rule_group_set_name"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "groups": [
+              {
+                "id": "\u003cgroup-id\u003e",
+                "interval": 60,
+                "limit": "0",
+                "name": "tf-fidelity-shared",
+                "rules": [
+                  {
+                    "expr": "vector(1)",
+                    "labels": {},
+                    "record": "tf_fidelity:r1"
+                  }
+                ],
+                "version": 0
+              }
+            ],
+            "id": "{{id2}}",
+            "name": "tf-fidelity-other-set"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "create is rejected",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: No rule groups in the set"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: No rule groups in the set"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\n  \"groups\": {\n    \"0\": {\n      \"name\": [\n        {\n          \"code\": \"length\",\n          \"message\": null,\n          \"params\": {\n            \"max\": 255,\n            \"min\": 1,\n            \"value\": \"\"\n          }\n        }\n      ]\n    }\n  }\n}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\n  \"groups\": [\n    {\n      \"code\": \"duplicate_rule_group_name\",\n      \"message\": null,\n      \"params\": {\n        \"value\": [\n          {\n            \"id\": null,\n            \"interval\": 60,\n            \"limit\": null,\n            \"name\": \"tf-fidelity-d\",\n            \"rules\": [\n              {\n                \"evaluation_delay_ms\": null,\n                \"expr\": \"vector(1)\",\n                \"labels\": {},\n                \"record\": \"tf_fidelity:r1\"\n              }\n            ],\n            \"version\": null\n          },\n          {\n            \"id\": null,\n            \"interval\": 60,\n            \"limit\": null,\n            \"name\": \"tf-fidelity-d\",\n            \"rules\": [\n              {\n                \"evaluation_delay_ms\": null,\n                \"expr\": \"vector(1)\",\n                \"labels\": {},\n                \"record\": \"tf_fidelity:r1\"\n              }\n            ],\n            \"version\": null\n          }\n        ]\n      }\n    }\n  ]\n}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\n  \"groups\": {\n    \"0\": {\n      \"interval\": [\n        {\n          \"code\": \"range\",\n          \"message\": null,\n          \"params\": {\n            \"min\": 60,\n            \"value\": 30\n          }\n        }\n      ]\n    }\n  }\n}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: proto: (line 1:35): invalid value for uint64 field limit: \"-1\""
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\n  \"groups\": {\n    \"0\": {\n      \"rules\": {\n        \"0\": {\n          \"evaluation_delay_ms\": [\n            {\n              \"code\": \"evaluation_delay_out_of_range\",\n              \"message\": \"evaluation_delay_ms must be between 0 and 1800000 (30 minutes)\",\n              \"params\": {\n                \"value\": 1800001\n              }\n            }\n          ]\n        }\n      }\n    }\n  }\n}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: proto: (line 1:80): invalid value for uint32 field evaluationDelayMs: -1"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\n  \"groups\": {\n    \"0\": {\n      \"rules\": {\n        \"0\": {\n          \"expr\": [\n            {\n              \"code\": \"invalid_promql\",\n              \"message\": \"SingleExpr: unexpected token ; want \\\"\\\"(\\\", \\\"{\\\", \\\"-\\\", \\\"+\\\"\\\"\",\n              \"params\": {\n                \"value\": \"sum(\"\n              }\n            }\n          ]\n        }\n      }\n    }\n  }\n}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\n  \"groups\": {\n    \"0\": {\n      \"rules\": {\n        \"0\": {\n          \"record\": [\n            {\n              \"code\": \"length\",\n              \"message\": null,\n              \"params\": {\n                \"min\": 1,\n                \"value\": \"\"\n              }\n            },\n            {\n              \"code\": \"invalid_promql\",\n              \"message\": \"SingleExpr: unexpected token ; want \\\"\\\"(\\\", \\\"{\\\", \\\"-\\\", \\\"+\\\"\\\"\",\n              \"params\": {\n                \"value\": \"\"\n              }\n            }\n          ]\n        }\n      }\n    }\n  }\n}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "replace is rejected",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "id": "{{id}}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\n  \"name\": [\n    {\n      \"code\": \"length\",\n      \"message\": null,\n      \"params\": {\n        \"max\": 255,\n        \"min\": 1,\n        \"value\": \"\"\n      }\n    }\n  ]\n}"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: No rule groups in the set"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\n  \"groups\": {\n    \"0\": {\n      \"interval\": [\n        {\n          \"code\": \"range\",\n          \"message\": null,\n          \"params\": {\n            \"min\": 60,\n            \"value\": 30\n          }\n        }\n      ]\n    }\n  }\n}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "groups": [
+              {
+                "id": "\u003cgroup-id\u003e",
+                "interval": 60,
+                "limit": "0",
+                "name": "tf-fidelity-g",
+                "rules": [
+                  {
+                    "expr": "vector(1)",
+                    "labels": {},
+                    "record": "tf_fidelity:r1"
+                  }
+                ],
+                "version": 0
+              }
+            ],
+            "id": "{{id}}",
+            "name": "tf-fidelity-r"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "a missing or malformed id",
+      "steps": [
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: No rule group set with the given id"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: No rule group set with the given id"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: No rule group set with the given id"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: No rule group set with the given id"
+          }
+        }
+      ]
+    }
+  ]
+}

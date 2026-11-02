@@ -1,0 +1,192 @@
+[
+  {
+    "step": "create: the expression is not PromQL",
+    "config": {
+      "groups": [
+        {
+          "name": "g1",
+          "rules": [
+            {
+              "expr": "sum(",
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "name": "tf-set"
+    },
+    "plan": {
+      "groups": [
+        {
+          "interval": "(unknown)",
+          "limit": "(unknown)",
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "sum(",
+              "labels": "(unknown)",
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "id": "(unknown)",
+      "name": "tf-set",
+      "yaml_content": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1",
+        "body": {
+          "groups": [
+            {
+              "interval": 60,
+              "limit": "0",
+              "name": "g1",
+              "rules": [
+                {
+                  "expr": "sum(",
+                  "record": "tf:r1"
+                }
+              ]
+            }
+          ],
+          "name": "tf-set"
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_recording_rule_groups | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\n  \\\"groups\\\": {\\n    \\\"0\\\": {\\n      \\\"rules\\\": {\\n        \\\"0\\\": {\\n          \\\"expr\\\": [\\n            {\\n              \\\"code\\\": \\\"invalid_promql\\\",\\n              \\\"message\\\": \\\"SingleExpr: unexpected token ; want \\\\\\\"\\\\\\\"(\\\\\\\", \\\\\\\"{\\\\\\\", \\\\\\\"-\\\\\\\", \\\\\\\"+\\\\\\\"\\\\\\\"\\\",\\n              \\\"params\\\": {\\n                \\\"value\\\": \\\"sum(\\\"\\n              }\\n            }\\n          ]\\n        }\\n      }\\n    }\\n  }\\n}\"}\noperation - Create"
+    ],
+    "state": null
+  },
+  {
+    "step": "create: two groups have one name",
+    "config": {
+      "groups": [
+        {
+          "interval": 60,
+          "name": "g1",
+          "rules": [
+            {
+              "expr": "vector(1)",
+              "record": "tf:r1"
+            }
+          ]
+        },
+        {
+          "interval": 120,
+          "name": "g1",
+          "rules": [
+            {
+              "expr": "vector(1)",
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "name": "tf-set"
+    },
+    "plan": {
+      "groups": [
+        {
+          "interval": 60,
+          "limit": "(unknown)",
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": "(unknown)",
+              "record": "tf:r1"
+            }
+          ]
+        },
+        {
+          "interval": 120,
+          "limit": "(unknown)",
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": "(unknown)",
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "id": "(unknown)",
+      "name": "tf-set",
+      "yaml_content": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1",
+        "body": {
+          "groups": [
+            {
+              "interval": 60,
+              "limit": "0",
+              "name": "g1",
+              "rules": [
+                {
+                  "expr": "vector(1)",
+                  "record": "tf:r1"
+                }
+              ]
+            },
+            {
+              "interval": 120,
+              "limit": "0",
+              "name": "g1",
+              "rules": [
+                {
+                  "expr": "vector(1)",
+                  "record": "tf:r1"
+                }
+              ]
+            }
+          ],
+          "name": "tf-set"
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_recording_rule_groups | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\n  \\\"groups\\\": [\\n    {\\n      \\\"code\\\": \\\"duplicate_rule_group_name\\\",\\n      \\\"message\\\": null,\\n      \\\"params\\\": {\\n        \\\"value\\\": [\\n          {\\n            \\\"id\\\": null,\\n            \\\"interval\\\": 60,\\n            \\\"limit\\\": 0,\\n            \\\"name\\\": \\\"g1\\\",\\n            \\\"rules\\\": [\\n              {\\n                \\\"evaluation_delay_ms\\\": null,\\n                \\\"expr\\\": \\\"vector(1)\\\",\\n                \\\"labels\\\": {},\\n                \\\"record\\\": \\\"tf:r1\\\"\\n              }\\n            ],\\n            \\\"version\\\": null\\n          },\\n          {\\n            \\\"id\\\": null,\\n            \\\"interval\\\": 120,\\n            \\\"limit\\\": 0,\\n            \\\"name\\\": \\\"g1\\\",\\n            \\\"rules\\\": [\\n              {\\n                \\\"evaluation_delay_ms\\\": null,\\n                \\\"expr\\\": \\\"vector(1)\\\",\\n                \\\"labels\\\": {},\\n                \\\"record\\\": \\\"tf:r1\\\"\\n              }\\n            ],\\n            \\\"version\\\": null\\n          }\\n        ]\\n      }\\n    }\\n  ]\\n}\"}\noperation - Create"
+    ],
+    "state": null
+  },
+  {
+    "step": "create: empty groups",
+    "config": {
+      "groups": [],
+      "name": "tf-set"
+    },
+    "plan": {
+      "groups": [],
+      "id": "(unknown)",
+      "name": "tf-set",
+      "yaml_content": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1",
+        "body": {
+          "name": "tf-set"
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_recording_rule_groups | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: No rule groups in the set\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

@@ -1,0 +1,594 @@
+{
+  "cases": [
+    {
+      "name": "create without a name, read, delete, read",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "groups": [
+              {
+                "name": "tf-fidelity-g1",
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "create with an empty name",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "",
+            "groups": [
+              {
+                "name": "tf-fidelity-g2",
+                "interval": 60,
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        }
+      ]
+    },
+    {
+      "name": "create full, replace, omit name, delete",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-set",
+            "groups": [
+              {
+                "name": "tf-fidelity-z",
+                "interval": 120,
+                "limit": "5",
+                "rules": [
+                  {
+                    "record": "tf_fidelity:b",
+                    "expr": "vector(1)",
+                    "labels": {
+                      "a": "1",
+                      "empty": ""
+                    },
+                    "evaluationDelayMs": 0
+                  },
+                  {
+                    "record": "tf_fidelity:a",
+                    "expr": "vector(1)",
+                    "evaluationDelayMs": 60000
+                  }
+                ]
+              },
+              {
+                "name": "tf-fidelity-a",
+                "interval": 60,
+                "limit": "0",
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)",
+                    "labels": {}
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "name": "tf-fidelity-set2",
+            "groups": [
+              {
+                "name": "tf-fidelity-a",
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              },
+              {
+                "name": "tf-fidelity-m",
+                "interval": 300,
+                "limit": "10",
+                "rules": []
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "groups": [
+              {
+                "name": "tf-fidelity-a",
+                "interval": 60,
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)",
+                    "evaluationDelayMs": 1800000
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "create with a group that has no rules",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-norules",
+            "groups": [
+              {
+                "name": "tf-fidelity-g5",
+                "interval": 60,
+                "rules": []
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "a set name is unique, a group name is not",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-same",
+            "groups": [
+              {
+                "name": "tf-fidelity-shared",
+                "interval": 60,
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-same",
+            "groups": [
+              {
+                "name": "tf-fidelity-other",
+                "interval": 60,
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-other-set",
+            "groups": [
+              {
+                "name": "tf-fidelity-shared",
+                "interval": 60,
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id2"
+        },
+        {
+          "method": "PUT",
+          "path": "/{{id2}}",
+          "body": {
+            "name": "tf-fidelity-same",
+            "groups": [
+              {
+                "name": "tf-fidelity-shared",
+                "interval": 60,
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id2}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id2}}"
+        }
+      ]
+    },
+    {
+      "name": "create is rejected",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-x",
+            "groups": []
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-x"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-x",
+            "groups": [
+              {
+                "name": "",
+                "interval": 60,
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-x",
+            "groups": [
+              {
+                "name": "tf-fidelity-d",
+                "interval": 60,
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              },
+              {
+                "name": "tf-fidelity-d",
+                "interval": 60,
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-x",
+            "groups": [
+              {
+                "name": "tf-fidelity-g",
+                "interval": 30,
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-x",
+            "groups": [
+              {
+                "name": "tf-fidelity-g",
+                "interval": 60,
+                "limit": "-1",
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-x",
+            "groups": [
+              {
+                "name": "tf-fidelity-g",
+                "interval": 60,
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)",
+                    "evaluationDelayMs": 1800001
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-x",
+            "groups": [
+              {
+                "name": "tf-fidelity-g",
+                "interval": 60,
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)",
+                    "evaluationDelayMs": -1
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-x",
+            "groups": [
+              {
+                "name": "tf-fidelity-g",
+                "interval": 60,
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "sum("
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-x",
+            "groups": [
+              {
+                "name": "tf-fidelity-g",
+                "interval": 60,
+                "rules": [
+                  {
+                    "record": "",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "replace is rejected",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-r",
+            "groups": [
+              {
+                "name": "tf-fidelity-g",
+                "interval": 60,
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "name": "",
+            "groups": [
+              {
+                "name": "tf-fidelity-g",
+                "interval": 60,
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "name": "tf-fidelity-r",
+            "groups": []
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "name": "tf-fidelity-r",
+            "groups": [
+              {
+                "name": "tf-fidelity-g",
+                "interval": 30,
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "a missing or malformed id",
+      "steps": [
+        {
+          "method": "GET",
+          "path": "/01M00000000000000000000000"
+        },
+        {
+          "method": "GET",
+          "path": "/not-an-id"
+        },
+        {
+          "method": "PUT",
+          "path": "/01M00000000000000000000000",
+          "body": {
+            "name": "x",
+            "groups": [
+              {
+                "name": "tf-fidelity-m",
+                "interval": 60,
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/01M00000000000000000000000"
+        }
+      ]
+    }
+  ]
+}
