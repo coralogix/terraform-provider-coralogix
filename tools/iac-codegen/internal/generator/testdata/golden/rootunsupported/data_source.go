@@ -114,16 +114,16 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	// The data source shows the note that the API returns, also an empty one, which the
+	// resource reads as null.
+	if v.Note != nil {
+		m.Note = types.StringValue(*v.Note)
+	}
 	if d.resource.hooks.AfterFlatten != nil {
 		resp.Diagnostics.Append(d.resource.hooks.AfterFlatten(ctx, m, v)...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
-	}
-	// The data source shows the note that the API returns, also an empty one, which the
-	// resource reads as null.
-	if v.Note != nil {
-		m.Note = types.StringValue(*v.Note)
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, m)...)
 }
