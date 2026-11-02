@@ -296,6 +296,14 @@ var parsingRulesScenarios = map[string]func(h *grHarness){
 		h.Apply("update the second to order 1", second, prCfg(nil, j{"name": "second", "order": 1.0}))
 	},
 
+	"order-on-update": func(h *grHarness) {
+		// Without order in the config, an update plans it unknown. The released resource sends 0,
+		// and the API moves the group after every other group.
+		first := h.Apply("create a rule group without order", h.null(), prCfg(nil, j{"name": "first"}))
+		h.Apply("create another rule group without order", h.null(), prCfg(nil, j{"name": "second"}))
+		h.Apply("update: change only the description of the first", first, prCfg(nil, j{"name": "first", "description": "changed"}))
+	},
+
 	"config-validation": func(h *grHarness) {
 		h.Validate("empty config", j{})
 		h.Validate("unknown severity", prCfg(nil, j{"severities": []any{"fatal"}}))

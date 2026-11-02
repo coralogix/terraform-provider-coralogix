@@ -1267,6 +1267,125 @@
           "path": "/00000000-0000-4000-8000-00000000dead"
         }
       ]
+    },
+    {
+      "name": "a PUT with order 0 moves the group after the others",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-order-a",
+            "enabled": false,
+            "order": 50,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "a"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-order-b",
+            "enabled": false,
+            "order": 51,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "b"
+        },
+        {
+          "method": "PUT",
+          "path": "/{{a}}",
+          "body": {
+            "name": "tf-fidelity-order-a",
+            "enabled": false,
+            "order": 0,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            "description": "changed"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{b}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{b}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{a}}"
+        }
+      ]
     }
   ]
 }

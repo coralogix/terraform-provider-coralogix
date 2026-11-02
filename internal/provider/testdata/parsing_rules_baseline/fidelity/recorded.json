@@ -1177,6 +1177,191 @@
           }
         }
       ]
+    },
+    {
+      "name": "a PUT with order 0 moves the group after the others",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "ruleGroup": {
+              "creator": "",
+              "description": "",
+              "enabled": false,
+              "hidden": false,
+              "id": "{{a}}",
+              "name": "tf-fidelity-order-a",
+              "order": 50,
+              "ruleMatchers": [
+                {
+                  "applicationName": {
+                    "value": "tf-fidelity-no-logs"
+                  }
+                }
+              ],
+              "ruleSubgroups": [
+                {
+                  "enabled": true,
+                  "id": "\u003cuuid\u003e",
+                  "order": 1,
+                  "rules": [
+                    {
+                      "description": "",
+                      "enabled": true,
+                      "id": "\u003cuuid\u003e",
+                      "name": "r",
+                      "order": 1,
+                      "parameters": {
+                        "extractParameters": {
+                          "rule": "a"
+                        }
+                      },
+                      "sourceField": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleGroup": {
+              "creator": "",
+              "description": "",
+              "enabled": false,
+              "hidden": false,
+              "id": "{{b}}",
+              "name": "tf-fidelity-order-b",
+              "order": 51,
+              "ruleMatchers": [
+                {
+                  "applicationName": {
+                    "value": "tf-fidelity-no-logs"
+                  }
+                }
+              ],
+              "ruleSubgroups": [
+                {
+                  "enabled": true,
+                  "id": "\u003cuuid\u003e",
+                  "order": 1,
+                  "rules": [
+                    {
+                      "description": "",
+                      "enabled": true,
+                      "id": "\u003cuuid\u003e",
+                      "name": "r",
+                      "order": 1,
+                      "parameters": {
+                        "extractParameters": {
+                          "rule": "a"
+                        }
+                      },
+                      "sourceField": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleGroup": {
+              "creator": "",
+              "description": "changed",
+              "enabled": false,
+              "hidden": false,
+              "id": "{{a}}",
+              "name": "tf-fidelity-order-a",
+              "order": 52,
+              "ruleMatchers": [
+                {
+                  "applicationName": {
+                    "value": "tf-fidelity-no-logs"
+                  }
+                }
+              ],
+              "ruleSubgroups": [
+                {
+                  "enabled": true,
+                  "id": "\u003cuuid\u003e",
+                  "order": 1,
+                  "rules": [
+                    {
+                      "description": "",
+                      "enabled": true,
+                      "id": "\u003cuuid\u003e",
+                      "name": "r",
+                      "order": 1,
+                      "parameters": {
+                        "extractParameters": {
+                          "rule": "a"
+                        }
+                      },
+                      "sourceField": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "ruleGroup": {
+              "creator": "",
+              "description": "",
+              "enabled": false,
+              "hidden": false,
+              "id": "{{b}}",
+              "name": "tf-fidelity-order-b",
+              "order": 51,
+              "ruleMatchers": [
+                {
+                  "applicationName": {
+                    "value": "tf-fidelity-no-logs"
+                  }
+                }
+              ],
+              "ruleSubgroups": [
+                {
+                  "enabled": true,
+                  "id": "\u003cuuid\u003e",
+                  "order": 1,
+                  "rules": [
+                    {
+                      "description": "",
+                      "enabled": true,
+                      "id": "\u003cuuid\u003e",
+                      "name": "r",
+                      "order": 1,
+                      "parameters": {
+                        "extractParameters": {
+                          "rule": "a"
+                        }
+                      },
+                      "sourceField": "text"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
     }
   ]
 }
