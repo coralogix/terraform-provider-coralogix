@@ -1,0 +1,47 @@
+# A released resource like the parsing rule groups.
+resource: ParseThing
+mode: existing
+typeName: parse_thing
+
+validators:
+  inferred: false
+
+api:
+  operations:
+    create: ParseThingsService_CreateParseThing
+    get: ParseThingsService_GetParseThing
+    update: ParseThingsService_ReplaceParseThing
+    delete: ParseThingsService_DeleteParseThing
+  idProperty: id
+  serverSetID: true
+
+types:
+  ParseThing:
+    fields:
+      id: {readOnly: true}
+      name: {required: true}
+      # The released resource sent an unknown plan as false and 0, which the API stores.
+      enabled: {name: active, computed: true, sendUnknownAsZero: true}
+      order: {computed: true, sendUnknownAsZero: true}
+      note: {computed: true}
+      # One set per arm of the matchers: apps and severities.
+      matchers: {splitArms: true, collection: set, computed: true, default: []}
+  ParseMatcher:
+    fields:
+      appName: {name: apps}
+      severity:
+        name: severities
+        validators: [{enum: true}]
+
+unwrap: [ParseAppName, ParseSeverity]
+
+enums:
+  ParseSeverityValue:
+    zero: debug
+    trimPrefix: SEVERITY_
+    values: [SEVERITY_INFO, SEVERITY_ERROR]
+  ParsePickField:
+    zero: category
+    trimPrefix: PICK_FIELD_
+    values: [PICK_FIELD_THREADID, PICK_FIELD_TEXT]
+    names: {PICK_FIELD_THREADID: threadID}

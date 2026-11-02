@@ -407,12 +407,26 @@ type Field struct {
 	// UseNonNullStateForUnknown keeps a non-null value of the state when the config has none.
 	// A null state value stays unknown, so the server can fill it in.
 	UseNonNullStateForUnknown bool `yaml:"useNonNullStateForUnknown"`
-	// Default is a static default in the schema: a string, a bool, or a number.
+	// Default is a static default in the schema: a string, a bool, a number, or [] (an empty list
+	// or set).
 	Default any `yaml:"default"`
 	// ReadEmptyAs: "null" reads an empty list or object from the API as null.
 	ReadEmptyAs string `yaml:"readEmptyAs"`
 	// ReadNullAs: "empty" reads a missing list or set as an empty collection.
 	ReadNullAs string `yaml:"readNullAs"`
+	// SplitArms shows a top-level list or set whose items are each one arm of a oneOf as one
+	// attribute per arm, holding the values of that arm, as a released resource that showed
+	// applications, subsystems, and severities for a list of rule matchers did. Each arm must be a
+	// string or an enum, also in a wrapper object (unwrap). computed and default on this line
+	// apply to every arm attribute, because an arm of a oneOf has no lifecycle of its own. The
+	// lines of the arms name the attributes and give their texts and validators. Create and Update send one item per value, the arms in
+	// the order of the contract.
+	SplitArms bool `yaml:"splitArms"`
+	// SendUnknownAsZero sends the zero value of a scalar when its planned value is unknown, as a
+	// released resource that converted the plan with ValueStringPointer and the like did. The API
+	// stores that zero value (false, 0, ""), not the value that it gives an omitted field. It
+	// needs computed: true, because only a computed attribute is unknown in a plan.
+	SendUnknownAsZero bool `yaml:"sendUnknownAsZero"`
 	// SendNullAsEmpty sends "" for a null string, for an API that keeps the stored value when a
 	// request omits the field. Removing the value from the configuration then clears it. It needs
 	// readEmptyAs: "null", so that the stored "" reads back as null.
@@ -862,6 +876,8 @@ func (l Field) keys() []string {
 	add(l.ReadEmptyAs != "", "readEmptyAs")
 	add(l.ReadNullAs != "", "readNullAs")
 	add(l.SendNullAsEmpty, "sendNullAsEmpty")
+	add(l.SendUnknownAsZero, "sendUnknownAsZero")
+	add(l.SplitArms, "splitArms")
 	add(l.RequireOne, "requireOne")
 	add(l.RequestValue != "", "requestValue")
 	add(len(l.RequestValueBy) != 0, "requestValueBy")
@@ -981,7 +997,7 @@ func (l Field) emptyMode() bool {
 }
 
 func (l Field) emptyValue() bool {
-	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.KeyedBy == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() &&
+	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.KeyedBy == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() && !l.SendUnknownAsZero && !l.SplitArms &&
 		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == ""
 }
 
@@ -992,10 +1008,21 @@ func (l Field) check() error {
 	if err := l.checkConflicts(); err != nil {
 		return err
 	}
-	switch l.Default.(type) {
+	switch d := l.Default.(type) {
 	case nil, string, bool, int, float64:
+	case []any:
+		if len(d) != 0 {
+			return errors.New("a list default must be empty: []")
+		}
 	default:
-		return fmt.Errorf("default is %T, want a string, a bool, or a number", l.Default)
+		return fmt.Errorf("default is %T, want a string, a bool, a number, or []", l.Default)
+	}
+	if l.SplitArms {
+		for _, key := range l.keys() {
+			if key != "splitArms" && key != "collection" && key != "computed" && key != "default" {
+				return fmt.Errorf("a splitArms field has no attribute of its own, so %s has no effect: put it on the lines of the arms", key)
+			}
+		}
 	}
 	if l.Required && l.Computed != nil && *l.Computed {
 		return errors.New("a required field cannot be computed")
@@ -1056,6 +1083,12 @@ func (l Field) checkConflicts() error {
 	}
 	if l.Skip && l.Fixed() {
 		return errors.New("requestValue sends the field, so skip cannot be set")
+	}
+	if l.SendUnknownAsZero && (l.Computed == nil || !*l.Computed) {
+		return errors.New("sendUnknownAsZero needs computed: true: only a computed attribute is unknown in a plan")
+	}
+	if l.SendUnknownAsZero && l.Default != nil {
+		return errors.New("a default is never unknown, so sendUnknownAsZero changes nothing")
 	}
 	if l.RequiresReplace && l.Fixed() {
 		return errors.New("a requestValue field is no Terraform attribute and Update always sends it, so requiresReplace cannot be set")

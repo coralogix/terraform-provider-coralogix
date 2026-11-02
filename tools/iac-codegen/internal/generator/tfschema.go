@@ -281,6 +281,21 @@ func defaultPackages(attrs []*tfAttr) []string {
 	return packages
 }
 
+// UsesAttr reports whether a static default of an attribute is an empty list or set, whose Go
+// expression names attr.Value.
+func (r *tfResource) UsesAttr() bool {
+	var uses func(attrs []*tfAttr) bool
+	uses = func(attrs []*tfAttr) bool {
+		for _, a := range attrs {
+			if strings.Contains(a.Default, "attr.Value") || uses(a.Attributes) {
+				return true
+			}
+		}
+		return false
+	}
+	return uses(r.Attributes)
+}
+
 // checkSingletonIDAttribute checks that the id attribute of a singleton with singletonID is still
 // computed-only after the field lines: a line that makes it required, optional, or a configured
 // default would let the user set a value that flatten replaces with the id of the server.
@@ -632,6 +647,10 @@ func defaultExpr(a *tfAttr, value any) (string, error) {
 	case float64:
 		if a.Kind == "Float64" || a.Kind == "Float32" {
 			return floatDefaultExpr(a.Kind, v)
+		}
+	case []any:
+		if (a.Kind == "Set" || a.Kind == "List") && a.ElementType != "" {
+			return fmt.Sprintf("%sdefault.StaticValue(types.%sValueMust(%s, []attr.Value{}))", strings.ToLower(a.Kind), a.Kind, a.ElementType), nil
 		}
 	}
 	return "", fmt.Errorf("a default of type %T does not fit a %s attribute", value, a.Kind)
@@ -1824,6 +1843,12 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 		if requestValue(file, r.Name, f.Name) {
 			continue
 		}
+		if splitArms(file, r.Name, f.Name) {
+			if err := b.splitAttributes(out, root, r, f, file); err != nil {
+				return fmt.Errorf("%s: %w", f.Name, err)
+			}
+			continue
+		}
 		group := file.GroupOf(f.Name)
 		if err := checkGroupField(r, f, group); err != nil {
 			return err
@@ -1846,6 +1871,48 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 			root.Fields = append(root.Fields, tfModelField{Name: camelize(group), Type: "*" + groups.models[group].Name, TFName: group})
 			b.models = append(b.models, groups.models[group])
 		}
+	}
+	return nil
+}
+
+// splitArms reports whether the field has a splitArms line.
+func splitArms(file *overrides.File, component, field string) bool {
+	return file != nil && file.Types[component].Fields[field].SplitArms
+}
+
+// splitAttributes adds one attribute per arm of the oneOf items of a top-level list or set
+// (splitArms). Each attribute is a collection of the kind of f, of the value of its arm.
+func (b *tfBuilder) splitAttributes(out *tfResource, root *tfModel, r *model.Resource, f *model.ResourceField, file *overrides.File) error {
+	t := f.Type
+	if (t.Kind != model.List && t.Kind != model.Set) || t.Elem == nil || t.Elem.Kind != model.OneOf {
+		return errors.New("splitArms needs a list or set whose items are a oneOf")
+	}
+	if f.Behavior != model.Normal || file.GroupOf(f.Name) != "" {
+		return errors.New("splitArms needs a field that Create and Update send, outside a group")
+	}
+	component := model.ComponentOf(t.Elem)
+	for _, arm := range t.Elem.Fields {
+		if arm.Type.Kind != model.String && arm.Type.Kind != model.Enum {
+			return fmt.Errorf("splitArms: the arm %s is %s, want a string or an enum (unwrap a wrapper object)", arm.Name, arm.Type.Kind)
+		}
+		armType := &model.Type{Kind: t.Kind, Elem: arm.Type}
+		name := terraformName(b.policy, component, arm.Name)
+		a, err := b.attribute(rootPath("", name), component, arm.Name, arm.Description, armType, model.Attrs{}, false)
+		if err != nil {
+			return err
+		}
+		// The line of the list gives every arm attribute its mode.
+		line := file.Types[r.Name].Fields[f.Name]
+		if line.Computed != nil {
+			a.Computed = *line.Computed
+		}
+		if line.Default != nil {
+			if a.Default, err = defaultExpr(a, line.Default); err != nil {
+				return err
+			}
+		}
+		out.Attributes = append(out.Attributes, a)
+		root.Fields = append(root.Fields, b.modelField(component, arm.Name, armType, model.Normal, false, b.policy.ComputedLine(component, arm.Name)))
 	}
 	return nil
 }

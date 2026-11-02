@@ -251,6 +251,10 @@ const (
 	// of the parent. The API has no object for it.
 	convGroup = "group"
 
+	// convSplitArms is a list of oneOf items that Terraform shows as one collection per arm
+	// (splitArms). Object holds the conversion of each arm, whose Model is the attribute.
+	convSplitArms = "splitarms" // types.Set/List per arm ↔ []<SDK type>
+
 	convKeyedObjects = "keyedobjects" // types.Map of objects ↔ []<SDK type> keyed by a property (keyedBy)
 	convKeyedValues  = "keyedvalues"  // types.Map of String ↔ []<SDK type> of a key and a value (keyedBy)
 )
@@ -287,6 +291,12 @@ type convField struct {
 	ReadNullAsEmpty bool
 	// SendNullAsEmpty: expand sends "" for a null string, so the API clears the stored value.
 	SendNullAsEmpty bool
+	// SplitArms: the line of the field has splitArms.
+	SplitArms bool
+	// SendUnknownAsZero: expand sends the zero value of the scalar when the plan is unknown
+	// (sendUnknownAsZero). ZeroType is its Go type.
+	SendUnknownAsZero bool
+	ZeroType          string
 	// RequestValue is an API value expand always sends. The field is not in the Terraform model.
 	RequestValue string
 	// RequestValueBy are the API values expand sends when an object field of the model is set,
@@ -519,7 +529,7 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 			return nil, err
 		}
 	}
-	if err := buildMask(r, out, fixed, omit); err != nil {
+	if err := buildMask(r, out, fixed, omit, b.file); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -535,6 +545,10 @@ func oneOfArmPaths(r *model.Resource, file *overrides.File) []string {
 		}
 	}
 	for _, f := range r.Fields {
+		if splitArms(file, r.Name, f.Name) {
+			// The arms are collections of values, not objects of the state.
+			continue
+		}
 		out = typeArmPaths(r.Policy, file, out, rootPath(file.GroupOf(f.Name), terraformName(r.Policy, r.Name, f.Name)).dotted(), f.Type, map[*model.Type]bool{})
 	}
 	return out
@@ -874,6 +888,13 @@ func appendCheckField(fields []*maskField, r *model.Resource, f *model.ResourceF
 		}
 		return append(fields, &maskField{TFName: group})
 	}
+	if splitArms(file, r.Name, f.Name) && f.Type.Elem != nil {
+		// The arms are the attributes.
+		for _, arm := range f.Type.Elem.Fields {
+			fields = append(fields, &maskField{TFName: terraformName(r.Policy, model.ComponentOf(f.Type.Elem), arm.Name)})
+		}
+		return fields
+	}
 	return append(fields, &maskField{TFName: terraformName(r.Policy, r.Name, f.Name), ServerDefault: serverDefault(r, f)})
 }
 
@@ -914,7 +935,7 @@ func derivedValuesInMask(file *overrides.File) error {
 
 // buildMask sets the update mask data. Only the Update fields can be in the
 // mask, so application, subsystem, and target never are (D9).
-func buildMask(r *model.Resource, out *convData, fixed func(string) bool, omit bool) error {
+func buildMask(r *model.Resource, out *convData, fixed func(string) bool, omit bool, file *overrides.File) error {
 	// With updateMask: omit, Update sends no mask, so the mask pattern does not matter: the
 	// top-level mask fields only decide whether a value changed.
 	valid, leaf := func(string) bool { return true }, false
@@ -928,6 +949,9 @@ func buildMask(r *model.Resource, out *convData, fixed func(string) bool, omit b
 	for _, f := range r.Fields {
 		if f.Update == nil || fixed(f.Name) {
 			continue
+		}
+		if splitArms(file, r.Name, f.Name) {
+			return fmt.Errorf("%s: splitArms needs an Update that replaces the resource; the update mask names API fields", f.Name)
 		}
 		mf := &maskField{TFName: terraformName(r.Policy, r.Name, f.Name), API: f.Name}
 		if leaf {
@@ -1137,6 +1161,8 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	cf.ReadEmptyAsNull, cf.KeepPriorOrder = line.ReadEmptyAs == "null", line.KeepPriorOrder
 	cf.ReadNullAsEmpty = line.ReadNullAs == "empty"
 	cf.SendNullAsEmpty = line.SendNullAsEmpty
+	cf.SendUnknownAsZero = line.SendUnknownAsZero
+	cf.SplitArms = line.SplitArms
 	cf.Equality = line.Equality
 	cf.RequestValue = line.RequestValue
 	cf.RequestValueBy = nil
@@ -1268,6 +1294,9 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 		cf.Conv, cf.Object = convEmptyBool, nil
 	}
 	b.applyFixedRequest(cf)
+	if err := applySendUnknownAsZero(cf); err != nil {
+		return nil, err
+	}
 	b.applyMissingEnum(cf, component, name, presence)
 	if err := checkReadEmptyAs(cf); err != nil {
 		return nil, err
@@ -1276,6 +1305,25 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 		return nil, fmt.Errorf("%s: readNullAs: empty needs a list or set of objects", cf.TFName)
 	}
 	return checkFieldType(cf, ref, want)
+}
+
+// zeroTypes are the Go types of the scalar conversions that sendUnknownAsZero supports.
+var zeroTypes = map[string]string{
+	convString: "string", convBool: "bool", convInt32: "int32", convInt64: "int64",
+	convFloat32: "float32", convFloat64: "float64", convInt32AsInt64: "int32",
+}
+
+// applySendUnknownAsZero sets the Go type of the zero value that expand sends for an unknown plan.
+func applySendUnknownAsZero(cf *convField) error {
+	if !cf.SendUnknownAsZero {
+		return nil
+	}
+	zero, ok := zeroTypes[cf.Conv]
+	if !ok || cf.Wrap != nil {
+		return fmt.Errorf("%s: sendUnknownAsZero needs a string, bool, or number field without wrappers, not a %s field", cf.TFName, cf.Conv)
+	}
+	cf.ZeroType = zero
+	return nil
 }
 
 // releaseEnumMap drops a map that no field uses. A fixed request value casts the
@@ -1463,6 +1511,23 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		}
 		cf.Conv, cf.SDKType, cf.ElemType = convScalars, goType, elem
 		return "[]" + goType, nil
+	case model.OneOf:
+		if !cf.SplitArms {
+			break
+		}
+		// Each arm is one Terraform collection. The object converts one value of an arm; it has
+		// no expand or flatten function of its own.
+		obj, err := b.nested(t.Elem)
+		if err != nil {
+			return "", err
+		}
+		for _, arm := range obj.Fields {
+			if arm.Conv != convString && arm.Conv != convEnum {
+				return "", fmt.Errorf("splitArms: the arm %s is a %s, want a string or an enum", arm.TFName, arm.Conv)
+			}
+		}
+		cf.Conv, cf.Object, cf.SDKType = convSplitArms, obj, b.qualify(obj.SDK)
+		return "[]" + obj.SDK, nil
 	case model.Object:
 		if len(t.Elem.Fields) == 0 {
 			break

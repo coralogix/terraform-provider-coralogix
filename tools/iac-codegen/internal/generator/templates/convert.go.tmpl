@@ -1560,6 +1560,12 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- define "expandValue"}}
 {{- $p := printf "p.AtName(%q)" .TFName}}
 {{- $l := ""}}{{$r := ""}}{{if .DirectValue}}{{$l = "valueOf("}}{{$r = ")"}}{{end}}
+{{- if .SendUnknownAsZero}}
+	if m.{{.Model}}.IsUnknown() {
+		// The released resource sent an unknown value as its zero value, which the API stores.
+		{{.Dst}} = {{$l}}new({{.ZeroType}}){{$r}}
+	} else {
+{{- end}}
 {{- if and (eq .Conv "string") .SendNullAsEmpty}}
 	if m.{{.Model}}.IsNull() {
 		// The API keeps a stored value that the request omits, so a removed value is sent as "".
@@ -1696,6 +1702,20 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 			{{.Dst}} = append({{.Dst}}, {{.SDKType}}{ {{- .Keyed.Key}}: {{if .Keyed.KeyValue}}k{{else}}&k{{end}}, {{.Keyed.Value}}: {{if .Keyed.ValueValue}}v{{else}}&v{{end -}} })
 		}
 	}
+{{- else if eq .Conv "splitarms"}}
+	{{- $f := .}}
+	{{- range .Object.Fields}}
+	for _, value := range expandStrings{{if eq $f.Collection "Set"}}Set{{end}}[string](ctx, p.AtName({{printf "%q" .TFName}}), m.{{.Model}}, diags) {
+		// One item per value: the item holds the arm of this attribute.
+		item := {{$f.SDKType}}{}
+		{
+			m := &struct{ {{.Model}} types.String }{ {{- .Model}}: types.StringValue(value)}
+			out := &item
+{{- template "expandField" .}}
+		}
+		{{$f.Dst}} = append({{$f.Dst}}, item)
+	}
+	{{- end}}
 {{- else if eq .Conv "objects"}}
 	if items := expandElements[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags); items != nil {
 		{{.Dst}} = make([]{{.SDKType}}, 0, len(items))
@@ -1706,6 +1726,9 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 			{{.Dst}} = append({{.Dst}}, *expand{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &items[i], diags))
 			{{- end}}
 		}
+	}
+{{- end}}
+{{- if .SendUnknownAsZero}}
 	}
 {{- end}}
 {{- end}}
@@ -1939,6 +1962,25 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		}
 		out.{{.Model}} = flattenMap(ctx, types.StringType, items, diags)
 	}
+{{- else if eq .Conv "splitarms"}}
+	{{- $f := .}}
+	{{- range .Object.Fields}}
+	{
+		values := []string{}
+		for i := range {{$f.Src}} {
+			v := &{{$f.Src}}[i]
+			if v.{{.SDK}} == nil {
+				continue
+			}
+			out := &struct{ {{.Model}} types.String }{}
+{{- template "flattenField" .}}
+			if !out.{{.Model}}.IsNull() {
+				values = append(values, out.{{.Model}}.ValueString())
+			}
+		}
+		out.{{.Model}} = flattenStrings{{$f.Collection}}(ctx, values, diags)
+	}
+	{{- end}}
 {{- else if eq .Conv "objects"}}
 	{{- $src := .Src}}{{if .KeepPriorOrder}}{{$src = printf "src%s" .Model}}{{end}}
 	out.{{.Model}} = types.{{.Collection}}Null(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()})

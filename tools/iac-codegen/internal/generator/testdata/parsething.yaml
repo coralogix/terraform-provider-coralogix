@@ -1,0 +1,219 @@
+# A released resource like the parsing rule groups. Create and Replace take the same inline body,
+# with a team id that the read does not have. The thing holds a list of matchers, each one arm of
+# a oneOf, and a list of groups of steps. A step has its own fields and a oneOf of parameters; two
+# arms of the oneOf have the same fields, one arm has a flag that the released resource shows
+# negated and a flag that it always sends, and one arm has an enum that it reads in any case.
+openapi: 3.1.0
+info: {title: parse, version: 1.0.0}
+paths:
+  /parse/v1/things:
+    post:
+      tags: [Parse Things Service]
+      operationId: ParseThingsService_CreateParseThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CreateParseThingBody
+              type: object
+              properties:
+                name: {type: string, x-coralogix-presence: true}
+                enabled: {type: boolean, x-coralogix-presence: true}
+                order: {type: integer, format: int64, x-coralogix-presence: true}
+                note: {type: string, x-coralogix-presence: true}
+                matchers:
+                  type: array
+                  items: {$ref: '#/components/schemas/ParseMatcher'}
+                groups:
+                  type: array
+                  items: {$ref: '#/components/schemas/CreateParseGroup'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreateParseThingResponse'}
+  /parse/v1/things/{thing_id}:
+    parameters:
+      - {name: thing_id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Parse Things Service]
+      operationId: ParseThingsService_GetParseThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetParseThingResponse'}
+    put:
+      tags: [Parse Things Service]
+      operationId: ParseThingsService_ReplaceParseThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: ReplaceParseThingBody
+              type: object
+              properties:
+                name: {type: string, x-coralogix-presence: true}
+                enabled: {type: boolean, x-coralogix-presence: true}
+                order: {type: integer, format: int64, x-coralogix-presence: true}
+                note: {type: string, x-coralogix-presence: true}
+                matchers:
+                  type: array
+                  items: {$ref: '#/components/schemas/ParseMatcher'}
+                groups:
+                  type: array
+                  items: {$ref: '#/components/schemas/CreateParseGroup'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ReplaceParseThingResponse'}
+    delete:
+      tags: [Parse Things Service]
+      operationId: ParseThingsService_DeleteParseThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteParseThingResponse'}
+components:
+  schemas:
+    CreateParseThingResponse:
+      type: object
+      properties:
+        thing: {$ref: '#/components/schemas/ParseThing'}
+    ReplaceParseThingResponse:
+      type: object
+      properties:
+        thing: {$ref: '#/components/schemas/ParseThing'}
+    GetParseThingResponse:
+      type: object
+      properties:
+        thing: {$ref: '#/components/schemas/ParseThing'}
+    DeleteParseThingResponse:
+      type: object
+    ParseTeamId:
+      type: object
+      properties:
+        id: {type: integer, format: int64}
+    ParseThing:
+      type: object
+      properties:
+        id: {type: string, x-coralogix-presence: true}
+        name: {type: string, x-coralogix-presence: true}
+        enabled: {type: boolean, x-coralogix-presence: true}
+        order: {type: integer, format: int64, x-coralogix-presence: true}
+        note: {type: string, x-coralogix-presence: true}
+        matchers:
+          type: array
+          items: {$ref: '#/components/schemas/ParseMatcher'}
+        groups:
+          type: array
+          items: {$ref: '#/components/schemas/ParseGroup'}
+    ParseMatcher:
+      type: object
+      oneOf:
+        - {required: [appName], type: object}
+        - {required: [severity], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [appName], type: object}
+              - {required: [severity], type: object}
+      properties:
+        appName: {$ref: '#/components/schemas/ParseAppName'}
+        severity: {$ref: '#/components/schemas/ParseSeverity'}
+    ParseAppName:
+      type: object
+      properties:
+        value: {type: string, x-coralogix-presence: true}
+    ParseSeverity:
+      type: object
+      properties:
+        value: {$ref: '#/components/schemas/ParseSeverityValue'}
+    ParseSeverityValue:
+      type: string
+      enum: [SEVERITY_DEBUG_OR_UNSPECIFIED, SEVERITY_INFO, SEVERITY_ERROR]
+    CreateParseGroup:
+      type: object
+      properties:
+        enabled: {type: boolean, x-coralogix-presence: true}
+        order: {type: integer, format: int64, x-coralogix-presence: true}
+        steps:
+          type: array
+          items: {$ref: '#/components/schemas/CreateParseStep'}
+    ParseGroup:
+      type: object
+      properties:
+        id: {type: string, x-coralogix-presence: true}
+        enabled: {type: boolean, x-coralogix-presence: true}
+        order: {type: integer, format: int64, x-coralogix-presence: true}
+        steps:
+          type: array
+          items: {$ref: '#/components/schemas/ParseStep'}
+    CreateParseStep:
+      type: object
+      properties:
+        name: {type: string, x-coralogix-presence: true}
+        enabled: {type: boolean, x-coralogix-presence: true}
+        order: {type: integer, format: int64, x-coralogix-presence: true}
+        source: {type: string, x-coralogix-presence: true}
+        params: {$ref: '#/components/schemas/ParseParams'}
+    ParseStep:
+      type: object
+      properties:
+        id: {type: string, x-coralogix-presence: true}
+        name: {type: string, x-coralogix-presence: true}
+        enabled: {type: boolean, x-coralogix-presence: true}
+        order: {type: integer, format: int64, x-coralogix-presence: true}
+        source: {type: string, x-coralogix-presence: true}
+        params: {$ref: '#/components/schemas/ParseParams'}
+    ParseParams:
+      type: object
+      oneOf:
+        - {required: [keepParams], type: object}
+        - {required: [dropParams], type: object}
+        - {required: [copyParams], type: object}
+        - {required: [pickParams], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [keepParams], type: object}
+              - {required: [dropParams], type: object}
+              - {required: [copyParams], type: object}
+              - {required: [pickParams], type: object}
+      properties:
+        keepParams: {$ref: '#/components/schemas/ParseKeepParams'}
+        dropParams: {$ref: '#/components/schemas/ParseDropParams'}
+        copyParams: {$ref: '#/components/schemas/ParseCopyParams'}
+        pickParams: {$ref: '#/components/schemas/ParsePickParams'}
+    ParseKeepParams:
+      type: object
+      properties:
+        rule: {type: string, x-coralogix-presence: true}
+        keepLogs: {type: boolean, x-coralogix-presence: true}
+    ParseDropParams:
+      type: object
+      properties:
+        rule: {type: string, x-coralogix-presence: true}
+        keepLogs: {type: boolean, x-coralogix-presence: true}
+    ParseCopyParams:
+      type: object
+      properties:
+        target: {type: string, x-coralogix-presence: true}
+        deleteSource: {type: boolean, x-coralogix-presence: true}
+        escaped: {type: boolean, x-coralogix-presence: true}
+    ParsePickParams:
+      type: object
+      properties:
+        rule: {type: string, x-coralogix-presence: true}
+        field: {$ref: '#/components/schemas/ParsePickField'}
+    ParsePickField:
+      type: string
+      enum: [PICK_FIELD_CATEGORY_OR_UNSPECIFIED, PICK_FIELD_THREADID, PICK_FIELD_TEXT]
