@@ -86,7 +86,7 @@ func readOverrides(path string) (*overrides.File, error) {
 
 // overrideIssues reports every line of the file that does not match the contract.
 // A line that matches nothing is an error, so a stale line cannot stay in the file.
-func overrideIssues(doc *v3.Document, component string, file *overrides.File) issue.Report {
+func overrideIssues(doc *v3.Document, component string, file *overrides.File, ids model.OperationIDs, policy model.Policy) issue.Report {
 	var report issue.Report
 	if file.Resource != component {
 		report = append(report, issue.Issue{
@@ -96,7 +96,15 @@ func overrideIssues(doc *v3.Document, component string, file *overrides.File) is
 			Remediation: "Use the behavior-overrides file of the selected resource.",
 		})
 	}
+	// A skip line of the resource component can name a field that only the requests have.
+	requestOnly, err := model.RequestOnlyFields(doc, component, ids, policy)
+	if err != nil {
+		requestOnly = nil // the model reports the operations that it cannot resolve
+	}
 	for _, line := range file.Lines() {
+		if line.Kind == overrides.KindField && line.Component == component && slices.Equal(line.Keys, []string{"skip"}) && slices.Contains(requestOnly, line.Field) {
+			continue
+		}
 		if problem := lineProblem(doc, line, component, file); problem != nil {
 			report = append(report, issue.Issue{
 				Code:        cmp.Or(problem.code, "OVERRIDE_UNUSED"),

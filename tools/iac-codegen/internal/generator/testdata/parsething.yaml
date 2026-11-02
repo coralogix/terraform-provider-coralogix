@@ -28,6 +28,7 @@ paths:
                 groups:
                   type: array
                   items: {$ref: '#/components/schemas/CreateParseGroup'}
+                teamId: {$ref: '#/components/schemas/ParseTeamId'}
       responses:
         '200':
           description: ok
@@ -67,6 +68,7 @@ paths:
                 groups:
                   type: array
                   items: {$ref: '#/components/schemas/CreateParseGroup'}
+                teamId: {$ref: '#/components/schemas/ParseTeamId'}
       responses:
         '200':
           description: ok

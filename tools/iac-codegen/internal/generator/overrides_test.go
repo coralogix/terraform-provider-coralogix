@@ -625,7 +625,7 @@ func TestEmptyRequiredLineIsUnused(t *testing.T) {
 	if len(report) != 0 {
 		t.Fatal(report)
 	}
-	report = overrideIssues(doc, component, mustParse(t, text))
+	report = overrideIssues(doc, component, mustParse(t, text), model.OperationIDs{}, model.Policy{})
 	if len(report) != 1 || report[0].Code != "OVERRIDE_UNUSED" || report[0].Location != "behavior-overrides.yaml:types.LegacyLabels.required" {
 		t.Fatalf("report = %v, want OVERRIDE_UNUSED for types.LegacyLabels.required", report)
 	}

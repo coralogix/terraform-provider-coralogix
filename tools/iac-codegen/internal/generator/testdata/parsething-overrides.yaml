@@ -24,6 +24,8 @@ types:
       enabled: {name: active, computed: true, sendUnknownAsZero: true}
       order: {computed: true, sendUnknownAsZero: true}
       note: {computed: true}
+      # Only the requests have the team id, which the API ignores.
+      teamId: {skip: true}
       # One set per arm of the matchers: apps and severities.
       matchers: {splitArms: true, collection: set, computed: true, default: []}
   # The released resource sent the position of each group and step as its order.

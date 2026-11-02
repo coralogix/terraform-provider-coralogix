@@ -1308,6 +1308,19 @@ func (b *tfBuilder) carryAttributes(p attrPath, t *model.Type, carry *model.Fiel
 		fields = append(fields, b.modelField(armComponent, arm.Name, arm.Type, model.Normal, false, false))
 	}
 	addGroupValidators(attrs, []model.OneOfGroup{group}, func(arm string) string { return terraformName(b.policy, armComponent, arm) })
+	if !group.AllowNone && len(attrs) > 0 {
+		// One ExactlyOneOf on the first arm names every arm, as the released resource had: a rule
+		// without an arm, or with two, gets one error, not one per arm.
+		var all []string
+		for _, a := range attrs {
+			all = append(all, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", a.Name))
+			a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return slices.Contains(a.GroupValidators, v) })
+			a.GroupValidators = nil
+		}
+		v := "objectvalidator.ExactlyOneOf(" + strings.Join(all, ", ") + ")"
+		attrs[0].Validators = append(attrs[0].Validators, v)
+		attrs[0].GroupValidators = []string{v}
+	}
 	name := typeModelName(t)
 	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
 		return nil, err

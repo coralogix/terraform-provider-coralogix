@@ -89,7 +89,7 @@ func Schema() schema.Schema {
 									"keep": schema.SingleNestedAttribute{
 										Optional: true,
 										Validators: []validator.Object{
-											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("copy"), path.MatchRelative().AtParent().AtName("pick")),
+											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("keep"), path.MatchRelative().AtParent().AtName("copy"), path.MatchRelative().AtParent().AtName("pick")),
 										},
 										Attributes: map[string]schema.Attribute{
 											"id": schema.StringAttribute{
@@ -133,9 +133,6 @@ func Schema() schema.Schema {
 									},
 									"copy": schema.SingleNestedAttribute{
 										Optional: true,
-										Validators: []validator.Object{
-											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("keep"), path.MatchRelative().AtParent().AtName("pick")),
-										},
 										Attributes: map[string]schema.Attribute{
 											"id": schema.StringAttribute{
 												Computed:            true,
@@ -174,9 +171,6 @@ func Schema() schema.Schema {
 									},
 									"pick": schema.SingleNestedAttribute{
 										Optional: true,
-										Validators: []validator.Object{
-											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("keep"), path.MatchRelative().AtParent().AtName("copy")),
-										},
 										Attributes: map[string]schema.Attribute{
 											"id": schema.StringAttribute{
 												Computed:            true,
