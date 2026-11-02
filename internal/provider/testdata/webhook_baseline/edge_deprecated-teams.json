@@ -1,0 +1,15 @@
+[
+  {
+    "step": "legacy Teams",
+    "config": {
+      "microsoft_teams": {
+        "url": "https://example.invalid/teams"
+      },
+      "name": "legacy"
+    },
+    "validateDiagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"microsoft_teams\")] | Please use microsoft_teams_workflow"
+    ],
+    "state": null
+  }
+]

@@ -1,0 +1,147 @@
+[
+  {
+    "step": "create with field omitted",
+    "config": {
+      "name": "full",
+      "opsgenie": {}
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"opsgenie\").AttributeName(\"url\")] | Must set a configuration value for the opsgenie.url attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "create with field set",
+    "config": {
+      "name": "full",
+      "opsgenie": {
+        "url": "https://example.invalid/opsgenie"
+      }
+    },
+    "plan": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "(unknown)",
+      "id": "(unknown)",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": {
+        "url": "https://example.invalid/opsgenie"
+      },
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "name": "full",
+            "opsgenie": {},
+            "type": "OPSGENIE",
+            "url": "https://example.invalid/opsgenie"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": {
+        "url": "https://example.invalid/opsgenie"
+      },
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "remove field from existing webhook",
+    "config": {
+      "name": "full",
+      "opsgenie": {}
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"opsgenie\").AttributeName(\"url\")] | Must set a configuration value for the opsgenie.url attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": {
+        "url": "https://example.invalid/opsgenie"
+      },
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    }
+  },
+  {
+    "step": "refresh after rejected removal and plan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": {
+        "url": "https://example.invalid/opsgenie"
+      },
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "delete",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

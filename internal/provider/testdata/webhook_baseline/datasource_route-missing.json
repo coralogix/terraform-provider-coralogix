@@ -1,0 +1,20 @@
+[
+  {
+    "step": "get route missing",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: coralogix_webhook \"00000000-0000-4000-8000-000000000001\" is in state, but no longer exists in Coralogix backend | 00000000-0000-4000-8000-000000000001 will be recreated when you apply",
+      "error: Error listing Webhooks | error - 404 Not Found\noperation - Read"
+    ],
+    "state": null
+  }
+]

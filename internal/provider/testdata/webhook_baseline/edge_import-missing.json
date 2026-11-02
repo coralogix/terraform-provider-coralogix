@@ -1,0 +1,23 @@
+[
+  {
+    "step": "import missing",
+    "applyDiagnostics": [
+      "warning: An imported credential is written to state | Importing reads the webhook's current configuration from Coralogix, including any credential it carries, and writes it to state. Treat an imported credential as exposed and rotate it.\n\nTo keep it out of state from then on, move the value into the matching write-only attribute (jira.api_token_wo, pager_duty.service_key_wo, or custom.headers_wo), set its version, and apply. That apply removes the imported value from state. Write-only attributes need Terraform 1.11 or later."
+    ],
+    "state": null
+  },
+  {
+    "step": "import missing (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/does-not-exist",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: Resource \"does-not-exist\" is in state, but no longer exists in Coralogix backend | does-not-exist will be recreated when you apply"
+    ],
+    "state": null
+  }
+]

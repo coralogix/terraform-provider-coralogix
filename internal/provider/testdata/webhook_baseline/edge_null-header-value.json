@@ -1,0 +1,22 @@
+[
+  {
+    "step": "write-only header has null value",
+    "config": {
+      "custom": {
+        "headers_wo": {
+          "Authorization": null
+        },
+        "headers_wo_versions": {
+          "Authorization": 1
+        },
+        "method": "post",
+        "url": "https://example.invalid/hook"
+      },
+      "name": "invalid"
+    },
+    "validateDiagnostics": [
+      "error: Null write-only header value [AttributeName(\"custom\").AttributeName(\"headers_wo\")] | Header \"Authorization\" has a null value in headers_wo. A write-only header needs a value to send, and a null one would be sent as an empty header. Give it a value, or leave it out of headers_wo along with its version."
+    ],
+    "state": null
+  }
+]
