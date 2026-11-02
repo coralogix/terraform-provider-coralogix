@@ -71,6 +71,16 @@ const minimalConfig = `{{.Minimal.Config}}`
 // upgradeFullConfig is the full config without the attributes that provider {{.UpgradeFrom}} does not have.
 const upgradeFullConfig = `{{.UpgradeFull.Config}}`
 {{- end}}
+{{- if eq .UpgradeNextFullName "upgradeNextFullConfig"}}
+
+// upgradeNextFullConfig is the full config with the upgradeValues of the acceptance file.
+const upgradeNextFullConfig = `{{.UpgradeNextFull.Config}}`
+{{- end}}
+{{- if .UpgradeUpdated}}
+
+// upgradeUpdatedConfig is the updated config with the upgradeValues of the acceptance file.
+const upgradeUpdatedConfig = `{{.UpgradeUpdated.Config}}`
+{{- end}}
 {{- if .UpgradeMinimal}}
 
 // upgradeMinimalConfig is the minimal config plus the fields that the released provider needs.
@@ -363,7 +373,7 @@ func TestAccCoralogixResource{{.Name}}GeneratedUpgrade(t *testing.T) {
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
 			Steps: upgradeSteps(run, {{if .UpgradeFull}}upgradeFullConfig, upgradeFullChecks(run){{else}}fullConfig, fullChecks(run){{end}},
-				updatedConfig, updatedChecks(run), {{.UpgradeFullAction}}),
+				{{if .UpgradeUpdated}}upgradeUpdatedConfig{{else}}updatedConfig{{end}}, updatedChecks(run), {{.UpgradeFullAction}}),
 		})
 	})
 {{- if .UpgradeMinimal}}
@@ -373,7 +383,7 @@ func TestAccCoralogixResource{{.Name}}GeneratedUpgrade(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
-			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), fullConfig, fullChecks(run), {{.UpgradeMinimalAction}}),
+			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), {{.UpgradeNextFullName}}, fullChecks(run), {{.UpgradeMinimalAction}}),
 		})
 	})
 {{- end}}

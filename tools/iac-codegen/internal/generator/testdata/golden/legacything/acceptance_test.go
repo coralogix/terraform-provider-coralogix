@@ -101,6 +101,40 @@ const minimalConfig = `resource "coralogix_legacy_thing" "test" {
   labels = {}
 }`
 
+// upgradeFullConfig is the full config without the attributes that provider 1.2.3 does not have.
+const upgradeFullConfig = `resource "coralogix_legacy_thing" "test" {
+  name = "@{run}-name"
+  labels = {}
+  rules = [
+    {
+      name = "@{run}-name"
+      kind = "alpha"
+      targets = [
+        {
+          connector_id = coralogix_other.dependency.name
+        },
+      ]
+    },
+  ]
+}`
+
+// upgradeUpdatedConfig is the updated config with the upgradeValues of the acceptance file.
+const upgradeUpdatedConfig = `resource "coralogix_legacy_thing" "test" {
+  name = "@{run}-name-updated"
+  labels = {}
+  rules = [
+    {
+      name = "@{run}-name-updated"
+      kind = "alpha"
+      targets = [
+        {
+          connector_id = coralogix_other.dependency.name
+        },
+      ]
+    },
+  ]
+}`
+
 // upgradeMinimalConfig is the minimal config plus the fields that the released provider needs.
 const upgradeMinimalConfig = `resource "coralogix_legacy_thing" "test" {
   name = "@{run}-name"
@@ -111,7 +145,7 @@ const upgradeMinimalConfig = `resource "coralogix_legacy_thing" "test" {
       kind = "alpha"
       targets = [
         {
-          connector_id = coralogix_other.dependency.id
+          connector_id = coralogix_other.dependency.name
         },
       ]
     },
@@ -163,6 +197,16 @@ func updatedChecks(run string) resource.TestCheckFunc {
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+	)
+}
+
+func upgradeFullChecks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "rules.0.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "rules.0.kind", "alpha"),
+		resource.TestCheckResourceAttr(resourceAddress, "rules.0.targets.#", "1"),
 	)
 }
 
@@ -298,8 +342,8 @@ func TestAccCoralogixResourceLegacyThingGeneratedUpgrade(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
-			Steps: upgradeSteps(run, fullConfig, fullChecks(run),
-				updatedConfig, updatedChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
+			Steps: upgradeSteps(run, upgradeFullConfig, upgradeFullChecks(run),
+				upgradeUpdatedConfig, updatedChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
 		})
 	})
 
@@ -308,7 +352,7 @@ func TestAccCoralogixResourceLegacyThingGeneratedUpgrade(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
-			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), fullConfig, fullChecks(run), []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionNoop)}),
+			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), upgradeFullConfig, fullChecks(run), []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionNoop)}),
 		})
 	})
 }

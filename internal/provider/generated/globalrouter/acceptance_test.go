@@ -151,14 +151,86 @@ const minimalConfig = `resource "coralogix_global_router" "test" {
   }
 }`
 
+// upgradeFullConfig is the full config without the attributes that provider 3.19.0 does not have.
+const upgradeFullConfig = `resource "coralogix_global_router" "test" {
+  description = "@{run}-description"
+  disabled = true
+  entity_labels = { key = "tf-acc-generated-global-router" }
+  fallback_targets = [
+    {
+      entity_type = "alerts"
+      target = {
+        connector_id = coralogix_connector.http.id
+        custom_details = { key = "@{run}-custom_details" }
+      }
+    },
+  ]
+  name = "@{run}-name"
+  routing_labels = {
+    environment = "tf-acc-generated-global-router-upgrade"
+    service = "tf-acc-generated-global-router-upgrade"
+    team = "tf-acc-generated-global-router-upgrade"
+  }
+  rules = [
+    {
+      condition = "alertDef.priority == \"P1\""
+      custom_details = { key = "@{run}-custom_details" }
+      entity_type = "alerts"
+      name = "@{run}-name"
+      targets = [
+        {
+          connector_id = coralogix_connector.http.id
+          custom_details = { key = "@{run}-custom_details" }
+        },
+      ]
+    },
+  ]
+}`
+
+// upgradeUpdatedConfig is the updated config with the upgradeValues of the acceptance file.
+const upgradeUpdatedConfig = `resource "coralogix_global_router" "test" {
+  description = "@{run}-description-updated"
+  disabled = false
+  entity_labels = { key = "tf-acc-generated-global-router-updated" }
+  fallback_targets = [
+    {
+      entity_type = "alerts"
+      target = {
+        connector_id = coralogix_connector.http.id
+        custom_details = { key = "@{run}-custom_details-updated" }
+      }
+    },
+  ]
+  name = "@{run}-name-updated"
+  routing_labels = {
+    environment = "tf-acc-generated-global-router-upgrade"
+    service = "tf-acc-generated-global-router-upgrade"
+    team = "tf-acc-generated-global-router-upgrade"
+  }
+  rules = [
+    {
+      condition = "alertDef.priority == \"P1\""
+      custom_details = { key = "@{run}-custom_details-updated" }
+      entity_type = "alerts"
+      name = "@{run}-name-updated"
+      targets = [
+        {
+          connector_id = coralogix_connector.http.id
+          custom_details = { key = "@{run}-custom_details-updated" }
+        },
+      ]
+    },
+  ]
+}`
+
 // upgradeMinimalConfig is the minimal config plus the fields that the released provider needs.
 const upgradeMinimalConfig = `resource "coralogix_global_router" "test" {
   description = "@{run}-description"
   name = "@{run}-name"
   routing_labels = {
-    environment = "tf-acc-generated-global-router"
-    service = "tf-acc-generated-global-router"
-    team = "tf-acc-generated-global-router"
+    environment = "tf-acc-generated-global-router-upgrade"
+    service = "tf-acc-generated-global-router-upgrade"
+    team = "tf-acc-generated-global-router-upgrade"
   }
 }`
 
@@ -249,6 +321,23 @@ func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
 		resource.TestCheckResourceAttr(resourceAddress, "disabled", "false"),
+	)
+}
+
+func upgradeFullChecks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "disabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.0.entity_type", "alerts"),
+		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.0.target.custom_details.key", render(run, "@{run}-custom_details")),
+		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "rules.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "rules.0.custom_details.key", render(run, "@{run}-custom_details")),
+		resource.TestCheckResourceAttr(resourceAddress, "rules.0.entity_type", "alerts"),
+		resource.TestCheckResourceAttr(resourceAddress, "rules.0.name", render(run, "@{run}-name")),
+		resource.TestCheckResourceAttr(resourceAddress, "rules.0.targets.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "rules.0.targets.0.custom_details.key", render(run, "@{run}-custom_details")),
 	)
 }
 
@@ -381,8 +470,8 @@ func TestAccCoralogixResourceGlobalRouterGeneratedUpgrade(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
-			Steps: upgradeSteps(run, fullConfig, fullChecks(run),
-				updatedConfig, updatedChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
+			Steps: upgradeSteps(run, upgradeFullConfig, upgradeFullChecks(run),
+				upgradeUpdatedConfig, updatedChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
 		})
 	})
 
@@ -391,7 +480,7 @@ func TestAccCoralogixResourceGlobalRouterGeneratedUpgrade(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
-			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), fullConfig, fullChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
+			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), upgradeFullConfig, fullChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
 		})
 	})
 }

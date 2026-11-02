@@ -171,6 +171,64 @@ func TestAcceptanceUpdatedValuesNeedAValueAndAnAttribute(t *testing.T) {
 	}
 }
 
+// upgradeValues replace values in every config of the upgrade test, and in no other config.
+func TestAcceptanceUpgradeValuesChangeOnlyTheUpgradeConfigs(t *testing.T) {
+	res := &tfResource{Package: "p", CRUD: &crudData{TypeName: "thing", IDAttr: "id", Resource: "Thing"}, Attributes: []*tfAttr{
+		{Name: "name", Kind: "String", Required: true},
+		{Name: "label", Kind: "String", Optional: true},
+	}}
+	file, err := acceptance.Parse([]byte(`
+resource: Thing
+values:
+  label: '"shared"'
+updatedValues:
+  label: '"shared-updated"'
+upgradeValues:
+  label: '"upgrade"'
+minimal:
+  - label
+upgradeFrom: "1.0.0"
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := buildAcceptance(res, "example.com/provider", file, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, step := range map[string]*accStep{"full": data.Full, "minimal": data.Minimal} {
+		if !strings.Contains(step.Config, `label = "shared"`) {
+			t.Errorf("%s config:\n%s\nwant the value of values", name, step.Config)
+		}
+	}
+	if !strings.Contains(data.Updated.Config, `label = "shared-updated"`) {
+		t.Errorf("updated config:\n%s\nwant the value of updatedValues", data.Updated.Config)
+	}
+	for name, step := range map[string]*accStep{"upgrade full": data.UpgradeFull, "upgrade minimal": data.UpgradeMinimal,
+		"upgrade next full": data.UpgradeNextFull, "upgrade updated": data.UpgradeUpdated} {
+		if step == nil || !strings.Contains(step.Config, `label = "upgrade"`) {
+			t.Errorf("%s config = %+v, want the value of upgradeValues", name, step)
+		}
+	}
+	if data.UpgradeFullAction != accPlanNoReplace || data.UpgradeMinimalAction != accPlanNoop {
+		t.Errorf("actions = %s, %s; want no replace to the updated config and no-op to the full one", data.UpgradeFullAction, data.UpgradeMinimalAction)
+	}
+}
+
+// An upgradeValues line needs an upgrade test and a values line to replace.
+func TestAcceptanceUpgradeValuesNeedAValueAndAnUpgrade(t *testing.T) {
+	for text, want := range map[string]string{
+		"values:\n  label: '\"a\"'\nupgradeValues:\n  label: '\"b\"'\n":                        "needs upgradeFrom",
+		"upgradeFrom: \"1.0.0\"\nupgradeValues:\n  label: '\"b\"'\n":                           "is not in values",
+		"upgradeFrom: \"1.0.0\"\nvalues:\n  label: '\"a\"'\nupgradeValues:\n  label: ' '\n":    "is empty",
+		"upgradeFrom: \"1.0.0\"\nvalues:\n  label: '\"a\"'\nupgradeValues:\n  label: '@{x}'\n": "is not @{run}",
+	} {
+		if _, err := acceptance.Parse([]byte("resource: Thing\n" + text)); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("Parse(%q) = %v, want an error with %q", text, err, want)
+		}
+	}
+}
+
 func extraUpgradeResource() *tfResource {
 	return &tfResource{Package: "p", CRUD: &crudData{TypeName: "thing", IDAttr: "id", Resource: "Thing"}, Attributes: []*tfAttr{
 		{Name: "name", Kind: "String", Required: true},
