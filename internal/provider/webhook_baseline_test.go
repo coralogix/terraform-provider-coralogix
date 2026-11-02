@@ -116,12 +116,14 @@ func TestWebhookBaselineFieldChanges(t *testing.T) {
 		value any
 	}{
 		"custom-method":      {"custom", "method", "put"},
+		"custom-method-get":  {"custom", "method", "get"},
 		"custom-uuid":        {"custom", "uuid", webhookOtherUUID},
 		"custom-url":         {"custom", "url", "https://example.invalid/changed"},
 		"custom-headers":     {"custom", "headers", j{"X-Other": "next"}},
 		"custom-payload":     {"custom", "payload", `{"message":"next"}`},
 		"slack-url":          {"slack", "url", "https://example.invalid/changed"},
 		"slack-notify-on":    {"slack", "notify_on", l{"data_usage"}},
+		"slack-error-logs":   {"slack", "notify_on", l{"error_and_critical_logs"}},
 		"slack-attachments":  {"slack", "attachments", l{j{"type": "logs", "active": true}}},
 		"slack-active":       {"slack", "attachments", l{j{"type": "metric_snapshot", "active": false}, j{"type": "logs", "active": false}}},
 		"pager-duty-key":     {"pager_duty", "service_key", "synthetic-next-key"},
@@ -321,6 +323,20 @@ func TestWebhookBaselineEdges(t *testing.T) {
 				state = h.RefreshPlan("refresh and plan", state)
 				h.Destroy("delete", state)
 			}
+		},
+		"slack-empty-attachment": func(h *grHarness) {
+			before := webhookConfig("full", "slack", with(webhookFullConfigs["slack"]["slack"].(j), j{
+				"attachments": l{j{"type": "empty", "active": true}},
+			}))
+			state := h.Apply("create empty attachment", h.null(), before)
+			webhookState(h.t, h, state)
+			state = h.RefreshPlan("refresh and plan", state)
+			after := webhookConfig("full", "slack", with(before["slack"].(j), j{
+				"attachments": l{j{"type": "empty", "active": false}},
+			}))
+			state = h.Apply("deactivate empty attachment", state, after)
+			state = h.RefreshPlan("refresh after update and plan", state)
+			h.Destroy("delete", state)
 		},
 		"sendlog-returned-url": func(h *grHarness) {
 			state := h.Apply("create", h.null(), webhookFullConfigs["sendlog"])

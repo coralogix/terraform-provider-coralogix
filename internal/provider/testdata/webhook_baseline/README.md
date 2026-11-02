@@ -17,6 +17,8 @@ The write-only files record rotation and a switch to the ordinary field.
 Their test values are synthetic and masked in the JSON files.
 For fields whose omission rejects Create, the optional files also record
 removal from an existing webhook on Update.
+The enum cases cover every allowed custom method, Slack digest, and Slack
+attachment type, including `empty`.
 
 The fake models the webhook read and write shapes. It also models duplicate
 email addresses and Slack items.
