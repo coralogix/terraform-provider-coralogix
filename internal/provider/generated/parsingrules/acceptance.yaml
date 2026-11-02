@@ -1,23 +1,27 @@
 # What the generated acceptance test needs for coralogix_parsing_rules, besides the schema.
 #
-# A rule group acts on the logs of the tenant, so every config keeps the group inactive, matches
-# only an application that sends no logs, and puts the group after the groups of the tenant: a
-# Delete lowers the order of every group above the deleted one.
+# A rule group acts on the logs of the tenant, so every config keeps the group inactive and
+# matches only an application that sends no logs.
+#
+# No config sets order. A Delete lowers the order of every group above the deleted one, and the
+# acceptance jobs run rule-group tests in parallel, so a configured order would read back changed
+# when another test deletes its group. An unset order keeps the value of the state, and the
+# baseline and the legacy tests cover order.
 resource: RuleGroup
+
+skip: [order]
 
 values:
   active: "false"
-  order: "100"
   # The API accepts text, text.<field>, or a metadata field, and requires keepBlockedLogs.
   rule_subgroups[].rules[].block.source_field: '"text"'
   rule_subgroups[].rules[].block.keep_blocked_logs: "false"
 
 updatedValues:
   active: "false"
-  order: "101"
 
-minimal: [rule_subgroups, active, order, applications, "rule_subgroups[].rules[].block.keep_blocked_logs"]
+minimal: [rule_subgroups, active, applications, "rule_subgroups[].rules[].block.keep_blocked_logs"]
 
-upgradeMinimal: [rule_subgroups, active, order, applications, "rule_subgroups[].rules[].block.keep_blocked_logs"]
+upgradeMinimal: [rule_subgroups, active, applications, "rule_subgroups[].rules[].block.keep_blocked_logs"]
 
 upgradeFrom: "3.23.0"
