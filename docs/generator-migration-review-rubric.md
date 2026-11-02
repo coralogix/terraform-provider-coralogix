@@ -38,7 +38,7 @@ Keep the old resource tests. Run them against the generated resource. Add new te
 generated resource. Add migration tests: create with a released provider, switch to the new code,
 and check that Terraform plans no change. Then test update and import where they apply. All three
 test groups must pass in CI on the newest commit. Record the protocol baseline goldens on master
-with the handwritten resource first. Use the [baseline recording skill](../.agents/skills/record-migration-baseline/SKILL.md)
+with the handwritten resource first. Use the [baseline recording skill](../.claude/skills/record-migration-baseline/SKILL.md)
 to check every variant, field, and omission before the baseline PR. Then the switch commit's golden
 diff shows only real behavior changes.
 
