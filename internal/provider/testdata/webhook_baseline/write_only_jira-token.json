@@ -1,0 +1,216 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "jira": {
+        "api_token_wo": "synthetic-value-one",
+        "api_token_wo_version": 1,
+        "email": "admin@example.invalid",
+        "project_key": "TEST",
+        "url": "https://example.invalid/jira"
+      },
+      "name": "secret"
+    },
+    "plan": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "(unknown)",
+      "id": "(unknown)",
+      "jira": {
+        "api_token": null,
+        "api_token_wo": null,
+        "api_token_wo_version": 1,
+        "email": "admin@example.invalid",
+        "project_key": "TEST",
+        "url": "https://example.invalid/jira"
+      },
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "jira": {
+              "apiToken": "synthetic-value-one",
+              "email": "admin@example.invalid",
+              "projectKey": "TEST"
+            },
+            "name": "secret",
+            "type": "JIRA",
+            "url": "https://example.invalid/jira"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": {
+        "api_token": null,
+        "api_token_wo": null,
+        "api_token_wo_version": 1,
+        "email": "admin@example.invalid",
+        "project_key": "TEST",
+        "url": "https://example.invalid/jira"
+      },
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and plan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": {
+        "api_token": null,
+        "api_token_wo": null,
+        "api_token_wo_version": 1,
+        "email": "admin@example.invalid",
+        "project_key": "TEST",
+        "url": "https://example.invalid/jira"
+      },
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "rotate",
+    "config": {
+      "jira": {
+        "api_token_wo": "synthetic-value-two",
+        "api_token_wo_version": 2,
+        "email": "admin@example.invalid",
+        "project_key": "TEST",
+        "url": "https://example.invalid/jira"
+      },
+      "name": "secret"
+    },
+    "plan": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": {
+        "api_token": null,
+        "api_token_wo": null,
+        "api_token_wo_version": 2,
+        "email": "admin@example.invalid",
+        "project_key": "TEST",
+        "url": "https://example.invalid/jira"
+      },
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "jira": {
+              "apiToken": "synthetic-value-two",
+              "email": "admin@example.invalid",
+              "projectKey": "TEST"
+            },
+            "name": "secret",
+            "type": "JIRA",
+            "url": "https://example.invalid/jira"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": {
+        "api_token": null,
+        "api_token_wo": null,
+        "api_token_wo_version": 2,
+        "email": "admin@example.invalid",
+        "project_key": "TEST",
+        "url": "https://example.invalid/jira"
+      },
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "delete",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

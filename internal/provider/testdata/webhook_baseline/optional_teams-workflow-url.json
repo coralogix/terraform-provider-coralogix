@@ -1,0 +1,45 @@
+[
+  {
+    "step": "create with field omitted",
+    "config": {
+      "microsoft_teams_workflow": {},
+      "name": "full"
+    },
+    "plan": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "(unknown)",
+      "id": "(unknown)",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": {
+        "url": null
+      },
+      "name": "full",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "msTeamsWorkflow": {},
+            "name": "full",
+            "type": "MS_TEAMS_WORKFLOW"
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_webhook | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Webhook URL is required\\\"}\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

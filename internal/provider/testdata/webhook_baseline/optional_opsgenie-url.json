@@ -1,0 +1,13 @@
+[
+  {
+    "step": "create with field omitted",
+    "config": {
+      "name": "full",
+      "opsgenie": {}
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"opsgenie\").AttributeName(\"url\")] | Must set a configuration value for the opsgenie.url attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  }
+]

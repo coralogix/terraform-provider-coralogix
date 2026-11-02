@@ -1,0 +1,60 @@
+[
+  {
+    "step": "create without method",
+    "config": {
+      "custom": {
+        "payload": "test",
+        "url": "https://example.invalid/hook",
+        "uuid": "11111111-1111-4111-8111-111111111111"
+      },
+      "name": "missing method"
+    },
+    "plan": {
+      "custom": {
+        "headers": "(unknown)",
+        "headers_wo": null,
+        "headers_wo_versions": null,
+        "method": null,
+        "payload": "test",
+        "url": "https://example.invalid/hook",
+        "uuid": "11111111-1111-4111-8111-111111111111"
+      },
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "(unknown)",
+      "id": "(unknown)",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "missing method",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "genericWebhook": {
+              "method": "",
+              "payload": "test",
+              "uuid": "11111111-1111-4111-8111-111111111111"
+            },
+            "name": "missing method",
+            "type": "GENERIC",
+            "url": "https://example.invalid/hook"
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_webhook | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Unknown generic webhook method\\\"}\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

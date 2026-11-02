@@ -1,0 +1,95 @@
+[
+  {
+    "step": "create with field omitted",
+    "config": {
+      "name": "full",
+      "slack": {
+        "attachments": [
+          {
+            "active": true,
+            "type": "metric_snapshot"
+          },
+          {
+            "active": false,
+            "type": "logs"
+          }
+        ],
+        "notify_on": [
+          "flow_anomalies",
+          "spike_anomalies"
+        ]
+      }
+    },
+    "plan": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "(unknown)",
+      "id": "(unknown)",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": {
+        "attachments": [
+          {
+            "active": true,
+            "type": "metric_snapshot"
+          },
+          {
+            "active": false,
+            "type": "logs"
+          }
+        ],
+        "notify_on": [
+          "flow_anomalies",
+          "spike_anomalies"
+        ],
+        "url": null
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "name": "full",
+            "slack": {
+              "attachments": [
+                {
+                  "isActive": true,
+                  "type": "METRIC_SNAPSHOT"
+                },
+                {
+                  "isActive": false,
+                  "type": "LOGS"
+                }
+              ],
+              "digests": [
+                {
+                  "isActive": true,
+                  "type": "FLOW_ANOMALIES"
+                },
+                {
+                  "isActive": true,
+                  "type": "SPIKE_ANOMALIES"
+                }
+              ]
+            },
+            "type": "SLACK"
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_webhook | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Webhook URL is required\\\"}\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

@@ -1,0 +1,58 @@
+[
+  {
+    "step": "create with field omitted",
+    "config": {
+      "jira": {
+        "email": "admin@example.invalid",
+        "project_key": "TEST",
+        "url": "https://example.invalid/jira"
+      },
+      "name": "full"
+    },
+    "plan": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "(unknown)",
+      "id": "(unknown)",
+      "jira": {
+        "api_token": null,
+        "api_token_wo": null,
+        "api_token_wo_version": null,
+        "email": "admin@example.invalid",
+        "project_key": "TEST",
+        "url": "https://example.invalid/jira"
+      },
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "jira": {
+              "email": "admin@example.invalid",
+              "projectKey": "TEST"
+            },
+            "name": "full",
+            "type": "JIRA",
+            "url": "https://example.invalid/jira"
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_webhook | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"Jira apiToken is required\\\"}\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

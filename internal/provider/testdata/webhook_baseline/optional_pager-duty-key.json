@@ -1,0 +1,47 @@
+[
+  {
+    "step": "create with field omitted",
+    "config": {
+      "name": "full",
+      "pager_duty": {}
+    },
+    "plan": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "(unknown)",
+      "id": "(unknown)",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": null,
+      "pager_duty": {
+        "service_key": null,
+        "service_key_wo": null,
+        "service_key_wo_version": null
+      },
+      "sendlog": null,
+      "slack": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "name": "full",
+            "pagerDuty": {},
+            "type": "PAGERDUTY"
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_webhook | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\\"reason\\\":\\\"PagerDuty service key is required\\\"}\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

@@ -1,0 +1,189 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": "secret",
+      "pager_duty": {
+        "service_key_wo": "synthetic-value-one",
+        "service_key_wo_version": 1
+      }
+    },
+    "plan": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "(unknown)",
+      "id": "(unknown)",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": {
+        "service_key": null,
+        "service_key_wo": null,
+        "service_key_wo_version": 1
+      },
+      "sendlog": null,
+      "slack": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "name": "secret",
+            "pagerDuty": {
+              "serviceKey": "synthetic-value-one"
+            },
+            "type": "PAGERDUTY"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": {
+        "service_key": null,
+        "service_key_wo": null,
+        "service_key_wo_version": 1
+      },
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and plan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": {
+        "service_key": null,
+        "service_key_wo": null,
+        "service_key_wo_version": 1
+      },
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "rotate",
+    "config": {
+      "name": "secret",
+      "pager_duty": {
+        "service_key_wo": "synthetic-value-two",
+        "service_key_wo_version": 2
+      }
+    },
+    "plan": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": {
+        "service_key": null,
+        "service_key_wo": null,
+        "service_key_wo_version": 2
+      },
+      "sendlog": null,
+      "slack": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "name": "secret",
+            "pagerDuty": {
+              "serviceKey": "synthetic-value-two"
+            },
+            "type": "PAGERDUTY"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": {
+        "service_key": null,
+        "service_key_wo": null,
+        "service_key_wo_version": 2
+      },
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "delete",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]
