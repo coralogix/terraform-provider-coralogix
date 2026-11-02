@@ -4,15 +4,26 @@
 # coralogix/team-eco-system). The repository is public, so without this anyone with write access
 # could release.
 #
-# Usage: check-releaser.sh <pr-number> <allowlist>
-# Pass the allowlist as it is on master, never the PR's copy. GH_TOKEN and GH_REPO read the PR.
+# Usage: check-releaser.sh <pr-number>
+# GH_TOKEN and GH_REPO read the PR and the allowlist.
 set -euo pipefail
 
 pr="$1"
-allowlist="$2"
 
+# The allowlist as it is at the PR's base commit, which no commit of the PR can change, also
+# after a rebase merge. The base must be on the base branch, so it can't be another branch's list.
+read -r base_ref base_sha < <(gh pr view "$pr" --json baseRefName,baseRefOid --jq '"\(.baseRefName) \(.baseRefOid)"')
+status=$(gh api "repos/$GH_REPO/compare/$base_sha...$base_ref" --jq .status)
+if [[ "$status" != identical && "$status" != ahead ]]; then
+  echo "::error::The base $base_sha of PR #$pr is not on $base_ref ($status)."
+  exit 1
+fi
+if ! allowlist=$(gh api "repos/$GH_REPO/contents/.github/RELEASERS?ref=$base_sha" -H "Accept: application/vnd.github.raw"); then
+  echo "::error::.github/RELEASERS is missing at $base_sha, the base of PR #$pr."
+  exit 1
+fi
 # GitHub logins are case-insensitive.
-releasers=$(sed -e 's/#.*//' -e 's/[[:space:]]//g' "$allowlist" | grep -v '^$' | tr '[:upper:]' '[:lower:]')
+releasers=$(sed -e 's/#.*//' -e 's/[[:space:]]//g' <<< "$allowlist" | grep -v '^$' | tr '[:upper:]' '[:lower:]')
 member() {
   grep -qxF "$(tr '[:upper:]' '[:lower:]' <<< "$1")" <<< "$releasers"
 }

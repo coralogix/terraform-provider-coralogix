@@ -72,20 +72,16 @@ jobs:
       - name: Check who released
         # Only the people in .github/RELEASERS release, also when a release PR is merged by hand or
         # this workflow is started by hand: the release commit's PR must come from them. The list
-        # is read from master before the merge, so a PR can't add its own author.
+        # is read at the PR's base, so a PR can't add its own author.
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           SHA: ${{ steps.commit.outputs.sha }}
-          BEFORE: ${{ steps.commit.outputs.before }}
         run: |
-          if ! git show "$BEFORE:.github/RELEASERS" > "$RUNNER_TEMP/RELEASERS"; then
-            echo "::error::.github/RELEASERS is missing on master before $SHA"; exit 1
-          fi
           pr=$(gh api "repos/$GH_REPO/commits/$SHA/pulls" \
             --jq '[.[] | select(.merged_at != null and .base.ref == "master")][0].number // empty')
           if [ -z "$pr" ]; then echo "::error::$SHA is not the merge of a PR; releases come from \`make bump\` PRs"; exit 1; fi
-          .github/scripts/release/check-releaser.sh "$pr" "$RUNNER_TEMP/RELEASERS"
+          .github/scripts/release/check-releaser.sh "$pr"
       - name: Check the bump
         # The same check as on the PR, against master before this merge.
         env:

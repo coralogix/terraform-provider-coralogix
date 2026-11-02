@@ -80,12 +80,12 @@ jobs:
                 -f message="Superseded by a new push; re-checking the release PR." -f event=DISMISS >/dev/null
             done
       - name: Check who opened the release PR
-        # Before the PR head is checked out, so the script and the allowlist come from master.
+        # Before the PR head is checked out, so the script comes from master.
         if: steps.pr.outputs.number != '' && steps.pr.outputs.draft == 'false'
         env:
           GH_REPO: ${{ github.repository }}
           PR: ${{ steps.pr.outputs.number }}
-        run: .github/scripts/release/check-releaser.sh "$PR" .github/RELEASERS
+        run: .github/scripts/release/check-releaser.sh "$PR"
       - name: Check the release PR
         if: steps.pr.outputs.number != '' && steps.pr.outputs.draft == 'false'
         env:
