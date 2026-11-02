@@ -1,0 +1,39 @@
+[
+  {
+    "step": "create: the CRN has no resource part",
+    "config": {
+      "ibm": {
+        "crn": "x:bucket:y",
+        "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+      }
+    },
+    "plan": {
+      "ibm": {
+        "crn": "x:bucket:y",
+        "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+      },
+      "id": "(unknown)",
+      "prefix": "(unknown)",
+      "retention_policy": "(unknown)",
+      "s3": null,
+      "tenant_id": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "body": {
+          "ibm": {
+            "crn": "x:bucket:y",
+            "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_archive_metrics | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: invalid storage config\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

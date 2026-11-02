@@ -1,0 +1,63 @@
+{
+  "comment": "Requests that a recorder sends to the real metrics archive API (/metrics/data-setup/v1), and the offline test sends to the fake. Paths are relative to /metrics/data-setup/v1. Tokens: {{BUCKET}} a bucket that the Coralogix archive role can write; {{MISSING_BUCKET}} a bucket name made for the run, which does not exist. The tenant starts without a metrics archive. The cases before set-minimal store nothing: the API rejects them before it saves. tenantId is masked.",
+  "cases": [
+    {
+      "name": "get-without-config",
+      "steps": [
+        {"method": "GET", "path": ""}
+      ]
+    },
+    {
+      "name": "rejected-before-save",
+      "steps": [
+        {"method": "POST", "path": "", "body": {}},
+        {"method": "POST", "path": "", "body": {"retentionPolicy": {"rawResolution": 1, "fiveMinutesResolution": 2, "oneHourResolution": 3}}},
+        {"method": "POST", "path": "", "body": {"ibm": {"endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud", "crn": "x:bucket:y"}}},
+        {"method": "POST", "path": "", "body": {"s3": {"bucket": "{{MISSING_BUCKET}}", "region": "eu-north-1"}}},
+        {"method": "GET", "path": ""}
+      ]
+    },
+    {
+      "name": "disable-without-config",
+      "steps": [
+        {"method": "POST", "path": "/disable"},
+        {"method": "GET", "path": ""}
+      ]
+    },
+    {
+      "name": "set-minimal",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"s3": {"bucket": "{{BUCKET}}", "region": "eu-north-1"}}},
+        {"method": "GET", "path": ""}
+      ]
+    },
+    {
+      "name": "retention-policy-set-and-removed",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"s3": {"bucket": "{{BUCKET}}", "region": "eu-north-1"}, "retentionPolicy": {"rawResolution": 10, "fiveMinutesResolution": 20, "oneHourResolution": 30}}},
+        {"method": "GET", "path": ""},
+        {"method": "POST", "path": "", "body": {"s3": {"bucket": "{{BUCKET}}", "region": "eu-north-1"}, "retentionPolicy": {"rawResolution": 0, "fiveMinutesResolution": 5, "oneHourResolution": 0}}},
+        {"method": "GET", "path": ""},
+        {"method": "POST", "path": "", "body": {"s3": {"bucket": "{{BUCKET}}", "region": "eu-north-1"}}},
+        {"method": "GET", "path": ""}
+      ]
+    },
+    {
+      "name": "disable-then-set",
+      "steps": [
+        {"method": "POST", "path": "/disable"},
+        {"method": "GET", "path": ""},
+        {"method": "POST", "path": "", "body": {"s3": {"bucket": "{{BUCKET}}", "region": "eu-north-1"}}},
+        {"method": "GET", "path": ""}
+      ]
+    },
+    {
+      "name": "rejected-over-existing",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"s3": {"bucket": "{{MISSING_BUCKET}}", "region": "eu-north-1"}}},
+        {"method": "POST", "path": "", "body": {}},
+        {"method": "GET", "path": ""}
+      ]
+    }
+  ]
+}

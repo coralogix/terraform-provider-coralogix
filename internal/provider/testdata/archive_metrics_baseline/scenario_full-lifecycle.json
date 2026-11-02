@@ -1,0 +1,508 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "retention_policy": {
+        "five_minutes_resolution": 20,
+        "one_hour_resolution": 30,
+        "raw_resolution": 10
+      },
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      }
+    },
+    "plan": {
+      "ibm": null,
+      "id": "(unknown)",
+      "prefix": "(unknown)",
+      "retention_policy": {
+        "five_minutes_resolution": 20,
+        "one_hour_resolution": 30,
+        "raw_resolution": 10
+      },
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "body": {
+          "retentionPolicy": {
+            "fiveMinutesResolution": 20,
+            "oneHourResolution": 30,
+            "rawResolution": 10
+          },
+          "s3": {
+            "bucket": "metrics-bucket",
+            "region": "eu-north-1"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 20,
+        "one_hour_resolution": 30,
+        "raw_resolution": 10
+      },
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 20,
+        "one_hour_resolution": 30,
+        "raw_resolution": 10
+      },
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: retention policy",
+    "config": {
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      },
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      }
+    },
+    "plan": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      },
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "body": {
+          "retentionPolicy": {
+            "fiveMinutesResolution": 25,
+            "oneHourResolution": 35,
+            "rawResolution": 15
+          },
+          "s3": {
+            "bucket": "metrics-bucket",
+            "region": "eu-north-1"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      },
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: another bucket",
+    "config": {
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      },
+      "s3": {
+        "bucket": "other-bucket",
+        "region": "eu-north-1"
+      }
+    },
+    "plan": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      },
+      "s3": {
+        "bucket": "other-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "body": {
+          "retentionPolicy": {
+            "fiveMinutesResolution": 25,
+            "oneHourResolution": 35,
+            "rawResolution": 15
+          },
+          "s3": {
+            "bucket": "other-bucket",
+            "region": "eu-north-1"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      },
+      "s3": {
+        "bucket": "other-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: another region",
+    "config": {
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      },
+      "s3": {
+        "bucket": "other-bucket",
+        "region": "eu-west-1"
+      }
+    },
+    "plan": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      },
+      "s3": {
+        "bucket": "other-bucket",
+        "region": "eu-west-1"
+      },
+      "tenant_id": 4711
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "body": {
+          "retentionPolicy": {
+            "fiveMinutesResolution": 25,
+            "oneHourResolution": 35,
+            "rawResolution": 15
+          },
+          "s3": {
+            "bucket": "other-bucket",
+            "region": "eu-west-1"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      },
+      "s3": {
+        "bucket": "other-bucket",
+        "region": "eu-west-1"
+      },
+      "tenant_id": 4711
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: s3 to ibm",
+    "config": {
+      "ibm": {
+        "crn": "crn:v1:bluemix:public:cloud-object-storage:eu-de:a/0:0:bucket:metrics-bucket",
+        "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+      },
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      }
+    },
+    "plan": {
+      "ibm": {
+        "crn": "crn:v1:bluemix:public:cloud-object-storage:eu-de:a/0:0:bucket:metrics-bucket",
+        "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+      },
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      },
+      "s3": null,
+      "tenant_id": 4711
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "body": {
+          "ibm": {
+            "crn": "crn:v1:bluemix:public:cloud-object-storage:eu-de:a/0:0:bucket:metrics-bucket",
+            "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+          },
+          "retentionPolicy": {
+            "fiveMinutesResolution": 25,
+            "oneHourResolution": 35,
+            "rawResolution": 15
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": {
+        "crn": "crn:v1:bluemix:public:cloud-object-storage:eu-de:a/0:0:bucket:metrics-bucket",
+        "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+      },
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      },
+      "s3": null,
+      "tenant_id": 4711
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: ibm endpoint and crn",
+    "config": {
+      "ibm": {
+        "crn": "crn:v1:bluemix:public:cloud-object-storage:us-south:a/0:0:bucket:other-bucket",
+        "endpoint": "https://s3.us-south.cloud-object-storage.appdomain.cloud"
+      },
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      }
+    },
+    "plan": {
+      "ibm": {
+        "crn": "crn:v1:bluemix:public:cloud-object-storage:us-south:a/0:0:bucket:other-bucket",
+        "endpoint": "https://s3.us-south.cloud-object-storage.appdomain.cloud"
+      },
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      },
+      "s3": null,
+      "tenant_id": 4711
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "body": {
+          "ibm": {
+            "crn": "crn:v1:bluemix:public:cloud-object-storage:us-south:a/0:0:bucket:other-bucket",
+            "endpoint": "https://s3.us-south.cloud-object-storage.appdomain.cloud"
+          },
+          "retentionPolicy": {
+            "fiveMinutesResolution": 25,
+            "oneHourResolution": 35,
+            "rawResolution": 15
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": {
+        "crn": "crn:v1:bluemix:public:cloud-object-storage:us-south:a/0:0:bucket:other-bucket",
+        "endpoint": "https://s3.us-south.cloud-object-storage.appdomain.cloud"
+      },
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      },
+      "s3": null,
+      "tenant_id": 4711
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: ibm to s3",
+    "config": {
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      },
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      }
+    },
+    "plan": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      },
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "body": {
+          "retentionPolicy": {
+            "fiveMinutesResolution": 25,
+            "oneHourResolution": 35,
+            "rawResolution": 15
+          },
+          "s3": {
+            "bucket": "metrics-bucket",
+            "region": "eu-north-1"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 25,
+        "one_hour_resolution": 35,
+        "raw_resolution": 15
+      },
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy",
+    "state": null
+  }
+]

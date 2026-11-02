@@ -287,12 +287,19 @@ func (h *grHarness) Apply(name string, prior tftypes.Value, cfgJSON map[string]a
 	h.must(err)
 	step.Requests = h.api.takeRequests()
 	step.ApplyDiags = diagStrings(resp.Diagnostics)
+	state := h.decode(resp.NewState)
 	if hasError(resp.Diagnostics) {
+		h.applied = cfgJSON
+		// Terraform core saves the state that a failed apply returns. After a Create it is tainted,
+		// and the next apply replaces it; the harness does not model that, so it goes on from null.
+		step.State = toJSON(state)
 		h.record(step)
-		return prior
+		if prior.IsNull() {
+			return prior
+		}
+		return state
 	}
 
-	state := h.decode(resp.NewState)
 	step.State = toJSON(state)
 	inconsistent("", planned, state, &step.Inconsistent)
 	h.applied = cfgJSON

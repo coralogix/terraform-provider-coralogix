@@ -1,0 +1,87 @@
+[
+  {
+    "step": "import a configuration with levels of 0",
+    "state": null
+  },
+  {
+    "step": "import a configuration with levels of 0 (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 5,
+        "one_hour_resolution": 0,
+        "raw_resolution": 0
+      },
+      "s3": {
+        "bucket": "seeded-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    },
+    "drift": [
+      "AttributeName(\"prefix\")",
+      "AttributeName(\"retention_policy\")",
+      "AttributeName(\"retention_policy\").AttributeName(\"five_minutes_resolution\")",
+      "AttributeName(\"retention_policy\").AttributeName(\"one_hour_resolution\")",
+      "AttributeName(\"retention_policy\").AttributeName(\"raw_resolution\")",
+      "AttributeName(\"s3\")",
+      "AttributeName(\"s3\").AttributeName(\"bucket\")",
+      "AttributeName(\"s3\").AttributeName(\"region\")",
+      "AttributeName(\"tenant_id\")"
+    ]
+  },
+  {
+    "step": "plan the matching config",
+    "config": {
+      "retention_policy": {
+        "five_minutes_resolution": 5,
+        "one_hour_resolution": 0,
+        "raw_resolution": 0
+      },
+      "s3": {
+        "bucket": "seeded-bucket",
+        "region": "eu-north-1"
+      }
+    },
+    "plan": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 5,
+        "one_hour_resolution": 0,
+        "raw_resolution": 0
+      },
+      "s3": {
+        "bucket": "seeded-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    },
+    "noChange": true,
+    "state": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": {
+        "five_minutes_resolution": 5,
+        "one_hour_resolution": 0,
+        "raw_resolution": 0
+      },
+      "s3": {
+        "bucket": "seeded-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    }
+  }
+]

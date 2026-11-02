@@ -1,0 +1,39 @@
+[
+  {
+    "step": "create: the API cannot write to the bucket",
+    "config": {
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      }
+    },
+    "plan": {
+      "ibm": null,
+      "id": "(unknown)",
+      "prefix": "(unknown)",
+      "retention_policy": "(unknown)",
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "body": {
+          "s3": {
+            "bucket": "metrics-bucket",
+            "region": "eu-north-1"
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_archive_metrics | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Invalid bucket: Cannot write file\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

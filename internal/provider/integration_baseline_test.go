@@ -195,12 +195,11 @@ var integrationScenarios = map[string]func(h *grHarness){
 	},
 
 	// Save succeeds and the read after it fails: the integration exists in the backend, and the
-	// state holds nothing. A second apply saves another integration.
+	// resource returns its id. Terraform keeps that state, tainted, and the next apply replaces it.
+	// The harness does not model taint, so the scenario stops here.
 	"create-read-after-save-fails": func(h *grHarness) {
 		h.integrations().readStatus = 500
-		s := h.Apply("create: the save works and the read after it answers 500", h.null(), catalogConfig("a"))
-		h.integrations().readStatus = 0
-		h.Apply("create again: the retry saves a second integration", s, catalogConfig("a"))
+		h.Apply("create: the save works and the read after it answers 500", h.null(), catalogConfig("a"))
 	},
 
 	"update-invalid-version": func(h *grHarness) {

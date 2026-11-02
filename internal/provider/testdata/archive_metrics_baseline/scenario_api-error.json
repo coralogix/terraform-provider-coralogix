@@ -1,0 +1,77 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      }
+    },
+    "plan": {
+      "ibm": null,
+      "id": "(unknown)",
+      "prefix": "(unknown)",
+      "retention_policy": "(unknown)",
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "body": {
+          "s3": {
+            "bucket": "metrics-bucket",
+            "region": "eu-north-1"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": null,
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: the API fails",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error reading coralogix_archive_metrics | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: tenant config store unavailable\"}\noperation - Read"
+    ],
+    "state": {
+      "ibm": null,
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": null,
+      "s3": {
+        "bucket": "metrics-bucket",
+        "region": "eu-north-1"
+      },
+      "tenant_id": 4711
+    },
+    "replanEmpty": true
+  }
+]
