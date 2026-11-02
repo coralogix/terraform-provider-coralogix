@@ -1,0 +1,26 @@
+# The behavior-overrides file of the synthetic singleton that one call sets, with a storage arm
+# that the released resource does not support.
+resource: StorageConfig
+mode: existing
+typeName: storage_thing
+
+validators:
+  inferred: false
+
+singletonID: {fixed: storage-thing-settings}
+
+api:
+  # One POST creates and replaces the singleton, and the API cannot remove it.
+  operations:
+    create: StorageService_SetConfig
+    get: StorageService_GetConfig
+    update: StorageService_SetConfig
+    delete: none
+
+dataSource: {}
+
+types:
+  StorageConfig:
+    unsupportedArms: [gcs]
+    unsupportedSummary: Unsupported storage
+    unsupportedDetail: The configuration uses GCS, which this resource does not support.

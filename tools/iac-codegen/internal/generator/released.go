@@ -114,11 +114,11 @@ func removeUnsupportedArms(r *model.Resource, file *overrides.File) ([]string, e
 		}
 		return nil
 	}
-	if arms := file.Types[r.Name].UnsupportedArms; len(arms) != 0 {
-		// Flatten checks the arms of a nested object only: the resource's own fields have no
-		// object to report from.
-		return nil, fmt.Errorf("types.%s.unsupportedArms: the oneOf arms of the resource itself are not supported, only those of a nested object", r.Name)
+	rootPaths, err := removeRootUnsupportedArms(r, file, found)
+	if err != nil {
+		return nil, err
 	}
+	paths = append(paths, rootPaths...)
 	for _, f := range r.Fields {
 		if err := walk("fields."+f.Name, f.Type); err != nil {
 			return nil, err
@@ -132,6 +132,41 @@ func removeUnsupportedArms(r *model.Resource, file *overrides.File) ([]string, e
 		}
 	}
 	return paths, nil
+}
+
+// removeRootUnsupportedArms removes the unsupportedArms of the resource itself, marks them in
+// found, and returns their SDK paths.
+func removeRootUnsupportedArms(r *model.Resource, file *overrides.File, found map[string]bool) ([]string, error) {
+	arms := file.Types[r.Name].UnsupportedArms
+	if len(arms) == 0 {
+		return nil, nil
+	}
+	removed, err := dropRootArms(r, arms)
+	if err != nil {
+		return nil, fmt.Errorf("types.%s.unsupportedArms: %w", r.Name, err)
+	}
+	var paths []string
+	for _, arm := range removed {
+		found[r.Name+"."+arm] = true
+		paths = append(paths, "fields."+arm)
+	}
+	return paths, nil
+}
+
+// dropRootArms removes the arms from the oneOf groups of the resource's own fields, as dropArms
+// does for a nested object. It returns the removed arms in the order of the fields.
+func dropRootArms(r *model.Resource, arms []string) ([]string, error) {
+	t := &model.Type{Kind: model.Object, Groups: r.Groups}
+	for _, f := range r.Fields {
+		t.Fields = append(t.Fields, &model.Field{Name: f.Name})
+	}
+	removed, err := dropArms(t, arms)
+	if err != nil {
+		return nil, err
+	}
+	r.Groups = t.Groups
+	r.Fields = slices.DeleteFunc(r.Fields, func(f *model.ResourceField) bool { return slices.Contains(removed, f.Name) })
+	return removed, nil
 }
 
 // dropArms removes the arms from t: an object whose oneOf groups hold them, or a oneOf. It

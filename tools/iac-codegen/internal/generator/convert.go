@@ -69,6 +69,9 @@ type convData struct {
 	// Arms are the inlined oneOf arms of the resource response. A response without one has no
 	// resource: flatten returns an error, and Read removes the resource from the state.
 	Arms []convArm
+	// RootUnsupported are the oneOf arms of the resource itself that it does not configure
+	// (unsupportedArms). flatten reports a response that selects one before it checks Arms.
+	RootUnsupported []unsupportedArm
 }
 
 // convArm is an inlined object of the resource response that the SDK holds in a pointer.
@@ -476,6 +479,11 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if err := b.arms(out); err != nil {
 		return nil, err
 	}
+	rootUnsupported, err := b.unsupportedArms(&model.Type{Schema: b.resource.Name}, "fields")
+	if err != nil {
+		return nil, err
+	}
+	out.RootUnsupported = rootUnsupported
 	for _, obj := range b.listed {
 		// Only flatten builds Terraform values. An object that only a request
 		// holds needs no attribute types.
