@@ -514,6 +514,8 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, out *{{$sd
 {{- template "expandField" .}}
 {{- end}}
 }
+{{else if and .Expand .Carry}}
+{{- template "carryExpand" .}}
 {{else if .Expand}}
 func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{if not .Local}}{{$sdk}}.{{end}}{{.SDK}} {
 	if m == nil {
@@ -524,7 +526,7 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 	out.{{.SDK}} = &{{.Type}}{} // an inlined object: its fields are top-level attributes
 {{- end}}
 {{- range .Fields}}
-{{- if not .FlattenOnly}}
+{{- if not (or .FlattenOnly .Carried)}}
 {{- template "expandField" .}}
 {{- end}}
 {{- end}}
@@ -537,7 +539,9 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 	return out
 }
 {{end}}
-{{- if .Flatten}}
+{{- if and .Flatten .Carry}}
+{{- template "carryFlatten" .}}
+{{else if .Flatten}}
 func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$sdk}}.{{end}}{{.SDK}}, {{if .NeedsPrior}}prior *{{.Model}}, {{end}}diags *diag.Diagnostics) *{{.Model}} {
 	if v == nil {
 		return nil
@@ -551,7 +555,9 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$s
 {{- end}}
 	out := &{{.Model}}{}
 {{- range .Fields}}
+{{- if not .Carried}}
 {{- template "flattenField" .}}
+{{- end}}
 {{- end}}
 {{- range .ExtraFlatten}}
 	out.{{.Name}} = {{.Expr}}
@@ -2098,4 +2104,96 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		out.{{.Model}} = flatten{{.Collection}}(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
 	}
 {{- end}}
+{{- end}}
+
+{{- define "carryExpand"}}
+{{- $obj := .}}
+{{- $carry := .Carry}}
+// expand{{.Func}} sends the arm that the model sets, with the fields of {{.SDK}} that the arm
+// holds in Terraform.
+func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{$carry.Pkg}}.{{.SDK}} {
+	if m == nil {
+		return nil
+	}
+	out := &{{$carry.Pkg}}.{{.SDK}}{}
+{{- range .Carry.Arms}}
+{{- $arm := .}}
+	if arm := m.{{.Model}}; arm != nil {
+		p := p.AtName({{printf "%q" .TFName}})
+		m := arm
+{{- range .Siblings}}
+{{- template "expandField" .}}
+{{- end}}
+		oneOf := &{{$carry.Pkg}}.{{$carry.Field.Object.SDK}}{}
+{{- range .Folds}}
+		if flag := m.{{.Flag}}; !flag.IsNull() && !flag.IsUnknown() && !flag.ValueBool() {
+			// false selects the arm that Terraform shows in this one.
+			kept := expand{{$arm.Object.Func}}(ctx, p, m, diags)
+			oneOf.{{.SDK}} = &{{.SDKType}}{ {{- range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f}}: kept.{{$f}}{{end -}} }
+		} else {
+			oneOf.{{$arm.SDK}} = expand{{$arm.Object.Func}}(ctx, p, m, diags)
+		}
+{{- else}}
+		oneOf.{{.SDK}} = expand{{.Object.Func}}(ctx, p, m, diags)
+{{- end}}
+		out.{{$carry.Field.SDK}} = {{if $carry.Field.Value}}*{{end}}oneOf
+	}
+{{- end}}
+	return out
+}
+{{- end}}
+
+{{- define "carryFlatten"}}
+{{- $obj := .}}
+{{- $carry := .Carry}}
+// flatten{{.Func}} reads the arm of {{.SDK}} with the fields of {{.SDK}} that the arm holds in
+// Terraform.
+func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$carry.Pkg}}.{{.SDK}}, {{if .NeedsPrior}}prior *{{.Model}}, {{end}}diags *diag.Diagnostics) *{{.Model}} {
+	if v == nil {
+		return nil
+	}
+	out := &{{.Model}}{}
+	oneOf := {{if $carry.Field.Value}}&{{end}}v.{{$carry.Field.SDK}}
+	if oneOf == nil {
+		return out
+	}
+{{- range .Carry.Arms}}
+{{- $arm := .}}
+	{
+{{- if $obj.NeedsPrior}}
+		var priorArm *{{.Object.Model}}
+		if prior != nil {
+			priorArm = prior.{{.Model}}
+		}
+{{- end}}
+		var arm *{{.Object.Model}}
+{{- range .Folds}}
+{{- $fold := .}}
+		if oneOf.{{.SDK}} != nil {
+			kept := &{{$carry.Pkg}}.{{$arm.Object.SDK}}{ {{- range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f}}: oneOf.{{$fold.SDK}}.{{$f}}{{end -}} }
+			arm = flatten{{$arm.Object.Func}}(ctx, p.AtName({{printf "%q" $arm.TFName}}), kept, {{if $arm.Object.NeedsPrior}}priorArm, {{end}}diags)
+			arm.{{.Flag}} = types.BoolValue(false)
+		}
+{{- end}}
+		if oneOf.{{.SDK}} != nil {
+			arm = flatten{{.Object.Func}}(ctx, p.AtName({{printf "%q" .TFName}}), oneOf.{{.SDK}}, {{if .Object.NeedsPrior}}priorArm, {{end}}diags)
+{{- range .Folds}}
+			arm.{{.Flag}} = types.BoolValue(true)
+{{- end}}
+		}
+		if arm != nil {
+			out := arm
+{{- if $obj.NeedsPrior}}
+			prior := priorArm
+			_ = prior
+{{- end}}
+{{- range .Siblings}}
+{{- template "flattenField" .}}
+{{- end}}
+		}
+		out.{{.Model}} = arm
+	}
+{{- end}}
+	return out
+}
 {{- end}}

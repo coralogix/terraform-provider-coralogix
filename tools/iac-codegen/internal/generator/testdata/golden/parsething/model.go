@@ -19,39 +19,39 @@ type ParseThingModel struct {
 }
 
 type ParseKeepParamsModel struct {
-	Rule     types.String `tfsdk:"rule"`
-	KeepLogs types.Bool   `tfsdk:"keep_logs"`
-}
-
-type ParseDropParamsModel struct {
-	Rule     types.String `tfsdk:"rule"`
-	KeepLogs types.Bool   `tfsdk:"keep_logs"`
+	Id           types.String `tfsdk:"id"`
+	Name         types.String `tfsdk:"name"`
+	Enabled      types.Bool   `tfsdk:"active"`
+	Order        types.Int64  `tfsdk:"order"`
+	Source       types.String `tfsdk:"source"`
+	Rule         types.String `tfsdk:"rule"`
+	KeepLogs     types.Bool   `tfsdk:"keep_logs"`
+	KeepMatching types.Bool   `tfsdk:"keep_matching"`
 }
 
 type ParseCopyParamsModel struct {
+	Id           types.String `tfsdk:"id"`
+	Name         types.String `tfsdk:"name"`
+	Enabled      types.Bool   `tfsdk:"active"`
+	Order        types.Int64  `tfsdk:"order"`
+	Source       types.String `tfsdk:"source"`
 	Target       types.String `tfsdk:"target"`
 	DeleteSource types.Bool   `tfsdk:"keep_source"`
 }
 
 type ParsePickParamsModel struct {
-	Rule  types.String `tfsdk:"rule"`
-	Field types.String `tfsdk:"field"`
-}
-
-type ParseParamsModel struct {
-	KeepParams *ParseKeepParamsModel `tfsdk:"keep_params"`
-	DropParams *ParseDropParamsModel `tfsdk:"drop_params"`
-	CopyParams *ParseCopyParamsModel `tfsdk:"copy_params"`
-	PickParams *ParsePickParamsModel `tfsdk:"pick_params"`
+	Id      types.String `tfsdk:"id"`
+	Name    types.String `tfsdk:"name"`
+	Enabled types.Bool   `tfsdk:"active"`
+	Order   types.Int64  `tfsdk:"order"`
+	Rule    types.String `tfsdk:"rule"`
+	Field   types.String `tfsdk:"field"`
 }
 
 type ParseStepModel struct {
-	Id      types.String      `tfsdk:"id"`
-	Name    types.String      `tfsdk:"name"`
-	Enabled types.Bool        `tfsdk:"enabled"`
-	Order   types.Int64       `tfsdk:"order"`
-	Source  types.String      `tfsdk:"source"`
-	Params  *ParseParamsModel `tfsdk:"params"`
+	KeepParams *ParseKeepParamsModel `tfsdk:"keep"`
+	CopyParams *ParseCopyParamsModel `tfsdk:"copy"`
+	PickParams *ParsePickParamsModel `tfsdk:"pick"`
 }
 
 type ParseGroupModel struct {

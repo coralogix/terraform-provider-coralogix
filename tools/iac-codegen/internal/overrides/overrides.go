@@ -414,6 +414,12 @@ type Field struct {
 	ReadEmptyAs string `yaml:"readEmptyAs"`
 	// ReadNullAs: "empty" reads a missing list or set as an empty collection.
 	ReadNullAs string `yaml:"readNullAs"`
+	// CarrySiblings, on an object field that holds a oneOf, shows the object as the arms of the
+	// oneOf: each arm attribute holds the other fields of the object (the siblings) next to the
+	// fields of the arm, as a released resource that showed rule = {parse = {name, source_field,
+	// regular_expression}} for a rule with a name, a source field, and parameters did. The lines
+	// of the object give the siblings their behavior, in every arm.
+	CarrySiblings *Carry `yaml:"carrySiblings"`
 	// Position makes an integer field of a list item computed-only, and Create and Update send
 	// the 1-based position of the item in its list, as a released resource that computed the
 	// order of each rule did. The read shows the value of the API.
@@ -465,6 +471,48 @@ type Field struct {
 	// that must differ between the items. The generated resource reports a duplicate before the
 	// request, for an API that rejects it.
 	UniqueBy string `yaml:"uniqueBy"`
+}
+
+// Carry is a carrySiblings line.
+type Carry struct {
+	// RequestValues leave a sibling out of an arm, and Create and Update send the API value in
+	// that arm instead: arm → sibling → value, for a released arm that had no source field and
+	// always sent "text".
+	RequestValues map[string]map[string]string `yaml:"requestValues"`
+	// Fold shows an arm as another arm with the same fields, chosen by a bool: folded arm →
+	// fold. The flag is true for the arm Into, its default, and false for the folded arm.
+	Fold map[string]Fold `yaml:"fold"`
+}
+
+// Fold is one arm of a carrySiblings oneOf that Terraform shows as the arm Into with Flag false.
+type Fold struct {
+	Into                string `yaml:"into"`
+	Flag                string `yaml:"flag"`
+	MarkdownDescription string `yaml:"markdownDescription"`
+}
+
+// check reports a fold without its arm, flag, or text, and a request value without a value.
+func (c *Carry) check() error {
+	for _, arm := range sortedKeys(c.Fold) {
+		f := c.Fold[arm]
+		if f.Into == "" || f.Flag == "" || f.MarkdownDescription == "" || f.Into == arm {
+			return fmt.Errorf("carrySiblings.fold.%s needs into (another arm), flag, and markdownDescription", arm)
+		}
+		if !validAttrName.MatchString(f.Flag) {
+			return fmt.Errorf("carrySiblings.fold.%s: flag %q is not a Terraform attribute name", arm, f.Flag)
+		}
+		if _, folded := c.Fold[f.Into]; folded {
+			return fmt.Errorf("carrySiblings.fold.%s: the arm %s is folded itself", arm, f.Into)
+		}
+	}
+	for _, arm := range sortedKeys(c.RequestValues) {
+		for _, sibling := range sortedKeys(c.RequestValues[arm]) {
+			if c.RequestValues[arm][sibling] == "" {
+				return fmt.Errorf("carrySiblings.requestValues.%s.%s is empty", arm, sibling)
+			}
+		}
+	}
+	return nil
 }
 
 // Equality values of a field line.
@@ -893,6 +941,7 @@ func (l Field) keys() []string {
 	add(l.SplitArms, "splitArms")
 	add(l.Negate, "negate")
 	add(l.Position, "position")
+	add(l.CarrySiblings != nil, "carrySiblings")
 	add(l.RequireOne, "requireOne")
 	add(l.RequestValue != "", "requestValue")
 	add(len(l.RequestValueBy) != 0, "requestValueBy")
@@ -1012,7 +1061,7 @@ func (l Field) emptyMode() bool {
 }
 
 func (l Field) emptyValue() bool {
-	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.KeyedBy == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() && !l.SendUnknownAsZero && !l.SplitArms && !l.Negate &&
+	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.KeyedBy == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() && !l.SendUnknownAsZero && !l.SplitArms && !l.Negate && l.CarrySiblings == nil &&
 		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == ""
 }
 
@@ -1104,6 +1153,11 @@ func (l Field) checkConflicts() error {
 	}
 	if l.Position && (l.Required || l.Optional || l.Computed != nil || l.Default != nil || l.Fixed() || len(l.Validators) != 0) {
 		return errors.New("position makes the attribute computed-only and sends the position of the item, so it takes no mode, default, requestValue, or validator")
+	}
+	if l.CarrySiblings != nil {
+		if err := l.CarrySiblings.check(); err != nil {
+			return err
+		}
 	}
 	if l.Negate && l.Fixed() {
 		return errors.New("a requestValue field is no Terraform attribute, so negate changes nothing: send the API value")

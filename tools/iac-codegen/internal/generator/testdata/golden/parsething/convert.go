@@ -88,10 +88,14 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 // that a request sends, with list and map steps left out. The server sets
 // them.
 var serverAttrs = map[string]bool{
-	"groups.id":          true,
-	"groups.order":       true,
-	"groups.steps.id":    true,
-	"groups.steps.order": true,
+	"groups.id":               true,
+	"groups.order":            true,
+	"groups.steps.keep.id":    true,
+	"groups.steps.keep.order": true,
+	"groups.steps.copy.id":    true,
+	"groups.steps.copy.order": true,
+	"groups.steps.pick.id":    true,
+	"groups.steps.pick.order": true,
 }
 
 // requestValue returns v with a null value for each attribute that the server
@@ -190,26 +194,33 @@ func flatten(ctx context.Context, v *parse_things_service.ParseThing, prior *Par
 // out. An empty arm selects that arm, so it is not the same as a missing arm
 // (contract 2.8).
 var oneOfArms = map[string]bool{
-	"groups.steps.params.keep_params": true,
-	"groups.steps.params.drop_params": true,
-	"groups.steps.params.copy_params": true,
-	"groups.steps.params.pick_params": true,
+	"groups.steps.keep": true,
+	"groups.steps.copy": true,
+	"groups.steps.pick": true,
 }
 
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
-	"id":                 true,
-	"active":             true,
-	"order":              true,
-	"note":               true,
-	"apps":               true,
-	"severities":         true,
-	"groups.id":          true,
-	"groups.order":       true,
-	"groups.steps.id":    true,
-	"groups.steps.order": true,
-	"groups.steps.params.copy_params.keep_source": true,
+	"id":                              true,
+	"active":                          true,
+	"order":                           true,
+	"note":                            true,
+	"apps":                            true,
+	"severities":                      true,
+	"groups.id":                       true,
+	"groups.order":                    true,
+	"groups.steps.keep.id":            true,
+	"groups.steps.keep.active":        true,
+	"groups.steps.keep.order":         true,
+	"groups.steps.keep.keep_matching": true,
+	"groups.steps.copy.id":            true,
+	"groups.steps.copy.active":        true,
+	"groups.steps.copy.order":         true,
+	"groups.steps.copy.keep_source":   true,
+	"groups.steps.pick.id":            true,
+	"groups.steps.pick.active":        true,
+	"groups.steps.pick.order":         true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
@@ -437,53 +448,53 @@ func expandCreateParseGroup(ctx context.Context, p path.Path, m *ParseGroupModel
 	return out
 }
 
+// expandCreateParseStep sends the arm that the model sets, with the fields of CreateParseStep that the arm
+// holds in Terraform.
 func expandCreateParseStep(ctx context.Context, p path.Path, m *ParseStepModel, diags *diag.Diagnostics) *parse_things_service.CreateParseStep {
 	if m == nil {
 		return nil
 	}
 	out := &parse_things_service.CreateParseStep{}
-	out.Name = expandString(m.Name)
-	out.Enabled = expandBool(m.Enabled)
-	out.Source = expandString(m.Source)
-	out.Params = expandParseParams(ctx, p.AtName("params"), m.Params, diags)
+	if arm := m.KeepParams; arm != nil {
+		p := p.AtName("keep")
+		m := arm
+		out.Name = expandString(m.Name)
+		out.Enabled = expandBool(m.Enabled)
+		out.Source = expandString(m.Source)
+		oneOf := &parse_things_service.ParseParams{}
+		if flag := m.KeepMatching; !flag.IsNull() && !flag.IsUnknown() && !flag.ValueBool() {
+			// false selects the arm that Terraform shows in this one.
+			kept := expandParseKeepParams(ctx, p, m, diags)
+			oneOf.DropParams = &parse_things_service.ParseDropParams{Rule: kept.Rule, KeepLogs: kept.KeepLogs}
+		} else {
+			oneOf.KeepParams = expandParseKeepParams(ctx, p, m, diags)
+		}
+		out.Params = oneOf
+	}
+	if arm := m.CopyParams; arm != nil {
+		p := p.AtName("copy")
+		m := arm
+		out.Name = expandString(m.Name)
+		out.Enabled = expandBool(m.Enabled)
+		out.Source = expandString(m.Source)
+		oneOf := &parse_things_service.ParseParams{}
+		oneOf.CopyParams = expandParseCopyParams(ctx, p, m, diags)
+		out.Params = oneOf
+	}
+	if arm := m.PickParams; arm != nil {
+		p := p.AtName("pick")
+		m := arm
+		out.Name = expandString(m.Name)
+		out.Enabled = expandBool(m.Enabled)
+		{
+			fixed := "text"
+			out.Source = &fixed
+		}
+		oneOf := &parse_things_service.ParseParams{}
+		oneOf.PickParams = expandParsePickParams(ctx, p, m, diags)
+		out.Params = oneOf
+	}
 	return out
-}
-
-func expandParseParams(ctx context.Context, p path.Path, m *ParseParamsModel, diags *diag.Diagnostics) *parse_things_service.ParseParams {
-	if m == nil {
-		return nil
-	}
-	out := &parse_things_service.ParseParams{}
-	out.KeepParams = expandParseKeepParams(ctx, p.AtName("keep_params"), m.KeepParams, diags)
-	out.DropParams = expandParseDropParams(ctx, p.AtName("drop_params"), m.DropParams, diags)
-	out.CopyParams = expandParseCopyParams(ctx, p.AtName("copy_params"), m.CopyParams, diags)
-	out.PickParams = expandParsePickParams(ctx, p.AtName("pick_params"), m.PickParams, diags)
-	return out
-}
-
-func flattenParseParams(ctx context.Context, p path.Path, v *parse_things_service.ParseParams, prior *ParseParamsModel, diags *diag.Diagnostics) *ParseParamsModel {
-	if v == nil {
-		return nil
-	}
-	out := &ParseParamsModel{}
-	out.KeepParams = flattenParseKeepParams(ctx, p.AtName("keep_params"), v.KeepParams, diags)
-	out.DropParams = flattenParseDropParams(ctx, p.AtName("drop_params"), v.DropParams, diags)
-	out.CopyParams = flattenParseCopyParams(ctx, p.AtName("copy_params"), v.CopyParams, diags)
-	var priorPickParams *ParsePickParamsModel
-	if prior != nil {
-		priorPickParams = prior.PickParams
-	}
-	out.PickParams = flattenParsePickParams(ctx, p.AtName("pick_params"), v.PickParams, priorPickParams, diags)
-	return out
-}
-
-func parseParamsAttrTypes() map[string]attr.Type {
-	return map[string]attr.Type{
-		"keep_params": types.ObjectType{AttrTypes: parseKeepParamsAttrTypes()},
-		"drop_params": types.ObjectType{AttrTypes: parseDropParamsAttrTypes()},
-		"copy_params": types.ObjectType{AttrTypes: parseCopyParamsAttrTypes()},
-		"pick_params": types.ObjectType{AttrTypes: parsePickParamsAttrTypes()},
-	}
 }
 
 func expandParseKeepParams(ctx context.Context, p path.Path, m *ParseKeepParamsModel, diags *diag.Diagnostics) *parse_things_service.ParseKeepParams {
@@ -508,35 +519,14 @@ func flattenParseKeepParams(ctx context.Context, p path.Path, v *parse_things_se
 
 func parseKeepParamsAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"rule":      types.StringType,
-		"keep_logs": types.BoolType,
-	}
-}
-
-func expandParseDropParams(ctx context.Context, p path.Path, m *ParseDropParamsModel, diags *diag.Diagnostics) *parse_things_service.ParseDropParams {
-	if m == nil {
-		return nil
-	}
-	out := &parse_things_service.ParseDropParams{}
-	out.Rule = expandString(m.Rule)
-	out.KeepLogs = expandBool(m.KeepLogs)
-	return out
-}
-
-func flattenParseDropParams(ctx context.Context, p path.Path, v *parse_things_service.ParseDropParams, diags *diag.Diagnostics) *ParseDropParamsModel {
-	if v == nil {
-		return nil
-	}
-	out := &ParseDropParamsModel{}
-	out.Rule = types.StringPointerValue(v.Rule)
-	out.KeepLogs = types.BoolPointerValue(v.KeepLogs)
-	return out
-}
-
-func parseDropParamsAttrTypes() map[string]attr.Type {
-	return map[string]attr.Type{
-		"rule":      types.StringType,
-		"keep_logs": types.BoolType,
+		"rule":          types.StringType,
+		"keep_logs":     types.BoolType,
+		"name":          types.StringType,
+		"active":        types.BoolType,
+		"order":         types.Int64Type,
+		"source":        types.StringType,
+		"keep_matching": types.BoolType,
+		"id":            types.StringType,
 	}
 }
 
@@ -570,6 +560,11 @@ func parseCopyParamsAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"target":      types.StringType,
 		"keep_source": types.BoolType,
+		"name":        types.StringType,
+		"active":      types.BoolType,
+		"order":       types.Int64Type,
+		"source":      types.StringType,
+		"id":          types.StringType,
 	}
 }
 
@@ -599,8 +594,12 @@ func flattenParsePickParams(ctx context.Context, p path.Path, v *parse_things_se
 
 func parsePickParamsAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"rule":  types.StringType,
-		"field": types.StringType,
+		"rule":   types.StringType,
+		"field":  types.StringType,
+		"name":   types.StringType,
+		"active": types.BoolType,
+		"order":  types.Int64Type,
+		"id":     types.StringType,
 	}
 }
 
@@ -768,32 +767,93 @@ func parseGroupAttrTypes() map[string]attr.Type {
 	}
 }
 
+// flattenParseStep reads the arm of ParseStep with the fields of ParseStep that the arm holds in
+// Terraform.
 func flattenParseStep(ctx context.Context, p path.Path, v *parse_things_service.ParseStep, prior *ParseStepModel, diags *diag.Diagnostics) *ParseStepModel {
 	if v == nil {
 		return nil
 	}
 	out := &ParseStepModel{}
-	out.Id = types.StringPointerValue(v.Id)
-	out.Name = types.StringPointerValue(v.Name)
-	out.Enabled = types.BoolPointerValue(v.Enabled)
-	out.Order = types.Int64PointerValue(v.Order)
-	out.Source = types.StringPointerValue(v.Source)
-	var priorParams *ParseParamsModel
-	if prior != nil {
-		priorParams = prior.Params
+	oneOf := v.Params
+	if oneOf == nil {
+		return out
 	}
-	out.Params = flattenParseParams(ctx, p.AtName("params"), v.Params, priorParams, diags)
+	{
+		var priorArm *ParseKeepParamsModel
+		if prior != nil {
+			priorArm = prior.KeepParams
+		}
+		var arm *ParseKeepParamsModel
+		if oneOf.DropParams != nil {
+			kept := &parse_things_service.ParseKeepParams{Rule: oneOf.DropParams.Rule, KeepLogs: oneOf.DropParams.KeepLogs}
+			arm = flattenParseKeepParams(ctx, p.AtName("keep"), kept, diags)
+			arm.KeepMatching = types.BoolValue(false)
+		}
+		if oneOf.KeepParams != nil {
+			arm = flattenParseKeepParams(ctx, p.AtName("keep"), oneOf.KeepParams, diags)
+			arm.KeepMatching = types.BoolValue(true)
+		}
+		if arm != nil {
+			out := arm
+			prior := priorArm
+			_ = prior
+			out.Id = types.StringPointerValue(v.Id)
+			out.Name = types.StringPointerValue(v.Name)
+			out.Enabled = types.BoolPointerValue(v.Enabled)
+			out.Order = types.Int64PointerValue(v.Order)
+			out.Source = types.StringPointerValue(v.Source)
+		}
+		out.KeepParams = arm
+	}
+	{
+		var priorArm *ParseCopyParamsModel
+		if prior != nil {
+			priorArm = prior.CopyParams
+		}
+		var arm *ParseCopyParamsModel
+		if oneOf.CopyParams != nil {
+			arm = flattenParseCopyParams(ctx, p.AtName("copy"), oneOf.CopyParams, diags)
+		}
+		if arm != nil {
+			out := arm
+			prior := priorArm
+			_ = prior
+			out.Id = types.StringPointerValue(v.Id)
+			out.Name = types.StringPointerValue(v.Name)
+			out.Enabled = types.BoolPointerValue(v.Enabled)
+			out.Order = types.Int64PointerValue(v.Order)
+			out.Source = types.StringPointerValue(v.Source)
+		}
+		out.CopyParams = arm
+	}
+	{
+		var priorArm *ParsePickParamsModel
+		if prior != nil {
+			priorArm = prior.PickParams
+		}
+		var arm *ParsePickParamsModel
+		if oneOf.PickParams != nil {
+			arm = flattenParsePickParams(ctx, p.AtName("pick"), oneOf.PickParams, priorArm, diags)
+		}
+		if arm != nil {
+			out := arm
+			prior := priorArm
+			_ = prior
+			out.Id = types.StringPointerValue(v.Id)
+			out.Name = types.StringPointerValue(v.Name)
+			out.Enabled = types.BoolPointerValue(v.Enabled)
+			out.Order = types.Int64PointerValue(v.Order)
+		}
+		out.PickParams = arm
+	}
 	return out
 }
 
 func parseStepAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"id":      types.StringType,
-		"name":    types.StringType,
-		"enabled": types.BoolType,
-		"order":   types.Int64Type,
-		"source":  types.StringType,
-		"params":  types.ObjectType{AttrTypes: parseParamsAttrTypes()},
+		"keep": types.ObjectType{AttrTypes: parseKeepParamsAttrTypes()},
+		"copy": types.ObjectType{AttrTypes: parseCopyParamsAttrTypes()},
+		"pick": types.ObjectType{AttrTypes: parsePickParamsAttrTypes()},
 	}
 }
 

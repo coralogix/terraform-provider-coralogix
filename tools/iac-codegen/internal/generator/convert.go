@@ -196,6 +196,36 @@ type convObject struct {
 	Unsupported []unsupportedArm
 	// Parents are the inlined objects of a request body that are SDK pointers.
 	Parents []convParent
+	// Carry is set when Terraform shows the object as the arms of its oneOf field (carrySiblings).
+	Carry *convCarry
+}
+
+// convCarry is an object that Terraform shows as the arms of its oneOf field: each arm attribute
+// holds the other fields of the object (the siblings) and the fields of the arm.
+type convCarry struct {
+	Pkg   string     // the name of the SDK package
+	Field *convField // the field of the object that holds the oneOf
+	Arms  []*carryArm
+}
+
+// carryArm is one arm attribute of a carrySiblings object.
+type carryArm struct {
+	TFName string      // Terraform attribute of the arm
+	Model  string      // Go field of the object model that holds the arm model
+	SDK    string      // Go field of the oneOf struct
+	Object *convObject // the arm; its model also holds the siblings
+	// Siblings are the conversions of the other fields of the object, read from and written to
+	// the arm model. A requestValues line makes one a fixed value in this arm.
+	Siblings []*convField
+	Folds    []*carryFold
+}
+
+// carryFold is an arm that Terraform shows as another arm with a false flag.
+type carryFold struct {
+	SDK     string   // Go field of the folded arm in the oneOf struct
+	SDKType string   // qualified SDK type of the folded arm
+	Flag    string   // Go field of the flag in the arm model
+	Fields  []string // Go fields of the two arm structs, which are the same
 }
 
 // defaultArm is an arm that expand sends empty when no arm of its group is set.
@@ -297,6 +327,9 @@ type convField struct {
 	// CaseInsensitive: the enums line of a scalar enum field has caseInsensitive. Expand matches
 	// the value in any case, and flatten keeps the prior spelling of an equal value.
 	CaseInsensitive bool
+	// Carried: a sibling or a fold flag in the model of a carrySiblings arm. The arm functions
+	// leave it to the object that holds the oneOf; it counts for the attribute types.
+	Carried bool
 	// SplitArms: the line of the field has splitArms. Negate: the line has negate. Position: the
 	// line has position; the list that holds the object sends the position of each item.
 	SplitArms, Negate, Position bool
@@ -594,6 +627,24 @@ func typeArmPaths(p model.Policy, file *overrides.File, out []string, at string,
 	defer delete(seen, t)
 	if t.Elem != nil {
 		return typeArmPaths(p, file, out, at, t.Elem, seen)
+	}
+	if carry := carryField(file, t); carry != nil {
+		// The arms of the oneOf are attributes of the object, and each holds the other fields.
+		line := file.Types[t.Schema].Fields[carry.Name].CarrySiblings
+		for _, arm := range carry.Type.Fields {
+			if _, folded := line.Fold[arm.Name]; folded {
+				continue
+			}
+			child := at + "." + terraformName(p, model.ComponentOf(carry.Type), arm.Name)
+			out = append(out, child)
+			out = typeArmPaths(p, file, out, child, arm.Type, seen)
+			for _, sibling := range t.Fields {
+				if sibling != carry {
+					out = typeArmPaths(p, file, out, child+"."+terraformName(p, t.Schema, sibling.Name), sibling.Type, seen)
+				}
+			}
+		}
+		return out
 	}
 	arms := map[string]bool{}
 	for _, g := range t.Groups {
@@ -1646,6 +1697,9 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	if err := b.injectReadOnly(obj, ref.Path, t); err != nil {
 		return nil, err
 	}
+	if err := b.carry(obj, component, t); err != nil {
+		return nil, err
+	}
 	arms, err := b.defaultArms(component, t, obj.Fields)
 	if err != nil {
 		return nil, err
@@ -1655,6 +1709,108 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		return nil, err
 	}
 	return obj, nil
+}
+
+// carry sets obj.Carry when the line of a field of component has carrySiblings, and adds the
+// siblings and the fold flags to the arm objects, so their attribute types match the schema.
+func (b *convBuilder) carry(obj *convObject, component string, t *model.Type) error {
+	if b.file == nil {
+		return nil
+	}
+	var carryName string
+	for _, f := range t.Fields {
+		if b.file.Types[component].Fields[f.Name].CarrySiblings != nil {
+			carryName = f.Name
+		}
+	}
+	if carryName == "" {
+		return nil
+	}
+	line := b.file.Types[component].Fields[carryName].CarrySiblings
+	field := fieldByModel(obj.Fields, camelize(carryName))
+	if field == nil || field.Conv != convObj || field.Object == nil {
+		return fmt.Errorf("%s.%s: carrySiblings needs a oneOf object field", component, carryName)
+	}
+	names := map[*convField]string{}
+	for _, f := range t.Fields {
+		if cf := fieldByModel(obj.Fields, camelize(f.Name)); cf != nil {
+			names[cf] = f.Name
+		}
+	}
+	oneOf := field.Object
+	byArm := map[string]*convField{}
+	for _, arm := range oneOf.Fields {
+		byArm[arm.Model] = arm
+	}
+	c := &convCarry{Pkg: b.ix.pkg.Name, Field: field}
+	for _, armField := range oneOf.Fields {
+		armName := lowerFirst(armField.Model)
+		if _, folded := line.Fold[armName]; folded {
+			continue
+		}
+		if armField.Conv != convObj || armField.Object == nil {
+			return fmt.Errorf("%s.%s: the arm %s is no object", component, carryName, armName)
+		}
+		arm := &carryArm{TFName: armField.TFName, Model: armField.Model, SDK: armField.SDK, Object: armField.Object}
+		for _, sibling := range obj.Fields {
+			if sibling == field {
+				continue
+			}
+			s := sibling
+			if value := line.RequestValues[armName][names[sibling]]; value != "" {
+				fixed := *sibling
+				fixed.RequestValue = value
+				if err := b.applyFixedRequest(&fixed); err != nil {
+					return err
+				}
+				s = &fixed
+			} else {
+				addCarried(arm.Object, sibling)
+			}
+			arm.Siblings = append(arm.Siblings, s)
+		}
+		for _, folded := range slices.Sorted(maps.Keys(line.Fold)) {
+			fold := line.Fold[folded]
+			if fold.Into != armName {
+				continue
+			}
+			from := byArm[camelize(folded)]
+			if from == nil || from.Object == nil {
+				return fmt.Errorf("%s.%s: the folded arm %s is no object", component, carryName, folded)
+			}
+			f := &carryFold{SDK: from.SDK, SDKType: b.qualify(from.Object.SDK), Flag: camelize(fold.Flag)}
+			for _, af := range arm.Object.Fields {
+				if !af.Carried {
+					f.Fields = append(f.Fields, af.SDK)
+				}
+			}
+			addCarried(arm.Object, &convField{TFName: fold.Flag, Model: f.Flag, Conv: convBool})
+			arm.Folds = append(arm.Folds, f)
+		}
+		c.Arms = append(c.Arms, arm)
+	}
+	obj.Carry = c
+	return nil
+}
+
+// fieldByModel returns the field of fields with the Go model name, or nil.
+func fieldByModel(fields []*convField, model string) *convField {
+	for _, cf := range fields {
+		if cf.Model == model {
+			return cf
+		}
+	}
+	return nil
+}
+
+// addCarried adds a sibling or a flag to the fields of an arm object, once.
+func addCarried(arm *convObject, f *convField) {
+	if slices.ContainsFunc(arm.Fields, func(o *convField) bool { return o.Model == f.Model }) {
+		return
+	}
+	carried := *f
+	carried.Carried = true
+	arm.Fields = append(arm.Fields, &carried)
 }
 
 // defaultArms returns the arms of t that expand sends empty when the configuration sets no arm of
@@ -1822,7 +1978,18 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 	} else {
 		obj.Flatten = true
 	}
+	if obj.Carry != nil {
+		for _, arm := range obj.Carry.Arms {
+			if err := b.mark(arm.Object, expand); err != nil {
+				return fmt.Errorf("%s: %w", arm.TFName, err)
+			}
+		}
+	}
 	for _, f := range obj.Fields {
+		if obj.Carry != nil && f == obj.Carry.Field {
+			// The arms are the attributes; the object of the oneOf has no model.
+			continue
+		}
 		switch {
 		case f.Conv == convTime && expand:
 			return fmt.Errorf("%s: a time that only the response has is in a request", f.TFName)
@@ -1842,6 +2009,15 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 		return nil
 	}
 	obj.AttrTypes = []convAttrType{}
+	if obj.Carry != nil {
+		for _, arm := range obj.Carry.Arms {
+			if err := b.attrTypes(arm.Object); err != nil {
+				return err
+			}
+			obj.AttrTypes = append(obj.AttrTypes, convAttrType{TFName: arm.TFName, Expr: "types.ObjectType{AttrTypes: " + arm.Object.AttrTypesFunc + "()}"})
+		}
+		return nil
+	}
 	for _, f := range obj.Fields {
 		if f.Conv == "fixed" {
 			continue

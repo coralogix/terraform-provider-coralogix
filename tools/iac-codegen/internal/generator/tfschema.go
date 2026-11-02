@@ -925,6 +925,10 @@ type tfBuilder struct {
 	replace      bool              // Update is a full replace, so a group can hold nested fields
 	owners       map[string]string // model struct name to what makes it: the resource, a component, or a group
 	grouped      map[string]bool   // components whose types.<Type>.groups the builder applied
+	// carried are the siblings that a carrySiblings arm holds, with the component whose lines they
+	// take. flags are the fold flags that an arm holds.
+	carried map[*model.Field]string
+	flags   map[*model.Field]overrides.Fold
 }
 
 // claimModel records that owner makes the model struct name. Two owners of one name would share
@@ -1139,20 +1143,34 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	if t.Schema == "" {
 		return nil, fmt.Errorf("inline %s schema is not supported", t.Kind)
 	}
+	if carry := carryField(b.file, t); carry != nil {
+		return b.carryAttributes(p, t, carry)
+	}
 	var attrs []*tfAttr
 	var fields []tfModelField
 	groups := newNestedGroups(b, t.Schema)
 	for _, f := range t.Fields {
-		if requestValue(b.file, t.Schema, f.Name) {
+		if fold, ok := b.flags[f]; ok {
+			// The flag of a folded arm: true selects this arm, false the folded one.
+			attrs = append(attrs, &tfAttr{Name: fold.Flag, Kind: "Bool", ValueKind: "Bool", Optional: true, Computed: true,
+				Default: "booldefault.StaticBool(true)", Description: fold.MarkdownDescription})
+			fields = append(fields, tfModelField{Name: camelize(fold.Flag), Type: "types.Bool", TFName: fold.Flag})
+			continue
+		}
+		component := t.Schema
+		if owner, ok := b.carried[f]; ok {
+			component = owner
+		}
+		if requestValue(b.file, component, f.Name) {
 			continue
 		}
 		group := groups.of(f.Name)
-		child := append(append(attrPath{}, p...), terraformName(b.policy, t.Schema, f.Name))
+		child := append(append(attrPath{}, p...), terraformName(b.policy, component, f.Name))
 		if group != "" {
-			child = append(append(attrPath{}, p...), group, terraformName(b.policy, t.Schema, f.Name))
+			child = append(append(attrPath{}, p...), group, terraformName(b.policy, component, f.Name))
 		}
-		only := b.sent.responseOnly(t.Schema, f)
-		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f), only)
+		only := b.sent.responseOnly(component, f)
+		a, err := b.attribute(child, component, f.Name, f.Description, f.Type, nestedAttrs(f), only)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
@@ -1166,10 +1184,10 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		case model.Immutable:
 			b.requiresReplace(a, child.dotted())
 		}
-		if err := b.nestedServerDefault(a, child, t.Schema, f); err != nil {
+		if err := b.nestedServerDefault(a, child, component, f); err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
-		field := b.modelField(t.Schema, f.Name, f.Type, f.Behavior, only, f.Attrs.Computed)
+		field := b.modelField(component, f.Name, f.Type, f.Behavior, only, f.Attrs.Computed)
 		if group != "" {
 			if err := groups.add(group, f, a, field); err != nil {
 				return nil, err
@@ -1218,6 +1236,143 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		}
 	}
 	return attrs, nil
+}
+
+// carryField returns the field of t whose line has carrySiblings, or nil.
+func carryField(file *overrides.File, t *model.Type) *model.Field {
+	if file == nil || t.Kind != model.Object {
+		return nil
+	}
+	for _, f := range t.Fields {
+		if file.Types[t.Schema].Fields[f.Name].CarrySiblings != nil {
+			return f
+		}
+	}
+	return nil
+}
+
+// carryAttributes are the attributes of an object t whose field carry holds a oneOf with a
+// carrySiblings line: one attribute per arm, which holds the other fields of t, the fields of the
+// arm, and the flag of an arm that a fold folds into it.
+func (b *tfBuilder) carryAttributes(p attrPath, t *model.Type, carry *model.Field) ([]*tfAttr, error) {
+	line := b.file.Types[t.Schema].Fields[carry.Name]
+	oneOf := carry.Type
+	if oneOf.Kind != model.OneOf || len(t.Groups) != 0 {
+		return nil, fmt.Errorf("%s.%s: carrySiblings needs a oneOf field in an object without other oneOf groups", t.Schema, carry.Name)
+	}
+	if b.carried == nil {
+		b.carried, b.flags = map[*model.Field]string{}, map[*model.Field]overrides.Fold{}
+	}
+	armComponent := model.ComponentOf(oneOf)
+	arms := map[string]*model.Field{}
+	for _, arm := range oneOf.Fields {
+		arms[arm.Name] = arm
+	}
+	if err := checkCarry(t, line.CarrySiblings, arms); err != nil {
+		return nil, err
+	}
+	var attrs []*tfAttr
+	var fields []tfModelField
+	group := model.OneOfGroup{AllowNone: oneOf.AllowNone && !line.RequireOne}
+	for _, arm := range oneOf.Fields {
+		if _, folded := line.CarrySiblings.Fold[arm.Name]; folded {
+			continue
+		}
+		if arm.Type.Kind != model.Object || arm.Type.Schema == "" {
+			return nil, fmt.Errorf("%s.%s: carrySiblings needs arms that are object components; %s is not", t.Schema, carry.Name, arm.Name)
+		}
+		group.Arms = append(group.Arms, arm.Name)
+		held := *arm.Type
+		held.Fields = nil
+		for _, sibling := range t.Fields {
+			if sibling == carry || line.CarrySiblings.RequestValues[arm.Name][sibling.Name] != "" {
+				continue
+			}
+			b.carried[sibling] = t.Schema
+			held.Fields = append(held.Fields, sibling)
+		}
+		held.Fields = append(held.Fields, arm.Type.Fields...)
+		for _, folded := range sortedFoldsInto(line.CarrySiblings, arm.Name) {
+			flag := &model.Field{Name: folded.Flag, Type: &model.Type{Kind: model.Bool}, Behavior: model.Normal}
+			b.flags[flag] = folded
+			held.Fields = append(held.Fields, flag)
+		}
+		name := terraformName(b.policy, armComponent, arm.Name)
+		a := &tfAttr{Name: name, Kind: "SingleNested", ValueKind: "Object", Optional: true, Description: arm.Description, Component: armComponent, Property: arm.Name}
+		nested, err := b.objectAttributes(append(append(attrPath{}, p...), name), &held)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", arm.Name, err)
+		}
+		a.Attributes = nested
+		attrs = append(attrs, a)
+		fields = append(fields, b.modelField(armComponent, arm.Name, arm.Type, model.Normal, false, false))
+	}
+	addGroupValidators(attrs, []model.OneOfGroup{group}, func(arm string) string { return terraformName(b.policy, armComponent, arm) })
+	name := typeModelName(t)
+	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
+		return nil, err
+	}
+	if !b.seen[name] {
+		b.seen[name] = true
+		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
+	}
+	return attrs, nil
+}
+
+// checkCarry reports a carrySiblings line that names an arm or a sibling that t does not have, and
+// a fold into an arm with other fields.
+func checkCarry(t *model.Type, c *overrides.Carry, arms map[string]*model.Field) error {
+	siblings := map[string]bool{}
+	for _, f := range t.Fields {
+		siblings[f.Name] = true
+	}
+	for _, arm := range slices.Sorted(maps.Keys(c.RequestValues)) {
+		if arms[arm] == nil {
+			return fmt.Errorf("%s: carrySiblings.requestValues names %s, which is no arm", t.Schema, arm)
+		}
+		for _, sibling := range slices.Sorted(maps.Keys(c.RequestValues[arm])) {
+			if !siblings[sibling] {
+				return fmt.Errorf("%s: carrySiblings.requestValues.%s names %s, which is no field of %s", t.Schema, arm, sibling, t.Schema)
+			}
+		}
+	}
+	for _, arm := range slices.Sorted(maps.Keys(c.Fold)) {
+		into := arms[c.Fold[arm].Into]
+		if arms[arm] == nil || into == nil {
+			return fmt.Errorf("%s: carrySiblings.fold.%s names an arm that the oneOf does not have", t.Schema, arm)
+		}
+		if !sameFieldNames(arms[arm].Type, into.Type) {
+			return fmt.Errorf("%s: carrySiblings.fold.%s: the arms %s and %s need the same fields", t.Schema, arm, arm, into.Name)
+		}
+		if !maps.Equal(c.RequestValues[arm], c.RequestValues[into.Name]) {
+			return fmt.Errorf("%s: carrySiblings.fold.%s: the arms %s and %s need the same requestValues", t.Schema, arm, arm, into.Name)
+		}
+	}
+	return nil
+}
+
+// sameFieldNames reports whether two objects have fields of the same names and kinds, in order.
+func sameFieldNames(a, b *model.Type) bool {
+	if a == nil || b == nil || len(a.Fields) != len(b.Fields) {
+		return false
+	}
+	for i := range a.Fields {
+		if a.Fields[i].Name != b.Fields[i].Name || a.Fields[i].Type.Kind != b.Fields[i].Type.Kind {
+			return false
+		}
+	}
+	return true
+}
+
+// sortedFoldsInto returns the folds into arm, by folded arm.
+func sortedFoldsInto(c *overrides.Carry, arm string) []overrides.Fold {
+	var out []overrides.Fold
+	for _, folded := range slices.Sorted(maps.Keys(c.Fold)) {
+		if c.Fold[folded].Into == arm {
+			out = append(out, c.Fold[folded])
+		}
+	}
+	return out
 }
 
 // nestedServerDefault makes a an Optional and Computed attribute with the server-default plan

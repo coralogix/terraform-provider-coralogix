@@ -86,99 +86,124 @@ func Schema() schema.Schema {
 							Optional: true,
 							NestedObject: schema.NestedAttributeObject{
 								Attributes: map[string]schema.Attribute{
-									"id": schema.StringAttribute{
-										Computed:            true,
-										MarkdownDescription: "",
-									},
-									"name": schema.StringAttribute{
-										Optional:            true,
-										MarkdownDescription: "",
-									},
-									"enabled": schema.BoolAttribute{
-										Optional:            true,
-										MarkdownDescription: "",
-									},
-									"order": schema.Int64Attribute{
-										Computed:            true,
-										MarkdownDescription: "",
-									},
-									"source": schema.StringAttribute{
-										Optional:            true,
-										MarkdownDescription: "",
-									},
-									"params": schema.SingleNestedAttribute{
+									"keep": schema.SingleNestedAttribute{
 										Optional: true,
+										Validators: []validator.Object{
+											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("copy"), path.MatchRelative().AtParent().AtName("pick")),
+										},
 										Attributes: map[string]schema.Attribute{
-											"keep_params": schema.SingleNestedAttribute{
-												Optional: true,
-												Validators: []validator.Object{
-													objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("drop_params"), path.MatchRelative().AtParent().AtName("copy_params"), path.MatchRelative().AtParent().AtName("pick_params")),
-												},
-												Attributes: map[string]schema.Attribute{
-													"rule": schema.StringAttribute{
-														Optional:            true,
-														MarkdownDescription: "",
-													},
-													"keep_logs": schema.BoolAttribute{
-														Optional:            true,
-														MarkdownDescription: "",
-													},
-												},
+											"id": schema.StringAttribute{
+												Computed:            true,
 												MarkdownDescription: "",
 											},
-											"drop_params": schema.SingleNestedAttribute{
-												Optional: true,
-												Validators: []validator.Object{
-													objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("keep_params"), path.MatchRelative().AtParent().AtName("copy_params"), path.MatchRelative().AtParent().AtName("pick_params")),
-												},
-												Attributes: map[string]schema.Attribute{
-													"rule": schema.StringAttribute{
-														Optional:            true,
-														MarkdownDescription: "",
-													},
-													"keep_logs": schema.BoolAttribute{
-														Optional:            true,
-														MarkdownDescription: "",
-													},
-												},
+											"name": schema.StringAttribute{
+												Optional:            true,
 												MarkdownDescription: "",
 											},
-											"copy_params": schema.SingleNestedAttribute{
-												Optional: true,
-												Validators: []validator.Object{
-													objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("keep_params"), path.MatchRelative().AtParent().AtName("drop_params"), path.MatchRelative().AtParent().AtName("pick_params")),
-												},
-												Attributes: map[string]schema.Attribute{
-													"target": schema.StringAttribute{
-														Optional:            true,
-														MarkdownDescription: "",
-													},
-													"keep_source": schema.BoolAttribute{
-														Optional:            true,
-														Computed:            true,
-														Default:             booldefault.StaticBool(false),
-														MarkdownDescription: "",
-													},
-												},
+											"active": schema.BoolAttribute{
+												Optional:            true,
+												Computed:            true,
+												Default:             booldefault.StaticBool(true),
 												MarkdownDescription: "",
 											},
-											"pick_params": schema.SingleNestedAttribute{
+											"order": schema.Int64Attribute{
+												Computed:            true,
+												MarkdownDescription: "",
+											},
+											"source": schema.StringAttribute{
+												Optional:            true,
+												MarkdownDescription: "",
+											},
+											"rule": schema.StringAttribute{
+												Optional:            true,
+												MarkdownDescription: "",
+											},
+											"keep_logs": schema.BoolAttribute{
+												Optional:            true,
+												MarkdownDescription: "",
+											},
+											"keep_matching": schema.BoolAttribute{
+												Optional:            true,
+												Computed:            true,
+												Default:             booldefault.StaticBool(true),
+												MarkdownDescription: "true keeps the matching logs, false drops them.",
+											},
+										},
+										MarkdownDescription: "",
+									},
+									"copy": schema.SingleNestedAttribute{
+										Optional: true,
+										Validators: []validator.Object{
+											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("keep"), path.MatchRelative().AtParent().AtName("pick")),
+										},
+										Attributes: map[string]schema.Attribute{
+											"id": schema.StringAttribute{
+												Computed:            true,
+												MarkdownDescription: "",
+											},
+											"name": schema.StringAttribute{
+												Optional:            true,
+												MarkdownDescription: "",
+											},
+											"active": schema.BoolAttribute{
+												Optional:            true,
+												Computed:            true,
+												Default:             booldefault.StaticBool(true),
+												MarkdownDescription: "",
+											},
+											"order": schema.Int64Attribute{
+												Computed:            true,
+												MarkdownDescription: "",
+											},
+											"source": schema.StringAttribute{
+												Optional:            true,
+												MarkdownDescription: "",
+											},
+											"target": schema.StringAttribute{
+												Optional:            true,
+												MarkdownDescription: "",
+											},
+											"keep_source": schema.BoolAttribute{
+												Optional:            true,
+												Computed:            true,
+												Default:             booldefault.StaticBool(false),
+												MarkdownDescription: "",
+											},
+										},
+										MarkdownDescription: "",
+									},
+									"pick": schema.SingleNestedAttribute{
+										Optional: true,
+										Validators: []validator.Object{
+											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("keep"), path.MatchRelative().AtParent().AtName("copy")),
+										},
+										Attributes: map[string]schema.Attribute{
+											"id": schema.StringAttribute{
+												Computed:            true,
+												MarkdownDescription: "",
+											},
+											"name": schema.StringAttribute{
+												Optional:            true,
+												MarkdownDescription: "",
+											},
+											"active": schema.BoolAttribute{
+												Optional:            true,
+												Computed:            true,
+												Default:             booldefault.StaticBool(true),
+												MarkdownDescription: "",
+											},
+											"order": schema.Int64Attribute{
+												Computed:            true,
+												MarkdownDescription: "",
+											},
+											"rule": schema.StringAttribute{
+												Optional:            true,
+												MarkdownDescription: "",
+											},
+											"field": schema.StringAttribute{
 												Optional: true,
-												Validators: []validator.Object{
-													objectvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("keep_params"), path.MatchRelative().AtParent().AtName("drop_params"), path.MatchRelative().AtParent().AtName("copy_params")),
-												},
-												Attributes: map[string]schema.Attribute{
-													"rule": schema.StringAttribute{
-														Optional:            true,
-														MarkdownDescription: "",
-													},
-													"field": schema.StringAttribute{
-														Optional: true,
-														Validators: []validator.String{
-															stringvalidator.OneOfCaseInsensitive("category", "text", "threadID"),
-														},
-														MarkdownDescription: "",
-													},
+												Validators: []validator.String{
+													stringvalidator.OneOfCaseInsensitive("category", "text", "threadID"),
 												},
 												MarkdownDescription: "",
 											},

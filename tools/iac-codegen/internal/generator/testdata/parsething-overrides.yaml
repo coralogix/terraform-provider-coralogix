@@ -33,6 +33,21 @@ types:
   ParseStep:
     fields:
       order: {position: true}
+      enabled: {name: active, computed: true, default: true}
+      # Terraform shows a step as the arms of params, each with the fields of the step. The
+      # pick arm has no source: the released resource always sent "text". The drop arm is the
+      # keep arm with keep_matching = false.
+      params:
+        requireOne: true
+        carrySiblings:
+          requestValues: {pickParams: {source: text}}
+          fold:
+            dropParams: {into: keepParams, flag: keep_matching, markdownDescription: "true keeps the matching logs, false drops them."}
+  ParseParams:
+    fields:
+      keepParams: {name: keep}
+      copyParams: {name: copy}
+      pickParams: {name: pick}
   ParseCopyParams:
     fields:
       # The released resource showed the opposite of deleteSource, and always sent escaped.
