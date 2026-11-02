@@ -1,0 +1,380 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "custom": {
+        "headers_wo": {
+          "Authorization": "<redacted-test-a>"
+        },
+        "headers_wo_versions": {
+          "Authorization": 1
+        },
+        "method": "post",
+        "url": "https://example.invalid/hook",
+        "uuid": "11111111-1111-4111-8111-111111111111"
+      },
+      "name": "secret"
+    },
+    "plan": {
+      "custom": {
+        "headers": "(unknown)",
+        "headers_wo": null,
+        "headers_wo_versions": {
+          "Authorization": 1
+        },
+        "method": "post",
+        "payload": "{\n    \"uuid\": \"\",\n    \"alert_id\": \"$ALERT_ID\",\n    \"name\": \"$ALERT_NAME\",\n    \"description\": \"$ALERT_DESCRIPTION\",\n    \"threshold\": \"$ALERT_THRESHOLD\",\n    \"timewindow\": \"$ALERT_TIMEWINDOW_MINUTES\",\n    \"group_by_labels\": \"$ALERT_GROUPBY_LABELS\",\n    \"alert_Webhook\": \"$ALERT_Webhook\",\n    \"alert_url\": \"$ALERT_URL\",\n    \"log_url\": \"$LOG_URL\",\n    \"icon_url\": \"$CORALOGIX_ICON_URL\",\n    \"service\": \"$SERVICE\",\n    \"duration\": \"$DURATION\",\n    \"errors\": \"$ERRORS\",\n    \"spans\": \"$SPANS\",\n    \"fields\": [\n      {\n        \"key\": \"team\",\n        \"value\": \"$TEAM_NAME\"\n      },\n      {\n        \"key\": \"application\",\n        \"value\": \"$APPLICATION_NAME\"\n      },\n      {\n        \"key\": \"subsystem\",\n        \"value\": \"$SUBSYSTEM_NAME\"\n      },\n      {\n        \"key\": \"severity\",\n        \"value\": \"$EVENT_SEVERITY\"\n      },\n      {\n        \"key\": \"computer\",\n        \"value\": \"$COMPUTER_NAME\"\n      },\n      {\n        \"key\": \"ipAddress\",\n        \"value\": \"$IP_ADDRESS\"\n      },\n      {\n        \"key\": \"timestamp\",\n        \"value\": \"$EVENT_TIMESTAMP\"\n      },\n      {\n        \"key\": \"hitCount\",\n        \"value\": \"$HIT_COUNT\"\n      },\n      {\n        \"key\": \"text\",\n        \"value\": \"$LOG_TEXT\"\n      },\n      {\n        \"key\": \"Custom field\",\n        \"value\": \"$JSON_KEY\"\n      },\n      {\n        \"key\": \"Group-by Key1\",\n        \"value\": \"$GROUP_BY_KEY_1\"\n      },\n      {\n        \"key\": \"Group-by Value1\",\n        \"value\": \"$GROUP_BY_VALUE_1\"\n      },\n      {\n        \"key\": \"Group-by Key2\",\n        \"value\": \"$GROUP_BY_KEY_2\"\n      },\n      {\n        \"key\": \"Group-by Value2\",\n        \"value\": \"$GROUP_BY_VALUE_2\"\n      },\n      {\n        \"key\": \"metricKey\",\n        \"value\": \"$METRIC_KEY\"\n      },\n      {\n        \"key\": \"metricOperator\",\n        \"value\": \"$METRIC_OPERATOR\"\n      },\n      {\n        \"key\": \"timeframe\",\n        \"value\": \"$TIMEFRAME\"\n      },\n      {\n        \"key\": \"timeframePercentageOverThreshold\",\n        \"value\": \"$TIMEFRAME_OVER_THRESHOLD\"\n      },\n      {\n        \"key\": \"metricCriteria\",\n        \"value\": \"$METRIC_CRITERIA\"\n      },\n      {\n        \"key\": \"ratioQueryOne\",\n        \"value\": \"$RATIO_QUERY_ONE\"\n      },\n      {\n        \"key\": \"ratioQueryTwo\",\n        \"value\": \"$RATIO_QUERY_TWO\"\n      },\n      {\n        \"key\": \"ratioTimeframe\",\n        \"value\": \"$RATIO_TIMEFRAME\"\n      },\n      {\n        \"key\": \"ratioGroupByKeys\",\n        \"value\": \"$RATIO_GROUP_BY_KEYS\"\n      },\n      {\n        \"key\": \"ratioGroupByTable\",\n        \"value\": \"$RATIO_GROUP_BY_TABLE\"\n      },\n      {\n        \"key\": \"uniqueCountValuesList\",\n        \"value\": \"$UNIQUE_COUNT_VALUES_LIST\"\n      },\n      {\n        \"key\": \"newValueTrackedKey\",\n        \"value\": \"$NEW_VALUE_TRACKED_KEY\"\n      },\n      {\n        \"key\": \"metaLabels\",\n        \"value\": \"$META_LABELS\"\n      }\n    ]\n  }",
+        "url": "https://example.invalid/hook",
+        "uuid": "11111111-1111-4111-8111-111111111111"
+      },
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "(unknown)",
+      "id": "(unknown)",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "genericWebhook": {
+              "headers": {
+                "Authorization": "<redacted-test-a>"
+              },
+              "method": "POST",
+              "payload": "{\n    \"uuid\": \"\",\n    \"alert_id\": \"$ALERT_ID\",\n    \"name\": \"$ALERT_NAME\",\n    \"description\": \"$ALERT_DESCRIPTION\",\n    \"threshold\": \"$ALERT_THRESHOLD\",\n    \"timewindow\": \"$ALERT_TIMEWINDOW_MINUTES\",\n    \"group_by_labels\": \"$ALERT_GROUPBY_LABELS\",\n    \"alert_Webhook\": \"$ALERT_Webhook\",\n    \"alert_url\": \"$ALERT_URL\",\n    \"log_url\": \"$LOG_URL\",\n    \"icon_url\": \"$CORALOGIX_ICON_URL\",\n    \"service\": \"$SERVICE\",\n    \"duration\": \"$DURATION\",\n    \"errors\": \"$ERRORS\",\n    \"spans\": \"$SPANS\",\n    \"fields\": [\n      {\n        \"key\": \"team\",\n        \"value\": \"$TEAM_NAME\"\n      },\n      {\n        \"key\": \"application\",\n        \"value\": \"$APPLICATION_NAME\"\n      },\n      {\n        \"key\": \"subsystem\",\n        \"value\": \"$SUBSYSTEM_NAME\"\n      },\n      {\n        \"key\": \"severity\",\n        \"value\": \"$EVENT_SEVERITY\"\n      },\n      {\n        \"key\": \"computer\",\n        \"value\": \"$COMPUTER_NAME\"\n      },\n      {\n        \"key\": \"ipAddress\",\n        \"value\": \"$IP_ADDRESS\"\n      },\n      {\n        \"key\": \"timestamp\",\n        \"value\": \"$EVENT_TIMESTAMP\"\n      },\n      {\n        \"key\": \"hitCount\",\n        \"value\": \"$HIT_COUNT\"\n      },\n      {\n        \"key\": \"text\",\n        \"value\": \"$LOG_TEXT\"\n      },\n      {\n        \"key\": \"Custom field\",\n        \"value\": \"$JSON_KEY\"\n      },\n      {\n        \"key\": \"Group-by Key1\",\n        \"value\": \"$GROUP_BY_KEY_1\"\n      },\n      {\n        \"key\": \"Group-by Value1\",\n        \"value\": \"$GROUP_BY_VALUE_1\"\n      },\n      {\n        \"key\": \"Group-by Key2\",\n        \"value\": \"$GROUP_BY_KEY_2\"\n      },\n      {\n        \"key\": \"Group-by Value2\",\n        \"value\": \"$GROUP_BY_VALUE_2\"\n      },\n      {\n        \"key\": \"metricKey\",\n        \"value\": \"$METRIC_KEY\"\n      },\n      {\n        \"key\": \"metricOperator\",\n        \"value\": \"$METRIC_OPERATOR\"\n      },\n      {\n        \"key\": \"timeframe\",\n        \"value\": \"$TIMEFRAME\"\n      },\n      {\n        \"key\": \"timeframePercentageOverThreshold\",\n        \"value\": \"$TIMEFRAME_OVER_THRESHOLD\"\n      },\n      {\n        \"key\": \"metricCriteria\",\n        \"value\": \"$METRIC_CRITERIA\"\n      },\n      {\n        \"key\": \"ratioQueryOne\",\n        \"value\": \"$RATIO_QUERY_ONE\"\n      },\n      {\n        \"key\": \"ratioQueryTwo\",\n        \"value\": \"$RATIO_QUERY_TWO\"\n      },\n      {\n        \"key\": \"ratioTimeframe\",\n        \"value\": \"$RATIO_TIMEFRAME\"\n      },\n      {\n        \"key\": \"ratioGroupByKeys\",\n        \"value\": \"$RATIO_GROUP_BY_KEYS\"\n      },\n      {\n        \"key\": \"ratioGroupByTable\",\n        \"value\": \"$RATIO_GROUP_BY_TABLE\"\n      },\n      {\n        \"key\": \"uniqueCountValuesList\",\n        \"value\": \"$UNIQUE_COUNT_VALUES_LIST\"\n      },\n      {\n        \"key\": \"newValueTrackedKey\",\n        \"value\": \"$NEW_VALUE_TRACKED_KEY\"\n      },\n      {\n        \"key\": \"metaLabels\",\n        \"value\": \"$META_LABELS\"\n      }\n    ]\n  }",
+              "uuid": "11111111-1111-4111-8111-111111111111"
+            },
+            "name": "secret",
+            "type": "GENERIC",
+            "url": "https://example.invalid/hook"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": {
+        "headers": {},
+        "headers_wo": null,
+        "headers_wo_versions": {
+          "Authorization": 1
+        },
+        "method": "post",
+        "payload": "{\n    \"uuid\": \"\",\n    \"alert_id\": \"$ALERT_ID\",\n    \"name\": \"$ALERT_NAME\",\n    \"description\": \"$ALERT_DESCRIPTION\",\n    \"threshold\": \"$ALERT_THRESHOLD\",\n    \"timewindow\": \"$ALERT_TIMEWINDOW_MINUTES\",\n    \"group_by_labels\": \"$ALERT_GROUPBY_LABELS\",\n    \"alert_Webhook\": \"$ALERT_Webhook\",\n    \"alert_url\": \"$ALERT_URL\",\n    \"log_url\": \"$LOG_URL\",\n    \"icon_url\": \"$CORALOGIX_ICON_URL\",\n    \"service\": \"$SERVICE\",\n    \"duration\": \"$DURATION\",\n    \"errors\": \"$ERRORS\",\n    \"spans\": \"$SPANS\",\n    \"fields\": [\n      {\n        \"key\": \"team\",\n        \"value\": \"$TEAM_NAME\"\n      },\n      {\n        \"key\": \"application\",\n        \"value\": \"$APPLICATION_NAME\"\n      },\n      {\n        \"key\": \"subsystem\",\n        \"value\": \"$SUBSYSTEM_NAME\"\n      },\n      {\n        \"key\": \"severity\",\n        \"value\": \"$EVENT_SEVERITY\"\n      },\n      {\n        \"key\": \"computer\",\n        \"value\": \"$COMPUTER_NAME\"\n      },\n      {\n        \"key\": \"ipAddress\",\n        \"value\": \"$IP_ADDRESS\"\n      },\n      {\n        \"key\": \"timestamp\",\n        \"value\": \"$EVENT_TIMESTAMP\"\n      },\n      {\n        \"key\": \"hitCount\",\n        \"value\": \"$HIT_COUNT\"\n      },\n      {\n        \"key\": \"text\",\n        \"value\": \"$LOG_TEXT\"\n      },\n      {\n        \"key\": \"Custom field\",\n        \"value\": \"$JSON_KEY\"\n      },\n      {\n        \"key\": \"Group-by Key1\",\n        \"value\": \"$GROUP_BY_KEY_1\"\n      },\n      {\n        \"key\": \"Group-by Value1\",\n        \"value\": \"$GROUP_BY_VALUE_1\"\n      },\n      {\n        \"key\": \"Group-by Key2\",\n        \"value\": \"$GROUP_BY_KEY_2\"\n      },\n      {\n        \"key\": \"Group-by Value2\",\n        \"value\": \"$GROUP_BY_VALUE_2\"\n      },\n      {\n        \"key\": \"metricKey\",\n        \"value\": \"$METRIC_KEY\"\n      },\n      {\n        \"key\": \"metricOperator\",\n        \"value\": \"$METRIC_OPERATOR\"\n      },\n      {\n        \"key\": \"timeframe\",\n        \"value\": \"$TIMEFRAME\"\n      },\n      {\n        \"key\": \"timeframePercentageOverThreshold\",\n        \"value\": \"$TIMEFRAME_OVER_THRESHOLD\"\n      },\n      {\n        \"key\": \"metricCriteria\",\n        \"value\": \"$METRIC_CRITERIA\"\n      },\n      {\n        \"key\": \"ratioQueryOne\",\n        \"value\": \"$RATIO_QUERY_ONE\"\n      },\n      {\n        \"key\": \"ratioQueryTwo\",\n        \"value\": \"$RATIO_QUERY_TWO\"\n      },\n      {\n        \"key\": \"ratioTimeframe\",\n        \"value\": \"$RATIO_TIMEFRAME\"\n      },\n      {\n        \"key\": \"ratioGroupByKeys\",\n        \"value\": \"$RATIO_GROUP_BY_KEYS\"\n      },\n      {\n        \"key\": \"ratioGroupByTable\",\n        \"value\": \"$RATIO_GROUP_BY_TABLE\"\n      },\n      {\n        \"key\": \"uniqueCountValuesList\",\n        \"value\": \"$UNIQUE_COUNT_VALUES_LIST\"\n      },\n      {\n        \"key\": \"newValueTrackedKey\",\n        \"value\": \"$NEW_VALUE_TRACKED_KEY\"\n      },\n      {\n        \"key\": \"metaLabels\",\n        \"value\": \"$META_LABELS\"\n      }\n    ]\n  }",
+        "url": "https://example.invalid/hook",
+        "uuid": "11111111-1111-4111-8111-111111111111"
+      },
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and plan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": {
+        "headers": {},
+        "headers_wo": null,
+        "headers_wo_versions": {
+          "Authorization": 1
+        },
+        "method": "post",
+        "payload": "{\n    \"uuid\": \"\",\n    \"alert_id\": \"$ALERT_ID\",\n    \"name\": \"$ALERT_NAME\",\n    \"description\": \"$ALERT_DESCRIPTION\",\n    \"threshold\": \"$ALERT_THRESHOLD\",\n    \"timewindow\": \"$ALERT_TIMEWINDOW_MINUTES\",\n    \"group_by_labels\": \"$ALERT_GROUPBY_LABELS\",\n    \"alert_Webhook\": \"$ALERT_Webhook\",\n    \"alert_url\": \"$ALERT_URL\",\n    \"log_url\": \"$LOG_URL\",\n    \"icon_url\": \"$CORALOGIX_ICON_URL\",\n    \"service\": \"$SERVICE\",\n    \"duration\": \"$DURATION\",\n    \"errors\": \"$ERRORS\",\n    \"spans\": \"$SPANS\",\n    \"fields\": [\n      {\n        \"key\": \"team\",\n        \"value\": \"$TEAM_NAME\"\n      },\n      {\n        \"key\": \"application\",\n        \"value\": \"$APPLICATION_NAME\"\n      },\n      {\n        \"key\": \"subsystem\",\n        \"value\": \"$SUBSYSTEM_NAME\"\n      },\n      {\n        \"key\": \"severity\",\n        \"value\": \"$EVENT_SEVERITY\"\n      },\n      {\n        \"key\": \"computer\",\n        \"value\": \"$COMPUTER_NAME\"\n      },\n      {\n        \"key\": \"ipAddress\",\n        \"value\": \"$IP_ADDRESS\"\n      },\n      {\n        \"key\": \"timestamp\",\n        \"value\": \"$EVENT_TIMESTAMP\"\n      },\n      {\n        \"key\": \"hitCount\",\n        \"value\": \"$HIT_COUNT\"\n      },\n      {\n        \"key\": \"text\",\n        \"value\": \"$LOG_TEXT\"\n      },\n      {\n        \"key\": \"Custom field\",\n        \"value\": \"$JSON_KEY\"\n      },\n      {\n        \"key\": \"Group-by Key1\",\n        \"value\": \"$GROUP_BY_KEY_1\"\n      },\n      {\n        \"key\": \"Group-by Value1\",\n        \"value\": \"$GROUP_BY_VALUE_1\"\n      },\n      {\n        \"key\": \"Group-by Key2\",\n        \"value\": \"$GROUP_BY_KEY_2\"\n      },\n      {\n        \"key\": \"Group-by Value2\",\n        \"value\": \"$GROUP_BY_VALUE_2\"\n      },\n      {\n        \"key\": \"metricKey\",\n        \"value\": \"$METRIC_KEY\"\n      },\n      {\n        \"key\": \"metricOperator\",\n        \"value\": \"$METRIC_OPERATOR\"\n      },\n      {\n        \"key\": \"timeframe\",\n        \"value\": \"$TIMEFRAME\"\n      },\n      {\n        \"key\": \"timeframePercentageOverThreshold\",\n        \"value\": \"$TIMEFRAME_OVER_THRESHOLD\"\n      },\n      {\n        \"key\": \"metricCriteria\",\n        \"value\": \"$METRIC_CRITERIA\"\n      },\n      {\n        \"key\": \"ratioQueryOne\",\n        \"value\": \"$RATIO_QUERY_ONE\"\n      },\n      {\n        \"key\": \"ratioQueryTwo\",\n        \"value\": \"$RATIO_QUERY_TWO\"\n      },\n      {\n        \"key\": \"ratioTimeframe\",\n        \"value\": \"$RATIO_TIMEFRAME\"\n      },\n      {\n        \"key\": \"ratioGroupByKeys\",\n        \"value\": \"$RATIO_GROUP_BY_KEYS\"\n      },\n      {\n        \"key\": \"ratioGroupByTable\",\n        \"value\": \"$RATIO_GROUP_BY_TABLE\"\n      },\n      {\n        \"key\": \"uniqueCountValuesList\",\n        \"value\": \"$UNIQUE_COUNT_VALUES_LIST\"\n      },\n      {\n        \"key\": \"newValueTrackedKey\",\n        \"value\": \"$NEW_VALUE_TRACKED_KEY\"\n      },\n      {\n        \"key\": \"metaLabels\",\n        \"value\": \"$META_LABELS\"\n      }\n    ]\n  }",
+        "url": "https://example.invalid/hook",
+        "uuid": "11111111-1111-4111-8111-111111111111"
+      },
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "rotate",
+    "config": {
+      "custom": {
+        "headers_wo": {
+          "Authorization": "<redacted-test-b>"
+        },
+        "headers_wo_versions": {
+          "Authorization": 2
+        },
+        "method": "post",
+        "url": "https://example.invalid/hook",
+        "uuid": "11111111-1111-4111-8111-111111111111"
+      },
+      "name": "secret"
+    },
+    "plan": {
+      "custom": {
+        "headers": "(unknown)",
+        "headers_wo": null,
+        "headers_wo_versions": {
+          "Authorization": 2
+        },
+        "method": "post",
+        "payload": "{\n    \"uuid\": \"\",\n    \"alert_id\": \"$ALERT_ID\",\n    \"name\": \"$ALERT_NAME\",\n    \"description\": \"$ALERT_DESCRIPTION\",\n    \"threshold\": \"$ALERT_THRESHOLD\",\n    \"timewindow\": \"$ALERT_TIMEWINDOW_MINUTES\",\n    \"group_by_labels\": \"$ALERT_GROUPBY_LABELS\",\n    \"alert_Webhook\": \"$ALERT_Webhook\",\n    \"alert_url\": \"$ALERT_URL\",\n    \"log_url\": \"$LOG_URL\",\n    \"icon_url\": \"$CORALOGIX_ICON_URL\",\n    \"service\": \"$SERVICE\",\n    \"duration\": \"$DURATION\",\n    \"errors\": \"$ERRORS\",\n    \"spans\": \"$SPANS\",\n    \"fields\": [\n      {\n        \"key\": \"team\",\n        \"value\": \"$TEAM_NAME\"\n      },\n      {\n        \"key\": \"application\",\n        \"value\": \"$APPLICATION_NAME\"\n      },\n      {\n        \"key\": \"subsystem\",\n        \"value\": \"$SUBSYSTEM_NAME\"\n      },\n      {\n        \"key\": \"severity\",\n        \"value\": \"$EVENT_SEVERITY\"\n      },\n      {\n        \"key\": \"computer\",\n        \"value\": \"$COMPUTER_NAME\"\n      },\n      {\n        \"key\": \"ipAddress\",\n        \"value\": \"$IP_ADDRESS\"\n      },\n      {\n        \"key\": \"timestamp\",\n        \"value\": \"$EVENT_TIMESTAMP\"\n      },\n      {\n        \"key\": \"hitCount\",\n        \"value\": \"$HIT_COUNT\"\n      },\n      {\n        \"key\": \"text\",\n        \"value\": \"$LOG_TEXT\"\n      },\n      {\n        \"key\": \"Custom field\",\n        \"value\": \"$JSON_KEY\"\n      },\n      {\n        \"key\": \"Group-by Key1\",\n        \"value\": \"$GROUP_BY_KEY_1\"\n      },\n      {\n        \"key\": \"Group-by Value1\",\n        \"value\": \"$GROUP_BY_VALUE_1\"\n      },\n      {\n        \"key\": \"Group-by Key2\",\n        \"value\": \"$GROUP_BY_KEY_2\"\n      },\n      {\n        \"key\": \"Group-by Value2\",\n        \"value\": \"$GROUP_BY_VALUE_2\"\n      },\n      {\n        \"key\": \"metricKey\",\n        \"value\": \"$METRIC_KEY\"\n      },\n      {\n        \"key\": \"metricOperator\",\n        \"value\": \"$METRIC_OPERATOR\"\n      },\n      {\n        \"key\": \"timeframe\",\n        \"value\": \"$TIMEFRAME\"\n      },\n      {\n        \"key\": \"timeframePercentageOverThreshold\",\n        \"value\": \"$TIMEFRAME_OVER_THRESHOLD\"\n      },\n      {\n        \"key\": \"metricCriteria\",\n        \"value\": \"$METRIC_CRITERIA\"\n      },\n      {\n        \"key\": \"ratioQueryOne\",\n        \"value\": \"$RATIO_QUERY_ONE\"\n      },\n      {\n        \"key\": \"ratioQueryTwo\",\n        \"value\": \"$RATIO_QUERY_TWO\"\n      },\n      {\n        \"key\": \"ratioTimeframe\",\n        \"value\": \"$RATIO_TIMEFRAME\"\n      },\n      {\n        \"key\": \"ratioGroupByKeys\",\n        \"value\": \"$RATIO_GROUP_BY_KEYS\"\n      },\n      {\n        \"key\": \"ratioGroupByTable\",\n        \"value\": \"$RATIO_GROUP_BY_TABLE\"\n      },\n      {\n        \"key\": \"uniqueCountValuesList\",\n        \"value\": \"$UNIQUE_COUNT_VALUES_LIST\"\n      },\n      {\n        \"key\": \"newValueTrackedKey\",\n        \"value\": \"$NEW_VALUE_TRACKED_KEY\"\n      },\n      {\n        \"key\": \"metaLabels\",\n        \"value\": \"$META_LABELS\"\n      }\n    ]\n  }",
+        "url": "https://example.invalid/hook",
+        "uuid": "11111111-1111-4111-8111-111111111111"
+      },
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "genericWebhook": {
+              "headers": {
+                "Authorization": "<redacted-test-b>"
+              },
+              "method": "POST",
+              "payload": "{\n    \"uuid\": \"\",\n    \"alert_id\": \"$ALERT_ID\",\n    \"name\": \"$ALERT_NAME\",\n    \"description\": \"$ALERT_DESCRIPTION\",\n    \"threshold\": \"$ALERT_THRESHOLD\",\n    \"timewindow\": \"$ALERT_TIMEWINDOW_MINUTES\",\n    \"group_by_labels\": \"$ALERT_GROUPBY_LABELS\",\n    \"alert_Webhook\": \"$ALERT_Webhook\",\n    \"alert_url\": \"$ALERT_URL\",\n    \"log_url\": \"$LOG_URL\",\n    \"icon_url\": \"$CORALOGIX_ICON_URL\",\n    \"service\": \"$SERVICE\",\n    \"duration\": \"$DURATION\",\n    \"errors\": \"$ERRORS\",\n    \"spans\": \"$SPANS\",\n    \"fields\": [\n      {\n        \"key\": \"team\",\n        \"value\": \"$TEAM_NAME\"\n      },\n      {\n        \"key\": \"application\",\n        \"value\": \"$APPLICATION_NAME\"\n      },\n      {\n        \"key\": \"subsystem\",\n        \"value\": \"$SUBSYSTEM_NAME\"\n      },\n      {\n        \"key\": \"severity\",\n        \"value\": \"$EVENT_SEVERITY\"\n      },\n      {\n        \"key\": \"computer\",\n        \"value\": \"$COMPUTER_NAME\"\n      },\n      {\n        \"key\": \"ipAddress\",\n        \"value\": \"$IP_ADDRESS\"\n      },\n      {\n        \"key\": \"timestamp\",\n        \"value\": \"$EVENT_TIMESTAMP\"\n      },\n      {\n        \"key\": \"hitCount\",\n        \"value\": \"$HIT_COUNT\"\n      },\n      {\n        \"key\": \"text\",\n        \"value\": \"$LOG_TEXT\"\n      },\n      {\n        \"key\": \"Custom field\",\n        \"value\": \"$JSON_KEY\"\n      },\n      {\n        \"key\": \"Group-by Key1\",\n        \"value\": \"$GROUP_BY_KEY_1\"\n      },\n      {\n        \"key\": \"Group-by Value1\",\n        \"value\": \"$GROUP_BY_VALUE_1\"\n      },\n      {\n        \"key\": \"Group-by Key2\",\n        \"value\": \"$GROUP_BY_KEY_2\"\n      },\n      {\n        \"key\": \"Group-by Value2\",\n        \"value\": \"$GROUP_BY_VALUE_2\"\n      },\n      {\n        \"key\": \"metricKey\",\n        \"value\": \"$METRIC_KEY\"\n      },\n      {\n        \"key\": \"metricOperator\",\n        \"value\": \"$METRIC_OPERATOR\"\n      },\n      {\n        \"key\": \"timeframe\",\n        \"value\": \"$TIMEFRAME\"\n      },\n      {\n        \"key\": \"timeframePercentageOverThreshold\",\n        \"value\": \"$TIMEFRAME_OVER_THRESHOLD\"\n      },\n      {\n        \"key\": \"metricCriteria\",\n        \"value\": \"$METRIC_CRITERIA\"\n      },\n      {\n        \"key\": \"ratioQueryOne\",\n        \"value\": \"$RATIO_QUERY_ONE\"\n      },\n      {\n        \"key\": \"ratioQueryTwo\",\n        \"value\": \"$RATIO_QUERY_TWO\"\n      },\n      {\n        \"key\": \"ratioTimeframe\",\n        \"value\": \"$RATIO_TIMEFRAME\"\n      },\n      {\n        \"key\": \"ratioGroupByKeys\",\n        \"value\": \"$RATIO_GROUP_BY_KEYS\"\n      },\n      {\n        \"key\": \"ratioGroupByTable\",\n        \"value\": \"$RATIO_GROUP_BY_TABLE\"\n      },\n      {\n        \"key\": \"uniqueCountValuesList\",\n        \"value\": \"$UNIQUE_COUNT_VALUES_LIST\"\n      },\n      {\n        \"key\": \"newValueTrackedKey\",\n        \"value\": \"$NEW_VALUE_TRACKED_KEY\"\n      },\n      {\n        \"key\": \"metaLabels\",\n        \"value\": \"$META_LABELS\"\n      }\n    ]\n  }",
+              "uuid": "11111111-1111-4111-8111-111111111111"
+            },
+            "name": "secret",
+            "type": "GENERIC",
+            "url": "https://example.invalid/hook"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": {
+        "headers": {},
+        "headers_wo": null,
+        "headers_wo_versions": {
+          "Authorization": 2
+        },
+        "method": "post",
+        "payload": "{\n    \"uuid\": \"\",\n    \"alert_id\": \"$ALERT_ID\",\n    \"name\": \"$ALERT_NAME\",\n    \"description\": \"$ALERT_DESCRIPTION\",\n    \"threshold\": \"$ALERT_THRESHOLD\",\n    \"timewindow\": \"$ALERT_TIMEWINDOW_MINUTES\",\n    \"group_by_labels\": \"$ALERT_GROUPBY_LABELS\",\n    \"alert_Webhook\": \"$ALERT_Webhook\",\n    \"alert_url\": \"$ALERT_URL\",\n    \"log_url\": \"$LOG_URL\",\n    \"icon_url\": \"$CORALOGIX_ICON_URL\",\n    \"service\": \"$SERVICE\",\n    \"duration\": \"$DURATION\",\n    \"errors\": \"$ERRORS\",\n    \"spans\": \"$SPANS\",\n    \"fields\": [\n      {\n        \"key\": \"team\",\n        \"value\": \"$TEAM_NAME\"\n      },\n      {\n        \"key\": \"application\",\n        \"value\": \"$APPLICATION_NAME\"\n      },\n      {\n        \"key\": \"subsystem\",\n        \"value\": \"$SUBSYSTEM_NAME\"\n      },\n      {\n        \"key\": \"severity\",\n        \"value\": \"$EVENT_SEVERITY\"\n      },\n      {\n        \"key\": \"computer\",\n        \"value\": \"$COMPUTER_NAME\"\n      },\n      {\n        \"key\": \"ipAddress\",\n        \"value\": \"$IP_ADDRESS\"\n      },\n      {\n        \"key\": \"timestamp\",\n        \"value\": \"$EVENT_TIMESTAMP\"\n      },\n      {\n        \"key\": \"hitCount\",\n        \"value\": \"$HIT_COUNT\"\n      },\n      {\n        \"key\": \"text\",\n        \"value\": \"$LOG_TEXT\"\n      },\n      {\n        \"key\": \"Custom field\",\n        \"value\": \"$JSON_KEY\"\n      },\n      {\n        \"key\": \"Group-by Key1\",\n        \"value\": \"$GROUP_BY_KEY_1\"\n      },\n      {\n        \"key\": \"Group-by Value1\",\n        \"value\": \"$GROUP_BY_VALUE_1\"\n      },\n      {\n        \"key\": \"Group-by Key2\",\n        \"value\": \"$GROUP_BY_KEY_2\"\n      },\n      {\n        \"key\": \"Group-by Value2\",\n        \"value\": \"$GROUP_BY_VALUE_2\"\n      },\n      {\n        \"key\": \"metricKey\",\n        \"value\": \"$METRIC_KEY\"\n      },\n      {\n        \"key\": \"metricOperator\",\n        \"value\": \"$METRIC_OPERATOR\"\n      },\n      {\n        \"key\": \"timeframe\",\n        \"value\": \"$TIMEFRAME\"\n      },\n      {\n        \"key\": \"timeframePercentageOverThreshold\",\n        \"value\": \"$TIMEFRAME_OVER_THRESHOLD\"\n      },\n      {\n        \"key\": \"metricCriteria\",\n        \"value\": \"$METRIC_CRITERIA\"\n      },\n      {\n        \"key\": \"ratioQueryOne\",\n        \"value\": \"$RATIO_QUERY_ONE\"\n      },\n      {\n        \"key\": \"ratioQueryTwo\",\n        \"value\": \"$RATIO_QUERY_TWO\"\n      },\n      {\n        \"key\": \"ratioTimeframe\",\n        \"value\": \"$RATIO_TIMEFRAME\"\n      },\n      {\n        \"key\": \"ratioGroupByKeys\",\n        \"value\": \"$RATIO_GROUP_BY_KEYS\"\n      },\n      {\n        \"key\": \"ratioGroupByTable\",\n        \"value\": \"$RATIO_GROUP_BY_TABLE\"\n      },\n      {\n        \"key\": \"uniqueCountValuesList\",\n        \"value\": \"$UNIQUE_COUNT_VALUES_LIST\"\n      },\n      {\n        \"key\": \"newValueTrackedKey\",\n        \"value\": \"$NEW_VALUE_TRACKED_KEY\"\n      },\n      {\n        \"key\": \"metaLabels\",\n        \"value\": \"$META_LABELS\"\n      }\n    ]\n  }",
+        "url": "https://example.invalid/hook",
+        "uuid": "11111111-1111-4111-8111-111111111111"
+      },
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "switch to ordinary field",
+    "config": {
+      "custom": {
+        "headers": {
+          "Authorization": "<redacted-test-c>"
+        },
+        "method": "post",
+        "url": "https://example.invalid/hook",
+        "uuid": "11111111-1111-4111-8111-111111111111"
+      },
+      "name": "secret"
+    },
+    "validateDiagnostics": [
+      "warning: Credential-carrying webhook header for \"secret\" is stored in state [AttributeName(\"custom\").AttributeName(\"headers\")] | Authorization is set through headers and appears to carry a credential. Terraform writes it to state. Use headers_wo with headers_wo_versions to send the secret without storing it. Write-only attributes need Terraform 1.11 or later. Terraform shows one warning per distinct message, so check any other webhook with the same name as well."
+    ],
+    "plan": {
+      "custom": {
+        "headers": {
+          "Authorization": "<redacted-test-c>"
+        },
+        "headers_wo": null,
+        "headers_wo_versions": null,
+        "method": "post",
+        "payload": "{\n    \"uuid\": \"\",\n    \"alert_id\": \"$ALERT_ID\",\n    \"name\": \"$ALERT_NAME\",\n    \"description\": \"$ALERT_DESCRIPTION\",\n    \"threshold\": \"$ALERT_THRESHOLD\",\n    \"timewindow\": \"$ALERT_TIMEWINDOW_MINUTES\",\n    \"group_by_labels\": \"$ALERT_GROUPBY_LABELS\",\n    \"alert_Webhook\": \"$ALERT_Webhook\",\n    \"alert_url\": \"$ALERT_URL\",\n    \"log_url\": \"$LOG_URL\",\n    \"icon_url\": \"$CORALOGIX_ICON_URL\",\n    \"service\": \"$SERVICE\",\n    \"duration\": \"$DURATION\",\n    \"errors\": \"$ERRORS\",\n    \"spans\": \"$SPANS\",\n    \"fields\": [\n      {\n        \"key\": \"team\",\n        \"value\": \"$TEAM_NAME\"\n      },\n      {\n        \"key\": \"application\",\n        \"value\": \"$APPLICATION_NAME\"\n      },\n      {\n        \"key\": \"subsystem\",\n        \"value\": \"$SUBSYSTEM_NAME\"\n      },\n      {\n        \"key\": \"severity\",\n        \"value\": \"$EVENT_SEVERITY\"\n      },\n      {\n        \"key\": \"computer\",\n        \"value\": \"$COMPUTER_NAME\"\n      },\n      {\n        \"key\": \"ipAddress\",\n        \"value\": \"$IP_ADDRESS\"\n      },\n      {\n        \"key\": \"timestamp\",\n        \"value\": \"$EVENT_TIMESTAMP\"\n      },\n      {\n        \"key\": \"hitCount\",\n        \"value\": \"$HIT_COUNT\"\n      },\n      {\n        \"key\": \"text\",\n        \"value\": \"$LOG_TEXT\"\n      },\n      {\n        \"key\": \"Custom field\",\n        \"value\": \"$JSON_KEY\"\n      },\n      {\n        \"key\": \"Group-by Key1\",\n        \"value\": \"$GROUP_BY_KEY_1\"\n      },\n      {\n        \"key\": \"Group-by Value1\",\n        \"value\": \"$GROUP_BY_VALUE_1\"\n      },\n      {\n        \"key\": \"Group-by Key2\",\n        \"value\": \"$GROUP_BY_KEY_2\"\n      },\n      {\n        \"key\": \"Group-by Value2\",\n        \"value\": \"$GROUP_BY_VALUE_2\"\n      },\n      {\n        \"key\": \"metricKey\",\n        \"value\": \"$METRIC_KEY\"\n      },\n      {\n        \"key\": \"metricOperator\",\n        \"value\": \"$METRIC_OPERATOR\"\n      },\n      {\n        \"key\": \"timeframe\",\n        \"value\": \"$TIMEFRAME\"\n      },\n      {\n        \"key\": \"timeframePercentageOverThreshold\",\n        \"value\": \"$TIMEFRAME_OVER_THRESHOLD\"\n      },\n      {\n        \"key\": \"metricCriteria\",\n        \"value\": \"$METRIC_CRITERIA\"\n      },\n      {\n        \"key\": \"ratioQueryOne\",\n        \"value\": \"$RATIO_QUERY_ONE\"\n      },\n      {\n        \"key\": \"ratioQueryTwo\",\n        \"value\": \"$RATIO_QUERY_TWO\"\n      },\n      {\n        \"key\": \"ratioTimeframe\",\n        \"value\": \"$RATIO_TIMEFRAME\"\n      },\n      {\n        \"key\": \"ratioGroupByKeys\",\n        \"value\": \"$RATIO_GROUP_BY_KEYS\"\n      },\n      {\n        \"key\": \"ratioGroupByTable\",\n        \"value\": \"$RATIO_GROUP_BY_TABLE\"\n      },\n      {\n        \"key\": \"uniqueCountValuesList\",\n        \"value\": \"$UNIQUE_COUNT_VALUES_LIST\"\n      },\n      {\n        \"key\": \"newValueTrackedKey\",\n        \"value\": \"$NEW_VALUE_TRACKED_KEY\"\n      },\n      {\n        \"key\": \"metaLabels\",\n        \"value\": \"$META_LABELS\"\n      }\n    ]\n  }",
+        "url": "https://example.invalid/hook",
+        "uuid": "11111111-1111-4111-8111-111111111111"
+      },
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "genericWebhook": {
+              "headers": {
+                "Authorization": "<redacted-test-c>"
+              },
+              "method": "POST",
+              "payload": "{\n    \"uuid\": \"\",\n    \"alert_id\": \"$ALERT_ID\",\n    \"name\": \"$ALERT_NAME\",\n    \"description\": \"$ALERT_DESCRIPTION\",\n    \"threshold\": \"$ALERT_THRESHOLD\",\n    \"timewindow\": \"$ALERT_TIMEWINDOW_MINUTES\",\n    \"group_by_labels\": \"$ALERT_GROUPBY_LABELS\",\n    \"alert_Webhook\": \"$ALERT_Webhook\",\n    \"alert_url\": \"$ALERT_URL\",\n    \"log_url\": \"$LOG_URL\",\n    \"icon_url\": \"$CORALOGIX_ICON_URL\",\n    \"service\": \"$SERVICE\",\n    \"duration\": \"$DURATION\",\n    \"errors\": \"$ERRORS\",\n    \"spans\": \"$SPANS\",\n    \"fields\": [\n      {\n        \"key\": \"team\",\n        \"value\": \"$TEAM_NAME\"\n      },\n      {\n        \"key\": \"application\",\n        \"value\": \"$APPLICATION_NAME\"\n      },\n      {\n        \"key\": \"subsystem\",\n        \"value\": \"$SUBSYSTEM_NAME\"\n      },\n      {\n        \"key\": \"severity\",\n        \"value\": \"$EVENT_SEVERITY\"\n      },\n      {\n        \"key\": \"computer\",\n        \"value\": \"$COMPUTER_NAME\"\n      },\n      {\n        \"key\": \"ipAddress\",\n        \"value\": \"$IP_ADDRESS\"\n      },\n      {\n        \"key\": \"timestamp\",\n        \"value\": \"$EVENT_TIMESTAMP\"\n      },\n      {\n        \"key\": \"hitCount\",\n        \"value\": \"$HIT_COUNT\"\n      },\n      {\n        \"key\": \"text\",\n        \"value\": \"$LOG_TEXT\"\n      },\n      {\n        \"key\": \"Custom field\",\n        \"value\": \"$JSON_KEY\"\n      },\n      {\n        \"key\": \"Group-by Key1\",\n        \"value\": \"$GROUP_BY_KEY_1\"\n      },\n      {\n        \"key\": \"Group-by Value1\",\n        \"value\": \"$GROUP_BY_VALUE_1\"\n      },\n      {\n        \"key\": \"Group-by Key2\",\n        \"value\": \"$GROUP_BY_KEY_2\"\n      },\n      {\n        \"key\": \"Group-by Value2\",\n        \"value\": \"$GROUP_BY_VALUE_2\"\n      },\n      {\n        \"key\": \"metricKey\",\n        \"value\": \"$METRIC_KEY\"\n      },\n      {\n        \"key\": \"metricOperator\",\n        \"value\": \"$METRIC_OPERATOR\"\n      },\n      {\n        \"key\": \"timeframe\",\n        \"value\": \"$TIMEFRAME\"\n      },\n      {\n        \"key\": \"timeframePercentageOverThreshold\",\n        \"value\": \"$TIMEFRAME_OVER_THRESHOLD\"\n      },\n      {\n        \"key\": \"metricCriteria\",\n        \"value\": \"$METRIC_CRITERIA\"\n      },\n      {\n        \"key\": \"ratioQueryOne\",\n        \"value\": \"$RATIO_QUERY_ONE\"\n      },\n      {\n        \"key\": \"ratioQueryTwo\",\n        \"value\": \"$RATIO_QUERY_TWO\"\n      },\n      {\n        \"key\": \"ratioTimeframe\",\n        \"value\": \"$RATIO_TIMEFRAME\"\n      },\n      {\n        \"key\": \"ratioGroupByKeys\",\n        \"value\": \"$RATIO_GROUP_BY_KEYS\"\n      },\n      {\n        \"key\": \"ratioGroupByTable\",\n        \"value\": \"$RATIO_GROUP_BY_TABLE\"\n      },\n      {\n        \"key\": \"uniqueCountValuesList\",\n        \"value\": \"$UNIQUE_COUNT_VALUES_LIST\"\n      },\n      {\n        \"key\": \"newValueTrackedKey\",\n        \"value\": \"$NEW_VALUE_TRACKED_KEY\"\n      },\n      {\n        \"key\": \"metaLabels\",\n        \"value\": \"$META_LABELS\"\n      }\n    ]\n  }",
+              "uuid": "11111111-1111-4111-8111-111111111111"
+            },
+            "name": "secret",
+            "type": "GENERIC",
+            "url": "https://example.invalid/hook"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": {
+        "headers": {
+          "Authorization": "<redacted-test-c>"
+        },
+        "headers_wo": null,
+        "headers_wo_versions": null,
+        "method": "post",
+        "payload": "{\n    \"uuid\": \"\",\n    \"alert_id\": \"$ALERT_ID\",\n    \"name\": \"$ALERT_NAME\",\n    \"description\": \"$ALERT_DESCRIPTION\",\n    \"threshold\": \"$ALERT_THRESHOLD\",\n    \"timewindow\": \"$ALERT_TIMEWINDOW_MINUTES\",\n    \"group_by_labels\": \"$ALERT_GROUPBY_LABELS\",\n    \"alert_Webhook\": \"$ALERT_Webhook\",\n    \"alert_url\": \"$ALERT_URL\",\n    \"log_url\": \"$LOG_URL\",\n    \"icon_url\": \"$CORALOGIX_ICON_URL\",\n    \"service\": \"$SERVICE\",\n    \"duration\": \"$DURATION\",\n    \"errors\": \"$ERRORS\",\n    \"spans\": \"$SPANS\",\n    \"fields\": [\n      {\n        \"key\": \"team\",\n        \"value\": \"$TEAM_NAME\"\n      },\n      {\n        \"key\": \"application\",\n        \"value\": \"$APPLICATION_NAME\"\n      },\n      {\n        \"key\": \"subsystem\",\n        \"value\": \"$SUBSYSTEM_NAME\"\n      },\n      {\n        \"key\": \"severity\",\n        \"value\": \"$EVENT_SEVERITY\"\n      },\n      {\n        \"key\": \"computer\",\n        \"value\": \"$COMPUTER_NAME\"\n      },\n      {\n        \"key\": \"ipAddress\",\n        \"value\": \"$IP_ADDRESS\"\n      },\n      {\n        \"key\": \"timestamp\",\n        \"value\": \"$EVENT_TIMESTAMP\"\n      },\n      {\n        \"key\": \"hitCount\",\n        \"value\": \"$HIT_COUNT\"\n      },\n      {\n        \"key\": \"text\",\n        \"value\": \"$LOG_TEXT\"\n      },\n      {\n        \"key\": \"Custom field\",\n        \"value\": \"$JSON_KEY\"\n      },\n      {\n        \"key\": \"Group-by Key1\",\n        \"value\": \"$GROUP_BY_KEY_1\"\n      },\n      {\n        \"key\": \"Group-by Value1\",\n        \"value\": \"$GROUP_BY_VALUE_1\"\n      },\n      {\n        \"key\": \"Group-by Key2\",\n        \"value\": \"$GROUP_BY_KEY_2\"\n      },\n      {\n        \"key\": \"Group-by Value2\",\n        \"value\": \"$GROUP_BY_VALUE_2\"\n      },\n      {\n        \"key\": \"metricKey\",\n        \"value\": \"$METRIC_KEY\"\n      },\n      {\n        \"key\": \"metricOperator\",\n        \"value\": \"$METRIC_OPERATOR\"\n      },\n      {\n        \"key\": \"timeframe\",\n        \"value\": \"$TIMEFRAME\"\n      },\n      {\n        \"key\": \"timeframePercentageOverThreshold\",\n        \"value\": \"$TIMEFRAME_OVER_THRESHOLD\"\n      },\n      {\n        \"key\": \"metricCriteria\",\n        \"value\": \"$METRIC_CRITERIA\"\n      },\n      {\n        \"key\": \"ratioQueryOne\",\n        \"value\": \"$RATIO_QUERY_ONE\"\n      },\n      {\n        \"key\": \"ratioQueryTwo\",\n        \"value\": \"$RATIO_QUERY_TWO\"\n      },\n      {\n        \"key\": \"ratioTimeframe\",\n        \"value\": \"$RATIO_TIMEFRAME\"\n      },\n      {\n        \"key\": \"ratioGroupByKeys\",\n        \"value\": \"$RATIO_GROUP_BY_KEYS\"\n      },\n      {\n        \"key\": \"ratioGroupByTable\",\n        \"value\": \"$RATIO_GROUP_BY_TABLE\"\n      },\n      {\n        \"key\": \"uniqueCountValuesList\",\n        \"value\": \"$UNIQUE_COUNT_VALUES_LIST\"\n      },\n      {\n        \"key\": \"newValueTrackedKey\",\n        \"value\": \"$NEW_VALUE_TRACKED_KEY\"\n      },\n      {\n        \"key\": \"metaLabels\",\n        \"value\": \"$META_LABELS\"\n      }\n    ]\n  }",
+        "url": "https://example.invalid/hook",
+        "uuid": "11111111-1111-4111-8111-111111111111"
+      },
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after switch and plan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": {
+        "headers": {
+          "Authorization": "<redacted-test-c>"
+        },
+        "headers_wo": null,
+        "headers_wo_versions": null,
+        "method": "post",
+        "payload": "{\n    \"uuid\": \"\",\n    \"alert_id\": \"$ALERT_ID\",\n    \"name\": \"$ALERT_NAME\",\n    \"description\": \"$ALERT_DESCRIPTION\",\n    \"threshold\": \"$ALERT_THRESHOLD\",\n    \"timewindow\": \"$ALERT_TIMEWINDOW_MINUTES\",\n    \"group_by_labels\": \"$ALERT_GROUPBY_LABELS\",\n    \"alert_Webhook\": \"$ALERT_Webhook\",\n    \"alert_url\": \"$ALERT_URL\",\n    \"log_url\": \"$LOG_URL\",\n    \"icon_url\": \"$CORALOGIX_ICON_URL\",\n    \"service\": \"$SERVICE\",\n    \"duration\": \"$DURATION\",\n    \"errors\": \"$ERRORS\",\n    \"spans\": \"$SPANS\",\n    \"fields\": [\n      {\n        \"key\": \"team\",\n        \"value\": \"$TEAM_NAME\"\n      },\n      {\n        \"key\": \"application\",\n        \"value\": \"$APPLICATION_NAME\"\n      },\n      {\n        \"key\": \"subsystem\",\n        \"value\": \"$SUBSYSTEM_NAME\"\n      },\n      {\n        \"key\": \"severity\",\n        \"value\": \"$EVENT_SEVERITY\"\n      },\n      {\n        \"key\": \"computer\",\n        \"value\": \"$COMPUTER_NAME\"\n      },\n      {\n        \"key\": \"ipAddress\",\n        \"value\": \"$IP_ADDRESS\"\n      },\n      {\n        \"key\": \"timestamp\",\n        \"value\": \"$EVENT_TIMESTAMP\"\n      },\n      {\n        \"key\": \"hitCount\",\n        \"value\": \"$HIT_COUNT\"\n      },\n      {\n        \"key\": \"text\",\n        \"value\": \"$LOG_TEXT\"\n      },\n      {\n        \"key\": \"Custom field\",\n        \"value\": \"$JSON_KEY\"\n      },\n      {\n        \"key\": \"Group-by Key1\",\n        \"value\": \"$GROUP_BY_KEY_1\"\n      },\n      {\n        \"key\": \"Group-by Value1\",\n        \"value\": \"$GROUP_BY_VALUE_1\"\n      },\n      {\n        \"key\": \"Group-by Key2\",\n        \"value\": \"$GROUP_BY_KEY_2\"\n      },\n      {\n        \"key\": \"Group-by Value2\",\n        \"value\": \"$GROUP_BY_VALUE_2\"\n      },\n      {\n        \"key\": \"metricKey\",\n        \"value\": \"$METRIC_KEY\"\n      },\n      {\n        \"key\": \"metricOperator\",\n        \"value\": \"$METRIC_OPERATOR\"\n      },\n      {\n        \"key\": \"timeframe\",\n        \"value\": \"$TIMEFRAME\"\n      },\n      {\n        \"key\": \"timeframePercentageOverThreshold\",\n        \"value\": \"$TIMEFRAME_OVER_THRESHOLD\"\n      },\n      {\n        \"key\": \"metricCriteria\",\n        \"value\": \"$METRIC_CRITERIA\"\n      },\n      {\n        \"key\": \"ratioQueryOne\",\n        \"value\": \"$RATIO_QUERY_ONE\"\n      },\n      {\n        \"key\": \"ratioQueryTwo\",\n        \"value\": \"$RATIO_QUERY_TWO\"\n      },\n      {\n        \"key\": \"ratioTimeframe\",\n        \"value\": \"$RATIO_TIMEFRAME\"\n      },\n      {\n        \"key\": \"ratioGroupByKeys\",\n        \"value\": \"$RATIO_GROUP_BY_KEYS\"\n      },\n      {\n        \"key\": \"ratioGroupByTable\",\n        \"value\": \"$RATIO_GROUP_BY_TABLE\"\n      },\n      {\n        \"key\": \"uniqueCountValuesList\",\n        \"value\": \"$UNIQUE_COUNT_VALUES_LIST\"\n      },\n      {\n        \"key\": \"newValueTrackedKey\",\n        \"value\": \"$NEW_VALUE_TRACKED_KEY\"\n      },\n      {\n        \"key\": \"metaLabels\",\n        \"value\": \"$META_LABELS\"\n      }\n    ]\n  }",
+        "url": "https://example.invalid/hook",
+        "uuid": "11111111-1111-4111-8111-111111111111"
+      },
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "secret",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "delete",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

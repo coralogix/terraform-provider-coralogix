@@ -1,0 +1,262 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "event_bridge": {
+        "detail": "{\"event\":\"test\"}",
+        "detail_type": "test",
+        "event_bus_arn": "arn:aws:events:eu-west-1:123456789012:event-bus/example",
+        "role_name": "test-role",
+        "source": "example.test"
+      },
+      "name": "full"
+    },
+    "plan": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": {
+        "detail": "{\"event\":\"test\"}",
+        "detail_type": "test",
+        "event_bus_arn": "arn:aws:events:eu-west-1:123456789012:event-bus/example",
+        "role_name": "test-role",
+        "source": "example.test"
+      },
+      "external_id": "(unknown)",
+      "id": "(unknown)",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "awsEventBridge": {
+              "detail": "{\"event\":\"test\"}",
+              "detailType": "test",
+              "eventBusArn": "arn:aws:events:eu-west-1:123456789012:event-bus/example",
+              "roleName": "test-role",
+              "source": "example.test"
+            },
+            "name": "full",
+            "type": "AWS_EVENT_BRIDGE"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": {
+        "detail": "{\"event\":\"test\"}",
+        "detail_type": "test",
+        "event_bus_arn": "arn:aws:events:eu-west-1:123456789012:event-bus/example",
+        "role_name": "test-role",
+        "source": "example.test"
+      },
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and plan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": {
+        "detail": "{\"event\":\"test\"}",
+        "detail_type": "test",
+        "event_bus_arn": "arn:aws:events:eu-west-1:123456789012:event-bus/example",
+        "role_name": "test-role",
+        "source": "example.test"
+      },
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "import",
+    "applyDiagnostics": [
+      "warning: An imported credential is written to state | Importing reads the webhook's current configuration from Coralogix, including any credential it carries, and writes it to state. Treat an imported credential as exposed and rotate it.\n\nTo keep it out of state from then on, move the value into the matching write-only attribute (jira.api_token_wo, pager_duty.service_key_wo, or custom.headers_wo), set its version, and apply. That apply removes the imported value from state. Write-only attributes need Terraform 1.11 or later."
+    ],
+    "state": null
+  },
+  {
+    "step": "import (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": {
+        "detail": "{\"event\":\"test\"}",
+        "detail_type": "test",
+        "event_bus_arn": "arn:aws:events:eu-west-1:123456789012:event-bus/example",
+        "role_name": "test-role",
+        "source": "example.test"
+      },
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "drift": [
+      "AttributeName(\"event_bridge\")",
+      "AttributeName(\"event_bridge\").AttributeName(\"detail\")",
+      "AttributeName(\"event_bridge\").AttributeName(\"detail_type\")",
+      "AttributeName(\"event_bridge\").AttributeName(\"event_bus_arn\")",
+      "AttributeName(\"event_bridge\").AttributeName(\"role_name\")",
+      "AttributeName(\"event_bridge\").AttributeName(\"source\")",
+      "AttributeName(\"external_id\")",
+      "AttributeName(\"name\")"
+    ]
+  },
+  {
+    "step": "rename",
+    "config": {
+      "event_bridge": {
+        "detail": "{\"event\":\"test\"}",
+        "detail_type": "test",
+        "event_bus_arn": "arn:aws:events:eu-west-1:123456789012:event-bus/example",
+        "role_name": "test-role",
+        "source": "example.test"
+      },
+      "name": "renamed"
+    },
+    "plan": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": {
+        "detail": "{\"event\":\"test\"}",
+        "detail_type": "test",
+        "event_bus_arn": "arn:aws:events:eu-west-1:123456789012:event-bus/example",
+        "role_name": "test-role",
+        "source": "example.test"
+      },
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "renamed",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "awsEventBridge": {
+              "detail": "{\"event\":\"test\"}",
+              "detailType": "test",
+              "eventBusArn": "arn:aws:events:eu-west-1:123456789012:event-bus/example",
+              "roleName": "test-role",
+              "source": "example.test"
+            },
+            "name": "renamed",
+            "type": "AWS_EVENT_BRIDGE"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": {
+        "detail": "{\"event\":\"test\"}",
+        "detail_type": "test",
+        "event_bus_arn": "arn:aws:events:eu-west-1:123456789012:event-bus/example",
+        "role_name": "test-role",
+        "source": "example.test"
+      },
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "renamed",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "delete",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

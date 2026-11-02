@@ -1,0 +1,22 @@
+[
+  {
+    "step": "write-only header has null version",
+    "config": {
+      "custom": {
+        "headers_wo": {
+          "Authorization": "synthetic-value"
+        },
+        "headers_wo_versions": {
+          "Authorization": null
+        },
+        "method": "post",
+        "url": "https://example.invalid/hook"
+      },
+      "name": "invalid"
+    },
+    "validateDiagnostics": [
+      "error: Null write-only header version [AttributeName(\"custom\").AttributeName(\"headers_wo_versions\")] | Header \"Authorization\" has a null entry in headers_wo_versions. A null version records nothing, so a later change to the secret alone would never be sent: Terraform holds no copy of the value and would see no reason to update. Give the header a number."
+    ],
+    "state": null
+  }
+]

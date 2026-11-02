@@ -1,0 +1,12 @@
+[
+  {
+    "step": "blank name",
+    "config": {
+      "name": " "
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"name\")] | Attribute name must not be empty or contain only whitespace, got:  "
+    ],
+    "state": null
+  }
+]

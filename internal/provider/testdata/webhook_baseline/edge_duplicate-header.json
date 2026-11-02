@@ -1,0 +1,26 @@
+[
+  {
+    "step": "same header sent twice",
+    "config": {
+      "custom": {
+        "headers": {
+          "Authorization": "synthetic-plain-value"
+        },
+        "headers_wo": {
+          "authorization": "synthetic-value"
+        },
+        "headers_wo_versions": {
+          "authorization": 1
+        },
+        "method": "post",
+        "url": "https://example.invalid/hook"
+      },
+      "name": "invalid"
+    },
+    "validateDiagnostics": [
+      "error: Header set both ways [AttributeName(\"custom\").AttributeName(\"headers_wo\")] | authorization collides with another header name. Keep a secret header in headers_wo only, and give it one spelling: HTTP header names are case-insensitive, so headers and headers_wo must not name the same header even in different case.",
+      "warning: Credential-carrying webhook header for \"invalid\" is stored in state [AttributeName(\"custom\").AttributeName(\"headers\")] | Authorization is set through headers and appears to carry a credential. Terraform writes it to state. Use headers_wo with headers_wo_versions to send the secret without storing it. Write-only attributes need Terraform 1.11 or later. Terraform shows one warning per distinct message, so check any other webhook with the same name as well."
+    ],
+    "state": null
+  }
+]
