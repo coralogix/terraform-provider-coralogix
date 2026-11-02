@@ -63,6 +63,7 @@ var dataSourceBaselines = map[string]dataSourceBaseline{
 	"quota_allocation_rule_set": {quotaGoldenDir, newQuotaHarness, quotaDataSourceScenarios},
 	"action":                    {actionGoldenDir, newActionHarness, actionDataSourceScenarios},
 	"integration":               {integrationGoldenDir, newIntegrationHarness, integrationDataSourceScenarios},
+	"parsing_rules":             {parsingRulesGoldenDir, newParsingRulesHarness, parsingRulesDataSourceScenarios},
 	"webhook":                   {webhookGoldenDir, newWebhookHarness, webhookDataSourceScenarios},
 }
 

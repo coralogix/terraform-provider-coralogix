@@ -1,0 +1,75 @@
+[
+  {
+    "step": "read by id",
+    "config": {
+      "id": "00000000-0000-4000-9000-000000000004"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000004",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "applications": [],
+      "creator": "",
+      "description": "",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000004",
+      "name": "seeded",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000003",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000001",
+                "name": "rule-extract",
+                "order": 1,
+                "regular_expression": "a",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": {
+                "active": true,
+                "description": "",
+                "destination_field": "text",
+                "destination_field_text": "text.k",
+                "id": "00000000-0000-4000-9000-000000000002",
+                "json_key": "k",
+                "name": "rule-json_extract",
+                "order": 2
+              },
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    }
+  }
+]

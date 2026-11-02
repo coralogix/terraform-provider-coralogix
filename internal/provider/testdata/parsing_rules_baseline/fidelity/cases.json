@@ -1,0 +1,1272 @@
+{
+  "cases": [
+    {
+      "name": "create every rule type, read, replace, omit optional fields, delete",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-full",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              },
+              {
+                "subsystemName": {
+                  "value": "sub-a"
+                }
+              },
+              {
+                "severity": {
+                  "value": "VALUE_ERROR"
+                }
+              },
+              {
+                "severity": {
+                  "value": "VALUE_DEBUG_OR_UNSPECIFIED"
+                }
+              },
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs-2"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "parse",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "parseParameters": {
+                        "destinationField": "text",
+                        "rule": "(?P<a>.*)"
+                      }
+                    },
+                    "description": "d",
+                    "enabled": true
+                  },
+                  {
+                    "name": "block",
+                    "order": 2,
+                    "sourceField": "text",
+                    "parameters": {
+                      "blockParameters": {
+                        "keepBlockedLogs": true,
+                        "rule": "error"
+                      }
+                    },
+                    "description": "",
+                    "enabled": true
+                  },
+                  {
+                    "name": "allow",
+                    "order": 3,
+                    "sourceField": "text",
+                    "parameters": {
+                      "allowParameters": {
+                        "keepBlockedLogs": false,
+                        "rule": "ok"
+                      }
+                    },
+                    "description": "",
+                    "enabled": true
+                  },
+                  {
+                    "name": "json_extract",
+                    "order": 4,
+                    "sourceField": "text",
+                    "parameters": {
+                      "jsonExtractParameters": {
+                        "destinationFieldType": "DESTINATION_FIELD_TEXT",
+                        "destinationFieldText": "text.worker",
+                        "rule": "worker"
+                      }
+                    },
+                    "description": "",
+                    "enabled": true
+                  },
+                  {
+                    "name": "replace",
+                    "order": 5,
+                    "sourceField": "text",
+                    "parameters": {
+                      "replaceParameters": {
+                        "destinationField": "text",
+                        "replaceNewVal": "{",
+                        "rule": ".*{"
+                      }
+                    },
+                    "description": "",
+                    "enabled": true
+                  },
+                  {
+                    "name": "timestamp",
+                    "order": 6,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractTimestampParameters": {
+                        "format": "yyyy-MM-dd",
+                        "standard": "FORMAT_STANDARD_JAVASDF"
+                      }
+                    },
+                    "description": "",
+                    "enabled": true
+                  },
+                  {
+                    "name": "remove",
+                    "order": 7,
+                    "sourceField": "text",
+                    "parameters": {
+                      "removeFieldsParameters": {
+                        "fields": [
+                          "a",
+                          "b"
+                        ]
+                      }
+                    },
+                    "description": "",
+                    "enabled": true
+                  },
+                  {
+                    "name": "stringify",
+                    "order": 8,
+                    "sourceField": "text",
+                    "parameters": {
+                      "jsonStringifyParameters": {
+                        "deleteSource": false,
+                        "destinationField": "text.out"
+                      }
+                    },
+                    "description": "",
+                    "enabled": true
+                  },
+                  {
+                    "name": "extract",
+                    "order": 9,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "(?P<b>.*)"
+                      }
+                    },
+                    "description": "",
+                    "enabled": true
+                  },
+                  {
+                    "name": "json_parse",
+                    "order": 10,
+                    "sourceField": "text",
+                    "parameters": {
+                      "jsonParseParameters": {
+                        "deleteSource": false,
+                        "destinationField": "text.parsed",
+                        "escapedValue": true,
+                        "overrideDest": true
+                      }
+                    },
+                    "description": "",
+                    "enabled": true
+                  }
+                ],
+                "enabled": true
+              }
+            ],
+            "description": "first",
+            "creator": "terraform",
+            "hidden": false
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "name": "tf-fidelity-full-2",
+            "enabled": false,
+            "order": 3,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "p",
+                    "order": 1,
+                    "sourceField": "text.a",
+                    "parameters": {
+                      "parseParameters": {
+                        "destinationField": "text.b",
+                        "rule": "(?P<c>.*)"
+                      }
+                    },
+                    "description": "parse",
+                    "enabled": false
+                  }
+                ],
+                "enabled": false
+              }
+            ],
+            "description": "second",
+            "creator": "someone",
+            "hidden": true
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "name": "tf-fidelity-full-2",
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            "order": 2
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "name": "tf-fidelity-full-2",
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            "order": 2
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "omitted values are defaults, also on a replace",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-defaults",
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "name": "tf-fidelity-defaults",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            "creator": "x",
+            "hidden": true,
+            "description": "y"
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "name": "tf-fidelity-defaults",
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            "enabled": false
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "name": "tf-fidelity-defaults",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "subgroups and rules come back sorted by order",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-sort",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 2,
+                "rules": [
+                  {
+                    "name": "b",
+                    "order": 2,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "b"
+                      }
+                    }
+                  },
+                  {
+                    "name": "a",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "c",
+                    "order": 5,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "c"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "zero enums, ignored teamId and escapedValue, empty destination field",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-zero",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              },
+              {
+                "severity": {
+                  "value": "VALUE_DEBUG_OR_UNSPECIFIED"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "je",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "jsonExtractParameters": {
+                        "rule": "k"
+                      }
+                    }
+                  },
+                  {
+                    "name": "ts",
+                    "order": 2,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractTimestampParameters": {
+                        "format": "%Y"
+                      }
+                    }
+                  },
+                  {
+                    "name": "jp",
+                    "order": 3,
+                    "sourceField": "text",
+                    "parameters": {
+                      "jsonParseParameters": {
+                        "deleteSource": false,
+                        "destinationField": "text.p",
+                        "escapedValue": false,
+                        "overrideDest": false
+                      }
+                    }
+                  },
+                  {
+                    "name": "rp",
+                    "order": 4,
+                    "sourceField": "text.src",
+                    "parameters": {
+                      "replaceParameters": {
+                        "destinationField": "",
+                        "replaceNewVal": "",
+                        "rule": "x"
+                      }
+                    }
+                  },
+                  {
+                    "name": "pa",
+                    "order": 5,
+                    "sourceField": "text",
+                    "parameters": {
+                      "parseParameters": {
+                        "destinationField": "",
+                        "rule": "(?P<x>.*)"
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            "teamId": {
+              "id": 1
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "refused requests",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": []
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": []
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text"
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {}
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "removeFieldsParameters": {
+                        "fields": []
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "jsonExtractParameters": {
+                        "rule": "k",
+                        "destinationFieldType": "DESTINATION_FIELD_TEXT"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "blockParameters": {
+                        "rule": "k"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "jsonStringifyParameters": {
+                        "deleteSource": true,
+                        "destinationField": "text.o"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "message",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 0,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad-regex",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "(?P<a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
+    },
+    {
+      "name": "an id that does not exist",
+      "steps": [
+        {
+          "method": "GET",
+          "path": "/00000000-0000-4000-8000-00000000dead"
+        },
+        {
+          "method": "PUT",
+          "path": "/00000000-0000-4000-8000-00000000dead",
+          "body": {
+            "name": "tf-fidelity-missing",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "extractParameters": {
+                        "rule": "a"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "method": "DELETE",
+          "path": "/00000000-0000-4000-8000-00000000dead"
+        }
+      ]
+    }
+  ]
+}
