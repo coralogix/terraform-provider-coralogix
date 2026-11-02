@@ -19,10 +19,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -41,7 +43,7 @@ func TestParsingRulesFakeMatchesRecordedBackend(t *testing.T) {
 			if rc.Name != c.Name || len(rc.Steps) != len(c.Steps) {
 				t.Fatalf("recorded.json does not match cases.json for %q: record again", c.Name)
 			}
-			vars := map[string]string{}
+			vars, tokens := map[string]string{}, uuidTokens{}
 			for si, s := range c.Steps {
 				label := fmt.Sprintf("step %d: %s %s", si+1, s.Method, s.Path)
 				body := s.Body
@@ -55,7 +57,7 @@ func TestParsingRulesFakeMatchesRecordedBackend(t *testing.T) {
 				if s.Capture != "" && status == http.StatusOK {
 					vars[s.Capture] = parsingRulesIDOf(got)
 				}
-				got = parsingRulesNormalize(unsubstJSON(t, got, vars))
+				got = parsingRulesNormalize(unsubstJSON(t, got, vars), tokens)
 				compareFidelityStep(t, label, status, got, rc.Steps[si].Status, rc.Steps[si].Response)
 			}
 		})
@@ -115,9 +117,9 @@ func TestRecordParsingRulesFidelity(t *testing.T) {
 				Response any `json:"response"`
 			} `json:"steps"`
 		}{Name: c.Name}
-		vars := map[string]string{}
+		vars, tokens := map[string]string{}, uuidTokens{}
 		for _, s := range c.Steps {
-			status, got := recordParsingRulesStep(t, base, apiKey, s, vars, &created)
+			status, got := recordParsingRulesStep(t, base, apiKey, s, vars, tokens, &created)
 			if (status == http.StatusForbidden || status == http.StatusUnauthorized) && s.Method == http.MethodPost {
 				t.Fatalf("the rule groups API returned %d on %s %s. Recording needs a management API key that can manage parsing rules.", status, s.Method, s.Path)
 			}
@@ -137,7 +139,7 @@ func TestRecordParsingRulesFidelity(t *testing.T) {
 	}
 }
 
-func recordParsingRulesStep(t *testing.T, base, apiKey string, s fidelityStep, vars map[string]string, created *[]string) (int, any) {
+func recordParsingRulesStep(t *testing.T, base, apiKey string, s fidelityStep, vars map[string]string, tokens uuidTokens, created *[]string) (int, any) {
 	t.Helper()
 	var body any
 	if s.Body != nil {
@@ -153,7 +155,7 @@ func recordParsingRulesStep(t *testing.T, base, apiKey string, s fidelityStep, v
 			*created = append(*created, id)
 		}
 	}
-	return status, parsingRulesNormalize(unsubstJSON(t, parsed, vars))
+	return status, parsingRulesNormalize(unsubstJSON(t, parsed, vars), tokens)
 }
 
 func parsingRulesCall(base, apiKey, method, path string, body any) (int, any, error) {
@@ -192,27 +194,43 @@ func parsingRulesCall(base, apiKey, method, path string, body any) (int, any, er
 
 var parsingRulesCompany = regexp.MustCompile(`(?i)(company ?id:? ?)\d+`)
 
+// uuidTokens gives each id of one case a token, in the order of first appearance, so that a
+// comparison still sees whether a step keeps an id or makes a new one.
+type uuidTokens map[string]string
+
+func (u uuidTokens) token(id string) string {
+	if t, ok := u[id]; ok {
+		return t
+	}
+	t := fmt.Sprintf("<uuid-%d>", len(u)+1)
+	u[id] = t
+	return t
+}
+
 // parsingRulesNormalize replaces what differs in every run: the ids that every write gives the
-// subgroups and rules, and a company id in a message.
-func parsingRulesNormalize(v any) any {
+// subgroups and rules (a token per id of the case), and a company id in a message. It walks the
+// keys in order, so the tokens do not depend on the order of a map.
+func parsingRulesNormalize(v any, tokens uuidTokens) any {
 	switch x := v.(type) {
 	case map[string]any:
 		out := map[string]any{}
-		for k, e := range x {
+		for _, k := range slices.Sorted(maps.Keys(x)) {
+			e := x[k]
 			switch s, _ := e.(string); {
 			case k == "id" && uuidPattern.MatchString(s):
-				out[k] = "<uuid>"
+				out[k] = tokens.token(s)
 			case k == "message":
-				out[k] = parsingRulesCompany.ReplaceAllString(uuidPattern.ReplaceAllString(s, "<uuid>"), "${1}<company>")
+				s = uuidPattern.ReplaceAllStringFunc(s, tokens.token)
+				out[k] = parsingRulesCompany.ReplaceAllString(s, "${1}<company>")
 			default:
-				out[k] = parsingRulesNormalize(e)
+				out[k] = parsingRulesNormalize(e, tokens)
 			}
 		}
 		return out
 	case []any:
 		out := make([]any, len(x))
 		for i, e := range x {
-			out[i] = parsingRulesNormalize(e)
+			out[i] = parsingRulesNormalize(e, tokens)
 		}
 		return out
 	}
@@ -228,18 +246,24 @@ func cleanupRecordedRuleGroups(base, apiKey string, ids []string) error {
 		if err != nil || status == http.StatusNotFound {
 			continue
 		}
-		if status == http.StatusOK {
-			group, _ := got.(map[string]any)["ruleGroup"].(map[string]any)
-			group["order"] = 0
-			delete(group, "id")
-			_, _, _ = parsingRulesCall(base, apiKey, http.MethodPut, "/"+id, parsingRulesRequestOf(group))
+		if status != http.StatusOK {
+			failed = append(failed, id)
+			continue
+		}
+		group, _ := got.(map[string]any)["ruleGroup"].(map[string]any)
+		group["order"] = 0
+		delete(group, "id")
+		// Deleting a group that did not move to the end would lower the order of the groups above it.
+		if status, _, err := parsingRulesCall(base, apiKey, http.MethodPut, "/"+id, parsingRulesRequestOf(group)); err != nil || status != http.StatusOK {
+			failed = append(failed, id)
+			continue
 		}
 		if status, _, err := parsingRulesCall(base, apiKey, http.MethodDelete, "/"+id, nil); err != nil || status != http.StatusOK {
 			failed = append(failed, id)
 		}
 	}
 	if len(failed) > 0 {
-		return fmt.Errorf("could not delete the recorded rule groups %v: delete them by hand", failed)
+		return fmt.Errorf("could not move to the end and delete the recorded rule groups %v: move each one last (order 0) and delete it by hand", failed)
 	}
 	return nil
 }

@@ -44,13 +44,13 @@
               "ruleSubgroups": [
                 {
                   "enabled": true,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-1\u003e",
                   "order": 1,
                   "rules": [
                     {
                       "description": "d",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-2\u003e",
                       "name": "parse",
                       "order": 1,
                       "parameters": {
@@ -64,7 +64,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-3\u003e",
                       "name": "block",
                       "order": 2,
                       "parameters": {
@@ -78,7 +78,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-4\u003e",
                       "name": "allow",
                       "order": 3,
                       "parameters": {
@@ -92,7 +92,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-5\u003e",
                       "name": "json_extract",
                       "order": 4,
                       "parameters": {
@@ -107,7 +107,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-6\u003e",
                       "name": "replace",
                       "order": 5,
                       "parameters": {
@@ -122,7 +122,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-7\u003e",
                       "name": "timestamp",
                       "order": 6,
                       "parameters": {
@@ -136,7 +136,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-8\u003e",
                       "name": "remove",
                       "order": 7,
                       "parameters": {
@@ -152,7 +152,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-9\u003e",
                       "name": "stringify",
                       "order": 8,
                       "parameters": {
@@ -166,7 +166,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-10\u003e",
                       "name": "extract",
                       "order": 9,
                       "parameters": {
@@ -179,7 +179,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-11\u003e",
                       "name": "json_parse",
                       "order": 10,
                       "parameters": {
@@ -238,13 +238,13 @@
               "ruleSubgroups": [
                 {
                   "enabled": true,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-1\u003e",
                   "order": 1,
                   "rules": [
                     {
                       "description": "d",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-2\u003e",
                       "name": "parse",
                       "order": 1,
                       "parameters": {
@@ -258,7 +258,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-3\u003e",
                       "name": "block",
                       "order": 2,
                       "parameters": {
@@ -272,7 +272,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-4\u003e",
                       "name": "allow",
                       "order": 3,
                       "parameters": {
@@ -286,7 +286,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-5\u003e",
                       "name": "json_extract",
                       "order": 4,
                       "parameters": {
@@ -301,7 +301,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-6\u003e",
                       "name": "replace",
                       "order": 5,
                       "parameters": {
@@ -316,7 +316,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-7\u003e",
                       "name": "timestamp",
                       "order": 6,
                       "parameters": {
@@ -330,7 +330,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-8\u003e",
                       "name": "remove",
                       "order": 7,
                       "parameters": {
@@ -346,7 +346,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-9\u003e",
                       "name": "stringify",
                       "order": 8,
                       "parameters": {
@@ -360,7 +360,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-10\u003e",
                       "name": "extract",
                       "order": 9,
                       "parameters": {
@@ -373,7 +373,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-11\u003e",
                       "name": "json_parse",
                       "order": 10,
                       "parameters": {
@@ -412,13 +412,13 @@
               "ruleSubgroups": [
                 {
                   "enabled": false,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-12\u003e",
                   "order": 1,
                   "rules": [
                     {
                       "description": "parse",
                       "enabled": false,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-13\u003e",
                       "name": "p",
                       "order": 1,
                       "parameters": {
@@ -456,13 +456,13 @@
               "ruleSubgroups": [
                 {
                   "enabled": false,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-12\u003e",
                   "order": 1,
                   "rules": [
                     {
                       "description": "parse",
                       "enabled": false,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-13\u003e",
                       "name": "p",
                       "order": 1,
                       "parameters": {
@@ -500,13 +500,13 @@
               "ruleSubgroups": [
                 {
                   "enabled": true,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-14\u003e",
                   "order": 1,
                   "rules": [
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-15\u003e",
                       "name": "r",
                       "order": 1,
                       "parameters": {
@@ -543,13 +543,13 @@
               "ruleSubgroups": [
                 {
                   "enabled": true,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-14\u003e",
                   "order": 1,
                   "rules": [
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-15\u003e",
                       "name": "r",
                       "order": 1,
                       "parameters": {
@@ -616,13 +616,13 @@
               "ruleSubgroups": [
                 {
                   "enabled": true,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-1\u003e",
                   "order": 1,
                   "rules": [
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-2\u003e",
                       "name": "r",
                       "order": 1,
                       "parameters": {
@@ -659,13 +659,13 @@
               "ruleSubgroups": [
                 {
                   "enabled": true,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-3\u003e",
                   "order": 1,
                   "rules": [
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-4\u003e",
                       "name": "r",
                       "order": 1,
                       "parameters": {
@@ -702,13 +702,13 @@
               "ruleSubgroups": [
                 {
                   "enabled": true,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-5\u003e",
                   "order": 1,
                   "rules": [
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-6\u003e",
                       "name": "r",
                       "order": 1,
                       "parameters": {
@@ -745,13 +745,13 @@
               "ruleSubgroups": [
                 {
                   "enabled": true,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-7\u003e",
                   "order": 1,
                   "rules": [
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-8\u003e",
                       "name": "r",
                       "order": 1,
                       "parameters": {
@@ -797,13 +797,13 @@
               "ruleSubgroups": [
                 {
                   "enabled": true,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-1\u003e",
                   "order": 1,
                   "rules": [
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-2\u003e",
                       "name": "c",
                       "order": 5,
                       "parameters": {
@@ -817,13 +817,13 @@
                 },
                 {
                   "enabled": true,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-3\u003e",
                   "order": 2,
                   "rules": [
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-4\u003e",
                       "name": "a",
                       "order": 1,
                       "parameters": {
@@ -836,7 +836,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-5\u003e",
                       "name": "b",
                       "order": 2,
                       "parameters": {
@@ -887,13 +887,13 @@
               "ruleSubgroups": [
                 {
                   "enabled": true,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-1\u003e",
                   "order": 1,
                   "rules": [
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-2\u003e",
                       "name": "je",
                       "order": 1,
                       "parameters": {
@@ -907,7 +907,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-3\u003e",
                       "name": "ts",
                       "order": 2,
                       "parameters": {
@@ -921,7 +921,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-4\u003e",
                       "name": "jp",
                       "order": 3,
                       "parameters": {
@@ -936,7 +936,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-5\u003e",
                       "name": "rp",
                       "order": 4,
                       "parameters": {
@@ -951,7 +951,7 @@
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-6\u003e",
                       "name": "pa",
                       "order": 5,
                       "parameters": {
@@ -1124,13 +1124,13 @@
               "ruleSubgroups": [
                 {
                   "enabled": true,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-1\u003e",
                   "order": 1,
                   "rules": [
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-2\u003e",
                       "name": "r",
                       "order": 1,
                       "parameters": {
@@ -1159,21 +1159,21 @@
           "status": 404,
           "response": {
             "code": 404,
-            "message": "Not Found: RuleGroup not found: \u003cuuid\u003e"
+            "message": "Not Found: RuleGroup not found: \u003cuuid-1\u003e"
           }
         },
         {
           "status": 404,
           "response": {
             "code": 404,
-            "message": "Not Found: RuleGroup not found: \u003cuuid\u003e"
+            "message": "Not Found: RuleGroup not found: \u003cuuid-1\u003e"
           }
         },
         {
           "status": 404,
           "response": {
             "code": 404,
-            "message": "Not Found: RuleGroup not found: \u003cuuid\u003e"
+            "message": "Not Found: RuleGroup not found: \u003cuuid-1\u003e"
           }
         }
       ]
@@ -1202,13 +1202,13 @@
               "ruleSubgroups": [
                 {
                   "enabled": true,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-1\u003e",
                   "order": 1,
                   "rules": [
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-2\u003e",
                       "name": "r",
                       "order": 1,
                       "parameters": {
@@ -1245,13 +1245,13 @@
               "ruleSubgroups": [
                 {
                   "enabled": true,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-3\u003e",
                   "order": 1,
                   "rules": [
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-4\u003e",
                       "name": "r",
                       "order": 1,
                       "parameters": {
@@ -1288,13 +1288,13 @@
               "ruleSubgroups": [
                 {
                   "enabled": true,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-5\u003e",
                   "order": 1,
                   "rules": [
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-6\u003e",
                       "name": "r",
                       "order": 1,
                       "parameters": {
@@ -1331,13 +1331,13 @@
               "ruleSubgroups": [
                 {
                   "enabled": true,
-                  "id": "\u003cuuid\u003e",
+                  "id": "\u003cuuid-3\u003e",
                   "order": 1,
                   "rules": [
                     {
                       "description": "",
                       "enabled": true,
-                      "id": "\u003cuuid\u003e",
+                      "id": "\u003cuuid-4\u003e",
                       "name": "r",
                       "order": 1,
                       "parameters": {
