@@ -597,6 +597,15 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 			return err
 		}
 		a.Validators = append(a.Validators, expr)
+		if (v.Enum || v.EnumExceptZero) && (a.ValueKind == "List" || a.ValueKind == "Set") {
+			// The acceptance test picks an element from the element validators, so they name the
+			// Terraform values of the enums line, not the API values of the contract.
+			oneOf, err := enumOneOf(a, file, v.EnumExceptZero)
+			if err != nil {
+				return err
+			}
+			a.ElemValidators = append(slices.DeleteFunc(a.ElemValidators, func(e string) bool { return strings.HasPrefix(e, "stringvalidator.OneOf") }), oneOf)
+		}
 	}
 	return nil
 }

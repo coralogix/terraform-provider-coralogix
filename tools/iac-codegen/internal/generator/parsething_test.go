@@ -112,3 +112,31 @@ func TestParseThingKeysRefuseOtherShapes(t *testing.T) {
 		})
 	}
 }
+
+// The acceptance test makes up an element of an enum set from the Terraform values of the enums
+// line, also when validators.inferred is false and an enum: true line adds the validator.
+func TestParseThingAcceptanceUsesTerraformEnumValues(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "parsething.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	acceptance := filepath.Join(dir, "acceptance.yaml")
+	if err := os.WriteFile(acceptance, []byte("resource: ParseThing\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(dir, "parsething")
+	options := Options{Resource: "ParseThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "parsething-overrides.yaml"), AcceptancePath: acceptance}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	test, err := os.ReadFile(filepath.Join(out, "acceptance_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(test), `severities = ["debug"]`) || strings.Contains(string(test), "SEVERITY_") {
+		t.Fatalf("the acceptance configs do not set severities to a Terraform value:\n%s", test)
+	}
+}
