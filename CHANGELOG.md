@@ -2,10 +2,14 @@
 
 #### resource/coralogix_parsing_rules
 - CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the requests are the same. A rule group created without `active` is still created inactive, and one without `order` is still added last.
+- FIX: An update of a rule group without `order` in the configuration keeps its place. Before, every update sent `order = 0`, which the API reads as "after every other group", so changing only the description moved the group to the end of the processing order. A new rule group without `order` is still added last. Removing `order` from the configuration now keeps the current order; set a value to move the group.
 - FIX: Destroy of a rule group that was deleted outside Terraform succeeds. Before, it failed with the 404 of the API.
 - FIX: An update of a rule group that was deleted outside Terraform fails with `Resource no longer exists`, and the next refresh removes it from state. Before, it failed with the raw 404 of the API.
 - CHORE: A rule with no type, or with two, reports `Invalid Attribute Combination` at `block` instead of `parse`. The rule is the same: exactly one type per rule.
 - CHORE: API errors read `Unable to create parsing_rules`, `Unable to update parsing_rules`, and `Unable to read parsing_rules` instead of `Error creating coralogix_parsing_rules`, and so on. A refresh that finds the rule group deleted warns `Resource disappeared during read`.
+- CHORE: A refresh that gets a 404 of a route that does not exist fails instead of removing the rule group from state. A severity, format standard, or destination field that the provider does not know fails the read instead of reading as `""`.
+- CHORE: A rule that the API returns without parameters reads as a rule with no type set. Before, it was left out of the list.
+- CHORE: When Create succeeds but its response cannot be written to state, the state keeps the id, so Terraform marks the rule group tainted and the next apply replaces it, instead of leaving it outside Terraform.
 - CHORE: Create and Update send the rule matchers grouped by kind: applications, then severities, then subsystems. The attributes are sets, so plans do not change.
 - FEAT: The resource has a generated acceptance test, and an upgrade test from 3.23.0.
 
