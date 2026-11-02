@@ -35,18 +35,28 @@ const tcoFidelityDir = "testdata/tco_policies_baseline"
 // keep the fake in line with those answers. This test skips when recorded.json does not exist.
 func TestTCOPoliciesFakeMatchesRecordedBackend(t *testing.T) {
 	cases, recorded := loadFidelityAt(t, tcoFidelityDir)
-	fake := &tcoFake{}
 	for ci, c := range cases.Cases {
 		t.Run(c.Name, func(t *testing.T) {
 			rc := recorded.Cases[ci]
 			if rc.Name != c.Name || len(rc.Steps) != len(c.Steps) {
 				t.Fatalf("recorded.json does not match cases.json for %q: record again", c.Name)
 			}
+			// The recorder ran the cases in order on one tenant, so a case starts with the policies
+			// that the cases before it left. Replay them on a new fake, so that -run selects one case.
+			fake := &tcoFake{}
+			send := func(s fidelityStep) (int, any) {
+				fake.mu.Lock()
+				defer fake.mu.Unlock()
+				return fake.handle(s.Method, tcoBasePath+s.Path, roundTrip(t, s.Body))
+			}
+			for _, prior := range cases.Cases[:ci] {
+				for _, s := range prior.Steps {
+					send(s)
+				}
+			}
 			for si, s := range c.Steps {
 				label := fmt.Sprintf("step %d: %s %s %s", si+1, s.Method, s.Path, compact(s.Body))
-				fake.mu.Lock()
-				status, resp := fake.handle(s.Method, tcoBasePath+s.Path, roundTrip(t, s.Body))
-				fake.mu.Unlock()
+				status, resp := send(s)
 				compareFidelityStep(t, label, status, tcoMask(roundTrip(t, resp)), rc.Steps[si].Status, rc.Steps[si].Response)
 			}
 		})
