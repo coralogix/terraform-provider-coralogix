@@ -716,6 +716,10 @@ func proposedNew(attrs []*tfprotov6.SchemaAttribute, prior, cfg tftypes.Value) t
 }
 
 func proposedNested(o *tfprotov6.SchemaObject, prior tftypes.Value, hasPrior bool, cfg tftypes.Value) tftypes.Value {
+	if !cfg.IsKnown() {
+		// Terraform core keeps a configuration that is not known at all, such as a variable.
+		return cfg
+	}
 	if !hasPrior {
 		prior = tftypes.NewValue(cfg.Type(), nil)
 	}
@@ -897,33 +901,53 @@ func inconsistent(path string, planned, actual tftypes.Value, out *[]string) {
 			inconsistent(fmt.Sprintf("%s[%d]", path, i), pl[i], al[i], out)
 		}
 	case planned.Type().Is(tftypes.Set{}) && !planned.IsFullyKnown():
-		// As Terraform core does, each planned item that has unknown values must match an item of
-		// the result, and each item of the result must match a planned item.
+		// As Terraform core does, the planned items, which have unknown values, and the items of the
+		// result must pair one to one.
 		var ps, as []tftypes.Value
 		_ = planned.As(&ps)
 		_ = actual.As(&as)
-		matches := func(p, a tftypes.Value) bool {
-			var found []string
-			inconsistent("", p, a, &found)
-			return len(found) == 0
-		}
-		for _, p := range ps {
-			if !slices.ContainsFunc(as, func(a tftypes.Value) bool { return matches(p, a) }) {
-				*out = append(*out, at)
-				return
-			}
-		}
-		for _, a := range as {
-			if !slices.ContainsFunc(ps, func(p tftypes.Value) bool { return matches(p, a) }) {
-				*out = append(*out, at)
-				return
-			}
+		if len(ps) != len(as) || !pairSetItems(ps, as) {
+			*out = append(*out, at)
 		}
 	default:
 		if !planned.Equal(actual) {
 			*out = append(*out, at)
 		}
 	}
+}
+
+// pairSetItems reports whether every planned item pairs with its own item of the result, where an
+// unknown planned value matches any value (a bipartite matching by augmenting paths).
+func pairSetItems(planned, actual []tftypes.Value) bool {
+	matches := func(p, a tftypes.Value) bool {
+		var found []string
+		inconsistent("", p, a, &found)
+		return len(found) == 0
+	}
+	owner := make([]int, len(actual))
+	for i := range owner {
+		owner[i] = -1
+	}
+	var assign func(p int, seen []bool) bool
+	assign = func(p int, seen []bool) bool {
+		for a := range actual {
+			if seen[a] || !matches(planned[p], actual[a]) {
+				continue
+			}
+			seen[a] = true
+			if owner[a] < 0 || assign(owner[a], seen) {
+				owner[a] = p
+				return true
+			}
+		}
+		return false
+	}
+	for p := range planned {
+		if !assign(p, make([]bool, len(actual))) {
+			return false
+		}
+	}
+	return true
 }
 
 func sortedKeys(m map[string]tftypes.Value) []string {
@@ -1046,4 +1070,30 @@ func marshalGolden(t *testing.T, v any) []byte {
 		t.Fatal(err)
 	}
 	return b.Bytes()
+}
+
+// A planned set with unknown values pairs one to one with the result: one planned item cannot
+// stand for two items of the result, and two planned items cannot share one.
+func TestInconsistentSetPairsItemsOneToOne(t *testing.T) {
+	obj := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"name": tftypes.String, "n": tftypes.Number}}
+	set := tftypes.Set{ElementType: obj}
+	item := func(name string, n any) tftypes.Value {
+		return tftypes.NewValue(obj, map[string]tftypes.Value{"name": tftypes.NewValue(tftypes.String, name), "n": tftypes.NewValue(tftypes.Number, n)})
+	}
+	known := func(n float64) any { return big.NewFloat(n) }
+	for _, test := range []struct {
+		name            string
+		planned, actual []tftypes.Value
+		want            bool
+	}{
+		{"pairs", []tftypes.Value{item("a", tftypes.UnknownValue), item("b", known(2))}, []tftypes.Value{item("b", known(2)), item("a", known(1))}, false},
+		{"an extra item in the result", []tftypes.Value{item("a", tftypes.UnknownValue)}, []tftypes.Value{item("a", known(1)), item("a", known(2))}, true},
+		{"two planned items for one item", []tftypes.Value{item("a", tftypes.UnknownValue), item("a", known(1))}, []tftypes.Value{item("a", known(1)), item("b", known(1))}, true},
+	} {
+		var out []string
+		inconsistent("", tftypes.NewValue(set, test.planned), tftypes.NewValue(set, test.actual), &out)
+		if got := len(out) != 0; got != test.want {
+			t.Errorf("%s: inconsistent = %v, want %t", test.name, out, test.want)
+		}
+	}
 }

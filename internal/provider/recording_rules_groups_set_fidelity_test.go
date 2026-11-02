@@ -166,10 +166,14 @@ func recordRRStep(t *testing.T, base, apiKey string, s fidelityStep, vars map[st
 	} else {
 		parsed = map[string]any{}
 	}
-	if s.Capture != "" && resp.StatusCode == http.StatusOK {
+	// Every set that a POST created is deleted afterwards, also one that the case expected the API
+	// to refuse. Capture only names the id for the later steps.
+	if s.Method == http.MethodPost && resp.StatusCode == http.StatusOK {
 		if id := rrIDOf(parsed); id != "" {
-			vars[s.Capture] = id
 			*created = append(*created, id)
+			if s.Capture != "" {
+				vars[s.Capture] = id
+			}
 		}
 	}
 	return resp.StatusCode, rrNormalize(unsubstJSON(t, parsed, vars))
