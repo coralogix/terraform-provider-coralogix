@@ -1,5 +1,19 @@
 # Unreleased
 
+#### resource/coralogix_parsing_rules
+- CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the requests are the same. A rule group created without `active` is still created inactive, and one without `order` is still added last.
+- FIX: Destroy of a rule group that was deleted outside Terraform succeeds. Before, it failed with the 404 of the API.
+- FIX: An update of a rule group that was deleted outside Terraform fails with `Resource no longer exists`, and the next refresh removes it from state. Before, it failed with the raw 404 of the API.
+- CHORE: A rule with no type, or with two, reports `Invalid Attribute Combination` at `block` instead of `parse`. The rule is the same: exactly one type per rule.
+- CHORE: API errors read `Unable to create parsing_rules`, `Unable to update parsing_rules`, and `Unable to read parsing_rules` instead of `Error creating coralogix_parsing_rules`, and so on. A refresh that finds the rule group deleted warns `Resource disappeared during read`.
+- CHORE: Create and Update send the rule matchers grouped by kind: applications, then severities, then subsystems. The attributes are sets, so plans do not change.
+- FEAT: The resource has a generated acceptance test, and an upgrade test from 3.23.0.
+
+#### data-source/coralogix_parsing_rules
+- CHORE: The data source is generated with the resource and uses its schema.
+- FIX: A read of an id that does not exist fails with `coralogix_parsing_rules not found`. Before, it warned that the rule group would be recreated, which a data source cannot do, and returned no data.
+- CHORE: API errors read `Unable to read coralogix_parsing_rules` instead of `Error reading coralogix_parsing_rules`.
+
 #### resource/coralogix_archive_metrics
 - CHORE: The resource is generated from the API contract. The requests are the same. A plan of a metrics archive that 3.23.0 created from the same configuration shows no change.
 - FIX: `retention_policy` is no longer computed. A configuration without it now clears the retention policy, also one that was set outside Terraform or came with an import: the first plan after the upgrade shows `retention_policy` removed. Before, the plan showed no change and the API kept the policy. Add `retention_policy` to the configuration to keep it.

@@ -20,8 +20,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
@@ -751,7 +749,11 @@ func TestAccCoralogixResourceParsingRulesOrder(t *testing.T) {
 }
 
 func testAccCheckParsingRuleDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).ParsingRuleGroups()
+	cs, err := testAccNewClientSet()
+	if err != nil {
+		return err
+	}
+	client := cs.ParsingRuleGroups()
 
 	ctx := context.TODO()
 
