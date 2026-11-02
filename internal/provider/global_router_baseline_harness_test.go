@@ -753,8 +753,100 @@ func proposedNested(o *tfprotov6.SchemaObject, prior tftypes.Value, hasPrior boo
 			out[k] = proposedNew(o.Attributes, pi, c)
 		}
 		return tftypes.NewValue(cfg.Type(), out)
+	case tfprotov6.SchemaObjectNestingModeSet:
+		// Terraform core pairs each configured item with an unused prior item that differs only in
+		// computed values that the config leaves null, and takes those values from it
+		// (proposedNewNestingSet).
+		var cs, ps []tftypes.Value
+		_ = cfg.As(&cs)
+		if !prior.IsNull() && prior.IsKnown() {
+			_ = prior.As(&ps)
+		}
+		used := make([]bool, len(ps))
+		out := make([]tftypes.Value, len(cs))
+		for i, c := range cs {
+			pi := tftypes.NewValue(c.Type(), nil)
+			for k, p := range ps {
+				if !used[k] && validPriorFromConfig(o, p, c) {
+					pi, used[k] = p, true
+					break
+				}
+			}
+			out[i] = proposedNew(o.Attributes, pi, c)
+		}
+		return tftypes.NewValue(cfg.Type(), out)
 	}
 	return cfg
+}
+
+// validPriorFromConfig reports whether prior can be the prior value of the configured set item
+// cfg, as Terraform core decides it: every value that differs is a computed leaf that the config
+// leaves null, and no differing value is a set.
+func validPriorFromConfig(o *tfprotov6.SchemaObject, prior, cfg tftypes.Value) bool {
+	if prior.Equal(cfg) {
+		return true
+	}
+	if prior.IsNull() || !prior.IsKnown() || cfg.IsNull() || !cfg.IsKnown() {
+		return prior.IsNull()
+	}
+	var p, c map[string]tftypes.Value
+	_ = prior.As(&p)
+	_ = cfg.As(&c)
+	for _, a := range o.Attributes {
+		pv, cv := p[a.Name], c[a.Name]
+		if pv.Equal(cv) {
+			continue
+		}
+		if cv.Type().Is(tftypes.Set{}) {
+			return false
+		}
+		if a.NestedType != nil {
+			if !validPriorNested(a.NestedType, pv, cv) {
+				return false
+			}
+			continue
+		}
+		if !a.Computed || !cv.IsNull() {
+			return false
+		}
+	}
+	return true
+}
+
+func validPriorNested(o *tfprotov6.SchemaObject, prior, cfg tftypes.Value) bool {
+	if prior.IsNull() {
+		return true
+	}
+	if cfg.IsNull() || !cfg.IsKnown() {
+		return false
+	}
+	switch o.Nesting {
+	case tfprotov6.SchemaObjectNestingModeList:
+		var ps, cs []tftypes.Value
+		_ = prior.As(&ps)
+		_ = cfg.As(&cs)
+		if len(ps) > len(cs) {
+			return false
+		}
+		for i := range ps {
+			if !validPriorFromConfig(o, ps[i], cs[i]) {
+				return false
+			}
+		}
+		return true
+	case tfprotov6.SchemaObjectNestingModeMap:
+		var ps, cs map[string]tftypes.Value
+		_ = prior.As(&ps)
+		_ = cfg.As(&cs)
+		for k, pv := range ps {
+			cv, ok := cs[k]
+			if !ok || !validPriorFromConfig(o, pv, cv) {
+				return false
+			}
+		}
+		return true
+	}
+	return validPriorFromConfig(o, prior, cfg)
 }
 
 // inconsistent appends the paths where a known planned value differs from the applied value.
