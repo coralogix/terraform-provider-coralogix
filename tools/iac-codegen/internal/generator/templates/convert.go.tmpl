@@ -1835,9 +1835,21 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{- end}}
 {{- else if eq .Conv "empty"}}
 	{{- if .ObjectValue}}
-	out.{{.Model}} = types.ObjectNull(map[string]attr.Type{})
+	out.{{.Model}} = types.ObjectNull(map[string]attr.Type{
+		{{- range .Object.AttrTypes}}
+		{{printf "%q" .TFName}}: {{.Expr}},
+		{{- end}}
+	})
 	if {{.Src}} != nil {
-		value, valueDiags := types.ObjectValue(map[string]attr.Type{}, map[string]attr.Value{})
+		value, valueDiags := types.ObjectValue(map[string]attr.Type{
+			{{- range .Object.AttrTypes}}
+			{{printf "%q" .TFName}}: {{.Expr}},
+			{{- end}}
+		}, map[string]attr.Value{
+			{{- range .Object.ExtraFlatten}}
+			{{printf "%q" .TFName}}: {{.Expr}},
+			{{- end}}
+		})
 		diags.Append(valueDiags...)
 		out.{{.Model}} = value
 	}

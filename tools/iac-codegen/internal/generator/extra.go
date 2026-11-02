@@ -9,8 +9,9 @@ import (
 )
 
 type extraFlatten struct {
-	Name string // Go field
-	Expr string // typed null, for example types.MapNull(types.StringType)
+	Name   string // Go field
+	TFName string // Terraform attribute name
+	Expr   string // typed null, for example types.MapNull(types.StringType)
 }
 
 func extraElem(elementType string) (tfType, nullExpr string, err error) {
@@ -33,12 +34,12 @@ func attachExtraAttributes(out *tfResource, file *overrides.File) error {
 	computedExtra := false
 	for _, component := range extraComponents(file) {
 		extras := file.Types[component].ExtraAttributes
-		parent, model, err := extraParent(out, file.Resource, component)
+		model, parents, err := extraParents(out, file.Resource, component)
 		if err != nil {
 			return err
 		}
 		for _, name := range extraNames(extras) {
-			if attrNamed(parent, name) || fieldNamed(model, name) {
+			if fieldNamed(model, name) || extraAttrNamed(out, file.Resource, component, parents, name) {
 				return fmt.Errorf("types.%s.extraAttributes.%s: the generated object already has this attribute", component, name)
 			}
 			extra := extras[name]
@@ -47,7 +48,13 @@ func attachExtraAttributes(out *tfResource, file *overrides.File) error {
 			if err != nil {
 				return fmt.Errorf("types.%s.extraAttributes.%s: %w", component, name, err)
 			}
-			parent = append(parent, attribute)
+			if component == file.Resource {
+				out.Attributes = append(out.Attributes, attribute)
+			} else {
+				for _, parent := range parents {
+					parent.Attributes = append(parent.Attributes, attribute)
+				}
+			}
 			model.Fields = append(model.Fields, field)
 			if err := attachConvExtra(out.Conv, model.Name, name, camelize(name), attrType, nullExpr); err != nil {
 				return fmt.Errorf("types.%s.extraAttributes.%s: %w", component, name, err)
@@ -55,9 +62,6 @@ func attachExtraAttributes(out *tfResource, file *overrides.File) error {
 			if err := attachExtraBehavior(out, file.Resource, component, name, extra); err != nil {
 				return err
 			}
-		}
-		if err := setExtraParent(out, file.Resource, component, parent); err != nil {
-			return err
 		}
 	}
 	if computedExtra {
@@ -114,30 +118,31 @@ func extraNames(extras map[string]overrides.ExtraAttribute) []string {
 	return names
 }
 
-func extraParent(out *tfResource, resource, component string) ([]*tfAttr, *tfModel, error) {
+func extraParents(out *tfResource, resource, component string) (*tfModel, []*tfAttr, error) {
 	model := extraModel(out, component)
 	if model == nil {
 		return nil, nil, fmt.Errorf("types.%s.extraAttributes: no generated model for this component", component)
 	}
 	if component == resource {
-		return out.Attributes, model, nil
+		return model, nil, nil
 	}
-	attrs := nestedAttrsOf(out.Attributes, component)
-	if attrs == nil {
+	parents := nestedAttrParents(out.Attributes, component)
+	if len(parents) == 0 {
 		return nil, nil, fmt.Errorf("types.%s.extraAttributes: no generated nested object for this component", component)
 	}
-	return attrs, model, nil
+	return model, parents, nil
 }
 
-func setExtraParent(out *tfResource, resource, component string, attrs []*tfAttr) error {
+func extraAttrNamed(out *tfResource, resource, component string, parents []*tfAttr, name string) bool {
 	if component == resource {
-		out.Attributes = attrs
-		return nil
+		return attrNamed(out.Attributes, name)
 	}
-	if setNestedAttrs(out.Attributes, component, attrs) {
-		return nil
+	for _, parent := range parents {
+		if attrNamed(parent.Attributes, name) {
+			return true
+		}
 	}
-	return fmt.Errorf("types.%s.extraAttributes: no generated nested object for this component", component)
+	return false
 }
 
 func extraModel(out *tfResource, component string) *tfModel {
@@ -150,32 +155,15 @@ func extraModel(out *tfResource, component string) *tfModel {
 	return nil
 }
 
-func nestedAttrsOf(attrs []*tfAttr, component string) []*tfAttr {
+func nestedAttrParents(attrs []*tfAttr, component string) []*tfAttr {
+	var parents []*tfAttr
 	for _, a := range attrs {
 		if a.ObjectComponent == component {
-			if a.Attributes == nil {
-				return []*tfAttr{}
-			}
-			return a.Attributes
+			parents = append(parents, a)
 		}
-		if found := nestedAttrsOf(a.Attributes, component); found != nil {
-			return found
-		}
+		parents = append(parents, nestedAttrParents(a.Attributes, component)...)
 	}
-	return nil
-}
-
-func setNestedAttrs(attrs []*tfAttr, component string, next []*tfAttr) bool {
-	for _, a := range attrs {
-		if a.ObjectComponent == component {
-			a.Attributes = next
-			return true
-		}
-		if setNestedAttrs(a.Attributes, component, next) {
-			return true
-		}
-	}
-	return false
+	return parents
 }
 
 func attrNamed(attrs []*tfAttr, name string) bool {
@@ -247,10 +235,10 @@ func attachConvExtra(conv *convData, model, tfName, goName, attrType, nullExpr s
 				Expr:   attrType,
 			})
 		}
-		obj.ExtraFlatten = append(obj.ExtraFlatten, extraFlatten{Name: goName, Expr: nullExpr})
+		obj.ExtraFlatten = append(obj.ExtraFlatten, extraFlatten{Name: goName, TFName: tfName, Expr: nullExpr})
 	}
 	if !matched {
-		matched = attachEmptyConvExtra(conv, model, goName, nullExpr)
+		matched = attachEmptyConvExtra(conv, model, tfName, goName, attrType, nullExpr)
 	}
 	if !matched {
 		return fmt.Errorf("no flatten conversion for model %s", model)
@@ -260,17 +248,20 @@ func attachConvExtra(conv *convData, model, tfName, goName, attrType, nullExpr s
 
 // An API object with no fields uses the empty-object conversion instead of its own flatten
 // function. The Terraform model can still have extra attributes that need typed nulls.
-func attachEmptyConvExtra(conv *convData, model, goName, nullExpr string) bool {
+func attachEmptyConvExtra(conv *convData, model, tfName, goName, attrType, nullExpr string) bool {
 	var matched bool
 	for _, obj := range conv.Objects {
 		if !obj.Flatten {
 			continue
 		}
 		for _, field := range obj.Fields {
-			if field.Conv != convEmpty || field.Object.Model != model || field.ObjectValue {
+			if field.Conv != convEmpty || field.Object.Model != model {
 				continue
 			}
-			field.Object.ExtraFlatten = append(field.Object.ExtraFlatten, extraFlatten{Name: goName, Expr: nullExpr})
+			if field.ObjectValue {
+				field.Object.AttrTypes = append(field.Object.AttrTypes, convAttrType{TFName: tfName, Expr: attrType})
+			}
+			field.Object.ExtraFlatten = append(field.Object.ExtraFlatten, extraFlatten{Name: goName, TFName: tfName, Expr: nullExpr})
 			matched = true
 		}
 	}
