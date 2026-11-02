@@ -67,7 +67,9 @@ env:
   # notification-center shard skips the alerts pattern.
   NON_DASHBOARD_SHARD_ALERTS_AND_SCHEDULER: &non_dashboard_shard_alerts_and_scheduler '^TestAccCoralogix.*Alert'
   NON_DASHBOARD_SHARD_NOTIFICATION_CENTER: &non_dashboard_shard_notification_center '^TestAccCoralogix.*(Webhook|Connector|Preset|Integration)'
-  NON_DASHBOARD_SHARD_DATA_PROCESSING: &non_dashboard_shard_data_processing '^TestAccCoralogix.*(ParsingRules|Enrichments?|DataSet|TCOPolicies)'
+  # The legacy rules-group resource and parsing-rules resource share account-wide order.
+  # Run their acceptance tests in one shard so one test cannot reorder another's group.
+  NON_DASHBOARD_SHARD_DATA_PROCESSING: &non_dashboard_shard_data_processing '^TestAccCoralogix.*(ParsingRules|ResourceRulesGroup|Enrichments?|DataSet|TCOPolicies)'
   # The user tests run one after another and are the slowest non-dashboard tests.
   # Three shards keep each job near three minutes.
   # Tests that change team-wide state (archives, global router, IP access) stay
