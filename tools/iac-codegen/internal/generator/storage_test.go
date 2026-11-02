@@ -53,6 +53,41 @@ func TestCheckAcceptsTheStorageContract(t *testing.T) {
 	}
 }
 
+// An empty Create response gives no id, so a singleton whose id comes from the API cannot keep
+// its identity when the read after Create fails. check and generation both refuse it, also when
+// the resource has the id field that singletonID.fromAPI reads.
+func TestEmptyCreateNeedsAFixedSingletonID(t *testing.T) {
+	dir := t.TempDir()
+	data, err := os.ReadFile(filepath.Join("testdata", "storage-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overrides := filepath.Join(dir, "behavior-overrides.yaml")
+	fromAPI := replaceOnce(t, string(data), "singletonID: {fixed: storage-thing-settings}", "singletonID: {fromAPI: true}")
+	if err := os.WriteFile(overrides, []byte(fromAPI), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	spec, err := os.ReadFile(filepath.Join("testdata", "storage.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec = []byte(replaceOnce(t, string(spec), "        prefix: {type: string}\n", "        prefix: {type: string}\n        id: {type: string, readOnly: true}\n"))
+	specPath := filepath.Join(dir, "storage.yaml")
+	if err := os.WriteFile(specPath, spec, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	err = Check(CheckOptions{Resource: "StorageConfig", OpenAPIPath: specPath, OverridesPath: overrides})
+	if report := eligibilityReport(t, err); !hasIssue(report, "READ_BACK_SINGLETON_UNSUPPORTED", "behavior-overrides.yaml:singletonID.fromAPI") {
+		t.Fatalf("check report = %v, want READ_BACK_SINGLETON_UNSUPPORTED at singletonID.fromAPI", report)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	options := Options{Resource: "StorageConfig", OutputDir: filepath.Join(dir, "storagething"), OverridesPath: overrides}
+	if report := eligibilityReport(t, generateFromInput(options, input, loadDir)); !hasIssue(report, "READ_BACK_SINGLETON_UNSUPPORTED", "behavior-overrides.yaml:singletonID.fromAPI") {
+		t.Fatalf("generate report = %v, want READ_BACK_SINGLETON_UNSUPPORTED at singletonID.fromAPI", report)
+	}
+}
+
 // generateStorageThing generates the synthetic singleton like the metrics archive.
 func generateStorageThing(t *testing.T) string {
 	t.Helper()

@@ -278,11 +278,8 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	if err != nil {
 		return nil, fmt.Errorf("build validated resource: %w", err)
 	}
-	if resource.Singleton && resource.Create.Response.ID != "" {
-		// A singleton has no id to read it with after Create, and no id field to keep.
-		return nil, &EligibilityError{Report: issue.Report{{Code: "READ_BACK_SINGLETON_UNSUPPORTED", Location: overrides.FileName + ":api.createResponseOnlyIDProperty",
-			Message:     fmt.Sprintf("The resource %s is a singleton, so api.createResponseOnlyIDProperty has no id to read it back with.", resource.Name),
-			Remediation: "Delete api.createResponseOnlyIDProperty from the overrides."}}}
+	if report := readBackIssues(resource, file); len(report) != 0 {
+		return nil, &EligibilityError{Report: report}
 	}
 	dropUnusedList(resource, file)
 	if report = unwrapUsageIssues(resource, file); len(report) != 0 {
@@ -331,6 +328,24 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	}
 	return &validatedResource{resource: resource, refs: refs, overrides: file,
 		withoutDelete: validateWithoutDelete(data, resourceName, operationIDs, sdkModule, providerModule, file)}, nil
+}
+
+// readBackIssues reports a Create response that a singleton cannot read back from.
+func readBackIssues(resource *model.Resource, file *overrides.File) issue.Report {
+	switch {
+	case resource.Singleton && resource.Create.Response.ID != "":
+		// A singleton has no id to read it with after Create, and no id field to keep.
+		return issue.Report{{Code: "READ_BACK_SINGLETON_UNSUPPORTED", Location: overrides.FileName + ":api.createResponseOnlyIDProperty",
+			Message:     fmt.Sprintf("The resource %s is a singleton, so api.createResponseOnlyIDProperty has no id to read it back with.", resource.Name),
+			Remediation: "Delete api.createResponseOnlyIDProperty from the overrides."}}
+	case resource.Create.Response.Empty && file.IDFromAPI():
+		// When the read after an empty Create fails, the API has given no id, and the state
+		// would hold a made-up one.
+		return issue.Report{{Code: "READ_BACK_SINGLETON_UNSUPPORTED", Location: overrides.FileName + ":singletonID.fromAPI",
+			Message:     fmt.Sprintf("The Create response of %s has no fields, so it has no id, and singletonID.fromAPI needs the id of the API.", resource.Name),
+			Remediation: "Use singletonID.fixed, or a Create response that returns the resource."}}
+	}
+	return nil
 }
 
 // validateWithoutDelete validates the contract again without the Delete override. It returns the
