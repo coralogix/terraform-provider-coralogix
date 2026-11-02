@@ -1282,44 +1282,16 @@ func (b *tfBuilder) carryAttributes(p attrPath, t *model.Type, carry *model.Fiel
 			return nil, fmt.Errorf("%s.%s: carrySiblings needs arms that are object components; %s is not", t.Schema, carry.Name, arm.Name)
 		}
 		group.Arms = append(group.Arms, arm.Name)
-		held := *arm.Type
-		held.Fields = nil
-		for _, sibling := range t.Fields {
-			if sibling == carry || line.CarrySiblings.RequestValues[arm.Name][sibling.Name] != "" {
-				continue
-			}
-			b.carried[sibling] = t.Schema
-			held.Fields = append(held.Fields, sibling)
-		}
-		held.Fields = append(held.Fields, arm.Type.Fields...)
-		for _, folded := range sortedFoldsInto(line.CarrySiblings, arm.Name) {
-			flag := &model.Field{Name: folded.Flag, Type: &model.Type{Kind: model.Bool}, Behavior: model.Normal}
-			b.flags[flag] = folded
-			held.Fields = append(held.Fields, flag)
-		}
-		name := terraformName(b.policy, armComponent, arm.Name)
-		a := &tfAttr{Name: name, Kind: "SingleNested", ValueKind: "Object", Optional: true, Description: arm.Description, Component: armComponent, Property: arm.Name}
-		nested, err := b.objectAttributes(append(append(attrPath{}, p...), name), &held)
+		a, err := b.carryArm(p, t, carry, arm, line.CarrySiblings)
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", arm.Name, err)
+			return nil, err
 		}
-		a.Attributes = nested
 		attrs = append(attrs, a)
 		fields = append(fields, b.modelField(armComponent, arm.Name, arm.Type, model.Normal, false, false))
 	}
 	addGroupValidators(attrs, []model.OneOfGroup{group}, func(arm string) string { return terraformName(b.policy, armComponent, arm) })
-	if !group.AllowNone && len(attrs) > 0 {
-		// One ExactlyOneOf on the first arm names every arm, as the released resource had: a rule
-		// without an arm, or with two, gets one error, not one per arm.
-		var all []string
-		for _, a := range attrs {
-			all = append(all, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", a.Name))
-			a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return slices.Contains(a.GroupValidators, v) })
-			a.GroupValidators = nil
-		}
-		v := "objectvalidator.ExactlyOneOf(" + strings.Join(all, ", ") + ")"
-		attrs[0].Validators = append(attrs[0].Validators, v)
-		attrs[0].GroupValidators = []string{v}
+	if !group.AllowNone {
+		oneExactlyOneOf(attrs)
 	}
 	name := typeModelName(t)
 	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
@@ -1330,6 +1302,53 @@ func (b *tfBuilder) carryAttributes(p attrPath, t *model.Type, carry *model.Fiel
 		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
 	}
 	return attrs, nil
+}
+
+// carryArm is the attribute of one arm of a carrySiblings oneOf: the siblings of carry in t, the
+// fields of the arm, and the flags of the folds into it.
+func (b *tfBuilder) carryArm(p attrPath, t *model.Type, carry, arm *model.Field, c *overrides.Carry) (*tfAttr, error) {
+	held := *arm.Type
+	held.Fields = nil
+	for _, sibling := range t.Fields {
+		if sibling == carry || c.RequestValues[arm.Name][sibling.Name] != "" {
+			continue
+		}
+		b.carried[sibling] = t.Schema
+		held.Fields = append(held.Fields, sibling)
+	}
+	held.Fields = append(held.Fields, arm.Type.Fields...)
+	for _, folded := range sortedFoldsInto(c, arm.Name) {
+		flag := &model.Field{Name: folded.Flag, Type: &model.Type{Kind: model.Bool}, Behavior: model.Normal}
+		b.flags[flag] = folded
+		held.Fields = append(held.Fields, flag)
+	}
+	component := model.ComponentOf(carry.Type)
+	name := terraformName(b.policy, component, arm.Name)
+	a := &tfAttr{Name: name, Kind: "SingleNested", ValueKind: "Object", Optional: true, Description: arm.Description, Component: component, Property: arm.Name}
+	nested, err := b.objectAttributes(append(append(attrPath{}, p...), name), &held)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", arm.Name, err)
+	}
+	a.Attributes = nested
+	return a, nil
+}
+
+// oneExactlyOneOf replaces the group validators of the arms with one ExactlyOneOf on the first arm
+// that names every arm, as the released resource had: a rule without an arm, or with two, gets one
+// error, not one per arm.
+func oneExactlyOneOf(attrs []*tfAttr) {
+	if len(attrs) == 0 {
+		return
+	}
+	var all []string
+	for _, a := range attrs {
+		all = append(all, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", a.Name))
+		a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return slices.Contains(a.GroupValidators, v) })
+		a.GroupValidators = nil
+	}
+	v := "objectvalidator.ExactlyOneOf(" + strings.Join(all, ", ") + ")"
+	attrs[0].Validators = append(attrs[0].Validators, v)
+	attrs[0].GroupValidators = []string{v}
 }
 
 // checkCarry reports a carrySiblings line that names an arm or a sibling that t does not have, and
