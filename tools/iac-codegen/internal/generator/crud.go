@@ -13,6 +13,11 @@ import (
 // declared server default.
 type updateOnlyAttr struct{ Attr, Default string }
 
+type dynamicExtra struct {
+	TFName string // Terraform attribute in the plan or prior state
+	Model  string // Go field in the resource model
+}
+
 // crudData is the template data for the resource: CRUD, import, and the
 // provider data. Every SDK name comes from the checked sdkRefs.
 type crudData struct {
@@ -52,9 +57,9 @@ type crudData struct {
 	UpdateBodyIDValue bool
 	// Existing: the resource has users. The package exports Flatten for a handwritten data source.
 	Existing bool
-	// DynamicExtras are the Terraform names of the dynamic extra attributes of the resource. The API
-	// holds no value for them, so setState keeps the value of the plan or the prior state.
-	DynamicExtras []string
+	// DynamicExtras are the dynamic extra attributes of the resource. The API holds no value for
+	// them, so setState starts with the plan or prior state before AfterFlatten can change it.
+	DynamicExtras []dynamicExtra
 	// UpdateOnly are the attributes that Create cannot send. Create follows with an Update
 	// when the configuration sets another value than the one Create stored, or omits the
 	// attribute and Create stored another value than the declared server default.

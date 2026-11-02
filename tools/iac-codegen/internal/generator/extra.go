@@ -83,7 +83,7 @@ func attachExtraBehavior(out *tfResource, resource, component, name string, extr
 			return fmt.Errorf("types.%s.extraAttributes.%s: dynamic applies to an attribute of the resource %s: the state keeps the value of a dynamic attribute only at the top level", component, name, resource)
 		}
 		if out.CRUD != nil {
-			out.CRUD.DynamicExtras = append(out.CRUD.DynamicExtras, name)
+			out.CRUD.DynamicExtras = append(out.CRUD.DynamicExtras, dynamicExtra{TFName: name, Model: camelize(name)})
 		}
 	}
 	if extra.InUpdate {

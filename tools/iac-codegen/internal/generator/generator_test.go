@@ -3166,6 +3166,39 @@ func TestRequestShapeRuntimeSemantics(t *testing.T) {
 	compileGenerated(t, out, input)
 }
 
+func TestAfterFlattenOverridesPriorDynamicExtra(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "renamething.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.OpenAPI = spec
+	base, err := os.ReadFile(filepath.Join("testdata", "renamething-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	overridesPath := filepath.Join(dir, "overrides.yaml")
+	lines := strings.Replace(string(base), "mode: existing\n", "mode: existing\nafterFlatten: true\n", 1)
+	if err := os.WriteFile(overridesPath, []byte(lines), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "renamething")
+	if err := generateFromInput(Options{Resource: "RenameThing", OutputDir: out, OverridesPath: overridesPath}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"renamething_semantics_test.go", "renamething_after_flatten_test.go"} {
+		content, err := os.ReadFile(filepath.Join("testdata", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(out, name), content, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	compileGenerated(t, out, input)
+}
+
 // generateRenameThing generates the synthetic resource whose requests differ in shape from its read.
 func generateRenameThing(t *testing.T) string {
 	t.Helper()
