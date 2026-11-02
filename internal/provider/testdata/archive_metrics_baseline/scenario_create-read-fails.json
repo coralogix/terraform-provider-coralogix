@@ -9,9 +9,9 @@
     },
     "plan": {
       "ibm": null,
-      "id": "(unknown)",
+      "id": "archive-metrics-settings",
       "prefix": "(unknown)",
-      "retention_policy": "(unknown)",
+      "retention_policy": null,
       "s3": {
         "bucket": "metrics-bucket",
         "region": "eu-north-1"
@@ -37,13 +37,13 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_archive_metrics | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: tenant config store unavailable\"}\noperation - Read"
+      "error: Unable to create archive_metrics | set archive_metrics, but could not read it: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: tenant config store unavailable\"}"
     ],
     "state": {
       "ibm": null,
       "id": "archive-metrics-settings",
       "prefix": "(unknown)",
-      "retention_policy": "(unknown)",
+      "retention_policy": null,
       "s3": {
         "bucket": "metrics-bucket",
         "region": "eu-north-1"

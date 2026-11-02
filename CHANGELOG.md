@@ -1,5 +1,18 @@
 # Unreleased
 
+#### resource/coralogix_archive_metrics
+- CHORE: The resource is generated from the API contract. The requests are the same. A plan of a metrics archive that 3.23.0 created from the same configuration shows no change.
+- FIX: `retention_policy` is no longer computed. A configuration without it now clears the retention policy, also one that was set outside Terraform or came with an import: the first plan after the upgrade shows `retention_policy` removed. Before, the plan showed no change and the API kept the policy. Add `retention_policy` to the configuration to keep it.
+- CHORE: An import with any id stores `archive-metrics-settings`, the id that Create stores. Before, it kept the given id.
+- FIX: A refresh that gets a 404 for a missing route fails. Before, it removed the resource from state as if the metrics archive were gone.
+- CHORE: Destroy warns `Resource not deleted`: the API cannot remove the metrics archive, so it keeps its last configuration. Before, destroy was silent.
+- CHORE: API errors read `Unable to create archive_metrics`, `Unable to update archive_metrics`, and `Unable to read archive_metrics` instead of `Error creating coralogix_archive_metrics`, and so on. A refresh that finds no metrics archive warns `Resource disappeared during read`.
+
+#### data-source/coralogix_archive_metrics
+- CHORE: The data source is generated with the resource and uses its schema. `id` reads `archive-metrics-settings`; before, it was empty.
+- FIX: A read when no metrics archive exists fails with `coralogix_archive_metrics not found`. Before, it warned that the archive would be recreated, which a data source cannot do.
+- CHORE: API errors read `Unable to read coralogix_archive_metrics` instead of `Error reading coralogix_archive_metrics`.
+
 #### resource/coralogix_action
 - CHORE: The resource is generated from the API contract. The schema, the import by id, and the state version are the same. A plan with an action that was created by 3.22.1 shows no change.
 - FIX: An update of an action that was deleted outside Terraform fails with `Resource no longer exists` and the next refresh removes it from state. Before, it printed a warning with a pointer instead of the id, and Terraform failed with `Missing Resource State After Update`.

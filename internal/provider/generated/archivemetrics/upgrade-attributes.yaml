@@ -1,0 +1,18 @@
+# Written by coralogix-iac-codegen. Do not edit.
+# The attributes that the released provider of the upgrade test has. The upgrade test leaves out
+# every other attribute. The generator takes the list from the schema when upgradeFrom changes.
+from: 3.23.0
+attributes:
+    ibm: {type: SingleNested}
+    ibm.crn: {type: String, required: true}
+    ibm.endpoint: {type: String, required: true}
+    id: {type: String}
+    prefix: {type: String}
+    retention_policy: {type: SingleNested}
+    retention_policy.five_minutes_resolution: {type: Int64, required: true}
+    retention_policy.one_hour_resolution: {type: Int64, required: true}
+    retention_policy.raw_resolution: {type: Int64, required: true}
+    s3: {type: SingleNested}
+    s3.bucket: {type: String, required: true}
+    s3.region: {type: String, required: true}
+    tenant_id: {type: Int64}

@@ -9,9 +9,9 @@
     },
     "plan": {
       "ibm": null,
-      "id": "(unknown)",
+      "id": "archive-metrics-settings",
       "prefix": "(unknown)",
-      "retention_policy": "(unknown)",
+      "retention_policy": null,
       "s3": {
         "bucket": "metrics-bucket",
         "region": "eu-north-1"
@@ -59,7 +59,7 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_archive_metrics is in state, but no longer exists in Coralogix backend | coralogix_archive_metrics will be recreated when you apply"
+      "warning: Resource disappeared during read | archive_metrics with id archive-metrics-settings was not found. Terraform removed it from state."
     ],
     "state": null
   }

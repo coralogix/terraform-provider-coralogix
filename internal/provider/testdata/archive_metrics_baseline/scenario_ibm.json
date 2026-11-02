@@ -12,9 +12,9 @@
         "crn": "crn:v1:bluemix:public:cloud-object-storage:eu-de:a/0:0:bucket:metrics-bucket",
         "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
       },
-      "id": "(unknown)",
+      "id": "archive-metrics-settings",
       "prefix": "(unknown)",
-      "retention_policy": "(unknown)",
+      "retention_policy": null,
       "s3": null,
       "tenant_id": "(unknown)"
     },
@@ -73,6 +73,9 @@
   },
   {
     "step": "destroy",
+    "applyDiagnostics": [
+      "warning: Resource not deleted | The API cannot delete archive_metrics. Terraform removed it from state, and the API keeps its last configuration."
+    ],
     "state": null
   }
 ]
