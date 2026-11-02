@@ -52,7 +52,7 @@ func TestAccCoralogixResourceGlobalRouterMigration(t *testing.T) {
       description   = "migration"
       disabled      = true
       entity_labels = { team = "a" }
-      routing_labels = { environment = "%[1]v", service = "api" }
+      routing_labels = { environment = "tf-acc-global-router-migration-all-attributes", service = "api" }
       rules = [
         {
           name           = "first"
@@ -77,7 +77,7 @@ func TestAccCoralogixResourceGlobalRouterMigration(t *testing.T) {
       description   = "migration updated"
       disabled      = false
       entity_labels = { team = "b" }
-      routing_labels = { environment = "%[1]v", service = "api" }
+      routing_labels = { environment = "tf-acc-global-router-migration-all-attributes", service = "api" }
       rules = [
         {
           name        = "first"
@@ -94,7 +94,7 @@ func TestAccCoralogixResourceGlobalRouterMigration(t *testing.T) {
 			name: "deprecated-fallback",
 			initial: `
       description    = "migration"
-      routing_labels = { environment = "%[1]v" }
+      routing_labels = { environment = "tf-acc-global-router-migration-deprecated-fallback" }
       rules = [
         {
           name        = "first"
@@ -106,7 +106,7 @@ func TestAccCoralogixResourceGlobalRouterMigration(t *testing.T) {
       fallback = [{ connector_id = coralogix_connector.generic_https_example.id }]`,
 			updated: `
       description    = "migration updated"
-      routing_labels = { environment = "%[1]v" }
+      routing_labels = { environment = "tf-acc-global-router-migration-deprecated-fallback" }
       rules = [
         {
           name        = "first"
@@ -121,10 +121,10 @@ func TestAccCoralogixResourceGlobalRouterMigration(t *testing.T) {
 			name: "minimal",
 			initial: `
       description    = "migration"
-      routing_labels = { environment = "%[1]v" }`,
+      routing_labels = { environment = "tf-acc-global-router-migration-minimal" }`,
 			updated: `
       description    = "migration updated"
-      routing_labels = { environment = "%[1]v" }
+      routing_labels = { environment = "tf-acc-global-router-migration-minimal" }
       entity_labels  = { a = "b" }`,
 		},
 	}

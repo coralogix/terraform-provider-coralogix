@@ -22,6 +22,19 @@ values:
   rules[].condition: '"alertDef.priority == \"P1\""'
   rules[].targets[].connector_id: coralogix_connector.http.id
   fallback_targets[].target.connector_id: coralogix_connector.http.id
+  # Label values become meta labels, which the API never deletes and limits per tenant, so a value
+  # made up per run fills the limit. Routing labels are unique across routers, so these values
+  # differ from those of the other router tests; CI runs the live tests one at a time.
+  entity_labels: '{ key = "tf-acc-generated-global-router" }'
+  routing_labels.environment: '"tf-acc-generated-global-router"'
+  routing_labels.service: '"tf-acc-generated-global-router"'
+  routing_labels.team: '"tf-acc-generated-global-router"'
+
+updatedValues:
+  entity_labels: '{ key = "tf-acc-generated-global-router-updated" }'
+  routing_labels.environment: '"tf-acc-generated-global-router-updated"'
+  routing_labels.service: '"tf-acc-generated-global-router-updated"'
+  routing_labels.team: '"tf-acc-generated-global-router-updated"'
 
 skip:
   - fallback                          # deprecated; the API refuses it next to fallback_targets

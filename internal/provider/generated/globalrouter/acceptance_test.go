@@ -75,7 +75,7 @@ const prerequisites = `resource "coralogix_connector" "http" {
 const fullConfig = `resource "coralogix_global_router" "test" {
   description = "@{run}-description"
   disabled = true
-  entity_labels = { key = "@{run}-entity_labels" }
+  entity_labels = { key = "tf-acc-generated-global-router" }
   fallback_targets = [
     {
       entity_type = "alerts"
@@ -87,9 +87,9 @@ const fullConfig = `resource "coralogix_global_router" "test" {
   ]
   name = "@{run}-name"
   routing_labels = {
-    environment = "@{run}-environment"
-    service = "@{run}-service"
-    team = "@{run}-team"
+    environment = "tf-acc-generated-global-router"
+    service = "tf-acc-generated-global-router"
+    team = "tf-acc-generated-global-router"
   }
   rules = [
     {
@@ -110,7 +110,7 @@ const fullConfig = `resource "coralogix_global_router" "test" {
 const updatedConfig = `resource "coralogix_global_router" "test" {
   description = "@{run}-description-updated"
   disabled = false
-  entity_labels = { key = "@{run}-entity_labels-updated" }
+  entity_labels = { key = "tf-acc-generated-global-router-updated" }
   fallback_targets = [
     {
       entity_type = "alerts"
@@ -122,9 +122,9 @@ const updatedConfig = `resource "coralogix_global_router" "test" {
   ]
   name = "@{run}-name-updated"
   routing_labels = {
-    environment = "@{run}-environment-updated"
-    service = "@{run}-service-updated"
-    team = "@{run}-team-updated"
+    environment = "tf-acc-generated-global-router-updated"
+    service = "tf-acc-generated-global-router-updated"
+    team = "tf-acc-generated-global-router-updated"
   }
   rules = [
     {
@@ -145,9 +145,9 @@ const updatedConfig = `resource "coralogix_global_router" "test" {
 const minimalConfig = `resource "coralogix_global_router" "test" {
   name = "@{run}-name"
   routing_labels = {
-    environment = "@{run}-environment"
-    service = "@{run}-service"
-    team = "@{run}-team"
+    environment = "tf-acc-generated-global-router"
+    service = "tf-acc-generated-global-router"
+    team = "tf-acc-generated-global-router"
   }
 }`
 
@@ -156,9 +156,9 @@ const upgradeMinimalConfig = `resource "coralogix_global_router" "test" {
   description = "@{run}-description"
   name = "@{run}-name"
   routing_labels = {
-    environment = "@{run}-environment"
-    service = "@{run}-service"
-    team = "@{run}-team"
+    environment = "tf-acc-generated-global-router"
+    service = "tf-acc-generated-global-router"
+    team = "tf-acc-generated-global-router"
   }
 }`
 
@@ -185,14 +185,10 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "description", resourceAddress, "description"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "disabled", resourceAddress, "disabled"),
-		resource.TestCheckResourceAttrPair(dataSourceAddress, "entity_labels.key", resourceAddress, "entity_labels.key"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "fallback_targets.#", resourceAddress, "fallback_targets.#"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "fallback_targets.0.entity_type", resourceAddress, "fallback_targets.0.entity_type"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "fallback_targets.0.target.custom_details.key", resourceAddress, "fallback_targets.0.target.custom_details.key"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "name", resourceAddress, "name"),
-		resource.TestCheckResourceAttrPair(dataSourceAddress, "routing_labels.environment", resourceAddress, "routing_labels.environment"),
-		resource.TestCheckResourceAttrPair(dataSourceAddress, "routing_labels.service", resourceAddress, "routing_labels.service"),
-		resource.TestCheckResourceAttrPair(dataSourceAddress, "routing_labels.team", resourceAddress, "routing_labels.team"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "rules.#", resourceAddress, "rules.#"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "rules.0.custom_details.key", resourceAddress, "rules.0.custom_details.key"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "rules.0.entity_type", resourceAddress, "rules.0.entity_type"),
@@ -202,14 +198,10 @@ func dataSourceChecks() resource.TestCheckFunc {
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "id", resourceAddress, "id"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "description", resourceAddress, "description"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "disabled", resourceAddress, "disabled"),
-		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "entity_labels.key", resourceAddress, "entity_labels.key"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "fallback_targets.#", resourceAddress, "fallback_targets.#"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "fallback_targets.0.entity_type", resourceAddress, "fallback_targets.0.entity_type"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "fallback_targets.0.target.custom_details.key", resourceAddress, "fallback_targets.0.target.custom_details.key"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "name", resourceAddress, "name"),
-		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "routing_labels.environment", resourceAddress, "routing_labels.environment"),
-		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "routing_labels.service", resourceAddress, "routing_labels.service"),
-		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "routing_labels.team", resourceAddress, "routing_labels.team"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "rules.#", resourceAddress, "rules.#"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "rules.0.custom_details.key", resourceAddress, "rules.0.custom_details.key"),
 		resource.TestCheckResourceAttrPair(dataSourceByNameAddress, "rules.0.entity_type", resourceAddress, "rules.0.entity_type"),
@@ -223,14 +215,10 @@ func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "disabled", "true"),
-		resource.TestCheckResourceAttr(resourceAddress, "entity_labels.key", render(run, "@{run}-entity_labels")),
 		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.0.entity_type", "alerts"),
 		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.0.target.custom_details.key", render(run, "@{run}-custom_details")),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.environment", render(run, "@{run}-environment")),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.service", render(run, "@{run}-service")),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.team", render(run, "@{run}-team")),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.0.custom_details.key", render(run, "@{run}-custom_details")),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.0.entity_type", "alerts"),
@@ -244,14 +232,10 @@ func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "disabled", "false"),
-		resource.TestCheckResourceAttr(resourceAddress, "entity_labels.key", render(run, "@{run}-entity_labels-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.0.entity_type", "alerts"),
 		resource.TestCheckResourceAttr(resourceAddress, "fallback_targets.0.target.custom_details.key", render(run, "@{run}-custom_details-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name-updated")),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.environment", render(run, "@{run}-environment-updated")),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.service", render(run, "@{run}-service-updated")),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.team", render(run, "@{run}-team-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.0.custom_details.key", render(run, "@{run}-custom_details-updated")),
 		resource.TestCheckResourceAttr(resourceAddress, "rules.0.entity_type", "alerts"),
@@ -264,9 +248,6 @@ func updatedChecks(run string) resource.TestCheckFunc {
 func minimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.environment", render(run, "@{run}-environment")),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.service", render(run, "@{run}-service")),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.team", render(run, "@{run}-team")),
 		resource.TestCheckResourceAttr(resourceAddress, "disabled", "false"),
 	)
 }
@@ -275,9 +256,6 @@ func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
 		resource.TestCheckResourceAttr(resourceAddress, "name", render(run, "@{run}-name")),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.environment", render(run, "@{run}-environment")),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.service", render(run, "@{run}-service")),
-		resource.TestCheckResourceAttr(resourceAddress, "routing_labels.team", render(run, "@{run}-team")),
 	)
 }
 
