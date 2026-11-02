@@ -589,6 +589,61 @@
           "path": "/01M00000000000000000000000"
         }
       ]
+    },
+    {
+      "name": "an update that omits interval, limit, and labels resets them",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-reset",
+            "groups": [
+              {
+                "name": "tf-fidelity-g",
+                "interval": 120,
+                "limit": "5",
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)",
+                    "labels": {
+                      "a": "1"
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "name": "tf-fidelity-reset",
+            "groups": [
+              {
+                "name": "tf-fidelity-g",
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
     }
   ]
 }
