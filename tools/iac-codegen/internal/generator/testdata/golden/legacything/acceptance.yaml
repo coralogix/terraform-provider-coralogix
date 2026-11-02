@@ -8,6 +8,8 @@ prerequisites: |
   }
 values:
   rules[].targets[].connector_id: coralogix_other.dependency.id
+upgradeValues:
+  rules[].targets[].connector_id: coralogix_other.dependency.name
 skip:
   - labels.env
 minimal:

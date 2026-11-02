@@ -22,6 +22,25 @@ values:
   rules[].condition: '"alertDef.priority == \"P1\""'
   rules[].targets[].connector_id: coralogix_connector.http.id
   fallback_targets[].target.connector_id: coralogix_connector.http.id
+  # Label values become meta labels, which the API never deletes and limits per tenant, so a value
+  # made up per run fills the limit. Routing labels are unique across routers, so these values
+  # differ from those of the other router tests. One CI run at a time runs the live tests, but its
+  # jobs run in parallel, so the upgrade test has its own values in upgradeValues.
+  entity_labels: '{ key = "tf-acc-generated-global-router" }'
+  routing_labels.environment: '"tf-acc-generated-global-router"'
+  routing_labels.service: '"tf-acc-generated-global-router"'
+  routing_labels.team: '"tf-acc-generated-global-router"'
+
+updatedValues:
+  entity_labels: '{ key = "tf-acc-generated-global-router-updated" }'
+  routing_labels.environment: '"tf-acc-generated-global-router-updated"'
+  routing_labels.service: '"tf-acc-generated-global-router-updated"'
+  routing_labels.team: '"tf-acc-generated-global-router-updated"'
+
+upgradeValues:
+  routing_labels.environment: '"tf-acc-generated-global-router-upgrade"'
+  routing_labels.service: '"tf-acc-generated-global-router-upgrade"'
+  routing_labels.team: '"tf-acc-generated-global-router-upgrade"'
 
 skip:
   - fallback                          # deprecated; the API refuses it next to fallback_targets
