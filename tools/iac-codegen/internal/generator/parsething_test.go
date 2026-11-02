@@ -89,6 +89,12 @@ func TestParseThingKeysRefuseOtherShapes(t *testing.T) {
 		"carry request value for no sibling": {
 			"requestValues: {pickParams: {source: text}}", "requestValues: {pickParams: {origin: text}}",
 			"origin, which is no field of ParseStep"},
+		"position outside a list item": {
+			"      order: {computed: true, sendUnknownAsZero: true}\n", "      order: {position: true}\n",
+			"position needs a field of the items of a list"},
+		"caseInsensitive on an enum set": {
+			"    trimPrefix: SEVERITY_\n", "    trimPrefix: SEVERITY_\n    caseInsensitive: true\n",
+			"is for a scalar field of the enum"},
 		"fold of arms with other fields": {
 			"dropParams: {into: keepParams,", "copyParams: {into: keepParams,",
 			"the arms copyParams and keepParams need the same fields"},

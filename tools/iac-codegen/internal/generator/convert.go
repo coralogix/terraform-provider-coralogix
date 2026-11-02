@@ -416,7 +416,8 @@ func (f *convField) WrappedSrc() string {
 // or nil.
 func (obj *convObject) PositionField() *convField {
 	for _, f := range obj.Fields {
-		if f.Position {
+		// A carried copy in the model of a carrySiblings arm is no request field.
+		if f.Position && !f.Carried {
 			return f
 		}
 	}
@@ -555,6 +556,9 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		return nil, err
 	}
 	unmarkCarriedOneOfs(b.objects)
+	if err := checkPositions(b.objects); err != nil {
+		return nil, err
+	}
 	for _, obj := range b.listed {
 		// Only flatten builds Terraform values. An object that only a request
 		// holds needs no attribute types.
@@ -1396,6 +1400,25 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	return checkFieldType(cf, ref, want)
 }
 
+// checkPositions reports a position field outside the items of a list: only a list gives an item
+// a place.
+func checkPositions(objects []*convObject) error {
+	listed := map[*convObject]bool{}
+	for _, obj := range objects {
+		for _, f := range obj.Fields {
+			if f.Conv == convObjects && f.Collection == "List" {
+				listed[f.Object] = true
+			}
+		}
+	}
+	for _, obj := range objects {
+		if p := obj.PositionField(); p != nil && !listed[obj] {
+			return fmt.Errorf("%s: position needs a field of the items of a list, and %s is no list item", p.TFName, obj.Model)
+		}
+	}
+	return nil
+}
+
 // splitArmsConv sets the conversion of a list of oneOf items that Terraform shows as one collection
 // per arm. The object converts one value of an arm; it has no expand or flatten function of its own.
 func (b *convBuilder) splitArmsConv(cf *convField, t *model.Type) (string, error) {
@@ -1406,6 +1429,9 @@ func (b *convBuilder) splitArmsConv(cf *convField, t *model.Type) (string, error
 	for _, arm := range obj.Fields {
 		if arm.Conv != convString && arm.Conv != convEnum {
 			return "", fmt.Errorf("splitArms: the arm %s is a %s, want a string or an enum", arm.TFName, arm.Conv)
+		}
+		if arm.CaseInsensitive {
+			return "", fmt.Errorf("%s: enums caseInsensitive is for a scalar field of the enum: a splitArms set has no prior value per element to keep", arm.TFName)
 		}
 	}
 	cf.Conv, cf.Object, cf.SDKType = convSplitArms, obj, b.qualify(obj.SDK)
@@ -1630,6 +1656,9 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		enum, err := b.ix.schemaRef(t.Elem.Schema)
 		if err != nil {
 			return "", err
+		}
+		if b.file != nil && b.file.Enums[t.Elem.Schema].CaseInsensitive {
+			return "", fmt.Errorf("%s: enums caseInsensitive (%s) is for a scalar field of the enum: a list or set has no prior value per element to keep", cf.TFName, t.Elem.Schema)
 		}
 		cf.Conv, cf.SDKType, cf.Enum, cf.EnumZero = convStrings, b.qualify(enum.Name), true, t.Elem.EnumZero
 		// An enums line maps each element, the zero value too when the line names it.
