@@ -51,9 +51,11 @@ func attachExtraAttributes(out *tfResource, file *overrides.File) error {
 			if component == file.Resource {
 				out.Attributes = append(out.Attributes, attribute)
 			} else {
-				for _, parent := range parents {
-					parent.Attributes = append(parent.Attributes, attribute)
+				inherited, err := addExtraToParents(parents, attribute, component, name)
+				if err != nil {
+					return err
 				}
+				computedExtra = computedExtra || inherited
 			}
 			model.Fields = append(model.Fields, field)
 			if err := attachConvExtra(out.Conv, model.Name, name, camelize(name), attrType, nullExpr); err != nil {
@@ -65,16 +67,36 @@ func attachExtraAttributes(out *tfResource, file *overrides.File) error {
 		}
 	}
 	if computedExtra {
-		// buildTFResource computed these paths before extra attributes were attached.
-		out.ComputedPaths = computedPaths(nil, "", out.Attributes)
-		out.ServerPaths = nil
-		for _, a := range out.Attributes {
-			if !computedOnly(a) {
-				out.ServerPaths = serverPaths(out.ServerPaths, a.Name, a.Attributes)
-			}
-		}
+		updateExtraPaths(out)
 	}
 	return nil
+}
+
+// buildTFResource computed these paths before extra attributes were attached.
+func updateExtraPaths(out *tfResource) {
+	out.ComputedPaths = computedPaths(nil, "", out.Attributes)
+	out.ServerPaths = nil
+	for _, a := range out.Attributes {
+		if !computedOnly(a) {
+			out.ServerPaths = serverPaths(out.ServerPaths, a.Name, a.Attributes)
+		}
+	}
+}
+
+func addExtraToParents(parents []*tfAttr, attribute *tfAttr, component, name string) (bool, error) {
+	if attribute.WriteOnly && slices.ContainsFunc(parents, computedOnly) {
+		return false, fmt.Errorf("types.%s.extraAttributes.%s: writeOnly cannot be used inside a computed-only object", component, name)
+	}
+	computed := false
+	for _, parent := range parents {
+		child := *attribute // each schema path can have different computed flags
+		if computedOnly(parent) {
+			markComputed(&child)
+			computed = true
+		}
+		parent.Attributes = append(parent.Attributes, &child)
+	}
+	return computed, nil
 }
 
 func attachExtraBehavior(out *tfResource, resource, component, name string, extra overrides.ExtraAttribute) error {

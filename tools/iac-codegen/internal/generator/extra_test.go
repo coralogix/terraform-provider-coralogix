@@ -3,6 +3,7 @@ package generator
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -33,27 +34,52 @@ func TestExtraAttributeOfEmptyNestedObject(t *testing.T) {
 }
 
 func TestExtraAttributeOfReusedNestedObject(t *testing.T) {
-	first := &tfAttr{Name: "first", ObjectComponent: "SharedConfig", Attributes: []*tfAttr{{Name: "first_field"}}}
-	second := &tfAttr{Name: "second", ObjectComponent: "SharedConfig", Attributes: []*tfAttr{{Name: "second_field"}}}
+	for name, extra := range map[string]overrides.ExtraAttribute{
+		"string": {Type: "string", MarkdownDescription: "Extra."},
+		"set":    {Type: "set", ElementType: "string", MarkdownDescription: "Extra."},
+		"map":    {ElementType: "string", MarkdownDescription: "Extra."},
+	} {
+		t.Run(name, func(t *testing.T) {
+			first := &tfAttr{Name: "first", ObjectComponent: "SharedConfig", Optional: true, Attributes: []*tfAttr{{Name: "first_field"}}}
+			second := &tfAttr{Name: "second", ObjectComponent: "SharedConfig", Computed: true, Attributes: []*tfAttr{{Name: "second_field", Computed: true}}}
+			out := &tfResource{
+				Attributes: []*tfAttr{first, second},
+				Models:     []*tfModel{{Name: "SharedConfigModel"}},
+			}
+			file := &overrides.File{Resource: "Thing", Types: map[string]overrides.Type{
+				"SharedConfig": {ExtraAttributes: map[string]overrides.ExtraAttribute{"extra": extra}},
+			}}
+			if err := attachExtraAttributes(out, file); err != nil {
+				t.Fatal(err)
+			}
+			if len(first.Attributes) != 2 || first.Attributes[0].Name != "first_field" || !first.Attributes[1].Optional || first.Attributes[1].Computed {
+				t.Errorf("configurable path attributes = %#v", first.Attributes)
+			}
+			if len(second.Attributes) != 2 || second.Attributes[0].Name != "second_field" || !computedOnly(second.Attributes[1]) {
+				t.Errorf("computed-only path attributes = %#v", second.Attributes)
+			}
+			if first.Attributes[1] == second.Attributes[1] {
+				t.Fatal("the two schema paths share one extra attribute")
+			}
+			if !slices.Contains(out.ComputedPaths, "second.extra") || slices.Contains(out.ComputedPaths, "first.extra") {
+				t.Errorf("computed paths = %v, want only the response-only extra", out.ComputedPaths)
+			}
+		})
+	}
+}
+
+func TestWriteOnlyExtraOfComputedObjectIsRejected(t *testing.T) {
 	out := &tfResource{
-		Attributes: []*tfAttr{first, second},
+		Attributes: []*tfAttr{{Name: "response", ObjectComponent: "SharedConfig", Computed: true}},
 		Models:     []*tfModel{{Name: "SharedConfigModel"}},
 	}
 	file := &overrides.File{Resource: "Thing", Types: map[string]overrides.Type{
 		"SharedConfig": {ExtraAttributes: map[string]overrides.ExtraAttribute{
-			"url": {Type: "string", MarkdownDescription: "URL."},
+			"transient_wo": {Type: "string", WriteOnly: true, MarkdownDescription: "Write-only value."},
 		}},
 	}}
-	if err := attachExtraAttributes(out, file); err != nil {
-		t.Fatal(err)
-	}
-	for _, parent := range []*tfAttr{first, second} {
-		if len(parent.Attributes) != 2 || parent.Attributes[1].Name != "url" {
-			t.Errorf("%s attributes = %#v, want its API field and url", parent.Name, parent.Attributes)
-		}
-	}
-	if first.Attributes[0].Name != "first_field" || second.Attributes[0].Name != "second_field" {
-		t.Fatal("attaching the extra attribute replaced existing fields")
+	if err := attachExtraAttributes(out, file); err == nil || !strings.Contains(err.Error(), "writeOnly cannot be used inside a computed-only object") {
+		t.Fatalf("err = %v, want the computed-only object error", err)
 	}
 }
 
@@ -103,7 +129,7 @@ func TestComputedEmptyAPIObjectWithExtraCompiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	lines := strings.Replace(string(base), "  TopicsEvalConfig:\n",
-		"  ToxicityEvalConfig:\n    extraAttributes:\n      url: {type: string, computed: true, markdownDescription: URL.}\n  TopicsEvalConfig:\n", 1)
+		"  ToxicityEvalConfig:\n    extraAttributes:\n      url: {type: string, markdownDescription: URL.}\n  TopicsEvalConfig:\n", 1)
 	dir := t.TempDir()
 	overridesPath := filepath.Join(dir, "overrides.yaml")
 	if err := os.WriteFile(overridesPath, []byte(lines), 0o644); err != nil {
