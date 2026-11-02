@@ -554,11 +554,7 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if err := b.arms(out); err != nil {
 		return nil, err
 	}
-	rootUnsupported, err := b.unsupportedArms(&model.Type{Schema: b.resource.Name}, "fields")
-	if err != nil {
-		return nil, err
-	}
-	out.RootUnsupported = rootUnsupported
+	unmarkCarriedOneOfs(b.objects)
 	for _, obj := range b.listed {
 		// Only flatten builds Terraform values. An object that only a request
 		// holds needs no attribute types.
@@ -2018,13 +2014,8 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 	} else {
 		obj.Flatten = true
 	}
-	if err := b.markArms(obj, expand); err != nil {
-		return err
-	}
 	for _, f := range obj.Fields {
 		switch {
-		case obj.Carry != nil && f == obj.Carry.Field:
-			// The arms are the attributes; the object of the oneOf has no model.
 		case f.Conv == convTime && expand:
 			return fmt.Errorf("%s: a time that only the response has is in a request", f.TFName)
 		case f.Conv == convObj || f.Conv == convObjects || f.Conv == convObjectMap || f.Conv == convGroup || f.Conv == convKeyedObjects:
@@ -2036,17 +2027,22 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 	return nil
 }
 
-// markArms marks the arm objects of a carrySiblings object.
-func (b *convBuilder) markArms(obj *convObject, expand bool) error {
-	if obj.Carry == nil {
-		return nil
-	}
-	for _, arm := range obj.Carry.Arms {
-		if err := b.mark(arm.Object, expand); err != nil {
-			return fmt.Errorf("%s: %w", arm.TFName, err)
+// unmarkCarriedOneOfs turns off the functions of the oneOf objects of carrySiblings objects, and of
+// their folded arms. The arms are attributes of the object, so the oneOf has no model struct, and a
+// folded arm converts through the arm that Terraform shows. The shown arms stay marked.
+func unmarkCarriedOneOfs(objects []*convObject) {
+	for _, obj := range objects {
+		if obj.Carry == nil {
+			continue
+		}
+		oneOf := obj.Carry.Field.Object
+		oneOf.Expand, oneOf.Flatten = false, false
+		for _, f := range oneOf.Fields {
+			if f.Object != nil && !slices.ContainsFunc(obj.Carry.Arms, func(a *carryArm) bool { return a.Object == f.Object }) {
+				f.Object.Expand, f.Object.Flatten = false, false
+			}
 		}
 	}
-	return nil
 }
 
 // attrTypes fills the Terraform attribute types of obj, and of the objects
