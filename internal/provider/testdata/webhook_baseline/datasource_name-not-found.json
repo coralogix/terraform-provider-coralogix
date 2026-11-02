@@ -1,0 +1,34 @@
+[
+  {
+    "step": "read a name that does not exist",
+    "config": {
+      "name": "missing"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Webhook Not Found | No webhook found with name \"missing\""
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": null,
+      "event_bridge": null,
+      "external_id": null,
+      "id": null,
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "missing",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    }
+  }
+]

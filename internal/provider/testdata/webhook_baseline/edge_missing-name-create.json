@@ -198,7 +198,10 @@
       "sendlog": null,
       "slack": null
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"name\")"
+    ]
   },
   {
     "step": "delete",

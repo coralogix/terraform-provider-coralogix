@@ -285,7 +285,10 @@
       "sendlog": null,
       "slack": null
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"custom\").AttributeName(\"url\")"
+    ]
   },
   {
     "step": "delete",

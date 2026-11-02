@@ -196,7 +196,10 @@
       "sendlog": null,
       "slack": null
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"microsoft_teams_workflow\").AttributeName(\"url\")"
+    ]
   },
   {
     "step": "delete",

@@ -370,6 +370,16 @@ func TestWebhookBaselineEdges(t *testing.T) {
 			s = h.Apply("set both lists empty", s, empty)
 			h.RefreshPlan("refresh and plan", s)
 		},
+		"empty-emails": func(h *grHarness) {
+			empty := webhookConfig("full", "email_group", j{"emails": l{}})
+			state := h.Apply("create with explicit empty emails", h.null(), empty)
+			webhookState(h.t, h, state)
+			state = h.RefreshPlan("refresh and plan", state)
+			state = h.Apply("set emails", state, webhookFullConfigs["email_group"])
+			state = h.Apply("clear emails", state, empty)
+			state = h.RefreshPlan("refresh after clear and plan", state)
+			h.Destroy("delete", state)
+		},
 		"duplicate-emails": func(h *grHarness) {
 			config := webhookConfig("duplicates", "email_group", j{"emails": l{"one@example.invalid", "one@example.invalid"}})
 			h.Apply("create with repeated address", h.null(), config)

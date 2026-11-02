@@ -111,23 +111,6 @@
       "warning: webhook \"00000000-0000-4000-8000-000000000001\" is in state, but no longer exists in Coralogix backend | 00000000-0000-4000-8000-000000000001 will be recreated when you apply",
       "error: Missing Resource State After Update | The Terraform Provider unexpectedly returned no resource state after having no errors in the resource update. This is always an issue in the Terraform Provider and should be reported to the provider developers."
     ],
-    "state": {
-      "custom": null,
-      "demisto": null,
-      "email_group": null,
-      "event_bridge": null,
-      "external_id": "1",
-      "id": "00000000-0000-4000-8000-000000000001",
-      "jira": null,
-      "microsoft_teams": null,
-      "microsoft_teams_workflow": null,
-      "name": "full",
-      "opsgenie": {
-        "url": "https://example.invalid/opsgenie"
-      },
-      "pager_duty": null,
-      "sendlog": null,
-      "slack": null
-    }
+    "state": null
   }
 ]

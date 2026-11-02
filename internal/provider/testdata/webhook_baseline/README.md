@@ -8,6 +8,7 @@ They make no live API calls.
 - `scenario_*.json` records create, refresh, import, update, and delete for all ten writable webhook types.
 - `field_*.json`, `optional_*.json`, and `write_only_*.json` record field changes, omission, and secret rotation.
 - `edge_*.json` records validation, legacy Teams import, duplicate items, missing resources, and API errors.
+- `datasource_*.json` and `datasource_schema.txt` record lookup behavior and the paired data-source schema.
 
 The edge files also record that legacy Teams Create fails before an API call,
 legacy Teams Update sends an ID without data, and an omitted generic method
@@ -19,6 +20,7 @@ For fields whose omission rejects Create, the optional files also record
 removal from an existing webhook on Update.
 The enum cases cover every allowed custom method, Slack digest, and Slack
 attachment type, including `empty`.
+The empty-email case records explicit `emails = []` separately from omission.
 
 The fake models the webhook read and write shapes. It also models duplicate
 email addresses and Slack items.

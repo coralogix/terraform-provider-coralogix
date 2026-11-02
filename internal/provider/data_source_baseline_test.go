@@ -63,6 +63,7 @@ var dataSourceBaselines = map[string]dataSourceBaseline{
 	"quota_allocation_rule_set": {quotaGoldenDir, newQuotaHarness, quotaDataSourceScenarios},
 	"action":                    {actionGoldenDir, newActionHarness, actionDataSourceScenarios},
 	"integration":               {integrationGoldenDir, newIntegrationHarness, integrationDataSourceScenarios},
+	"webhook":                   {webhookGoldenDir, newWebhookHarness, webhookDataSourceScenarios},
 }
 
 func TestDataSourceBaselineSchema(t *testing.T) {

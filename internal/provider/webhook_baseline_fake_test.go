@@ -29,6 +29,7 @@ type webhookFake struct {
 	deleteStatus int
 	getStatus    int
 	getMessage   string
+	listStatus   int
 }
 
 func newWebhookFake(t *testing.T) *webhookFake {
@@ -101,6 +102,8 @@ func (f *webhookFake) handle(method, path string, body any) (int, any) {
 		return f.create(body)
 	case method == http.MethodPut && id == "":
 		return f.update(body)
+	case method == http.MethodGet && id == "":
+		return f.list()
 	case method == http.MethodGet && id != "":
 		if f.getStatus != 0 {
 			message := f.getMessage
@@ -122,6 +125,25 @@ func (f *webhookFake) handle(method, path string, body any) (int, any) {
 		return http.StatusOK, map[string]any{}
 	}
 	return grFail(http.StatusMethodNotAllowed, "unsupported "+method+" "+path)
+}
+
+func (f *webhookFake) list() (int, any) {
+	if f.listStatus != 0 {
+		return grFail(f.listStatus, "list rejected")
+	}
+	ids := make([]string, 0, len(f.webhooks))
+	for id := range f.webhooks {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	deployed := make([]any, 0, len(ids))
+	for _, id := range ids {
+		stored := f.webhooks[id]
+		deployed = append(deployed, map[string]any{
+			"id": id, "name": stored["name"], "type": stored["type"],
+		})
+	}
+	return http.StatusOK, map[string]any{"deployed": deployed}
 }
 
 func (f *webhookFake) create(body any) (int, any) {

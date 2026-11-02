@@ -252,7 +252,10 @@
       "sendlog": null,
       "slack": null
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"jira\").AttributeName(\"api_token\")"
+    ]
   },
   {
     "step": "delete",

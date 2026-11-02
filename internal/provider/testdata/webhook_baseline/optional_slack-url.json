@@ -404,7 +404,8 @@
       "AttributeName(\"slack\").AttributeName(\"attachments\").ElementKeyInt(0).AttributeName(\"active\")",
       "AttributeName(\"slack\").AttributeName(\"attachments\").ElementKeyInt(0).AttributeName(\"type\")",
       "AttributeName(\"slack\").AttributeName(\"attachments\").ElementKeyInt(1).AttributeName(\"active\")",
-      "AttributeName(\"slack\").AttributeName(\"attachments\").ElementKeyInt(1).AttributeName(\"type\")"
+      "AttributeName(\"slack\").AttributeName(\"attachments\").ElementKeyInt(1).AttributeName(\"type\")",
+      "AttributeName(\"slack\").AttributeName(\"url\")"
     ]
   },
   {

@@ -258,7 +258,10 @@
       "sendlog": null,
       "slack": null
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"jira\").AttributeName(\"email\")"
+    ]
   },
   {
     "step": "delete",

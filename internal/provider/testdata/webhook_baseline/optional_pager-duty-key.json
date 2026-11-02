@@ -212,7 +212,10 @@
       "sendlog": null,
       "slack": null
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"pager_duty\").AttributeName(\"service_key\")"
+    ]
   },
   {
     "step": "delete",
