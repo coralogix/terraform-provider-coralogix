@@ -1,0 +1,124 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "ibm": {
+        "crn": "crn:v1:bluemix:public:cloud-object-storage:eu-de:a/0:0:bucket:metrics-bucket",
+        "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+      }
+    },
+    "plan": {
+      "ibm": {
+        "crn": "crn:v1:bluemix:public:cloud-object-storage:eu-de:a/0:0:bucket:metrics-bucket",
+        "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+      },
+      "id": "(unknown)",
+      "prefix": "(unknown)",
+      "retention_policy": "(unknown)",
+      "s3": null,
+      "tenant_id": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "body": {
+          "ibm": {
+            "crn": "crn:v1:bluemix:public:cloud-object-storage:eu-de:a/0:0:bucket:metrics-bucket",
+            "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": {
+        "crn": "crn:v1:bluemix:public:cloud-object-storage:eu-de:a/0:0:bucket:metrics-bucket",
+        "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+      },
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": null,
+      "s3": null,
+      "tenant_id": 4711
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: the new CRN has no resource part",
+    "config": {
+      "ibm": {
+        "crn": "x:bucket:y",
+        "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+      }
+    },
+    "plan": {
+      "ibm": {
+        "crn": "x:bucket:y",
+        "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+      },
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": null,
+      "s3": null,
+      "tenant_id": 4711
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "body": {
+          "ibm": {
+            "crn": "x:bucket:y",
+            "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error update coralogix_archive_metrics | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: invalid storage config\"}\noperation - Create"
+    ],
+    "state": {
+      "ibm": {
+        "crn": "crn:v1:bluemix:public:cloud-object-storage:eu-de:a/0:0:bucket:metrics-bucket",
+        "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+      },
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": null,
+      "s3": null,
+      "tenant_id": 4711
+    }
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/metrics/data-setup/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "ibm": {
+        "crn": "crn:v1:bluemix:public:cloud-object-storage:eu-de:a/0:0:bucket:metrics-bucket",
+        "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
+      },
+      "id": "archive-metrics-settings",
+      "prefix": "cx_metrics/",
+      "retention_policy": null,
+      "s3": null,
+      "tenant_id": 4711
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"ibm\").AttributeName(\"crn\")"
+    ]
+  }
+]

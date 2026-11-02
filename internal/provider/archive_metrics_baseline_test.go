@@ -148,6 +148,12 @@ var amScenarios = map[string]func(h *grHarness, f *amFake){
 		h.RefreshPlan("refresh", s)
 	},
 
+	"import-zero-retention": func(h *grHarness, f *amFake) {
+		f.seed(j{"s3": amS3("seeded-bucket"), "retentionPolicy": j{"rawResolution": 0, "fiveMinutesResolution": 5, "oneHourResolution": 0}})
+		s := h.Import("import a configuration with levels of 0", "archive-metrics-settings")
+		h.Apply("plan the matching config", s, j{"s3": amS3("seeded-bucket"), "retention_policy": amRetention(0, 5, 0)})
+	},
+
 	"import-another-id": func(h *grHarness, f *amFake) {
 		f.seed(j{"s3": amS3("seeded-bucket")})
 		h.Import("import with an id that is not the fixed one", "anything")
@@ -187,6 +193,31 @@ var amScenarios = map[string]func(h *grHarness, f *amFake){
 		h.RefreshPlan("refresh: the API fails", s)
 	},
 
+	// The API stores and returns a level of 0. A request or a read that drops a zero shows here.
+	"zero-retention": func(h *grHarness, _ *amFake) {
+		s := h.Apply("create: raw and one-hour levels are 0", h.null(), j{"s3": amS3("metrics-bucket"), "retention_policy": amRetention(0, 5, 0)})
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: every level is 0", s, j{"s3": amS3("metrics-bucket"), "retention_policy": amRetention(0, 0, 0)})
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: back to positive levels", s, j{"s3": amS3("metrics-bucket"), "retention_policy": amRetention(10, 20, 30)})
+		h.RefreshPlan("refresh", s)
+	},
+
+	// An update that the API rejects changes nothing in the API. The state keeps the last
+	// applied values, and the next plan proposes the change again.
+	"update-rejected-s3": func(h *grHarness, f *amFake) {
+		s := h.Apply("create", h.null(), j{"s3": amS3("metrics-bucket")})
+		f.unwritable = map[string]bool{"other-bucket": true}
+		s = h.Apply("update: the API cannot write to the new bucket", s, j{"s3": amS3("other-bucket")})
+		h.RefreshPlan("refresh", s)
+	},
+
+	"update-rejected-ibm": func(h *grHarness, _ *amFake) {
+		s := h.Apply("create", h.null(), j{"ibm": amIBM()})
+		s = h.Apply("update: the new CRN has no resource part", s, j{"ibm": j{"endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud", "crn": "x:bucket:y"}})
+		h.RefreshPlan("refresh", s)
+	},
+
 	// The set call stores the configuration, then the read fails. The backend has the new
 	// configuration and the state keeps what the resource returned.
 	"update-read-fails": func(h *grHarness, f *amFake) {
@@ -216,6 +247,10 @@ var amDataSourceScenarios = map[string]func(h *grHarness){
 	"read-with-retention-policy": func(h *grHarness) {
 		h.archiveMetrics().seed(j{"s3": amS3("seeded-bucket"), "retentionPolicy": j{"rawResolution": 10, "fiveMinutesResolution": 20, "oneHourResolution": 30}})
 		h.ReadDataSource("read a configuration with a retention policy", j{})
+	},
+	"read-zero-retention": func(h *grHarness) {
+		h.archiveMetrics().seed(j{"s3": amS3("seeded-bucket"), "retentionPolicy": j{"rawResolution": 0, "fiveMinutesResolution": 5, "oneHourResolution": 0}})
+		h.ReadDataSource("read a configuration with levels of 0", j{})
 	},
 	"read-ibm": func(h *grHarness) {
 		h.archiveMetrics().seed(j{"ibm": amIBM()})

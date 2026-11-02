@@ -212,7 +212,16 @@ func (f *amFake) set(body any) (int, any) {
 		return amFail(http.StatusBadRequest, "Bad Request", "missing storage config")
 	}
 	if p, ok := in["retentionPolicy"].(map[string]any); ok {
-		stored["retentionPolicy"] = p
+		// The API stores the three levels of a sent policy, a missing one as 0, and returns each,
+		// 0 too (public_server.rs, From<RetentionPolicyRequest>).
+		levels := map[string]any{}
+		for _, level := range []string{"rawResolution", "fiveMinutesResolution", "oneHourResolution"} {
+			levels[level] = 0.0
+			if v, ok := p[level]; ok {
+				levels[level] = v
+			}
+		}
+		stored["retentionPolicy"] = levels
 	}
 	// The storage format of an existing configuration stays: a legacy one keeps its empty prefix.
 	stored["prefix"] = amCustomPrefix
