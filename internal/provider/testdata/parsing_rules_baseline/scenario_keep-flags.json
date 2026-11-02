@@ -927,7 +927,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_parsing_rules | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: statusCode: 400, response: Failed to create rule group err: [{source-field-validation ParsingThemes.RulesGroups[0].Rules[0].SourceField string string text }]\"}\noperation - Create"
+      "error: Unable to create parsing_rules | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: statusCode: 400, response: Failed to create rule group err: [{source-field-validation ParsingThemes.RulesGroups[0].Rules[0].SourceField string string text }]\"}"
     ],
     "state": null
   },
@@ -1070,7 +1070,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_parsing_rules | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: statusCode: 400, response: Failed to create rule group err: [{source-field-validation ParsingThemes.RulesGroups[0].Rules[0].SourceField string string text }]\"}\noperation - Create"
+      "error: Unable to create parsing_rules | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: statusCode: 400, response: Failed to create rule group err: [{source-field-validation ParsingThemes.RulesGroups[0].Rules[0].SourceField string string text }]\"}"
     ],
     "state": null
   },

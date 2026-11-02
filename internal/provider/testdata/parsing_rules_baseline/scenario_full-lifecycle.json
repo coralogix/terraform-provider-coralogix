@@ -335,11 +335,6 @@
               }
             },
             {
-              "subsystemName": {
-                "value": "sub-a"
-              }
-            },
-            {
               "severity": {
                 "value": "VALUE_ERROR"
               }
@@ -347,6 +342,11 @@
             {
               "severity": {
                 "value": "VALUE_CRITICAL"
+              }
+            },
+            {
+              "subsystemName": {
+                "value": "sub-a"
               }
             }
           ],
@@ -1023,6 +1023,11 @@
               }
             },
             {
+              "severity": {
+                "value": "VALUE_DEBUG_OR_UNSPECIFIED"
+              }
+            },
+            {
               "subsystemName": {
                 "value": "sub-b"
               }
@@ -1030,11 +1035,6 @@
             {
               "subsystemName": {
                 "value": "sub-c"
-              }
-            },
-            {
-              "severity": {
-                "value": "VALUE_DEBUG_OR_UNSPECIFIED"
               }
             }
           ],
@@ -1333,7 +1333,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating coralogix_parsing_rules | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: statusCode: 400, response: Failed to update rule group err: [{min ParsingThemes.RulesGroups slice []*shared.RulesGroup [] 1}]\"}\noperation - Update"
+      "error: Unable to update parsing_rules | id 00000000-0000-4000-9000-000000000011: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: statusCode: 400, response: Failed to update rule group err: [{min ParsingThemes.RulesGroups slice []*shared.RulesGroup [] 1}]\"}"
     ],
     "state": {
       "active": false,
@@ -1793,11 +1793,6 @@
               }
             },
             {
-              "subsystemName": {
-                "value": "sub-a"
-              }
-            },
-            {
               "severity": {
                 "value": "VALUE_ERROR"
               }
@@ -1805,6 +1800,11 @@
             {
               "severity": {
                 "value": "VALUE_CRITICAL"
+              }
+            },
+            {
+              "subsystemName": {
+                "value": "sub-a"
               }
             }
           ],

@@ -34,7 +34,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_parsing_rules | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: statusCode: 400, response: Failed to create rule group err: [{min ParsingThemes.RulesGroups slice []*shared.RulesGroup [] 1}]\"}\noperation - Create"
+      "error: Unable to create parsing_rules | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: statusCode: 400, response: Failed to create rule group err: [{min ParsingThemes.RulesGroups slice []*shared.RulesGroup [] 1}]\"}"
     ],
     "state": null
   },

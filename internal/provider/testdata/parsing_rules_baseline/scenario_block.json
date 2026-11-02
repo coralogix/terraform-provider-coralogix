@@ -95,7 +95,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_parsing_rules | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Request errors:\\n* Missing BlockParameters.keepBlockedLogs\"}\noperation - Create"
+      "error: Unable to create parsing_rules | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Request errors:\\n* Missing BlockParameters.keepBlockedLogs\"}"
     ],
     "state": null
   },
@@ -921,7 +921,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating coralogix_parsing_rules | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Request errors:\\n* Missing BlockParameters.keepBlockedLogs\"}\noperation - Update"
+      "error: Unable to update parsing_rules | id 00000000-0000-4000-9000-000000000003: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Request errors:\\n* Missing BlockParameters.keepBlockedLogs\"}"
     ],
     "state": {
       "active": false,

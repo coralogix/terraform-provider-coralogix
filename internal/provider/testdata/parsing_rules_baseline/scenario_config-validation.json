@@ -46,7 +46,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"parse\")] | No attribute specified when one (and only one) of [rule_subgroups[0].rules[0].parse.<.parse,rule_subgroups[0].rules[0].parse.<.block,rule_subgroups[0].rules[0].parse.<.json_extract,rule_subgroups[0].rules[0].parse.<.replace,rule_subgroups[0].rules[0].parse.<.extract_timestamp,rule_subgroups[0].rules[0].parse.<.remove_fields,rule_subgroups[0].rules[0].parse.<.json_stringify,rule_subgroups[0].rules[0].parse.<.extract,rule_subgroups[0].rules[0].parse.<.parse_json_field] is required"
+      "error: Invalid Attribute Combination [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"block\")] | No attribute specified when one (and only one) of [rule_subgroups[0].rules[0].block.<.block,rule_subgroups[0].rules[0].block.<.extract,rule_subgroups[0].rules[0].block.<.extract_timestamp,rule_subgroups[0].rules[0].block.<.json_extract,rule_subgroups[0].rules[0].block.<.parse_json_field,rule_subgroups[0].rules[0].block.<.json_stringify,rule_subgroups[0].rules[0].block.<.parse,rule_subgroups[0].rules[0].block.<.remove_fields,rule_subgroups[0].rules[0].block.<.replace] is required"
     ],
     "state": null
   },
@@ -75,7 +75,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"parse\")] | 2 attributes specified when one (and only one) of [rule_subgroups[0].rules[0].parse.<.parse,rule_subgroups[0].rules[0].parse.<.block,rule_subgroups[0].rules[0].parse.<.json_extract,rule_subgroups[0].rules[0].parse.<.replace,rule_subgroups[0].rules[0].parse.<.extract_timestamp,rule_subgroups[0].rules[0].parse.<.remove_fields,rule_subgroups[0].rules[0].parse.<.json_stringify,rule_subgroups[0].rules[0].parse.<.extract,rule_subgroups[0].rules[0].parse.<.parse_json_field] is required"
+      "error: Invalid Attribute Combination [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"block\")] | 2 attributes specified when one (and only one) of [rule_subgroups[0].rules[0].block.<.block,rule_subgroups[0].rules[0].block.<.extract,rule_subgroups[0].rules[0].block.<.extract_timestamp,rule_subgroups[0].rules[0].block.<.json_extract,rule_subgroups[0].rules[0].block.<.parse_json_field,rule_subgroups[0].rules[0].block.<.json_stringify,rule_subgroups[0].rules[0].block.<.parse,rule_subgroups[0].rules[0].block.<.remove_fields,rule_subgroups[0].rules[0].block.<.replace] is required"
     ],
     "state": null
   },
@@ -257,7 +257,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_parsing_rules | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Request errors:\\n* JsonExtractParameters.DestinationFieldText should be 'text' or start with 'text.'\"}\noperation - Create"
+      "error: Unable to create parsing_rules | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Request errors:\\n* JsonExtractParameters.DestinationFieldText should be 'text' or start with 'text.'\"}"
     ],
     "state": null
   },

@@ -1,0 +1,101 @@
+# Written by coralogix-iac-codegen. Do not edit.
+# The attributes that the released provider of the upgrade test has. The upgrade test leaves out
+# every other attribute. The generator takes the list from the schema when upgradeFrom changes.
+from: 3.23.0
+attributes:
+    active: {type: Bool}
+    applications: {type: Set(String)}
+    creator: {type: String}
+    description: {type: String}
+    hidden: {type: Bool}
+    id: {type: String}
+    name: {type: String, required: true}
+    order: {type: Int64}
+    rule_subgroups: {type: ListNested}
+    rule_subgroups[].active: {type: Bool}
+    rule_subgroups[].id: {type: String}
+    rule_subgroups[].order: {type: Int64}
+    rule_subgroups[].rules: {type: ListNested, required: true}
+    rule_subgroups[].rules[].block: {type: SingleNested}
+    rule_subgroups[].rules[].block.active: {type: Bool}
+    rule_subgroups[].rules[].block.block_all_matching_blocks: {type: Bool}
+    rule_subgroups[].rules[].block.description: {type: String}
+    rule_subgroups[].rules[].block.id: {type: String}
+    rule_subgroups[].rules[].block.keep_blocked_logs: {type: Bool}
+    rule_subgroups[].rules[].block.name: {type: String, required: true}
+    rule_subgroups[].rules[].block.order: {type: Int64}
+    rule_subgroups[].rules[].block.regular_expression: {type: String, required: true}
+    rule_subgroups[].rules[].block.source_field: {type: String, required: true}
+    rule_subgroups[].rules[].extract: {type: SingleNested}
+    rule_subgroups[].rules[].extract.active: {type: Bool}
+    rule_subgroups[].rules[].extract.description: {type: String}
+    rule_subgroups[].rules[].extract.id: {type: String}
+    rule_subgroups[].rules[].extract.name: {type: String, required: true}
+    rule_subgroups[].rules[].extract.order: {type: Int64}
+    rule_subgroups[].rules[].extract.regular_expression: {type: String, required: true}
+    rule_subgroups[].rules[].extract.source_field: {type: String, required: true}
+    rule_subgroups[].rules[].extract_timestamp: {type: SingleNested}
+    rule_subgroups[].rules[].extract_timestamp.active: {type: Bool}
+    rule_subgroups[].rules[].extract_timestamp.description: {type: String}
+    rule_subgroups[].rules[].extract_timestamp.field_format_standard: {type: String, required: true}
+    rule_subgroups[].rules[].extract_timestamp.id: {type: String}
+    rule_subgroups[].rules[].extract_timestamp.name: {type: String, required: true}
+    rule_subgroups[].rules[].extract_timestamp.order: {type: Int64}
+    rule_subgroups[].rules[].extract_timestamp.source_field: {type: String, required: true}
+    rule_subgroups[].rules[].extract_timestamp.time_format: {type: String, required: true}
+    rule_subgroups[].rules[].json_extract: {type: SingleNested}
+    rule_subgroups[].rules[].json_extract.active: {type: Bool}
+    rule_subgroups[].rules[].json_extract.description: {type: String}
+    rule_subgroups[].rules[].json_extract.destination_field: {type: String, required: true}
+    rule_subgroups[].rules[].json_extract.destination_field_text: {type: String}
+    rule_subgroups[].rules[].json_extract.id: {type: String}
+    rule_subgroups[].rules[].json_extract.json_key: {type: String, required: true}
+    rule_subgroups[].rules[].json_extract.name: {type: String, required: true}
+    rule_subgroups[].rules[].json_extract.order: {type: Int64}
+    rule_subgroups[].rules[].json_stringify: {type: SingleNested}
+    rule_subgroups[].rules[].json_stringify.active: {type: Bool}
+    rule_subgroups[].rules[].json_stringify.description: {type: String}
+    rule_subgroups[].rules[].json_stringify.destination_field: {type: String, required: true}
+    rule_subgroups[].rules[].json_stringify.id: {type: String}
+    rule_subgroups[].rules[].json_stringify.keep_source_field: {type: Bool}
+    rule_subgroups[].rules[].json_stringify.name: {type: String, required: true}
+    rule_subgroups[].rules[].json_stringify.order: {type: Int64}
+    rule_subgroups[].rules[].json_stringify.source_field: {type: String, required: true}
+    rule_subgroups[].rules[].parse: {type: SingleNested}
+    rule_subgroups[].rules[].parse.active: {type: Bool}
+    rule_subgroups[].rules[].parse.description: {type: String}
+    rule_subgroups[].rules[].parse.destination_field: {type: String, required: true}
+    rule_subgroups[].rules[].parse.id: {type: String}
+    rule_subgroups[].rules[].parse.name: {type: String, required: true}
+    rule_subgroups[].rules[].parse.order: {type: Int64}
+    rule_subgroups[].rules[].parse.regular_expression: {type: String, required: true}
+    rule_subgroups[].rules[].parse.source_field: {type: String, required: true}
+    rule_subgroups[].rules[].parse_json_field: {type: SingleNested}
+    rule_subgroups[].rules[].parse_json_field.active: {type: Bool}
+    rule_subgroups[].rules[].parse_json_field.description: {type: String}
+    rule_subgroups[].rules[].parse_json_field.destination_field: {type: String, required: true}
+    rule_subgroups[].rules[].parse_json_field.id: {type: String}
+    rule_subgroups[].rules[].parse_json_field.keep_destination_field: {type: Bool}
+    rule_subgroups[].rules[].parse_json_field.keep_source_field: {type: Bool}
+    rule_subgroups[].rules[].parse_json_field.name: {type: String, required: true}
+    rule_subgroups[].rules[].parse_json_field.order: {type: Int64}
+    rule_subgroups[].rules[].parse_json_field.source_field: {type: String, required: true}
+    rule_subgroups[].rules[].remove_fields: {type: SingleNested}
+    rule_subgroups[].rules[].remove_fields.active: {type: Bool}
+    rule_subgroups[].rules[].remove_fields.description: {type: String}
+    rule_subgroups[].rules[].remove_fields.excluded_fields: {type: List(String), required: true}
+    rule_subgroups[].rules[].remove_fields.id: {type: String}
+    rule_subgroups[].rules[].remove_fields.name: {type: String, required: true}
+    rule_subgroups[].rules[].remove_fields.order: {type: Int64}
+    rule_subgroups[].rules[].replace: {type: SingleNested}
+    rule_subgroups[].rules[].replace.active: {type: Bool}
+    rule_subgroups[].rules[].replace.description: {type: String}
+    rule_subgroups[].rules[].replace.destination_field: {type: String, required: true}
+    rule_subgroups[].rules[].replace.id: {type: String}
+    rule_subgroups[].rules[].replace.name: {type: String, required: true}
+    rule_subgroups[].rules[].replace.order: {type: Int64}
+    rule_subgroups[].rules[].replace.regular_expression: {type: String, required: true}
+    rule_subgroups[].rules[].replace.replacement_string: {type: String}
+    rule_subgroups[].rules[].replace.source_field: {type: String, required: true}
+    severities: {type: Set(String)}
+    subsystems: {type: Set(String)}
