@@ -246,7 +246,7 @@ func testAccResourceCoralogixGlobalRouterOmittedValues(name, description string)
       disabled = true
       %[2]s
       routing_labels = {
-        environment = "%[1]v"
+        environment = "tf-acc-global-router-omitted-values"
       }
       rules = [
         {
@@ -432,7 +432,7 @@ func testAccResourceCoralogixGlobalRouter(name string) string {
       description = "%[1]v"
       disabled    = true
       routing_labels = {
-        environment = "%[1]v"
+        environment = "tf-acc-global-router"
       }
       rules       = [
         {
@@ -636,7 +636,7 @@ func testAccResourceCoralogixGlobalRouterUpdate(name string) string {
       name        = "%[1]v updated"
       description = "%[1]v"
       routing_labels = {
-        environment = "%[1]v" 
+        environment = "tf-acc-global-router"
       }
       rules       = [
         {

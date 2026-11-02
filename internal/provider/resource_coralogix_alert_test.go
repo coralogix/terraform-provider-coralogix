@@ -2636,7 +2636,7 @@ func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated(name string) st
     name        = "%[1]v"
     description = "global router example"
     routing_labels = {
-      environment = "%[1]v"
+      environment = "tf-acc-alert-routing"
     }
     rules       = [
       {
@@ -2783,7 +2783,7 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouter(name string) string {
     name        = "%[1]v"
     description = "global router example"
     routing_labels = {
-      environment = "%[1]v"
+      environment = "tf-acc-alert-routing"
     }
 
     rules       = [{

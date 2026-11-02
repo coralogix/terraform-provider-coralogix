@@ -52,7 +52,7 @@ func TestAccCoralogixResourceGlobalRouterMigration(t *testing.T) {
       description   = "migration"
       disabled      = true
       entity_labels = { team = "a" }
-      routing_labels = { environment = "%[1]v", service = "api" }
+      routing_labels = { environment = "tf-acc-global-router-migration-all-attributes", service = "api" }
       rules = [
         {
           name           = "first"
@@ -77,7 +77,7 @@ func TestAccCoralogixResourceGlobalRouterMigration(t *testing.T) {
       description   = "migration updated"
       disabled      = false
       entity_labels = { team = "b" }
-      routing_labels = { environment = "%[1]v", service = "api" }
+      routing_labels = { environment = "tf-acc-global-router-migration-all-attributes", service = "api" }
       rules = [
         {
           name        = "first"
@@ -94,7 +94,7 @@ func TestAccCoralogixResourceGlobalRouterMigration(t *testing.T) {
 			name: "deprecated-fallback",
 			initial: `
       description    = "migration"
-      routing_labels = { environment = "%[1]v" }
+      routing_labels = { environment = "tf-acc-global-router-migration-deprecated-fallback" }
       rules = [
         {
           name        = "first"
@@ -106,7 +106,7 @@ func TestAccCoralogixResourceGlobalRouterMigration(t *testing.T) {
       fallback = [{ connector_id = coralogix_connector.generic_https_example.id }]`,
 			updated: `
       description    = "migration updated"
-      routing_labels = { environment = "%[1]v" }
+      routing_labels = { environment = "tf-acc-global-router-migration-deprecated-fallback" }
       rules = [
         {
           name        = "first"
@@ -121,10 +121,10 @@ func TestAccCoralogixResourceGlobalRouterMigration(t *testing.T) {
 			name: "minimal",
 			initial: `
       description    = "migration"
-      routing_labels = { environment = "%[1]v" }`,
+      routing_labels = { environment = "tf-acc-global-router-migration-minimal" }`,
 			updated: `
       description    = "migration updated"
-      routing_labels = { environment = "%[1]v" }
+      routing_labels = { environment = "tf-acc-global-router-migration-minimal" }
       entity_labels  = { a = "b" }`,
 		},
 	}
@@ -190,7 +190,7 @@ func requireGlobalRouterMigrationAcceptance(t *testing.T) {
 }
 
 // globalRouterMigrationConfig is a generic HTTPS connector and a router. attributes is the HCL of the
-// router, and %[1]v in it is the name.
+// router besides its name.
 func globalRouterMigrationConfig(name, attributes string) string {
 	return fmt.Sprintf(`
     resource "coralogix_connector" "generic_https_example" {
@@ -216,7 +216,7 @@ func globalRouterMigrationConfig(name, attributes string) string {
       name = "%[1]v"
 %[2]s
     }
-  `, name, fmt.Sprintf(attributes, name))
+  `, name, attributes)
 }
 
 func testAccCheckGlobalRouterDestroy(s *terraform.State) error {

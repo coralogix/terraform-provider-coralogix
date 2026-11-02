@@ -57,7 +57,12 @@ type acceptanceData struct {
 	// UpgradeFull is the full config without the attributes that the released provider does not
 	// have. nil when it is the full config.
 	UpgradeFull *accStep
-	UpgradeFrom string
+	// UpgradeNextFull and UpgradeUpdated are the full and the updated config with the upgradeValues
+	// of the acceptance file, the next configs of the upgrade subtests. nil when they are the full
+	// and the updated config. Their checks are those of the full and the updated config: a value from
+	// the acceptance file has no value check.
+	UpgradeNextFull, UpgradeUpdated *accStep
+	UpgradeFrom                     string
 	// UpgradeAttributes is the upgrade attributes file to write. nil without an upgrade test.
 	UpgradeAttributes *acceptance.UpgradeAttributes
 	// UpgradeFullAction and UpgradeMinimalAction are the plan checks of the step after the upgrade,
@@ -67,6 +72,18 @@ type acceptanceData struct {
 	UpgradeCases []upgradeCaseData
 	// DataSource is the data source step of full-lifecycle. nil when the package has no data source.
 	DataSource *accDataSource
+}
+
+// UpgradeNextFullName is the Go constant of the full config that upgrade-minimal applies with this
+// build: upgradeFullConfig when the release has every attribute, so that the config is written once.
+func (d *acceptanceData) UpgradeNextFullName() string {
+	switch {
+	case d.UpgradeNextFull == nil:
+		return "fullConfig"
+	case d.UpgradeFull != nil && d.UpgradeFull.Config == d.UpgradeNextFull.Config:
+		return "upgradeFullConfig"
+	}
+	return "upgradeNextFullConfig"
 }
 
 // accDataSource is the step that reads the data source of the resource that the full config created.
@@ -218,6 +235,12 @@ func (s *accSynth) upgradeSteps(out *acceptanceData, attrs []*tfAttr, resourceTy
 	if err := newRequired(schema, released, prior.From); err != nil {
 		return err
 	}
+	restore := s.useUpgradeValues()
+	defer restore()
+	nextFull, updated, err := s.upgradeNextSteps(out, attrs, resourceType)
+	if err != nil {
+		return err
+	}
 	defer func() { s.released, s.releasedRequired, s.minimal = nil, nil, s.file.Minimal }()
 	s.released, s.releasedRequired = released, releasedRequired
 	body, checks, err := s.attrs(attrs, "", "", accFull, true)
@@ -229,7 +252,7 @@ func (s *accSynth) upgradeSteps(out *acceptanceData, attrs []*tfAttr, resourceTy
 		out.UpgradeFull = &accStep{Config: config, Checks: checks}
 		from = out.UpgradeFull
 	}
-	if out.UpgradeFullAction, err = s.nextAction(attrs, from, out.Updated, accFull, accUpdated); err != nil {
+	if out.UpgradeFullAction, err = s.nextAction(attrs, from, updated, accFull, accUpdated); err != nil {
 		return err
 	}
 	s.minimal = append(slices.Clone(s.file.Minimal), s.file.UpgradeMinimal...)
@@ -238,11 +261,49 @@ func (s *accSynth) upgradeSteps(out *acceptanceData, attrs []*tfAttr, resourceTy
 		return err
 	}
 	out.UpgradeMinimal = &accStep{Config: resourceBlock(resourceType, body), Checks: checks}
-	out.UpgradeMinimalAction, err = s.nextAction(attrs, out.UpgradeMinimal, out.Full, accMinimal, accFull)
+	out.UpgradeMinimalAction, err = s.nextAction(attrs, out.UpgradeMinimal, nextFull, accMinimal, accFull)
 	if err != nil {
 		return err
 	}
 	return s.addUpgradeCases(out, attrs, resourceType)
+}
+
+// useUpgradeValues puts the upgradeValues of the acceptance file in place of values and
+// updatedValues, for the configs of the upgrade test. The returned function puts them back.
+func (s *accSynth) useUpgradeValues() func() {
+	values, updated := s.file.Values, s.file.UpdatedValues
+	if len(s.file.UpgradeValues) == 0 {
+		return func() {}
+	}
+	s.file.Values = mergeValues(values, s.file.UpgradeValues)
+	s.file.UpdatedValues = maps.Clone(updated)
+	for path := range s.file.UpgradeValues {
+		delete(s.file.UpdatedValues, path)
+	}
+	return func() { s.file.Values, s.file.UpdatedValues = values, updated }
+}
+
+// upgradeNextSteps makes the full and the updated config that this build applies after the upgrade.
+// It sets UpgradeNextFull and UpgradeUpdated when they differ from the full and the updated config,
+// and returns the steps to use. s.released must be nil: this build has every attribute.
+func (s *accSynth) upgradeNextSteps(out *acceptanceData, attrs []*tfAttr, resourceType string) (nextFull, updated *accStep, err error) {
+	nextFull, updated = out.Full, out.Updated
+	for _, step := range []struct {
+		mode accMode
+		base *accStep
+		into **accStep
+		use  **accStep
+	}{{accFull, out.Full, &out.UpgradeNextFull, &nextFull}, {accUpdated, out.Updated, &out.UpgradeUpdated, &updated}} {
+		body, _, err := s.attrs(attrs, "", "", step.mode, true)
+		if err != nil {
+			return nil, nil, err
+		}
+		if config := resourceBlock(resourceType, body); config != step.base.Config {
+			*step.into = &accStep{Config: config, Checks: step.base.Checks}
+			*step.use = *step.into
+		}
+	}
+	return nextFull, updated, nil
 }
 
 // addUpgradeCases makes the extra upgrade subtests. Each is the full upgrade config plus the case
