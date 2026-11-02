@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 // Schema is the Terraform schema of the resource.
@@ -66,11 +67,24 @@ func Schema() schema.Schema {
 								Optional:            true,
 								MarkdownDescription: "",
 							},
+							"notify_on": schema.SetAttribute{
+								Optional:            true,
+								ElementType:         types.StringType,
+								MarkdownDescription: "Notifications stored in another API shape.",
+							},
+							"url": schema.StringAttribute{
+								Optional:            true,
+								MarkdownDescription: "URL stored at another API path.",
+							},
 						},
 						MarkdownDescription: "",
 					},
 				},
 				MarkdownDescription: "How the thing is measured.",
+			},
+			"external_id": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "External identifier as text.",
 			},
 		},
 	}

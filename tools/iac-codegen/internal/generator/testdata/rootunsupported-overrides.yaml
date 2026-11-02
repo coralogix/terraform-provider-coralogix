@@ -23,6 +23,11 @@ groups:
 
 types:
   SharedThing:
+    extraAttributes:
+      external_id:
+        type: string
+        computed: true
+        markdownDescription: External identifier as text.
     unsupportedArms: [byRatio]
     unsupportedSummary: Unsupported measure
     unsupportedDetail: The API returned a ratio measure.
@@ -39,6 +44,15 @@ types:
       frame:
         required: true
         validators: [{enumExceptZero: true}]
+  SharedCount:
+    extraAttributes:
+      url:
+        type: string
+        markdownDescription: URL stored at another API path.
+      notify_on:
+        type: set
+        elementType: string
+        markdownDescription: Notifications stored in another API shape.
 enums:
   SharedFrame:
     zero: unspecified

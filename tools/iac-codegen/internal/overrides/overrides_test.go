@@ -599,3 +599,22 @@ func TestParseRejectsUpsertInlineAndNameMistakes(t *testing.T) {
 		})
 	}
 }
+
+func TestExtraAttributeShapeErrors(t *testing.T) {
+	tests := map[string]struct {
+		extra ExtraAttribute
+		want  string
+	}{
+		"unknown shape":        {ExtraAttribute{Type: "list"}, "want string or set"},
+		"set without elements": {ExtraAttribute{Type: "set"}, "needs elementType string"},
+		"string with elements": {ExtraAttribute{Type: "string", ElementType: "string"}, "string attribute has no elementType"},
+		"computed write-only":  {ExtraAttribute{Type: "string", Computed: true, WriteOnly: true}, "computed cannot be combined"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if err := test.extra.check("field"); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %q", err, test.want)
+			}
+		})
+	}
+}

@@ -8,12 +8,13 @@ import (
 )
 
 type SharedThingModel struct {
-	Id      types.String             `tfsdk:"id"`
-	Name    types.String             `tfsdk:"name"`
-	Note    types.String             `tfsdk:"note"`
-	Size    types.Float32            `tfsdk:"size"`
-	Window  *SharedThingWindowModel  `tfsdk:"window"`
-	Measure *SharedThingMeasureModel `tfsdk:"measure"`
+	Id         types.String             `tfsdk:"id"`
+	Name       types.String             `tfsdk:"name"`
+	Note       types.String             `tfsdk:"note"`
+	Size       types.Float32            `tfsdk:"size"`
+	Window     *SharedThingWindowModel  `tfsdk:"window"`
+	Measure    *SharedThingMeasureModel `tfsdk:"measure"`
+	ExternalId types.String             `tfsdk:"external_id"`
 }
 
 type SharedThingWindowModel struct {
@@ -21,7 +22,9 @@ type SharedThingWindowModel struct {
 }
 
 type SharedCountModel struct {
-	Limit types.Int32 `tfsdk:"limit"`
+	Limit    types.Int32  `tfsdk:"limit"`
+	NotifyOn types.Set    `tfsdk:"notify_on"`
+	Url      types.String `tfsdk:"url"`
 }
 
 type SharedThingMeasureModel struct {

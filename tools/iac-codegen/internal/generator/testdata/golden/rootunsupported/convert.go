@@ -111,7 +111,8 @@ var oneOfArms = map[string]bool{
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
-	"id": true,
+	"id":          true,
+	"external_id": true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
@@ -302,6 +303,8 @@ func flattenSharedCount(ctx context.Context, p path.Path, v *shared_things_servi
 	}
 	out := &SharedCountModel{}
 	out.Limit = types.Int32PointerValue(v.Limit)
+	out.NotifyOn = types.SetNull(types.StringType)
+	out.Url = types.StringNull()
 	return out
 }
 
@@ -366,6 +369,7 @@ func flattenSharedThing(ctx context.Context, p path.Path, v *shared_things_servi
 	out.Size = flattenFloat32(v.Size)
 	out.Window = flattenSharedThingWindow(ctx, p.AtName("window"), v, diags)
 	out.Measure = flattenSharedThingMeasure(ctx, p.AtName("measure"), v, diags)
+	out.ExternalId = types.StringNull()
 	return out
 }
 

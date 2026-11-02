@@ -103,6 +103,9 @@ type tfAttr struct {
 	// Component and Property name the API field of the attribute: the OpenAPI component
 	// of its parent object, and the property. The behavior-overrides file uses them.
 	Component, Property string
+	// ObjectComponent is the API component of this object's value. It also identifies an
+	// empty object, whose children cannot name the component.
+	ObjectComponent string
 	// PlainDescription: the docs text is Description, not MarkdownDescription.
 	PlainDescription   bool
 	DeprecationMessage string
@@ -990,6 +993,7 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type, computed bool)
 		return b.collection(a, p, t)
 	case model.Object, model.OneOf:
 		a.Kind, a.ValueKind = "SingleNested", "Object"
+		a.ObjectComponent = t.Schema
 		a.KeyedObject = t.Keyed != nil && t.Keyed.Object
 		attrs, err := b.objectAttributes(p, t)
 		if err != nil {
@@ -1016,6 +1020,7 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 	switch t.Elem.Kind {
 	case model.Object:
 		a.Kind = kind + "Nested"
+		a.ObjectComponent = t.Elem.Schema
 		attrs, err := b.objectAttributes(append(append(attrPath{}, p...), step), t.Elem)
 		if err != nil {
 			return err

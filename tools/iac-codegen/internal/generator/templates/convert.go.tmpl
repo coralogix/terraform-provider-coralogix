@@ -1844,6 +1844,9 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{- else}}
 	if {{.Src}} != nil {
 		out.{{.Model}} = &{{.Object.Model}}{}
+		{{- range .Object.ExtraFlatten}}
+		out.{{$.Model}}.{{.Name}} = {{.Expr}}
+		{{- end}}
 	}
 	{{- end}}
 {{- else if eq .Conv "emptybool"}}
