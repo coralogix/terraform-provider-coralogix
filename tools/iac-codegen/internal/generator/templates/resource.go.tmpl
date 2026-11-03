@@ -81,6 +81,10 @@ type Hooks struct {
 	// BeforeFlatten mutates the API value before flatten, for a value that only an older
 	// record has, such as a deprecated field that a newer one replaces.
 	BeforeFlatten func(context.Context, *{{$sdk}}.{{.Resource}}) diag.Diagnostics
+{{- if $.AfterFlatten}}
+	// AfterFlatten projects API values into the Terraform model before it enters state.
+	AfterFlatten func(context.Context, *{{$.Model}}, *{{$sdk}}.{{.Resource}}) diag.Diagnostics
+{{- end}}
 	// ValidateConfig adds checks that no attribute validator expresses, such as a rule over
 	// the items of a set.
 	ValidateConfig func(context.Context, tfsdk.Config) diag.Diagnostics
@@ -741,6 +745,24 @@ func (r *Resource) setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prio
 	if diags.HasError() {
 		return diags
 	}
+{{- range .DynamicExtras}}
+	if prior != nil {
+		// The API holds no value of this attribute. Start with the value from the plan or prior
+		// state, then let AfterFlatten replace it when the API supplies another value.
+		var kept types.Dynamic
+		if !prior.GetAttribute(ctx, path.Root({{printf "%q" .TFName}}), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
+			m.{{.Model}} = kept
+		}
+	}
+{{- end}}
+{{- if $.AfterFlatten}}
+	if r.hooks.AfterFlatten != nil {
+		diags.Append(r.hooks.AfterFlatten(ctx, m, v)...)
+		if diags.HasError() {
+			return diags
+		}
+	}
+{{- end}}
 {{- if and .Singleton .SingletonID}}
 	if m.Id.IsNull() || m.Id.ValueString() == "" {
 		m.Id = types.StringValue(TypeName) // the API returned no id
@@ -758,16 +780,6 @@ func (r *Resource) setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prio
 	if diags.HasError() {
 		return diags
 	}
-{{- range .DynamicExtras}}
-	if prior != nil {
-		// The API holds no value of this attribute, so the state keeps the one of the plan or the
-		// prior state.
-		var kept types.Dynamic
-		if !prior.GetAttribute(ctx, path.Root({{printf "%q" .}}), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
-			diags.Append(state.SetAttribute(ctx, path.Root({{printf "%q" .}}), kept)...)
-		}
-	}
-{{- end}}
 {{- if .Existing}}
 	if prior != nil {
 		diags.Append(keepPriorEmpty(ctx, prior, state)...)

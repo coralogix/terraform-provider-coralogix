@@ -17,6 +17,7 @@ import (
 // tfResource is the template data for the Terraform schema and model files.
 type tfResource struct {
 	Package            string
+	AfterFlatten       bool
 	VersionHeader      string
 	Model              string // Go type of the resource model, for example "WidgetModel"
 	Attributes         []*tfAttr
@@ -102,6 +103,9 @@ type tfAttr struct {
 	// Component and Property name the API field of the attribute: the OpenAPI component
 	// of its parent object, and the property. The behavior-overrides file uses them.
 	Component, Property string
+	// ObjectComponent is the API component of this object's value. It also identifies an
+	// empty object, whose children cannot name the component.
+	ObjectComponent string
 	// PlainDescription: the docs text is Description, not MarkdownDescription.
 	PlainDescription   bool
 	DeprecationMessage string
@@ -144,6 +148,9 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
 	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: modelTypeName(r.Name)}
+	if file != nil {
+		out.AfterFlatten = file.AfterFlatten
+	}
 	root := &tfModel{Name: out.Model}
 	if err := b.claimModel(root.Name, "the resource "+r.Name); err != nil {
 		return nil, err
@@ -986,6 +993,7 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type, computed bool)
 		return b.collection(a, p, t)
 	case model.Object, model.OneOf:
 		a.Kind, a.ValueKind = "SingleNested", "Object"
+		a.ObjectComponent = t.Schema
 		a.KeyedObject = t.Keyed != nil && t.Keyed.Object
 		attrs, err := b.objectAttributes(p, t)
 		if err != nil {
@@ -1012,6 +1020,7 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 	switch t.Elem.Kind {
 	case model.Object:
 		a.Kind = kind + "Nested"
+		a.ObjectComponent = t.Elem.Schema
 		attrs, err := b.objectAttributes(append(append(attrPath{}, p...), step), t.Elem)
 		if err != nil {
 			return err

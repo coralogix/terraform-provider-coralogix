@@ -255,6 +255,41 @@ func TestGoldenOutputSharedBody(t *testing.T) {
 	}
 }
 
+// A released resource can omit a root oneOf arm. A read that selects it must fail.
+func TestGoldenOutputRootUnsupportedArm(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "sharedthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "sharedthing")
+	options := Options{Resource: "SharedThing", OutputDir: out, OverridesPath: filepath.Join("testdata", "rootunsupported-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	golden := filepath.Join("testdata", "golden", "rootunsupported")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputRootUnsupportedArm -update:\n%s", diff)
+	}
+	semantics, err := os.ReadFile(filepath.Join("testdata", "rootunsupported_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
 // The generated Create reads the resource next to other response values, Update sends the state
 // id in the body, and a read without an id fails.
 func TestSharedBodyRuntimeSemantics(t *testing.T) {
@@ -3127,6 +3162,39 @@ func TestRequestShapeRuntimeSemantics(t *testing.T) {
 	}
 	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
 		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+func TestAfterFlattenOverridesPriorDynamicExtra(t *testing.T) {
+	input, loadDir := syntheticInput(t)
+	spec, err := os.ReadFile(filepath.Join("testdata", "renamething.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.OpenAPI = spec
+	base, err := os.ReadFile(filepath.Join("testdata", "renamething-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	overridesPath := filepath.Join(dir, "overrides.yaml")
+	lines := strings.Replace(string(base), "mode: existing\n", "mode: existing\nafterFlatten: true\n", 1)
+	if err := os.WriteFile(overridesPath, []byte(lines), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "renamething")
+	if err := generateFromInput(Options{Resource: "RenameThing", OutputDir: out, OverridesPath: overridesPath}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"renamething_semantics_test.go", "renamething_after_flatten_test.go"} {
+		content, err := os.ReadFile(filepath.Join("testdata", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(out, name), content, 0o644); err != nil {
+			t.Fatal(err)
+		}
 	}
 	compileGenerated(t, out, input)
 }
