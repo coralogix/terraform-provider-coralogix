@@ -176,6 +176,15 @@ var rrScenarios = map[string]func(h *grHarness){
 		h.RefreshPlan("refresh", s)
 	},
 
+	// labels is computed. Removing it alone plans no change; removing it while another value of
+	// the same rule changes is recorded here.
+	"remove-labels-with-another-change": func(h *grHarness) {
+		s := h.Apply("create", h.null(), rrCfg("tf-set", rrGroup("g1", nil, rrRule("tf:r1", j{"labels": j{"a": "1"}}))))
+		s = h.Apply("update: remove labels only", s, rrCfg("tf-set", rrGroup("g1", nil, rrRule("tf:r1", nil))))
+		s = h.Apply("update: remove labels and change the expression", s, rrCfg("tf-set", rrGroup("g1", nil, rrRule("tf:r1", j{"expr": "vector(2)"}))))
+		h.RefreshPlan("refresh", s)
+	},
+
 	"remove-name": func(h *grHarness) {
 		s := h.Apply("create", h.null(), rrCfg("tf-set", rrGroup("g1", nil, rrRule("tf:r1", nil))))
 		s = h.Apply("update: remove the name", s, rrCfg("", rrGroup("g1", nil, rrRule("tf:r1", nil))))
