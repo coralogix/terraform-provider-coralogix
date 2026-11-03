@@ -16,9 +16,8 @@
 # A merge that fails also withdraws it. A run is never cancelled once it starts, and a run that
 # finds the release PR merged but never released starts release-provider.yml itself; a release
 # run that was cancelled or failed stays stopped until a person restarts it.
-# check-ci.sh runs again right before the merge, and a re-run starts this workflow when it is
-# requested, so a check re-run after the approval holds the merge: master requires only
-# "Acceptance tests result".
+# check-ci.sh runs again right before the merge, so a check re-run after the CI step holds the
+# merge: master requires only "Acceptance tests result".
 #
 # It runs when the release PR changes (to dismiss stale approvals) and whenever a PR workflow
 # finishes (to approve once the last check passes). Both triggers run this file and release.py
@@ -32,8 +31,14 @@ on:
       - master
   workflow_run:
     workflows: ["Acceptance Tests", "build", "release", "changelog-check", "tfsec"]
-    # requested too: a re-run after the approval withdraws it as soon as it starts.
-    types: [requested, completed]
+    # completed only: the job approves and merges in one go and withdraws the approval if the
+    # merge fails, so no bot approval stays on an open PR for a starting run to withdraw. A run
+    # that starts during the merge is caught by the CI check right before it.
+    types: [completed]
+    # Only runs on a release branch start this workflow. Without the filter, every run on every
+    # branch starts one that the job's if: then skips.
+    branches:
+      - "release-*"
 
 permissions:
   contents: read
