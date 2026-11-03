@@ -245,6 +245,25 @@ func (h *grHarness) plan(prior, cfg tftypes.Value) (tftypes.Value, []string, []*
 	return h.decode(resp.PlannedState), replace, resp.Diagnostics
 }
 
+// Plan validates and plans a config on top of prior state, and applies nothing. Use it for a config
+// with unknown values, which Terraform plans but cannot apply as is.
+func (h *grHarness) Plan(name string, prior tftypes.Value, cfgJSON map[string]any) {
+	h.t.Helper()
+	step := grStep{Step: name, Config: cfgJSON, State: toJSON(prior)}
+	cfg := h.config(cfgJSON)
+	vd := h.validate(cfg)
+	step.ValidateDiags = diagStrings(vd)
+	if !hasError(vd) {
+		planned, replace, pd := h.plan(prior, cfg)
+		step.PlanDiags = diagStrings(pd)
+		step.RequiresReplace = replace
+		if !hasError(pd) {
+			step.Plan = toJSON(planned)
+		}
+	}
+	h.record(step)
+}
+
 // Apply validates, plans, and applies a config on top of prior state, then plans again.
 // It returns the new state, or prior when a step fails.
 func (h *grHarness) Apply(name string, prior tftypes.Value, cfgJSON map[string]any) tftypes.Value {
@@ -530,10 +549,19 @@ func idOf(state tftypes.Value) string {
 }
 
 // fromJSON converts JSON-like Go values to a value of the given type. A missing object key is null.
+// unknownJSON in a config is a value that Terraform does not know during the plan, such as one
+// from a resource that does not exist yet. A golden shows it as "(unknown)".
+type unknownJSON struct{}
+
+func (unknownJSON) MarshalJSON() ([]byte, error) { return []byte(`"(unknown)"`), nil }
+
 func fromJSON(t *testing.T, typ tftypes.Type, v any) tftypes.Value {
 	t.Helper()
 	if v == nil {
 		return tftypes.NewValue(typ, nil)
+	}
+	if _, ok := v.(unknownJSON); ok {
+		return tftypes.NewValue(typ, tftypes.UnknownValue)
 	}
 	switch {
 	case typ.Is(tftypes.DynamicPseudoType):
@@ -655,6 +683,10 @@ func toJSON(v tftypes.Value) any {
 // proposedNew emulates the proposed new state that Terraform core builds: the
 // config value where it is set, else the prior value for a computed attribute.
 func proposedNew(attrs []*tfprotov6.SchemaAttribute, prior, cfg tftypes.Value) tftypes.Value {
+	if !cfg.IsKnown() {
+		// Terraform core proposes an unknown config value as it is.
+		return cfg
+	}
 	var c, p map[string]tftypes.Value
 	_ = cfg.As(&c)
 	if !prior.IsNull() {
@@ -668,6 +700,8 @@ func proposedNew(attrs []*tfprotov6.SchemaAttribute, prior, cfg tftypes.Value) t
 		case a.WriteOnly:
 			// Terraform core keeps write-only values out of proposed state.
 			out[a.Name] = tftypes.NewValue(cv.Type(), nil)
+		case !cv.IsKnown():
+			out[a.Name] = cv
 		case !cv.IsNull() && a.NestedType != nil:
 			out[a.Name] = proposedNested(a.NestedType, pv, hasPrior, cv)
 		case !cv.IsNull():

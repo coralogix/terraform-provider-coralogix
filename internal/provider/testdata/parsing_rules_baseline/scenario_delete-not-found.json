@@ -1,0 +1,190 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "extract": {
+                "name": "rule-extract",
+                "regular_expression": "a",
+                "source_field": "text"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": [],
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "(unknown)",
+      "name": "tf-rule-group",
+      "order": "(unknown)",
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "(unknown)",
+                "name": "rule-extract",
+                "order": "(unknown)",
+                "regular_expression": "a",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1",
+        "body": {
+          "creator": "",
+          "description": "",
+          "enabled": false,
+          "hidden": false,
+          "name": "tf-rule-group",
+          "order": 0,
+          "ruleSubgroups": [
+            {
+              "enabled": true,
+              "order": 1,
+              "rules": [
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-extract",
+                  "order": 1,
+                  "parameters": {
+                    "extractParameters": {
+                      "rule": "a"
+                    }
+                  },
+                  "sourceField": "text"
+                }
+              ]
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": false,
+      "applications": [],
+      "creator": "",
+      "description": "",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000003",
+      "name": "tf-rule-group",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000002",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000001",
+                "name": "rule-extract",
+                "order": 1,
+                "regular_expression": "a",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy: the rule group was deleted outside Terraform",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000003",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error deleting coralogix_parsing_rules | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: RuleGroup not found: 00000000-0000-4000-9000-000000000003\"}\noperation - Read"
+    ],
+    "state": {
+      "active": false,
+      "applications": [],
+      "creator": "",
+      "description": "",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000003",
+      "name": "tf-rule-group",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000002",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000001",
+                "name": "rule-extract",
+                "order": 1,
+                "regular_expression": "a",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    }
+  }
+]

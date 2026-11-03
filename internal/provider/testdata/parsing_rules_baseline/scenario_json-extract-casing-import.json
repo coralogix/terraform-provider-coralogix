@@ -1,0 +1,208 @@
+[
+  {
+    "step": "import a json_extract rule",
+    "state": null
+  },
+  {
+    "step": "import a json_extract rule (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000003",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "applications": [],
+      "creator": "",
+      "description": "",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000003",
+      "name": "seeded",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000002",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": {
+                "active": true,
+                "description": "",
+                "destination_field": "threadID",
+                "destination_field_text": null,
+                "id": "00000000-0000-4000-9000-000000000001",
+                "json_key": "k",
+                "name": "rule-json_extract",
+                "order": 1
+              },
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "drift": [
+      "AttributeName(\"active\")",
+      "AttributeName(\"applications\")",
+      "AttributeName(\"creator\")",
+      "AttributeName(\"description\")",
+      "AttributeName(\"hidden\")",
+      "AttributeName(\"name\")",
+      "AttributeName(\"order\")",
+      "AttributeName(\"rule_subgroups\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0)",
+      "AttributeName(\"severities\")",
+      "AttributeName(\"subsystems\")"
+    ]
+  },
+  {
+    "step": "plan the config in another case",
+    "config": {
+      "name": "seeded",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "json_extract": {
+                "destination_field": "ThreadID",
+                "json_key": "k",
+                "name": "rule-json_extract"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": [],
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "00000000-0000-4000-9000-000000000003",
+      "name": "seeded",
+      "order": "(unknown)",
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": {
+                "active": true,
+                "description": "",
+                "destination_field": "ThreadID",
+                "destination_field_text": null,
+                "id": "(unknown)",
+                "json_key": "k",
+                "name": "rule-json_extract",
+                "order": "(unknown)"
+              },
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000003",
+        "body": {
+          "creator": "",
+          "description": "",
+          "enabled": false,
+          "hidden": false,
+          "name": "seeded",
+          "order": 0,
+          "ruleSubgroups": [
+            {
+              "enabled": true,
+              "order": 1,
+              "rules": [
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-json_extract",
+                  "order": 1,
+                  "parameters": {
+                    "jsonExtractParameters": {
+                      "destinationFieldType": "DESTINATION_FIELD_THREADID",
+                      "rule": "k"
+                    }
+                  },
+                  "sourceField": "text"
+                }
+              ]
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": false,
+      "applications": [],
+      "creator": "",
+      "description": "",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000003",
+      "name": "seeded",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000005",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": {
+                "active": true,
+                "description": "",
+                "destination_field": "ThreadID",
+                "destination_field_text": null,
+                "id": "00000000-0000-4000-9000-000000000004",
+                "json_key": "k",
+                "name": "rule-json_extract",
+                "order": 1
+              },
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "replanEmpty": true
+  }
+]
