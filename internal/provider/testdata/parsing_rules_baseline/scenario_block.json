@@ -100,6 +100,201 @@
     "state": null
   },
   {
+    "step": "create an allow rule: block_all_matching_blocks = false",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "block": {
+                "block_all_matching_blocks": false,
+                "keep_blocked_logs": true,
+                "name": "rule-block",
+                "regular_expression": "error",
+                "source_field": "text"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": [],
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "(unknown)",
+      "name": "tf-rule-group",
+      "order": "(unknown)",
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            {
+              "block": {
+                "active": true,
+                "block_all_matching_blocks": false,
+                "description": "",
+                "id": "(unknown)",
+                "keep_blocked_logs": true,
+                "name": "rule-block",
+                "order": "(unknown)",
+                "regular_expression": "error",
+                "source_field": "text"
+              },
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1",
+        "body": {
+          "creator": "",
+          "description": "",
+          "enabled": false,
+          "hidden": false,
+          "name": "tf-rule-group",
+          "order": 0,
+          "ruleSubgroups": [
+            {
+              "enabled": true,
+              "order": 1,
+              "rules": [
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-block",
+                  "order": 1,
+                  "parameters": {
+                    "allowParameters": {
+                      "keepBlockedLogs": true,
+                      "rule": "error"
+                    }
+                  },
+                  "sourceField": "text"
+                }
+              ]
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": false,
+      "applications": [],
+      "creator": "",
+      "description": "",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000003",
+      "name": "tf-rule-group",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000002",
+          "order": 1,
+          "rules": [
+            {
+              "block": {
+                "active": true,
+                "block_all_matching_blocks": false,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000001",
+                "keep_blocked_logs": true,
+                "name": "rule-block",
+                "order": 1,
+                "regular_expression": "error",
+                "source_field": "text"
+              },
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh the allow rule",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000003",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": false,
+      "applications": [],
+      "creator": "",
+      "description": "",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000003",
+      "name": "tf-rule-group",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000002",
+          "order": 1,
+          "rules": [
+            {
+              "block": {
+                "active": true,
+                "block_all_matching_blocks": false,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000001",
+                "keep_blocked_logs": true,
+                "name": "rule-block",
+                "order": 1,
+                "regular_expression": "error",
+                "source_field": "text"
+              },
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "replanEmpty": true
+  },
+  {
     "step": "create a block rule with defaults",
     "config": {
       "name": "tf-rule-group",
@@ -202,13 +397,13 @@
       "creator": "",
       "description": "",
       "hidden": false,
-      "id": "00000000-0000-4000-9000-000000000003",
+      "id": "00000000-0000-4000-9000-000000000006",
       "name": "tf-rule-group",
-      "order": 1,
+      "order": 2,
       "rule_subgroups": [
         {
           "active": true,
-          "id": "00000000-0000-4000-9000-000000000002",
+          "id": "00000000-0000-4000-9000-000000000005",
           "order": 1,
           "rules": [
             {
@@ -216,7 +411,7 @@
                 "active": true,
                 "block_all_matching_blocks": true,
                 "description": "",
-                "id": "00000000-0000-4000-9000-000000000001",
+                "id": "00000000-0000-4000-9000-000000000004",
                 "keep_blocked_logs": false,
                 "name": "rule-block",
                 "order": 1,
@@ -245,7 +440,7 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000003",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000006",
         "status": 200
       }
     ],
@@ -255,13 +450,13 @@
       "creator": "",
       "description": "",
       "hidden": false,
-      "id": "00000000-0000-4000-9000-000000000003",
+      "id": "00000000-0000-4000-9000-000000000006",
       "name": "tf-rule-group",
-      "order": 1,
+      "order": 2,
       "rule_subgroups": [
         {
           "active": true,
-          "id": "00000000-0000-4000-9000-000000000002",
+          "id": "00000000-0000-4000-9000-000000000005",
           "order": 1,
           "rules": [
             {
@@ -269,7 +464,7 @@
                 "active": true,
                 "block_all_matching_blocks": true,
                 "description": "",
-                "id": "00000000-0000-4000-9000-000000000001",
+                "id": "00000000-0000-4000-9000-000000000004",
                 "keep_blocked_logs": false,
                 "name": "rule-block",
                 "order": 1,
@@ -319,7 +514,7 @@
       "creator": "(unknown)",
       "description": "(unknown)",
       "hidden": "(unknown)",
-      "id": "00000000-0000-4000-9000-000000000003",
+      "id": "00000000-0000-4000-9000-000000000006",
       "name": "tf-rule-group",
       "order": "(unknown)",
       "rule_subgroups": [
@@ -358,7 +553,7 @@
     "requests": [
       {
         "method": "PUT",
-        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000003",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000006",
         "body": {
           "creator": "",
           "description": "",
@@ -397,13 +592,13 @@
       "creator": "",
       "description": "",
       "hidden": false,
-      "id": "00000000-0000-4000-9000-000000000003",
+      "id": "00000000-0000-4000-9000-000000000006",
       "name": "tf-rule-group",
-      "order": 1,
+      "order": 2,
       "rule_subgroups": [
         {
           "active": true,
-          "id": "00000000-0000-4000-9000-000000000005",
+          "id": "00000000-0000-4000-9000-000000000008",
           "order": 1,
           "rules": [
             {
@@ -411,7 +606,7 @@
                 "active": true,
                 "block_all_matching_blocks": false,
                 "description": "",
-                "id": "00000000-0000-4000-9000-000000000004",
+                "id": "00000000-0000-4000-9000-000000000007",
                 "keep_blocked_logs": true,
                 "name": "rule-block",
                 "order": 1,
@@ -440,7 +635,7 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000003",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000006",
         "status": 200
       }
     ],
@@ -450,13 +645,13 @@
       "creator": "",
       "description": "",
       "hidden": false,
-      "id": "00000000-0000-4000-9000-000000000003",
+      "id": "00000000-0000-4000-9000-000000000006",
       "name": "tf-rule-group",
-      "order": 1,
+      "order": 2,
       "rule_subgroups": [
         {
           "active": true,
-          "id": "00000000-0000-4000-9000-000000000005",
+          "id": "00000000-0000-4000-9000-000000000008",
           "order": 1,
           "rules": [
             {
@@ -464,7 +659,7 @@
                 "active": true,
                 "block_all_matching_blocks": false,
                 "description": "",
-                "id": "00000000-0000-4000-9000-000000000004",
+                "id": "00000000-0000-4000-9000-000000000007",
                 "keep_blocked_logs": true,
                 "name": "rule-block",
                 "order": 1,
@@ -514,7 +709,7 @@
       "creator": "(unknown)",
       "description": "(unknown)",
       "hidden": "(unknown)",
-      "id": "00000000-0000-4000-9000-000000000003",
+      "id": "00000000-0000-4000-9000-000000000006",
       "name": "tf-rule-group",
       "order": "(unknown)",
       "rule_subgroups": [
@@ -553,7 +748,7 @@
     "requests": [
       {
         "method": "PUT",
-        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000003",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000006",
         "body": {
           "creator": "",
           "description": "",
@@ -592,13 +787,13 @@
       "creator": "",
       "description": "",
       "hidden": false,
-      "id": "00000000-0000-4000-9000-000000000003",
+      "id": "00000000-0000-4000-9000-000000000006",
       "name": "tf-rule-group",
-      "order": 1,
+      "order": 2,
       "rule_subgroups": [
         {
           "active": true,
-          "id": "00000000-0000-4000-9000-000000000007",
+          "id": "00000000-0000-4000-9000-000000000010",
           "order": 1,
           "rules": [
             {
@@ -606,7 +801,7 @@
                 "active": true,
                 "block_all_matching_blocks": false,
                 "description": "",
-                "id": "00000000-0000-4000-9000-000000000006",
+                "id": "00000000-0000-4000-9000-000000000009",
                 "keep_blocked_logs": false,
                 "name": "rule-block",
                 "order": 1,
@@ -654,7 +849,7 @@
       "creator": "(unknown)",
       "description": "(unknown)",
       "hidden": "(unknown)",
-      "id": "00000000-0000-4000-9000-000000000003",
+      "id": "00000000-0000-4000-9000-000000000006",
       "name": "tf-rule-group",
       "order": "(unknown)",
       "rule_subgroups": [
@@ -693,7 +888,7 @@
     "requests": [
       {
         "method": "PUT",
-        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000003",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000006",
         "body": {
           "creator": "",
           "description": "",
@@ -734,13 +929,13 @@
       "creator": "",
       "description": "",
       "hidden": false,
-      "id": "00000000-0000-4000-9000-000000000003",
+      "id": "00000000-0000-4000-9000-000000000006",
       "name": "tf-rule-group",
-      "order": 1,
+      "order": 2,
       "rule_subgroups": [
         {
           "active": true,
-          "id": "00000000-0000-4000-9000-000000000007",
+          "id": "00000000-0000-4000-9000-000000000010",
           "order": 1,
           "rules": [
             {
@@ -748,7 +943,7 @@
                 "active": true,
                 "block_all_matching_blocks": false,
                 "description": "",
-                "id": "00000000-0000-4000-9000-000000000006",
+                "id": "00000000-0000-4000-9000-000000000009",
                 "keep_blocked_logs": false,
                 "name": "rule-block",
                 "order": 1,
@@ -776,7 +971,7 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000003",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000006",
         "status": 200
       }
     ],
@@ -786,13 +981,13 @@
       "creator": "",
       "description": "",
       "hidden": false,
-      "id": "00000000-0000-4000-9000-000000000003",
+      "id": "00000000-0000-4000-9000-000000000006",
       "name": "tf-rule-group",
-      "order": 1,
+      "order": 2,
       "rule_subgroups": [
         {
           "active": true,
-          "id": "00000000-0000-4000-9000-000000000007",
+          "id": "00000000-0000-4000-9000-000000000010",
           "order": 1,
           "rules": [
             {
@@ -800,7 +995,7 @@
                 "active": true,
                 "block_all_matching_blocks": false,
                 "description": "",
-                "id": "00000000-0000-4000-9000-000000000006",
+                "id": "00000000-0000-4000-9000-000000000009",
                 "keep_blocked_logs": false,
                 "name": "rule-block",
                 "order": 1,

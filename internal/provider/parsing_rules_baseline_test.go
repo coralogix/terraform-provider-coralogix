@@ -277,11 +277,27 @@ var parsingRulesScenarios = map[string]func(h *grHarness){
 		h.Apply("update: remove them", s, prCfg(nil, nil))
 	},
 
+	"non-default-create": func(h *grHarness) {
+		// Create with the values that are not the defaults: an inactive and hidden group with an
+		// inactive subgroup and rule.
+		s := h.Apply("create an inactive, hidden group with an inactive subgroup and rule", h.null(), j{
+			"name": "tf-rule-group", "active": false, "hidden": true,
+			"rule_subgroups": []any{j{"active": false, "rules": []any{
+				prRule("extract", j{"source_field": "text", "regular_expression": "a", "active": false, "description": "off"}),
+			}}},
+		})
+		prRefreshPlan(h, "refresh", s)
+	},
+
 	"block": func(h *grHarness) {
 		// keep_blocked_logs is optional, but the API requires keepBlockedLogs.
 		h.Apply("create a block rule without keep_blocked_logs", h.null(), prCfg([]any{
 			prRule("block", j{"source_field": "text", "regular_expression": "error"}),
 		}, nil))
+		allow := h.Apply("create an allow rule: block_all_matching_blocks = false", h.null(), prCfg([]any{
+			prRule("block", j{"source_field": "text", "regular_expression": "error", "block_all_matching_blocks": false, "keep_blocked_logs": true}),
+		}, nil))
+		prRefreshPlan(h, "refresh the allow rule", allow)
 		s := h.Apply("create a block rule with defaults", h.null(), prCfg([]any{
 			prRule("block", j{"source_field": "text", "regular_expression": "error", "keep_blocked_logs": false}),
 		}, nil))
@@ -397,6 +413,12 @@ var parsingRulesScenarios = map[string]func(h *grHarness){
 
 	"empty-subgroups": func(h *grHarness) {
 		h.Apply("create with rule_subgroups = []: the API needs a rule", h.null(), prCfg([]any{}, j{"rule_subgroups": []any{}}))
+		h.Apply("create a subgroup with rules = []: the API needs a rule", h.null(), prCfg(nil, j{"rule_subgroups": []any{j{"rules": []any{}}}}))
+		// Create and Update build their requests apart, so both empty values go through an update too.
+		s := h.Apply("create", h.null(), prCfg(nil, nil))
+		h.Apply("update: rule_subgroups = []", s, prCfg([]any{}, j{"rule_subgroups": []any{}}))
+		h.Apply("update: a subgroup with rules = []", s, prCfg(nil, j{"rule_subgroups": []any{j{"rules": []any{}}}}))
+		h.Refresh("refresh: the group is unchanged", s)
 	},
 
 	"order": func(h *grHarness) {
