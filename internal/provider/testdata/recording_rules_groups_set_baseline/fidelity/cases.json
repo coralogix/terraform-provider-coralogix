@@ -545,6 +545,45 @@
           }
         },
         {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "name": "tf-fidelity-r",
+            "groups": [
+              {
+                "name": "tf-fidelity-g",
+                "interval": 60,
+                "limit": "-1",
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "name": "tf-fidelity-r",
+            "groups": [
+              {
+                "name": "tf-fidelity-g",
+                "interval": 60,
+                "rules": [
+                  {
+                    "record": "",
+                    "expr": "vector(1)"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
           "method": "GET",
           "path": "/{{id}}"
         },

@@ -382,6 +382,20 @@
           }
         },
         {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: proto: (line 1:35): invalid value for uint64 field limit: \"-1\""
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: {\n  \"groups\": {\n    \"0\": {\n      \"rules\": {\n        \"0\": {\n          \"record\": [\n            {\n              \"code\": \"length\",\n              \"message\": null,\n              \"params\": {\n                \"min\": 1,\n                \"value\": \"\"\n              }\n            },\n            {\n              \"code\": \"invalid_promql\",\n              \"message\": \"SingleExpr: unexpected token ; want \\\"\\\"(\\\", \\\"{\\\", \\\"-\\\", \\\"+\\\"\\\"\",\n              \"params\": {\n                \"value\": \"\"\n              }\n            }\n          ]\n        }\n      }\n    }\n  }\n}"
+          }
+        },
+        {
           "status": 200,
           "response": {
             "groups": [

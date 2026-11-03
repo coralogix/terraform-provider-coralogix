@@ -372,6 +372,8 @@ var rrScenarios = map[string]func(h *grHarness){
 	"update-rejected": func(h *grHarness) {
 		s := h.Apply("create", h.null(), rrCfg("tf-set", rrGroup("g1", nil, rrRule("tf:r1", nil))))
 		s = h.Apply("update: the expression is not PromQL", s, rrCfg("tf-set", rrGroup("g1", nil, rrRule("tf:r1", j{"expr": "sum("}))))
+		s = h.Apply("update: a negative limit", s, rrCfg("tf-set", rrGroup("g1", j{"limit": -1.0}, rrRule("tf:r1", nil))))
+		s = h.Apply("update: an empty record", s, rrCfg("tf-set", rrGroup("g1", nil, rrRule("", nil))))
 		h.RefreshPlan("refresh", s)
 	},
 
