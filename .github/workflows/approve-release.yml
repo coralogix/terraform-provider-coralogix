@@ -13,6 +13,8 @@
 # approval is the one review the PR needs. Approvals of an older commit are dismissed, so a
 # later push is never merged on an old approval. A check that fails or runs again, also a re-run
 # after the approval, withdraws it until every check passes.
+# A merge that fails also withdraws it. A run is never cancelled once it starts, and a run that
+# finds the release PR merged but not tagged starts release-provider.yml itself.
 #
 # It runs when the release PR changes (to dismiss stale approvals) and whenever a PR workflow
 # finishes (to approve once the last check passes). Both triggers run this file and release.py
@@ -46,7 +48,10 @@ jobs:
        github.event.workflow_run.head_repository.full_name == github.repository)
     concurrency:
       group: approve-release-${{ github.head_ref || github.event.workflow_run.head_branch }}
-      cancel-in-progress: true
+      # Never cancel a running job: one cancelled between merging the PR and starting
+      # release-provider.yml would leave the version merged but not released. A newer event
+      # replaces only a pending run, and the job doesn't wait for CI, so runs stay short.
+      cancel-in-progress: false
     permissions:
       contents: write
       pull-requests: write
@@ -68,6 +73,26 @@ jobs:
             --json number,headRefOid,isDraft --jq '.[0] // empty')
           if [ -z "$pr" ]; then echo "::notice::No open PR from $HEAD_REF"; exit 0; fi
           jq -r '"number=\(.number)\nsha=\(.headRefOid)\ndraft=\(.isDraft)"' <<<"$pr" >> "$GITHUB_OUTPUT"
+      - name: Start a release that a merge left behind
+        # If a run merged the release PR and stopped before starting release-provider.yml, the merge
+        # commit has no tag and no release run. A merge by the Actions token starts no push
+        # workflow, so nothing else would release it.
+        if: steps.pr.outputs.number == ''
+        run: |
+          merged=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$HEAD_REF" --base master --state merged \
+            --json mergeCommit --jq '.[0].mergeCommit.oid // empty')
+          if [ -z "$merged" ]; then exit 0; fi
+          version=$(gh api "repos/$GITHUB_REPOSITORY/contents/internal/clientset/version.go?ref=$merged" \
+            -H "Accept: application/vnd.github.raw" | sed -n 's/^const TF_PROVIDER_VERSION = "\(.*\)"$/\1/p')
+          if [ -z "$version" ]; then echo "::error::No version in internal/clientset/version.go at $merged"; exit 1; fi
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$version" --silent 2>/dev/null; then exit 0; fi
+          active=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release-provider.yml --limit 50 \
+            --json status --jq '[.[] | select(.status != "completed")] | length')
+          if [ "$active" != "0" ]; then
+            echo "::notice::v$version is not tagged yet, and a release-provider.yml run is in progress"; exit 0
+          fi
+          gh workflow run release-provider.yml --repo "$GITHUB_REPOSITORY" --ref master -f sha="$merged"
+          echo "Started release-provider.yml for $merged (v$version), which a merge left without a release" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Dismiss approvals of older commits
         if: steps.pr.outputs.number != ''
         env:
@@ -151,22 +176,6 @@ jobs:
             echo "::error::Release PR #$PR conflicts with master. Close it, delete its branch, and run \`make bump\` again."; exit 1
           fi
           python3 -I "$RUNNER_TEMP/release.py" check "$base"
-      - name: Dismiss the approval
-        # A failed check above, or CI that is not green (a check failed or is running again),
-        # withdraws an approval that an earlier run gave the same commit, for example when master
-        # has since gained changelog entries that this PR does not release, or a re-run failed.
-        if: >-
-          steps.pr.outputs.number != '' &&
-          (failure() || steps.ci.outputs.green == 'false')
-        env:
-          PR: ${{ steps.pr.outputs.number }}
-        run: |
-          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" \
-            --jq '.[] | select(.user.login == "github-actions[bot]" and .state == "APPROVED") | .id' |
-            while read -r id; do
-              gh api -X PUT "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews/$id/dismissals" \
-                -f message="The release PR no longer passes its checks; approval follows when they pass again." -f event=DISMISS >/dev/null
-            done
       - name: Approve
         if: steps.ci.outputs.green == 'true'
         env:
@@ -200,3 +209,22 @@ jobs:
             echo "::error::Merged #$PR as $merged but could not start release-provider.yml. Run it from the Actions tab with sha $merged."; exit 1
           fi
           echo "Merged #$PR as $merged; started release-provider.yml" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Dismiss the approval
+        # A failed step, or CI that is not green (a check failed or is running again), withdraws
+        # the bot's approval of a PR that is still open: one given by this run before the merge
+        # failed, or by an earlier run, for example before master gained changelog entries that
+        # this PR does not release, or before a re-run failed.
+        if: >-
+          steps.pr.outputs.number != '' &&
+          (failure() || cancelled() || steps.ci.outputs.green == 'false')
+        env:
+          PR: ${{ steps.pr.outputs.number }}
+        run: |
+          state=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json state --jq .state)
+          if [ "$state" != OPEN ]; then echo "PR #$PR is $state; nothing to withdraw"; exit 0; fi
+          gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and .state == "APPROVED") | .id' |
+            while read -r id; do
+              gh api -X PUT "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews/$id/dismissals" \
+                -f message="The release PR no longer passes its checks; approval follows when they pass again." -f event=DISMISS >/dev/null
+            done
