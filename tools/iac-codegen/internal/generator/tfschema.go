@@ -525,6 +525,12 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 	if l.Required {
 		a.Required, a.Optional = true, false
 	}
+	if l.SchemaOptional {
+		if !a.Required {
+			return errors.New("schemaOptional needs a field that the API request requires")
+		}
+		a.Required, a.Optional = false, true
+	}
 	if l.Description != nil {
 		a.Description, a.PlainDescription = *l.Description, true
 	}
@@ -668,6 +674,10 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 		return pkg + ".ExactlyOneOf(" + siblingPaths(v.ExactlyOneOf) + ")", nil
 	case len(v.AtLeastOneOf) != 0:
 		return pkg + ".AtLeastOneOf(" + siblingPaths(v.AtLeastOneOf) + ")", nil
+	case len(v.AlsoRequires) != 0:
+		return pkg + ".AlsoRequires(" + siblingPaths(v.AlsoRequires) + ")", nil
+	case len(v.ConflictsWith) != 0:
+		return pkg + ".ConflictsWith(" + siblingPaths(v.ConflictsWith) + ")", nil
 	case v.AtLeast != nil && (a.ValueKind == "Int32" || a.ValueKind == "Int64"):
 		if err := checkIntegerBound(a.ValueKind, "atLeast", *v.AtLeast); err != nil {
 			return "", err
@@ -1789,7 +1799,7 @@ func numberLiteral(kind string, v float64) string {
 // and fail only when a configuration reaches it.
 func checkSiblingTargets(a *tfAttr, siblings []*tfAttr, validators []overrides.Validator) error {
 	for _, v := range validators {
-		for _, name := range slices.Concat(v.ExactlyOneOf, v.AtLeastOneOf) {
+		for _, name := range slices.Concat(v.ExactlyOneOf, v.AtLeastOneOf, v.AlsoRequires, v.ConflictsWith) {
 			found := name != a.Name && slices.ContainsFunc(siblings, func(s *tfAttr) bool { return s.Name == name })
 			if !found {
 				return fmt.Errorf("validator target %q is not another attribute of the same object", name)

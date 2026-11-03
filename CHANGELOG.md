@@ -12,6 +12,12 @@
 - CHORE: The data source is generated with the resource and uses its schema. `id` reads `archive-metrics-settings`; before, it was empty.
 - FIX: A read when no metrics archive exists fails with `coralogix_archive_metrics not found`. Before, it warned that the archive would be recreated, which a data source cannot do.
 - CHORE: API errors read `Unable to read coralogix_archive_metrics` instead of `Error reading coralogix_archive_metrics`.
+#### resource/coralogix_webhook
+- CHORE: The resource and data source use generated code. The released schema, ten webhook types, import, and write-only fields remain available.
+- FIX: Empty email and Slack collections now produce a stable plan after apply.
+- FIX: A failed read after Create keeps the new id in state. Terraform can then delete the partial resource.
+- FIX: Delete succeeds when the webhook is already absent. An Update of an absent webhook keeps the prior state and returns an error. The next refresh can remove it.
+- CHORE: The SDK sends empty strings for omitted fields that the API requires. The API rejects these configurations as before. A legacy Microsoft Teams webhook can still be read and imported. Its rejected update now reports that this type is deprecated.
 
 #### resource/coralogix_action
 - CHORE: The resource is generated from the API contract. The schema, the import by id, and the state version are the same. A plan with an action that was created by 3.22.1 shows no change.

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"sort"
+	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
 )
@@ -39,35 +40,74 @@ func attachExtraAttributes(out *tfResource, file *overrides.File) error {
 			return err
 		}
 		for _, name := range extraNames(extras) {
-			if fieldNamed(model, name) || extraAttrNamed(out, file.Resource, component, parents, name) {
-				return fmt.Errorf("types.%s.extraAttributes.%s: the generated object already has this attribute", component, name)
-			}
-			extra := extras[name]
-			computedExtra = computedExtra || extra.Computed
-			attribute, field, attrType, nullExpr, err := extraAttr(name, extra)
+			computed, err := attachOneExtra(out, file, component, model, parents, name, extras[name])
 			if err != nil {
-				return fmt.Errorf("types.%s.extraAttributes.%s: %w", component, name, err)
-			}
-			if component == file.Resource {
-				out.Attributes = append(out.Attributes, attribute)
-			} else {
-				inherited, err := addExtraToParents(parents, attribute, component, name)
-				if err != nil {
-					return err
-				}
-				computedExtra = computedExtra || inherited
-			}
-			model.Fields = append(model.Fields, field)
-			if err := attachConvExtra(out.Conv, model.Name, name, camelize(name), attrType, nullExpr); err != nil {
-				return fmt.Errorf("types.%s.extraAttributes.%s: %w", component, name, err)
-			}
-			if err := attachExtraBehavior(out, file.Resource, component, name, extra); err != nil {
 				return err
 			}
+			computedExtra = computedExtra || computed
 		}
 	}
 	if computedExtra {
 		updateExtraPaths(out)
+	}
+	return nil
+}
+
+func attachOneExtra(out *tfResource, file *overrides.File, component string, model *tfModel, parents []*tfAttr, name string, extra overrides.ExtraAttribute) (bool, error) {
+	location := fmt.Sprintf("types.%s.extraAttributes.%s", component, name)
+	if fieldNamed(model, name) || extraAttrNamed(out, file.Resource, component, parents, name) {
+		return false, fmt.Errorf("%s: the generated object already has this attribute", location)
+	}
+	attribute, field, attrType, nullExpr, err := extraAttr(name, extra)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", location, err)
+	}
+	if err := configureExtraAttribute(attribute, extra, file); err != nil {
+		return false, fmt.Errorf("%s: %w", location, err)
+	}
+	computed := extra.Computed
+	if component == file.Resource {
+		out.Attributes = append(out.Attributes, attribute)
+	} else {
+		inherited, err := addExtraToParents(parents, attribute, component, name)
+		if err != nil {
+			return false, err
+		}
+		computed = computed || inherited
+	}
+	model.Fields = append(model.Fields, field)
+	if err := attachConvExtra(out.Conv, model.Name, name, camelize(name), attrType, nullExpr); err != nil {
+		return false, fmt.Errorf("%s: %w", location, err)
+	}
+	if err := attachExtraBehavior(out, file.Resource, component, name, extra); err != nil {
+		return false, err
+	}
+	return computed, nil
+}
+
+func configureExtraAttribute(attribute *tfAttr, extra overrides.ExtraAttribute, file *overrides.File) error {
+	for _, validator := range extra.Validators {
+		expr, err := validatorExpr(attribute, validator, file)
+		if err != nil {
+			return err
+		}
+		attribute.Validators = append(attribute.Validators, expr)
+	}
+	if len(extra.ElementValues) != 0 {
+		if attribute.Kind != "Set" {
+			return fmt.Errorf("elementValues needs a set")
+		}
+		quoted := make([]string, len(extra.ElementValues))
+		for i, value := range extra.ElementValues {
+			quoted[i] = fmt.Sprintf("%q", value)
+		}
+		attribute.Validators = append(attribute.Validators, "setvalidator.ValueStringsAre(stringvalidator.OneOf("+strings.Join(quoted, ", ")+"))")
+	}
+	if extra.UseStateForUnknown {
+		if !extra.Computed || attribute.ValueKind != "String" {
+			return fmt.Errorf("useStateForUnknown needs a computed string")
+		}
+		attribute.Modifiers = append(attribute.Modifiers, "stringplanmodifier.UseStateForUnknown()")
 	}
 	return nil
 }
@@ -213,14 +253,21 @@ func extraAttr(name string, extra overrides.ExtraAttribute) (*tfAttr, tfModelFie
 	if extra.Type == "string" {
 		return &tfAttr{
 			Name: name, Kind: "String", ValueKind: "String",
-			Optional: !extra.Computed, Computed: extra.Computed,
+			Required: extra.Required, Optional: !extra.Required && !extra.Computed, Computed: extra.Computed,
 			WriteOnly: extra.WriteOnly, Extra: true, Description: extra.MarkdownDescription,
 		}, tfModelField{Name: camelize(name), Type: "types.String", TFName: name}, "types.StringType", "types.StringNull()", nil
+	}
+	if extra.Type == "int64" {
+		return &tfAttr{
+			Name: name, Kind: "Int64", ValueKind: "Int64",
+			Required: extra.Required, Optional: !extra.Required && !extra.Computed, Computed: extra.Computed,
+			WriteOnly: extra.WriteOnly, Extra: true, Description: extra.MarkdownDescription,
+		}, tfModelField{Name: camelize(name), Type: "types.Int64", TFName: name}, "types.Int64Type", "types.Int64Null()", nil
 	}
 	if extra.Type == "set" {
 		return &tfAttr{
 			Name: name, Kind: "Set", ValueKind: "Set",
-			Optional: !extra.Computed, Computed: extra.Computed,
+			Required: extra.Required, Optional: !extra.Required && !extra.Computed, Computed: extra.Computed,
 			WriteOnly: extra.WriteOnly, Extra: true, ElementType: "types.StringType", Description: extra.MarkdownDescription,
 		}, tfModelField{Name: camelize(name), Type: "types.Set", TFName: name}, "types.SetType{ElemType: types.StringType}", "types.SetNull(types.StringType)", nil
 	}
@@ -232,7 +279,8 @@ func extraAttr(name string, extra overrides.ExtraAttribute) (*tfAttr, tfModelFie
 		Name:        name,
 		Kind:        "Map",
 		ValueKind:   "Map",
-		Optional:    !extra.Computed,
+		Required:    extra.Required,
+		Optional:    !extra.Required && !extra.Computed,
 		Computed:    extra.Computed,
 		WriteOnly:   extra.WriteOnly,
 		Extra:       true,

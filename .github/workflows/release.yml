@@ -19,6 +19,14 @@ on:
       - 'CLAUDE.md'
       - '**/*.md'
   workflow_dispatch:
+  # Called by release-provider.yml with the tag it created. GitHub's generated
+  # notes become the release body.
+  workflow_call:
+    inputs:
+      tag:
+        description: Tag to release, for example v3.22.0.
+        required: true
+        type: string
   workflow_run:
     workflows: ["semantic-release"]
     types:
@@ -34,8 +42,30 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Check who released
+        # A run started by hand, or by semantic-release, must come from someone listed in
+        # .github/RELEASERS on master. release-provider.yml checks before it calls this with a tag.
+        if: github.event_name != 'pull_request' && inputs.tag == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # github.actor started the first run; a re-run keeps it and sets triggering_actor to
+          # whoever re-ran. Both must be listed, so a re-run can't pass someone else's run.
+          ACTORS: ${{ github.actor }} ${{ github.triggering_actor }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/contents/.github/RELEASERS?ref=master" \
+            -H "Accept: application/vnd.github.raw" > "$RUNNER_TEMP/RELEASERS"
+          # Not piped into grep -q: under pipefail, grep stopping early can fail sed.
+          releasers=$(sed -e 's/#.*//' -e 's/[[:space:]]//g' "$RUNNER_TEMP/RELEASERS")
+          for actor in $ACTORS; do
+            if ! grep -qixF "$actor" <<<"$releasers"; then
+              echo "::error::$actor is not in .github/RELEASERS; only coralogix/team-eco-system releases"; exit 1
+            fi
+          done
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          # Empty keeps checkout's default: the commit of the triggering event.
+          ref: ${{ inputs.tag || '' }}
       - name: Unshallow
         run: git fetch --prune --unshallow
       - name: Set up Go
@@ -56,12 +86,21 @@ jobs:
           version: "~> v2"
           args: release --snapshot --clean --skip=sign
 
+      - name: Generate release notes
+        if: inputs.tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/releases/generate-notes" -f tag_name="$TAG" --jq .body \
+            > "${RUNNER_TEMP}/release-notes.md"
+
       - name: Run GoReleaser
         if: github.event_name != 'pull_request'
         uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
-          args: release --clean
+          args: release --clean ${{ inputs.tag != '' && format('--release-notes={0}/release-notes.md', runner.temp) || '' }}
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -331,14 +331,14 @@ func (t Type) GroupOf(field string) string {
 
 // ExtraAttribute is one Terraform-only attribute of a generated object.
 type ExtraAttribute struct {
-	// Type is "string" for a scalar or "set" for a set. Without it, the attribute is a map.
+	// Type is "string" or "int64" for a scalar, or "set" for a set. Without it, the attribute is a map.
 	Type string `yaml:"type"`
 	// ElementType is the map or set value type. A scalar or dynamic attribute has none.
 	ElementType string `yaml:"elementType"`
 	// Dynamic: true makes the attribute a DynamicAttribute (types.Dynamic) in place of a map,
 	// for a value of any Terraform type that a handwritten hook turns into request values.
 	Dynamic bool `yaml:"dynamic"`
-	// Required: true makes a dynamic attribute Required. Other extra attributes stay optional.
+	// Required: true makes a Terraform-only attribute Required.
 	Required bool `yaml:"required"`
 	// Computed makes a Terraform-only attribute read-only. A handwritten AfterFlatten hook
 	// can set it from an API value of another type or at another path.
@@ -351,6 +351,12 @@ type ExtraAttribute struct {
 	WriteOnly bool `yaml:"writeOnly"`
 	// MarkdownDescription is the docs text of the attribute.
 	MarkdownDescription string `yaml:"markdownDescription"`
+	// Validators keep released checks on Terraform-only attributes.
+	Validators []Validator `yaml:"validators"`
+	// ElementValues limits the strings of a Terraform-only set.
+	ElementValues []string `yaml:"elementValues"`
+	// UseStateForUnknown keeps a computed value during a plan.
+	UseStateForUnknown bool `yaml:"useStateForUnknown"`
 }
 
 // Field overrides one field of an object. A field with a line keeps the released
@@ -386,6 +392,9 @@ type Field struct {
 	// require the field. The SDK type of the field does not change. Delete this key when the
 	// contract requires the field.
 	Required bool `yaml:"required"`
+	// SchemaOptional keeps a released Terraform attribute optional while the API request
+	// remains required. An omitted value is sent as the SDK zero value.
+	SchemaOptional bool `yaml:"schemaOptional"`
 	// Name is the Terraform attribute name of the field, when the released resource does not
 	// use the name derived from the JSON name (applications for applicationnameFilters).
 	Name string `yaml:"name"`
@@ -460,8 +469,10 @@ type Validator struct {
 	Between []float64 `yaml:"between"`
 	// ExactlyOneOf and AtLeastOneOf name sibling attributes, by their Terraform names, for a
 	// released ExactlyOneOf or AtLeastOneOf validator.
-	ExactlyOneOf []string `yaml:"exactlyOneOf"`
-	AtLeastOneOf []string `yaml:"atLeastOneOf"`
+	ExactlyOneOf  []string `yaml:"exactlyOneOf"`
+	AtLeastOneOf  []string `yaml:"atLeastOneOf"`
+	AlsoRequires  []string `yaml:"alsoRequires"`
+	ConflictsWith []string `yaml:"conflictsWith"`
 	// AtLeast is a released AtLeast validator of a number.
 	AtLeast *float64 `yaml:"atLeast"`
 	// RegexMatches is a released stringvalidator.RegexMatches with its message.
@@ -839,6 +850,7 @@ func (l Field) keys() []string {
 	add(l.ReadOnly, "readOnly")
 	add(l.Required, "required")
 	add(l.Optional, "optional")
+	add(l.SchemaOptional, "schemaOptional")
 	add(len(l.CreateAs) != 0, "createAs")
 	add(l.Collection != "", "collection")
 	add(l.Name != "", "name")
@@ -916,10 +928,7 @@ func (e ExtraAttribute) checkShape() error {
 	if err := e.checkType(); err != nil {
 		return err
 	}
-	if e.Required {
-		return errors.New("required applies to a dynamic attribute only")
-	}
-	if e.Computed && (e.WriteOnly || e.InUpdate) {
+	if e.Computed && (e.Required || e.WriteOnly || e.InUpdate) {
 		return errors.New("computed cannot be combined with required, writeOnly, or inUpdate")
 	}
 	if e.WriteOnly && e.InUpdate {
@@ -948,12 +957,16 @@ func (e ExtraAttribute) checkType() error {
 		if e.ElementType != "" {
 			return errors.New("a string attribute has no elementType")
 		}
+	case "int64":
+		if e.ElementType != "" {
+			return errors.New("an int64 attribute has no elementType")
+		}
 	case "set":
 		if e.ElementType != "string" {
 			return fmt.Errorf("a set attribute needs elementType string, got %q", e.ElementType)
 		}
 	default:
-		return fmt.Errorf("type is %q, want string or set", e.Type)
+		return fmt.Errorf("type is %q, want string, int64, or set", e.Type)
 	}
 	return nil
 }
@@ -963,7 +976,7 @@ func (l Field) empty() bool {
 }
 
 func (l Field) emptyMode() bool {
-	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && l.Name == "" && len(l.ValueNames) == 0 && !l.AsBool && l.TerraformType == "" && !l.DefaultArm && l.Deprecation == "" &&
+	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && !l.SchemaOptional && l.Name == "" && len(l.ValueNames) == 0 && !l.AsBool && l.TerraformType == "" && !l.DefaultArm && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown && !l.RequiresReplace && !l.Inline
 }
 
@@ -989,6 +1002,9 @@ func (l Field) check() error {
 	}
 	if l.Required && l.Optional {
 		return errors.New("set required or optional, not both")
+	}
+	if l.SchemaOptional && (l.Required || l.Optional || l.Computed != nil) {
+		return errors.New("schemaOptional cannot be combined with required, optional, or computed")
 	}
 	if l.RequiresReplace && l.Computed != nil && *l.Computed {
 		// Optional+Computed with RequiresReplace: when the field is omitted, any other change
@@ -1100,7 +1116,7 @@ func sortedIntKeys[V any](m map[int64]V) []int64 {
 
 // hasBehavior reports whether the line sets a behavior that a skipped field cannot have.
 func (l Field) hasBehavior() bool {
-	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
+	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || l.SchemaOptional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.Fixed() ||
 		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.AsBool || l.TerraformType != "" || l.DefaultArm ||
 		l.RequiresReplace || l.UniqueBy != ""
@@ -1134,6 +1150,12 @@ func checkValidators(validators []Validator) error {
 			set++
 		}
 		if len(v.AtLeastOneOf) != 0 {
+			set++
+		}
+		if len(v.AlsoRequires) != 0 {
+			set++
+		}
+		if len(v.ConflictsWith) != 0 {
 			set++
 		}
 		if v.AtLeast != nil {
