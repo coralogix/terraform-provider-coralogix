@@ -1,0 +1,49 @@
+[
+  {
+    "step": "apply filter expression without version",
+    "config": {
+      "default_expression": "<v1>true",
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "true"
+        }
+      ]
+    },
+    "plan": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "true"
+        }
+      ],
+      "id": "(unknown)",
+      "team_id": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1",
+        "body": {
+          "defaultExpression": "\u003cv1\u003etrue",
+          "displayName": "example",
+          "filters": [
+            {
+              "entityType": "ENTITY_TYPE_LOGS",
+              "expression": "true"
+            }
+          ]
+        },
+        "status": 412
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_scope | error - 412 Precondition Failed — {\"code\":412,\"message\":\"Failed Precondition: Failed to compile expression. Expression: [true], Errors: [expected version tag. e.g. \\\"\\u003cv1\\u003e foo == 'bar'\\\"]\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

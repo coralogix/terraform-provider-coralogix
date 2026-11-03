@@ -57,6 +57,52 @@ func TestScopeBaselineScenarios(t *testing.T) {
 }
 
 var scopeScenarios = map[string]func(*grHarness){
+	"clear-filters": func(h *grHarness) {
+		cfg := scopeConfig()
+		s := h.Apply("create nonempty filters", h.null(), cfg)
+		cfg["filters"] = []any{}
+		s = h.Apply("clear filters", s, cfg)
+		s = h.RefreshPlan("refresh and plan cleared filters", s)
+		h.ReadDataSource("read cleared filters", byID(idOf(s)))
+		h.Destroy("destroy", s)
+	},
+	"unspecified-entity-type": func(h *grHarness) {
+		cfg := scopeConfig()
+		cfg["filters"] = []any{j{"entity_type": "unspecified", "expression": "<v1>true"}}
+		h.Apply("apply allowed unspecified entity type", h.null(), cfg)
+	},
+	"unversioned-filter-expression": func(h *grHarness) {
+		cfg := scopeConfig()
+		cfg["filters"] = []any{j{"entity_type": "logs", "expression": "true"}}
+		h.Apply("apply filter expression without version", h.null(), cfg)
+	},
+	"empty-filter-expression": func(h *grHarness) {
+		cfg := scopeConfig()
+		cfg["filters"] = []any{j{"entity_type": "logs", "expression": ""}}
+		h.Apply("apply empty filter expression", h.null(), cfg)
+	},
+	"loose-default-expression-validator": func(h *grHarness) {
+		cfg := scopeConfig()
+		cfg["default_expression"] = "<v1>true-whatever"
+		h.Apply("apply expression accepted by the released validator", h.null(), cfg)
+	},
+	"create-api-error": func(h *grHarness) {
+		h.scopes().fail(500, "Internal Server Error: scope service unavailable")
+		h.Apply("create API unavailable", h.null(), scopeConfig())
+	},
+	"read-api-error": func(h *grHarness) {
+		s := h.Apply("create", h.null(), scopeConfig())
+		h.scopes().fail(500, "Internal Server Error: scope service unavailable")
+		s = h.RefreshPlan("refresh and plan after API failure", s)
+		h.scopes().fail(0, "")
+		h.Destroy("destroy", s)
+	},
+	"duplicate-display-names": func(h *grHarness) {
+		first := h.Apply("create first scope", h.null(), scopeConfig())
+		second := h.Apply("create scope with the same display name", h.null(), scopeConfig())
+		h.Destroy("destroy second scope", second)
+		h.Destroy("destroy first scope", first)
+	},
 	"empty-filters": func(h *grHarness) {
 		cfg := scopeConfig()
 		cfg["filters"] = []any{}

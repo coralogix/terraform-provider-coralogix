@@ -273,6 +273,209 @@
           "capture": "id"
         }
       ]
+    },
+    {
+      "name": "clear filters on replacement",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "displayName": "{{name}}",
+            "defaultExpression": "<v1>true",
+            "filters": [
+              {
+                "entityType": "ENTITY_TYPE_LOGS",
+                "expression": "<v1>true"
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "displayName": "{{name}}",
+            "defaultExpression": "<v1>true",
+            "filters": [],
+            "id": "{{id}}"
+          },
+          "capture": ""
+        },
+        {
+          "method": "GET",
+          "path": "?ids={{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "displayName": "{{name}}",
+            "defaultExpression": "<v1>true",
+            "filters": [
+              {
+                "entityType": "ENTITY_TYPE_LOGS",
+                "expression": "<v1>true"
+              }
+            ],
+            "id": "{{id}}"
+          },
+          "capture": ""
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "displayName": "{{name}}",
+            "defaultExpression": "<v1>true",
+            "id": "{{id}}"
+          },
+          "capture": ""
+        },
+        {
+          "method": "GET",
+          "path": "?ids={{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "displayName": "{{name}}",
+            "defaultExpression": "<v1>true",
+            "filters": [
+              {
+                "entityType": "ENTITY_TYPE_LOGS",
+                "expression": "<v1>true"
+              }
+            ],
+            "id": "{{id}}"
+          },
+          "capture": ""
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "displayName": "{{name}}",
+            "defaultExpression": "<v1>true",
+            "filters": null,
+            "id": "{{id}}"
+          },
+          "capture": ""
+        },
+        {
+          "method": "GET",
+          "path": "?ids={{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}",
+          "body": null,
+          "capture": ""
+        }
+      ]
+    },
+    {
+      "name": "unversioned filter expression",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "displayName": "{{name}}",
+            "defaultExpression": "<v1>true",
+            "filters": [
+              {
+                "entityType": "ENTITY_TYPE_LOGS",
+                "expression": "true"
+              }
+            ]
+          },
+          "capture": ""
+        }
+      ]
+    },
+    {
+      "name": "empty filter expression",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "displayName": "{{name}}",
+            "defaultExpression": "<v1>true",
+            "filters": [
+              {
+                "entityType": "ENTITY_TYPE_LOGS",
+                "expression": ""
+              }
+            ]
+          },
+          "capture": ""
+        }
+      ]
+    },
+    {
+      "name": "loose default expression validator",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "displayName": "{{name}}",
+            "defaultExpression": "<v1>true-whatever",
+            "filters": [
+              {
+                "entityType": "ENTITY_TYPE_LOGS",
+                "expression": "<v1>true"
+              }
+            ]
+          },
+          "capture": ""
+        }
+      ]
+    },
+    {
+      "name": "duplicate display names",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "displayName": "{{name}}",
+            "defaultExpression": "<v1>true",
+            "filters": [
+              {
+                "entityType": "ENTITY_TYPE_LOGS",
+                "expression": "<v1>true"
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "displayName": "{{name}}",
+            "defaultExpression": "<v1>true",
+            "filters": [
+              {
+                "entityType": "ENTITY_TYPE_LOGS",
+                "expression": "<v1>true"
+              }
+            ]
+          },
+          "capture": "duplicate_id"
+        }
+      ]
     }
   ]
 }

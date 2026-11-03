@@ -134,9 +134,23 @@ func (f *scopeFake) handle(r *http.Request, body map[string]any) (int, any) {
 			}
 		}
 		filters, _ := body["filters"].([]any)
+		defaultExpression, _ := body["defaultExpression"].(string)
+		expressions := []string{defaultExpression}
 		for _, filter := range filters {
-			if filter.(map[string]any)["entityType"] == "ENTITY_TYPE_UNSPECIFIED" {
+			fields := filter.(map[string]any)
+			if fields["entityType"] == "ENTITY_TYPE_UNSPECIFIED" {
 				return scopeFailure(400, "Bad Request: Incoming entity type is unspecified")
+			}
+			expression, _ := fields["expression"].(string)
+			expressions = append(expressions, expression)
+		}
+		// Only these recorded inputs model expression compilation failures.
+		for _, expression := range expressions {
+			switch expression {
+			case "", "true":
+				return scopeFailure(412, fmt.Sprintf("Failed Precondition: Failed to compile expression. Expression: [%s], Errors: [expected version tag. e.g. \"<v1> foo == 'bar'\"]", expression))
+			case "<v1>true-whatever":
+				return scopeFailure(412, "Failed Precondition: Failed to compile expression. Expression: [<v1>true-whatever], Errors: [expression type could not be inferred, please add a cast, operator cannot be applied to types bool and unknown, expected one of [number and number, timestamp and interval, timestamp and timestamp, interval and interval]]")
 			}
 		}
 		if r.Method == http.MethodPost {

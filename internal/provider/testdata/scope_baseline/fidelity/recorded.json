@@ -347,6 +347,219 @@
           }
         }
       ]
+    },
+    {
+      "name": "clear filters on replacement",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "teamId": 1234,
+                "filters": [],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "teamId": 1234,
+                "filters": [],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "teamId": 1234,
+                "filters": [],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "unversioned filter expression",
+      "steps": [
+        {
+          "status": 412,
+          "response": {
+            "code": 412,
+            "message": "Failed Precondition: Failed to compile expression. Expression: [true], Errors: [expected version tag. e.g. \"<v1> foo == 'bar'\"]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "empty filter expression",
+      "steps": [
+        {
+          "status": 412,
+          "response": {
+            "code": 412,
+            "message": "Failed Precondition: Failed to compile expression. Expression: [], Errors: [expected version tag. e.g. \"<v1> foo == 'bar'\"]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "loose default expression validator",
+      "steps": [
+        {
+          "status": 412,
+          "response": {
+            "code": 412,
+            "message": "Failed Precondition: Failed to compile expression. Expression: [<v1>true-whatever], Errors: [expression type could not be inferred, please add a cast, operator cannot be applied to types bool and unknown, expected one of [number and number, timestamp and interval, timestamp and timestamp, interval and interval]]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "duplicate display names",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{duplicate_id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        }
+      ]
     }
   ]
 }

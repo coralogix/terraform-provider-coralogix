@@ -1,0 +1,138 @@
+[
+  {
+    "step": "create first scope",
+    "config": {
+      "default_expression": "<v1>true",
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ]
+    },
+    "plan": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "(unknown)",
+      "team_id": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1",
+        "body": {
+          "defaultExpression": "\u003cv1\u003etrue",
+          "displayName": "example",
+          "filters": [
+            {
+              "entityType": "ENTITY_TYPE_LOGS",
+              "expression": "\u003cv1\u003etrue"
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "create scope with the same display name",
+    "config": {
+      "default_expression": "<v1>true",
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ]
+    },
+    "plan": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "(unknown)",
+      "team_id": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1",
+        "body": {
+          "defaultExpression": "\u003cv1\u003etrue",
+          "displayName": "example",
+          "filters": [
+            {
+              "entityType": "ENTITY_TYPE_LOGS",
+              "expression": "\u003cv1\u003etrue"
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000002",
+      "team_id": "1234"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy second scope",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1/00000000-0000-4000-8000-000000000002",
+        "status": 200
+      }
+    ],
+    "state": null
+  },
+  {
+    "step": "destroy first scope",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]
