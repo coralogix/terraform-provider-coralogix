@@ -94,6 +94,46 @@ func TestRequiredLineStatesPresenceOfASharedComponent(t *testing.T) {
 	}
 }
 
+// A required string of a shared nested component that accepts "" needs a line too: the API takes
+// "", which the contract cannot say next to required. required: true says that the released
+// resource requires the attribute and sends what the user writes, "" too, and the line is not
+// stale. A string that cannot be empty needs no line, so the line is stale there.
+func TestRequiredLineStatesAnEmptyStringOfASharedComponent(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "gadget.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	head := "resource: Gadget\nmode: existing\nvalidators:\n  inferred: true\n"
+	line := head + "types:\n  GadgetSearch:\n    fields:\n      label: {required: true}\n"
+	for name, test := range map[string]struct {
+		field string
+		file  string
+		code  string
+	}{
+		"empty allowed, no line":    {"label: {type: string, x-coralogix-presence: true}", head, "REQUIRED_VALUE_CAN_BE_EMPTY"},
+		"empty allowed, line":       {"label: {type: string, x-coralogix-presence: true}", line, ""},
+		"empty refused, stale line": {"label: {type: string, minLength: 1, x-coralogix-presence: true}", line, "OVERRIDE_UNUSED"},
+		"empty refused, no line":    {"label: {type: string, minLength: 1, x-coralogix-presence: true}", head, ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			spec := strings.Replace(string(data), "      required: [text]\n      properties:\n", "      required: [text, label]\n      properties:\n        "+test.field+"\n", 1)
+			if spec == string(data) {
+				t.Fatal("the fixture changed: update the replaced text")
+			}
+			_, err := validateOpenAPIWith([]byte(spec), "Gadget", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", providerModulePath, mustParse(t, test.file))
+			if test.code == "" {
+				if err != nil {
+					t.Fatalf("err = %v, want none", err)
+				}
+				return
+			}
+			if !slices.ContainsFunc(reportOf(t, err), func(i issue.Issue) bool { return i.Code == test.code }) {
+				t.Fatalf("err = %v, want %s", err, test.code)
+			}
+		})
+	}
+}
+
 // Flatten cannot match a set element that the API returns without a nested default to the
 // configured element, so a nested server default inside a set is an error. In a list it works.
 func TestNestedServerDefaultInsideASetIsAnError(t *testing.T) {
