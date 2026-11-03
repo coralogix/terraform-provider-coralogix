@@ -19,6 +19,7 @@ in this baseline; a later migration must show each fix in its golden diff.
 | Enum values `logs`, `spans`, and backend-rejected `unspecified` | `minimal`, `full-lifecycle`, `unspecified-entity-type` |
 | Unversioned and empty filter expressions reach the API and fail | `unversioned-filter-expression`, `empty-filter-expression` |
 | Loose released default-expression validator reaches an API error | `loose-default-expression-validator` |
+| Released regex accepts bare `false`, a prefix before `false`, and repeated final `e` | `bare-false-default-expression`, `prefixed-false-default-expression`, `repeated-e-default-expression` |
 | Required fields, invalid default-expression prefix, invalid enum | `config-validation` |
 | Import, empty import ID, version-zero state | `import`, `import-empty-id`, `upgrade-version-zero` |
 | Missing resource and missing route | `read-not-found`, `update-not-found`, `delete-not-found`, `route-missing`, `delete-route-missing` |
@@ -52,11 +53,14 @@ write-only field in the released schema.
 
 `fidelity/cases.json` and `fidelity/recorded.json` contain anonymized API requests
 and replies. The additional expression, replacement, duplicate-name, empty-name,
-and description-clearing cases were recorded on EU2 on 2026-11-03. All probe-created scopes were deleted and
-verified absent. `TestScopeFakeMatchesRecordedBackend` replays these cases.
+description-clearing, and false-branch cases were recorded on EU2 on 2026-11-03.
+All probe-created scopes were deleted and verified absent.
+`TestScopeFakeMatchesRecordedBackend` replays these cases.
 
-- Expression failures model only the recorded inputs: `true`, an empty string,
-  and `<v1>true-whatever`. The fake is not an expression compiler.
+- Expression failures model only the recorded inputs: `true`, `false`,
+  `prefixfalse`, `falsee`, an empty string, and `<v1>true-whatever`. The fake is
+  not an expression compiler. Both alternatives in the released default-expression
+  regex have protocol coverage; its permissive validation stays unchanged here.
 - The fake rejects `ENTITY_TYPE_UNSPECIFIED`. It does not validate arbitrary
   entity-type strings; Terraform rejects values outside its released enum.
 - The fake preserves input filter order. General backend reordering is not modeled.

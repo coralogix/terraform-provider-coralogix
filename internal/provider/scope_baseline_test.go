@@ -56,6 +56,22 @@ func TestScopeBaselineScenarios(t *testing.T) {
 	}
 }
 
+func TestScopeBaselineFalseBranch(t *testing.T) {
+	for name, expression := range map[string]string{
+		"bare-false-default-expression":     "false",
+		"prefixed-false-default-expression": "prefixfalse",
+		"repeated-e-default-expression":     "falsee",
+	} {
+		t.Run(name, func(t *testing.T) {
+			h := newScopeHarness(t)
+			cfg := scopeConfig()
+			cfg["default_expression"] = expression
+			h.Apply("apply expression accepted by the released false branch", h.null(), cfg)
+			checkGoldenAt(t, scopeGoldenDir, "scenario_"+name+".json", marshalGolden(t, h.steps))
+		})
+	}
+}
+
 func TestScopeBaselinePartialSuccess(t *testing.T) {
 	for _, tc := range []struct {
 		name     string
