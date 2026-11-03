@@ -921,20 +921,16 @@
     "replanEmpty": true
   },
   {
-    "step": "update: remove a policy",
+    "step": "update: remove the optional fields",
     "config": {
       "policies": [
         {
           "name": "second",
-          "priority": "low",
-          "quota_based_priority_override": {
-            "usage_tiers": [
-              {
-                "daily_quota_percentage": 60,
-                "priority": "medium"
-              }
-            ]
-          }
+          "priority": "low"
+        },
+        {
+          "name": "first",
+          "priority": "medium"
         }
       ]
     },
@@ -952,14 +948,23 @@
           "name": "second",
           "order": "(unknown)",
           "priority": "low",
-          "quota_based_priority_override": {
-            "usage_tiers": [
-              {
-                "daily_quota_percentage": 60,
-                "priority": "medium"
-              }
-            ]
-          },
+          "quota_based_priority_override": null,
+          "services": null,
+          "subsystems": null,
+          "tags": null
+        },
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "medium",
+          "quota_based_priority_override": null,
           "services": null,
           "subsystems": null,
           "tags": null
@@ -977,17 +982,18 @@
                 "description": "",
                 "disabled": false,
                 "name": "second",
-                "priority": "PRIORITY_TYPE_LOW",
-                "priorityOverride": {
-                  "quotaBased": {
-                    "usageTiers": [
-                      {
-                        "dailyQuotaPercentage": 60,
-                        "priority": "PRIORITY_TYPE_MEDIUM"
-                      }
-                    ]
-                  }
-                }
+                "priority": "PRIORITY_TYPE_LOW"
+              },
+              "spanRules": {
+                "tagRules": []
+              }
+            },
+            {
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_MEDIUM"
               },
               "spanRules": {
                 "tagRules": []
@@ -1012,14 +1018,147 @@
           "name": "second",
           "order": 1,
           "priority": "low",
-          "quota_based_priority_override": {
-            "usage_tiers": [
-              {
-                "daily_quota_percentage": 60,
-                "priority": "medium"
+          "quota_based_priority_override": null,
+          "services": null,
+          "subsystems": null,
+          "tags": null
+        },
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000008",
+          "name": "first",
+          "order": 2,
+          "priority": "medium",
+          "quota_based_priority_override": null,
+          "services": null,
+          "subsystems": null,
+          "tags": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_SPANS",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000007",
+          "name": "second",
+          "order": 1,
+          "priority": "low",
+          "quota_based_priority_override": null,
+          "services": null,
+          "subsystems": null,
+          "tags": null
+        },
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000008",
+          "name": "first",
+          "order": 2,
+          "priority": "medium",
+          "quota_based_priority_override": null,
+          "services": null,
+          "subsystems": null,
+          "tags": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: remove a policy",
+    "config": {
+      "policies": [
+        {
+          "name": "second",
+          "priority": "low"
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "second",
+          "order": "(unknown)",
+          "priority": "low",
+          "quota_based_priority_override": null,
+          "services": null,
+          "subsystems": null,
+          "tags": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/span-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "second",
+                "priority": "PRIORITY_TYPE_LOW"
+              },
+              "spanRules": {
+                "tagRules": []
               }
-            ]
-          },
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000009",
+          "name": "second",
+          "order": 1,
+          "priority": "low",
+          "quota_based_priority_override": null,
           "services": null,
           "subsystems": null,
           "tags": null

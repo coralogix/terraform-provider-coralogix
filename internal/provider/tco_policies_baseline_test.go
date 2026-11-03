@@ -271,6 +271,8 @@ var tcoLogsScenarios = map[string]func(h *grHarness, f *tcoFake){
 		s := h.Apply("create", h.null(), tcoPolicies(tcoPolicy("first", "high", tcoSeverities("info"), j{"archive_retention_id": "11111111-1111-4111-8111-111111111111"})))
 		s = h.RefreshPlan("refresh", s)
 		s = h.Apply("update: an archive retention that does not exist", s, tcoPolicies(tcoPolicy("first", "high", tcoSeverities("info"), j{"archive_retention_id": missingID})))
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: remove the archive retention", s, tcoPolicies(tcoPolicy("first", "high", tcoSeverities("info"))))
 		h.RefreshPlan("refresh", s)
 	},
 
@@ -393,7 +395,9 @@ var tcoTracesScenarios = map[string]func(h *grHarness, f *tcoFake){
 		s = h.RefreshPlan("refresh", s)
 		s = h.Apply("update: reorder", s, tcoPolicies(second, first))
 		s = h.Apply("update: remove the tags", s, tcoPolicies(second, with(first, j{"tags": nil})))
-		s = h.Apply("update: remove a policy", s, tcoPolicies(second))
+		s = h.Apply("update: remove the optional fields", s, tcoPolicies(tcoPolicy("second", "low"), tcoPolicy("first", "medium")))
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: remove a policy", s, tcoPolicies(tcoPolicy("second", "low")))
 		h.Destroy("destroy", s)
 	},
 
@@ -531,11 +535,33 @@ var tcoRumScenarios = map[string]func(h *grHarness, f *tcoFake){
 }
 
 // The data sources read every policy of their source type. They take no input.
-func tcoDataSourceScenarios(source string, entry func(name, priority string) j) map[string]func(h *grHarness) {
+// tcoFullPolicy is a stored policy with every optional field of the generic policy set.
+func tcoFullPolicy(name string) j {
+	return j{
+		"name":             name,
+		"description":      "every field",
+		"priority":         "PRIORITY_TYPE_LOW",
+		"disabled":         true,
+		"applicationRule":  j{"name": "app-a,app-b", "ruleTypeId": "RULE_TYPE_ID_IS"},
+		"subsystemRule":    j{"name": "sub", "ruleTypeId": "RULE_TYPE_ID_INCLUDES"},
+		"archiveRetention": j{"id": "11111111-1111-4111-8111-111111111111"},
+		"priorityOverride": j{"quotaBased": j{"usageTiers": l{j{"dailyQuotaPercentage": 50, "priority": "PRIORITY_TYPE_MEDIUM"}}}},
+	}
+}
+
+// tcoDataSourceScenarios are the data source scenarios of a source type. full are stored entries
+// that together set every optional field, the source rules included.
+func tcoDataSourceScenarios(source string, entry func(name, priority string) j, full ...any) map[string]func(h *grHarness) {
 	return map[string]func(h *grHarness){
 		"read": func(h *grHarness) {
 			h.tcoPolicies().seed(source, j{"policies": l{entry("seeded-a", "PRIORITY_TYPE_MEDIUM"), entry("seeded-b", "PRIORITY_TYPE_LOW")}})
 			h.ReadDataSource("read the policies", j{})
+		},
+		"read-every-field": func(h *grHarness) {
+			f := h.tcoPolicies()
+			f.archiveRetentions = map[string]bool{"11111111-1111-4111-8111-111111111111": true}
+			f.seed(source, j{"policies": l(full)})
+			h.ReadDataSource("read a policy with every optional field", j{})
 		},
 		"read-empty": func(h *grHarness) {
 			h.ReadDataSource("read when there are no policies", j{})
@@ -550,13 +576,25 @@ func tcoDataSourceScenarios(source string, entry func(name, priority string) j) 
 var (
 	tcoLogsDataSourceScenarios = tcoDataSourceScenarios("logs", func(name, priority string) j {
 		return tcoLogEntry(name, priority, "SEVERITY_INFO")
-	})
+	}, j{"policy": tcoFullPolicy("full"), "logRules": j{"severities": l{"SEVERITY_ERROR", "SEVERITY_CRITICAL"}}},
+		// A priority and an override are on the policy or on each target, not both.
+		j{"policy": j{"name": "targeted", "priority": "PRIORITY_TYPE_UNSPECIFIED", "targets": l{
+			j{"dataset": "logs", "dataspace": "default", "priority": "PRIORITY_TYPE_MEDIUM",
+				"priorityOverride": j{"quotaBased": j{"usageTiers": l{j{"dailyQuotaPercentage": 70, "priority": "PRIORITY_TYPE_HIGH"}}}}},
+		}}, "logRules": j{"dpxlExpression": "<v1> true"}})
 	tcoTracesDataSourceScenarios = tcoDataSourceScenarios("spans", func(name, priority string) j {
 		return tcoSpanEntry(name, priority, j{"tagRules": l{j{"tagName": "tags.region", "ruleTypeId": "RULE_TYPE_ID_IS", "tagValue": "eu"}}})
-	})
+	}, j{"policy": tcoFullPolicy("full"), "spanRules": j{
+		"serviceRule": j{"name": "svc-a,svc-b", "ruleTypeId": "RULE_TYPE_ID_IS"},
+		"actionRule":  j{"name": "get", "ruleTypeId": "RULE_TYPE_ID_START_WITH"},
+		"tagRules": l{
+			j{"tagName": "tags.http.method", "ruleTypeId": "RULE_TYPE_ID_IS", "tagValue": "GET,POST"},
+			j{"tagName": "tags.region", "ruleTypeId": "RULE_TYPE_ID_IS_NOT", "tagValue": "eu"},
+		},
+	}})
 	tcoRumDataSourceScenarios = tcoDataSourceScenarios("rum", func(name, priority string) j {
 		return tcoRumEntry(name, priority, "SEVERITY_ERROR")
-	})
+	}, j{"policy": tcoFullPolicy("full"), "rumRules": j{"severities": l{"SEVERITY_ERROR", "SEVERITY_CRITICAL"}}})
 )
 
 func (h *grHarness) tcoPolicies() *tcoFake {
