@@ -1134,6 +1134,11 @@ func flattenRuleGroup(ctx context.Context, p path.Path, v *rule_groups_service.R
 	out.Id = types.StringPointerValue(&v.Id)
 	out.Name = types.StringPointerValue(&v.Name)
 	out.Order = types.Int64PointerValue(&v.Order)
+	for i := range v.RuleMatchers {
+		if v.RuleMatchers[i].ApplicationName == nil && v.RuleMatchers[i].Severity == nil && v.RuleMatchers[i].SubsystemName == nil {
+			diags.AddAttributeError(path.Root("applications"), "Invalid response from server", fmt.Sprintf("Item %d of the response has none of applications, severities, subsystems.", i))
+		}
+	}
 	{
 		values := []string{}
 		for i := range v.RuleMatchers {
@@ -1253,6 +1258,42 @@ func flattenRulesV1Rule(ctx context.Context, p path.Path, v *rule_groups_service
 	}
 	out := &RulesV1RuleModel{}
 	oneOf := &v.Parameters
+	arms := 0
+	if oneOf != nil {
+		if oneOf.AllowParameters != nil {
+			arms++
+		}
+		if oneOf.BlockParameters != nil {
+			arms++
+		}
+		if oneOf.ExtractParameters != nil {
+			arms++
+		}
+		if oneOf.ExtractTimestampParameters != nil {
+			arms++
+		}
+		if oneOf.JsonExtractParameters != nil {
+			arms++
+		}
+		if oneOf.JsonParseParameters != nil {
+			arms++
+		}
+		if oneOf.JsonStringifyParameters != nil {
+			arms++
+		}
+		if oneOf.ParseParameters != nil {
+			arms++
+		}
+		if oneOf.RemoveFieldsParameters != nil {
+			arms++
+		}
+		if oneOf.ReplaceParameters != nil {
+			arms++
+		}
+	}
+	if arms != 1 {
+		diags.AddAttributeError(p, "Invalid response from server", fmt.Sprintf("The response has %d of allow_parameters, block, extract, extract_timestamp, json_extract, parse_json_field, json_stringify, parse, remove_fields, replace; it must have exactly one.", arms))
+	}
 	if oneOf == nil {
 		return out
 	}
