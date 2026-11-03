@@ -471,10 +471,3 @@ func rrIDOf(resp any) string {
 	id, _ := m["id"].(string)
 	return id
 }
-
-func roundTripAny(v map[string]any) map[string]any {
-	raw, _ := json.Marshal(v)
-	var out map[string]any
-	_ = json.Unmarshal(raw, &out)
-	return out
-}

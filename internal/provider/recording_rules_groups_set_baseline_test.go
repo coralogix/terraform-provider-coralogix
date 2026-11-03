@@ -294,14 +294,14 @@ var rrScenarios = map[string]func(h *grHarness){
 	// Values that Terraform knows only at apply, such as values from another resource or a module
 	// output. Terraform plans them and applies them once they are known.
 	"unknown-config": func(h *grHarness) {
-		h.PlanOnly("plan create: groups are unknown", h.null(), j{"name": "tf-set", "groups": unknownConfig})
-		h.PlanOnly("plan create: nested values are unknown", h.null(), rrCfg("tf-set",
-			rrGroup("g1", j{"interval": unknownConfig}, rrRule("tf:r1", j{"expr": unknownConfig, "labels": unknownConfig}))))
-		h.PlanOnly("plan create: yaml_content is unknown", h.null(), j{"yaml_content": unknownConfig})
+		h.Plan("plan create: groups are unknown", h.null(), j{"name": "tf-set", "groups": unknownJSON{}})
+		h.Plan("plan create: nested values are unknown", h.null(), rrCfg("tf-set",
+			rrGroup("g1", j{"interval": unknownJSON{}}, rrRule("tf:r1", j{"expr": unknownJSON{}, "labels": unknownJSON{}}))))
+		h.Plan("plan create: yaml_content is unknown", h.null(), j{"yaml_content": unknownJSON{}})
 		s := h.Apply("create", h.null(), rrCfg("tf-set", rrGroup("g1", j{"interval": 120.0}, rrRule("tf:r1", j{"labels": j{"a": "1"}}))))
-		h.PlanOnly("plan update: the name and a nested value are unknown", s, rrCfg(unknownConfig,
-			rrGroup("g1", j{"interval": unknownConfig}, rrRule("tf:r1", j{"labels": j{"a": "1"}}))))
-		h.PlanOnly("plan update: groups are unknown", s, j{"name": "tf-set", "groups": unknownConfig})
+		h.Plan("plan update: the name and a nested value are unknown", s, with(rrCfg("tf-set",
+			rrGroup("g1", j{"interval": unknownJSON{}}, rrRule("tf:r1", j{"labels": j{"a": "1"}}))), j{"name": unknownJSON{}}))
+		h.Plan("plan update: groups are unknown", s, j{"name": "tf-set", "groups": unknownJSON{}})
 	},
 
 	"import": func(h *grHarness) {
