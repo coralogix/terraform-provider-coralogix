@@ -16,6 +16,8 @@ package provider
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -26,7 +28,6 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"time"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 )
@@ -117,6 +118,15 @@ func normalizeIpAccessValue(value any, parent string) any {
 
 func ipAccessFidelityVars(run string) map[string]string {
 	return map[string]string{"NAME": run}
+}
+
+func newIpAccessFidelityRunID(t *testing.T) string {
+	t.Helper()
+	unique := make([]byte, 12)
+	if _, err := rand.Read(unique); err != nil {
+		t.Fatalf("generate unique fidelity run ID: %v", err)
+	}
+	return "tf-ip-access-fidelity-" + hex.EncodeToString(unique)
 }
 
 // TestRecordIpAccessFidelity writes real API answers for cases.json. The IP access API is a
@@ -210,7 +220,7 @@ func recordIpAccessFidelity(t *testing.T, base, apiKey, outPath string) {
 	if err := json.Unmarshal(rawCases, &cases); err != nil {
 		t.Fatal(err)
 	}
-	vars := ipAccessFidelityVars(fmt.Sprintf("tf-ip-access-fidelity-%d", time.Now().Unix()))
+	vars := ipAccessFidelityVars(newIpAccessFidelityRunID(t))
 	ownedEntryIDs := map[string]struct{}{}
 	var pendingWriteEntries []map[string]any
 	t.Cleanup(func() {

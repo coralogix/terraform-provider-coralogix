@@ -97,7 +97,6 @@ func (f *ipAccessFake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_ = json.Unmarshal(raw, &rec.Body)
 	}
 	status, body := f.handle(r.Method, r.URL.Path, rec.Body)
-	rec.Body = dropEmptyCollections(rec.Body)
 	rec.Status = status
 	f.requests = append(f.requests, rec)
 

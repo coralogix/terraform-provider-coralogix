@@ -205,7 +205,8 @@
         "method": "PUT",
         "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
         "body": {
-          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED"
+          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
+          "ipAccess": []
         },
         "status": 200
       }
