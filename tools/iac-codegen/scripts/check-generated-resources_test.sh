@@ -72,6 +72,18 @@ write_resource 'current body'
 commit_all regenerated
 expect_success
 
+# A manifest-only update must also prove that the generated body is current.
+write_versions 1
+write_resource 'old body'
+commit_all 'old package baseline'
+base=$(git -C "$repo" rev-parse HEAD)
+write_versions 2
+commit_all 'manifest only'
+expect_failure 'Generated files are stale'
+write_resource 'current body'
+commit_all 'manifest and body'
+expect_success
+
 mkdir -p "$repo/internal/provider/generated/other"
 printf 'another resource\n' >"$repo/internal/provider/generated/other/resource.go"
 commit_all unlisted

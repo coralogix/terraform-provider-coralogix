@@ -9,4 +9,4 @@ description: "Use when changing tools/iac-codegen behavior or its version. Regen
 
 **Fix:** Bump `version.Current` for an output change. Run `go generate ./internal/provider/` from the provider root. Review every generated package, `versions.yaml`, registry, example, and affected documentation page. Add a line to `internal/provider/codegen.go` for each new generated resource. Include the generated output in the same proposed change. Run `bash tools/iac-codegen/scripts/check-generated-resources.sh <base-commit>` after the change is committed to verify the full result.
 
-**Why:** One package can keep old generated logic after a version change. CI checks every package version and compares regenerated output with committed files when the version changes.
+**Why:** One package can keep old generated logic after a version change. CI checks every package version and compares regenerated output with committed files when the generator version or version manifest changes.

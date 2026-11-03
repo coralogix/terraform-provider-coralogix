@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Require current package versions; compare full output when the generator version changes.
+# Require current package versions; compare full output when a version or manifest changes.
 set -euo pipefail
 
 base=${1:?usage: check-generated-resources.sh <base-commit>}
@@ -46,7 +46,8 @@ for out in $(awk '{ print $2 }' "$work/resources"); do
   fi
 done
 
-if [[ "$base_version" == "$head_version" ]]; then
+if [[ "$base_version" == "$head_version" ]] &&
+  git diff --quiet "$base"...HEAD -- internal/provider/generated/versions.yaml; then
   exit 0
 fi
 
