@@ -184,6 +184,13 @@ var ipAccessScenarios = map[string]func(h *grHarness){
 		h.ipAccess().deleteStatus = 404
 		h.Destroy("destroy: API answers 404", s)
 	},
+	"delete-error": func(h *grHarness) {
+		s := h.Apply("create", h.null(), j{"ip_access": l{
+			j{"enabled": false, "ip_range": "192.0.2.0/24", "name": "first"},
+		}})
+		h.ipAccess().deleteStatus = 500
+		h.Destroy("destroy: API answers 500", s)
+	},
 	"import": func(h *grHarness) {
 		h.ipAccess().seed(j{
 			"enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_ENABLED",
