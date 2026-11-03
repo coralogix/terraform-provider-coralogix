@@ -145,7 +145,15 @@ func recordParsingRulesStep(t *testing.T, base, apiKey string, s fidelityStep, v
 	if s.Body != nil {
 		body = substJSON(t, s.Body, vars)
 	}
-	status, parsed, err := parsingRulesCall(base, apiKey, s.Method, substString(s.Path, vars), body)
+	path := substString(s.Path, vars)
+	if s.Method == http.MethodDelete {
+		// A Delete lowers the order of every group above the deleted one, so the group moves last
+		// first. This move is not part of the recording.
+		if err := moveRuleGroupLast(base, apiKey, path); err != nil {
+			t.Fatalf("before %s %s: %v. Move that group last (order 0) and delete it by hand.", s.Method, s.Path, err)
+		}
+	}
+	status, parsed, err := parsingRulesCall(base, apiKey, s.Method, path, body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -237,33 +245,50 @@ func parsingRulesNormalize(v any, tokens uuidTokens) any {
 	return v
 }
 
-// cleanupRecordedRuleGroups deletes the groups that the recording made. It moves each group to
-// the end first, because a Delete lowers the order of every group above it.
+// cleanupRecordedRuleGroups deletes the groups that the recording made and that still exist. It
+// moves each group to the end first, because a Delete lowers the order of every group above it.
 func cleanupRecordedRuleGroups(base, apiKey string, ids []string) error {
 	var failed []string
 	for _, id := range ids {
-		status, got, err := parsingRulesCall(base, apiKey, http.MethodGet, "/"+id, nil)
-		if err != nil || status == http.StatusNotFound {
-			continue
-		}
-		if status != http.StatusOK {
+		if err := moveRuleGroupLast(base, apiKey, "/"+id); err != nil {
 			failed = append(failed, id)
 			continue
 		}
-		group, _ := got.(map[string]any)["ruleGroup"].(map[string]any)
-		group["order"] = 0
-		delete(group, "id")
-		// Deleting a group that did not move to the end would lower the order of the groups above it.
-		if status, _, err := parsingRulesCall(base, apiKey, http.MethodPut, "/"+id, parsingRulesRequestOf(group)); err != nil || status != http.StatusOK {
-			failed = append(failed, id)
-			continue
-		}
-		if status, _, err := parsingRulesCall(base, apiKey, http.MethodDelete, "/"+id, nil); err != nil || status != http.StatusOK {
+		status, _, err := parsingRulesCall(base, apiKey, http.MethodDelete, "/"+id, nil)
+		if err != nil || status != http.StatusOK && status != http.StatusNotFound {
 			failed = append(failed, id)
 		}
 	}
 	if len(failed) > 0 {
 		return fmt.Errorf("could not move to the end and delete the recorded rule groups %v: move each one last (order 0) and delete it by hand", failed)
+	}
+	return nil
+}
+
+// moveRuleGroupLast puts the rule group at path after every other group (order 0). A group that
+// does not exist needs no move. Any other failure is an error, and the caller must not delete.
+func moveRuleGroupLast(base, apiKey, path string) error {
+	status, got, err := parsingRulesCall(base, apiKey, http.MethodGet, path, nil)
+	switch {
+	case err != nil:
+		return err
+	case status == http.StatusNotFound:
+		return nil
+	case status != http.StatusOK:
+		return fmt.Errorf("GET %s answered %d", path, status)
+	}
+	group, ok := got.(map[string]any)["ruleGroup"].(map[string]any)
+	if !ok {
+		return fmt.Errorf("GET %s returned no rule group", path)
+	}
+	group["order"] = 0
+	delete(group, "id")
+	status, _, err = parsingRulesCall(base, apiKey, http.MethodPut, path, parsingRulesRequestOf(group))
+	if err != nil {
+		return err
+	}
+	if status != http.StatusOK {
+		return fmt.Errorf("PUT %s with order 0 answered %d", path, status)
 	}
 	return nil
 }

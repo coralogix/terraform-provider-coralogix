@@ -114,6 +114,52 @@ func prEveryRule() []any {
 	}
 }
 
+// prEveryRuleChanged is prEveryRule with every field changed, and every optional field set to a
+// value that is not its default.
+func prEveryRuleChanged() []any {
+	set := j{"description": "changed", "active": false}
+	return []any{
+		prRule("parse", prWith(set, j{"name": "parse-2", "source_field": "text.a", "destination_field": "text.b", "regular_expression": "(?P<c>.*)"})),
+		prRule("block", prWith(set, j{"source_field": "text.a", "regular_expression": "warn", "keep_blocked_logs": false, "block_all_matching_blocks": false})),
+		prRule("json_extract", prWith(set, j{"json_key": "thread", "destination_field": "ThreadID"})),
+		prRule("replace", prWith(set, j{"source_field": "text.a", "destination_field": "text.b", "regular_expression": "x", "replacement_string": "y"})),
+		prRule("extract_timestamp", prWith(set, j{"source_field": "text.a", "field_format_standard": "golang", "time_format": "2006"})),
+		prRule("remove_fields", prWith(set, j{"excluded_fields": []any{"c"}})),
+		prRule("json_stringify", prWith(set, j{"source_field": "text.a", "destination_field": "text.out2", "keep_source_field": false})),
+		prRule("extract", prWith(set, j{"source_field": "text.a", "regular_expression": "(?P<d>.*)"})),
+		prRule("parse_json_field", prWith(set, j{"source_field": "text.a", "destination_field": "text.parsed2", "keep_source_field": false, "keep_destination_field": true})),
+	}
+}
+
+// prEveryRuleRequired is one rule of each type with only the required fields, and the
+// replacement_string that the API requires. The keep flags default to deleting the source, which
+// the API allows only for a text.<field>.
+func prEveryRuleRequired() []any {
+	return []any{
+		prRule("parse", j{"source_field": "text", "destination_field": "text", "regular_expression": "(?P<a>.*)"}),
+		prRule("block", j{"source_field": "text", "regular_expression": "error", "keep_blocked_logs": true}),
+		prRule("json_extract", j{"json_key": "worker", "destination_field": "Category"}),
+		prRule("replace", j{"source_field": "text", "destination_field": "text", "regular_expression": ".*{", "replacement_string": "{"}),
+		prRule("extract_timestamp", j{"source_field": "text", "field_format_standard": "javaSDF", "time_format": "yyyy-MM-dd"}),
+		prRule("remove_fields", j{"excluded_fields": []any{"a"}}),
+		prRule("json_stringify", j{"source_field": "text.src", "destination_field": "text.out"}),
+		prRule("extract", j{"source_field": "text", "regular_expression": "(?P<b>.*)"}),
+		prRule("parse_json_field", j{"source_field": "text.src", "destination_field": "text.parsed"}),
+	}
+}
+
+// prWith returns the fields of both maps.
+func prWith(a, b j) j {
+	out := j{}
+	for k, v := range a {
+		out[k] = v
+	}
+	for k, v := range b {
+		out[k] = v
+	}
+	return out
+}
+
 var parsingRulesScenarios = map[string]func(h *grHarness){
 	"minimal": func(h *grHarness) {
 		h.Apply("create with a name only: the API needs a rule", h.null(), prCfg([]any{}, nil))
@@ -155,6 +201,29 @@ var parsingRulesScenarios = map[string]func(h *grHarness){
 		s = h.Apply("update: set them again", s, full)
 		s = prRefreshPlan(h, "refresh", s)
 		h.Destroy("destroy", s)
+	},
+
+	"rule-update": func(h *grHarness) {
+		// Every rule type through an update: change every field, then remove every optional one.
+		s := h.Apply("create with every rule type", h.null(), prCfg(prEveryRule(), nil))
+		s = h.Apply("update: change every field of every rule", s, prCfg(prEveryRuleChanged(), nil))
+		s = prRefreshPlan(h, "refresh", s)
+		s = h.Apply("update: remove every optional field of every rule", s, prCfg(prEveryRuleRequired(), nil))
+		s = prRefreshPlan(h, "refresh", s)
+		// replacement_string is optional, but the API requires replaceNewVal.
+		h.Apply("update: remove replacement_string", s, prCfg([]any{
+			prRule("replace", j{"source_field": "text", "destination_field": "text", "regular_expression": ".*{"}),
+		}, nil))
+	},
+
+	"write-api-error": func(h *grHarness) {
+		h.ruleGroups().failNext(500)
+		h.Apply("create: the API answers 500", h.null(), prCfg(nil, nil))
+		s := h.Apply("create", h.null(), prCfg(nil, nil))
+		h.ruleGroups().failNext(500)
+		h.Apply("update: the API answers 500", s, prCfg(nil, j{"name": "renamed"}))
+		h.ruleGroups().failNext(500)
+		h.Destroy("destroy: the API answers 500", s)
 	},
 
 	"severities": func(h *grHarness) {
@@ -348,6 +417,26 @@ var parsingRulesScenarios = map[string]func(h *grHarness){
 		h.Apply("plan the matching config", s, prCfg(nil, j{"name": "seeded"}))
 	},
 
+	"import-every-rule": func(h *grHarness) {
+		// Every rule type and every group field, with values that are not the defaults.
+		id := h.ruleGroups().seed(prAPIGroupEvery())
+		s := h.Import("import", id)
+		h.Apply("plan the matching config", s, prCfg([]any{
+			prRule("parse", j{"description": "d", "active": false, "source_field": "text.a", "destination_field": "text.b", "regular_expression": "(?P<a>.*)"}),
+			prRule("block", j{"source_field": "text", "regular_expression": "error", "keep_blocked_logs": true}),
+			prRule("json_extract", j{"json_key": "k", "destination_field": "severity"}),
+			prRule("replace", j{"source_field": "text", "destination_field": "text.r", "regular_expression": "a", "replacement_string": "b"}),
+			prRule("extract_timestamp", j{"source_field": "text", "field_format_standard": "golang", "time_format": "2006"}),
+			prRule("remove_fields", j{"excluded_fields": []any{"a", "b"}}),
+			prRule("json_stringify", j{"source_field": "text.src", "destination_field": "text.out", "keep_source_field": false}),
+			prRule("extract", j{"source_field": "text", "regular_expression": "(?P<b>.*)"}),
+			prRule("parse_json_field", j{"source_field": "text.src", "destination_field": "text.p", "keep_source_field": false, "keep_destination_field": false}),
+		}, j{
+			"name": "seeded", "description": "made outside Terraform", "active": false, "hidden": true, "creator": "someone", "order": 1.0,
+			"applications": []any{"app-a"}, "subsystems": []any{"sub-a"}, "severities": []any{"error"},
+		}))
+	},
+
 	"import-unknown-id": func(h *grHarness) {
 		h.Import("import an id that does not exist", "00000000-0000-4000-8000-00000000dead")
 	},
@@ -392,10 +481,7 @@ var parsingRulesScenarios = map[string]func(h *grHarness){
 // id only.
 var parsingRulesDataSourceScenarios = func() map[string]func(h *grHarness) {
 	out := idLookupScenarios(func(h *grHarness) string {
-		return h.ruleGroups().seed(prAPIGroup("seeded",
-			prAPIRule("extract", "text", j{"extractParameters": j{"rule": "a"}}),
-			prAPIRule("json_extract", "text", j{"jsonExtractParameters": j{"destinationFieldType": "DESTINATION_FIELD_TEXT", "destinationFieldText": "text.k", "rule": "k"}}),
-		))
+		return h.ruleGroups().seed(prAPIGroupEvery())
 	})
 	out["read-api-error"] = func(h *grHarness) {
 		id := h.ruleGroups().seed(prAPIGroup("seeded", prAPIRule("extract", "text", j{"extractParameters": j{"rule": "a"}})))
@@ -426,4 +512,29 @@ func prAPIRule(kind, sourceField string, parameters j) j {
 		r["sourceField"] = "text"
 	}
 	return r
+}
+
+// prAPIGroupEvery is a rule group as the API takes it, with every group field and one rule of each
+// type, all with values that are not the defaults.
+func prAPIGroupEvery() j {
+	parse := prAPIRule("parse", "text.a", j{"parseParameters": j{"destinationField": "text.b", "rule": "(?P<a>.*)"}})
+	parse["description"], parse["enabled"] = "d", false
+	g := prAPIGroup("seeded",
+		parse,
+		prAPIRule("block", "text", j{"blockParameters": j{"keepBlockedLogs": true, "rule": "error"}}),
+		prAPIRule("json_extract", "text", j{"jsonExtractParameters": j{"destinationFieldType": "DESTINATION_FIELD_SEVERITY", "rule": "k"}}),
+		prAPIRule("replace", "text", j{"replaceParameters": j{"destinationField": "text.r", "replaceNewVal": "b", "rule": "a"}}),
+		prAPIRule("extract_timestamp", "text", j{"extractTimestampParameters": j{"format": "2006", "standard": "FORMAT_STANDARD_GOLANG"}}),
+		prAPIRule("remove_fields", "text", j{"removeFieldsParameters": j{"fields": []any{"a", "b"}}}),
+		prAPIRule("json_stringify", "text.src", j{"jsonStringifyParameters": j{"deleteSource": true, "destinationField": "text.out"}}),
+		prAPIRule("extract", "text", j{"extractParameters": j{"rule": "(?P<b>.*)"}}),
+		prAPIRule("parse_json_field", "text.src", j{"jsonParseParameters": j{"deleteSource": true, "destinationField": "text.p", "overrideDest": true}}),
+	)
+	g["description"], g["enabled"], g["hidden"], g["creator"] = "made outside Terraform", false, true, "someone"
+	g["ruleMatchers"] = []any{
+		j{"applicationName": j{"value": "app-a"}},
+		j{"subsystemName": j{"value": "sub-a"}},
+		j{"severity": j{"value": "VALUE_ERROR"}},
+	}
+	return g
 }
