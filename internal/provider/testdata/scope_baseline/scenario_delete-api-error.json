@@ -1,0 +1,120 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "default_expression": "<v1>true",
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ]
+    },
+    "plan": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "(unknown)",
+      "team_id": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1",
+        "body": {
+          "defaultExpression": "\u003cv1\u003etrue",
+          "displayName": "example",
+          "filters": [
+            {
+              "entityType": "ENTITY_TYPE_LOGS",
+              "expression": "\u003cv1\u003etrue"
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "delete API unavailable",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1/00000000-0000-4000-8000-000000000001",
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error deleting coralogix_scope | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: scope service unavailable\"}\noperation - Delete"
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    }
+  },
+  {
+    "step": "refresh and plan after failed delete",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1?ids=00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "retry delete",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

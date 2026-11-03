@@ -20,7 +20,7 @@ in this baseline; a later migration must show each fix in its golden diff.
 | Required fields, invalid default-expression prefix, invalid enum | `config-validation` |
 | Import, empty import ID, version-zero state | `import`, `import-empty-id`, `upgrade-version-zero` |
 | Missing resource and missing route | `read-not-found`, `update-not-found`, `delete-not-found`, `route-missing`, `delete-route-missing` |
-| Injected API failures | `create-api-error`, `read-api-error` |
+| Injected API failures | `create-api-error`, `read-api-error`, `delete-api-error` |
 | Duplicate display names are allowed | `duplicate-display-names` |
 | Data-source ID lookup, absent ID, empty ID, missing scope | `datasource_read-by-id`, `datasource_no-id`, `datasource_empty-id`, `datasource_not-found` |
 

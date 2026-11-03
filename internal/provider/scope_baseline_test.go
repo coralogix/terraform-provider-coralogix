@@ -97,6 +97,14 @@ var scopeScenarios = map[string]func(*grHarness){
 		h.scopes().fail(0, "")
 		h.Destroy("destroy", s)
 	},
+	"delete-api-error": func(h *grHarness) {
+		s := h.Apply("create", h.null(), scopeConfig())
+		h.scopes().fail(500, "Internal Server Error: scope service unavailable")
+		h.Destroy("delete API unavailable", s)
+		h.scopes().fail(0, "")
+		s = h.RefreshPlan("refresh and plan after failed delete", s)
+		h.Destroy("retry delete", s)
+	},
 	"duplicate-display-names": func(h *grHarness) {
 		first := h.Apply("create first scope", h.null(), scopeConfig())
 		second := h.Apply("create scope with the same display name", h.null(), scopeConfig())
