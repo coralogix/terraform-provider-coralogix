@@ -1,0 +1,78 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "192.0.2.0/24",
+          "name": "first"
+        }
+      ]
+    },
+    "plan": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "(unknown)",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "192.0.2.0/24",
+          "name": "first"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "body": {
+          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
+          "ipAccess": [
+            {
+              "enabled": false,
+              "ipRange": "192.0.2.0/24",
+              "name": "first"
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "<settings-id>",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "192.0.2.0/24",
+          "name": "first"
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: Get answers 500",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error reading coralogix_ip_access | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\noperation - Read"
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "<settings-id>",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "192.0.2.0/24",
+          "name": "first"
+        }
+      ]
+    }
+  }
+]

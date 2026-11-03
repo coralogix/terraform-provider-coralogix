@@ -1,0 +1,12 @@
+(data source schema)
+    description: Coralogix IP access control. Restricts access to a Coralogix team to a configured set of IP ranges. For more info please review - https://coralogix.com/docs/user-guides/account-management/account-settings/ip-access-control/.
+enable_coralogix_customer_support_access  tftypes.String computed
+id  tftypes.String optional
+    description: The unique identifier for the company IP access settings. This is typically a company ID.
+ip_access  nested SET computed
+ip_access.enabled  tftypes.Bool computed
+    description: Whether this IP access entry is enabled.
+ip_access.ip_range  tftypes.String computed
+    description: The IP range in CIDR notation.
+ip_access.name  tftypes.String computed
+    description: The name of the IP access entry.

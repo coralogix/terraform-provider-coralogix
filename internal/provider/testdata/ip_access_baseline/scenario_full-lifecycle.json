@@ -1,0 +1,255 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "enable_coralogix_customer_support_access": "enabled",
+      "ip_access": [
+        {
+          "enabled": true,
+          "ip_range": "192.0.2.0/24",
+          "name": "office"
+        },
+        {
+          "enabled": false,
+          "ip_range": "198.51.100.0/24"
+        }
+      ]
+    },
+    "plan": {
+      "enable_coralogix_customer_support_access": "enabled",
+      "id": "(unknown)",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "198.51.100.0/24",
+          "name": null
+        },
+        {
+          "enabled": true,
+          "ip_range": "192.0.2.0/24",
+          "name": "office"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "body": {
+          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_ENABLED",
+          "ipAccess": [
+            {
+              "enabled": true,
+              "ipRange": "192.0.2.0/24",
+              "name": "office"
+            },
+            {
+              "enabled": false,
+              "ipRange": "198.51.100.0/24"
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "ip_access"
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "enabled",
+      "id": "<settings-id>",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "198.51.100.0/24",
+          "name": ""
+        },
+        {
+          "enabled": true,
+          "ip_range": "192.0.2.0/24",
+          "name": "office"
+        }
+      ]
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"id\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"198.51.100.0/24\">, \"name\":tftypes.String<\"\">>)",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"198.51.100.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"enabled\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"198.51.100.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"ip_range\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"198.51.100.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"name\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"198.51.100.0/24\">, \"name\":tftypes.String<null>>)"
+    ]
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "enabled",
+      "id": "<settings-id>",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "198.51.100.0/24",
+          "name": ""
+        },
+        {
+          "enabled": true,
+          "ip_range": "192.0.2.0/24",
+          "name": "office"
+        }
+      ]
+    }
+  },
+  {
+    "step": "update: replace two rules with one and omit name",
+    "config": {
+      "enable_coralogix_customer_support_access": "disabled",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "203.0.113.0/24"
+        }
+      ]
+    },
+    "plan": {
+      "enable_coralogix_customer_support_access": "disabled",
+      "id": "(unknown)",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "203.0.113.0/24",
+          "name": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "body": {
+          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+          "ipAccess": [
+            {
+              "enabled": false,
+              "ipRange": "203.0.113.0/24"
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "ip_access"
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "disabled",
+      "id": "<settings-id>",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "203.0.113.0/24",
+          "name": ""
+        }
+      ]
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"id\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"203.0.113.0/24\">, \"name\":tftypes.String<\"\">>)",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"203.0.113.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"enabled\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"203.0.113.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"ip_range\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"203.0.113.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"name\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"203.0.113.0/24\">, \"name\":tftypes.String<null>>)"
+    ]
+  },
+  {
+    "step": "refresh after replace",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "disabled",
+      "id": "<settings-id>",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "203.0.113.0/24",
+          "name": ""
+        }
+      ]
+    }
+  },
+  {
+    "step": "update: clear rules and omit support access",
+    "config": {
+      "ip_access": []
+    },
+    "plan": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "(unknown)",
+      "ip_access": []
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "body": {
+          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
+          "ipAccess": []
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "<settings-id>",
+      "ip_access": []
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after clearing rules",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "disabled",
+      "id": "<settings-id>",
+      "ip_access": []
+    },
+    "drift": [
+      "AttributeName(\"enable_coralogix_customer_support_access\")"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"enable_coralogix_customer_support_access\")",
+      "AttributeName(\"id\")"
+    ]
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

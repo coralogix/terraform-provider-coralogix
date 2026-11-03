@@ -1,0 +1,15 @@
+[
+  {
+    "step": "create with ip_access omitted",
+    "config": {},
+    "plan": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "(unknown)",
+      "ip_access": "(unknown)"
+    },
+    "applyDiagnostics": [
+      "error: Value Conversion Error [AttributeName(\"ip_access\")] | An unexpected error was encountered trying to build a value. This is always an error in the provider. Please report the following to the provider developer:\n\nReceived unknown value, however the target type cannot handle unknown values. Use the corresponding `types` package type or a custom type that handles unknown values.\n\nPath: ip_access\nTarget Type: []aaa.IpAccessRuleModel\nSuggested Type: basetypes.SetValue"
+    ],
+    "state": null
+  }
+]

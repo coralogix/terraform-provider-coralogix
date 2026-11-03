@@ -1,0 +1,46 @@
+[
+  {
+    "step": "create: settings already exist",
+    "config": {
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "198.51.100.0/24",
+          "name": "new"
+        }
+      ]
+    },
+    "plan": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "(unknown)",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "198.51.100.0/24",
+          "name": "new"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "body": {
+          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
+          "ipAccess": [
+            {
+              "enabled": false,
+              "ipRange": "198.51.100.0/24",
+              "name": "new"
+            }
+          ]
+        },
+        "status": 409
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_ip_access | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Company already has IP access settings. Use replace method to update.\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]
