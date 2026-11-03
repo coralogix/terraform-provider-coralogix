@@ -9,8 +9,8 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Missing Configuration for Required Attribute [AttributeName(\"filters\").ElementKeyInt(0).AttributeName(\"expression\")] | Must set a configuration value for the filters[0].expression attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
-      "error: Missing Configuration for Required Attribute [AttributeName(\"filters\").ElementKeyInt(0).AttributeName(\"entity_type\")] | Must set a configuration value for the filters[0].entity_type attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+      "error: Missing Configuration for Required Attribute [AttributeName(\"filters\").ElementKeyInt(0).AttributeName(\"entity_type\")] | Must set a configuration value for the filters[0].entity_type attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"filters\").ElementKeyInt(0).AttributeName(\"expression\")] | Must set a configuration value for the filters[0].expression attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
     "state": null
   },
@@ -81,8 +81,8 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Missing Configuration for Required Attribute [AttributeName(\"filters\").ElementKeyInt(0).AttributeName(\"expression\")] | Must set a configuration value for the filters[0].expression attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
-      "error: Missing Configuration for Required Attribute [AttributeName(\"filters\").ElementKeyInt(0).AttributeName(\"entity_type\")] | Must set a configuration value for the filters[0].entity_type attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+      "error: Missing Configuration for Required Attribute [AttributeName(\"filters\").ElementKeyInt(0).AttributeName(\"entity_type\")] | Must set a configuration value for the filters[0].entity_type attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"filters\").ElementKeyInt(0).AttributeName(\"expression\")] | Must set a configuration value for the filters[0].expression attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
     "state": {
       "default_expression": "<v1>true",
