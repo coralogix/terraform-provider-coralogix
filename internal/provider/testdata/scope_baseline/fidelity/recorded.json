@@ -560,6 +560,129 @@
           }
         }
       ]
+    },
+    {
+      "name": "empty display name lifecycle",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "",
+              "description": "name lifecycle",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "",
+                "description": "name lifecycle",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "description": "name lifecycle",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "description": "name lifecycle",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "",
+              "description": "name lifecycle",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "",
+                "description": "name lifecycle",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
     }
   ]
 }

@@ -12,6 +12,7 @@ in this baseline; a later migration must show each fix in its golden diff.
 | Create, refresh, follow-up plan, update every writable field, delete | `minimal`, `full-lifecycle` |
 | Description omitted on create, changed, removed on update | `minimal`, `full-lifecycle` |
 | Explicitly empty description, including import and data source | `empty-description`, `import-empty-description` |
+| Empty display name on create, update, refresh, import, and data-source read | `empty-display-name` |
 | Nonempty and explicitly empty filters | `full-lifecycle`, `empty-filters` |
 | Clear nonempty filters on update, refresh, replan, data source | `clear-filters` |
 | Enum values `logs`, `spans`, and backend-rejected `unspecified` | `minimal`, `full-lifecycle`, `unspecified-entity-type` |
@@ -20,11 +21,25 @@ in this baseline; a later migration must show each fix in its golden diff.
 | Required fields, invalid default-expression prefix, invalid enum | `config-validation` |
 | Import, empty import ID, version-zero state | `import`, `import-empty-id`, `upgrade-version-zero` |
 | Missing resource and missing route | `read-not-found`, `update-not-found`, `delete-not-found`, `route-missing`, `delete-route-missing` |
-| Injected API failures | `create-api-error`, `read-api-error`, `delete-api-error` |
+| Injected API failures | `create-api-error`, `read-api-error`, `update-api-error`, `delete-api-error` |
 | Successful Create and Update replies with null scope, missing ID, or empty ID | `create-null-scope`, `create-missing-id`, `create-empty-id`, `update-null-scope`, `update-missing-id`, `update-empty-id` |
 | Successful Read replies with empty/null lists or ID-less items, for both resource and data source | `read-empty-scopes`, `read-null-scopes`, `read-missing-id`, `read-empty-id` |
 | Duplicate display names are allowed | `duplicate-display-names` |
-| Data-source ID lookup, absent ID, empty ID, missing scope | `datasource_read-by-id`, `datasource_no-id`, `datasource_empty-id`, `datasource_not-found` |
+| Data-source ID lookup, absent ID, empty ID, missing scope, API failure | `datasource_read-by-id`, `datasource_no-id`, `datasource_empty-id`, `datasource_not-found`, `datasource_api-error` |
+
+### API outcome matrix
+
+| Caller | Normal success | Missing resource | Other API error | Unusable 200 reply |
+| --- | --- | --- | --- | --- |
+| Create | `minimal` | No resource ID yet | `create-api-error` | `create-null-scope`, `create-missing-id`, `create-empty-id` |
+| Resource Read | `minimal` | `read-not-found` | `read-api-error`, `route-missing` | `read-empty-scopes`, `read-null-scopes`, `read-missing-id`, `read-empty-id` |
+| Update | `full-lifecycle` | `update-not-found` | `update-api-error` | `update-null-scope`, `update-missing-id`, `update-empty-id` |
+| Delete | `minimal` | `delete-not-found`, `delete-route-missing` | `delete-api-error` | The response body is not used |
+| Data-source Read | `datasource_read-by-id` | `datasource_not-found` | `datasource_api-error` | All four paired `read-*` response cases |
+
+The injected 500 cases cover the non-not-found API error category for each caller.
+Existing `TestScopeReadDoesNotPanicOnAPIFailure` unit tests also cover authorization,
+rate-limit, and transport failures for both readers.
 
 The required `filters` attribute cannot be omitted or null in Terraform config.
 The API fidelity cases separately record empty, null, and omitted filters on
@@ -35,7 +50,7 @@ write-only field in the released schema.
 ## Fake API evidence and limits
 
 `fidelity/cases.json` and `fidelity/recorded.json` contain anonymized API requests
-and replies. The additional expression, replacement, and duplicate-name cases
+and replies. The additional expression, replacement, duplicate-name, and empty-name cases
 were recorded on EU2 on 2026-11-03. All probe-created scopes were deleted and
 verified absent. `TestScopeFakeMatchesRecordedBackend` replays these cases.
 

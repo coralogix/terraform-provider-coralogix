@@ -150,6 +150,19 @@ var scopeScenarios = map[string]func(*grHarness){
 		h.scopes().fail(0, "")
 		h.Destroy("destroy", s)
 	},
+	"update-api-error": func(h *grHarness) {
+		cfg := scopeConfig()
+		s := h.Apply("create", h.null(), cfg)
+		cfg = maps.Clone(cfg)
+		cfg["display_name"] = "changed"
+		h.scopes().fail(500, "Internal Server Error: scope service unavailable")
+		s = h.Apply("update API unavailable", s, cfg)
+		h.scopes().fail(0, "")
+		s = h.RefreshPlan("refresh and plan after failed update", s)
+		s = h.Apply("retry update", s, cfg)
+		s = h.RefreshPlan("refresh and plan after retry", s)
+		h.Destroy("destroy", s)
+	},
 	"delete-api-error": func(h *grHarness) {
 		s := h.Apply("create", h.null(), scopeConfig())
 		h.scopes().fail(500, "Internal Server Error: scope service unavailable")
@@ -172,6 +185,23 @@ var scopeScenarios = map[string]func(*grHarness){
 		s = h.Import("import empty filters", idOf(s))
 		s = h.Apply("plan imported empty filters", s, cfg)
 		h.ReadDataSource("read empty filters", byID(idOf(s)))
+		h.Destroy("destroy", s)
+	},
+	"empty-display-name": func(h *grHarness) {
+		cfg := scopeConfig()
+		cfg["display_name"], cfg["description"] = "", "name lifecycle"
+		s := h.Apply("create empty display name", h.null(), cfg)
+		s = h.RefreshPlan("refresh and plan empty display name", s)
+		cfg = maps.Clone(cfg)
+		cfg["display_name"] = "named"
+		s = h.Apply("set display name", s, cfg)
+		cfg = maps.Clone(cfg)
+		cfg["display_name"] = ""
+		s = h.Apply("clear display name", s, cfg)
+		s = h.RefreshPlan("refresh and plan cleared display name", s)
+		s = h.Import("import empty display name", idOf(s))
+		s = h.Apply("plan imported empty display name", s, cfg)
+		h.ReadDataSource("read empty display name", byID(idOf(s)))
 		h.Destroy("destroy", s)
 	},
 	"import-empty-description": func(h *grHarness) {
@@ -276,6 +306,11 @@ var scopeScenarios = map[string]func(*grHarness){
 }
 
 var scopeDataSourceScenarios = map[string]func(*grHarness){
+	"api-error": func(h *grHarness) {
+		id := h.scopes().seed()
+		h.scopes().fail(500, "Internal Server Error: scope service unavailable")
+		h.ReadDataSource("data source API unavailable", byID(id))
+	},
 	"empty-id":   func(h *grHarness) { h.ReadDataSource("read empty id", byID("")) },
 	"read-by-id": func(h *grHarness) { h.ReadDataSource("read", byID(h.scopes().seed())) },
 	"not-found":  func(h *grHarness) { h.ReadDataSource("read missing scope", byID(missingID)) },
