@@ -968,10 +968,12 @@ func (l Field) statesPresence() bool {
 func (l Field) Fixed() bool { return l.RequestValue != "" || len(l.RequestValueBy) != 0 }
 
 // replacesServerDefault reports whether the line states a mode that a server default of the
-// contract cannot have: its own default, or no computed value. required: true needs no check:
-// a server default needs a field that Get requires, and then the line is unused.
+// contract cannot have: its own default, no computed value, or what an omitted value plans and
+// sends (sendUnknownAsZero, useStateForUnknown, useNonNullStateForUnknown). The server-default
+// plan modifier would make a removal unknown on top of them. required: true needs no check: a
+// server default needs a field that Get requires, and then the line is unused.
 func (l Field) replacesServerDefault() bool {
-	return l.Default != nil || l.Computed != nil && !*l.Computed
+	return l.Default != nil || l.Computed != nil && !*l.Computed || l.SendUnknownAsZero || l.UseStateForUnknown || l.UseNonNullStateForUnknown
 }
 
 func (e ExtraAttribute) check(name string) error {

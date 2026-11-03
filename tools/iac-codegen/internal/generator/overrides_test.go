@@ -740,6 +740,11 @@ func TestModeLinesReplaceTheContractDefault(t *testing.T) {
 		"other line":     {"{description: The priority.}", true, true, ""},
 		"not computed":   {"{computed: false}", false, false, ""},
 		"static default": {"{computed: true, default: 0}", true, false, "int64default.StaticInt64(0)"},
+		// These keys state what an omitted value plans and sends, so the server default of the
+		// contract must not make a removal unknown on top of them.
+		"send unknown as zero":  {"{computed: true, sendUnknownAsZero: true}", true, false, ""},
+		"keep the state":        {"{computed: true, useStateForUnknown: true}", true, false, ""},
+		"keep a non-null state": {"{computed: true, useNonNullStateForUnknown: true}", true, false, ""},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
