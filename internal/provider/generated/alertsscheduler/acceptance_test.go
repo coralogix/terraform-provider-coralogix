@@ -67,16 +67,16 @@ const fullConfig = `resource "coralogix_alerts_scheduler" "test" {
   filter = {
     meta_labels = [
       {
-        key = "key"
-        value = "value"
+        key = "tf-acc-generated-scheduler"
+        value = "lifecycle"
       },
     ]
     what_expression = "source logs | filter true"
   }
   meta_labels = [
     {
-      key = "key"
-      value = "value"
+      key = "tf-acc-generated-scheduler"
+      value = "lifecycle"
     },
   ]
   name = "@{run}-scheduler"
@@ -101,16 +101,16 @@ const updatedConfig = `resource "coralogix_alerts_scheduler" "test" {
   filter = {
     meta_labels = [
       {
-        key = "key"
-        value = "value"
+        key = "tf-acc-generated-scheduler"
+        value = "lifecycle"
       },
     ]
     what_expression = "source logs | filter true"
   }
   meta_labels = [
     {
-      key = "key"
-      value = "value"
+      key = "tf-acc-generated-scheduler"
+      value = "lifecycle"
     },
   ]
   name = "@{run}-scheduler"
@@ -139,6 +139,76 @@ const minimalConfig = `resource "coralogix_alerts_scheduler" "test" {
       time_frame = {
         duration = {
           for_over = 1
+          frequency = "days"
+        }
+        start_time = "2030-01-01T00:00:00.000"
+        time_zone = "UTC+0"
+      }
+    }
+    operation = "mute"
+  }
+}`
+
+// upgradeFullConfig is the full config without the attributes that provider 3.21.0 does not have.
+const upgradeFullConfig = `resource "coralogix_alerts_scheduler" "test" {
+  description = "@{run}-description"
+  enabled = true
+  filter = {
+    meta_labels = [
+      {
+        key = "tf-acc-generated-scheduler"
+        value = "upgrade"
+      },
+    ]
+    what_expression = "source logs | filter true"
+  }
+  meta_labels = [
+    {
+      key = "tf-acc-generated-scheduler"
+      value = "upgrade"
+    },
+  ]
+  name = "@{run}-scheduler"
+  schedule = {
+    one_time = {
+      time_frame = {
+        duration = {
+          for_over = 1
+          frequency = "days"
+        }
+        start_time = "2030-01-01T00:00:00.000"
+        time_zone = "UTC+0"
+      }
+    }
+    operation = "mute"
+  }
+}`
+
+// upgradeUpdatedConfig is the updated config with the upgradeValues of the acceptance file.
+const upgradeUpdatedConfig = `resource "coralogix_alerts_scheduler" "test" {
+  description = "@{run}-description-updated"
+  enabled = false
+  filter = {
+    meta_labels = [
+      {
+        key = "tf-acc-generated-scheduler"
+        value = "upgrade"
+      },
+    ]
+    what_expression = "source logs | filter true"
+  }
+  meta_labels = [
+    {
+      key = "tf-acc-generated-scheduler"
+      value = "upgrade"
+    },
+  ]
+  name = "@{run}-scheduler"
+  schedule = {
+    one_time = {
+      time_frame = {
+        duration = {
+          for_over = 2
           frequency = "days"
         }
         start_time = "2030-01-01T00:00:00.000"
@@ -222,6 +292,17 @@ func minimalChecks(run string) resource.TestCheckFunc {
 		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.duration.frequency", "days"),
 		resource.TestCheckResourceAttr(resourceAddress, "description", ""),
 		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
+	)
+}
+
+func upgradeFullChecks(run string) resource.TestCheckFunc {
+	return resource.ComposeAggregateTestCheckFunc(
+		resource.TestCheckResourceAttr(resourceAddress, "description", render(run, "@{run}-description")),
+		resource.TestCheckResourceAttr(resourceAddress, "enabled", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "filter.meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "meta_labels.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.duration.for_over", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "schedule.one_time.time_frame.duration.frequency", "days"),
 	)
 }
 
@@ -354,8 +435,8 @@ func TestAccCoralogixResourceAlertsSchedulerGeneratedUpgrade(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
-			Steps: upgradeSteps(run, fullConfig, fullChecks(run),
-				updatedConfig, updatedChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
+			Steps: upgradeSteps(run, upgradeFullConfig, upgradeFullChecks(run),
+				upgradeUpdatedConfig, updatedChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
 		})
 	})
 
@@ -364,7 +445,7 @@ func TestAccCoralogixResourceAlertsSchedulerGeneratedUpgrade(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
 			PreCheck: func() { preCheck(t) },
-			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), fullConfig, fullChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
+			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), upgradeFullConfig, fullChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
 		})
 	})
 }

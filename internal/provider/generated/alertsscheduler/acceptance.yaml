@@ -8,11 +8,18 @@ values:
   schedule.one_time.time_frame.start_time: '"2030-01-01T00:00:00.000"'
   schedule.one_time.time_frame.time_zone: '"UTC+0"'
   # The API never deletes a meta label and limits them per tenant; at the limit it silently drops
-  # a new label. A fixed label adds none, so the test does not fill the limit.
-  meta_labels[].key: '"key"'
-  meta_labels[].value: '"value"'
-  filter.meta_labels[].key: '"key"'
-  filter.meta_labels[].value: '"value"'
+  # a new label. A fixed label adds none, so the test does not fill the limit. The handwritten
+  # scheduler tests use key/value and run at the same time in the same CI job, and a scheduler then
+  # sometimes reads back without its label, so this test has a label of its own.
+  meta_labels[].key: '"tf-acc-generated-scheduler"'
+  meta_labels[].value: '"lifecycle"'
+  filter.meta_labels[].key: '"tf-acc-generated-scheduler"'
+  filter.meta_labels[].value: '"lifecycle"'
+
+# The upgrade test runs in another CI job at the same time as the lifecycle test.
+upgradeValues:
+  meta_labels[].value: '"upgrade"'
+  filter.meta_labels[].value: '"upgrade"'
 
 # The API rejects an alert id that does not exist, so the tests select alerts by meta label.
 skip:
