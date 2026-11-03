@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"maps"
 	"math"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
 	"github.com/coralogix/terraform-provider-coralogix/tools/iac-codegen/internal/overrides"
@@ -757,6 +759,8 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 		return fmt.Sprintf("%s.SizeAtLeast(%d)", pkg, *v.SizeAtLeast), nil
 	case v.LengthAtLeast != nil && a.ValueKind == "String":
 		return fmt.Sprintf("stringvalidator.LengthAtLeast(%d)", *v.LengthAtLeast), nil
+	case v.LengthAtMost != nil && a.ValueKind == "String":
+		return fmt.Sprintf("stringvalidator.LengthAtMost(%d)", *v.LengthAtMost), nil
 	case len(v.Between) == 2 && slices.Contains([]string{"Float32", "Float64", "Int32", "Int64"}, a.ValueKind):
 		return betweenExpr(a, v.Between)
 	case len(v.ExactlyOneOf) != 0:
@@ -776,6 +780,11 @@ func validatorExpr(a *tfAttr, v overrides.Validator, file *overrides.File) (stri
 		return fmt.Sprintf("float64validator.AtLeast(%s)", formatFloat(*v.AtLeast)), nil
 	case v.RegexMatches != nil && a.ValueKind == "String":
 		return regexValidator(v.RegexMatches.Pattern, v.RegexMatches.Message), nil
+	case v.KeysAre != nil && a.ValueKind == "Map":
+		return "mapvalidator.KeysAre(" + regexValidator(v.KeysAre.Pattern, v.KeysAre.Message) + ")", nil
+	case v.RegexMatches != nil && (a.ValueKind == "List" || a.ValueKind == "Set") && a.ElementType == "types.StringType":
+		// Each element of a list or set of strings must match.
+		return pkg + ".ValueStringsAre(" + regexValidator(v.RegexMatches.Pattern, v.RegexMatches.Message) + ")", nil
 	}
 	return "", fmt.Errorf("the validator does not fit a %s attribute", a.ValueKind)
 }
@@ -1083,10 +1092,36 @@ func (b *tfBuilder) attribute(p attrPath, component, name, desc string, t *model
 		a.Kind, a.ValueKind, a.TrueOnly = "Bool", "Bool", true
 		return a, nil
 	}
+	if sep := splitOf(b.file, component, name); sep != "" {
+		if t.Kind != model.String {
+			return nil, fmt.Errorf("%s.%s: split needs a string, the field is a %s", component, name, t.Kind)
+		}
+		if utf8.RuneCountInString(sep) != 1 {
+			return nil, fmt.Errorf("%s.%s: split needs a separator of one character, not %q", component, name, sep)
+		}
+		a.Kind, a.ValueKind, a.ElementType = "Set", "Set", "types.StringType"
+		// An element that holds the separator would read back as two elements, so the set would
+		// not round-trip. Like a oneOf group validator, it states the encoding, not a limit of the
+		// contract, so it stays when the overrides drop the inferred validators.
+		separator := "setvalidator.ValueStringsAre(" +
+			regexValidator("^[^"+regexp.QuoteMeta(sep)+"]*$", fmt.Sprintf("must not contain %q", sep)) + ")"
+		a.Validators = append(a.Validators, separator)
+		a.GroupValidators = append(a.GroupValidators, separator)
+		return a, nil
+	}
 	if err := b.setType(a, p, t, computed); err != nil {
 		return nil, err
 	}
 	return a, nil
+}
+
+// splitOf is the separator of the split line of field name of component: the API holds the values
+// of a Terraform set of strings joined by it. "" when the field has none.
+func splitOf(file *overrides.File, component, name string) string {
+	if file == nil {
+		return ""
+	}
+	return file.Types[component].Fields[name].Split
 }
 
 // setType sets the kind, the type, and the validators of a. computed is true for a field that only
@@ -1816,6 +1851,9 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 		goType = "types.String"
 		if sentTime(t, responseOnly) {
 			goType = "timetypes.RFC3339"
+		}
+		if splitOf(b.file, component, name) != "" {
+			goType = "types.Set"
 		}
 	case model.Bool:
 		goType = "types.Bool"

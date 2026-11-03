@@ -4,10 +4,15 @@
 package configthing
 
 import (
+	"regexp"
+
+	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -89,8 +94,11 @@ func Schema() schema.Schema {
 				MarkdownDescription: "",
 			},
 			"metadata": schema.MapAttribute{
-				Optional:            true,
-				ElementType:         types.StringType,
+				Optional:    true,
+				ElementType: types.StringType,
+				Validators: []validator.Map{
+					mapvalidator.KeysAre(stringvalidator.RegexMatches(regexp.MustCompile(`^[a-z.]+$`), "keys must be lower case")),
+				},
 				MarkdownDescription: "",
 			},
 		},

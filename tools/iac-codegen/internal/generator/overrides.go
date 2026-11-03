@@ -166,8 +166,8 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 	if err != nil {
 		return wholeLine(fmt.Errorf("component %q: %w", line.Component, err))
 	}
-	if line.Kind == overrides.KindField && line.Component == file.Resource {
-		if schema, err = withInlinedFields(schema, file); err != nil {
+	if line.Kind == overrides.KindField {
+		if schema, err = withInlinedFields(schema, file, line.Component); err != nil {
 			return wholeLine(err)
 		}
 	}
@@ -192,13 +192,13 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 	return nil
 }
 
-// withInlinedFields returns the resource component with the fields of its inlined objects: they
-// are top-level attributes, so their lines are lines of the resource component. The model checks
-// that an inlined field is an object.
-func withInlinedFields(schema *base.Schema, file *overrides.File) (*base.Schema, error) {
+// withInlinedFields returns the component with the fields of its inlined objects: they are
+// attributes of the component, so their lines are lines of the component. The model checks that an
+// inlined field is an object.
+func withInlinedFields(schema *base.Schema, file *overrides.File, component string) (*base.Schema, error) {
 	var inlined []string
 	for _, line := range file.Lines() {
-		if line.Kind == overrides.KindField && line.Component == file.Resource && line.Inline {
+		if line.Kind == overrides.KindField && line.Component == component && line.Inline {
 			inlined = append(inlined, line.Field)
 		}
 	}
@@ -253,14 +253,14 @@ func enumLineProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 			return wholeLine(fmt.Errorf("enum %q has no value %q", line.Component, value))
 		}
 	}
-	if hasZeroValue(contract) && line.EnumZero == "" {
+	if hasZeroValue(contract) && line.EnumZero == "" && !line.EnumZeroNull {
 		return &lineIssue{
 			code:    "ENUM_ZERO_UNDECIDED",
 			message: fmt.Sprintf("enum %q has the zero value %s, but the line has no zero", line.Component, contract[0]),
-			fix:     "Add zero with the Terraform value of the zero value. Without it, a response that has the value fails with Unsupported API value.",
+			fix:     "Add zero with the Terraform value of the zero value, or zeroNull: true when the released resource read it as null. Without either, a response that has the value fails with Unsupported API value.",
 		}
 	}
-	if line.EnumZero != "" && !hasZeroValue(contract) {
+	if (line.EnumZero != "" || line.EnumZeroNull) && !hasZeroValue(contract) {
 		return &lineIssue{
 			code:    "ENUM_ZERO_INVALID",
 			message: fmt.Sprintf("enum %q starts with %s, a business value, not a *_UNSPECIFIED sentinel", line.Component, contract[0]),

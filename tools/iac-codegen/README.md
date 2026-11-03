@@ -93,6 +93,8 @@ A fifth small golden contract, `echothing`, is an existing resource as an older 
 A further small golden contract, `suppressedthing`, is an existing resource whose path parameter is `thing_id` while its id is the property `uniqueIdentifier`, next to a version `id` that the file skips. Its behavior-overrides file has `api.idProperty`, `serverSetID`, `name` lines on a top-level and a nested field, an enum whose values have `names` (`mute` and `active`), a set of weekday numbers with `valueNames`, an empty oneOf arm with `asBool`, a filter whose required oneOf has a `defaultArm`, and a nested `frequency` group.
 A further small golden contract, `parsething`, is an existing resource like the parsing rule groups: a team id that only the requests have (`skip`), unknown scalars sent as zero (`sendUnknownAsZero`), matchers shown as one set per arm (`splitArms`, `default: []`), groups and steps numbered by place (`requestPosition`), a step shown as the arms of its parameters with a fixed source in one arm and two arms folded into one (`carrySiblings`), an inverted flag and a fixed one (`showInverted`, `requestValue: "true"`), and a case-insensitive enum.
 A further small golden contract, `storagething`, is an existing singleton like the metrics archive: a GET reads it, a POST on the same path sets it and returns an empty object, and the path also has a PUT and a PATCH that the resource does not use. The storage is one arm of a oneOf of the resource itself, and its behavior-overrides file lists the `gcs` arm in `unsupportedArms`.
+
+A further small golden contract, `overwritething`, is a collection resource whose write replaces the things of kind A and whose Get lists every kind. Its behavior-overrides file has `api.overwrite` with a `getQuery`, a `requestWrapper` and a negated `requestAs` line on the item, an `inline` line on the rules arm of kind A and a `skip` line on the arm of kind B, a `split` line with element validators on an inlined field, and a data source.
 A further small golden contract, `upsertthing`, is an existing singleton that a GET reads and a POST on the same path sets. The request sends `enabled` at the top and a `spec` object. The response wraps the resource in `target`, holds `enabled` in a `meta` object, and holds `spec` as one arm of a oneOf. Its behavior-overrides file has `typeName`, `singletonID: {fixed: ...}`, `api.operations` with `delete: none`, `inline` lines on `spec` and `meta`, a `skip` line on the other arm, and a `name` line with `optional: true` and a default.
 
 ## Existing resources
@@ -264,6 +266,8 @@ A read-only field inside a component that the request shares with the response i
 
 `enums.<Enum>.readRejected: true` reads a rejected value back as the API spelling. Without it, that value fails the read. `readRejected: lower` reads it in lower case instead, for a released resource that lowercased an unknown API value; it excludes `verbatim`. A missing enum reads as null. `x-coralogix-presence` means the same thing: the value was not set. A string `default` on the field is the reading of a missing value for that resource, including a missing unwrapped value.
 
+`enums.<Enum>.zeroNull: true` reads the zero value as null and leaves it out of the conversion maps and the validator, for a released resource that read it as null, as a new resource does. It excludes `zero`.
+
 `enums.<Enum>.names` gives an accepted value its released Terraform spelling when `trimPrefix`, `verbatim`, and the lower case do not make it. A name wins over `trimPrefix`, for example `SCHEDULE_OPERATION_ACTIVATE: active` or `DURATION_FREQUENCY_MINUTE: minutes`. The conversion maps and the `enum: true` validator read the same spelling, so they cannot disagree. A name for a value that is not in `values`, an empty name, a name that is the spelling the value has anyway, and two values (the zero value included) with one Terraform spelling are errors. With `readRejected`, a rejected value reads back as its API spelling, so a name cannot be that spelling.
 
 `requiresReplace: true` on a top-level field that Create, Update, and Get all have makes a change of the field replace the resource, as a released resource did, although Update accepts it. A PATCH Update does not send the field. A PUT Update replaces the whole resource, so it still sends the field: without it, an update of another field would clear it. It cannot be combined with `computed: true` or with `requestValue` or `requestValueBy` (such a field is no attribute, and Update always sends it). A PATCH Update body cannot require the field: the SDK holds a required field as a value and would send its zero value. With PATCH, at least one field must stay that Update can change: a resource without an in-place update is not supported.
@@ -289,6 +293,39 @@ api:
 ```
 
 Create and Update send the whole resource with the Set call, as a full replace does. The generated Delete makes no call: it removes the resource from the state and warns that the API keeps its last configuration. The file names every operation, so an operation flag is an error (`UPSERT_OPERATION_CONFLICT`). A Get with path parameters, or a Set on another path, is reported (`UPSERT_SHAPE_UNSUPPORTED`). `delete: none` needs `create` and `update` to name the same operation, and cannot go with `requestWrapper`, `updateIDInBody`, `clientSetID`, `serverSetID`, `idProperty`, `customMethods`, or `updateMaskInBody`.
+
+`api.overwrite` is for a collection resource: the API has no item lifecycle, one write replaces every item of a kind, and one Get lists the items of every kind (the TCO policies: one PUT per source type, one GET filtered by `source_type`). The resource is the response component of Get, with its list field. `api.operations` names the write as `create`, `update`, and `delete`.
+
+```yaml
+singletonID: {fixed: tco-policies-logs}
+api:
+  overwrite:
+    getQuery: {source_type: SOURCE_TYPE_LOGS}   # Get always sends it
+  operations:
+    create: PoliciesService_AtomicOverwriteLogPolicies
+    get: PoliciesService_GetCompanyPolicies
+    update: PoliciesService_AtomicOverwriteLogPolicies
+    delete: PoliciesService_AtomicOverwriteLogPolicies
+```
+
+Create and Update send the write and read the resource with Get, because the write returns what it created in its own shape. Delete sends the write with the zero value of its body, so every list is empty. Get, and the data source, set each `getQuery` value with the request builder method of the parameter; an enum value is the SDK constant. The `iac` module checks the rest (see its README, "A collection resource"): the write paths and the Get path, the list limits of the write, and the query values.
+
+A written item can hold the fields of the read item in a wrapper, under another name, or negated, as the TCO policies do (`{policy: {name, disabled}, logRules}` for `{name, enabled, logRules}`). `types.<Type>.requestWrapper` names the property of the request object of a nested component that holds its fields, and the `requestAs` lines of its fields are relative to it. `negate: true` sends the opposite of a bool. A field of the wrapper without a line flows through, so a new field of the API needs no line. A oneOf arm of the read item that the write never sends is computed; a `skip` line, or `unsupportedArms`, leaves it out.
+
+```yaml
+types:
+  Policy:
+    requestWrapper: policy
+    fields:
+      enabled: {requestAs: disabled, negate: true}
+      logRules: {inline: true}        # severities and dpxl_expression are policy attributes
+      spanRules: {skip: true}
+      rumRules: {skip: true}
+```
+
+`inline: true` on an object field of a nested component shows the fields of that object as attributes of the component, as on the resource (the TCO `severities` of `logRules` are attributes of each policy). The object is inlined in the component, and in each request component that the Create and Update bodies of `api.operations` reach and that holds the same object under the same name, the request item of the component. The lines of its fields are lines of the component. A oneOf arm of the response can be inlined when the file skips the other arms; flatten reads a missing arm as an empty object, so its fields are null. The Update must send the whole resource.
+
+`split: ","` on a string field shows the values that the API holds joined by the separator (`"a,b"`) as a set of strings, as a released resource did. Expand joins the elements of the set, and flatten splits the text. A `regexMatches` validator line on a list or set of strings checks each element. The key cannot go with `collection` or `keyedBy`.
 
 `delete: none` and `inline` change the contract that the `iac` module reads, so the generator gives `iac` the contract that they describe (`internal/generator/reshape.go`). For `delete: none`, the singleton path gets a PUT copy of the Set POST and a DELETE with the responses of the Get, with the operationIds `<Set>_UpsertPut` and `<Get>_UpsertDelete`, so the model sees every lifecycle step; their SDK names are those of the Set and the Get. For `inline`, each inlined object of the resource component and of the request bodies is replaced by its fields, and the generator moves their SDK names to the object's type. Without `delete: none`, the model then finds the Create and Update operations in that contract.
 

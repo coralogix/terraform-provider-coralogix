@@ -1,0 +1,94 @@
+# A released collection resource, like the TCO policies: GET lists the things of every kind, and one
+# PUT per kind replaces all things of that kind. Each written item holds the common fields in a
+# "thing" wrapper next to its rules, and sends "disabled" where Get returns "enabled". Get returns
+# one flat Thing, whose rules are one arm of a oneOf: the PUT of kind A only sends aRules. A rule
+# holds its values as one comma-separated string, which the released resource shows on the thing.
+openapi: 3.1.0
+info: {title: overwrite things, version: 1.0.0}
+paths:
+  /v1/things:
+    get:
+      operationId: OverwriteThingsService_ListThings
+      tags: [Overwrite Things Service]
+      parameters:
+        - {name: kind, in: query, required: false, schema: {$ref: '#/components/schemas/ThingKind'}}
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/ThingList'}}}}
+  /v1/kind-a-things:
+    put:
+      operationId: OverwriteThingsService_OverwriteKindAThings
+      tags: [Overwrite Things Service]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Overwrite Kind A Things Request
+              type: object
+              required: [things]
+              properties:
+                things:
+                  type: array
+                  minItems: 0
+                  maxItems: 50
+                  items: {$ref: '#/components/schemas/KindAThingWrite'}
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/OverwriteResponse'}}}}
+components:
+  schemas:
+    ThingKind:
+      type: string
+      enum: [THING_KIND_UNSPECIFIED, THING_KIND_A, THING_KIND_B]
+    ThingPriority:
+      type: string
+      enum: [THING_PRIORITY_UNSPECIFIED, THING_PRIORITY_LOW, THING_PRIORITY_HIGH]
+    ThingList:
+      type: object
+      properties:
+        things:
+          type: array
+          description: The things of the kind.
+          minItems: 0
+          maxItems: 1000
+          items: {$ref: '#/components/schemas/Thing'}
+    Thing:
+      type: object
+      required: [name]
+      oneOf:
+        - {type: object, required: [aRules]}
+        - {type: object, required: [bRules]}
+      properties:
+        id: {type: string, readOnly: true, description: The id that the server sets.}
+        order: {type: integer, format: int32, readOnly: true, description: The position of the thing.}
+        name: {type: string, minLength: 1, description: The name.}
+        description: {type: string, description: The description.}
+        enabled: {type: boolean, x-coralogix-presence: true, description: Whether the thing is enabled.}
+        priority: {$ref: '#/components/schemas/ThingPriority'}
+        aRules: {$ref: '#/components/schemas/Rules'}
+        bRules: {$ref: '#/components/schemas/Rules'}
+    KindAThingWrite:
+      type: object
+      required: [thing, aRules]
+      properties:
+        thing: {$ref: '#/components/schemas/ThingCore'}
+        aRules: {$ref: '#/components/schemas/Rules'}
+    ThingCore:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string, minLength: 1}
+        description: {type: string}
+        disabled: {type: boolean, x-coralogix-presence: true}
+        priority: {$ref: '#/components/schemas/ThingPriority'}
+    Rules:
+      type: object
+      properties:
+        values: {type: string, description: The values to match, joined by commas.}
+    OverwriteResponse:
+      type: object
+      properties:
+        created:
+          type: array
+          minItems: 0
+          maxItems: 50
+          items: {$ref: '#/components/schemas/Thing'}

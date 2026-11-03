@@ -117,6 +117,10 @@ func (a API) Check() error {
 // them through the object.
 type Inlined struct {
 	Create, Update, Get map[string]Parent
+	// Nested is, for each component other than the resource whose object field is inlined, the
+	// object that holds each moved field: component, then field. A request component that holds the
+	// same object under the same name is inlined too, so it has its own entry.
+	Nested map[string]map[string]Parent
 }
 
 // Parent is the object field of the API that holds an inlined top-level field.
@@ -146,6 +150,38 @@ func (f *File) InlinedFields() []string {
 		}
 	}
 	return out
+}
+
+// NestedInlined returns the inlined fields of each component other than the resource, in order.
+func (f *File) NestedInlined() map[string][]string {
+	if f == nil {
+		return nil
+	}
+	out := map[string][]string{}
+	for _, name := range sortedKeys(f.Types) {
+		if name == f.Resource {
+			continue
+		}
+		for _, field := range sortedKeys(f.Types[name].Fields) {
+			if f.Types[name].Fields[field].Inline {
+				out[name] = append(out[name], field)
+			}
+		}
+	}
+	return out
+}
+
+// NestedParent returns the object that holds field of the component schema, when an inline line
+// moved it there, or nil.
+func (f *File) NestedParent(schema, field string) *Parent {
+	if f == nil || f.Inlined == nil {
+		return nil
+	}
+	parent, ok := f.Inlined.Nested[schema][field]
+	if !ok {
+		return nil
+	}
+	return &parent
 }
 
 // ParentOf returns the object that holds field in root ("create", "update", or "get"), or nil.
@@ -317,6 +353,10 @@ type Type struct {
 	UnsupportedArms    []string `yaml:"unsupportedArms"`
 	UnsupportedSummary string   `yaml:"unsupportedSummary"`
 	UnsupportedDetail  string   `yaml:"unsupportedDetail"`
+	// RequestWrapper is the property of the request objects of this nested component that holds
+	// its fields, for a request item {"thing": {"name": ...}, "rules": ...} of a read item
+	// {"name": ..., "rules": ...}. The requestAs lines of its fields are relative to it.
+	RequestWrapper string `yaml:"requestWrapper"`
 }
 
 // GroupOf returns the group of the type that holds field, or "".
@@ -475,6 +515,9 @@ type Field struct {
 	// that must differ between the items. The generated resource reports a duplicate before the
 	// request, for an API that rejects it.
 	UniqueBy string `yaml:"uniqueBy"`
+	// Split shows a string that the API holds as values joined by this separator, "a,b", as a set
+	// of strings, as the released resource did. Expand joins the values; flatten splits the text.
+	Split string `yaml:"split"`
 }
 
 // Carry is a carrySiblings line.
@@ -529,8 +572,10 @@ const (
 type Validator struct {
 	OneOf       []string `yaml:"oneOf"`
 	SizeAtLeast *int     `yaml:"sizeAtLeast"`
-	// LengthAtLeast is a released stringvalidator.LengthAtLeast.
+	// LengthAtLeast and LengthAtMost are a released stringvalidator.LengthAtLeast and
+	// stringvalidator.LengthAtMost.
 	LengthAtLeast *int `yaml:"lengthAtLeast"`
+	LengthAtMost  *int `yaml:"lengthAtMost"`
 	// Enum: true accepts the Terraform values of the enum of the field, as the enums line of
 	// the enum states them, including the zero value. The list of values has one source, so it
 	// cannot drift.
@@ -551,6 +596,9 @@ type Validator struct {
 	AtLeast *float64 `yaml:"atLeast"`
 	// RegexMatches is a released stringvalidator.RegexMatches with its message.
 	RegexMatches *RegexMatches `yaml:"regexMatches"`
+	// KeysAre is a released mapvalidator.KeysAre(stringvalidator.RegexMatches) of a map: each key
+	// must match the pattern.
+	KeysAre *RegexMatches `yaml:"keysAre"`
 }
 
 // RegexMatches is a released pattern validator of a string.
@@ -640,6 +688,9 @@ type Enum struct {
 	// Zero is the Terraform value of the protobuf zero value (ENTITY_TYPE_UNSPECIFIED).
 	// A new resource uses null for it. A released resource kept a value in its state.
 	Zero string `yaml:"zero"`
+	// ZeroNull: the released resource reads the zero value as null and does not accept it, as a new
+	// resource does. It excludes Zero.
+	ZeroNull bool `yaml:"zeroNull"`
 	// Values are the enum values that the resource accepts. The Terraform value is the
 	// lower case of the API value, unless Verbatim is set.
 	Values []string `yaml:"values"`
@@ -771,23 +822,6 @@ func (f *File) checkSections() error {
 	if err := f.checkTypes(); err != nil {
 		return err
 	}
-	return f.checkInline()
-}
-
-// checkInline checks that inline lines are on fields of the resource component: an inlined object
-// shows its fields as top-level attributes, and a nested object has none.
-func (f *File) checkInline() error {
-	for _, name := range sortedKeys(f.Types) {
-		if name == f.Resource {
-			continue
-		}
-		for _, field := range sortedKeys(f.Types[name].Fields) {
-			line := f.Types[name].Fields[field]
-			if line.Inline {
-				return fmt.Errorf("types.%s.fields.%s: inline applies to a field of the resource %s", name, field, f.Resource)
-			}
-		}
-	}
 	return nil
 }
 
@@ -798,11 +832,14 @@ func (f *File) checkTypes() error {
 			return fmt.Errorf("types.%s.required: only the empty list [] is allowed", name)
 		}
 		if t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 && len(t.Groups) == 0 && len(t.UnsupportedArms) == 0 &&
-			t.UnsupportedSummary == "" && t.UnsupportedDetail == "" {
+			t.UnsupportedSummary == "" && t.UnsupportedDetail == "" && t.RequestWrapper == "" {
 			return fmt.Errorf("types.%s has no override", name)
 		}
 		if err := t.checkUnsupported(); err != nil {
 			return fmt.Errorf("types.%s: %w", name, err)
+		}
+		if t.RequestWrapper != "" && name == f.Resource {
+			return fmt.Errorf("types.%s.requestWrapper: the resource component uses api.requestWrapper", name)
 		}
 		names := map[string]string{}
 		for _, field := range sortedKeys(t.Fields) {
@@ -810,9 +847,8 @@ func (f *File) checkTypes() error {
 			if err := line.check(); err != nil {
 				return fmt.Errorf("types.%s.fields.%s: %w", name, field, err)
 			}
-			if line.RequestAs != "" && name != f.Resource {
-				// Only a field of the resource component has a request path of its own.
-				return fmt.Errorf("types.%s.fields.%s: requestAs works on a field of the resource component %s only", name, field, f.Resource)
+			if line.Split != "" && (line.Collection != "" || line.KeyedBy != nil) {
+				return fmt.Errorf("types.%s.fields.%s: split shows a string as a set, so collection and keyedBy cannot be set", name, field)
 			}
 			if len(line.CreateAs) != 0 && name != f.Resource {
 				// Only the Create body of the resource has top-level fields to fold.
@@ -879,6 +915,9 @@ func (f *File) checkEnums() error {
 			if e.Names[v] == e.defaultTFValue(v) {
 				return fmt.Errorf("enums.%s.names: %q is already the Terraform value of %q, so the entry changes nothing", name, e.Names[v], v)
 			}
+		}
+		if e.ZeroNull && e.Zero != "" {
+			return fmt.Errorf("enums.%s: zeroNull reads the zero value as null, so it has no Terraform value: remove zero", name)
 		}
 		seen := map[string]string{}
 		if e.Zero != "" {
@@ -983,10 +1022,12 @@ func (l Field) replacesServerDefault() bool {
 
 // KeepsReleasedOmission reports whether the line decides how an omitted value behaves, so a
 // server default of the contract does not apply: it states presence, its own default, no computed
-// value, or that the plan keeps the state. A line that only changes a text, a validator, the order,
-// or the Terraform type keeps the server default.
+// value, or that the plan keeps the state. A split line shows the string as a set, which reads an
+// omitted or empty string as an empty set, so the string default of the contract does not apply
+// either. A line that only changes a text, a validator, the order, or the Terraform type keeps the
+// server default.
 func (l Field) KeepsReleasedOmission() bool {
-	return l.statesPresence() || l.replacesServerDefault() || l.UseStateForUnknown || l.UseNonNullStateForUnknown
+	return l.statesPresence() || l.replacesServerDefault() || l.UseStateForUnknown || l.UseNonNullStateForUnknown || l.Split != ""
 }
 
 func (e ExtraAttribute) check(name string) error {
@@ -1085,7 +1126,7 @@ func (l Field) emptyValue() bool {
 // compared.
 func (l Field) emptyShape() bool {
 	return !l.SendUnknownAsZero && !l.SplitArms && !l.ShowInverted && l.CarrySiblings == nil &&
-		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == ""
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == "" && !l.Negate && l.Split == ""
 }
 
 func (l Field) check() error {
@@ -1287,7 +1328,7 @@ func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || l.SchemaOptional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.Fixed() ||
 		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.AsBool || l.TerraformType != "" || l.DefaultArm ||
-		l.RequiresReplace || l.UniqueBy != ""
+		l.RequiresReplace || l.UniqueBy != "" || l.Negate || l.Split != ""
 }
 
 func checkValidators(validators []Validator) error {
@@ -1300,6 +1341,9 @@ func checkValidators(validators []Validator) error {
 			set++
 		}
 		if v.LengthAtLeast != nil {
+			set++
+		}
+		if v.LengthAtMost != nil {
 			set++
 		}
 		if v.Enum {
@@ -1335,8 +1379,14 @@ func checkValidators(validators []Validator) error {
 				return fmt.Errorf("regexMatches needs a pattern that Go compiles: %q", v.RegexMatches.Pattern)
 			}
 		}
+		if v.KeysAre != nil {
+			set++
+			if _, err := regexp.Compile(v.KeysAre.Pattern); err != nil || v.KeysAre.Pattern == "" {
+				return fmt.Errorf("keysAre needs a pattern that Go compiles: %q", v.KeysAre.Pattern)
+			}
+		}
 		if set != 1 {
-			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, enum, enumExceptZero, between, exactlyOneOf, atLeastOneOf, atLeast, and regexMatches")
+			return errors.New("each validator sets exactly one of oneOf, sizeAtLeast, lengthAtLeast, lengthAtMost, enum, enumExceptZero, between, exactlyOneOf, atLeastOneOf, alsoRequires, conflictsWith, atLeast, regexMatches, and keysAre")
 		}
 	}
 	return nil
@@ -1404,6 +1454,12 @@ func (f *File) Policy() model.Policy {
 func (f *File) Exceptions() iacoverrides.Exceptions {
 	e := iacoverrides.Exceptions{API: f.API.API, Unwrap: f.Unwrap}
 	for name, t := range f.Types {
+		if t.RequestWrapper != "" {
+			if e.RequestWrappers == nil {
+				e.RequestWrappers = map[string]string{}
+			}
+			e.RequestWrappers[name] = t.RequestWrapper
+		}
 		for field, line := range t.Fields {
 			if e.Fields == nil {
 				e.Fields = map[string]map[string]iacoverrides.Field{}
@@ -1430,7 +1486,7 @@ func (f *File) Lines() []Line {
 	file := f
 	var out []Line
 	for _, name := range sortedKeys(f.Enums) {
-		out = append(out, Line{Kind: KindEnum, Component: name, EnumZero: f.Enums[name].Zero, EnumValues: f.Enums[name].Values, EnumRejected: f.Enums[name].Rejected})
+		out = append(out, Line{Kind: KindEnum, Component: name, EnumZero: f.Enums[name].Zero, EnumZeroNull: f.Enums[name].ZeroNull, EnumValues: f.Enums[name].Values, EnumRejected: f.Enums[name].Rejected})
 	}
 	for _, name := range sortedKeys(f.Types) {
 		t := f.Types[name]
@@ -1477,6 +1533,8 @@ type Line struct {
 	Field      string
 	EnumValues []string // for an enum line: the values that the resource accepts
 	EnumZero   string   // for an enum line: the Terraform value of the zero value
+	// EnumZeroNull: for an enum line, the zero value reads as null and has no Terraform value.
+	EnumZeroNull bool
 	// EnumRejected are the values of the contract that the resource does not accept.
 	EnumRejected []string
 	ReadOnly     bool   // for a field line: the file says that the server sets the field
