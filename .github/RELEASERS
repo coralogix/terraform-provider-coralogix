@@ -1,0 +1,14 @@
+# GitHub logins that may release, one per line: the members of coralogix/team-eco-system.
+# check-releaser.sh refuses a release PR unless its author and the signer of every commit are
+# listed. Workflows read this file from master, so a PR can't add itself. Keep it in sync with
+# the team when people join or leave.
+assafad1
+cazorla19
+dmenilo1
+douglascamata
+iblancasa
+markshleifer-coralogix
+natnayr
+povilasv
+royfur
+vjofusha
