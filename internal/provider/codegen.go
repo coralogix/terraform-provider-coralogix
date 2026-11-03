@@ -16,5 +16,6 @@ package provider
 //go:generate make -C ../.. codegen RESOURCE=Slo OUT=slov2
 //go:generate make -C ../.. codegen RESOURCE=View OUT=view
 //go:generate make -C ../.. codegen RESOURCE=ViewFolder OUT=viewfolder
+//go:generate make -C ../.. codegen RESOURCE=OutgoingWebhook OUT=webhook
 //go:generate make -C ../.. codegen RESOURCE=v2.Target OUT=archivelogs
 //go:generate make -C ../.. codegen RESOURCE=v2.Action OUT=action
