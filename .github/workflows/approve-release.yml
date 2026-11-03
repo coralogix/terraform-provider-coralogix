@@ -146,8 +146,10 @@ jobs:
           # approval; the bot's approval is then withdrawn below and given again once all pass.
           not_green() { echo "$1"; echo "green=false" >> "$GITHUB_OUTPUT"; exit 0; }
           # The checks that sum up the others; until they report, CI has not finished.
+          # Not piped into grep -q: under pipefail, grep stopping early can fail cut.
+          names=$(cut -f1 <<<"$runs")
           for required in "version-bump" "Acceptance tests result"; do
-            if ! cut -f1 <<<"$runs" | grep -qxF "$required"; then
+            if ! grep -qxF "$required" <<<"$names"; then
               not_green "::notice::Waiting: '$required' has not reported yet"
             fi
           done

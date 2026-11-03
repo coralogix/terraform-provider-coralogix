@@ -37,8 +37,10 @@ jobs:
         run: |
           gh api "repos/$GITHUB_REPOSITORY/contents/.github/RELEASERS?ref=master" \
             -H "Accept: application/vnd.github.raw" > "$RUNNER_TEMP/RELEASERS"
+          # Not piped into grep -q: under pipefail, grep stopping early can fail sed.
+          releasers=$(sed -e 's/#.*//' -e 's/[[:space:]]//g' "$RUNNER_TEMP/RELEASERS")
           for actor in $ACTORS; do
-            if ! sed -e 's/#.*//' -e 's/[[:space:]]//g' "$RUNNER_TEMP/RELEASERS" | grep -qixF "$actor"; then
+            if ! grep -qixF "$actor" <<<"$releasers"; then
               echo "::error::$actor is not in .github/RELEASERS; only coralogix/team-eco-system releases"; exit 1
             fi
           done
