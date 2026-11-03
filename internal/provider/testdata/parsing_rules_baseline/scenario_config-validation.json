@@ -148,7 +148,8 @@
           "ruleSubgroups": [
             {
               "enabled": true,
-              "order": 1
+              "order": 1,
+              "rules": []
             }
           ]
         },

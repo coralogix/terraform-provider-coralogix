@@ -131,7 +131,8 @@ func (f *parsingRulesFake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		status, body = f.handle(r.Method, r.URL.Path, rec.Body)
 	}
-	rec.Body = dropEmptyCollections(rec.Body)
+	// The request keeps its empty lists, so a golden shows whether a config sends [] or omits the
+	// field. For ruleSubgroups, the API answers both the same way (fidelity case "refused requests").
 	rec.Status = status
 	f.requests = append(f.requests, rec)
 	f.mu.Unlock()
