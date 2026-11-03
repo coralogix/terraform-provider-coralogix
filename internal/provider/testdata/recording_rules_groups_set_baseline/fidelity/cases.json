@@ -644,6 +644,69 @@
           "path": "/{{id}}"
         }
       ]
+    },
+    {
+      "name": "an update changes a record and an expression, and empties the rules of a group",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-change",
+            "groups": [
+              {
+                "name": "tf-fidelity-g1",
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1",
+                    "expr": "vector(1)"
+                  }
+                ]
+              },
+              {
+                "name": "tf-fidelity-g2",
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r2",
+                    "expr": "vector(2)"
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "PUT",
+          "path": "/{{id}}",
+          "body": {
+            "name": "tf-fidelity-change",
+            "groups": [
+              {
+                "name": "tf-fidelity-g1",
+                "rules": [
+                  {
+                    "record": "tf_fidelity:r1_changed",
+                    "expr": "vector(3)"
+                  }
+                ]
+              },
+              {
+                "name": "tf-fidelity-g2",
+                "rules": []
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/{{id}}"
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}"
+        }
+      ]
     }
   ]
 }

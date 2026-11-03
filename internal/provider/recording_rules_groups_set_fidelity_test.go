@@ -183,13 +183,16 @@ var rrCompany = regexp.MustCompile(`company[_ ]?[iI]d[": ]*\d+`)
 
 // rrNormalize writes a placeholder for the id of each group, which the server makes in every
 // run, and for a company id in a message. A validation message is a JSON document whose keys the
-// service writes in another order in every run, so it is written again with sorted keys.
+// service writes in another order in every run, so it is written again with sorted keys. A proto
+// decoding message has a space that protobuf-go writes as a no-break space in some runs, on
+// purpose, so it is written as a plain space.
 func rrNormalize(v any) any {
 	m, ok := v.(map[string]any)
 	if !ok {
 		return v
 	}
 	if msg, ok := m["message"].(string); ok {
+		msg = strings.ReplaceAll(msg, "\u00a0", " ")
 		m["message"] = rrSortedMessage(rrCompany.ReplaceAllString(msg, "companyId <company>"))
 	}
 	groups, _ := m["groups"].([]any)

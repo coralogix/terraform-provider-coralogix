@@ -196,6 +196,25 @@ var rrScenarios = map[string]func(h *grHarness){
 		h.RefreshPlan("refresh", s)
 	},
 
+	"change-record-and-expr": func(h *grHarness) {
+		s := h.Apply("create", h.null(), rrCfg("tf-set", rrGroup("g1", nil, rrRule("tf:r1", nil))))
+		s = h.Apply("update: change the record and the expression", s, rrCfg("tf-set",
+			rrGroup("g1", nil, rrRule("tf:r1_changed", j{"expr": "vector(2)"}))))
+		h.RefreshPlan("refresh", s)
+	},
+
+	// The API accepts a group without rules on Update, and refuses a set without groups. The
+	// handwritten resource reads the empty rules back as null, an inconsistent result.
+	"clear-collections": func(h *grHarness) {
+		s := h.Apply("create", h.null(), rrCfg("tf-set",
+			rrGroup("g1", nil, rrRule("tf:r1", nil)), rrGroup("g2", nil, rrRule("tf:r2", nil))))
+		s = h.Apply("update: empty the rules of a group", s, rrCfg("tf-set",
+			rrGroup("g1", nil, rrRule("tf:r1", nil)), rrGroup("g2", nil)))
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: empty groups", s, j{"name": "tf-set", "groups": []any{}})
+		h.RefreshPlan("refresh", s)
+	},
+
 	"yaml-content": func(h *grHarness) {
 		s := h.Apply("create", h.null(), j{"yaml_content": rrYAML})
 		s = h.RefreshPlan("refresh", s)

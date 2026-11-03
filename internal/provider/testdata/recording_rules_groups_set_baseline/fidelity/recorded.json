@@ -484,6 +484,56 @@
           "response": {}
         }
       ]
+    },
+    {
+      "name": "an update changes a record and an expression, and empties the rules of a group",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "id": "{{id}}"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "groups": [
+              {
+                "id": "\u003cgroup-id\u003e",
+                "interval": 60,
+                "limit": "0",
+                "name": "tf-fidelity-g1",
+                "rules": [
+                  {
+                    "expr": "vector(3)",
+                    "labels": {},
+                    "record": "tf_fidelity:r1_changed"
+                  }
+                ],
+                "version": 1
+              },
+              {
+                "id": "\u003cgroup-id\u003e",
+                "interval": 60,
+                "limit": "0",
+                "name": "tf-fidelity-g2",
+                "rules": [],
+                "version": 1
+              }
+            ],
+            "id": "{{id}}",
+            "name": "tf-fidelity-change"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
     }
   ]
 }
