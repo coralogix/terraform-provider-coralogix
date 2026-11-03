@@ -850,11 +850,13 @@ func extractTcoPolicyLog(ctx context.Context, plan TCOPolicyLogsModel) (*tcoPoli
 		logRules.Severities = severities
 	}
 
+	// The request always sent the description and the priority, "" too.
+	description := plan.Description.ValueString()
 	return &tcoPolicys.CreateLogPolicyRequest{
 		Policy: tcoPolicys.CreateGenericPolicyRequest{
 			Name:             plan.Name.ValueString(),
-			Description:      plan.Description.ValueString(),
-			Priority:         priority,
+			Description:      &description,
+			Priority:         &priority,
 			ApplicationRule:  applicationRule,
 			SubsystemRule:    subsystemRule,
 			ArchiveRetention: archiveRetention,

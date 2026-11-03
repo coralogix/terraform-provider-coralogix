@@ -4,6 +4,7 @@
 - CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the requests are the same, except as listed below. A rule group created without `active` is still created inactive, and one without `order` is still added last.
 - FIX: An update of a rule group without `order` in the configuration keeps its place. Before, every update sent `order = 0`, which the API reads as "after every other group", so changing only the description moved the group to the end of the processing order. A new rule group without `order` is still added last. Removing `order` from the configuration now keeps the current order; set a value to move the group. When the same apply deletes a group before it, the update sends the order that the plan read, and the API lowered the orders after the deleted group, so the updated group can share its order with the next one. Set `order` to control the position exactly.
 - FIX: Destroy of a rule group that was deleted outside Terraform succeeds. Before, it failed with the 404 of the API.
+- FIX: `block.keep_blocked_logs` and `replace.replacement_string` are required. The API refuses a block rule without `keep_blocked_logs` and a replace rule without `replacement_string`, so a configuration without them always failed at apply with `Missing ...` from the API. Now the plan reports the missing attribute. `replacement_string = ""` still removes the match.
 - FIX: An update of a rule group that was deleted outside Terraform fails with `Resource no longer exists`, and the next refresh removes it from state. Before, it failed with the raw 404 of the API.
 - CHORE: A rule with no type, or with two, reports `Invalid Attribute Combination` at `block` instead of `parse`. The rule is the same: exactly one type per rule.
 - CHORE: API errors read `Unable to create parsing_rules`, `Unable to update parsing_rules`, `Unable to delete parsing_rules`, and `Unable to read parsing_rules` instead of `Error creating coralogix_parsing_rules`, and so on. A refresh that finds the rule group deleted warns `Resource disappeared during read`.
@@ -11,7 +12,7 @@
 - CHORE: A rule that the API returns without parameters reads as a rule with no type set. Before, it was left out of the list.
 - CHORE: When Create succeeds but its response cannot be written to state, the state keeps the id, so Terraform marks the rule group tainted and the next apply replaces it, instead of leaving it outside Terraform.
 - CHORE: Create and Update send the rule matchers grouped by kind: applications, then severities, then subsystems. The attributes are sets, so plans do not change.
-- CHORE: `rule_subgroups = []` sends an empty `ruleSubgroups` list instead of leaving it out. The API refuses both the same way: a rule group needs a rule.
+- CHORE: A configuration without `rule_subgroups` sends `ruleSubgroups: null`, and `rule_subgroups = []` sends an empty list, instead of leaving the field out. The API refuses all three the same way: a rule group needs a rule.
 - FEAT: The resource has a generated acceptance test, and an upgrade test from 3.23.0.
 
 #### data-source/coralogix_parsing_rules
@@ -92,6 +93,7 @@
 - DOCS: The descriptions of the attributes follow the new API contract.
 
 #### provider
+- CHORE: Bump `coralogix-management-sdk` to the version with the rule groups contract. The SDK holds required fields as values. The TCO policies still send `description` and `priority` on every create, and `coralogix_recording_rules_groups_set` reads `limit` without a pointer, with no change to plans.
 - CHORE: Bump `coralogix-management-sdk` to the version with the recording rules contract: unordered `groups`, the defaults of `interval` (60) and `limit` ("0"), which the response requires, and `groups` required with at least one item in Create and Update.
 - CHORE: Bump `coralogix-management-sdk` to the version with the actions contract: the defaults of `isHidden` and `isPrivate`, `createdBy` as output-only, and the description of the replace.
 - CHORE: Bump `coralogix-management-sdk` to the version with the integrations contract. The SDK holds the required fields of `IntegrationMetadata` and `DeployedIntegrationInformation` as values; `coralogix_integration` adapts, with no change to plans. The dashboard tests answer a Get with the `permissions` object that the SDK now requires in the response.

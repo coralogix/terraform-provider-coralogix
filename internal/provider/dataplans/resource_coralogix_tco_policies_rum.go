@@ -471,11 +471,13 @@ func extractTcoPolicyRum(ctx context.Context, plan TCOPolicyRumModel) (*tcoPolic
 		rumRules.Severities = severities
 	}
 
+	// The request always sent the description and the priority, "" too.
+	description := plan.Description.ValueString()
 	return &tcoPolicys.CreateRumPolicyRequest{
 		Policy: tcoPolicys.CreateGenericPolicyRequest{
 			Name:             plan.Name.ValueString(),
-			Description:      plan.Description.ValueString(),
-			Priority:         priority,
+			Description:      &description,
+			Priority:         &priority,
 			ApplicationRule:  applicationRule,
 			SubsystemRule:    subsystemRule,
 			ArchiveRetention: archiveRetention,

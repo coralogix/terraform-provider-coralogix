@@ -146,7 +146,7 @@ func Schema() schema.Schema {
 												MarkdownDescription: "The field on which the Regex will operate on. Accepts lowercase only.",
 											},
 											"keep_blocked_logs": schema.BoolAttribute{
-												Optional:            true,
+												Required:            true,
 												MarkdownDescription: "Determines if to view blocked logs in LiveTail and archive to S3.",
 											},
 											"regular_expression": schema.StringAttribute{
@@ -500,7 +500,7 @@ func Schema() schema.Schema {
 												MarkdownDescription: "The field that will be populated by the results of the RegEx operation.",
 											},
 											"replacement_string": schema.StringAttribute{
-												Optional:    true,
+												Required:    true,
 												Description: "The string that will replace the matched RegEx",
 											},
 											"regular_expression": schema.StringAttribute{

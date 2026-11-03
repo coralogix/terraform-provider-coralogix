@@ -17,85 +17,8 @@
         }
       ]
     },
-    "plan": {
-      "active": "(unknown)",
-      "applications": [],
-      "creator": "(unknown)",
-      "description": "(unknown)",
-      "hidden": "(unknown)",
-      "id": "(unknown)",
-      "name": "tf-rule-group",
-      "order": "(unknown)",
-      "rule_subgroups": [
-        {
-          "active": true,
-          "id": "(unknown)",
-          "order": "(unknown)",
-          "rules": [
-            {
-              "block": {
-                "active": true,
-                "block_all_matching_blocks": true,
-                "description": "",
-                "id": "(unknown)",
-                "keep_blocked_logs": null,
-                "name": "rule-block",
-                "order": "(unknown)",
-                "regular_expression": "error",
-                "source_field": "text"
-              },
-              "extract": null,
-              "extract_timestamp": null,
-              "json_extract": null,
-              "json_stringify": null,
-              "parse": null,
-              "parse_json_field": null,
-              "remove_fields": null,
-              "replace": null
-            }
-          ]
-        }
-      ],
-      "severities": [],
-      "subsystems": []
-    },
-    "requests": [
-      {
-        "method": "POST",
-        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1",
-        "body": {
-          "creator": "",
-          "description": "",
-          "enabled": false,
-          "hidden": false,
-          "name": "tf-rule-group",
-          "order": 0,
-          "ruleSubgroups": [
-            {
-              "enabled": true,
-              "order": 1,
-              "rules": [
-                {
-                  "description": "",
-                  "enabled": true,
-                  "name": "rule-block",
-                  "order": 1,
-                  "parameters": {
-                    "blockParameters": {
-                      "rule": "error"
-                    }
-                  },
-                  "sourceField": "text"
-                }
-              ]
-            }
-          ]
-        },
-        "status": 400
-      }
-    ],
-    "applyDiagnostics": [
-      "error: Unable to create parsing_rules | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Request errors:\\n* Missing BlockParameters.keepBlockedLogs\"}"
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"block\").AttributeName(\"keep_blocked_logs\")] | Must set a configuration value for the rule_subgroups[0].rules[0].block.keep_blocked_logs attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
     "state": null
   },
@@ -843,85 +766,8 @@
         }
       ]
     },
-    "plan": {
-      "active": "(unknown)",
-      "applications": [],
-      "creator": "(unknown)",
-      "description": "(unknown)",
-      "hidden": "(unknown)",
-      "id": "00000000-0000-4000-9000-000000000006",
-      "name": "tf-rule-group",
-      "order": 1,
-      "rule_subgroups": [
-        {
-          "active": true,
-          "id": "(unknown)",
-          "order": "(unknown)",
-          "rules": [
-            {
-              "block": {
-                "active": true,
-                "block_all_matching_blocks": true,
-                "description": "",
-                "id": "(unknown)",
-                "keep_blocked_logs": null,
-                "name": "rule-block",
-                "order": "(unknown)",
-                "regular_expression": "error",
-                "source_field": "text"
-              },
-              "extract": null,
-              "extract_timestamp": null,
-              "json_extract": null,
-              "json_stringify": null,
-              "parse": null,
-              "parse_json_field": null,
-              "remove_fields": null,
-              "replace": null
-            }
-          ]
-        }
-      ],
-      "severities": [],
-      "subsystems": []
-    },
-    "requests": [
-      {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000006",
-        "body": {
-          "creator": "",
-          "description": "",
-          "enabled": false,
-          "hidden": false,
-          "name": "tf-rule-group",
-          "order": 1,
-          "ruleSubgroups": [
-            {
-              "enabled": true,
-              "order": 1,
-              "rules": [
-                {
-                  "description": "",
-                  "enabled": true,
-                  "name": "rule-block",
-                  "order": 1,
-                  "parameters": {
-                    "blockParameters": {
-                      "rule": "error"
-                    }
-                  },
-                  "sourceField": "text"
-                }
-              ]
-            }
-          ]
-        },
-        "status": 400
-      }
-    ],
-    "applyDiagnostics": [
-      "error: Unable to update parsing_rules | id 00000000-0000-4000-9000-000000000003: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Request errors:\\n* Missing BlockParameters.keepBlockedLogs\"}"
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"block\").AttributeName(\"keep_blocked_logs\")] | Must set a configuration value for the rule_subgroups[0].rules[0].block.keep_blocked_logs attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
     "state": {
       "active": false,
@@ -1017,18 +863,6 @@
       "severities": [],
       "subsystems": []
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"active\")",
-      "AttributeName(\"creator\")",
-      "AttributeName(\"description\")",
-      "AttributeName(\"hidden\")",
-      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"id\")",
-      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"order\")",
-      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"block\").AttributeName(\"block_all_matching_blocks\")",
-      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"block\").AttributeName(\"id\")",
-      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"block\").AttributeName(\"keep_blocked_logs\")",
-      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"block\").AttributeName(\"order\")"
-    ]
+    "replanEmpty": true
   }
 ]

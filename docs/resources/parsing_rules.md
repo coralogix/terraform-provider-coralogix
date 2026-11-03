@@ -226,6 +226,7 @@ Optional:
 
 Required:
 
+- `keep_blocked_logs` (Boolean) Determines if to view blocked logs in LiveTail and archive to S3.
 - `name` (String) The rule name.
 - `regular_expression` (String) Regular expiration. More info: https://coralogix.com/blog/regex-101/
 - `source_field` (String) The field on which the Regex will operate on. Accepts lowercase only.
@@ -235,7 +236,6 @@ Optional:
 - `active` (Boolean) Determines whether the rule will be active or not.
 - `block_all_matching_blocks` (Boolean) Block Logic. If true or nor set - blocking all matching blocks, if false - blocking all non-matching blocks.
 - `description` (String) The rule description.
-- `keep_blocked_logs` (Boolean) Determines if to view blocked logs in LiveTail and archive to S3.
 
 Read-Only:
 
@@ -396,13 +396,13 @@ Required:
 - `destination_field` (String) The field that will be populated by the results of the RegEx operation.
 - `name` (String) The rule name.
 - `regular_expression` (String) Regular expiration. More info: https://coralogix.com/blog/regex-101/
+- `replacement_string` (String) The string that will replace the matched RegEx
 - `source_field` (String) The field on which the Regex will operate on. Accepts lowercase only.
 
 Optional:
 
 - `active` (Boolean) Determines whether the rule will be active or not.
 - `description` (String) The rule description.
-- `replacement_string` (String) The string that will replace the matched RegEx
 
 Read-Only:
 

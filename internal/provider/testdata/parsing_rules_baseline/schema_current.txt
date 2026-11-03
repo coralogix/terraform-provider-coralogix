@@ -39,7 +39,7 @@ rule_subgroups[].rules[].block.description  StringAttribute optional computed
     description: "The rule description."
 rule_subgroups[].rules[].block.id  StringAttribute computed
     description: "The rule id."
-rule_subgroups[].rules[].block.keep_blocked_logs  BoolAttribute optional
+rule_subgroups[].rules[].block.keep_blocked_logs  BoolAttribute required
     markdown: "Determines if to view blocked logs in LiveTail and archive to S3."
 rule_subgroups[].rules[].block.name  StringAttribute required
     description: "The rule name."
@@ -201,7 +201,7 @@ rule_subgroups[].rules[].replace.order  Int64Attribute computed
     description: "Determines the index of the rule inside the rule-subgroup. Will be computed by the order it was declared (1-based indexing)."
 rule_subgroups[].rules[].replace.regular_expression  StringAttribute required
     markdown: "Regular expiration. More info: https://coralogix.com/blog/regex-101/"
-rule_subgroups[].rules[].replace.replacement_string  StringAttribute optional
+rule_subgroups[].rules[].replace.replacement_string  StringAttribute required
     description: "The string that will replace the matched RegEx"
 rule_subgroups[].rules[].replace.source_field  StringAttribute required
     markdown: "The field on which the Regex will operate on. Accepts lowercase only."

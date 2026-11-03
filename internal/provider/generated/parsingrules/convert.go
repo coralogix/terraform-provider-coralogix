@@ -233,9 +233,6 @@ func flatten(ctx context.Context, v *rule_groups_service.RuleGroup, prior *RuleG
 		return nil, diags
 	}
 	out := flattenRuleGroup(ctx, path.Empty(), v, prior, &diags)
-	if out.Id.IsNull() {
-		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
-	}
 	return out, diags
 }
 
@@ -317,6 +314,7 @@ var requiredAttrs = map[string]bool{
 	"rule_subgroups.rules":            true,
 	"rule_subgroups.rules.block.name": true,
 	"rule_subgroups.rules.block.source_field":                      true,
+	"rule_subgroups.rules.block.keep_blocked_logs":                 true,
 	"rule_subgroups.rules.block.regular_expression":                true,
 	"rule_subgroups.rules.extract.name":                            true,
 	"rule_subgroups.rules.extract.source_field":                    true,
@@ -343,6 +341,7 @@ var requiredAttrs = map[string]bool{
 	"rule_subgroups.rules.replace.name":                            true,
 	"rule_subgroups.rules.replace.source_field":                    true,
 	"rule_subgroups.rules.replace.destination_field":               true,
+	"rule_subgroups.rules.replace.replacement_string":              true,
 	"rule_subgroups.rules.replace.regular_expression":              true,
 }
 
@@ -514,7 +513,7 @@ func expandRuleGroupsServiceCreateRuleGroupRequest(ctx context.Context, p path.P
 	} else {
 		out.Hidden = expandBool(m.Hidden)
 	}
-	out.Name = expandString(m.Name)
+	out.Name = valueOf(expandString(m.Name))
 	if m.Order.IsUnknown() {
 		// The released resource sent an unknown value as its zero value, which the API stores.
 		out.Order = new(int64)
@@ -571,7 +570,7 @@ func expandRuleGroupsServiceCreateRuleGroupRequest(ctx context.Context, p path.P
 		for i := range out.RuleSubgroups {
 			// The position of the item in the list, from 1.
 			position := int64(i + 1)
-			out.RuleSubgroups[i].Order = &position
+			out.RuleSubgroups[i].Order = position
 		}
 	}
 	return out
@@ -591,7 +590,7 @@ func expandCreateRuleGroupRequestCreateRuleSubgroup(ctx context.Context, p path.
 		for i := range out.Rules {
 			// The position of the item in the list, from 1.
 			position := int64(i + 1)
-			out.Rules[i].Order = &position
+			out.Rules[i].Order = position
 		}
 	}
 	return out
@@ -609,8 +608,8 @@ func expandCreateRuleGroupRequestCreateRuleSubgroupCreateRule(ctx context.Contex
 		m := arm
 		out.Description = expandString(m.Description)
 		out.Enabled = expandBool(m.Enabled)
-		out.Name = expandString(m.Name)
-		out.SourceField = expandString(m.SourceField)
+		out.Name = valueOf(expandString(m.Name))
+		out.SourceField = valueOf(expandString(m.SourceField))
 		oneOf := &rule_groups_service.RuleParameters{}
 		if flag := m.BlockAllMatchingBlocks; !flag.IsNull() && !flag.IsUnknown() && !flag.ValueBool() {
 			// false selects the arm that Terraform shows in this one.
@@ -619,101 +618,101 @@ func expandCreateRuleGroupRequestCreateRuleSubgroupCreateRule(ctx context.Contex
 		} else {
 			oneOf.BlockParameters = expandBlockParameters(ctx, p, m, diags)
 		}
-		out.Parameters = oneOf
+		out.Parameters = *oneOf
 	}
 	if arm := m.ExtractParameters; arm != nil {
 		p := p.AtName("extract")
 		m := arm
 		out.Description = expandString(m.Description)
 		out.Enabled = expandBool(m.Enabled)
-		out.Name = expandString(m.Name)
-		out.SourceField = expandString(m.SourceField)
+		out.Name = valueOf(expandString(m.Name))
+		out.SourceField = valueOf(expandString(m.SourceField))
 		oneOf := &rule_groups_service.RuleParameters{}
 		oneOf.ExtractParameters = expandExtractParameters(ctx, p, m, diags)
-		out.Parameters = oneOf
+		out.Parameters = *oneOf
 	}
 	if arm := m.ExtractTimestampParameters; arm != nil {
 		p := p.AtName("extract_timestamp")
 		m := arm
 		out.Description = expandString(m.Description)
 		out.Enabled = expandBool(m.Enabled)
-		out.Name = expandString(m.Name)
-		out.SourceField = expandString(m.SourceField)
+		out.Name = valueOf(expandString(m.Name))
+		out.SourceField = valueOf(expandString(m.SourceField))
 		oneOf := &rule_groups_service.RuleParameters{}
 		oneOf.ExtractTimestampParameters = expandExtractTimestampParameters(ctx, p, m, diags)
-		out.Parameters = oneOf
+		out.Parameters = *oneOf
 	}
 	if arm := m.JsonExtractParameters; arm != nil {
 		p := p.AtName("json_extract")
 		m := arm
 		out.Description = expandString(m.Description)
 		out.Enabled = expandBool(m.Enabled)
-		out.Name = expandString(m.Name)
+		out.Name = valueOf(expandString(m.Name))
 		{
 			fixed := "text"
-			out.SourceField = &fixed
+			out.SourceField = fixed
 		}
 		oneOf := &rule_groups_service.RuleParameters{}
 		oneOf.JsonExtractParameters = expandJsonExtractParameters(ctx, p, m, diags)
-		out.Parameters = oneOf
+		out.Parameters = *oneOf
 	}
 	if arm := m.JsonParseParameters; arm != nil {
 		p := p.AtName("parse_json_field")
 		m := arm
 		out.Description = expandString(m.Description)
 		out.Enabled = expandBool(m.Enabled)
-		out.Name = expandString(m.Name)
-		out.SourceField = expandString(m.SourceField)
+		out.Name = valueOf(expandString(m.Name))
+		out.SourceField = valueOf(expandString(m.SourceField))
 		oneOf := &rule_groups_service.RuleParameters{}
 		oneOf.JsonParseParameters = expandJsonParseParameters(ctx, p, m, diags)
-		out.Parameters = oneOf
+		out.Parameters = *oneOf
 	}
 	if arm := m.JsonStringifyParameters; arm != nil {
 		p := p.AtName("json_stringify")
 		m := arm
 		out.Description = expandString(m.Description)
 		out.Enabled = expandBool(m.Enabled)
-		out.Name = expandString(m.Name)
-		out.SourceField = expandString(m.SourceField)
+		out.Name = valueOf(expandString(m.Name))
+		out.SourceField = valueOf(expandString(m.SourceField))
 		oneOf := &rule_groups_service.RuleParameters{}
 		oneOf.JsonStringifyParameters = expandJsonStringifyParameters(ctx, p, m, diags)
-		out.Parameters = oneOf
+		out.Parameters = *oneOf
 	}
 	if arm := m.ParseParameters; arm != nil {
 		p := p.AtName("parse")
 		m := arm
 		out.Description = expandString(m.Description)
 		out.Enabled = expandBool(m.Enabled)
-		out.Name = expandString(m.Name)
-		out.SourceField = expandString(m.SourceField)
+		out.Name = valueOf(expandString(m.Name))
+		out.SourceField = valueOf(expandString(m.SourceField))
 		oneOf := &rule_groups_service.RuleParameters{}
 		oneOf.ParseParameters = expandParseParameters(ctx, p, m, diags)
-		out.Parameters = oneOf
+		out.Parameters = *oneOf
 	}
 	if arm := m.RemoveFieldsParameters; arm != nil {
 		p := p.AtName("remove_fields")
 		m := arm
 		out.Description = expandString(m.Description)
 		out.Enabled = expandBool(m.Enabled)
-		out.Name = expandString(m.Name)
+		out.Name = valueOf(expandString(m.Name))
 		{
 			fixed := "text"
-			out.SourceField = &fixed
+			out.SourceField = fixed
 		}
 		oneOf := &rule_groups_service.RuleParameters{}
 		oneOf.RemoveFieldsParameters = expandRemoveFieldsParameters(ctx, p, m, diags)
-		out.Parameters = oneOf
+		out.Parameters = *oneOf
 	}
 	if arm := m.ReplaceParameters; arm != nil {
 		p := p.AtName("replace")
 		m := arm
 		out.Description = expandString(m.Description)
 		out.Enabled = expandBool(m.Enabled)
-		out.Name = expandString(m.Name)
-		out.SourceField = expandString(m.SourceField)
+		out.Name = valueOf(expandString(m.Name))
+		out.SourceField = valueOf(expandString(m.SourceField))
 		oneOf := &rule_groups_service.RuleParameters{}
 		oneOf.ReplaceParameters = expandReplaceParameters(ctx, p, m, diags)
-		out.Parameters = oneOf
+		out.Parameters = *oneOf
 	}
 	return out
 }
@@ -723,8 +722,8 @@ func expandBlockParameters(ctx context.Context, p path.Path, m *BlockParametersM
 		return nil
 	}
 	out := &rule_groups_service.BlockParameters{}
-	out.KeepBlockedLogs = expandBool(m.KeepBlockedLogs)
-	out.Rule = expandString(m.Rule)
+	out.KeepBlockedLogs = valueOf(expandBool(m.KeepBlockedLogs))
+	out.Rule = valueOf(expandString(m.Rule))
 	return out
 }
 
@@ -733,8 +732,8 @@ func flattenBlockParameters(ctx context.Context, p path.Path, v *rule_groups_ser
 		return nil
 	}
 	out := &BlockParametersModel{}
-	out.KeepBlockedLogs = types.BoolPointerValue(v.KeepBlockedLogs)
-	out.Rule = types.StringPointerValue(v.Rule)
+	out.KeepBlockedLogs = types.BoolPointerValue(&v.KeepBlockedLogs)
+	out.Rule = types.StringPointerValue(&v.Rule)
 	return out
 }
 
@@ -757,7 +756,7 @@ func expandExtractParameters(ctx context.Context, p path.Path, m *ExtractParamet
 		return nil
 	}
 	out := &rule_groups_service.ExtractParameters{}
-	out.Rule = expandString(m.Rule)
+	out.Rule = valueOf(expandString(m.Rule))
 	return out
 }
 
@@ -766,7 +765,7 @@ func flattenExtractParameters(ctx context.Context, p path.Path, v *rule_groups_s
 		return nil
 	}
 	out := &ExtractParametersModel{}
-	out.Rule = types.StringPointerValue(v.Rule)
+	out.Rule = types.StringPointerValue(&v.Rule)
 	return out
 }
 
@@ -787,7 +786,7 @@ func expandExtractTimestampParameters(ctx context.Context, p path.Path, m *Extra
 		return nil
 	}
 	out := &rule_groups_service.ExtractTimestampParameters{}
-	out.Format = expandString(m.Format)
+	out.Format = valueOf(expandString(m.Format))
 	out.Standard = expandEnumMapped(p.AtName("field_format_standard"), m.Standard, formatStandardToAPI, diags)
 	return out
 }
@@ -797,7 +796,7 @@ func flattenExtractTimestampParameters(ctx context.Context, p path.Path, v *rule
 		return nil
 	}
 	out := &ExtractTimestampParametersModel{}
-	out.Format = types.StringPointerValue(v.Format)
+	out.Format = types.StringPointerValue(&v.Format)
 	out.Standard = flattenEnumMapped(p.AtName("field_format_standard"), v.Standard, formatStandardFromAPI, diags)
 	return out
 }
@@ -822,7 +821,7 @@ func expandJsonExtractParameters(ctx context.Context, p path.Path, m *JsonExtrac
 	out := &rule_groups_service.JsonExtractParameters{}
 	out.DestinationFieldText = expandString(m.DestinationFieldText)
 	out.DestinationFieldType = expandEnumMappedFold(p.AtName("destination_field"), m.DestinationFieldType, destinationFieldToAPI, diags)
-	out.Rule = expandString(m.Rule)
+	out.Rule = valueOf(expandString(m.Rule))
 	return out
 }
 
@@ -837,7 +836,7 @@ func flattenJsonExtractParameters(ctx context.Context, p path.Path, v *rule_grou
 		// The value is case-insensitive, so the spelling of the plan or the state stays.
 		out.DestinationFieldType = keepPriorCase(prior.DestinationFieldType, out.DestinationFieldType)
 	}
-	out.Rule = types.StringPointerValue(v.Rule)
+	out.Rule = types.StringPointerValue(&v.Rule)
 	return out
 }
 
@@ -860,14 +859,14 @@ func expandJsonParseParameters(ctx context.Context, p path.Path, m *JsonParsePar
 	}
 	out := &rule_groups_service.JsonParseParameters{}
 	// Terraform shows the opposite of the API flag.
-	out.DeleteSource = negateBool(expandBool(m.DeleteSource))
-	out.DestinationField = expandString(m.DestinationField)
+	out.DeleteSource = valueOf(negateBool(expandBool(m.DeleteSource)))
+	out.DestinationField = valueOf(expandString(m.DestinationField))
 	{
 		fixed := true
 		out.EscapedValue = &fixed
 	}
 	// Terraform shows the opposite of the API flag.
-	out.OverrideDest = negateBool(expandBool(m.OverrideDest))
+	out.OverrideDest = valueOf(negateBool(expandBool(m.OverrideDest)))
 	return out
 }
 
@@ -877,10 +876,10 @@ func flattenJsonParseParameters(ctx context.Context, p path.Path, v *rule_groups
 	}
 	out := &JsonParseParametersModel{}
 	// Terraform shows the opposite of the API flag.
-	out.DeleteSource = types.BoolPointerValue(negateBool(v.DeleteSource))
-	out.DestinationField = types.StringPointerValue(v.DestinationField)
+	out.DeleteSource = types.BoolPointerValue(negateBool(&v.DeleteSource))
+	out.DestinationField = types.StringPointerValue(&v.DestinationField)
 	// Terraform shows the opposite of the API flag.
-	out.OverrideDest = types.BoolPointerValue(negateBool(v.OverrideDest))
+	out.OverrideDest = types.BoolPointerValue(negateBool(&v.OverrideDest))
 	return out
 }
 
@@ -904,8 +903,8 @@ func expandJsonStringifyParameters(ctx context.Context, p path.Path, m *JsonStri
 	}
 	out := &rule_groups_service.JsonStringifyParameters{}
 	// Terraform shows the opposite of the API flag.
-	out.DeleteSource = negateBool(expandBool(m.DeleteSource))
-	out.DestinationField = expandString(m.DestinationField)
+	out.DeleteSource = valueOf(negateBool(expandBool(m.DeleteSource)))
+	out.DestinationField = valueOf(expandString(m.DestinationField))
 	return out
 }
 
@@ -915,8 +914,8 @@ func flattenJsonStringifyParameters(ctx context.Context, p path.Path, v *rule_gr
 	}
 	out := &JsonStringifyParametersModel{}
 	// Terraform shows the opposite of the API flag.
-	out.DeleteSource = types.BoolPointerValue(negateBool(v.DeleteSource))
-	out.DestinationField = types.StringPointerValue(v.DestinationField)
+	out.DeleteSource = types.BoolPointerValue(negateBool(&v.DeleteSource))
+	out.DestinationField = types.StringPointerValue(&v.DestinationField)
 	return out
 }
 
@@ -938,8 +937,8 @@ func expandParseParameters(ctx context.Context, p path.Path, m *ParseParametersM
 		return nil
 	}
 	out := &rule_groups_service.ParseParameters{}
-	out.DestinationField = expandString(m.DestinationField)
-	out.Rule = expandString(m.Rule)
+	out.DestinationField = valueOf(expandString(m.DestinationField))
+	out.Rule = valueOf(expandString(m.Rule))
 	return out
 }
 
@@ -948,8 +947,8 @@ func flattenParseParameters(ctx context.Context, p path.Path, v *rule_groups_ser
 		return nil
 	}
 	out := &ParseParametersModel{}
-	out.DestinationField = types.StringPointerValue(v.DestinationField)
-	out.Rule = types.StringPointerValue(v.Rule)
+	out.DestinationField = types.StringPointerValue(&v.DestinationField)
+	out.Rule = types.StringPointerValue(&v.Rule)
 	return out
 }
 
@@ -1000,9 +999,9 @@ func expandReplaceParameters(ctx context.Context, p path.Path, m *ReplaceParamet
 		return nil
 	}
 	out := &rule_groups_service.ReplaceParameters{}
-	out.DestinationField = expandString(m.DestinationField)
-	out.ReplaceNewVal = expandString(m.ReplaceNewVal)
-	out.Rule = expandString(m.Rule)
+	out.DestinationField = valueOf(expandString(m.DestinationField))
+	out.ReplaceNewVal = valueOf(expandString(m.ReplaceNewVal))
+	out.Rule = valueOf(expandString(m.Rule))
 	return out
 }
 
@@ -1011,9 +1010,9 @@ func flattenReplaceParameters(ctx context.Context, p path.Path, v *rule_groups_s
 		return nil
 	}
 	out := &ReplaceParametersModel{}
-	out.DestinationField = types.StringPointerValue(v.DestinationField)
-	out.ReplaceNewVal = types.StringPointerValue(v.ReplaceNewVal)
-	out.Rule = types.StringPointerValue(v.Rule)
+	out.DestinationField = types.StringPointerValue(&v.DestinationField)
+	out.ReplaceNewVal = types.StringPointerValue(&v.ReplaceNewVal)
+	out.Rule = types.StringPointerValue(&v.Rule)
 	return out
 }
 
@@ -1060,7 +1059,7 @@ func expandRuleGroupsServiceCreateRuleGroupRequestUpdate(ctx context.Context, p 
 	} else {
 		out.Hidden = expandBool(m.Hidden)
 	}
-	out.Name = expandString(m.Name)
+	out.Name = valueOf(expandString(m.Name))
 	if m.Order.IsUnknown() {
 		// The released resource sent an unknown value as its zero value, which the API stores.
 		out.Order = new(int64)
@@ -1117,7 +1116,7 @@ func expandRuleGroupsServiceCreateRuleGroupRequestUpdate(ctx context.Context, p 
 		for i := range out.RuleSubgroups {
 			// The position of the item in the list, from 1.
 			position := int64(i + 1)
-			out.RuleSubgroups[i].Order = &position
+			out.RuleSubgroups[i].Order = position
 		}
 	}
 	return out
@@ -1129,12 +1128,12 @@ func flattenRuleGroup(ctx context.Context, p path.Path, v *rule_groups_service.R
 	}
 	out := &RuleGroupModel{}
 	out.Creator = types.StringPointerValue(v.Creator)
-	out.Description = types.StringPointerValue(v.Description)
-	out.Enabled = types.BoolPointerValue(v.Enabled)
-	out.Hidden = types.BoolPointerValue(v.Hidden)
-	out.Id = types.StringPointerValue(v.Id)
-	out.Name = types.StringPointerValue(v.Name)
-	out.Order = types.Int64PointerValue(v.Order)
+	out.Description = types.StringPointerValue(&v.Description)
+	out.Enabled = types.BoolPointerValue(&v.Enabled)
+	out.Hidden = types.BoolPointerValue(&v.Hidden)
+	out.Id = types.StringPointerValue(&v.Id)
+	out.Name = types.StringPointerValue(&v.Name)
+	out.Order = types.Int64PointerValue(&v.Order)
 	{
 		values := []string{}
 		for i := range v.RuleMatchers {
@@ -1214,9 +1213,9 @@ func flattenRuleSubgroup(ctx context.Context, p path.Path, v *rule_groups_servic
 		return nil
 	}
 	out := &RuleSubgroupModel{}
-	out.Enabled = types.BoolPointerValue(v.Enabled)
-	out.Id = types.StringPointerValue(v.Id)
-	out.Order = types.Int64PointerValue(v.Order)
+	out.Enabled = types.BoolPointerValue(&v.Enabled)
+	out.Id = types.StringPointerValue(&v.Id)
+	out.Order = types.Int64PointerValue(&v.Order)
 	out.Rules = types.ListNull(types.ObjectType{AttrTypes: rulesV1RuleAttrTypes()})
 	if v.Rules != nil {
 		items := make([]RulesV1RuleModel, 0, len(v.Rules))
@@ -1253,7 +1252,7 @@ func flattenRulesV1Rule(ctx context.Context, p path.Path, v *rule_groups_service
 		return nil
 	}
 	out := &RulesV1RuleModel{}
-	oneOf := v.Parameters
+	oneOf := &v.Parameters
 	if oneOf == nil {
 		return out
 	}
@@ -1276,12 +1275,12 @@ func flattenRulesV1Rule(ctx context.Context, p path.Path, v *rule_groups_service
 			out := arm
 			prior := priorArm
 			_ = prior
-			out.Description = types.StringPointerValue(v.Description)
-			out.Enabled = types.BoolPointerValue(v.Enabled)
-			out.Id = types.StringPointerValue(v.Id)
-			out.Name = types.StringPointerValue(v.Name)
-			out.Order = types.Int64PointerValue(v.Order)
-			out.SourceField = types.StringPointerValue(v.SourceField)
+			out.Description = types.StringPointerValue(&v.Description)
+			out.Enabled = types.BoolPointerValue(&v.Enabled)
+			out.Id = types.StringPointerValue(&v.Id)
+			out.Name = types.StringPointerValue(&v.Name)
+			out.Order = types.Int64PointerValue(&v.Order)
+			out.SourceField = types.StringPointerValue(&v.SourceField)
 		}
 		out.BlockParameters = arm
 	}
@@ -1298,12 +1297,12 @@ func flattenRulesV1Rule(ctx context.Context, p path.Path, v *rule_groups_service
 			out := arm
 			prior := priorArm
 			_ = prior
-			out.Description = types.StringPointerValue(v.Description)
-			out.Enabled = types.BoolPointerValue(v.Enabled)
-			out.Id = types.StringPointerValue(v.Id)
-			out.Name = types.StringPointerValue(v.Name)
-			out.Order = types.Int64PointerValue(v.Order)
-			out.SourceField = types.StringPointerValue(v.SourceField)
+			out.Description = types.StringPointerValue(&v.Description)
+			out.Enabled = types.BoolPointerValue(&v.Enabled)
+			out.Id = types.StringPointerValue(&v.Id)
+			out.Name = types.StringPointerValue(&v.Name)
+			out.Order = types.Int64PointerValue(&v.Order)
+			out.SourceField = types.StringPointerValue(&v.SourceField)
 		}
 		out.ExtractParameters = arm
 	}
@@ -1320,12 +1319,12 @@ func flattenRulesV1Rule(ctx context.Context, p path.Path, v *rule_groups_service
 			out := arm
 			prior := priorArm
 			_ = prior
-			out.Description = types.StringPointerValue(v.Description)
-			out.Enabled = types.BoolPointerValue(v.Enabled)
-			out.Id = types.StringPointerValue(v.Id)
-			out.Name = types.StringPointerValue(v.Name)
-			out.Order = types.Int64PointerValue(v.Order)
-			out.SourceField = types.StringPointerValue(v.SourceField)
+			out.Description = types.StringPointerValue(&v.Description)
+			out.Enabled = types.BoolPointerValue(&v.Enabled)
+			out.Id = types.StringPointerValue(&v.Id)
+			out.Name = types.StringPointerValue(&v.Name)
+			out.Order = types.Int64PointerValue(&v.Order)
+			out.SourceField = types.StringPointerValue(&v.SourceField)
 		}
 		out.ExtractTimestampParameters = arm
 	}
@@ -1342,11 +1341,11 @@ func flattenRulesV1Rule(ctx context.Context, p path.Path, v *rule_groups_service
 			out := arm
 			prior := priorArm
 			_ = prior
-			out.Description = types.StringPointerValue(v.Description)
-			out.Enabled = types.BoolPointerValue(v.Enabled)
-			out.Id = types.StringPointerValue(v.Id)
-			out.Name = types.StringPointerValue(v.Name)
-			out.Order = types.Int64PointerValue(v.Order)
+			out.Description = types.StringPointerValue(&v.Description)
+			out.Enabled = types.BoolPointerValue(&v.Enabled)
+			out.Id = types.StringPointerValue(&v.Id)
+			out.Name = types.StringPointerValue(&v.Name)
+			out.Order = types.Int64PointerValue(&v.Order)
 		}
 		out.JsonExtractParameters = arm
 	}
@@ -1363,12 +1362,12 @@ func flattenRulesV1Rule(ctx context.Context, p path.Path, v *rule_groups_service
 			out := arm
 			prior := priorArm
 			_ = prior
-			out.Description = types.StringPointerValue(v.Description)
-			out.Enabled = types.BoolPointerValue(v.Enabled)
-			out.Id = types.StringPointerValue(v.Id)
-			out.Name = types.StringPointerValue(v.Name)
-			out.Order = types.Int64PointerValue(v.Order)
-			out.SourceField = types.StringPointerValue(v.SourceField)
+			out.Description = types.StringPointerValue(&v.Description)
+			out.Enabled = types.BoolPointerValue(&v.Enabled)
+			out.Id = types.StringPointerValue(&v.Id)
+			out.Name = types.StringPointerValue(&v.Name)
+			out.Order = types.Int64PointerValue(&v.Order)
+			out.SourceField = types.StringPointerValue(&v.SourceField)
 		}
 		out.JsonParseParameters = arm
 	}
@@ -1385,12 +1384,12 @@ func flattenRulesV1Rule(ctx context.Context, p path.Path, v *rule_groups_service
 			out := arm
 			prior := priorArm
 			_ = prior
-			out.Description = types.StringPointerValue(v.Description)
-			out.Enabled = types.BoolPointerValue(v.Enabled)
-			out.Id = types.StringPointerValue(v.Id)
-			out.Name = types.StringPointerValue(v.Name)
-			out.Order = types.Int64PointerValue(v.Order)
-			out.SourceField = types.StringPointerValue(v.SourceField)
+			out.Description = types.StringPointerValue(&v.Description)
+			out.Enabled = types.BoolPointerValue(&v.Enabled)
+			out.Id = types.StringPointerValue(&v.Id)
+			out.Name = types.StringPointerValue(&v.Name)
+			out.Order = types.Int64PointerValue(&v.Order)
+			out.SourceField = types.StringPointerValue(&v.SourceField)
 		}
 		out.JsonStringifyParameters = arm
 	}
@@ -1407,12 +1406,12 @@ func flattenRulesV1Rule(ctx context.Context, p path.Path, v *rule_groups_service
 			out := arm
 			prior := priorArm
 			_ = prior
-			out.Description = types.StringPointerValue(v.Description)
-			out.Enabled = types.BoolPointerValue(v.Enabled)
-			out.Id = types.StringPointerValue(v.Id)
-			out.Name = types.StringPointerValue(v.Name)
-			out.Order = types.Int64PointerValue(v.Order)
-			out.SourceField = types.StringPointerValue(v.SourceField)
+			out.Description = types.StringPointerValue(&v.Description)
+			out.Enabled = types.BoolPointerValue(&v.Enabled)
+			out.Id = types.StringPointerValue(&v.Id)
+			out.Name = types.StringPointerValue(&v.Name)
+			out.Order = types.Int64PointerValue(&v.Order)
+			out.SourceField = types.StringPointerValue(&v.SourceField)
 		}
 		out.ParseParameters = arm
 	}
@@ -1429,11 +1428,11 @@ func flattenRulesV1Rule(ctx context.Context, p path.Path, v *rule_groups_service
 			out := arm
 			prior := priorArm
 			_ = prior
-			out.Description = types.StringPointerValue(v.Description)
-			out.Enabled = types.BoolPointerValue(v.Enabled)
-			out.Id = types.StringPointerValue(v.Id)
-			out.Name = types.StringPointerValue(v.Name)
-			out.Order = types.Int64PointerValue(v.Order)
+			out.Description = types.StringPointerValue(&v.Description)
+			out.Enabled = types.BoolPointerValue(&v.Enabled)
+			out.Id = types.StringPointerValue(&v.Id)
+			out.Name = types.StringPointerValue(&v.Name)
+			out.Order = types.Int64PointerValue(&v.Order)
 		}
 		out.RemoveFieldsParameters = arm
 	}
@@ -1450,12 +1449,12 @@ func flattenRulesV1Rule(ctx context.Context, p path.Path, v *rule_groups_service
 			out := arm
 			prior := priorArm
 			_ = prior
-			out.Description = types.StringPointerValue(v.Description)
-			out.Enabled = types.BoolPointerValue(v.Enabled)
-			out.Id = types.StringPointerValue(v.Id)
-			out.Name = types.StringPointerValue(v.Name)
-			out.Order = types.Int64PointerValue(v.Order)
-			out.SourceField = types.StringPointerValue(v.SourceField)
+			out.Description = types.StringPointerValue(&v.Description)
+			out.Enabled = types.BoolPointerValue(&v.Enabled)
+			out.Id = types.StringPointerValue(&v.Id)
+			out.Name = types.StringPointerValue(&v.Name)
+			out.Order = types.Int64PointerValue(&v.Order)
+			out.SourceField = types.StringPointerValue(&v.SourceField)
 		}
 		out.ReplaceParameters = arm
 	}
@@ -1474,6 +1473,16 @@ func rulesV1RuleAttrTypes() map[string]attr.Type {
 		"remove_fields":     types.ObjectType{AttrTypes: removeFieldsParametersAttrTypes()},
 		"replace":           types.ObjectType{AttrTypes: replaceParametersAttrTypes()},
 	}
+}
+
+// valueOf returns the value of p, or the zero value for nil. It fills an SDK
+// field that is a value, not a pointer.
+func valueOf[T any](p *T) T {
+	var zero T
+	if p == nil {
+		return zero
+	}
+	return *p
 }
 
 // wrapApplicationNameConstraint puts the value in its API wrapper objects. A nil value sends no wrapper.

@@ -763,8 +763,8 @@ func testAccCheckParsingRuleDestroy(s *terraform.State) error {
 		}
 
 		resp, _, err := client.RuleGroupsServiceGetRuleGroup(ctx, rs.Primary.ID).Execute()
-		if err == nil && resp != nil && resp.RuleGroup != nil && resp.RuleGroup.Id != nil {
-			if *resp.RuleGroup.Id == rs.Primary.ID {
+		if err == nil && resp != nil && resp.RuleGroup != nil {
+			if resp.RuleGroup.Id == rs.Primary.ID {
 				return fmt.Errorf("RuleGroup still exists: %s", rs.Primary.ID)
 			}
 		}

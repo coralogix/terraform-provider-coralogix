@@ -538,11 +538,13 @@ func extractTcoPolicyTraces(ctx context.Context, plan TCOPolicyTracesModel) (*tc
 		spanRules.TagRules = tagRules
 	}
 
+	// The request always sent the description and the priority, "" too.
+	description := plan.Description.ValueString()
 	return &tcoPolicys.CreateSpanPolicyRequest{
 		Policy: tcoPolicys.CreateGenericPolicyRequest{
 			Name:             plan.Name.ValueString(),
-			Description:      plan.Description.ValueString(),
-			Priority:         priority,
+			Description:      &description,
+			Priority:         &priority,
 			ApplicationRule:  applicationRule,
 			SubsystemRule:    subsystemRule,
 			ArchiveRetention: archiveRetention,

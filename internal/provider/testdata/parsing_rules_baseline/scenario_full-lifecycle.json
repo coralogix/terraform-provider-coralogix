@@ -1327,7 +1327,8 @@
           "enabled": false,
           "hidden": false,
           "name": "tf-rule-group-2",
-          "order": 2
+          "order": 2,
+          "ruleSubgroups": null
         },
         "status": 400
       }
