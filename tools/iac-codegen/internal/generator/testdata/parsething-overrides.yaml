@@ -53,7 +53,7 @@ types:
   ParseCopyParams:
     fields:
       # The released resource showed the opposite of deleteSource, and always sent escaped.
-      deleteSource: {name: keep_source, negate: true, computed: true, default: false}
+      deleteSource: {name: keep_source, invert: true, computed: true, default: false}
       escaped: {requestValue: "true"}
   ParsePickParams:
     fields:

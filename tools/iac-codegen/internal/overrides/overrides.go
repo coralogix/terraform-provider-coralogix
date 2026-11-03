@@ -424,10 +424,11 @@ type Field struct {
 	// the 1-based position of the item in its list, as a released resource that computed the
 	// order of each rule did. The read shows the value of the API.
 	Position bool `yaml:"position"`
-	// Negate shows a bool field as its opposite, as a released resource that showed
-	// keep_source_field for the API flag deleteSource did. Expand sends the negated value, and
-	// flatten reads it negated. A default on the line is a Terraform value.
-	Negate bool `yaml:"negate"`
+	// Invert shows a bool field as its opposite, as a released resource that showed
+	// keep_source_field for the API flag deleteSource did. Expand sends the inverted value, and
+	// flatten reads it inverted. A default on the line is a Terraform value. It differs from the
+	// iac key negate, which sends the opposite of a read field under another request name.
+	Invert bool `yaml:"invert"`
 	// SplitArms shows a top-level list or set whose items are each one arm of a oneOf as one
 	// attribute per arm, holding the values of that arm, as a released resource that showed
 	// applications, subsystems, and severities for a list of rule matchers did. Each arm must be a
@@ -939,7 +940,7 @@ func (l Field) keys() []string {
 	add(l.SendNullAsEmpty, "sendNullAsEmpty")
 	add(l.SendUnknownAsZero, "sendUnknownAsZero")
 	add(l.SplitArms, "splitArms")
-	add(l.Negate, "negate")
+	add(l.Invert, "invert")
 	add(l.Position, "position")
 	add(l.CarrySiblings != nil, "carrySiblings")
 	add(l.RequireOne, "requireOne")
@@ -1061,7 +1062,7 @@ func (l Field) emptyMode() bool {
 }
 
 func (l Field) emptyValue() bool {
-	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.KeyedBy == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() && !l.SendUnknownAsZero && !l.SplitArms && !l.Negate && l.CarrySiblings == nil &&
+	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.KeyedBy == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() && !l.SendUnknownAsZero && !l.SplitArms && !l.Invert && l.CarrySiblings == nil &&
 		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == ""
 }
 
@@ -1159,8 +1160,8 @@ func (l Field) checkConflicts() error {
 			return err
 		}
 	}
-	if l.Negate && l.Fixed() {
-		return errors.New("a requestValue field is no Terraform attribute, so negate changes nothing: send the API value")
+	if l.Invert && l.Fixed() {
+		return errors.New("a requestValue field is no Terraform attribute, so invert changes nothing: send the API value")
 	}
 	if l.SendUnknownAsZero && l.Default != nil {
 		return errors.New("a default is never unknown, so sendUnknownAsZero changes nothing")

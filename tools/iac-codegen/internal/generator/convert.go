@@ -281,7 +281,7 @@ const (
 	// of the parent. The API has no object for it.
 	convGroup = "group"
 
-	// convNotBool is a bool that Terraform shows as its opposite (negate).
+	// convNotBool is a bool that Terraform shows as its opposite (invert).
 	convNotBool = "notbool" // types.Bool ↔ *bool, negated
 
 	// convSplitArms is a list of oneOf items that Terraform shows as one collection per arm
@@ -330,9 +330,9 @@ type convField struct {
 	// Carried: a sibling or a fold flag in the model of a carrySiblings arm. The arm functions
 	// leave it to the object that holds the oneOf; it counts for the attribute types.
 	Carried bool
-	// SplitArms: the line of the field has splitArms. Negate: the line has negate. Position: the
+	// SplitArms: the line of the field has splitArms. Invert: the line has invert. Position: the
 	// line has position; the list that holds the object sends the position of each item.
-	SplitArms, Negate, Position bool
+	SplitArms, Invert, Position bool
 	// SendUnknownAsZero: expand sends the zero value of the scalar when the plan is unknown
 	// (sendUnknownAsZero). ZeroType is its Go type.
 	SendUnknownAsZero bool
@@ -1246,7 +1246,7 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	cf.SendNullAsEmpty = line.SendNullAsEmpty
 	cf.SendUnknownAsZero = line.SendUnknownAsZero
 	cf.SplitArms = line.SplitArms
-	cf.Negate = line.Negate
+	cf.Invert = line.Invert
 	cf.Position = line.Position
 	cf.Equality = line.Equality
 	cf.RequestValue = line.RequestValue
@@ -1439,14 +1439,14 @@ func (b *convBuilder) splitArmsConv(cf *convField, t *model.Type) (string, error
 }
 
 // applyReleasedKeys applies the keys of a field line that change how a scalar is sent: position,
-// negate, requestValue, and sendUnknownAsZero.
+// invert, requestValue, and sendUnknownAsZero.
 func (b *convBuilder) applyReleasedKeys(cf *convField) error {
 	if cf.Position && cf.Conv != convInt64 && cf.Conv != convInt32 {
 		return fmt.Errorf("%s: position needs an int32 or int64 field, not a %s field", cf.TFName, cf.Conv)
 	}
-	if cf.Negate {
+	if cf.Invert {
 		if cf.Conv != convBool || cf.Wrap != nil {
-			return fmt.Errorf("%s: negate needs a bool field without wrappers, not a %s field", cf.TFName, cf.Conv)
+			return fmt.Errorf("%s: invert needs a bool field without wrappers, not a %s field", cf.TFName, cf.Conv)
 		}
 		cf.Conv = convNotBool
 	}

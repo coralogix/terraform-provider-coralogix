@@ -71,9 +71,9 @@ func TestParseThingKeysRefuseOtherShapes(t *testing.T) {
 		"splitArms on a string": {
 			"      note: {computed: true}\n", "      note: {splitArms: true}\n",
 			"splitArms needs a list or set whose items are a oneOf"},
-		"negate on a string": {
-			"      escaped: {requestValue: \"true\"}\n", "      escaped: {requestValue: \"true\"}\n      target: {negate: true}\n",
-			"negate needs a bool field"},
+		"invert on a string": {
+			"      escaped: {requestValue: \"true\"}\n", "      escaped: {requestValue: \"true\"}\n      target: {invert: true}\n",
+			"invert needs a bool field"},
 		"position on a string": {
 			"      order: {position: true}\n      enabled: {name: active", "      order: {position: true}\n      source: {position: true}\n      enabled: {name: active",
 			"position needs an integer attribute"},
