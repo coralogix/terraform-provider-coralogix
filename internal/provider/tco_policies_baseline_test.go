@@ -448,6 +448,31 @@ var tcoTracesScenarios = map[string]func(h *grHarness, f *tcoFake){
 		h.Destroy("destroy", s)
 	},
 
+	"deleted-outside-terraform": func(h *grHarness, f *tcoFake) {
+		s := h.Apply("create", h.null(), tcoPolicies(tcoPolicy("first", "high")))
+		f.seed("spans", j{"policies": l{}})
+		h.RefreshPlan("refresh: every policy was deleted outside Terraform", s)
+	},
+
+	"route-missing": func(h *grHarness, f *tcoFake) {
+		s := h.Apply("create", h.null(), tcoPolicies(tcoPolicy("first", "high")))
+		f.failGets(http.StatusNotFound, "Not Found")
+		h.RefreshPlan("refresh: the gateway has no such route", s)
+	},
+
+	"update-rejected": func(h *grHarness, f *tcoFake) {
+		s := h.Apply("create", h.null(), tcoPolicies(tcoPolicy("first", "high")))
+		f.failPuts(http.StatusInternalServerError, "Unexpected server error occurred")
+		s = h.Apply("update: the API fails", s, tcoPolicies(with(tcoPolicy("first", "high"), j{"description": "changed"})))
+		h.RefreshPlan("refresh", s)
+	},
+
+	"destroy-rejected": func(h *grHarness, f *tcoFake) {
+		s := h.Apply("create", h.null(), tcoPolicies(tcoPolicy("first", "high")))
+		f.failPuts(http.StatusInternalServerError, "Unexpected server error occurred")
+		h.Destroy("destroy: the API fails", s)
+	},
+
 	"import": func(h *grHarness, f *tcoFake) {
 		f.seed("spans", j{"policies": l{
 			tcoSpanEntry("seeded", "PRIORITY_TYPE_MEDIUM", j{
@@ -515,6 +540,10 @@ var tcoRumScenarios = map[string]func(h *grHarness, f *tcoFake){
 		s = h.Apply("update: remove a policy", s, tcoPolicies(first))
 		s = h.Apply("update: remove the optional fields", s, tcoPolicies(tcoPolicy("first", "low", tcoSeverities("error", "critical"))))
 		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: from severities to dpxl_expression", s, tcoPolicies(tcoPolicy("first", "low", j{"dpxl_expression": "<v1> true"})))
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: back to severities", s, tcoPolicies(tcoPolicy("first", "low", tcoSeverities("error"))))
+		s = h.RefreshPlan("refresh", s)
 		h.Destroy("destroy", s)
 	},
 
@@ -525,6 +554,31 @@ var tcoRumScenarios = map[string]func(h *grHarness, f *tcoFake){
 		s = h.Apply("update: remove the archive retention", s, tcoPolicies(tcoPolicy("first", "medium", tcoSeverities("error"))))
 		s = h.RefreshPlan("refresh", s)
 		h.Destroy("destroy", s)
+	},
+
+	"deleted-outside-terraform": func(h *grHarness, f *tcoFake) {
+		s := h.Apply("create", h.null(), tcoPolicies(tcoPolicy("first", "medium", tcoSeverities("error"))))
+		f.seed("rum", j{"policies": l{}})
+		h.RefreshPlan("refresh: every policy was deleted outside Terraform", s)
+	},
+
+	"route-missing": func(h *grHarness, f *tcoFake) {
+		s := h.Apply("create", h.null(), tcoPolicies(tcoPolicy("first", "medium", tcoSeverities("error"))))
+		f.failGets(http.StatusNotFound, "Not Found")
+		h.RefreshPlan("refresh: the gateway has no such route", s)
+	},
+
+	"update-rejected": func(h *grHarness, f *tcoFake) {
+		s := h.Apply("create", h.null(), tcoPolicies(tcoPolicy("first", "medium", tcoSeverities("error"))))
+		f.failPuts(http.StatusInternalServerError, "Unexpected server error occurred")
+		s = h.Apply("update: the API fails", s, tcoPolicies(with(tcoPolicy("first", "medium", tcoSeverities("error")), j{"description": "changed"})))
+		h.RefreshPlan("refresh", s)
+	},
+
+	"destroy-rejected": func(h *grHarness, f *tcoFake) {
+		s := h.Apply("create", h.null(), tcoPolicies(tcoPolicy("first", "medium", tcoSeverities("error"))))
+		f.failPuts(http.StatusInternalServerError, "Unexpected server error occurred")
+		h.Destroy("destroy: the API fails", s)
 	},
 
 	"import": func(h *grHarness, f *tcoFake) {
