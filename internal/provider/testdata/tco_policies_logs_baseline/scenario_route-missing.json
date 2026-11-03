@@ -1,0 +1,99 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "policies": [
+        {
+          "name": "first",
+          "priority": "high",
+          "severities": [
+            "info"
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/log-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "logRules": {
+                "severities": [
+                  "SEVERITY_INFO"
+                ]
+              },
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_HIGH"
+              }
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "first",
+          "order": 1,
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: the gateway has no such route",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_LOGS",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: coralogix_tco_policies_logs is in state, but no longer exists in Coralogix backend | coralogix_tco_policies_logs will be recreated when you apply"
+    ],
+    "state": null
+  }
+]

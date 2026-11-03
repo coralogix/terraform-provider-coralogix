@@ -1,0 +1,17 @@
+[
+  {
+    "step": "read when there are no policies",
+    "config": {},
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_RUM",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": []
+    }
+  }
+]

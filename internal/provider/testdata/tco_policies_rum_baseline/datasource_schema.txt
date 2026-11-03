@@ -1,0 +1,40 @@
+(data source schema)
+    description: Coralogix RUM TCO-Policies-List. Behaves like `coralogix_tco_policies_logs` minus dataset routing (`targets`). For more information - https://coralogix.com/docs/tco-optimizer-api.
+id  tftypes.String computed
+    description: This field can be ignored
+policies  nested LIST computed
+policies.applications  nested SINGLE computed
+    description: The applications to apply the policy on. Applies the policy on all the applications by default.
+policies.applications.names  tftypes.Set[tftypes.String] computed
+policies.applications.rule_type  tftypes.String computed
+    description: The rule type. Can be one of ["includes" "is" "is_not" "starts_with" "unspecified"].
+policies.archive_retention_id  tftypes.String computed
+    description: Allowing RUM events with a specific retention to be tagged.
+policies.description  tftypes.String computed
+    description: The policy description
+policies.dpxl_expression  tftypes.String computed
+    description: DataPrime expression to match RUM events for this policy. Mutually exclusive with the structured matchers (`severities`, `applications`, `subsystems`) — set either this or those. The expression must include a version prefix and reference the canonical `$d.*` schema (not `$d.cx_rum.*`), e.g. `<v1> $d.severity == 'Error'`.
+policies.enabled  tftypes.Bool computed
+    description: Determines weather the policy will be enabled. True by default.
+policies.id  tftypes.String computed
+    description: tco-policy ID.
+policies.name  tftypes.String computed
+    description: tco-policy name.
+policies.order  tftypes.Number computed
+    description: The policy's order between the other policies.
+policies.priority  tftypes.String computed
+    description: The policy priority. Can be one of ["block" "high" "low" "medium"]. When `quota_based_priority_override` is set, this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of "Route the remaining quota to" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).
+policies.quota_based_priority_override  nested SINGLE computed
+    description: Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback ("Route the remaining quota to" in the UI), which must be more restrictive than the last tier.
+policies.quota_based_priority_override.usage_tiers  nested LIST computed
+    description: Ordered list of quota-consumption tiers; the policy's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached.
+policies.quota_based_priority_override.usage_tiers.daily_quota_percentage  tftypes.Number computed
+    description: Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100.
+policies.quota_based_priority_override.usage_tiers.priority  tftypes.String computed
+    description: The priority to apply when this tier is active. Can be one of ["high" "low" "medium"] (`block` is not valid for a tier).
+policies.severities  tftypes.Set[tftypes.String] computed
+    description: The severities to apply the policy on. Valid severities are ["critical" "debug" "error" "info" "verbose" "warning"]. Mutually exclusive with `dpxl_expression` — set exactly one.
+policies.subsystems  nested SINGLE computed
+    description: The subsystems to apply the policy on. Applies the policy on all the subsystems by default.
+policies.subsystems.names  tftypes.Set[tftypes.String] computed
+policies.subsystems.rule_type  tftypes.String computed

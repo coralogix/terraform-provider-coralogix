@@ -1,0 +1,121 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "policies": [
+        {
+          "name": "first",
+          "priority": "high",
+          "severities": [
+            "info"
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/log-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "logRules": {
+                "severities": [
+                  "SEVERITY_INFO"
+                ]
+              },
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_HIGH"
+              }
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "first",
+          "order": 1,
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: the API fails",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_LOGS",
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error reading coralogix_tco_policies_logs | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Unexpected server error occurred\"}\noperation - Read"
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "first",
+          "order": 1,
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  }
+]

@@ -1,0 +1,978 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "policies": [
+        {
+          "applications": {
+            "names": [
+              "web"
+            ]
+          },
+          "description": "first policy",
+          "name": "first",
+          "priority": "low",
+          "quota_based_priority_override": {
+            "usage_tiers": [
+              {
+                "daily_quota_percentage": 30,
+                "priority": "medium"
+              }
+            ]
+          },
+          "severities": [
+            "error",
+            "critical"
+          ],
+          "subsystems": {
+            "names": [
+              "cx_rum"
+            ],
+            "rule_type": "is_not"
+          }
+        },
+        {
+          "dpxl_expression": "<v1> true",
+          "enabled": false,
+          "name": "second",
+          "priority": "block"
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": {
+            "names": [
+              "web"
+            ],
+            "rule_type": "is"
+          },
+          "archive_retention_id": null,
+          "description": "first policy",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "low",
+          "quota_based_priority_override": {
+            "usage_tiers": [
+              {
+                "daily_quota_percentage": 30,
+                "priority": "medium"
+              }
+            ]
+          },
+          "severities": [
+            "error",
+            "critical"
+          ],
+          "subsystems": {
+            "names": [
+              "cx_rum"
+            ],
+            "rule_type": "is_not"
+          }
+        },
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": "<v1> true",
+          "enabled": false,
+          "id": "(unknown)",
+          "name": "second",
+          "order": "(unknown)",
+          "priority": "block",
+          "quota_based_priority_override": null,
+          "severities": "(unknown)",
+          "subsystems": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/rum-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "policy": {
+                "applicationRule": {
+                  "name": "web",
+                  "ruleTypeId": "RULE_TYPE_ID_IS"
+                },
+                "description": "first policy",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_LOW",
+                "priorityOverride": {
+                  "quotaBased": {
+                    "usageTiers": [
+                      {
+                        "dailyQuotaPercentage": 30,
+                        "priority": "PRIORITY_TYPE_MEDIUM"
+                      }
+                    ]
+                  }
+                },
+                "subsystemRule": {
+                  "name": "cx_rum",
+                  "ruleTypeId": "RULE_TYPE_ID_IS_NOT"
+                }
+              },
+              "rumRules": {
+                "severities": [
+                  "SEVERITY_ERROR",
+                  "SEVERITY_CRITICAL"
+                ]
+              }
+            },
+            {
+              "policy": {
+                "description": "",
+                "disabled": true,
+                "name": "second",
+                "priority": "PRIORITY_TYPE_BLOCK"
+              },
+              "rumRules": {
+                "dpxlExpression": "<v1> true",
+                "severities": null
+              }
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": {
+            "names": [
+              "web"
+            ],
+            "rule_type": "is"
+          },
+          "archive_retention_id": null,
+          "description": "first policy",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "first",
+          "order": 1,
+          "priority": "low",
+          "quota_based_priority_override": {
+            "usage_tiers": [
+              {
+                "daily_quota_percentage": 30,
+                "priority": "medium"
+              }
+            ]
+          },
+          "severities": [
+            "error",
+            "critical"
+          ],
+          "subsystems": {
+            "names": [
+              "cx_rum"
+            ],
+            "rule_type": "is_not"
+          }
+        },
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": "<v1> true",
+          "enabled": false,
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "second",
+          "order": 2,
+          "priority": "block",
+          "quota_based_priority_override": null,
+          "severities": null,
+          "subsystems": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_RUM",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": {
+            "names": [
+              "web"
+            ],
+            "rule_type": "is"
+          },
+          "archive_retention_id": null,
+          "description": "first policy",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "first",
+          "order": 1,
+          "priority": "low",
+          "quota_based_priority_override": {
+            "usage_tiers": [
+              {
+                "daily_quota_percentage": 30,
+                "priority": "medium"
+              }
+            ]
+          },
+          "severities": [
+            "error",
+            "critical"
+          ],
+          "subsystems": {
+            "names": [
+              "cx_rum"
+            ],
+            "rule_type": "is_not"
+          }
+        },
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": "<v1> true",
+          "enabled": false,
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "second",
+          "order": 2,
+          "priority": "block",
+          "quota_based_priority_override": null,
+          "severities": null,
+          "subsystems": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: reorder",
+    "config": {
+      "policies": [
+        {
+          "dpxl_expression": "<v1> true",
+          "enabled": false,
+          "name": "second",
+          "priority": "block"
+        },
+        {
+          "applications": {
+            "names": [
+              "web"
+            ]
+          },
+          "description": "first policy",
+          "name": "first",
+          "priority": "low",
+          "quota_based_priority_override": {
+            "usage_tiers": [
+              {
+                "daily_quota_percentage": 30,
+                "priority": "medium"
+              }
+            ]
+          },
+          "severities": [
+            "error",
+            "critical"
+          ],
+          "subsystems": {
+            "names": [
+              "cx_rum"
+            ],
+            "rule_type": "is_not"
+          }
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": "<v1> true",
+          "enabled": false,
+          "id": "(unknown)",
+          "name": "second",
+          "order": "(unknown)",
+          "priority": "block",
+          "quota_based_priority_override": null,
+          "severities": "(unknown)",
+          "subsystems": null
+        },
+        {
+          "applications": {
+            "names": [
+              "web"
+            ],
+            "rule_type": "is"
+          },
+          "archive_retention_id": null,
+          "description": "first policy",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "low",
+          "quota_based_priority_override": {
+            "usage_tiers": [
+              {
+                "daily_quota_percentage": 30,
+                "priority": "medium"
+              }
+            ]
+          },
+          "severities": [
+            "error",
+            "critical"
+          ],
+          "subsystems": {
+            "names": [
+              "cx_rum"
+            ],
+            "rule_type": "is_not"
+          }
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/rum-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "policy": {
+                "description": "",
+                "disabled": true,
+                "name": "second",
+                "priority": "PRIORITY_TYPE_BLOCK"
+              },
+              "rumRules": {
+                "dpxlExpression": "<v1> true",
+                "severities": null
+              }
+            },
+            {
+              "policy": {
+                "applicationRule": {
+                  "name": "web",
+                  "ruleTypeId": "RULE_TYPE_ID_IS"
+                },
+                "description": "first policy",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_LOW",
+                "priorityOverride": {
+                  "quotaBased": {
+                    "usageTiers": [
+                      {
+                        "dailyQuotaPercentage": 30,
+                        "priority": "PRIORITY_TYPE_MEDIUM"
+                      }
+                    ]
+                  }
+                },
+                "subsystemRule": {
+                  "name": "cx_rum",
+                  "ruleTypeId": "RULE_TYPE_ID_IS_NOT"
+                }
+              },
+              "rumRules": {
+                "severities": [
+                  "SEVERITY_ERROR",
+                  "SEVERITY_CRITICAL"
+                ]
+              }
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": "<v1> true",
+          "enabled": false,
+          "id": "00000000-0000-4000-8000-000000000003",
+          "name": "second",
+          "order": 1,
+          "priority": "block",
+          "quota_based_priority_override": null,
+          "severities": null,
+          "subsystems": null
+        },
+        {
+          "applications": {
+            "names": [
+              "web"
+            ],
+            "rule_type": "is"
+          },
+          "archive_retention_id": null,
+          "description": "first policy",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000004",
+          "name": "first",
+          "order": 2,
+          "priority": "low",
+          "quota_based_priority_override": {
+            "usage_tiers": [
+              {
+                "daily_quota_percentage": 30,
+                "priority": "medium"
+              }
+            ]
+          },
+          "severities": [
+            "error",
+            "critical"
+          ],
+          "subsystems": {
+            "names": [
+              "cx_rum"
+            ],
+            "rule_type": "is_not"
+          }
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: remove a policy",
+    "config": {
+      "policies": [
+        {
+          "applications": {
+            "names": [
+              "web"
+            ]
+          },
+          "description": "first policy",
+          "name": "first",
+          "priority": "low",
+          "quota_based_priority_override": {
+            "usage_tiers": [
+              {
+                "daily_quota_percentage": 30,
+                "priority": "medium"
+              }
+            ]
+          },
+          "severities": [
+            "error",
+            "critical"
+          ],
+          "subsystems": {
+            "names": [
+              "cx_rum"
+            ],
+            "rule_type": "is_not"
+          }
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": {
+            "names": [
+              "web"
+            ],
+            "rule_type": "is"
+          },
+          "archive_retention_id": null,
+          "description": "first policy",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "low",
+          "quota_based_priority_override": {
+            "usage_tiers": [
+              {
+                "daily_quota_percentage": 30,
+                "priority": "medium"
+              }
+            ]
+          },
+          "severities": [
+            "error",
+            "critical"
+          ],
+          "subsystems": {
+            "names": [
+              "cx_rum"
+            ],
+            "rule_type": "is_not"
+          }
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/rum-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "policy": {
+                "applicationRule": {
+                  "name": "web",
+                  "ruleTypeId": "RULE_TYPE_ID_IS"
+                },
+                "description": "first policy",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_LOW",
+                "priorityOverride": {
+                  "quotaBased": {
+                    "usageTiers": [
+                      {
+                        "dailyQuotaPercentage": 30,
+                        "priority": "PRIORITY_TYPE_MEDIUM"
+                      }
+                    ]
+                  }
+                },
+                "subsystemRule": {
+                  "name": "cx_rum",
+                  "ruleTypeId": "RULE_TYPE_ID_IS_NOT"
+                }
+              },
+              "rumRules": {
+                "severities": [
+                  "SEVERITY_ERROR",
+                  "SEVERITY_CRITICAL"
+                ]
+              }
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": {
+            "names": [
+              "web"
+            ],
+            "rule_type": "is"
+          },
+          "archive_retention_id": null,
+          "description": "first policy",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000005",
+          "name": "first",
+          "order": 1,
+          "priority": "low",
+          "quota_based_priority_override": {
+            "usage_tiers": [
+              {
+                "daily_quota_percentage": 30,
+                "priority": "medium"
+              }
+            ]
+          },
+          "severities": [
+            "error",
+            "critical"
+          ],
+          "subsystems": {
+            "names": [
+              "cx_rum"
+            ],
+            "rule_type": "is_not"
+          }
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: remove the optional fields",
+    "config": {
+      "policies": [
+        {
+          "name": "first",
+          "priority": "low",
+          "severities": [
+            "error",
+            "critical"
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "low",
+          "quota_based_priority_override": null,
+          "severities": [
+            "error",
+            "critical"
+          ],
+          "subsystems": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/rum-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_LOW"
+              },
+              "rumRules": {
+                "severities": [
+                  "SEVERITY_ERROR",
+                  "SEVERITY_CRITICAL"
+                ]
+              }
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000006",
+          "name": "first",
+          "order": 1,
+          "priority": "low",
+          "quota_based_priority_override": null,
+          "severities": [
+            "error",
+            "critical"
+          ],
+          "subsystems": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_RUM",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000006",
+          "name": "first",
+          "order": 1,
+          "priority": "low",
+          "quota_based_priority_override": null,
+          "severities": [
+            "error",
+            "critical"
+          ],
+          "subsystems": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: from severities to dpxl_expression",
+    "config": {
+      "policies": [
+        {
+          "dpxl_expression": "<v1> true",
+          "name": "first",
+          "priority": "low"
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": "<v1> true",
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "low",
+          "quota_based_priority_override": null,
+          "severities": "(unknown)",
+          "subsystems": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/rum-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_LOW"
+              },
+              "rumRules": {
+                "dpxlExpression": "<v1> true",
+                "severities": null
+              }
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": "<v1> true",
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000007",
+          "name": "first",
+          "order": 1,
+          "priority": "low",
+          "quota_based_priority_override": null,
+          "severities": null,
+          "subsystems": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_RUM",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": "<v1> true",
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000007",
+          "name": "first",
+          "order": 1,
+          "priority": "low",
+          "quota_based_priority_override": null,
+          "severities": null,
+          "subsystems": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: back to severities",
+    "config": {
+      "policies": [
+        {
+          "name": "first",
+          "priority": "low",
+          "severities": [
+            "error"
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "low",
+          "quota_based_priority_override": null,
+          "severities": [
+            "error"
+          ],
+          "subsystems": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/rum-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_LOW"
+              },
+              "rumRules": {
+                "severities": [
+                  "SEVERITY_ERROR"
+                ]
+              }
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000008",
+          "name": "first",
+          "order": 1,
+          "priority": "low",
+          "quota_based_priority_override": null,
+          "severities": [
+            "error"
+          ],
+          "subsystems": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_RUM",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000008",
+          "name": "first",
+          "order": 1,
+          "priority": "low",
+          "quota_based_priority_override": null,
+          "severities": [
+            "error"
+          ],
+          "subsystems": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/rum-policies/v1",
+        "body": {
+          "policies": null
+        },
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]
