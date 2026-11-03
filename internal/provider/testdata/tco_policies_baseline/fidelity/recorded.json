@@ -1036,14 +1036,14 @@
                   },
                   "tagRules": [
                     {
-                      "ruleTypeId": "RULE_TYPE_ID_IS",
-                      "tagName": "tags.http.method",
-                      "tagValue": "GET,POST"
-                    },
-                    {
                       "ruleTypeId": "RULE_TYPE_ID_IS_NOT",
                       "tagName": "tags.region",
                       "tagValue": "eu"
+                    },
+                    {
+                      "ruleTypeId": "RULE_TYPE_ID_IS",
+                      "tagName": "tags.http.method",
+                      "tagValue": "GET,POST"
                     }
                   ]
                 },
@@ -2688,6 +2688,123 @@
                 "rumRules": {
                   "severities": [
                     "SEVERITY_VERBOSE"
+                  ]
+                },
+                "targets": [],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "rum-debug-warning",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": true,
+                  "id": "<id>",
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_MEDIUM",
+                  "rumRules": {
+                    "severities": [
+                      "SEVERITY_DEBUG",
+                      "SEVERITY_WARNING"
+                    ]
+                  },
+                  "targets": [],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_MEDIUM",
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_DEBUG",
+                    "SEVERITY_WARNING"
+                  ]
+                },
+                "targets": [],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": true,
+                  "id": "<id>",
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_MEDIUM",
+                  "rumRules": {
+                    "severities": [
+                      "SEVERITY_WARNING"
+                    ]
+                  },
+                  "targets": [],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_MEDIUM",
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_WARNING"
                   ]
                 },
                 "targets": [],

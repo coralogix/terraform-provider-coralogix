@@ -1660,6 +1660,69 @@
           }
         }
       ]
+    },
+    {
+      "name": "rum-debug-warning",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "/rum-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "policy": {
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_MEDIUM"
+                },
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_DEBUG",
+                    "SEVERITY_WARNING"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_RUM"
+        },
+        {
+          "method": "PUT",
+          "path": "/rum-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "policy": {
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_MEDIUM"
+                },
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_WARNING"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_RUM"
+        },
+        {
+          "method": "PUT",
+          "path": "/rum-policies/v1",
+          "body": {
+            "policies": []
+          }
+        }
+      ]
     }
   ]
 }

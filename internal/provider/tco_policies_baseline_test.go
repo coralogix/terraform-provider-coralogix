@@ -662,6 +662,14 @@ var tcoRumScenarios = map[string]func(h *grHarness, f *tcoFake){
 		h.RefreshPlan("refresh", s)
 	},
 
+	// Recorded in fidelity/cases.json: rum-debug-warning.
+	"debug-warning": func(h *grHarness, _ *tcoFake) {
+		s := h.Apply("create: debug and warning", h.null(), tcoPolicies(tcoPolicy("first", "medium", tcoSeverities("debug", "warning"))))
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: warning only", s, tcoPolicies(tcoPolicy("first", "medium", tcoSeverities("warning"))))
+		h.RefreshPlan("refresh", s)
+	},
+
 	"import": func(h *grHarness, f *tcoFake) {
 		f.seed("rum", j{"policies": l{tcoRumEntry("seeded", "PRIORITY_TYPE_MEDIUM", "SEVERITY_ERROR")}})
 		s := h.Import("import", "anything")
