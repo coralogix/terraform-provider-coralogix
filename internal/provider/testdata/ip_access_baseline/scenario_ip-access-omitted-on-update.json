@@ -99,6 +99,14 @@
     "drift": [
       "AttributeName(\"enable_coralogix_customer_support_access\")"
     ],
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"id\")",
+      "AttributeName(\"ip_access\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"192.0.2.0/24\">, \"name\":tftypes.String<\"first\">>)",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"192.0.2.0/24\">, \"name\":tftypes.String<\"first\">>).AttributeName(\"enabled\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"192.0.2.0/24\">, \"name\":tftypes.String<\"first\">>).AttributeName(\"ip_range\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"192.0.2.0/24\">, \"name\":tftypes.String<\"first\">>).AttributeName(\"name\")"
+    ]
   }
 ]

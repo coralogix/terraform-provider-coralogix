@@ -78,6 +78,9 @@ type grHarness struct {
 	steps    []grStep
 	// applied is the config of the last apply that succeeded. RefreshPlan plans it again.
 	applied map[string]any
+	// failedCreate is the state that the last Create that failed returned, or null. Terraform core
+	// saves it tainted, so the next apply replaces it.
+	failedCreate tftypes.Value
 }
 
 func newGRHarness(t *testing.T) *grHarness {
@@ -314,6 +317,7 @@ func (h *grHarness) Apply(name string, prior tftypes.Value, cfgJSON map[string]a
 		step.State = toJSON(state)
 		h.record(step)
 		if prior.IsNull() {
+			h.failedCreate = state
 			return prior
 		}
 		return state
@@ -338,6 +342,19 @@ func (h *grHarness) Apply(name string, prior tftypes.Value, cfgJSON map[string]a
 }
 
 // Refresh reads the resource. It returns the new state, or a null value when the resource is gone.
+// ApplyAfterFailedCreate is the next apply after a Create that failed. Terraform core saved the
+// state that the Create returned as tainted, so it deletes that resource and creates a new one.
+// Without such a state, it creates the resource again.
+func (h *grHarness) ApplyAfterFailedCreate(name string, cfgJSON map[string]any) tftypes.Value {
+	h.t.Helper()
+	if !h.failedCreate.IsNull() && h.failedCreate.IsKnown() {
+		h.Destroy(name+": delete the tainted resource", h.failedCreate)
+		h.failedCreate = h.null()
+		return h.Apply(name+": create it again", h.null(), cfgJSON)
+	}
+	return h.Apply(name+": no state, so create again", h.null(), cfgJSON)
+}
+
 func (h *grHarness) Refresh(name string, state tftypes.Value) tftypes.Value {
 	h.t.Helper()
 	step := grStep{Step: name}
@@ -681,7 +698,10 @@ func toJSON(v tftypes.Value) any {
 }
 
 // proposedNew emulates the proposed new state that Terraform core builds: the
-// config value where it is set, else the prior value for a computed attribute.
+// config value where it is set, else the prior value for a computed attribute. An
+// optional nested attribute whose prior value holds a non-computed value takes the
+// null config value instead, because that value must have come from the config
+// (optionalValueNotComputable).
 func proposedNew(attrs []*tfprotov6.SchemaAttribute, prior, cfg tftypes.Value) tftypes.Value {
 	if !cfg.IsKnown() {
 		// Terraform core proposes an unknown config value as it is.
@@ -706,7 +726,7 @@ func proposedNew(attrs []*tfprotov6.SchemaAttribute, prior, cfg tftypes.Value) t
 			out[a.Name] = proposedNested(a.NestedType, pv, hasPrior, cv)
 		case !cv.IsNull():
 			out[a.Name] = cv
-		case a.Computed && hasPrior:
+		case a.Computed && hasPrior && !(a.Optional && a.NestedType != nil && hasNonComputedValue(a.NestedType, pv)):
 			out[a.Name] = pv
 		default:
 			out[a.Name] = cv
@@ -715,7 +735,52 @@ func proposedNew(attrs []*tfprotov6.SchemaAttribute, prior, cfg tftypes.Value) t
 	return tftypes.NewValue(cfg.Type(), out)
 }
 
+// hasNonComputedValue reports whether v, a value of the nested type o, holds a
+// non-null value of an attribute that is not computed, at any depth.
+func hasNonComputedValue(o *tfprotov6.SchemaObject, v tftypes.Value) bool {
+	if v.IsNull() || !v.IsKnown() {
+		return false
+	}
+	var items []tftypes.Value
+	switch o.Nesting {
+	case tfprotov6.SchemaObjectNestingModeList, tfprotov6.SchemaObjectNestingModeSet:
+		_ = v.As(&items)
+	case tfprotov6.SchemaObjectNestingModeMap:
+		var m map[string]tftypes.Value
+		_ = v.As(&m)
+		for _, e := range m {
+			items = append(items, e)
+		}
+	default:
+		items = []tftypes.Value{v}
+	}
+	for _, item := range items {
+		if item.IsNull() || !item.IsKnown() {
+			continue
+		}
+		var m map[string]tftypes.Value
+		_ = item.As(&m)
+		for _, a := range o.Attributes {
+			av, ok := m[a.Name]
+			if !ok || av.IsNull() {
+				continue
+			}
+			if !a.Computed {
+				return true
+			}
+			if a.NestedType != nil && hasNonComputedValue(a.NestedType, av) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func proposedNested(o *tfprotov6.SchemaObject, prior tftypes.Value, hasPrior bool, cfg tftypes.Value) tftypes.Value {
+	if !cfg.IsKnown() {
+		// Terraform core keeps a configuration that is not known at all, such as a variable.
+		return cfg
+	}
 	if !hasPrior {
 		prior = tftypes.NewValue(cfg.Type(), nil)
 	}
@@ -753,8 +818,100 @@ func proposedNested(o *tfprotov6.SchemaObject, prior tftypes.Value, hasPrior boo
 			out[k] = proposedNew(o.Attributes, pi, c)
 		}
 		return tftypes.NewValue(cfg.Type(), out)
+	case tfprotov6.SchemaObjectNestingModeSet:
+		// Terraform core pairs each configured item with an unused prior item that differs only in
+		// computed values that the config leaves null, and takes those values from it
+		// (proposedNewNestingSet).
+		var cs, ps []tftypes.Value
+		_ = cfg.As(&cs)
+		if !prior.IsNull() && prior.IsKnown() {
+			_ = prior.As(&ps)
+		}
+		used := make([]bool, len(ps))
+		out := make([]tftypes.Value, len(cs))
+		for i, c := range cs {
+			pi := tftypes.NewValue(c.Type(), nil)
+			for k, p := range ps {
+				if !used[k] && validPriorFromConfig(o, p, c) {
+					pi, used[k] = p, true
+					break
+				}
+			}
+			out[i] = proposedNew(o.Attributes, pi, c)
+		}
+		return tftypes.NewValue(cfg.Type(), out)
 	}
 	return cfg
+}
+
+// validPriorFromConfig reports whether prior can be the prior value of the configured set item
+// cfg, as Terraform core decides it: every value that differs is a computed leaf that the config
+// leaves null, and no differing value is a set.
+func validPriorFromConfig(o *tfprotov6.SchemaObject, prior, cfg tftypes.Value) bool {
+	if prior.Equal(cfg) {
+		return true
+	}
+	if prior.IsNull() || !prior.IsKnown() || cfg.IsNull() || !cfg.IsKnown() {
+		return prior.IsNull()
+	}
+	var p, c map[string]tftypes.Value
+	_ = prior.As(&p)
+	_ = cfg.As(&c)
+	for _, a := range o.Attributes {
+		pv, cv := p[a.Name], c[a.Name]
+		if pv.Equal(cv) {
+			continue
+		}
+		if cv.Type().Is(tftypes.Set{}) {
+			return false
+		}
+		if a.NestedType != nil {
+			if !validPriorNested(a.NestedType, pv, cv) {
+				return false
+			}
+			continue
+		}
+		if !a.Computed || !cv.IsNull() {
+			return false
+		}
+	}
+	return true
+}
+
+func validPriorNested(o *tfprotov6.SchemaObject, prior, cfg tftypes.Value) bool {
+	if prior.IsNull() {
+		return true
+	}
+	if cfg.IsNull() || !cfg.IsKnown() {
+		return false
+	}
+	switch o.Nesting {
+	case tfprotov6.SchemaObjectNestingModeList:
+		var ps, cs []tftypes.Value
+		_ = prior.As(&ps)
+		_ = cfg.As(&cs)
+		if len(ps) > len(cs) {
+			return false
+		}
+		for i := range ps {
+			if !validPriorFromConfig(o, ps[i], cs[i]) {
+				return false
+			}
+		}
+		return true
+	case tfprotov6.SchemaObjectNestingModeMap:
+		var ps, cs map[string]tftypes.Value
+		_ = prior.As(&ps)
+		_ = cfg.As(&cs)
+		for k, pv := range ps {
+			cv, ok := cs[k]
+			if !ok || !validPriorFromConfig(o, pv, cv) {
+				return false
+			}
+		}
+		return true
+	}
+	return validPriorFromConfig(o, prior, cfg)
 }
 
 // inconsistent appends the paths where a known planned value differs from the applied value.
@@ -804,11 +961,54 @@ func inconsistent(path string, planned, actual tftypes.Value, out *[]string) {
 		for i := range pl {
 			inconsistent(fmt.Sprintf("%s[%d]", path, i), pl[i], al[i], out)
 		}
+	case planned.Type().Is(tftypes.Set{}) && !planned.IsFullyKnown():
+		// As Terraform core does, the planned items, which have unknown values, and the items of the
+		// result must pair one to one.
+		var ps, as []tftypes.Value
+		_ = planned.As(&ps)
+		_ = actual.As(&as)
+		if len(ps) != len(as) || !pairSetItems(ps, as) {
+			*out = append(*out, at)
+		}
 	default:
 		if !planned.Equal(actual) {
 			*out = append(*out, at)
 		}
 	}
+}
+
+// pairSetItems reports whether every planned item pairs with its own item of the result, where an
+// unknown planned value matches any value (a bipartite matching by augmenting paths).
+func pairSetItems(planned, actual []tftypes.Value) bool {
+	matches := func(p, a tftypes.Value) bool {
+		var found []string
+		inconsistent("", p, a, &found)
+		return len(found) == 0
+	}
+	owner := make([]int, len(actual))
+	for i := range owner {
+		owner[i] = -1
+	}
+	var assign func(p int, seen []bool) bool
+	assign = func(p int, seen []bool) bool {
+		for a := range actual {
+			if seen[a] || !matches(planned[p], actual[a]) {
+				continue
+			}
+			seen[a] = true
+			if owner[a] < 0 || assign(owner[a], seen) {
+				owner[a] = p
+				return true
+			}
+		}
+		return false
+	}
+	for p := range planned {
+		if !assign(p, make([]bool, len(actual))) {
+			return false
+		}
+	}
+	return true
 }
 
 func sortedKeys(m map[string]tftypes.Value) []string {
@@ -931,4 +1131,60 @@ func marshalGolden(t *testing.T, v any) []byte {
 		t.Fatal(err)
 	}
 	return b.Bytes()
+}
+
+// A planned set with unknown values pairs one to one with the result: one planned item cannot
+// stand for two items of the result, and two planned items cannot share one.
+func TestInconsistentSetPairsItemsOneToOne(t *testing.T) {
+	obj := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"name": tftypes.String, "n": tftypes.Number}}
+	set := tftypes.Set{ElementType: obj}
+	item := func(name string, n any) tftypes.Value {
+		return tftypes.NewValue(obj, map[string]tftypes.Value{"name": tftypes.NewValue(tftypes.String, name), "n": tftypes.NewValue(tftypes.Number, n)})
+	}
+	known := func(n float64) any { return big.NewFloat(n) }
+	for _, test := range []struct {
+		name            string
+		planned, actual []tftypes.Value
+		want            bool
+	}{
+		{"pairs", []tftypes.Value{item("a", tftypes.UnknownValue), item("b", known(2))}, []tftypes.Value{item("b", known(2)), item("a", known(1))}, false},
+		{"an extra item in the result", []tftypes.Value{item("a", tftypes.UnknownValue)}, []tftypes.Value{item("a", known(1)), item("a", known(2))}, true},
+		{"two planned items for one item", []tftypes.Value{item("a", tftypes.UnknownValue), item("a", known(1))}, []tftypes.Value{item("a", known(1)), item("b", known(1))}, true},
+	} {
+		var out []string
+		inconsistent("", tftypes.NewValue(set, test.planned), tftypes.NewValue(set, test.actual), &out)
+		if got := len(out) != 0; got != test.want {
+			t.Errorf("%s: inconsistent = %v, want %t", test.name, out, test.want)
+		}
+	}
+}
+
+func TestProposedNewNullsAnOmittedNestedValueWithConfiguredParts(t *testing.T) {
+	obj := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"name": tftypes.String, "id": tftypes.String}}
+	set := tftypes.Set{ElementType: obj}
+	root := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"items": set}}
+	nested := &tfprotov6.SchemaObject{Nesting: tfprotov6.SchemaObjectNestingModeSet, Attributes: []*tfprotov6.SchemaAttribute{
+		{Name: "name", Optional: true},
+		{Name: "id", Computed: true},
+	}}
+	attrs := []*tfprotov6.SchemaAttribute{{Name: "items", Optional: true, Computed: true, NestedType: nested}}
+	item := func(name, id any) tftypes.Value {
+		return tftypes.NewValue(obj, map[string]tftypes.Value{"name": tftypes.NewValue(tftypes.String, name), "id": tftypes.NewValue(tftypes.String, id)})
+	}
+	cfg := tftypes.NewValue(root, map[string]tftypes.Value{"items": tftypes.NewValue(set, nil)})
+	for _, test := range []struct {
+		name     string
+		prior    tftypes.Value
+		wantNull bool
+	}{
+		{"a prior item has a configured name", item("a", "1"), true},
+		{"a prior item has only computed values", item(nil, "1"), false},
+	} {
+		prior := tftypes.NewValue(root, map[string]tftypes.Value{"items": tftypes.NewValue(set, []tftypes.Value{test.prior})})
+		var got map[string]tftypes.Value
+		_ = proposedNew(attrs, prior, cfg).As(&got)
+		if got["items"].IsNull() != test.wantNull {
+			t.Errorf("%s: proposed items = %v, want null %t", test.name, got["items"], test.wantNull)
+		}
+	}
 }
