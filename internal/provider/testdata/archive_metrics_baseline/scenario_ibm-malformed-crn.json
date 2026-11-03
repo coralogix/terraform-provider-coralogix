@@ -14,7 +14,7 @@
       },
       "id": "archive-metrics-settings",
       "prefix": "(unknown)",
-      "retention_policy": null,
+      "retention_policy": "(unknown)",
       "s3": null,
       "tenant_id": "(unknown)"
     },

@@ -2,7 +2,6 @@
 
 #### resource/coralogix_archive_metrics
 - CHORE: The resource is generated from the API contract. The requests are the same. A plan of a metrics archive that 3.23.0 created from the same configuration shows no change.
-- FIX: `retention_policy` is no longer computed. A configuration without it now clears the retention policy, also one that was set outside Terraform or came with an import: the first plan after the upgrade shows `retention_policy` removed. Before, the plan showed no change and the API kept the policy. Add `retention_policy` to the configuration to keep it.
 - CHORE: An import with any id stores `archive-metrics-settings`, the id that Create stores. Before, it kept the given id.
 - FIX: A refresh that gets a 404 for a missing route fails. Before, it removed the resource from state as if the metrics archive were gone.
 - CHORE: Destroy warns `Resource not deleted`: the API cannot remove the metrics archive, so it keeps its last configuration. Before, destroy was silent.

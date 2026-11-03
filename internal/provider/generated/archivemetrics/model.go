@@ -8,12 +8,12 @@ import (
 )
 
 type TenantConfigV2Model struct {
-	Id              types.String                 `tfsdk:"id"`
-	Ibm             *IbmConfigV2Model            `tfsdk:"ibm"`
-	Prefix          types.String                 `tfsdk:"prefix"`
-	RetentionPolicy *RetentionPolicyRequestModel `tfsdk:"retention_policy"`
-	S3              *S3ConfigModel               `tfsdk:"s3"`
-	TenantId        types.Int64                  `tfsdk:"tenant_id"`
+	Id              types.String      `tfsdk:"id"`
+	Ibm             *IbmConfigV2Model `tfsdk:"ibm"`
+	Prefix          types.String      `tfsdk:"prefix"`
+	RetentionPolicy types.Object      `tfsdk:"retention_policy"`
+	S3              *S3ConfigModel    `tfsdk:"s3"`
+	TenantId        types.Int64       `tfsdk:"tenant_id"`
 }
 
 type IbmConfigV2Model struct {

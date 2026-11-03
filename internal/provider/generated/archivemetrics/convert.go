@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/metrics_data_archive_service"
 )
@@ -91,9 +92,10 @@ var oneOfArms = map[string]bool{
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
-	"id":        true,
-	"prefix":    true,
-	"tenant_id": true,
+	"id":               true,
+	"prefix":           true,
+	"retention_policy": true,
+	"tenant_id":        true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
@@ -252,7 +254,11 @@ func expandConfigureTenantRequest(ctx context.Context, p path.Path, m *TenantCon
 	}
 	out := &metrics_data_archive_service.ConfigureTenantRequest{}
 	out.Ibm = expandIbmConfigV2(ctx, p.AtName("ibm"), m.Ibm, diags)
-	out.RetentionPolicy = expandRetentionPolicyRequest(ctx, p.AtName("retention_policy"), m.RetentionPolicy, diags)
+	if v := m.RetentionPolicy; !v.IsNull() && !v.IsUnknown() {
+		var nested RetentionPolicyRequestModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		out.RetentionPolicy = expandRetentionPolicyRequest(ctx, p.AtName("retention_policy"), &nested, diags)
+	}
 	out.S3 = expandS3Config(ctx, p.AtName("s3"), m.S3, diags)
 	return out
 }
@@ -299,6 +305,14 @@ func flattenRetentionPolicyRequest(ctx context.Context, p path.Path, v *metrics_
 	return out
 }
 
+func retentionPolicyRequestAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"five_minutes_resolution": types.Int64Type,
+		"one_hour_resolution":     types.Int64Type,
+		"raw_resolution":          types.Int64Type,
+	}
+}
+
 func expandS3Config(ctx context.Context, p path.Path, m *S3ConfigModel, diags *diag.Diagnostics) *metrics_data_archive_service.S3Config {
 	if m == nil {
 		return nil
@@ -326,7 +340,12 @@ func flattenTenantConfigV2(ctx context.Context, p path.Path, v *metrics_data_arc
 	out := &TenantConfigV2Model{}
 	out.Ibm = flattenIbmConfigV2(ctx, p.AtName("ibm"), v.Ibm, diags)
 	out.Prefix = types.StringPointerValue(v.Prefix)
-	out.RetentionPolicy = flattenRetentionPolicyRequest(ctx, p.AtName("retention_policy"), v.RetentionPolicy, diags)
+	out.RetentionPolicy = types.ObjectNull(retentionPolicyRequestAttrTypes())
+	if nested := flattenRetentionPolicyRequest(ctx, p.AtName("retention_policy"), v.RetentionPolicy, diags); nested != nil {
+		value, valueDiags := types.ObjectValueFrom(ctx, retentionPolicyRequestAttrTypes(), *nested)
+		diags.Append(valueDiags...)
+		out.RetentionPolicy = value
+	}
 	out.S3 = flattenS3Config(ctx, p.AtName("s3"), v.S3, diags)
 	out.TenantId = types.Int64PointerValue(v.TenantId)
 	return out

@@ -52,7 +52,9 @@ types:
         useStateForUnknown: true
         markdownDescription: ""
       retentionPolicy:
-        markdownDescription: "The retention policy (in days) for the archived metrics. Leave it out to keep no retention policy: a configuration without it clears one that was set outside Terraform."
+        computed: true # released: the plan keeps the policy in state when the configuration has none
+        useStateForUnknown: true
+        markdownDescription: "The retention policy (in days) for the archived metrics. Having default values when not specified."
   S3Config:
     fields:
       bucket:
