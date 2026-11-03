@@ -255,13 +255,14 @@ func TestDescriptionValidators(t *testing.T) {
 	}
 }
 
-// An element with the separator would read back as two elements, so a validator rejects it.
+// An element with the separator would read back as two elements, and a set of one empty element
+// would read back empty, so a validator rejects both.
 func TestSplitRejectsTheSeparator(t *testing.T) {
 	_, s, _ := setup(t)
 	things := s.Schema.Attributes["things"].(schema.ListNestedAttribute)
 	names := things.NestedObject.Attributes["names"].(schema.SetAttribute)
 	for _, v := range names.Validators {
-		if strings.Contains(v.Description(context.Background()), "must not contain") {
+		if strings.Contains(v.Description(context.Background()), "must not be empty or contain") {
 			return
 		}
 	}

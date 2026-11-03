@@ -66,7 +66,7 @@ func Schema() schema.Schema {
 							Optional:    true,
 							ElementType: types.StringType,
 							Validators: []validator.Set{
-								setvalidator.ValueStringsAre(stringvalidator.RegexMatches(regexp.MustCompile(`^[^,]*$`), "must not contain \",\"")),
+								setvalidator.ValueStringsAre(stringvalidator.RegexMatches(regexp.MustCompile(`^[^,]+$`), "must not be empty or contain \",\"")),
 								setvalidator.SizeAtLeast(1),
 								setvalidator.ValueStringsAre(stringvalidator.RegexMatches(regexp.MustCompile(`^[^A-Z]+$`), "Only lowercase letters are allowed")),
 							},

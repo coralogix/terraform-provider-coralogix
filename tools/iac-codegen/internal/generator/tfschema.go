@@ -1100,11 +1100,12 @@ func (b *tfBuilder) attribute(p attrPath, component, name, desc string, t *model
 			return nil, fmt.Errorf("%s.%s: split needs a separator of one character, not %q", component, name, sep)
 		}
 		a.Kind, a.ValueKind, a.ElementType = "Set", "Set", "types.StringType"
-		// An element that holds the separator would read back as two elements, so the set would
-		// not round-trip. Like a oneOf group validator, it states the encoding, not a limit of the
-		// contract, so it stays when the overrides drop the inferred validators.
+		// An element that holds the separator would read back as two elements, and a set of one
+		// empty element would read back empty, so neither round-trips. Like a oneOf group validator,
+		// it states the encoding, not a limit of the contract, so it stays when the overrides drop the
+		// inferred validators.
 		separator := "setvalidator.ValueStringsAre(" +
-			regexValidator("^[^"+regexp.QuoteMeta(sep)+"]*$", fmt.Sprintf("must not contain %q", sep)) + ")"
+			regexValidator("^[^"+regexp.QuoteMeta(sep)+"]+$", fmt.Sprintf("must not be empty or contain %q", sep)) + ")"
 		a.Validators = append(a.Validators, separator)
 		a.GroupValidators = append(a.GroupValidators, separator)
 		return a, nil
