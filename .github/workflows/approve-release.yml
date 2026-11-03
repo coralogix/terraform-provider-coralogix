@@ -15,6 +15,9 @@
 # after the approval, withdraws it until every check passes.
 # A merge that fails also withdraws it. A run is never cancelled once it starts, and a run that
 # finds the release PR merged but not tagged starts release-provider.yml itself.
+# check-ci.sh runs again right before the merge, and a re-run starts this workflow when it is
+# requested, so a check re-run after the approval holds the merge: master requires only
+# "Acceptance tests result".
 #
 # It runs when the release PR changes (to dismiss stale approvals) and whenever a PR workflow
 # finishes (to approve once the last check passes). Both triggers run this file and release.py
@@ -28,7 +31,8 @@ on:
       - master
   workflow_run:
     workflows: ["Acceptance Tests", "build", "release", "changelog-check", "tfsec"]
-    types: [completed]
+    # requested too: a re-run after the approval withdraws it as soon as it starts.
+    types: [requested, completed]
 
 permissions:
   contents: read
@@ -66,6 +70,9 @@ jobs:
           ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
           persist-credentials: false
+      - name: Keep master's scripts
+        # Later steps check out the PR head; the scripts that judge it must stay master's.
+        run: cp .github/scripts/release/release.py .github/scripts/release/check-ci.sh "$RUNNER_TEMP/"
       - id: pr
         name: Find the release PR
         run: |
@@ -117,7 +124,6 @@ jobs:
         env:
           HEAD_SHA: ${{ steps.pr.outputs.sha }}
         run: |
-          cp .github/scripts/release/release.py "$RUNNER_TEMP/release.py"
           git fetch --quiet --no-tags origin "$HEAD_SHA"
           git checkout --quiet --detach "$HEAD_SHA"
           version_of() { sed -n 's/^const TF_PROVIDER_VERSION = "\(.*\)"$/\1/p'; }
@@ -139,27 +145,13 @@ jobs:
         env:
           HEAD_SHA: ${{ steps.pr.outputs.sha }}
         run: |
-          # The latest run of every check on the head commit, except this workflow's own.
-          runs=$(gh api --paginate "repos/$GITHUB_REPOSITORY/commits/$HEAD_SHA/check-runs?per_page=100" \
-            --jq '.check_runs[] | select(.name | startswith("Release PR:") | not) | [.name, .status, (.conclusion // "")] | @tsv')
           # Until every check has passed, CI is not green, also when a check is re-run after the
           # approval; the bot's approval is then withdrawn below and given again once all pass.
-          not_green() { echo "$1"; echo "green=false" >> "$GITHUB_OUTPUT"; exit 0; }
-          # The checks that sum up the others; until they report, CI has not finished.
-          # Not piped into grep -q: under pipefail, grep stopping early can fail cut.
-          names=$(cut -f1 <<<"$runs")
-          for required in "version-bump" "Acceptance tests result"; do
-            if ! grep -qxF "$required" <<<"$names"; then
-              not_green "::notice::Waiting: '$required' has not reported yet"
-            fi
-          done
-          pending=$(awk -F'\t' '$2 != "completed" {print $1}' <<<"$runs")
-          if [ -n "$pending" ]; then not_green "::notice::Waiting for: $(tr '\n' ',' <<<"$pending")"; fi
-          failed=$(awk -F'\t' '$3 != "success" && $3 != "skipped" && $3 != "neutral" {print $1 " (" $3 ")"}' <<<"$runs")
-          if [ -n "$failed" ]; then
-            not_green "::warning::Not approving: failed checks: $(tr '\n' ',' <<<"$failed"). Re-run them; approval follows when they pass."
+          if "$RUNNER_TEMP/check-ci.sh" "$HEAD_SHA"; then
+            echo "green=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "green=false" >> "$GITHUB_OUTPUT"
           fi
-          echo "green=true" >> "$GITHUB_OUTPUT"
       - id: current
         name: Check against current master
         if: steps.ci.outputs.green == 'true'
@@ -197,6 +189,11 @@ jobs:
           HEAD_SHA: ${{ steps.pr.outputs.sha }}
           BASE: ${{ steps.current.outputs.base }}
         run: |
+          # A check re-run since the CI step above holds the merge, and the approval is withdrawn
+          # below. master requires only "Acceptance tests result", so GitHub wouldn't wait for it.
+          if ! "$RUNNER_TEMP/check-ci.sh" "$HEAD_SHA"; then
+            echo "::error::A check on #$PR changed after the approval; the approval is withdrawn until every check passes again."; exit 1
+          fi
           # --match-head-commit refuses to merge if the branch moved after the checks above.
           gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --match-head-commit "$HEAD_SHA"
           merged=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq '.mergeCommit.oid // empty')
