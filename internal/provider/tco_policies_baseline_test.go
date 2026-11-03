@@ -432,7 +432,16 @@ var tcoTracesScenarios = map[string]func(h *grHarness, f *tcoFake){
 	"dpxl-expression": func(h *grHarness, _ *tcoFake) {
 		s := h.Apply("create", h.null(), tcoPolicies(tcoPolicy("first", "high", j{"dpxl_expression": "<v1> $l.serviceName == 'checkout'"})))
 		s = h.RefreshPlan("refresh", s)
-		h.Apply("update: services instead of dpxl_expression", s, tcoPolicies(tcoPolicy("first", "high", j{"services": tcoRule("", "checkout")})))
+		s = h.Apply("update: services instead of dpxl_expression", s, tcoPolicies(tcoPolicy("first", "high", j{"services": tcoRule("", "checkout")})))
+		s = h.RefreshPlan("refresh", s)
+		structured := tcoPolicy("first", "high", j{
+			"services": tcoRule("", "checkout"),
+			"actions":  tcoRule("starts_with", "get"),
+			"tags":     j{"tags.region": tcoRule("is_not", "eu")},
+		})
+		s = h.Apply("update: every structured rule", s, tcoPolicies(structured))
+		s = h.Apply("update: dpxl_expression instead of the structured rules", s, tcoPolicies(tcoPolicy("first", "high", j{"dpxl_expression": "<v1> $l.serviceName == 'checkout'"})))
+		h.RefreshPlan("refresh", s)
 	},
 
 	"duplicate-names": func(h *grHarness, _ *tcoFake) {
@@ -635,6 +644,10 @@ func tcoDataSourceScenarios(source string, entry func(name, priority string) j, 
 		"api-error": func(h *grHarness) {
 			h.tcoPolicies().failGets(http.StatusInternalServerError, "Unexpected server error occurred")
 			h.ReadDataSource("read: the API fails", j{})
+		},
+		"route-missing": func(h *grHarness) {
+			h.tcoPolicies().failGets(http.StatusNotFound, "Not Found")
+			h.ReadDataSource("read: the gateway has no such route", j{})
 		},
 	}
 }
