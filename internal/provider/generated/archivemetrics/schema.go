@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -47,10 +46,6 @@ func Schema() schema.Schema {
 			},
 			"retention_policy": schema.SingleNestedAttribute{
 				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.UseStateForUnknown(),
-				},
 				Attributes: map[string]schema.Attribute{
 					"five_minutes_resolution": schema.Int64Attribute{
 						Required:            true,
@@ -65,7 +60,7 @@ func Schema() schema.Schema {
 						MarkdownDescription: "",
 					},
 				},
-				MarkdownDescription: "The retention policy (in days) for the archived metrics. Having default values when not specified.",
+				MarkdownDescription: "The retention policy (in days) for the archived metrics. Leave it out to keep no retention policy: a configuration without it clears one that was set outside Terraform.",
 			},
 			"s3": schema.SingleNestedAttribute{
 				Optional: true,

@@ -8,9 +8,8 @@ id  StringAttribute computed
     markdown: "The fixed id of this singleton: there is one per company."
 prefix  StringAttribute computed
     plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
-retention_policy  SingleNestedAttribute optional computed
-    markdown: "The retention policy (in days) for the archived metrics. Having default values when not specified."
-    plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+retention_policy  SingleNestedAttribute optional
+    markdown: "The retention policy (in days) for the archived metrics. Leave it out to keep no retention policy: a configuration without it clears one that was set outside Terraform."
 retention_policy.five_minutes_resolution  Int64Attribute required
 retention_policy.one_hour_resolution  Int64Attribute required
 retention_policy.raw_resolution  Int64Attribute required

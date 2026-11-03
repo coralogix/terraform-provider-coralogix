@@ -11,7 +11,7 @@
       "ibm": null,
       "id": "archive-metrics-settings",
       "prefix": "(unknown)",
-      "retention_policy": "(unknown)",
+      "retention_policy": null,
       "s3": {
         "bucket": "metrics-bucket",
         "region": "eu-north-1"
@@ -43,7 +43,7 @@
       "ibm": null,
       "id": "archive-metrics-settings",
       "prefix": "(unknown)",
-      "retention_policy": "(unknown)",
+      "retention_policy": null,
       "s3": {
         "bucket": "metrics-bucket",
         "region": "eu-north-1"
