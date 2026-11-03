@@ -16,7 +16,9 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 
@@ -54,6 +56,7 @@ func TestIpAccessBaselineScenarios(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			h := newIpAccessHarness(t)
 			run(h)
+			canonicalizeIpAccessStepValues(h.steps)
 			checkGoldenAt(t, ipAccessGoldenDir, "scenario_"+name+".json", maskIpAccessIDs(marshalGolden(t, h.steps)))
 		})
 	}
@@ -64,6 +67,22 @@ var ipAccessScenarios = map[string]func(h *grHarness){
 		s := h.Apply("create with default support access and empty rules", h.null(), j{"ip_access": l{}})
 		s = h.RefreshPlan("refresh and replan defaults", s)
 		h.Destroy("destroy", s)
+	},
+	"ip-access-omitted-on-create": func(h *grHarness) {
+		// The Optional+Computed set is unknown when omitted; the handwritten slice
+		// model cannot consume that value, so Create fails before an API request.
+		h.Apply("create with ip_access omitted", h.null(), j{})
+	},
+	"ip-access-omitted-on-update": func(h *grHarness) {
+		s := h.Apply("create with one rule", h.null(), j{"ip_access": l{
+			j{"enabled": false, "ip_range": "192.0.2.0/24", "name": "first"},
+		}})
+		// Omission also produces an unknown set on Update; record the conversion
+		// error and confirm a refresh keeps the existing backend rule.
+		s = h.Apply("update with ip_access omitted", s, j{
+			"enable_coralogix_customer_support_access": "disabled",
+		})
+		h.RefreshPlan("refresh and replan after omitted ip_access", s)
 	},
 	"full-lifecycle": func(h *grHarness) {
 		config := j{
@@ -158,4 +177,35 @@ func maskIpAccessIDs(golden []byte) []byte {
 	golden = []byte(strings.ReplaceAll(string(golden), "imported-settings", "<import-id>"))
 	golden = []byte(strings.ReplaceAll(string(golden), "settings-id", "<settings-id>"))
 	return ipAccessIDPattern.ReplaceAll(golden, []byte("<masked-id>"))
+}
+
+func canonicalizeIpAccessStepValues(steps []grStep) {
+	for i := range steps {
+		canonicalizeIpAccessSets(steps[i].Plan)
+		canonicalizeIpAccessSets(steps[i].State)
+	}
+}
+
+func canonicalizeIpAccessSets(value any) {
+	switch value := value.(type) {
+	case map[string]any:
+		for key, item := range value {
+			if key == "ip_access" {
+				if elements, ok := item.([]any); ok {
+					sort.Slice(elements, func(i, j int) bool {
+						left, _ := json.Marshal(elements[i])
+						right, _ := json.Marshal(elements[j])
+						return string(left) < string(right)
+					})
+					value[key] = elements
+				}
+				continue
+			}
+			canonicalizeIpAccessSets(item)
+		}
+	case []any:
+		for _, item := range value {
+			canonicalizeIpAccessSets(item)
+		}
+	}
 }

@@ -20,14 +20,14 @@
       "id": "(unknown)",
       "ip_access": [
         {
-          "enabled": true,
-          "ip_range": "192.0.2.0/24",
-          "name": "office"
-        },
-        {
           "enabled": false,
           "ip_range": "198.51.100.0/24",
           "name": null
+        },
+        {
+          "enabled": true,
+          "ip_range": "192.0.2.0/24",
+          "name": "office"
         }
       ]
     },
@@ -60,14 +60,14 @@
       "id": "<settings-id>",
       "ip_access": [
         {
-          "enabled": true,
-          "ip_range": "192.0.2.0/24",
-          "name": "office"
-        },
-        {
           "enabled": false,
           "ip_range": "198.51.100.0/24",
           "name": ""
+        },
+        {
+          "enabled": true,
+          "ip_range": "192.0.2.0/24",
+          "name": "office"
         }
       ]
     },
@@ -95,14 +95,14 @@
       "id": "<settings-id>",
       "ip_access": [
         {
-          "enabled": true,
-          "ip_range": "192.0.2.0/24",
-          "name": "office"
-        },
-        {
           "enabled": false,
           "ip_range": "198.51.100.0/24",
           "name": ""
+        },
+        {
+          "enabled": true,
+          "ip_range": "192.0.2.0/24",
+          "name": "office"
         }
       ]
     }

@@ -56,6 +56,16 @@
         },
         {"method": "GET", "path": ""},
         {"method": "DELETE", "path": ""},
+        {"method": "GET", "path": ""},
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED"
+          }
+        },
+        {"method": "GET", "path": ""},
+        {"method": "DELETE", "path": ""},
         {"method": "GET", "path": ""}
       ]
     }

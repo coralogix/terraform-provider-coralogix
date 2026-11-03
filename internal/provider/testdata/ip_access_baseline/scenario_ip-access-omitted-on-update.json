@@ -1,0 +1,104 @@
+[
+  {
+    "step": "create with one rule",
+    "config": {
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "192.0.2.0/24",
+          "name": "first"
+        }
+      ]
+    },
+    "plan": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "(unknown)",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "192.0.2.0/24",
+          "name": "first"
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "body": {
+          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
+          "ipAccess": [
+            {
+              "enabled": false,
+              "ipRange": "192.0.2.0/24",
+              "name": "first"
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "<settings-id>",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "192.0.2.0/24",
+          "name": "first"
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update with ip_access omitted",
+    "config": {
+      "enable_coralogix_customer_support_access": "disabled"
+    },
+    "plan": {
+      "enable_coralogix_customer_support_access": "disabled",
+      "id": "(unknown)",
+      "ip_access": "(unknown)"
+    },
+    "applyDiagnostics": [
+      "error: Value Conversion Error [AttributeName(\"ip_access\")] | An unexpected error was encountered trying to build a value. This is always an error in the provider. Please report the following to the provider developer:\n\nReceived unknown value, however the target type cannot handle unknown values. Use the corresponding `types` package type or a custom type that handles unknown values.\n\nPath: ip_access\nTarget Type: []aaa.IpAccessRuleModel\nSuggested Type: basetypes.SetValue"
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "<settings-id>",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "192.0.2.0/24",
+          "name": "first"
+        }
+      ]
+    }
+  },
+  {
+    "step": "refresh and replan after omitted ip_access",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "disabled",
+      "id": "<settings-id>",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "192.0.2.0/24",
+          "name": "first"
+        }
+      ]
+    },
+    "drift": [
+      "AttributeName(\"enable_coralogix_customer_support_access\")"
+    ],
+    "replanEmpty": true
+  }
+]
