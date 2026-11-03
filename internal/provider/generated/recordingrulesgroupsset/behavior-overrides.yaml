@@ -34,7 +34,10 @@ types:
         useStateForUnknown: true
         markdownDescription: "The name of the rule group. Overrides the name specified in the YAML if provided."
       groups:
-        computed: true # yaml_content can set the groups instead
+        # The contract requires the groups. The released attribute can be left out, because
+        # yaml_content sends the groups instead.
+        optional: true
+        computed: true
         useStateForUnknown: true
     # The groups as a YAML document. internal/provider/recording_rules turns it into the request
     # with a hook, and adds its validators, the ExactlyOneOf of groups, and its plan modifier.

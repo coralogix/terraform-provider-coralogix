@@ -347,6 +347,10 @@ func expandCreateRuleGroupSet(ctx context.Context, p path.Path, m *OutRuleGroupS
 			out.Groups = append(out.Groups, *expandInRuleGroup(ctx, p.AtName("groups"), &items[i], diags))
 		}
 	}
+	if out.Groups == nil {
+		// The request requires the list or the map: an empty one, not null.
+		out.Groups = make([]recording_rules_service.InRuleGroup, 0)
+	}
 	out.Name = expandString(m.Name)
 	return out
 }
@@ -391,6 +395,10 @@ func expandUpdateRuleGroupSet(ctx context.Context, p path.Path, m *OutRuleGroupS
 			out.Groups = append(out.Groups, *expandInRuleGroup(ctx, p.AtName("groups"), &items[i], diags))
 		}
 	}
+	if out.Groups == nil {
+		// The request requires the list or the map: an empty one, not null.
+		out.Groups = make([]recording_rules_service.InRuleGroup, 0)
+	}
 	out.Name = expandString(m.Name)
 	return out
 }
@@ -419,8 +427,8 @@ func flattenOutRuleGroup(ctx context.Context, p path.Path, v *recording_rules_se
 		return nil
 	}
 	out := &OutRuleGroupModel{}
-	out.Interval = types.Int64PointerValue(v.Interval)
-	out.Limit = flattenUint64(p.AtName("limit"), v.Limit, diags)
+	out.Interval = types.Int64PointerValue(&v.Interval)
+	out.Limit = flattenUint64(p.AtName("limit"), &v.Limit, diags)
 	out.Name = types.StringPointerValue(&v.Name)
 	out.Rules = types.ListNull(types.ObjectType{AttrTypes: outRuleAttrTypes()})
 	if v.Rules != nil {

@@ -72,6 +72,7 @@
 - DOCS: The descriptions of the attributes follow the new API contract.
 
 #### provider
+- CHORE: Bump `coralogix-management-sdk` to the version with the recording rules contract: unordered `groups`, the defaults of `interval` (60) and `limit` ("0"), which the response requires, and `groups` required with at least one item in Create and Update.
 - CHORE: Bump `coralogix-management-sdk` to the version with the actions contract: the defaults of `isHidden` and `isPrivate`, `createdBy` as output-only, and the description of the replace.
 - CHORE: Bump `coralogix-management-sdk` to the version with the integrations contract. The SDK holds the required fields of `IntegrationMetadata` and `DeployedIntegrationInformation` as values; `coralogix_integration` adapts, with no change to plans. The dashboard tests answer a Get with the `permissions` object that the SDK now requires in the response.
 - CHORE: Bump `golang.org/x/crypto` to v0.58.1-0.20261009181718-2f1f834330b2 to clear GO-2026-5932. The provider does not import `golang.org/x/crypto/openpgp`. No change to provider behavior.
