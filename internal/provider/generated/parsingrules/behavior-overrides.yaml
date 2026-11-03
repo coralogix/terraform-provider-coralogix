@@ -150,15 +150,15 @@ types:
   JsonStringifyParameters:
     fields:
       destinationField: {required: true, markdownDescription: "The field that will be populated by the results of the RegEx operation."}
-      deleteSource: {name: keep_source_field, negate: true, computed: true, default: false, description: "Determines whether to keep or to delete the source field."}
+      deleteSource: {name: keep_source_field, invert: true, computed: true, default: false, description: "Determines whether to keep or to delete the source field."}
   ExtractParameters:
     fields:
       rule: {name: regular_expression, required: true, markdownDescription: "Regular expiration. More info: https://coralogix.com/blog/regex-101/"}
   JsonParseParameters:
     fields:
       destinationField: {required: true, markdownDescription: "The field that will be populated by the results of the RegEx operation."}
-      deleteSource: {name: keep_source_field, negate: true, computed: true, default: false, description: "Determines whether to keep or to delete the source field."}
-      overrideDest: {name: keep_destination_field, negate: true, computed: true, default: true, description: "Determines whether to keep or to delete the destination field."}
+      deleteSource: {name: keep_source_field, invert: true, computed: true, default: false, description: "Determines whether to keep or to delete the source field."}
+      overrideDest: {name: keep_destination_field, invert: true, computed: true, default: true, description: "Determines whether to keep or to delete the destination field."}
       escapedValue: {requestValue: "true"}
 
 enums:
