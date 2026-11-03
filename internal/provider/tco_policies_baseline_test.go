@@ -258,6 +258,32 @@ var tcoLogsScenarios = map[string]func(h *grHarness, f *tcoFake){
 		h.Destroy("destroy", s)
 	},
 
+	// The API keeps the dataspace as sent and rejects any other than default (recorded in
+	// fidelity/cases.json: logs-target-dataspace).
+	"target-dataspace": func(h *grHarness, _ *tcoFake) {
+		policy := func(dataspace string) j {
+			target := j{"dataset": "logs", "priority": "high"}
+			if dataspace != "" {
+				target["dataspace"] = dataspace
+			}
+			return tcoPolicies(tcoPolicy("first", "", tcoSeverities("info"), j{"targets": l{target}}))
+		}
+		s := h.Apply("create: dataspace Default", h.null(), policy("Default"))
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: another dataspace, rejected by the API", s, policy("other"))
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: remove the dataspace", s, policy(""))
+		s = h.RefreshPlan("refresh", s)
+		h.Destroy("destroy", s)
+	},
+
+	"verbose": func(h *grHarness, _ *tcoFake) {
+		s := h.Apply("create: verbose", h.null(), tcoPolicies(tcoPolicy("first", "high", tcoSeverities("verbose"))))
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: info instead of verbose", s, tcoPolicies(tcoPolicy("first", "high", tcoSeverities("info"))))
+		h.RefreshPlan("refresh", s)
+	},
+
 	"targets-rejected": func(h *grHarness, _ *tcoFake) {
 		h.Apply("create: priority on the policy and on the target", h.null(), tcoPolicies(tcoPolicy("first", "high", tcoSeverities("info"), j{"targets": l{
 			j{"dataset": "logs", "priority": "high"},
@@ -509,6 +535,12 @@ var tcoTracesScenarios = map[string]func(h *grHarness, f *tcoFake){
 		h.Destroy("destroy: the API fails", s)
 	},
 
+	"empty-list": func(h *grHarness, _ *tcoFake) {
+		s := h.Apply("create: no policies", h.null(), j{"policies": l{}})
+		s = h.RefreshPlan("refresh", s)
+		h.Destroy("destroy", s)
+	},
+
 	"import": func(h *grHarness, f *tcoFake) {
 		f.seed("spans", j{"policies": l{
 			tcoSpanEntry("seeded", "PRIORITY_TYPE_MEDIUM", j{
@@ -615,6 +647,19 @@ var tcoRumScenarios = map[string]func(h *grHarness, f *tcoFake){
 		s := h.Apply("create", h.null(), tcoPolicies(tcoPolicy("first", "medium", tcoSeverities("error"))))
 		f.failPuts(http.StatusInternalServerError, "Unexpected server error occurred")
 		h.Destroy("destroy: the API fails", s)
+	},
+
+	"empty-list": func(h *grHarness, _ *tcoFake) {
+		s := h.Apply("create: no policies", h.null(), j{"policies": l{}})
+		s = h.RefreshPlan("refresh", s)
+		h.Destroy("destroy", s)
+	},
+
+	"verbose": func(h *grHarness, _ *tcoFake) {
+		s := h.Apply("create: verbose", h.null(), tcoPolicies(tcoPolicy("first", "medium", tcoSeverities("verbose"))))
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: info instead of verbose", s, tcoPolicies(tcoPolicy("first", "medium", tcoSeverities("info"))))
+		h.RefreshPlan("refresh", s)
 	},
 
 	"import": func(h *grHarness, f *tcoFake) {

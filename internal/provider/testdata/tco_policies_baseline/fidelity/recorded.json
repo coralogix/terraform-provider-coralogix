@@ -1036,14 +1036,14 @@
                   },
                   "tagRules": [
                     {
-                      "ruleTypeId": "RULE_TYPE_ID_IS_NOT",
-                      "tagName": "tags.region",
-                      "tagValue": "eu"
-                    },
-                    {
                       "ruleTypeId": "RULE_TYPE_ID_IS",
                       "tagName": "tags.http.method",
                       "tagValue": "GET,POST"
+                    },
+                    {
+                      "ruleTypeId": "RULE_TYPE_ID_IS_NOT",
+                      "tagName": "tags.region",
+                      "tagValue": "eu"
                     }
                   ]
                 },
@@ -2441,6 +2441,259 @@
           "status": 200,
           "response": {
             "policies": []
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "logs-target-dataspace",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": true,
+                  "id": "<id>",
+                  "logRules": {
+                    "severities": [
+                      "SEVERITY_INFO"
+                    ]
+                  },
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_UNSPECIFIED",
+                  "targets": [
+                    {
+                      "dataset": "logs",
+                      "dataspace": "Default",
+                      "priority": "PRIORITY_TYPE_HIGH"
+                    }
+                  ],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_UNSPECIFIED",
+                "targets": [
+                  {
+                    "dataset": "logs",
+                    "dataspace": "Default",
+                    "priority": "PRIORITY_TYPE_HIGH"
+                  }
+                ],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies: ValidationError: Dataspace must be \"default\""
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_UNSPECIFIED",
+                "targets": [
+                  {
+                    "dataset": "logs",
+                    "dataspace": "Default",
+                    "priority": "PRIORITY_TYPE_HIGH"
+                  }
+                ],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "logs-verbose",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": true,
+                  "id": "<id>",
+                  "logRules": {
+                    "severities": [
+                      "SEVERITY_VERBOSE",
+                      "SEVERITY_INFO"
+                    ]
+                  },
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_HIGH",
+                  "targets": [
+                    {
+                      "dataset": "logs",
+                      "dataspace": "default",
+                      "priority": "PRIORITY_TYPE_HIGH"
+                    }
+                  ],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_VERBOSE",
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_HIGH",
+                "targets": [
+                  {
+                    "dataset": "logs",
+                    "dataspace": "default",
+                    "priority": "PRIORITY_TYPE_HIGH"
+                  }
+                ],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "rum-verbose",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": true,
+                  "id": "<id>",
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_MEDIUM",
+                  "rumRules": {
+                    "severities": [
+                      "SEVERITY_VERBOSE"
+                    ]
+                  },
+                  "targets": [],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_MEDIUM",
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_VERBOSE"
+                  ]
+                },
+                "targets": [],
+                "updatedAt": "<time>"
+              }
+            ]
           }
         },
         {

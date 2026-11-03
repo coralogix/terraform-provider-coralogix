@@ -56,7 +56,8 @@ var tcoPriorityRank = map[string]int{"PRIORITY_TYPE_BLOCK": 0, "PRIORITY_TYPE_LO
 //     It never answers 404. It adds priorityOverrideStatus to an enabled policy with an override.
 //   - A policy without targets reads back with one: logs, or spans for span policies, in dataspace
 //     default, with the priority and override of the policy. A span policy always has the spans
-//     target. A RUM policy has no targets. A target dataspace reads back as "default".
+//     target. A RUM policy has no targets. A target dataspace reads back as sent, "Default" too, and
+//     as "default" when omitted; any other value is rejected (recorded: logs-target-dataspace).
 //   - Rule names are lowercased, except tag values. An absent description reads as "".
 //   - Validation runs before anything is stored, and the first error answers: severities or a DPXL
 //     expression, never both, for logs and RUM; non-empty and unique targets; priority at one
@@ -327,6 +328,9 @@ func tcoValidate(source string, policy, rules map[string]any) string {
 		if dataset == "" {
 			return "Dataset name must not be empty"
 		}
+		if !strings.EqualFold(tcoDataspace(t), "default") {
+			return `Dataspace must be "default"`
+		}
 		key := strings.ToLower(tcoDataspace(t) + "/" + dataset)
 		if seen[key] {
 			return "Targets must be unique by (dataspace, dataset)"
@@ -569,7 +573,7 @@ func tcoHasPriority(m map[string]any) bool {
 
 func tcoDataspace(t map[string]any) string {
 	if d, _ := t["dataspace"].(string); d != "" {
-		return strings.ToLower(d)
+		return d
 	}
 	return "default"
 }

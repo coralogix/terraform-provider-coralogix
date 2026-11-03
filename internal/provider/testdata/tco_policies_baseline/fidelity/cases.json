@@ -1509,6 +1509,157 @@
           }
         }
       ]
+    },
+    {
+      "name": "logs-target-dataspace",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "/log-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "policy": {
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_UNSPECIFIED",
+                  "targets": [
+                    {
+                      "dataset": "logs",
+                      "dataspace": "Default",
+                      "priority": "PRIORITY_TYPE_HIGH"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_LOGS"
+        },
+        {
+          "method": "PUT",
+          "path": "/log-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "policy": {
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_UNSPECIFIED",
+                  "targets": [
+                    {
+                      "dataset": "logs",
+                      "dataspace": "other",
+                      "priority": "PRIORITY_TYPE_HIGH"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_LOGS"
+        },
+        {
+          "method": "PUT",
+          "path": "/log-policies/v1",
+          "body": {
+            "policies": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "logs-verbose",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "/log-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_VERBOSE",
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "policy": {
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_HIGH"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_LOGS"
+        },
+        {
+          "method": "PUT",
+          "path": "/log-policies/v1",
+          "body": {
+            "policies": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "rum-verbose",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "/rum-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "policy": {
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_MEDIUM"
+                },
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_VERBOSE"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_RUM"
+        },
+        {
+          "method": "PUT",
+          "path": "/rum-policies/v1",
+          "body": {
+            "policies": []
+          }
+        }
+      ]
     }
   ]
 }
