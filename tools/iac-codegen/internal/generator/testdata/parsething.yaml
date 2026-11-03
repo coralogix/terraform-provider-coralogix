@@ -3,6 +3,8 @@
 # a oneOf, and a list of groups of steps. A step has its own fields and a oneOf of parameters; two
 # arms of the oneOf have the same fields, one arm has a flag that the released resource shows
 # negated and a flag that it always sends, and one arm has an enum that it reads in any case.
+# Create and Replace declare server defaults for enabled and order, which the released lines
+# replace: the generated schema has no server-default plan modifier.
 openapi: 3.1.0
 info: {title: parse, version: 1.0.0}
 paths:
@@ -19,8 +21,8 @@ paths:
               type: object
               properties:
                 name: {type: string, x-coralogix-presence: true}
-                enabled: {type: boolean, x-coralogix-presence: true}
-                order: {type: integer, format: int64, x-coralogix-presence: true}
+                enabled: {type: boolean, default: true, x-coralogix-presence: true}
+                order: {type: integer, format: int64, default: 1, x-coralogix-presence: true}
                 note: {type: string, x-coralogix-presence: true}
                 matchers:
                   type: array
@@ -59,8 +61,8 @@ paths:
               type: object
               properties:
                 name: {type: string, x-coralogix-presence: true}
-                enabled: {type: boolean, x-coralogix-presence: true}
-                order: {type: integer, format: int64, x-coralogix-presence: true}
+                enabled: {type: boolean, default: true, x-coralogix-presence: true}
+                order: {type: integer, format: int64, default: 1, x-coralogix-presence: true}
                 note: {type: string, x-coralogix-presence: true}
                 matchers:
                   type: array

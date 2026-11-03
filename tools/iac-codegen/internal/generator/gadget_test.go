@@ -110,10 +110,12 @@ func TestRequiredLineStatesAnEmptyStringOfASharedComponent(t *testing.T) {
 		file  string
 		code  string
 	}{
-		"empty allowed, no line":    {"label: {type: string, x-coralogix-presence: true}", head, "REQUIRED_VALUE_CAN_BE_EMPTY"},
-		"empty allowed, line":       {"label: {type: string, x-coralogix-presence: true}", line, ""},
-		"empty refused, stale line": {"label: {type: string, minLength: 1, x-coralogix-presence: true}", line, "OVERRIDE_UNUSED"},
-		"empty refused, no line":    {"label: {type: string, minLength: 1, x-coralogix-presence: true}", head, ""},
+		"empty allowed, no line":            {"label: {type: string, x-coralogix-presence: true}", head, "REQUIRED_VALUE_CAN_BE_EMPTY"},
+		"empty allowed, line":               {"label: {type: string, x-coralogix-presence: true}", line, ""},
+		"empty refused, stale line":         {"label: {type: string, minLength: 1, x-coralogix-presence: true}", line, "OVERRIDE_UNUSED"},
+		"empty refused, no line":            {"label: {type: string, minLength: 1, x-coralogix-presence: true}", head, ""},
+		"pattern refuses empty, stale line": {"label: {type: string, pattern: '^[a-z]+$', x-coralogix-presence: true}", line, "OVERRIDE_UNUSED"},
+		"pattern allows empty, line":        {"label: {type: string, pattern: '^[a-z]*$', x-coralogix-presence: true}", line, ""},
 	} {
 		t.Run(name, func(t *testing.T) {
 			spec := strings.Replace(string(data), "      required: [text]\n      properties:\n", "      required: [text, label]\n      properties:\n        "+test.field+"\n", 1)

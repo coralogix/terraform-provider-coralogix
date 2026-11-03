@@ -7,6 +7,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -438,7 +439,15 @@ func requiredLineStatesPresence(schema *base.Schema, field string) bool {
 		return false
 	}
 	if built.Type[0] == "string" {
-		return built.Format == "" && (built.MinLength == nil || *built.MinLength < 1)
+		if built.Format != "" || built.MinLength != nil && *built.MinLength >= 1 {
+			return false
+		}
+		// A pattern that refuses "" makes the value non-empty, so the line states nothing.
+		if built.Pattern != "" {
+			re, err := regexp.Compile(built.Pattern)
+			return err == nil && re.MatchString("")
+		}
+		return true
 	}
 	if presence := built.Extensions.GetOrZero("x-coralogix-presence"); presence != nil && presence.Value == "true" {
 		return false
