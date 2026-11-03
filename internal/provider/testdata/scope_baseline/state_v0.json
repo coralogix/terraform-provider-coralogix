@@ -1,0 +1,13 @@
+{
+  "default_expression": "<v1>true",
+  "description": null,
+  "display_name": "seeded",
+  "filters": [
+    {
+      "entity_type": "logs",
+      "expression": "<v1>true"
+    }
+  ],
+  "id": "00000000-0000-4000-8000-000000000001",
+  "team_id": "1234"
+}

@@ -1,0 +1,352 @@
+{
+  "cases": [
+    {
+      "name": "missing route",
+      "steps": [
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Not Found"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Not Found"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create read change remove description delete",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "description": "original",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "description": "original",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}-updated",
+              "description": "changed",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_SPANS",
+                  "expression": "<v1>false"
+                },
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>false"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}-updated",
+                "description": "changed",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_SPANS",
+                    "expression": "<v1>false"
+                  },
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>false"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}-updated",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_SPANS",
+                  "expression": "<v1>false"
+                },
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>false"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}-updated",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_SPANS",
+                    "expression": "<v1>false"
+                  },
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>false"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: No scopes found"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Scope not found"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "empty description",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "description": "",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "description": "",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "empty filters",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "teamId": 1234,
+                "filters": [],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "null filters",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "teamId": 1234,
+                "filters": [],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "spans filter",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_SPANS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_SPANS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "unspecified entity type",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Incoming entity type is unspecified"
+          }
+        }
+      ]
+    }
+  ]
+}

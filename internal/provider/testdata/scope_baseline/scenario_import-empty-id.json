@@ -1,0 +1,13 @@
+[
+  {
+    "step": "import empty id",
+    "state": null
+  },
+  {
+    "step": "import empty id (refresh)",
+    "applyDiagnostics": [
+      "warning: coralogix_scope has no id in state | The state entry carries no scope id, so it cannot be read back; it will be recreated when you apply."
+    ],
+    "state": null
+  }
+]
