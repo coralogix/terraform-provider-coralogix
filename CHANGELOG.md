@@ -70,6 +70,7 @@
 - FIX: An empty `access_policy` returned by the API is read as null, the same as an omitted one. Before, the empty string went into state and import could not match it.
 
 #### provider
+- CHORE: Bump `golang.org/x/crypto` to v0.58.1-0.20261009181718-2f1f834330b2 to clear GO-2026-5932. The provider does not import `golang.org/x/crypto/openpgp`. No change to provider behavior.
 - CHORE: Bump `golang.org/x/net` to v0.62.0 to clear CVE-2026-97045 and CVE-2026-78661. No change to provider behavior.
 - CHORE: Bump `github.com/yuin/goldmark` to v1.7.17 to clear CVE-2026-5160. It is used only by the docs generator, not the provider binary. No change to provider behavior.
 - CHORE: Bump `coralogix-management-sdk` to the version with the AI evaluations contract. `coralogix_dashboards_folder` and `coralogix_dashboard` adapt to its types: the folder name is a required string, and the dashboard of a replace request is optional. A `coralogix_dashboards_folder` without `name` now sends an empty name: the API still rejects it, now with "folder name cannot be empty".
