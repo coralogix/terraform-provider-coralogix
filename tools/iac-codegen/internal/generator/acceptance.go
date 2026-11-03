@@ -72,6 +72,22 @@ type acceptanceData struct {
 	UpgradeCases []upgradeCaseData
 	// DataSource is the data source step of full-lifecycle. nil when the package has no data source.
 	DataSource *accDataSource
+	// LeftoversImport and LeftoversCall are the import path and the Go name of the leftovers
+	// function of the acceptance file, or "".
+	LeftoversImport, LeftoversCall string
+}
+
+// PreCheck is the body of the PreCheck function of a subtest that applies the named config
+// constants. With a leftovers function, it removes the leftovers of those configs after the checks.
+func (d *acceptanceData) PreCheck(configs ...string) string {
+	if d.LeftoversCall == "" {
+		return "preCheck(t)"
+	}
+	args := []string{"t"}
+	for _, name := range configs {
+		args = append(args, "config(run, "+name+")")
+	}
+	return "preCheck(t); " + d.LeftoversCall + "(" + strings.Join(args, ", ") + ")"
 }
 
 // UpgradeNextFullName is the Go constant of the full config that upgrade-minimal applies with this
@@ -154,6 +170,11 @@ func buildAcceptance(res *tfResource, providerModule string, file *acceptance.Fi
 		Env:            file.Env,
 		Prerequisites:  strings.TrimSpace(file.Prerequisites),
 		UpgradeFrom:    file.UpgradeFrom,
+	}
+	if file.Leftovers != "" {
+		dir := file.LeftoversPackage()
+		out.LeftoversImport = providerModule + "/" + dir
+		out.LeftoversCall = filepath.Base(dir) + "." + file.LeftoversFunc()
 	}
 	for _, step := range []struct {
 		mode accMode
