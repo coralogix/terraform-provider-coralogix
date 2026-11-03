@@ -218,6 +218,8 @@ var parsingRulesScenarios = map[string]func(h *grHarness){
 
 	"empty-replacement": func(h *grHarness) {
 		// replacement_string = "" removes the match. The API takes an empty replaceNewVal.
+		// replacement_string is optional, but the API requires replaceNewVal.
+		h.Apply("create without replacement_string", h.null(), prCfg([]any{prRule("replace", j{"source_field": "text", "destination_field": "text", "regular_expression": "a"})}, nil))
 		empty := prCfg([]any{prRule("replace", j{"source_field": "text", "destination_field": "text", "regular_expression": "a", "replacement_string": ""})}, nil)
 		s := h.Apply("create with replacement_string = \"\"", h.null(), empty)
 		s = prRefreshPlan(h, "refresh", s)
@@ -417,6 +419,7 @@ var parsingRulesScenarios = map[string]func(h *grHarness){
 		}}, nil))
 		h.Validate("subgroup without rules", prCfg(nil, j{"rule_subgroups": []any{j{}}}))
 		h.Validate("subgroup with empty rules", prCfg(nil, j{"rule_subgroups": []any{j{"rules": []any{}}}}))
+		h.Apply("create a subgroup with empty rules", h.null(), prCfg(nil, j{"rule_subgroups": []any{j{"rules": []any{}}}}))
 		h.Apply("create json_extract to Text without destination_field_text", h.null(), prCfg([]any{
 			prRule("json_extract", j{"json_key": "k", "destination_field": "Text"}),
 		}, nil))
