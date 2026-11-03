@@ -228,6 +228,13 @@ var rrScenarios = map[string]func(h *grHarness){
 		h.Apply("update: rename", s, j{"yaml_content": rrYAML, "name": "tf-name-2"})
 	},
 
+	// Neither the document nor the name attribute names the set, so the API names it after its id.
+	"yaml-content-without-name": func(h *grHarness) {
+		s := h.Apply("create", h.null(), j{"yaml_content": "groups:\n  - name: yaml-a\n    rules:\n      - record: tf:yaml_a\n        expr: vector(1)\n"})
+		s = h.RefreshPlan("refresh", s)
+		h.Destroy("destroy", s)
+	},
+
 	"yaml-content-to-groups": func(h *grHarness) {
 		s := h.Apply("create", h.null(), j{"yaml_content": rrYAMLChanged})
 		h.Apply("update: groups instead of yaml_content", s, rrCfg("from-yaml", rrGroup("yaml-a", j{"interval": 180.0}, rrRule("tf:yaml_a", nil))))
