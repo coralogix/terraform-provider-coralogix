@@ -1,5 +1,5 @@
 {
-  "comment": "Live API requests used to validate the IP access fake. Recording is only safe on a disposable team with no IP access entries and customer-support access disabled. Every rule is disabled except the final named 0.0.0.0/0 safety probe.",
+  "comment": "Live API requests used to validate the IP access fake. Recording is only safe on a disposable team with no IP access entries and customer-support access disabled. The live recorder never enables customer-support access; the fake-backed full-lifecycle scenario exercises ENABLED, but that backend response remains unverified. Every IP rule is disabled except the final named 0.0.0.0/0 safety probe.",
   "cases": [
     {
       "name": "singleton-lifecycle",

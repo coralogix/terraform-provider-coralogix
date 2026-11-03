@@ -103,6 +103,9 @@ var ipAccessScenarios = map[string]func(h *grHarness){
 		})
 		h.RefreshPlan("refresh and replan after omitted ip_access", s)
 	},
+	// This fake-backed scenario exercises ENABLED support access for Terraform schema
+	// coverage. The live recorder keeps support access DISABLED, so the backend's response
+	// to ENABLED remains unverified and is not treated as a fidelity fact.
 	"full-lifecycle": func(h *grHarness) {
 		config := j{
 			"enable_coralogix_customer_support_access": "enabled",
