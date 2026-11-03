@@ -81,6 +81,10 @@ func generatedWebhookBase(kind string) *webhookTestFields {
 		return getRandomWebhookWithCustomTld("slack.com")
 	case "jira":
 		return getRandomWebhookWithCustomUrl("xyz.atlassian.net")
+	case "microsoft_teams_workflow":
+		return getRandomWebhookWithCustomUrl("xyxz.webhook.office.com")
+	case "opsgenie":
+		return getRandomWebhookWithCustomUrl("api.opsgenie.com")
 	default:
 		return getRandomWebhook()
 	}
