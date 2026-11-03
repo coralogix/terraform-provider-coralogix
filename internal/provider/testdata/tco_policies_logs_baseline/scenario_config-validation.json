@@ -185,7 +185,7 @@
       ]
     },
     "validateDiagnostics": [
-      "warning: Conflicting Attributes Values Configuration [AttributeName(\"subsystems\")] | Currently, rule_type \"starts_with\" supports only one value, but \"names\" has 2 elements. Remove all but one to remove this warning."
+      "warning: Conflicting Attributes Values Configuration [AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"subsystems\")] | Currently, rule_type \"starts_with\" supports only one value, but \"names\" has 2 elements. Remove all but one to remove this warning."
     ],
     "state": null
   },

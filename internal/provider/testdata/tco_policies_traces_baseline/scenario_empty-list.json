@@ -5,7 +5,7 @@
       "policies": []
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-traces",
       "policies": []
     },
     "requests": [
@@ -13,23 +13,21 @@
         "method": "PUT",
         "path": "/mgmt/openapi/5/dataplans/span-policies/v1",
         "body": {
-          "policies": null
+          "policies": []
         },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_SPANS",
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "policies"
-    ],
     "state": {
-      "id": null,
-      "policies": null
+      "id": "tco-policies-traces",
+      "policies": []
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"id\")",
-      "AttributeName(\"policies\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -41,14 +39,10 @@
       }
     ],
     "state": {
-      "id": null,
-      "policies": null
+      "id": "tco-policies-traces",
+      "policies": []
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"id\")",
-      "AttributeName(\"policies\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "destroy",

@@ -1,0 +1,169 @@
+# Where coralogix_tco_policies_traces differs from the API contract, because users already have it.
+#
+# A field with a line here keeps its released behavior. A field without a line follows the API
+# contract.
+resource: GetCompanyPoliciesResponse
+mode: existing
+typeName: tco_policies_traces
+
+markdownDescription: "Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api."
+
+validators:
+  inferred: false
+
+singletonID: {fixed: tco-policies-traces}
+
+api:
+  # One PUT replaces every span policy of the company, and GET lists the policies of each source type.
+  overwrite:
+    getQuery: {source_type: SOURCE_TYPE_SPANS}
+  operations:
+    create: PoliciesService_AtomicOverwriteSpanPolicies
+    get: PoliciesService_GetCompanyPolicies
+    update: PoliciesService_AtomicOverwriteSpanPolicies
+    delete: PoliciesService_AtomicOverwriteSpanPolicies
+
+# The released data source reads every span policy. It takes no input.
+dataSource: {}
+
+unwrap: [ArchiveRetention, PriorityOverride]
+
+types:
+  GetCompanyPoliciesResponse:
+    fields:
+      policies:
+        markdownDescription: ""
+  Policy:
+    # A written policy holds these fields in "policy", next to its spanRules.
+    requestWrapper: policy
+    fields:
+      companyId: {skip: true}
+      deleted: {skip: true}
+      createdAt: {skip: true}
+      updatedAt: {skip: true}
+      priorityOverrideStatus: {skip: true}
+      id:
+        markdownDescription: "tco-policy ID."
+      name:
+        markdownDescription: "tco-policy name."
+        validators:
+          - lengthAtLeast: 1
+      description:
+        computed: true
+        default: ""
+        markdownDescription: "The policy description"
+      enabled:
+        requestAs: disabled
+        negate: true
+        computed: true
+        default: true
+        markdownDescription: "Determines weather the policy will be enabled. True by default."
+      priority:
+        required: true
+        markdownDescription: "The policy priority. Can be one of [\"block\" \"high\" \"low\" \"medium\"]. When `quota_based_priority_override` is set, this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of \"Route the remaining quota to\" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`)."
+        validators:
+          - enumExceptZero: true
+      order:
+        terraformType: Int64
+        markdownDescription: "The policy's order between the other policies."
+      archiveRetention:
+        name: archive_retention_id
+        description: "Allowing logs with a specific retention to be tagged."
+        validators:
+          - lengthAtLeast: 1
+      applicationRule:
+        name: applications
+        markdownDescription: "The applications to apply the policy on. Applies the policy on all the applications by default."
+      subsystemRule:
+        name: subsystems
+        markdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default."
+      priorityOverride:
+        name: quota_based_priority_override
+        markdownDescription: "Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback (\"Route the remaining quota to\" in the UI), which must be more restrictive than the last tier. Omit the attribute to clear it."
+      # The released policy has no targets: the API reads one back for every span policy.
+      targets: {skip: true}
+      # The released attributes of the spanRules are policy attributes. A span policy never has the rules of another source type.
+      spanRules: {inline: true}
+      logRules: {skip: true}
+      rumRules: {skip: true}
+      serviceRule:
+        name: services
+        markdownDescription: "The services to apply the policy on. Applies the policy on all the services by default."
+      actionRule:
+        name: actions
+        markdownDescription: "The actions to apply the policy on. Applies the policy on all the actions by default."
+      tagRules:
+        name: tags
+        keyedBy: {key: tagName}
+        markdownDescription: "The tags to apply the policy on. Applies the policy on all the tags by default."
+        validators:
+          - keysAre: {pattern: "tags.*", message: "tag names must have a 'tags.' prefix"}
+      dpxlExpression:
+        markdownDescription: "DataPrime expression to match spans for this policy. Mutually exclusive with the structured matchers (`services`, `actions`, `tags`, `applications`, `subsystems`) — set either this or those. Omit the attribute to clear it; an empty string is rejected by the API. The expression must include a version prefix, e.g. `<v1> $d.status == 'ERROR'`."
+        validators:
+          - lengthAtLeast: 1
+          - conflictsWith: [services, actions, tags, applications, subsystems]
+  quota.v1.Rule:
+    fields:
+      name:
+        split: ","
+        name: names
+        required: true
+        markdownDescription: ""
+        validators:
+          - sizeAtLeast: 1
+          - regexMatches: {pattern: "[^A-Z]+", message: "Only lowercase letters are allowed"}
+      ruleTypeId:
+        name: rule_type
+        computed: true
+        default: is
+        markdownDescription: ""
+        validators:
+          - enum: true
+  TagRule:
+    fields:
+      tagValue:
+        split: ","
+        name: names
+        markdownDescription: ""
+        validators:
+          - sizeAtLeast: 1
+      ruleTypeId:
+        name: rule_type
+        optional: true
+        computed: true
+        default: is
+        markdownDescription: ""
+        validators:
+          - enum: true
+  QuotaBased:
+    fields:
+      usageTiers:
+        required: true
+        markdownDescription: "Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. The API requires `daily_quota_percentage` to strictly increase and `priority` to strictly decrease across the list, with every tier's priority strictly above the policy's base `priority`; violations are rejected at apply time."
+        validators:
+          - sizeAtLeast: 1
+  UsageTier:
+    fields:
+      dailyQuotaPercentage:
+        required: true
+        markdownDescription: "Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100."
+        validators:
+          - between: [0, 100]
+      priority:
+        required: true
+        markdownDescription: "The priority to apply when this tier is active. Can be one of [\"high\" \"low\" \"medium\"] (`block` is not valid for a tier)."
+        validators:
+          - oneOf: [high, low, medium] # block is not a tier priority
+
+enums:
+  # The API returns PRIORITY_TYPE_UNSPECIFIED for a policy whose priority is on its targets.
+  quota.v1.Priority:
+    zeroNull: true
+    trimPrefix: PRIORITY_TYPE_
+    values: [PRIORITY_TYPE_BLOCK, PRIORITY_TYPE_LOW, PRIORITY_TYPE_MEDIUM, PRIORITY_TYPE_HIGH]
+  RuleTypeId:
+    zero: unspecified
+    trimPrefix: RULE_TYPE_ID_
+    names: {RULE_TYPE_ID_START_WITH: starts_with}
+    values: [RULE_TYPE_ID_IS, RULE_TYPE_ID_IS_NOT, RULE_TYPE_ID_START_WITH, RULE_TYPE_ID_INCLUDES]

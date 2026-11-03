@@ -10,7 +10,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_tco_policies_traces | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Unexpected server error occurred\"}\noperation - Read"
+      "error: Unable to read coralogix_tco_policies_traces | id tco-policies-traces: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Unexpected server error occurred\"}"
     ],
     "state": {
       "id": null,

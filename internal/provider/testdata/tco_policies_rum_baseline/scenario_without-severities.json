@@ -10,7 +10,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -41,9 +41,7 @@
                 "name": "first",
                 "priority": "PRIORITY_TYPE_MEDIUM"
               },
-              "rumRules": {
-                "severities": []
-              }
+              "rumRules": {}
             }
           ]
         },
@@ -51,7 +49,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_tco_policies_rum | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteRumPolicies: ValidationError: must contain at least 1 item when not using dpxlExpression\"}\noperation - Create"
+      "error: Unable to create tco_policies_rum | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteRumPolicies: ValidationError: must contain at least 1 item when not using dpxlExpression\"}"
     ],
     "state": null
   }

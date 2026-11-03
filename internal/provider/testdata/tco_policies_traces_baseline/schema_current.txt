@@ -1,7 +1,8 @@
 (schema)  version=0
     markdown: "Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api."
 id  StringAttribute computed
-    markdown: "This field can be ignored"
+    default: stringdefault.staticStringDefault value defaults to tco-policies-traces
+    markdown: "The fixed id of this singleton: there is one per company."
 policies  ListNestedAttribute required
 policies[]  NestedObject
 policies[].actions  SingleNestedAttribute optional
@@ -9,6 +10,7 @@ policies[].actions  SingleNestedAttribute optional
 policies[].actions.names  SetAttribute required elem=basetypes.StringType
     validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
     validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: Only lowercase letters are allowed
+    validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: must not be empty or contain ","
 policies[].actions.rule_type  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to is
     validator: stringvalidator.oneOfValidator value must be one of: ["includes" "is" "is_not" "starts_with" "unspecified"]
@@ -17,6 +19,7 @@ policies[].applications  SingleNestedAttribute optional
 policies[].applications.names  SetAttribute required elem=basetypes.StringType
     validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
     validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: Only lowercase letters are allowed
+    validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: must not be empty or contain ","
 policies[].applications.rule_type  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to is
     validator: stringvalidator.oneOfValidator value must be one of: ["includes" "is" "is_not" "starts_with" "unspecified"]
@@ -46,7 +49,7 @@ policies[].priority  StringAttribute required
 policies[].quota_based_priority_override  SingleNestedAttribute optional
     markdown: "Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback (\"Route the remaining quota to\" in the UI), which must be more restrictive than the last tier. Omit the attribute to clear it."
 policies[].quota_based_priority_override.usage_tiers  ListNestedAttribute required
-    markdown: "Ordered list of quota-consumption tiers; the policy's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. The API requires `daily_quota_percentage` to strictly increase and `priority` to strictly decrease across the list, with every tier's priority strictly above the policy's base `priority`; violations are rejected at apply time."
+    markdown: "Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached. The API requires `daily_quota_percentage` to strictly increase and `priority` to strictly decrease across the list, with every tier's priority strictly above the policy's base `priority`; violations are rejected at apply time."
     validator: listvalidator.sizeAtLeastValidator list must contain at least 1 elements
 policies[].quota_based_priority_override.usage_tiers[]  NestedObject
 policies[].quota_based_priority_override.usage_tiers[].daily_quota_percentage  Float64Attribute required
@@ -59,6 +62,8 @@ policies[].services  SingleNestedAttribute optional
     markdown: "The services to apply the policy on. Applies the policy on all the services by default."
 policies[].services.names  SetAttribute required elem=basetypes.StringType
     validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
+    validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: Only lowercase letters are allowed
+    validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: must not be empty or contain ","
 policies[].services.rule_type  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to is
     validator: stringvalidator.oneOfValidator value must be one of: ["includes" "is" "is_not" "starts_with" "unspecified"]
@@ -67,6 +72,7 @@ policies[].subsystems  SingleNestedAttribute optional
 policies[].subsystems.names  SetAttribute required elem=basetypes.StringType
     validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
     validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: Only lowercase letters are allowed
+    validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: must not be empty or contain ","
 policies[].subsystems.rule_type  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to is
     validator: stringvalidator.oneOfValidator value must be one of: ["includes" "is" "is_not" "starts_with" "unspecified"]
@@ -76,6 +82,7 @@ policies[].tags  MapNestedAttribute optional
 policies[].tags[]  NestedObject
 policies[].tags[].names  SetAttribute required elem=basetypes.StringType
     validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
+    validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: must not be empty or contain ","
 policies[].tags[].rule_type  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to is
     validator: stringvalidator.oneOfValidator value must be one of: ["includes" "is" "is_not" "starts_with" "unspecified"]

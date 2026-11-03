@@ -16,6 +16,9 @@ preset: v0.1.0-beta.70
 quotaallocationruleset: v0.1.0-beta.70
 recordingrulesgroupsset: v0.1.0-beta.70
 slov2: v0.1.0-beta.70
+tcopolicieslogs: v0.1.0-beta.70
+tcopoliciesrum: v0.1.0-beta.70
+tcopoliciestraces: v0.1.0-beta.70
 view: v0.1.0-beta.70
 viewfolder: v0.1.0-beta.70
 webhook: v0.1.0-beta.70
