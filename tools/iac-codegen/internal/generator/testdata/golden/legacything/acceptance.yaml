@@ -19,3 +19,4 @@ upgradeMinimal:
 dataSourceSkip:
   - rules.0.kind
 upgradeFrom: "1.2.3"
+leftovers: internal/acctest.RemoveLeftoverLegacyThings

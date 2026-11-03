@@ -1,0 +1,289 @@
+[
+  {
+    "step": "create: the name attribute wins over the document",
+    "config": {
+      "name": "tf-name",
+      "yaml_content": "name: from-yaml\ngroups:\n  - name: yaml-a\n    interval: 120\n    limit: 7\n    rules:\n      - record: tf:yaml_a\n        expr: vector(1)\n        labels:\n          team: a\n      - record: tf:yaml_b\n        expr: vector(2)\n        evaluationdelayms: 30000\n  - name: yaml-b\n    rules:\n      - record: tf:yaml_c\n        expr: vector(3)\n"
+    },
+    "plan": {
+      "groups": "(unknown)",
+      "id": "(unknown)",
+      "name": "tf-name",
+      "yaml_content": "name: from-yaml\ngroups:\n  - name: yaml-a\n    interval: 120\n    limit: 7\n    rules:\n      - record: tf:yaml_a\n        expr: vector(1)\n        labels:\n          team: a\n      - record: tf:yaml_b\n        expr: vector(2)\n        evaluationdelayms: 30000\n  - name: yaml-b\n    rules:\n      - record: tf:yaml_c\n        expr: vector(3)\n"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1",
+        "body": {
+          "groups": [
+            {
+              "interval": 120,
+              "limit": "7",
+              "name": "yaml-a",
+              "rules": [
+                {
+                  "expr": "vector(1)",
+                  "labels": {
+                    "team": "a"
+                  },
+                  "record": "tf:yaml_a"
+                },
+                {
+                  "evaluationDelayMs": 30000,
+                  "expr": "vector(2)",
+                  "record": "tf:yaml_b"
+                }
+              ]
+            },
+            {
+              "name": "yaml-b",
+              "rules": [
+                {
+                  "expr": "vector(3)",
+                  "record": "tf:yaml_c"
+                }
+              ]
+            }
+          ],
+          "name": "tf-name"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "groups": [
+        {
+          "interval": 120,
+          "limit": 7,
+          "name": "yaml-a",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {
+                "team": "a"
+              },
+              "record": "tf:yaml_a"
+            },
+            {
+              "evaluation_delay_ms": 30000,
+              "expr": "vector(2)",
+              "labels": {},
+              "record": "tf:yaml_b"
+            }
+          ]
+        },
+        {
+          "interval": 60,
+          "limit": 0,
+          "name": "yaml-b",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(3)",
+              "labels": {},
+              "record": "tf:yaml_c"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "tf-name",
+      "yaml_content": "name: from-yaml\ngroups:\n  - name: yaml-a\n    interval: 120\n    limit: 7\n    rules:\n      - record: tf:yaml_a\n        expr: vector(1)\n        labels:\n          team: a\n      - record: tf:yaml_b\n        expr: vector(2)\n        evaluationdelayms: 30000\n  - name: yaml-b\n    rules:\n      - record: tf:yaml_c\n        expr: vector(3)\n"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "groups": [
+        {
+          "interval": 120,
+          "limit": 7,
+          "name": "yaml-a",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {
+                "team": "a"
+              },
+              "record": "tf:yaml_a"
+            },
+            {
+              "evaluation_delay_ms": 30000,
+              "expr": "vector(2)",
+              "labels": {},
+              "record": "tf:yaml_b"
+            }
+          ]
+        },
+        {
+          "interval": 60,
+          "limit": 0,
+          "name": "yaml-b",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(3)",
+              "labels": {},
+              "record": "tf:yaml_c"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "tf-name",
+      "yaml_content": "name: from-yaml\ngroups:\n  - name: yaml-a\n    interval: 120\n    limit: 7\n    rules:\n      - record: tf:yaml_a\n        expr: vector(1)\n        labels:\n          team: a\n      - record: tf:yaml_b\n        expr: vector(2)\n        evaluationdelayms: 30000\n  - name: yaml-b\n    rules:\n      - record: tf:yaml_c\n        expr: vector(3)\n"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: rename",
+    "config": {
+      "name": "tf-name-2",
+      "yaml_content": "name: from-yaml\ngroups:\n  - name: yaml-a\n    interval: 120\n    limit: 7\n    rules:\n      - record: tf:yaml_a\n        expr: vector(1)\n        labels:\n          team: a\n      - record: tf:yaml_b\n        expr: vector(2)\n        evaluationdelayms: 30000\n  - name: yaml-b\n    rules:\n      - record: tf:yaml_c\n        expr: vector(3)\n"
+    },
+    "plan": {
+      "groups": [
+        {
+          "interval": 120,
+          "limit": 7,
+          "name": "yaml-a",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {
+                "team": "a"
+              },
+              "record": "tf:yaml_a"
+            },
+            {
+              "evaluation_delay_ms": 30000,
+              "expr": "vector(2)",
+              "labels": {},
+              "record": "tf:yaml_b"
+            }
+          ]
+        },
+        {
+          "interval": 60,
+          "limit": 0,
+          "name": "yaml-b",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(3)",
+              "labels": {},
+              "record": "tf:yaml_c"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "tf-name-2",
+      "yaml_content": "name: from-yaml\ngroups:\n  - name: yaml-a\n    interval: 120\n    limit: 7\n    rules:\n      - record: tf:yaml_a\n        expr: vector(1)\n        labels:\n          team: a\n      - record: tf:yaml_b\n        expr: vector(2)\n        evaluationdelayms: 30000\n  - name: yaml-b\n    rules:\n      - record: tf:yaml_c\n        expr: vector(3)\n"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000001",
+        "body": {
+          "groups": [
+            {
+              "interval": 120,
+              "limit": "7",
+              "name": "yaml-a",
+              "rules": [
+                {
+                  "expr": "vector(1)",
+                  "labels": {
+                    "team": "a"
+                  },
+                  "record": "tf:yaml_a"
+                },
+                {
+                  "evaluationDelayMs": 30000,
+                  "expr": "vector(2)",
+                  "record": "tf:yaml_b"
+                }
+              ]
+            },
+            {
+              "name": "yaml-b",
+              "rules": [
+                {
+                  "expr": "vector(3)",
+                  "record": "tf:yaml_c"
+                }
+              ]
+            }
+          ],
+          "name": "tf-name-2"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "groups": [
+        {
+          "interval": 120,
+          "limit": 7,
+          "name": "yaml-a",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {
+                "team": "a"
+              },
+              "record": "tf:yaml_a"
+            },
+            {
+              "evaluation_delay_ms": 30000,
+              "expr": "vector(2)",
+              "labels": {},
+              "record": "tf:yaml_b"
+            }
+          ]
+        },
+        {
+          "interval": 60,
+          "limit": 0,
+          "name": "yaml-b",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(3)",
+              "labels": {},
+              "record": "tf:yaml_c"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "tf-name-2",
+      "yaml_content": "name: from-yaml\ngroups:\n  - name: yaml-a\n    interval: 120\n    limit: 7\n    rules:\n      - record: tf:yaml_a\n        expr: vector(1)\n        labels:\n          team: a\n      - record: tf:yaml_b\n        expr: vector(2)\n        evaluationdelayms: 30000\n  - name: yaml-b\n    rules:\n      - record: tf:yaml_c\n        expr: vector(3)\n"
+    },
+    "replanEmpty": true
+  }
+]

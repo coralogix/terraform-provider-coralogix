@@ -1,0 +1,355 @@
+[
+  {
+    "step": "empty config",
+    "config": {},
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"name\")] | Must set a configuration value for the name attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "unknown severity",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "extract": {
+                "name": "rule-extract",
+                "regular_expression": "a",
+                "source_field": "text"
+              }
+            }
+          ]
+        }
+      ],
+      "severities": [
+        "fatal"
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"severities\").ElementKeyValue(tftypes.String<\"fatal\">)] | Attribute severities[Value(\"fatal\")] value must be one of: [\"critical\" \"debug\" \"error\" \"info\" \"verbose\" \"warning\"], got: \"fatal\""
+    ],
+    "state": null
+  },
+  {
+    "step": "rule with no type",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {}
+          ]
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"parse\")] | No attribute specified when one (and only one) of [rule_subgroups[0].rules[0].parse.<.parse,rule_subgroups[0].rules[0].parse.<.block,rule_subgroups[0].rules[0].parse.<.json_extract,rule_subgroups[0].rules[0].parse.<.replace,rule_subgroups[0].rules[0].parse.<.extract_timestamp,rule_subgroups[0].rules[0].parse.<.remove_fields,rule_subgroups[0].rules[0].parse.<.json_stringify,rule_subgroups[0].rules[0].parse.<.extract,rule_subgroups[0].rules[0].parse.<.parse_json_field] is required"
+    ],
+    "state": null
+  },
+  {
+    "step": "rule with two types",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "extract": {
+                "name": "a",
+                "regular_expression": "a",
+                "source_field": "text"
+              },
+              "parse": {
+                "destination_field": "text",
+                "name": "b",
+                "regular_expression": "b",
+                "source_field": "text"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"parse\")] | 2 attributes specified when one (and only one) of [rule_subgroups[0].rules[0].parse.<.parse,rule_subgroups[0].rules[0].parse.<.block,rule_subgroups[0].rules[0].parse.<.json_extract,rule_subgroups[0].rules[0].parse.<.replace,rule_subgroups[0].rules[0].parse.<.extract_timestamp,rule_subgroups[0].rules[0].parse.<.remove_fields,rule_subgroups[0].rules[0].parse.<.json_stringify,rule_subgroups[0].rules[0].parse.<.extract,rule_subgroups[0].rules[0].parse.<.parse_json_field] is required"
+    ],
+    "state": null
+  },
+  {
+    "step": "subgroup without rules",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {}
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\")] | Must set a configuration value for the rule_subgroups[0].rules attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "subgroup with empty rules",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": []
+        }
+      ]
+    },
+    "state": null
+  },
+  {
+    "step": "create a subgroup with empty rules",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": []
+        }
+      ]
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": [],
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "(unknown)",
+      "name": "tf-rule-group",
+      "order": "(unknown)",
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": []
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1",
+        "body": {
+          "creator": "",
+          "description": "",
+          "enabled": false,
+          "hidden": false,
+          "name": "tf-rule-group",
+          "order": 0,
+          "ruleSubgroups": [
+            {
+              "enabled": true,
+              "order": 1,
+              "rules": []
+            }
+          ]
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_parsing_rules | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: statusCode: 400, response: Failed to create rule group err: [{min ParsingThemes.RulesGroups[0].Rules slice []*shared.Rule [] 1}]\"}\noperation - Create"
+    ],
+    "state": null
+  },
+  {
+    "step": "create json_extract to Text without destination_field_text",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "json_extract": {
+                "destination_field": "Text",
+                "json_key": "k",
+                "name": "rule-json_extract"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": [],
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "(unknown)",
+      "name": "tf-rule-group",
+      "order": "(unknown)",
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": {
+                "active": true,
+                "description": "",
+                "destination_field": "Text",
+                "destination_field_text": null,
+                "id": "(unknown)",
+                "json_key": "k",
+                "name": "rule-json_extract",
+                "order": "(unknown)"
+              },
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1",
+        "body": {
+          "creator": "",
+          "description": "",
+          "enabled": false,
+          "hidden": false,
+          "name": "tf-rule-group",
+          "order": 0,
+          "ruleSubgroups": [
+            {
+              "enabled": true,
+              "order": 1,
+              "rules": [
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-json_extract",
+                  "order": 1,
+                  "parameters": {
+                    "jsonExtractParameters": {
+                      "destinationFieldType": "DESTINATION_FIELD_TEXT",
+                      "rule": "k"
+                    }
+                  },
+                  "sourceField": "text"
+                }
+              ]
+            }
+          ]
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_parsing_rules | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Request errors:\\n* JsonExtractParameters.DestinationFieldText should be 'text' or start with 'text.'\"}\noperation - Create"
+    ],
+    "state": null
+  },
+  {
+    "step": "unknown destination_field",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "json_extract": {
+                "destination_field": "message",
+                "json_key": "k",
+                "name": "rule-json_extract"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"json_extract\").AttributeName(\"destination_field\")] | Attribute rule_subgroups[0].rules[0].json_extract.destination_field value must be one of: [\"category\" \"class\" \"method\" \"severity\" \"text\" \"threadID\"], got: \"message\""
+    ],
+    "state": null
+  },
+  {
+    "step": "unknown field_format_standard",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "extract_timestamp": {
+                "field_format_standard": "JavaSDF",
+                "name": "rule-extract_timestamp",
+                "source_field": "text",
+                "time_format": "x"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"extract_timestamp\").AttributeName(\"field_format_standard\")] | Attribute rule_subgroups[0].rules[0].extract_timestamp.field_format_standard value must be one of: [\"golang\" \"javaSDF\" \"microTS\" \"milliTS\" \"nanoTS\" \"secondTS\" \"strftime\"], got: \"JavaSDF\""
+    ],
+    "state": null
+  },
+  {
+    "step": "empty excluded_fields",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "remove_fields": {
+                "excluded_fields": [],
+                "name": "rule-remove_fields"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"remove_fields\").AttributeName(\"excluded_fields\")] | Attribute rule_subgroups[0].rules[0].remove_fields.excluded_fields list must contain at least 1 elements, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "rule without name",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "extract": {
+                "regular_expression": "a",
+                "source_field": "text"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"extract\").AttributeName(\"name\")] | Must set a configuration value for the rule_subgroups[0].rules[0].extract.name attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  }
+]

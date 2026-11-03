@@ -1,0 +1,20 @@
+[
+  {
+    "step": "read: the API fails",
+    "config": {},
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_RUM",
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error reading coralogix_tco_policies_rum | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Unexpected server error occurred\"}\noperation - Read"
+    ],
+    "state": {
+      "id": null,
+      "policies": null
+    }
+  }
+]

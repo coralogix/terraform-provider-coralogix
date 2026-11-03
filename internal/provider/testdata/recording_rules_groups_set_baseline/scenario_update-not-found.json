@@ -1,0 +1,154 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "groups": [
+        {
+          "name": "g1",
+          "rules": [
+            {
+              "expr": "vector(1)",
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "name": "tf-set"
+    },
+    "plan": {
+      "groups": [
+        {
+          "interval": "(unknown)",
+          "limit": "(unknown)",
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": "(unknown)",
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "id": "(unknown)",
+      "name": "tf-set",
+      "yaml_content": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1",
+        "body": {
+          "groups": [
+            {
+              "interval": 60,
+              "limit": "0",
+              "name": "g1",
+              "rules": [
+                {
+                  "expr": "vector(1)",
+                  "record": "tf:r1"
+                }
+              ]
+            }
+          ],
+          "name": "tf-set"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "groups": [
+        {
+          "interval": 60,
+          "limit": 0,
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {},
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "tf-set",
+      "yaml_content": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: the set was deleted outside Terraform",
+    "config": {
+      "groups": [
+        {
+          "name": "g1",
+          "rules": [
+            {
+              "expr": "vector(1)",
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "name": "tf-set-2"
+    },
+    "plan": {
+      "groups": [
+        {
+          "interval": 60,
+          "limit": 0,
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {},
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "tf-set-2",
+      "yaml_content": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000001",
+        "body": {
+          "groups": [
+            {
+              "interval": 60,
+              "limit": "0",
+              "name": "g1",
+              "rules": [
+                {
+                  "expr": "vector(1)",
+                  "labels": {},
+                  "record": "tf:r1"
+                }
+              ]
+            }
+          ],
+          "name": "tf-set-2"
+        },
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: coralogix_recording_rule_groups &{[{<nil> 0xPTR 0xPTR g1 [{<nil> vector(1) map[] tf:r1 map[] false}] <nil> map[] false}] 0xPTR map[] false} is in state, but no longer exists in Coralogix backend | &{[{<nil> 0xPTR 0xPTR g1 [{<nil> vector(1) map[] tf:r1 map[] false}] <nil> map[] false}] 0xPTR map[] false} will be recreated when you apply",
+      "error: Missing Resource State After Update | The Terraform Provider unexpectedly returned no resource state after having no errors in the resource update. This is always an issue in the Terraform Provider and should be reported to the provider developers."
+    ],
+    "state": null
+  }
+]

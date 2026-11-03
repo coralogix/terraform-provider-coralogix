@@ -1,0 +1,601 @@
+[
+  {
+    "step": "plan an unknown rule",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            "(unknown)"
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": [],
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "(unknown)",
+      "name": "tf-rule-group",
+      "order": "(unknown)",
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            "(unknown)"
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "state": null
+  },
+  {
+    "step": "plan an unknown rule arm",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "extract": "(unknown)"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": [],
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "(unknown)",
+      "name": "tf-rule-group",
+      "order": "(unknown)",
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            {
+              "block": null,
+              "extract": "(unknown)",
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "state": null
+  },
+  {
+    "step": "plan an unknown rule arm next to a known one",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "extract": "(unknown)",
+              "parse": {
+                "destination_field": "text",
+                "name": "b",
+                "regular_expression": "b",
+                "source_field": "text"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": [],
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "(unknown)",
+      "name": "tf-rule-group",
+      "order": "(unknown)",
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            {
+              "block": null,
+              "extract": "(unknown)",
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": {
+                "active": true,
+                "description": "",
+                "destination_field": "text",
+                "id": "(unknown)",
+                "name": "b",
+                "order": "(unknown)",
+                "regular_expression": "b",
+                "source_field": "text"
+              },
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "state": null
+  },
+  {
+    "step": "plan unknown values in a rule",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "extract": {
+                "active": "(unknown)",
+                "name": "rule-extract",
+                "regular_expression": "(unknown)",
+                "source_field": "(unknown)"
+              }
+            },
+            {
+              "json_extract": {
+                "destination_field": "(unknown)",
+                "json_key": "k",
+                "name": "rule-json_extract"
+              }
+            },
+            {
+              "extract_timestamp": {
+                "field_format_standard": "(unknown)",
+                "name": "rule-extract_timestamp",
+                "source_field": "text",
+                "time_format": "%Y"
+              }
+            },
+            {
+              "remove_fields": {
+                "excluded_fields": "(unknown)",
+                "name": "rule-remove_fields"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": [],
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "(unknown)",
+      "name": "tf-rule-group",
+      "order": "(unknown)",
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            {
+              "block": null,
+              "extract": {
+                "active": "(unknown)",
+                "description": "",
+                "id": "(unknown)",
+                "name": "rule-extract",
+                "order": "(unknown)",
+                "regular_expression": "(unknown)",
+                "source_field": "(unknown)"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": {
+                "active": true,
+                "description": "",
+                "destination_field": "(unknown)",
+                "destination_field_text": null,
+                "id": "(unknown)",
+                "json_key": "k",
+                "name": "rule-json_extract",
+                "order": "(unknown)"
+              },
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "(unknown)",
+                "id": "(unknown)",
+                "name": "rule-extract_timestamp",
+                "order": "(unknown)",
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": {
+                "active": true,
+                "description": "",
+                "excluded_fields": "(unknown)",
+                "id": "(unknown)",
+                "name": "rule-remove_fields",
+                "order": "(unknown)"
+              },
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "state": null
+  },
+  {
+    "step": "plan unknown subgroups",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": "(unknown)"
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": [],
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "(unknown)",
+      "name": "tf-rule-group",
+      "order": "(unknown)",
+      "rule_subgroups": "(unknown)",
+      "severities": [],
+      "subsystems": []
+    },
+    "state": null
+  },
+  {
+    "step": "plan unknown group values",
+    "config": {
+      "active": "(unknown)",
+      "applications": "(unknown)",
+      "name": "(unknown)",
+      "order": "(unknown)",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "extract": {
+                "name": "rule-extract",
+                "regular_expression": "a",
+                "source_field": "text"
+              }
+            }
+          ]
+        }
+      ],
+      "severities": "(unknown)",
+      "subsystems": [
+        "(unknown)"
+      ]
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": "(unknown)",
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "(unknown)",
+      "name": "(unknown)",
+      "order": "(unknown)",
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "(unknown)",
+                "name": "rule-extract",
+                "order": "(unknown)",
+                "regular_expression": "a",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": "(unknown)",
+      "subsystems": [
+        "(unknown)"
+      ]
+    },
+    "state": null
+  },
+  {
+    "step": "create",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "extract": {
+                "name": "rule-extract",
+                "regular_expression": "a",
+                "source_field": "text"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": [],
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "(unknown)",
+      "name": "tf-rule-group",
+      "order": "(unknown)",
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "(unknown)",
+                "name": "rule-extract",
+                "order": "(unknown)",
+                "regular_expression": "a",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1",
+        "body": {
+          "creator": "",
+          "description": "",
+          "enabled": false,
+          "hidden": false,
+          "name": "tf-rule-group",
+          "order": 0,
+          "ruleSubgroups": [
+            {
+              "enabled": true,
+              "order": 1,
+              "rules": [
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-extract",
+                  "order": 1,
+                  "parameters": {
+                    "extractParameters": {
+                      "rule": "a"
+                    }
+                  },
+                  "sourceField": "text"
+                }
+              ]
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": false,
+      "applications": [],
+      "creator": "",
+      "description": "",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000003",
+      "name": "tf-rule-group",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000002",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000001",
+                "name": "rule-extract",
+                "order": 1,
+                "regular_expression": "a",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "plan an update with an unknown rule arm",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "extract": "(unknown)"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": [],
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "00000000-0000-4000-9000-000000000003",
+      "name": "tf-rule-group",
+      "order": "(unknown)",
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            {
+              "block": null,
+              "extract": "(unknown)",
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "state": {
+      "active": false,
+      "applications": [],
+      "creator": "",
+      "description": "",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000003",
+      "name": "tf-rule-group",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000002",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000001",
+                "name": "rule-extract",
+                "order": 1,
+                "regular_expression": "a",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    }
+  }
+]

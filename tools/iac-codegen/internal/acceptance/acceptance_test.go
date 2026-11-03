@@ -24,12 +24,16 @@ upgradeCases:
   - name: write-only
     values:
       token_wo: '{ secret = "x" }'
+leftovers: internal/acctest.RemoveLeftoverGlobalRouters
 `))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if f.Resource != "GlobalRouter" || len(f.Env) != 2 || f.UpgradeFrom != "3.19.0" || f.Skip[0] != "fallback" || f.Minimal[0] != "routing_labels" || f.UpgradeMinimal[0] != "description" || len(f.UpgradeCases) != 1 || f.UpgradeCases[0].Name != "write-only" {
 		t.Fatalf("file = %+v", f)
+	}
+	if f.LeftoversPackage() != "internal/acctest" || f.LeftoversFunc() != "RemoveLeftoverGlobalRouters" {
+		t.Fatalf("leftovers = %q, %q", f.LeftoversPackage(), f.LeftoversFunc())
 	}
 	if got := f.ValuePaths(); len(got) != 1 || got[0] != "rules[].targets[].connector_id" {
 		t.Fatalf("value paths = %v", got)
@@ -60,6 +64,9 @@ func TestParseRejectsWhatCannotWork(t *testing.T) {
 		"empty case values":    {"resource: R\nupgradeFrom: \"1.0.0\"\nupgradeCases:\n  - name: a\n", "values is empty"},
 		"bad version":          {"resource: R\nupgradeFrom: latest\n", "want a release"},
 		"backtick":             {"resource: R\nprerequisites: \"a`b\"\n", "backtick"},
+		"leftovers no func":    {"resource: R\nleftovers: internal/acctest\n", "want <package directory>.<Func>"},
+		"leftovers unexported": {"resource: R\nleftovers: internal/acctest.remove\n", "want <package directory>.<Func>"},
+		"leftovers bad dir":    {"resource: R\nleftovers: ../acctest.Remove\n", "want <package directory>.<Func>"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

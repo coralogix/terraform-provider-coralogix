@@ -1,0 +1,58 @@
+[
+  {
+    "step": "create: no severities and no dpxl_expression",
+    "config": {
+      "policies": [
+        {
+          "name": "first",
+          "priority": "medium"
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "medium",
+          "quota_based_priority_override": null,
+          "severities": "(unknown)",
+          "subsystems": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/rum-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_MEDIUM"
+              },
+              "rumRules": {
+                "severities": []
+              }
+            }
+          ]
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_tco_policies_rum | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteRumPolicies: ValidationError: must contain at least 1 item when not using dpxlExpression\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

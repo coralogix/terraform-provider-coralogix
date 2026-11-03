@@ -16,6 +16,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	"{{.ProviderImport}}"
+{{- if .LeftoversImport}}
+	"{{.LeftoversImport}}"
+{{- end}}
 )
 
 const resourceAddress = {{printf "%q" .Address}}
@@ -236,7 +239,7 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
-			PreCheck:                 func() { preCheck(t) },
+			PreCheck:                 func() { {{.PreCheck "fullConfig" "updatedConfig"}} },
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
@@ -255,7 +258,7 @@ func TestAccCoralogixResource{{.Name}}Generated(t *testing.T) {
 	t.Run("minimal-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
-			PreCheck:                 func() { preCheck(t) },
+			PreCheck:                 func() { {{.PreCheck "minimalConfig" "fullConfig"}} },
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
@@ -371,7 +374,7 @@ func TestAccCoralogixResource{{.Name}}GeneratedUpgrade(t *testing.T) {
 	t.Run("upgrade-full", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
-			PreCheck: func() { preCheck(t) },
+			PreCheck: func() { {{.PreCheck (or (and .UpgradeFull "upgradeFullConfig") "fullConfig") (or (and .UpgradeUpdated "upgradeUpdatedConfig") "updatedConfig")}} },
 			Steps: upgradeSteps(run, {{if .UpgradeFull}}upgradeFullConfig, upgradeFullChecks(run){{else}}fullConfig, fullChecks(run){{end}},
 				{{if .UpgradeUpdated}}upgradeUpdatedConfig{{else}}updatedConfig{{end}}, updatedChecks(run), {{.UpgradeFullAction}}),
 		})
@@ -382,7 +385,7 @@ func TestAccCoralogixResource{{.Name}}GeneratedUpgrade(t *testing.T) {
 	t.Run("upgrade-minimal", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
-			PreCheck: func() { preCheck(t) },
+			PreCheck: func() { {{.PreCheck "upgradeMinimalConfig" .UpgradeNextFullName}} },
 			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), {{.UpgradeNextFullName}}, fullChecks(run), {{.UpgradeMinimalAction}}),
 		})
 	})
@@ -392,7 +395,7 @@ func TestAccCoralogixResource{{.Name}}GeneratedUpgrade(t *testing.T) {
 	t.Run("upgrade-{{.Name}}", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
-			PreCheck: func() { preCheck(t) },
+			PreCheck: func() { {{$.PreCheck (printf "upgrade%sConfig" .Ident)}} },
 			Steps:    upgradeNoopSteps(run, upgrade{{.Ident}}Config, upgrade{{.Ident}}Checks(run)),
 		})
 	})

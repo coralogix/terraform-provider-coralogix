@@ -95,7 +95,7 @@ func TestParseIsStrict(t *testing.T) {
 		"bad extra type":                    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      token_wo:\n        elementType: bool\n        markdownDescription: x\n", "elementType"},
 		"dynamic with elementType":          {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      p:\n        dynamic: true\n        elementType: string\n        markdownDescription: x\n", "dynamic attribute has no elementType"},
 		"inUpdate on a write-only extra":    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      p:\n        elementType: string\n        writeOnly: true\n        inUpdate: true\n        markdownDescription: x\n", "inUpdate cannot be combined with writeOnly"},
-		"required map extra":                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      p:\n        elementType: string\n        required: true\n        markdownDescription: x\n", "required applies to a dynamic attribute only"},
+		"computed required extra":           {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      p:\n        elementType: string\n        computed: true\n        required: true\n        markdownDescription: x\n", "computed cannot be combined with required"},
 		"unwrap twice":                      {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nunwrap: [A, A]\n", "names A twice"},
 		"skip and unwrap":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, unwrap: true}\n", "skipped field"},
 		"requestValue and name":             {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {requestValue: X, name: g}\n", "requestValue field is no Terraform attribute"},
@@ -605,7 +605,7 @@ func TestExtraAttributeShapeErrors(t *testing.T) {
 		extra ExtraAttribute
 		want  string
 	}{
-		"unknown shape":        {ExtraAttribute{Type: "list"}, "want string or set"},
+		"unknown shape":        {ExtraAttribute{Type: "list"}, "want string, int64, or set"},
 		"set without elements": {ExtraAttribute{Type: "set"}, "needs elementType string"},
 		"string with elements": {ExtraAttribute{Type: "string", ElementType: "string"}, "string attribute has no elementType"},
 		"computed write-only":  {ExtraAttribute{Type: "string", Computed: true, WriteOnly: true}, "computed cannot be combined"},

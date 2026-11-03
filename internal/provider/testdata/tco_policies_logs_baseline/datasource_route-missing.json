@@ -1,0 +1,17 @@
+[
+  {
+    "step": "read: the gateway has no such route",
+    "config": {},
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_LOGS",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: coralogix_tco_policies_logs is in state, but no longer exists in Coralogix backend | coralogix_tco_policies_logs will be recreated when you apply"
+    ],
+    "state": null
+  }
+]

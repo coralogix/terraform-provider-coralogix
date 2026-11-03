@@ -1,0 +1,24 @@
+[
+  {
+    "step": "import when the company has no log policies",
+    "state": null
+  },
+  {
+    "step": "import when the company has no log policies (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_LOGS",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": []
+    },
+    "drift": [
+      "AttributeName(\"id\")",
+      "AttributeName(\"policies\")"
+    ]
+  }
+]

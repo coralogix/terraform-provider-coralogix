@@ -1,0 +1,228 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "groups": [
+        {
+          "interval": 120,
+          "limit": 5,
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": 1000,
+              "expr": "vector(1)",
+              "labels": {
+                "a": "1"
+              },
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "name": "tf-set"
+    },
+    "plan": {
+      "groups": [
+        {
+          "interval": 120,
+          "limit": 5,
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": 1000,
+              "expr": "vector(1)",
+              "labels": {
+                "a": "1"
+              },
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "id": "(unknown)",
+      "name": "tf-set",
+      "yaml_content": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1",
+        "body": {
+          "groups": [
+            {
+              "interval": 120,
+              "limit": "5",
+              "name": "g1",
+              "rules": [
+                {
+                  "evaluationDelayMs": 1000,
+                  "expr": "vector(1)",
+                  "labels": {
+                    "a": "1"
+                  },
+                  "record": "tf:r1"
+                }
+              ]
+            }
+          ],
+          "name": "tf-set"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "groups": [
+        {
+          "interval": 120,
+          "limit": 5,
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": 1000,
+              "expr": "vector(1)",
+              "labels": {
+                "a": "1"
+              },
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "tf-set",
+      "yaml_content": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: remove interval, limit, labels, and evaluation_delay_ms",
+    "config": {
+      "groups": [
+        {
+          "name": "g1",
+          "rules": [
+            {
+              "expr": "vector(1)",
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "name": "tf-set"
+    },
+    "plan": {
+      "groups": [
+        {
+          "interval": 120,
+          "limit": 5,
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {
+                "a": "1"
+              },
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "tf-set",
+      "yaml_content": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000001",
+        "body": {
+          "groups": [
+            {
+              "interval": 120,
+              "limit": "5",
+              "name": "g1",
+              "rules": [
+                {
+                  "expr": "vector(1)",
+                  "labels": {
+                    "a": "1"
+                  },
+                  "record": "tf:r1"
+                }
+              ]
+            }
+          ],
+          "name": "tf-set"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "groups": [
+        {
+          "interval": 120,
+          "limit": 5,
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {
+                "a": "1"
+              },
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "tf-set",
+      "yaml_content": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "groups": [
+        {
+          "interval": 120,
+          "limit": 5,
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {
+                "a": "1"
+              },
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "tf-set",
+      "yaml_content": null
+    },
+    "replanEmpty": true
+  }
+]

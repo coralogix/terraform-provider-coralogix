@@ -1,0 +1,18 @@
+[
+  {
+    "step": "read without id",
+    "config": {},
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "status": 200
+      }
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "disabled",
+      "id": "<settings-id>",
+      "ip_access": []
+    }
+  }
+]

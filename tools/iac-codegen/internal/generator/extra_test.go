@@ -36,6 +36,7 @@ func TestExtraAttributeOfEmptyNestedObject(t *testing.T) {
 func TestExtraAttributeOfReusedNestedObject(t *testing.T) {
 	for name, extra := range map[string]overrides.ExtraAttribute{
 		"string": {Type: "string", MarkdownDescription: "Extra."},
+		"int64":  {Type: "int64", MarkdownDescription: "Extra."},
 		"set":    {Type: "set", ElementType: "string", MarkdownDescription: "Extra."},
 		"map":    {ElementType: "string", MarkdownDescription: "Extra."},
 	} {
@@ -65,6 +66,83 @@ func TestExtraAttributeOfReusedNestedObject(t *testing.T) {
 				t.Errorf("computed paths = %v, want only the response-only extra", out.ComputedPaths)
 			}
 		})
+	}
+}
+
+func TestRequiredExtraAttribute(t *testing.T) {
+	for _, extra := range []overrides.ExtraAttribute{
+		{Type: "string", Required: true},
+		{Type: "int64", Required: true},
+		{Type: "set", ElementType: "string", Required: true},
+		{ElementType: "string", Required: true},
+	} {
+		a, _, _, _, err := extraAttr("value", extra)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !a.Required || a.Optional || a.Computed {
+			t.Errorf("extra %#v: required=%t optional=%t computed=%t", extra, a.Required, a.Optional, a.Computed)
+		}
+	}
+}
+
+func TestExtraAttributeValidatorsAndPlanModifier(t *testing.T) {
+	tests := []struct {
+		name       string
+		attribute  *tfAttr
+		extra      overrides.ExtraAttribute
+		validators []string
+		modifiers  []string
+	}{
+		{
+			name:      "sibling validators",
+			attribute: &tfAttr{Kind: "String", ValueKind: "String"},
+			extra: overrides.ExtraAttribute{Validators: []overrides.Validator{
+				{AlsoRequires: []string{"version"}},
+				{ConflictsWith: []string{"plain"}},
+			}},
+			validators: []string{
+				`stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("version"))`,
+				`stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("plain"))`,
+			},
+		},
+		{
+			name:      "set element values",
+			attribute: &tfAttr{Kind: "Set", ValueKind: "Set"},
+			extra:     overrides.ExtraAttribute{ElementValues: []string{"first", "second"}},
+			validators: []string{
+				`setvalidator.ValueStringsAre(stringvalidator.OneOf("first", "second"))`,
+			},
+		},
+		{
+			name:      "computed value",
+			attribute: &tfAttr{Kind: "String", ValueKind: "String"},
+			extra:     overrides.ExtraAttribute{Computed: true, UseStateForUnknown: true},
+			modifiers: []string{"stringplanmodifier.UseStateForUnknown()"},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if err := configureExtraAttribute(test.attribute, test.extra, &overrides.File{}); err != nil {
+				t.Fatal(err)
+			}
+			if !slices.Equal(test.attribute.Validators, test.validators) || !slices.Equal(test.attribute.Modifiers, test.modifiers) {
+				t.Errorf("validators = %v, modifiers = %v; want %v, %v", test.attribute.Validators, test.attribute.Modifiers, test.validators, test.modifiers)
+			}
+		})
+	}
+}
+
+func TestSchemaOptionalKeepsRequiredRequestFieldOptionalInTerraform(t *testing.T) {
+	attribute := &tfAttr{Name: "name", Kind: "String", ValueKind: "String", Required: true}
+	if err := applyField(attribute, overrides.Field{SchemaOptional: true}, &overrides.File{}); err != nil {
+		t.Fatal(err)
+	}
+	if attribute.Required || !attribute.Optional {
+		t.Fatalf("required = %t, optional = %t; want optional", attribute.Required, attribute.Optional)
+	}
+	if err := applyField(&tfAttr{Kind: "String", ValueKind: "String", Optional: true}, overrides.Field{SchemaOptional: true}, &overrides.File{}); err == nil {
+		t.Fatal("schemaOptional accepted an API-optional field")
 	}
 }
 

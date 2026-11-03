@@ -1,0 +1,58 @@
+(data source schema)
+    description: Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api.
+id  tftypes.String computed
+    description: This field can be ignored
+policies  nested LIST computed
+policies.applications  nested SINGLE computed
+    description: The applications to apply the policy on. Applies the policy on all the applications by default.
+policies.applications.names  tftypes.Set[tftypes.String] computed
+policies.applications.rule_type  tftypes.String computed
+    description: The rule type. Can be one of ["includes" "is" "is_not" "starts_with" "unspecified"].
+policies.archive_retention_id  tftypes.String computed
+    description: Allowing logs with a specific retention to be tagged.
+policies.description  tftypes.String computed
+    description: The policy description
+policies.dpxl_expression  tftypes.String computed
+    description: DataPrime expression to match logs for this policy. Mutually exclusive with the structured matchers (`severities`, `applications`, `subsystems`) — set either this or those. The expression must include a version prefix, e.g. `<v1> $d.severity == 'INFO'`.
+policies.enabled  tftypes.Bool computed
+    description: Determines weather the policy will be enabled. True by default.
+policies.id  tftypes.String computed
+    description: tco-policy ID.
+policies.name  tftypes.String computed
+    description: tco-policy name.
+policies.order  tftypes.Number computed
+    description: The policy's order between the other policies.
+policies.priority  tftypes.String computed
+    description: The policy priority. Can be one of ["block" "high" "low" "medium"]. Priority must be set either here or on every target, not both — set this when `targets` is omitted, and omit it when `targets` is set. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of "Route the remaining quota to" in the UI — and must be more restrictive than the last tier's priority (most to least restrictive: `block`, `low`, `medium`, `high`).
+policies.quota_based_priority_override  nested SINGLE computed
+    description: Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback ("Route the remaining quota to" in the UI), which must be more restrictive than the last tier.
+policies.quota_based_priority_override.usage_tiers  nested LIST computed
+    description: Ordered list of quota-consumption tiers; the policy's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached.
+policies.quota_based_priority_override.usage_tiers.daily_quota_percentage  tftypes.Number computed
+    description: Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100.
+policies.quota_based_priority_override.usage_tiers.priority  tftypes.String computed
+    description: The priority to apply when this tier is active. Can be one of ["block" "high" "low" "medium"].
+policies.severities  tftypes.Set[tftypes.String] computed
+    description: The severities to apply the policy on. Valid severities are ["critical" "debug" "error" "info" "verbose" "warning"].
+policies.subsystems  nested SINGLE computed
+    description: The subsystems to apply the policy on. Applies the policy on all the subsystems by default.
+policies.subsystems.names  tftypes.Set[tftypes.String] computed
+policies.subsystems.rule_type  tftypes.String computed
+policies.targets  nested LIST computed
+    description: Route matched logs to specific named datasets. Every target must specify its own `priority`. When `targets` is omitted the backend routes the policy to a single default `logs` dataset using the policy-level `priority`; that implicit target is not reflected in Terraform state.
+policies.targets.archive_retention_id  tftypes.String computed
+    description: ID of an archive retention policy to apply to this target.
+policies.targets.dataset  tftypes.String computed
+    description: Name of the dataset to route matched logs to. Must be non-empty.
+policies.targets.dataspace  tftypes.String computed
+    description: Dataspace name. Defaults to `default` when unset. Maximum 50 characters.
+policies.targets.priority  tftypes.String computed
+    description: Per-target priority. Can be one of ["block" "high" "low" "medium"]. Every target must carry its own priority.
+policies.targets.priority_override  nested SINGLE computed
+    description: Dynamically reassign this target's priority based on daily quota consumption tiers.
+policies.targets.priority_override.usage_tiers  nested LIST computed
+    description: Ordered list of quota-consumption tiers; the target's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached.
+policies.targets.priority_override.usage_tiers.daily_quota_percentage  tftypes.Number computed
+    description: Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100.
+policies.targets.priority_override.usage_tiers.priority  tftypes.String computed
+    description: The priority to apply when this tier is active. Can be one of ["block" "high" "low" "medium"].

@@ -1,0 +1,36 @@
+resource: OutgoingWebhook
+
+values:
+  custom.url: '"https://example.com/webhook"'
+  custom.method: '"post"'
+  custom.headers: '{ X-Example = "test" }'
+  custom.payload: 'jsonencode({ message = "@{run}" })'
+
+updatedValues:
+  custom.url: '"https://example.com/webhook-updated"'
+  custom.payload: 'jsonencode({ message = "@{run}-updated" })'
+
+skip:
+  - custom.uuid
+  - event_bridge
+  - demisto
+  - email_group
+  - jira
+  - microsoft_teams
+  - microsoft_teams_workflow
+  - opsgenie
+  - pager_duty
+  - sendlog
+  - slack
+
+minimal:
+  - name
+  - custom.url
+  - custom.method
+
+upgradeMinimal:
+  - name
+  - custom.url
+  - custom.method
+
+upgradeFrom: "3.23.0"

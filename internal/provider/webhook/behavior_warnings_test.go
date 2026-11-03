@@ -12,13 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package integrations
+package webhook
 
 import (
 	"context"
 	"strings"
 	"testing"
 
+	generatedwebhook "github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/webhook"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -55,9 +56,9 @@ func TestPlainWebhookCredentialHeaderNames(t *testing.T) {
 		"no headers at all": {},
 	} {
 		t.Run(name, func(t *testing.T) {
-			config := &WebhookResourceModel{}
+			config := &generatedwebhook.OutgoingWebhookModel{}
 			if tc.headers != nil {
-				config.CustomWebhook = &CustomWebhookModel{Headers: headerMap(t, *tc.headers)}
+				config.GenericWebhook = &generatedwebhook.GenericWebhookConfigModel{Headers: headerMap(t, *tc.headers)}
 			}
 			got := plainWebhookCredentialHeaderNames(config)
 			if strings.Join(got, ",") != strings.Join(tc.want, ",") {
@@ -71,11 +72,11 @@ func TestPlainWebhookCredentialHeaderNames(t *testing.T) {
 // warnings sharing a summary means only the first is ever shown.
 func TestWebhookCredentialWarningSummariesAreDistinct(t *testing.T) {
 	summaries := map[string]int{}
-	for _, warning := range webhookCredentialWarnings(&WebhookResourceModel{
-		Name:          types.StringValue("one"),
-		Jira:          &JiraModel{ApiKey: types.StringValue("token")},
-		PagerDuty:     &PagerDutyModel{ServiceKey: types.StringValue("key")},
-		CustomWebhook: &CustomWebhookModel{Headers: headerMap(t, map[string]string{"Authorization": "x"})},
+	for _, warning := range webhookCredentialWarnings(&generatedwebhook.OutgoingWebhookModel{
+		Name:           types.StringValue("one"),
+		Jira:           &generatedwebhook.JiraConfigModel{ApiToken: types.StringValue("token")},
+		PagerDuty:      &generatedwebhook.PagerDutyConfigModel{ServiceKey: types.StringValue("key")},
+		GenericWebhook: &generatedwebhook.GenericWebhookConfigModel{Headers: headerMap(t, map[string]string{"Authorization": "x"})},
 	}) {
 		summaries[warning.Summary()]++
 	}
@@ -93,9 +94,9 @@ func TestWebhookCredentialWarningSummariesAreDistinct(t *testing.T) {
 // plan reports one of them and the other surfaces only after that one is fixed.
 func TestWebhookCredentialWarningSummariesDifferPerWebhook(t *testing.T) {
 	summaryFor := func(name string) string {
-		warnings := webhookCredentialWarnings(&WebhookResourceModel{
+		warnings := webhookCredentialWarnings(&generatedwebhook.OutgoingWebhookModel{
 			Name: types.StringValue(name),
-			Jira: &JiraModel{ApiKey: types.StringValue("token")},
+			Jira: &generatedwebhook.JiraConfigModel{ApiToken: types.StringValue("token")},
 		})
 		if len(warnings) != 1 {
 			t.Fatalf("expected 1 warning for %q, got %d", name, len(warnings))
@@ -109,9 +110,9 @@ func TestWebhookCredentialWarningSummariesDifferPerWebhook(t *testing.T) {
 
 // A webhook whose name is not yet known still has to warn.
 func TestWebhookCredentialWarningWithUnknownName(t *testing.T) {
-	warnings := webhookCredentialWarnings(&WebhookResourceModel{
+	warnings := webhookCredentialWarnings(&generatedwebhook.OutgoingWebhookModel{
 		Name: types.StringUnknown(),
-		Jira: &JiraModel{ApiKey: types.StringValue("token")},
+		Jira: &generatedwebhook.JiraConfigModel{ApiToken: types.StringValue("token")},
 	})
 	if len(warnings) != 1 {
 		t.Fatalf("expected 1 warning, got %d", len(warnings))
@@ -122,15 +123,15 @@ func TestWebhookCredentialWarningWithUnknownName(t *testing.T) {
 }
 
 func TestWebhookCredentialWarningsStayQuietForWriteOnly(t *testing.T) {
-	for name, config := range map[string]*WebhookResourceModel{
+	for name, config := range map[string]*generatedwebhook.OutgoingWebhookModel{
 		"jira supplied write-only": {
-			Jira: &JiraModel{ApiTokenWO: types.StringValue("secret"), ApiTokenWOVersion: types.Int64Value(1)},
+			Jira: &generatedwebhook.JiraConfigModel{ApiTokenWo: types.StringValue("secret"), ApiTokenWoVersion: types.Int64Value(1)},
 		},
 		"pager duty supplied write-only": {
-			PagerDuty: &PagerDutyModel{ServiceKeyWO: types.StringValue("secret"), ServiceKeyWOVersion: types.Int64Value(1)},
+			PagerDuty: &generatedwebhook.PagerDutyConfigModel{ServiceKeyWo: types.StringValue("secret"), ServiceKeyWoVersion: types.Int64Value(1)},
 		},
 		"only ordinary headers": {
-			CustomWebhook: &CustomWebhookModel{Headers: headerMap(t, map[string]string{"Content-Type": "application/json"})},
+			GenericWebhook: &generatedwebhook.GenericWebhookConfigModel{Headers: headerMap(t, map[string]string{"Content-Type": "application/json"})},
 		},
 	} {
 		t.Run(name, func(t *testing.T) {

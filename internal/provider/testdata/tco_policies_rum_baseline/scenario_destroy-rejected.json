@@ -1,0 +1,120 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "policies": [
+        {
+          "name": "first",
+          "priority": "medium",
+          "severities": [
+            "error"
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "medium",
+          "quota_based_priority_override": null,
+          "severities": [
+            "error"
+          ],
+          "subsystems": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/rum-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_MEDIUM"
+              },
+              "rumRules": {
+                "severities": [
+                  "SEVERITY_ERROR"
+                ]
+              }
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "first",
+          "order": 1,
+          "priority": "medium",
+          "quota_based_priority_override": null,
+          "severities": [
+            "error"
+          ],
+          "subsystems": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy: the API fails",
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/rum-policies/v1",
+        "body": {
+          "policies": null
+        },
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error deleting coralogix_tco_policies_rum | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Unexpected server error occurred\"}\noperation - Delete"
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "first",
+          "order": 1,
+          "priority": "medium",
+          "quota_based_priority_override": null,
+          "severities": [
+            "error"
+          ],
+          "subsystems": null
+        }
+      ]
+    }
+  }
+]

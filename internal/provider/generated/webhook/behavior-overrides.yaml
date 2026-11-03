@@ -1,0 +1,490 @@
+resource: OutgoingWebhook
+mode: existing
+typeName: webhook
+markdownDescription: Coralogix webhook. For more info please review - https://coralogix.com/docs/coralogix-Webhook-extension/.
+afterFlatten: true
+validators:
+  inferred: false
+api:
+  requestWrapper: data
+  updateIDInBody: true
+  updateIDOutsideWrapper: true
+  createResponseOnlyIDProperty: id
+  operations:
+    create: OutgoingWebhooksService_CreateOutgoingWebhook
+    get: OutgoingWebhooksService_GetOutgoingWebhook
+    update: OutgoingWebhooksService_UpdateOutgoingWebhook
+    delete: OutgoingWebhooksService_DeleteOutgoingWebhook
+    list: OutgoingWebhooksService_ListAllOutgoingWebhooks
+types:
+  OutgoingWebhook:
+    unsupportedArms:
+    - ibmEventNotifications
+    unsupportedSummary: Error flattening webhook
+    unsupportedDetail: 'Unknown webhook type: IBM Event Notifications'
+    fields:
+      type:
+        skip: true
+      createdAt:
+        skip: true
+      updatedAt:
+        skip: true
+      url:
+        skip: true
+      externalId:
+        skip: true
+      id:
+        markdownDescription: Webhook ID.
+      name:
+        markdownDescription: Webhook name.
+        schemaOptional: true
+        validators:
+        - lengthAtLeast: 1
+        - regexMatches:
+            pattern: \S
+            message: must not be empty or contain only whitespace
+      awsEventBridge:
+        markdownDescription: ''
+        name: event_bridge
+        validators:
+        - exactlyOneOf:
+          - custom
+          - slack
+          - pager_duty
+          - sendlog
+          - email_group
+          - microsoft_teams
+          - microsoft_teams_workflow
+          - jira
+          - opsgenie
+          - demisto
+      demisto:
+        markdownDescription: Demisto webhook.
+        validators:
+        - exactlyOneOf:
+          - custom
+          - slack
+          - pager_duty
+          - sendlog
+          - email_group
+          - microsoft_teams
+          - microsoft_teams_workflow
+          - jira
+          - opsgenie
+          - event_bridge
+      emailGroup:
+        markdownDescription: Email group webhook.
+        validators:
+        - exactlyOneOf:
+          - custom
+          - slack
+          - pager_duty
+          - sendlog
+          - microsoft_teams
+          - microsoft_teams_workflow
+          - jira
+          - opsgenie
+          - demisto
+          - event_bridge
+      genericWebhook:
+        markdownDescription: Generic webhook.
+        name: custom
+        validators:
+        - exactlyOneOf:
+          - slack
+          - pager_duty
+          - sendlog
+          - email_group
+          - microsoft_teams
+          - microsoft_teams_workflow
+          - jira
+          - opsgenie
+          - demisto
+          - event_bridge
+      jira:
+        markdownDescription: Jira webhook.
+        validators:
+        - exactlyOneOf:
+          - custom
+          - slack
+          - pager_duty
+          - sendlog
+          - email_group
+          - microsoft_teams
+          - microsoft_teams_workflow
+          - opsgenie
+          - demisto
+          - event_bridge
+      microsoftTeams:
+        markdownDescription: Microsoft Teams webhook. (Deprecated, please use microsoft_teams_workflow)
+        validators:
+        - exactlyOneOf:
+          - custom
+          - slack
+          - pager_duty
+          - sendlog
+          - email_group
+          - microsoft_teams_workflow
+          - jira
+          - opsgenie
+          - demisto
+          - event_bridge
+        deprecation: Please use microsoft_teams_workflow
+      msTeamsWorkflow:
+        markdownDescription: Microsoft Teams Workflow webhook.
+        name: microsoft_teams_workflow
+        validators:
+        - exactlyOneOf:
+          - custom
+          - slack
+          - pager_duty
+          - sendlog
+          - email_group
+          - microsoft_teams
+          - jira
+          - opsgenie
+          - demisto
+          - event_bridge
+      opsgenie:
+        markdownDescription: Opsgenie webhook.
+        validators:
+        - exactlyOneOf:
+          - custom
+          - slack
+          - pager_duty
+          - sendlog
+          - email_group
+          - microsoft_teams
+          - microsoft_teams_workflow
+          - jira
+          - demisto
+          - event_bridge
+      pagerDuty:
+        markdownDescription: PagerDuty webhook.
+        validators:
+        - exactlyOneOf:
+          - custom
+          - slack
+          - sendlog
+          - email_group
+          - microsoft_teams
+          - microsoft_teams_workflow
+          - jira
+          - opsgenie
+          - demisto
+          - event_bridge
+      sendLog:
+        markdownDescription: Send log webhook.
+        name: sendlog
+        validators:
+        - exactlyOneOf:
+          - custom
+          - slack
+          - pager_duty
+          - email_group
+          - microsoft_teams
+          - microsoft_teams_workflow
+          - jira
+          - opsgenie
+          - demisto
+          - event_bridge
+      slack:
+        markdownDescription: Slack webhook.
+        validators:
+        - exactlyOneOf:
+          - custom
+          - pager_duty
+          - sendlog
+          - email_group
+          - microsoft_teams
+          - microsoft_teams_workflow
+          - jira
+          - opsgenie
+          - demisto
+          - event_bridge
+    extraAttributes:
+      external_id:
+        markdownDescription: Webhook external ID. Using to linq webhook to alert.
+        type: string
+        computed: true
+        useStateForUnknown: true
+  GenericWebhookConfig:
+    fields:
+      headers:
+        markdownDescription: Webhook headers. Map of string to string. A header carrying a secret belongs
+          in `headers_wo` instead, so its value is never written to state.
+        computed: true
+      method:
+        markdownDescription: 'Webhook method. can be one of: get, post, put'
+        schemaOptional: true
+        validators:
+        - enum: true
+      payload:
+        markdownDescription: Webhook payload. JSON string.
+        computed: true
+        default: "{\n    \"uuid\": \"\",\n    \"alert_id\": \"$ALERT_ID\",\n    \"name\": \"$ALERT_NAME\"\
+          ,\n    \"description\": \"$ALERT_DESCRIPTION\",\n    \"threshold\": \"$ALERT_THRESHOLD\",\n\
+          \    \"timewindow\": \"$ALERT_TIMEWINDOW_MINUTES\",\n    \"group_by_labels\": \"$ALERT_GROUPBY_LABELS\"\
+          ,\n    \"alert_Webhook\": \"$ALERT_Webhook\",\n    \"alert_url\": \"$ALERT_URL\",\n    \"log_url\"\
+          : \"$LOG_URL\",\n    \"icon_url\": \"$CORALOGIX_ICON_URL\",\n    \"service\": \"$SERVICE\",\n\
+          \    \"duration\": \"$DURATION\",\n    \"errors\": \"$ERRORS\",\n    \"spans\": \"$SPANS\",\n\
+          \    \"fields\": [\n      {\n        \"key\": \"team\",\n        \"value\": \"$TEAM_NAME\"\n\
+          \      },\n      {\n        \"key\": \"application\",\n        \"value\": \"$APPLICATION_NAME\"\
+          \n      },\n      {\n        \"key\": \"subsystem\",\n        \"value\": \"$SUBSYSTEM_NAME\"\
+          \n      },\n      {\n        \"key\": \"severity\",\n        \"value\": \"$EVENT_SEVERITY\"\n\
+          \      },\n      {\n        \"key\": \"computer\",\n        \"value\": \"$COMPUTER_NAME\"\n\
+          \      },\n      {\n        \"key\": \"ipAddress\",\n        \"value\": \"$IP_ADDRESS\"\n  \
+          \    },\n      {\n        \"key\": \"timestamp\",\n        \"value\": \"$EVENT_TIMESTAMP\"\n\
+          \      },\n      {\n        \"key\": \"hitCount\",\n        \"value\": \"$HIT_COUNT\"\n    \
+          \  },\n      {\n        \"key\": \"text\",\n        \"value\": \"$LOG_TEXT\"\n      },\n   \
+          \   {\n        \"key\": \"Custom field\",\n        \"value\": \"$JSON_KEY\"\n      },\n    \
+          \  {\n        \"key\": \"Group-by Key1\",\n        \"value\": \"$GROUP_BY_KEY_1\"\n      },\n\
+          \      {\n        \"key\": \"Group-by Value1\",\n        \"value\": \"$GROUP_BY_VALUE_1\"\n\
+          \      },\n      {\n        \"key\": \"Group-by Key2\",\n        \"value\": \"$GROUP_BY_KEY_2\"\
+          \n      },\n      {\n        \"key\": \"Group-by Value2\",\n        \"value\": \"$GROUP_BY_VALUE_2\"\
+          \n      },\n      {\n        \"key\": \"metricKey\",\n        \"value\": \"$METRIC_KEY\"\n \
+          \     },\n      {\n        \"key\": \"metricOperator\",\n        \"value\": \"$METRIC_OPERATOR\"\
+          \n      },\n      {\n        \"key\": \"timeframe\",\n        \"value\": \"$TIMEFRAME\"\n  \
+          \    },\n      {\n        \"key\": \"timeframePercentageOverThreshold\",\n        \"value\"\
+          : \"$TIMEFRAME_OVER_THRESHOLD\"\n      },\n      {\n        \"key\": \"metricCriteria\",\n \
+          \       \"value\": \"$METRIC_CRITERIA\"\n      },\n      {\n        \"key\": \"ratioQueryOne\"\
+          ,\n        \"value\": \"$RATIO_QUERY_ONE\"\n      },\n      {\n        \"key\": \"ratioQueryTwo\"\
+          ,\n        \"value\": \"$RATIO_QUERY_TWO\"\n      },\n      {\n        \"key\": \"ratioTimeframe\"\
+          ,\n        \"value\": \"$RATIO_TIMEFRAME\"\n      },\n      {\n        \"key\": \"ratioGroupByKeys\"\
+          ,\n        \"value\": \"$RATIO_GROUP_BY_KEYS\"\n      },\n      {\n        \"key\": \"ratioGroupByTable\"\
+          ,\n        \"value\": \"$RATIO_GROUP_BY_TABLE\"\n      },\n      {\n        \"key\": \"uniqueCountValuesList\"\
+          ,\n        \"value\": \"$UNIQUE_COUNT_VALUES_LIST\"\n      },\n      {\n        \"key\": \"\
+          newValueTrackedKey\",\n        \"value\": \"$NEW_VALUE_TRACKED_KEY\"\n      },\n      {\n  \
+          \      \"key\": \"metaLabels\",\n        \"value\": \"$META_LABELS\"\n      }\n    ]\n  }"
+      uuid:
+        markdownDescription: Webhook UUID. Computed automatically.
+        computed: true
+    extraAttributes:
+      url:
+        markdownDescription: Webhook URL.
+        type: string
+      headers_wo:
+        markdownDescription: 'Webhook headers whose values are secret, keyed by header name. Values are
+          sent to Coralogix and never written to state. Every key needs a matching entry in `headers_wo_versions`,
+          and a key here must not also appear in `headers`. Terraform never stores a write-only value,
+          so it cannot detect that the secret changed: increment `headers_wo_versions` to send a rotated
+          one. Requires Terraform 1.11 or later. Importing brings the value into state, because an import
+          has neither configuration nor prior state to say the value is managed this way; one apply afterwards
+          removes it again, so treat an imported secret as exposed and rotate it. Reading the same webhook
+          through `data.coralogix_webhook` does return this value, because a data source reads from the
+          API and has no configuration telling it which value is managed write-only.'
+        elementType: string
+        writeOnly: true
+      headers_wo_versions:
+        markdownDescription: Version of each `headers_wo` value, keyed by header name. Increment a header's
+          version to send a rotated secret.
+        elementType: int64
+  DemistoConfig:
+    fields:
+      payload:
+        markdownDescription: Webhook payload. JSON string.
+        optional: true
+        computed: true
+        default: "{\n    \"applicationName\": \"Coralogix Alerts\",\n    \"subsystemName\": \"Coralogix\
+          \ Alerts\",\n    \"computerName\": \"$COMPUTER_NAME\",\n    \"logEntries\": [\n      {\n   \
+          \     \"severity\": 3,\n        \"timestamp\": \"$EVENT_TIMESTAMP_MS\",\n        \"text\": {\n\
+          \          \"integration_text\": \"Security Incident\",\n          \"alert_application\": \"\
+          $APPLICATION_NAME\",\n          \"alert_subsystem\": \"$SUBSYSTEM_NAME\",\n          \"alert_severity\"\
+          : \"$EVENT_SEVERITY\",\n          \"alert_id\": \"$ALERT_ID\",\n          \"alert_name\": \"\
+          $ALERT_NAME\",\n          \"alert_url\": \"$ALERT_URL\",\n          \"hit_count\": \"$HIT_COUNT\"\
+          ,\n          \"alert_type_id\": \"53d222e2-e7b2-4fa6-80d4-9935425d47dd\"\n        }\n      }\n\
+          \    ]\n  }"
+      uuid:
+        markdownDescription: Webhook UUID. Computed automatically.
+        computed: true
+    extraAttributes:
+      url:
+        markdownDescription: Microsoft Teams URL.
+        type: string
+        required: true
+  EmailGroupConfig:
+    fields:
+      emailAddresses:
+        markdownDescription: Emails list.
+        name: emails
+        computed: true
+        readEmptyAs: 'null'
+  JiraConfig:
+    fields:
+      apiToken:
+        markdownDescription: Jira API token. Use `api_token_wo` instead to keep it out of state.
+        schemaOptional: true
+      email:
+        markdownDescription: email.
+        schemaOptional: true
+      projectKey:
+        markdownDescription: Jira project key.
+        schemaOptional: true
+    extraAttributes:
+      url:
+        markdownDescription: Jira URL.
+        type: string
+        required: true
+      api_token_wo:
+        markdownDescription: 'Jira API token, sent to Coralogix and never written to state. Terraform
+          never stores a write-only value, so it cannot detect that the secret changed: increment `api_token_wo_version`
+          to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state,
+          because an import has neither configuration nor prior state to say the value is managed this
+          way; one apply afterwards removes it again, so treat an imported secret as exposed and rotate
+          it. Reading the same webhook through `data.coralogix_webhook` does return this value, because
+          a data source reads from the API and has no configuration telling it which value is managed
+          write-only.'
+        type: string
+        writeOnly: true
+        validators:
+        - alsoRequires:
+          - api_token_wo_version
+        - conflictsWith:
+          - api_token
+      api_token_wo_version:
+        markdownDescription: Version of `api_token_wo`. Increment it to send a rotated API token.
+        type: int64
+        validators:
+        - alsoRequires:
+          - api_token_wo
+  PagerDutyConfig:
+    fields:
+      serviceKey:
+        markdownDescription: PagerDuty service key. Use `service_key_wo` instead to keep it out of state.
+        schemaOptional: true
+    extraAttributes:
+      service_key_wo:
+        markdownDescription: 'PagerDuty service key, sent to Coralogix and never written to state. Terraform
+          never stores a write-only value, so it cannot detect that the secret changed: increment `service_key_wo_version`
+          to send a rotated one. Requires Terraform 1.11 or later. Importing brings the value into state,
+          because an import has neither configuration nor prior state to say the value is managed this
+          way; one apply afterwards removes it again, so treat an imported secret as exposed and rotate
+          it. Reading the same webhook through `data.coralogix_webhook` does return this value, because
+          a data source reads from the API and has no configuration telling it which value is managed
+          write-only.'
+        type: string
+        writeOnly: true
+        validators:
+        - alsoRequires:
+          - service_key_wo_version
+        - conflictsWith:
+          - service_key
+      service_key_wo_version:
+        markdownDescription: Version of `service_key_wo`. Increment it to send a rotated service key.
+        type: int64
+        validators:
+        - alsoRequires:
+          - service_key_wo
+  SendLogConfig:
+    fields:
+      payload:
+        markdownDescription: Webhook payload. JSON string.
+        optional: true
+        computed: true
+        default: "{\n    \"applicationName\": \"$APPLICATION_NAME\",\n    \"subsystemName\": \"$SUBSYSTEM_NAME\"\
+          ,\n    \"computerName\": \"$COMPUTER_NAME\",\n    \"logEntries\": [\n      {\n        \"severity\"\
+          : 3,\n        \"timestamp\": \"$EVENT_TIMESTAMP_MS\",\n        \"text\": {\n          \"integration_text\"\
+          : \"Insert your desired integration description\",\n          \"alert_severity\": \"$EVENT_SEVERITY\"\
+          ,\n          \"alert_id\": \"$ALERT_ID\",\n          \"alert_name\": \"$ALERT_NAME\",\n    \
+          \      \"alert_url\": \"$ALERT_URL\",\n          \"hit_count\": \"$HIT_COUNT\"\n        }\n\
+          \      }\n    ]\n  }"
+      uuid:
+        markdownDescription: Webhook UUID. Computed automatically.
+        computed: true
+    extraAttributes:
+      url:
+        markdownDescription: Webhook URL returned by the service when present. SendLog webhooks do not
+          support configuring a URL.
+        type: string
+        computed: true
+  SlackConfig:
+    fields:
+      attachments:
+        markdownDescription: Slack attachments.
+        computed: true
+      digests:
+        skip: true
+    extraAttributes:
+      url:
+        markdownDescription: Slack URL.
+        type: string
+      notify_on:
+        markdownDescription: 'Slack notifications. can be one of: data_usage, error_and_critical_logs,
+          flow_anomalies, spike_anomalies'
+        type: set
+        elementType: string
+        elementValues:
+        - data_usage
+        - error_and_critical_logs
+        - flow_anomalies
+        - spike_anomalies
+  Attachment:
+    fields:
+      isActive:
+        markdownDescription: Determines if the attachment is active. Default is true.
+        name: active
+        computed: true
+        default: true
+      type:
+        markdownDescription: 'Slack attachment type. can be one of: empty, logs, metric_snapshot'
+        validators:
+        - enum: true
+  AwsEventBridgeConfig:
+    fields:
+      detail:
+        markdownDescription: Event bridge message. JSON string. More details about the token ["here"](https://coralogix.com/docs/user-guides/alerting/outbound-webhooks/generic-outbound-webhooks-alert-webhooks/#placeholders)
+      detailType:
+        markdownDescription: Free text to be included in the event.
+      eventBusArn:
+        markdownDescription: Corresponds to the event bus, which will receive notifications. The policy
+          attached must contain permission to publish.
+      roleName:
+        markdownDescription: Corresponds to the AWS IAM role that will be created in your account.
+      source:
+        markdownDescription: Free text is used to identify the messages Coralogix sends.
+  MicrosoftTeamsConfig:
+    extraAttributes:
+      url:
+        markdownDescription: Microsoft Teams URL.
+        type: string
+  MSTeamsWorkflowConfig:
+    extraAttributes:
+      url:
+        markdownDescription: Microsoft Teams Workflow URL.
+        type: string
+  OpsgenieConfig:
+    extraAttributes:
+      url:
+        markdownDescription: Opsgenie URL.
+        type: string
+        required: true
+enums:
+  MethodType:
+    values:
+    - GET
+    - POST
+    - PUT
+    rejected:
+    - UNKNOWN
+  AttachmentType:
+    values:
+    - EMPTY
+    - METRIC_SNAPSHOT
+    - LOGS
+  DigestType:
+    values:
+    - ERROR_AND_CRITICAL_LOGS
+    - FLOW_ANOMALIES
+    - SPIKE_ANOMALIES
+    - DATA_USAGE
+    rejected:
+    - UNKNOWN
+  EndpointType:
+    verbatim: true
+    values:
+    - ENDPOINT_TYPE_DEFAULT_OR_PUBLIC
+    - ENDPOINT_TYPE_PRIVATE
+dataSource:
+  lookup:
+  - id
+  - name
