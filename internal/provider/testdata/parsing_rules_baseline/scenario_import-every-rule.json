@@ -8,7 +8,7 @@
     "requests": [
       {
         "method": "GET",
-        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000011",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000012",
         "status": 200
       }
     ],
@@ -20,13 +20,13 @@
       "creator": "someone",
       "description": "made outside Terraform",
       "hidden": true,
-      "id": "00000000-0000-4000-9000-000000000011",
+      "id": "00000000-0000-4000-9000-000000000012",
       "name": "seeded",
       "order": 1,
       "rule_subgroups": [
         {
           "active": true,
-          "id": "00000000-0000-4000-9000-000000000010",
+          "id": "00000000-0000-4000-9000-000000000011",
           "order": 1,
           "rules": [
             {
@@ -209,6 +209,27 @@
                 "order": 9,
                 "source_field": "text.src"
               },
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": {
+                "active": true,
+                "block_all_matching_blocks": false,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000010",
+                "keep_blocked_logs": true,
+                "name": "rule-allow",
+                "order": 10,
+                "regular_expression": "keep",
+                "source_field": "text"
+              },
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
               "remove_fields": null,
               "replace": null
             }
@@ -328,6 +349,15 @@
                 "name": "rule-parse_json_field",
                 "source_field": "text.src"
               }
+            },
+            {
+              "block": {
+                "block_all_matching_blocks": false,
+                "keep_blocked_logs": true,
+                "name": "rule-allow",
+                "regular_expression": "keep",
+                "source_field": "text"
+              }
             }
           ]
         }
@@ -347,13 +377,13 @@
       "creator": "someone",
       "description": "made outside Terraform",
       "hidden": true,
-      "id": "00000000-0000-4000-9000-000000000011",
+      "id": "00000000-0000-4000-9000-000000000012",
       "name": "seeded",
       "order": 1,
       "rule_subgroups": [
         {
           "active": true,
-          "id": "00000000-0000-4000-9000-000000000010",
+          "id": "00000000-0000-4000-9000-000000000011",
           "order": 1,
           "rules": [
             {
@@ -536,6 +566,27 @@
                 "order": 9,
                 "source_field": "text.src"
               },
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": {
+                "active": true,
+                "block_all_matching_blocks": false,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000010",
+                "keep_blocked_logs": true,
+                "name": "rule-allow",
+                "order": 10,
+                "regular_expression": "keep",
+                "source_field": "text"
+              },
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
               "remove_fields": null,
               "replace": null
             }
@@ -558,13 +609,13 @@
       "creator": "someone",
       "description": "made outside Terraform",
       "hidden": true,
-      "id": "00000000-0000-4000-9000-000000000011",
+      "id": "00000000-0000-4000-9000-000000000012",
       "name": "seeded",
       "order": 1,
       "rule_subgroups": [
         {
           "active": true,
-          "id": "00000000-0000-4000-9000-000000000010",
+          "id": "00000000-0000-4000-9000-000000000011",
           "order": 1,
           "rules": [
             {
@@ -747,6 +798,27 @@
                 "order": 9,
                 "source_field": "text.src"
               },
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": {
+                "active": true,
+                "block_all_matching_blocks": false,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000010",
+                "keep_blocked_logs": true,
+                "name": "rule-allow",
+                "order": 10,
+                "regular_expression": "keep",
+                "source_field": "text"
+              },
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
               "remove_fields": null,
               "replace": null
             }

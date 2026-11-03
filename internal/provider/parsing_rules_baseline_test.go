@@ -355,6 +355,12 @@ var parsingRulesScenarios = map[string]func(h *grHarness){
 			prRule("json_stringify", j{"source_field": "text", "destination_field": "text.out"}),
 			prRule("parse_json_field", j{"source_field": "text", "destination_field": "text.in"}),
 		}, nil))
+		h.Apply("create parse_json_field from text with the defaults", h.null(), prCfg([]any{
+			prRule("parse_json_field", j{"source_field": "text", "destination_field": "text.in"}),
+		}, nil))
+		h.Apply("create parse_json_field with keep_source_field = false from text", h.null(), prCfg([]any{
+			prRule("parse_json_field", j{"source_field": "text", "destination_field": "text.in", "keep_source_field": false}),
+		}, nil))
 
 	},
 
@@ -468,6 +474,7 @@ var parsingRulesScenarios = map[string]func(h *grHarness){
 			prRule("json_stringify", j{"source_field": "text.src", "destination_field": "text.out", "keep_source_field": false}),
 			prRule("extract", j{"source_field": "text", "regular_expression": "(?P<b>.*)"}),
 			prRule("parse_json_field", j{"source_field": "text.src", "destination_field": "text.p", "keep_source_field": false, "keep_destination_field": false}),
+			prRule("block", j{"name": "rule-allow", "source_field": "text", "regular_expression": "keep", "keep_blocked_logs": true, "block_all_matching_blocks": false}),
 		}, j{
 			"name": "seeded", "description": "made outside Terraform", "active": false, "hidden": true, "creator": "someone", "order": 1.0,
 			"applications": []any{"app-a"}, "subsystems": []any{"sub-a"}, "severities": []any{"error"},
@@ -552,7 +559,8 @@ func prAPIRule(kind, sourceField string, parameters j) j {
 }
 
 // prAPIGroupEvery is a rule group as the API takes it, with every group field and one rule of each
-// type, all with values that are not the defaults.
+// parameters arm (a block rule is blockParameters or allowParameters), all with values that are not
+// the defaults.
 func prAPIGroupEvery() j {
 	parse := prAPIRule("parse", "text.a", j{"parseParameters": j{"destinationField": "text.b", "rule": "(?P<a>.*)"}})
 	parse["description"], parse["enabled"] = "d", false
@@ -566,6 +574,7 @@ func prAPIGroupEvery() j {
 		prAPIRule("json_stringify", "text.src", j{"jsonStringifyParameters": j{"deleteSource": true, "destinationField": "text.out"}}),
 		prAPIRule("extract", "text", j{"extractParameters": j{"rule": "(?P<b>.*)"}}),
 		prAPIRule("parse_json_field", "text.src", j{"jsonParseParameters": j{"deleteSource": true, "destinationField": "text.p", "overrideDest": true}}),
+		prAPIRule("allow", "text", j{"allowParameters": j{"keepBlockedLogs": true, "rule": "keep"}}),
 	)
 	g["description"], g["enabled"], g["hidden"], g["creator"] = "made outside Terraform", false, true, "someone"
 	g["ruleMatchers"] = []any{

@@ -1073,5 +1073,212 @@
       "error: Error creating coralogix_parsing_rules | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: statusCode: 400, response: Failed to create rule group err: [{source-field-validation ParsingThemes.RulesGroups[0].Rules[0].SourceField string string text }]\"}\noperation - Create"
     ],
     "state": null
+  },
+  {
+    "step": "create parse_json_field from text with the defaults",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "parse_json_field": {
+                "destination_field": "text.in",
+                "name": "rule-parse_json_field",
+                "source_field": "text"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": [],
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "(unknown)",
+      "name": "tf-rule-group",
+      "order": "(unknown)",
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": {
+                "active": true,
+                "description": "",
+                "destination_field": "text.in",
+                "id": "(unknown)",
+                "keep_destination_field": true,
+                "keep_source_field": false,
+                "name": "rule-parse_json_field",
+                "order": "(unknown)",
+                "source_field": "text"
+              },
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1",
+        "body": {
+          "creator": "",
+          "description": "",
+          "enabled": false,
+          "hidden": false,
+          "name": "tf-rule-group",
+          "order": 0,
+          "ruleSubgroups": [
+            {
+              "enabled": true,
+              "order": 1,
+              "rules": [
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-parse_json_field",
+                  "order": 1,
+                  "parameters": {
+                    "jsonParseParameters": {
+                      "deleteSource": true,
+                      "destinationField": "text.in",
+                      "escapedValue": true,
+                      "overrideDest": false
+                    }
+                  },
+                  "sourceField": "text"
+                }
+              ]
+            }
+          ]
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_parsing_rules | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: statusCode: 400, response: Failed to create rule group err: [{source-field-validation ParsingThemes.RulesGroups[0].Rules[0].SourceField string string text }]\"}\noperation - Create"
+    ],
+    "state": null
+  },
+  {
+    "step": "create parse_json_field with keep_source_field = false from text",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "parse_json_field": {
+                "destination_field": "text.in",
+                "keep_source_field": false,
+                "name": "rule-parse_json_field",
+                "source_field": "text"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": [],
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "(unknown)",
+      "name": "tf-rule-group",
+      "order": "(unknown)",
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": {
+                "active": true,
+                "description": "",
+                "destination_field": "text.in",
+                "id": "(unknown)",
+                "keep_destination_field": true,
+                "keep_source_field": false,
+                "name": "rule-parse_json_field",
+                "order": "(unknown)",
+                "source_field": "text"
+              },
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1",
+        "body": {
+          "creator": "",
+          "description": "",
+          "enabled": false,
+          "hidden": false,
+          "name": "tf-rule-group",
+          "order": 0,
+          "ruleSubgroups": [
+            {
+              "enabled": true,
+              "order": 1,
+              "rules": [
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-parse_json_field",
+                  "order": 1,
+                  "parameters": {
+                    "jsonParseParameters": {
+                      "deleteSource": true,
+                      "destinationField": "text.in",
+                      "escapedValue": true,
+                      "overrideDest": false
+                    }
+                  },
+                  "sourceField": "text"
+                }
+              ]
+            }
+          ]
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_parsing_rules | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: statusCode: 400, response: Failed to create rule group err: [{source-field-validation ParsingThemes.RulesGroups[0].Rules[0].SourceField string string text }]\"}\noperation - Create"
+    ],
+    "state": null
   }
 ]

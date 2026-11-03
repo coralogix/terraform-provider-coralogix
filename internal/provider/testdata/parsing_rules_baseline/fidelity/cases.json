@@ -1170,6 +1170,43 @@
                   {
                     "name": "r",
                     "order": 1,
+                    "sourceField": "text",
+                    "parameters": {
+                      "jsonParseParameters": {
+                        "deleteSource": true,
+                        "destinationField": "text.o",
+                        "overrideDest": false,
+                        "escapedValue": true
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "name": "tf-fidelity-bad",
+            "enabled": false,
+            "order": 2,
+            "ruleMatchers": [
+              {
+                "applicationName": {
+                  "value": "tf-fidelity-no-logs"
+                }
+              }
+            ],
+            "ruleSubgroups": [
+              {
+                "order": 1,
+                "rules": [
+                  {
+                    "name": "r",
+                    "order": 1,
                     "sourceField": "message",
                     "parameters": {
                       "extractParameters": {

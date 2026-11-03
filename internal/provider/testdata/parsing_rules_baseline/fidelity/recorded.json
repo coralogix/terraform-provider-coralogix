@@ -1100,6 +1100,13 @@
           "status": 400,
           "response": {
             "code": 400,
+            "message": "Bad Request: statusCode: 400, response: Failed to create rule group err: [{source-field-validation ParsingThemes.RulesGroups[0].Rules[0].SourceField string string text }]"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
             "message": "Bad Request: statusCode: 400, response: Failed to create rule group err: [{source-field-validation ParsingThemes.RulesGroups[0].Rules[0].SourceField string string message }]"
           }
         },
