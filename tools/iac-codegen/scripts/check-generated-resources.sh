@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Require current package versions; compare full output when a version or manifest changes.
+# Require every committed generated resource to match the current generator output.
 set -euo pipefail
 
-base=${1:?usage: check-generated-resources.sh <base-commit>}
 root=$(git rev-parse --show-toplevel)
 cd "$root"
 
@@ -11,7 +10,6 @@ version_at() {
   git show "$1:$version_path" 2>/dev/null | awk -F'"' '/^[[:space:]]*const Current = "[^"]+"[[:space:]]*$/ { print $2 }'
 }
 
-base_version=$(version_at "$base" || true)
 head_version=$(version_at HEAD || true)
 if [[ -z "$head_version" ]]; then
   printf '%s\n' 'Generator version.Current is missing or invalid.' >&2
@@ -45,11 +43,6 @@ for out in $(awk '{ print $2 }' "$work/resources"); do
     exit 1
   fi
 done
-
-if [[ "$base_version" == "$head_version" ]] &&
-  git diff --quiet "$base"...HEAD -- internal/provider/generated/versions.yaml; then
-  exit 0
-fi
 
 mkdir -p "$work/pristine" "$work/regenerated"
 git archive HEAD | tar -x -C "$work/pristine"
