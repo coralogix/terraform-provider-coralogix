@@ -303,17 +303,17 @@ func (r *Resource) setState(ctx context.Context, v *integration_service.Deployed
 	if diags.HasError() {
 		return diags
 	}
+	if prior != nil {
+		// The API holds no value of this attribute. Start with the value from the plan or prior
+		// state, then let AfterFlatten replace it when the API supplies another value.
+		var kept types.Dynamic
+		if !prior.GetAttribute(ctx, path.Root("parameters"), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
+			m.Parameters = kept
+		}
+	}
 	diags.Append(state.Set(ctx, m)...)
 	if diags.HasError() {
 		return diags
-	}
-	if prior != nil {
-		// The API holds no value of this attribute, so the state keeps the one of the plan or the
-		// prior state.
-		var kept types.Dynamic
-		if !prior.GetAttribute(ctx, path.Root("parameters"), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
-			diags.Append(state.SetAttribute(ctx, path.Root("parameters"), kept)...)
-		}
 	}
 	if prior != nil {
 		diags.Append(keepPriorEmpty(ctx, prior, state)...)

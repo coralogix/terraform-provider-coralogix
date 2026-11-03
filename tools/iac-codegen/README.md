@@ -441,7 +441,7 @@ During beta, increment the beta identifier for each generator behavior change. A
 
 A behavior change is a change of what the generator produces, whatever caused it: a change here, or a new version of the `iac` module. A refactor that produces the same output needs no new version. CI enforces this on every pull request that changes this module (`scripts/check-version-change.sh`). It builds `tfgen` at the base commit and at the pull request, runs both on the same input, and fails when their output differs and the version did not change. The input is every resource that `internal/provider/codegen.go` lists, the `check` report of every component of the pinned spec, and the golden files of the generator tests.
 
-`internal/provider/codegen.go` lists every generated resource with the name that its acceptance file uses. Add a line when you generate a new resource. `go generate ./internal/provider/` regenerates them all.
+`internal/provider/codegen.go` lists every generated resource with the name that its acceptance file uses. Add a line when you generate a new resource. `go generate ./internal/provider/` regenerates them all. CI requires each package in `versions.yaml` to use the current generator version. When that version changes, CI also regenerates every listed resource in a temporary directory and compares the output with the committed files and examples. Include changed output with the version change.
 
 ## Beta boundary
 
