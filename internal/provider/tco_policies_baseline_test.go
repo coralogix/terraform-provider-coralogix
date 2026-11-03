@@ -210,6 +210,25 @@ var tcoLogsScenarios = map[string]func(h *grHarness, f *tcoFake){
 		h.RefreshPlan("refresh", s)
 	},
 
+	// The API accepts the archive retention of a target and does not store it (recorded in
+	// fidelity/cases.json: logs-target-archive-retention), so a target never returns it.
+	"target-archive-retention": func(h *grHarness, f *tcoFake) {
+		f.archiveRetentions = map[string]bool{"11111111-1111-4111-8111-111111111111": true, "22222222-2222-4222-8222-222222222222": true}
+		target := func(retention string) j {
+			t := j{"dataset": "logs", "priority": "high"}
+			if retention != "" {
+				t["archive_retention_id"] = retention
+			}
+			return tcoPolicies(tcoPolicy("first", "", tcoSeverities("info"), j{"targets": l{t}}))
+		}
+		s := h.Apply("create: a target with an archive retention", h.null(), target("11111111-1111-4111-8111-111111111111"))
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: change it", s, target("22222222-2222-4222-8222-222222222222"))
+		s = h.Apply("update: remove it", s, target(""))
+		s = h.RefreshPlan("refresh", s)
+		h.Destroy("destroy", s)
+	},
+
 	"targets-rejected": func(h *grHarness, _ *tcoFake) {
 		h.Apply("create: priority on the policy and on the target", h.null(), tcoPolicies(tcoPolicy("first", "high", tcoSeverities("info"), j{"targets": l{
 			j{"dataset": "logs", "priority": "high"},

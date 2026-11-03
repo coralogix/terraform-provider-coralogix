@@ -1000,6 +1000,339 @@
           "path": "/policies/v1?source_type=SOURCE_TYPE_LOGS"
         }
       ]
+    },
+    {
+      "name": "logs-archive-retention",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "/log-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "policy": {
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_HIGH",
+                  "archiveRetention": {
+                    "id": "<archiveRetentionA>"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_LOGS"
+        },
+        {
+          "method": "PUT",
+          "path": "/log-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "policy": {
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_HIGH",
+                  "archiveRetention": {
+                    "id": "<archiveRetentionB>"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_LOGS"
+        },
+        {
+          "method": "PUT",
+          "path": "/log-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "policy": {
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_HIGH"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_LOGS"
+        },
+        {
+          "method": "PUT",
+          "path": "/log-policies/v1",
+          "body": {
+            "policies": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "logs-target-archive-retention",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "/log-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "policy": {
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_UNSPECIFIED",
+                  "targets": [
+                    {
+                      "dataset": "logs",
+                      "dataspace": "default",
+                      "priority": "PRIORITY_TYPE_HIGH",
+                      "archiveRetention": {
+                        "id": "<archiveRetentionA>"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_LOGS"
+        },
+        {
+          "method": "PUT",
+          "path": "/log-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "policy": {
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_UNSPECIFIED",
+                  "targets": [
+                    {
+                      "dataset": "logs",
+                      "dataspace": "default",
+                      "priority": "PRIORITY_TYPE_HIGH",
+                      "archiveRetention": {
+                        "id": "<archiveRetentionB>"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_LOGS"
+        },
+        {
+          "method": "PUT",
+          "path": "/log-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "policy": {
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_UNSPECIFIED",
+                  "targets": [
+                    {
+                      "dataset": "logs",
+                      "dataspace": "default",
+                      "priority": "PRIORITY_TYPE_HIGH"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_LOGS"
+        },
+        {
+          "method": "PUT",
+          "path": "/log-policies/v1",
+          "body": {
+            "policies": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "spans-archive-retention",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "/span-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "policy": {
+                  "archiveRetention": {
+                    "id": "<archiveRetentionA>"
+                  },
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_HIGH"
+                },
+                "spanRules": {
+                  "tagRules": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_SPANS"
+        },
+        {
+          "method": "PUT",
+          "path": "/span-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "policy": {
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_HIGH"
+                },
+                "spanRules": {
+                  "tagRules": []
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_SPANS"
+        },
+        {
+          "method": "PUT",
+          "path": "/span-policies/v1",
+          "body": {
+            "policies": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "rum-archive-retention",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "/rum-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "policy": {
+                  "archiveRetention": {
+                    "id": "<archiveRetentionA>"
+                  },
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_MEDIUM"
+                },
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_ERROR"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_RUM"
+        },
+        {
+          "method": "PUT",
+          "path": "/rum-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "policy": {
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_MEDIUM"
+                },
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_ERROR"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_RUM"
+        },
+        {
+          "method": "PUT",
+          "path": "/rum-policies/v1",
+          "body": {
+            "policies": []
+          }
+        }
+      ]
     }
   ]
 }

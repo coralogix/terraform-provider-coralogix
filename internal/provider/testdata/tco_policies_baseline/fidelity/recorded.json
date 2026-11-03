@@ -755,7 +755,7 @@
           "status": 400,
           "response": {
             "code": 400,
-            "message": "Bad Request: DPXL compile failed for policy tf-fidelity-a, id:3707c5a7-9098-4d3f-b67f-040b5a70c420, error: DPXL compilation errors:\n - expected version tag. e.g. \"<v1> foo == 'bar'\" at [0:0-0:20]: $d.severity == 'INFO"
+            "message": "Bad Request: DPXL compile failed for policy tf-fidelity-a, id:708a9023-bf5d-4a7c-9472-789ede0497ef, error: DPXL compilation errors:\n - expected version tag. e.g. \"<v1> foo == 'bar'\" at [0:0-0:20]: $d.severity == 'INFO"
           }
         },
         {
@@ -1675,6 +1675,682 @@
           "status": 200,
           "response": {
             "policies": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "logs-archive-retention",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "archiveRetention": {
+                    "id": "<archiveRetentionA>"
+                  },
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": true,
+                  "id": "<id>",
+                  "logRules": {
+                    "severities": [
+                      "SEVERITY_INFO"
+                    ]
+                  },
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_HIGH",
+                  "targets": [
+                    {
+                      "dataset": "logs",
+                      "dataspace": "default",
+                      "priority": "PRIORITY_TYPE_HIGH"
+                    }
+                  ],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "archiveRetention": {
+                  "id": "<archiveRetentionA>"
+                },
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_HIGH",
+                "targets": [
+                  {
+                    "dataset": "logs",
+                    "dataspace": "default",
+                    "priority": "PRIORITY_TYPE_HIGH"
+                  }
+                ],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "archiveRetention": {
+                    "id": "<archiveRetentionB>"
+                  },
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": true,
+                  "id": "<id>",
+                  "logRules": {
+                    "severities": [
+                      "SEVERITY_INFO"
+                    ]
+                  },
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_HIGH",
+                  "targets": [
+                    {
+                      "dataset": "logs",
+                      "dataspace": "default",
+                      "priority": "PRIORITY_TYPE_HIGH"
+                    }
+                  ],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "archiveRetention": {
+                  "id": "<archiveRetentionB>"
+                },
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_HIGH",
+                "targets": [
+                  {
+                    "dataset": "logs",
+                    "dataspace": "default",
+                    "priority": "PRIORITY_TYPE_HIGH"
+                  }
+                ],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": true,
+                  "id": "<id>",
+                  "logRules": {
+                    "severities": [
+                      "SEVERITY_INFO"
+                    ]
+                  },
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_HIGH",
+                  "targets": [
+                    {
+                      "dataset": "logs",
+                      "dataspace": "default",
+                      "priority": "PRIORITY_TYPE_HIGH"
+                    }
+                  ],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_HIGH",
+                "targets": [
+                  {
+                    "dataset": "logs",
+                    "dataspace": "default",
+                    "priority": "PRIORITY_TYPE_HIGH"
+                  }
+                ],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "logs-target-archive-retention",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": true,
+                  "id": "<id>",
+                  "logRules": {
+                    "severities": [
+                      "SEVERITY_INFO"
+                    ]
+                  },
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_UNSPECIFIED",
+                  "targets": [
+                    {
+                      "dataset": "logs",
+                      "dataspace": "default",
+                      "priority": "PRIORITY_TYPE_HIGH"
+                    }
+                  ],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_UNSPECIFIED",
+                "targets": [
+                  {
+                    "dataset": "logs",
+                    "dataspace": "default",
+                    "priority": "PRIORITY_TYPE_HIGH"
+                  }
+                ],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": true,
+                  "id": "<id>",
+                  "logRules": {
+                    "severities": [
+                      "SEVERITY_INFO"
+                    ]
+                  },
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_UNSPECIFIED",
+                  "targets": [
+                    {
+                      "dataset": "logs",
+                      "dataspace": "default",
+                      "priority": "PRIORITY_TYPE_HIGH"
+                    }
+                  ],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_UNSPECIFIED",
+                "targets": [
+                  {
+                    "dataset": "logs",
+                    "dataspace": "default",
+                    "priority": "PRIORITY_TYPE_HIGH"
+                  }
+                ],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": true,
+                  "id": "<id>",
+                  "logRules": {
+                    "severities": [
+                      "SEVERITY_INFO"
+                    ]
+                  },
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_UNSPECIFIED",
+                  "targets": [
+                    {
+                      "dataset": "logs",
+                      "dataspace": "default",
+                      "priority": "PRIORITY_TYPE_HIGH"
+                    }
+                  ],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "logRules": {
+                  "severities": [
+                    "SEVERITY_INFO"
+                  ]
+                },
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_UNSPECIFIED",
+                "targets": [
+                  {
+                    "dataset": "logs",
+                    "dataspace": "default",
+                    "priority": "PRIORITY_TYPE_HIGH"
+                  }
+                ],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "spans-archive-retention",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "archiveRetention": {
+                    "id": "<archiveRetentionA>"
+                  },
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": true,
+                  "id": "<id>",
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_HIGH",
+                  "spanRules": {
+                    "tagRules": []
+                  },
+                  "targets": [
+                    {
+                      "dataset": "spans",
+                      "dataspace": "default",
+                      "priority": "PRIORITY_TYPE_HIGH"
+                    }
+                  ],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "archiveRetention": {
+                  "id": "<archiveRetentionA>"
+                },
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_HIGH",
+                "spanRules": {
+                  "tagRules": []
+                },
+                "targets": [
+                  {
+                    "dataset": "spans",
+                    "dataspace": "default",
+                    "priority": "PRIORITY_TYPE_HIGH"
+                  }
+                ],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": true,
+                  "id": "<id>",
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_HIGH",
+                  "spanRules": {
+                    "tagRules": []
+                  },
+                  "targets": [
+                    {
+                      "dataset": "spans",
+                      "dataspace": "default",
+                      "priority": "PRIORITY_TYPE_HIGH"
+                    }
+                  ],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_HIGH",
+                "spanRules": {
+                  "tagRules": []
+                },
+                "targets": [
+                  {
+                    "dataset": "spans",
+                    "dataspace": "default",
+                    "priority": "PRIORITY_TYPE_HIGH"
+                  }
+                ],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "rum-archive-retention",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "archiveRetention": {
+                    "id": "<archiveRetentionA>"
+                  },
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": true,
+                  "id": "<id>",
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_MEDIUM",
+                  "rumRules": {
+                    "severities": [
+                      "SEVERITY_ERROR"
+                    ]
+                  },
+                  "targets": [],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "archiveRetention": {
+                  "id": "<archiveRetentionA>"
+                },
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_MEDIUM",
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_ERROR"
+                  ]
+                },
+                "targets": [],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": true,
+                  "id": "<id>",
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_MEDIUM",
+                  "rumRules": {
+                    "severities": [
+                      "SEVERITY_ERROR"
+                    ]
+                  },
+                  "targets": [],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_MEDIUM",
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_ERROR"
+                  ]
+                },
+                "targets": [],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": []
           }
         }
       ]

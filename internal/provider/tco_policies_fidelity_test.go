@@ -43,7 +43,10 @@ func TestTCOPoliciesFakeMatchesRecordedBackend(t *testing.T) {
 			}
 			// The recorder ran the cases in order on one tenant, so a case starts with the policies
 			// that the cases before it left. Replay them on a new fake, so that -run selects one case.
-			fake := &tcoFake{}
+			fake := &tcoFake{archiveRetentions: map[string]bool{}}
+			for _, id := range tcoArchiveRetentionPlaceholders {
+				fake.archiveRetentions[id] = true
+			}
 			send := func(s fidelityStep) (int, any) {
 				fake.mu.Lock()
 				defer fake.mu.Unlock()
@@ -88,6 +91,7 @@ func TestRecordTCOPoliciesFidelity(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	retentions := tcoTenantArchiveRetentions(t, base, apiKey)
 	restore := map[string]any{}
 	for source, overwrite := range map[string]string{"SOURCE_TYPE_LOGS": "/log-policies/v1", "SOURCE_TYPE_SPANS": "/span-policies/v1"} {
 		status, got := amSend(t, base+"/policies/v1?source_type="+source, apiKey, http.MethodGet, nil)
@@ -114,7 +118,8 @@ func TestRecordTCOPoliciesFidelity(t *testing.T) {
 			} `json:"steps"`
 		}{Name: c.Name}
 		for _, s := range c.Steps {
-			status, got := amSend(t, base+s.Path, apiKey, s.Method, s.Body)
+			status, got := amSend(t, base+s.Path, apiKey, s.Method, tcoReplaceStrings(t, s.Body, retentions))
+			got = tcoReplaceStrings(t, got, tcoInverse(retentions))
 			if status == http.StatusForbidden || status == http.StatusUnauthorized {
 				t.Fatalf("the API returned %d. Recording needs a management API key with TCO policy permissions.", status)
 			}
@@ -136,6 +141,62 @@ func TestRecordTCOPoliciesFidelity(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(tcoFidelityDir, "fidelity", "recorded.json"), raw.Bytes(), 0o644); err != nil {
 		t.Fatal(err)
 	}
+}
+
+// tcoArchiveRetentionPlaceholders stand for archive retentions of the tenant in fidelity/cases.json.
+// The recorder sends the ids of the first two retentions of the tenant in their place and writes the
+// placeholders back into the responses, so the files hold no tenant ids. The fake knows them.
+var tcoArchiveRetentionPlaceholders = []string{"<archiveRetentionA>", "<archiveRetentionB>"}
+
+// tcoTenantArchiveRetentions maps each placeholder to the id of an archive retention of the tenant.
+func tcoTenantArchiveRetentions(t *testing.T, base, apiKey string) map[string]string {
+	t.Helper()
+	status, got := amSend(t, strings.TrimSuffix(base, tcoBasePath)+"/dataengine/retention-tags/v1", apiKey, http.MethodGet, nil)
+	if status != http.StatusOK {
+		t.Fatalf("cannot list the archive retentions of the tenant (%d): %s", status, compact(got))
+	}
+	m, _ := got.(map[string]any)
+	list := tcoList(m["retentions"])
+	if len(list) < len(tcoArchiveRetentionPlaceholders) {
+		t.Fatalf("the tenant has %d archive retentions, the cases need %d", len(list), len(tcoArchiveRetentionPlaceholders))
+	}
+	out := map[string]string{}
+	for i, placeholder := range tcoArchiveRetentionPlaceholders {
+		id, _ := list[i]["id"].(string)
+		out[placeholder] = id
+	}
+	return out
+}
+
+// tcoReplaceStrings returns v with each key of replace, as a whole JSON string or inside one,
+// replaced by its value.
+func tcoReplaceStrings(t *testing.T, v any, replace map[string]string) any {
+	t.Helper()
+	if v == nil || len(replace) == 0 {
+		return v
+	}
+	raw, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(raw)
+	for from, to := range replace {
+		from, to = strings.Trim(compact(from), `"`), strings.Trim(compact(to), `"`)
+		text = strings.ReplaceAll(text, from, to)
+	}
+	var out any
+	if err := json.Unmarshal([]byte(text), &out); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+func tcoInverse(m map[string]string) map[string]string {
+	out := map[string]string{}
+	for k, v := range m {
+		out[v] = k
+	}
+	return out
 }
 
 // tcoRecordingTarget returns the URL of the dataplans API and the API key.
