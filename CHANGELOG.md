@@ -1,5 +1,12 @@
 # Unreleased
 
+#### resource/coralogix_webhook
+- CHORE: The resource and data source use generated code. The released schema, ten webhook types, import, and write-only fields remain available.
+- FIX: Empty email and Slack collections now produce a stable plan after apply.
+- FIX: A failed read after Create keeps the new id in state. Terraform can then delete the partial resource.
+- FIX: Delete succeeds when the webhook is already absent. An Update of an absent webhook keeps the prior state and returns an error. The next refresh can remove it.
+- CHORE: The SDK sends empty strings for omitted fields that the API requires. The API rejects these configurations as before. A legacy Microsoft Teams webhook can still be read and imported. Its rejected update now reports that this type is deprecated.
+
 #### resource/coralogix_action
 - CHORE: The resource is generated from the API contract. The schema, the import by id, and the state version are the same. A plan with an action that was created by 3.22.1 shows no change.
 - FIX: An update of an action that was deleted outside Terraform fails with `Resource no longer exists` and the next refresh removes it from state. Before, it printed a warning with a pointer instead of the id, and Terraform failed with `Missing Resource State After Update`.

@@ -36,6 +36,7 @@ func TestExtraAttributeOfEmptyNestedObject(t *testing.T) {
 func TestExtraAttributeOfReusedNestedObject(t *testing.T) {
 	for name, extra := range map[string]overrides.ExtraAttribute{
 		"string": {Type: "string", MarkdownDescription: "Extra."},
+		"int64":  {Type: "int64", MarkdownDescription: "Extra."},
 		"set":    {Type: "set", ElementType: "string", MarkdownDescription: "Extra."},
 		"map":    {ElementType: "string", MarkdownDescription: "Extra."},
 	} {
@@ -65,6 +66,23 @@ func TestExtraAttributeOfReusedNestedObject(t *testing.T) {
 				t.Errorf("computed paths = %v, want only the response-only extra", out.ComputedPaths)
 			}
 		})
+	}
+}
+
+func TestRequiredExtraAttribute(t *testing.T) {
+	for _, extra := range []overrides.ExtraAttribute{
+		{Type: "string", Required: true},
+		{Type: "int64", Required: true},
+		{Type: "set", ElementType: "string", Required: true},
+		{ElementType: "string", Required: true},
+	} {
+		a, _, _, _, err := extraAttr("value", extra)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !a.Required || a.Optional || a.Computed {
+			t.Errorf("extra %#v: required=%t optional=%t computed=%t", extra, a.Required, a.Optional, a.Computed)
+		}
 	}
 }
 

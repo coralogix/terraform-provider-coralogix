@@ -126,6 +126,63 @@ func TestNestedExtraKeepsLaterAPIFieldAutomatic(t *testing.T) {
 	}
 }
 
+// A later ordinary webhook field stays automatic beside the Terraform-only URL and secret fields.
+func TestWebhookTakesLaterAPIFieldWithoutOverride(t *testing.T) {
+	input, err := source.Resolve(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := readOverrides(filepath.Join(input.ModuleRoot, "internal", "provider", "generated", "webhook", "behavior-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := file.Types["OutgoingWebhook"].Fields["probeNote"]; ok {
+		t.Fatal("probeNote must have no override")
+	}
+	render := func(spec []byte) map[string][]byte {
+		t.Helper()
+		validated, err := validateOpenAPIWith(spec, "OutgoingWebhook", model.OperationIDs{}, input.SDKModule, input.Module, file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		files, err := renderWith(validated.resource, validated.refs, "webhook", file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return files
+	}
+	before := render(input.OpenAPI)
+	var doc map[string]any
+	if err := yaml.Unmarshal(input.OpenAPI, &doc); err != nil {
+		t.Fatal(err)
+	}
+	schemas := doc["components"].(map[string]any)["schemas"].(map[string]any)
+	for _, component := range []string{"OutgoingWebhook", "OutgoingWebhookInputData"} {
+		properties := schemas[component].(map[string]any)["properties"].(map[string]any)
+		properties["probeNote"] = map[string]any{"type": "string", "x-coralogix-presence": true, "description": "A future note."}
+	}
+	contract, err := yaml.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	after := render(contract)
+	for _, want := range []struct{ file, text string }{
+		{"schema.go", `"probe_note": schema.StringAttribute{`},
+		{"model.go", "ProbeNote types.String"},
+		{"convert.go", "out.ProbeNote = expandString(m.ProbeNote)"},
+		{"convert.go", "out.ProbeNote = types.StringPointerValue(v.ProbeNote)"},
+	} {
+		if !strings.Contains(normalizeSpace(string(after[want.file])), normalizeSpace(want.text)) {
+			t.Errorf("%s has no %q", want.file, want.text)
+		}
+	}
+	for name, text := range after {
+		if removed := removedLines(string(before[name]), string(text)); len(removed) != 0 {
+			t.Errorf("%s: the new field removed generated lines:\n%s", name, strings.Join(removed, "\n"))
+		}
+	}
+}
+
 // withNewFields adds the optional fields probeNote to the rule and probeLimit to its time frame.
 func withNewFields(t *testing.T, spec []byte) []byte {
 	t.Helper()

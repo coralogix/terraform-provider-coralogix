@@ -1,0 +1,286 @@
+[
+  {
+    "step": "create with explicit empty emails",
+    "config": {
+      "email_group": {
+        "emails": []
+      },
+      "name": "full"
+    },
+    "plan": {
+      "custom": null,
+      "demisto": null,
+      "email_group": {
+        "emails": []
+      },
+      "event_bridge": null,
+      "external_id": "(unknown)",
+      "id": "(unknown)",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "emailGroup": {
+              "emailAddresses": []
+            },
+            "name": "full",
+            "type": "EMAIL_GROUP"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": {
+        "emails": []
+      },
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and plan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": {
+        "emails": []
+      },
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "set emails",
+    "config": {
+      "email_group": {
+        "emails": [
+          "one@example.invalid",
+          "two@example.invalid"
+        ]
+      },
+      "name": "full"
+    },
+    "plan": {
+      "custom": null,
+      "demisto": null,
+      "email_group": {
+        "emails": [
+          "one@example.invalid",
+          "two@example.invalid"
+        ]
+      },
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "emailGroup": {
+              "emailAddresses": [
+                "one@example.invalid",
+                "two@example.invalid"
+              ]
+            },
+            "name": "full",
+            "type": "EMAIL_GROUP"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": {
+        "emails": [
+          "one@example.invalid",
+          "two@example.invalid"
+        ]
+      },
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "clear emails",
+    "config": {
+      "email_group": {
+        "emails": []
+      },
+      "name": "full"
+    },
+    "plan": {
+      "custom": null,
+      "demisto": null,
+      "email_group": {
+        "emails": []
+      },
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1",
+        "body": {
+          "data": {
+            "emailGroup": {
+              "emailAddresses": []
+            },
+            "name": "full",
+            "type": "EMAIL_GROUP"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": {
+        "emails": []
+      },
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after clear and plan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "custom": null,
+      "demisto": null,
+      "email_group": {
+        "emails": []
+      },
+      "event_bridge": null,
+      "external_id": "1",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "jira": null,
+      "microsoft_teams": null,
+      "microsoft_teams_workflow": null,
+      "name": "full",
+      "opsgenie": null,
+      "pager_duty": null,
+      "sendlog": null,
+      "slack": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "delete",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/integrations/webhooks/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]
