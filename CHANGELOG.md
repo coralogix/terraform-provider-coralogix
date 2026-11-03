@@ -1,8 +1,8 @@
 # Unreleased
 
 #### resource/coralogix_parsing_rules
-- CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the requests are the same. A rule group created without `active` is still created inactive, and one without `order` is still added last.
-- FIX: An update of a rule group without `order` in the configuration keeps its place. Before, every update sent `order = 0`, which the API reads as "after every other group", so changing only the description moved the group to the end of the processing order. A new rule group without `order` is still added last. Removing `order` from the configuration now keeps the current order; set a value to move the group.
+- CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the requests are the same, except as listed below. A rule group created without `active` is still created inactive, and one without `order` is still added last.
+- FIX: An update of a rule group without `order` in the configuration keeps its place. Before, every update sent `order = 0`, which the API reads as "after every other group", so changing only the description moved the group to the end of the processing order. A new rule group without `order` is still added last. Removing `order` from the configuration now keeps the current order; set a value to move the group. When the same apply deletes a group before it, the update sends the order that the plan read, and the API lowered the orders after the deleted group, so the updated group can share its order with the next one. Set `order` to control the position exactly.
 - FIX: Destroy of a rule group that was deleted outside Terraform succeeds. Before, it failed with the 404 of the API.
 - FIX: An update of a rule group that was deleted outside Terraform fails with `Resource no longer exists`, and the next refresh removes it from state. Before, it failed with the raw 404 of the API.
 - CHORE: A rule with no type, or with two, reports `Invalid Attribute Combination` at `block` instead of `parse`. The rule is the same: exactly one type per rule.

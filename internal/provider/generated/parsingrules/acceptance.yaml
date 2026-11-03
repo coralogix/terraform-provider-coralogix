@@ -3,9 +3,10 @@
 # A rule group acts on the logs of the tenant, so every config keeps the group inactive and
 # matches only an application that sends no logs.
 #
-# No config sets order. A Delete lowers the order of every group above the deleted one, and the
-# acceptance jobs run rule-group tests in parallel, so a configured order would read back changed
-# when another test deletes its group. An unset order keeps the value of the state, and the
+# No config sets order. A Delete lowers the order of every group above the deleted one, so a
+# configured order would read back changed when a group before it goes, also a group that another
+# test deletes in the same CI run (the rule-groups shard runs these tests one package at a time,
+# but the tests of a package in parallel). An unset order keeps the value of the state, and the
 # baseline and the legacy tests cover order.
 resource: RuleGroup
 

@@ -20,7 +20,7 @@ resource "coralogix_parsing_rules" "rules_group_example" {
   severities   = ["warning"]
   # order must be unique across every rule-group in the account. Terraform plans each
   # rule-group on its own, so a duplicate is not caught at plan time.
-  order        = 1
+  order = 1
 
   rule_subgroups = [{
     rules = [{
@@ -53,6 +53,7 @@ resource "coralogix_parsing_rules" "rules_group_example" {
         description        = "Block 2800 pg error"
         source_field       = "text"
         regular_expression = "sql_error_code\\s*=\\s*28000"
+        keep_blocked_logs  = false
       }
     }]
     }, {
@@ -92,7 +93,7 @@ resource "coralogix_parsing_rules" "extract_timestamp_example" {
   severities   = ["warning"]
   # order must be unique across every rule-group in the account. Terraform plans each
   # rule-group on its own, so a duplicate is not caught at plan time.
-  order        = 4
+  order = 4
 
   rule_subgroups = [{
     rules = [{
@@ -115,7 +116,7 @@ resource "coralogix_parsing_rules" "remove_fields_example" {
   severities   = ["warning"]
   # order must be unique across every rule-group in the account. Terraform plans each
   # rule-group on its own, so a duplicate is not caught at plan time.
-  order        = 3
+  order = 3
   rule_subgroups = [{
     rules = [{
       remove_fields = {
@@ -135,7 +136,7 @@ resource "coralogix_parsing_rules" "parse_json_field_example" {
   severities   = ["warning"]
   # order must be unique across every rule-group in the account. Terraform plans each
   # rule-group on its own, so a duplicate is not caught at plan time.
-  order        = 2
+  order = 2
   rule_subgroups = [{
     rules = [{
       parse_json_field = {
