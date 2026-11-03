@@ -681,7 +681,10 @@ func toJSON(v tftypes.Value) any {
 }
 
 // proposedNew emulates the proposed new state that Terraform core builds: the
-// config value where it is set, else the prior value for a computed attribute.
+// config value where it is set, else the prior value for a computed attribute. An
+// optional nested attribute whose prior value holds a non-computed value takes the
+// null config value instead, because that value must have come from the config
+// (optionalValueNotComputable).
 func proposedNew(attrs []*tfprotov6.SchemaAttribute, prior, cfg tftypes.Value) tftypes.Value {
 	if !cfg.IsKnown() {
 		// Terraform core proposes an unknown config value as it is.
@@ -706,13 +709,54 @@ func proposedNew(attrs []*tfprotov6.SchemaAttribute, prior, cfg tftypes.Value) t
 			out[a.Name] = proposedNested(a.NestedType, pv, hasPrior, cv)
 		case !cv.IsNull():
 			out[a.Name] = cv
-		case a.Computed && hasPrior:
+		case a.Computed && hasPrior && !(a.Optional && a.NestedType != nil && hasNonComputedValue(a.NestedType, pv)):
 			out[a.Name] = pv
 		default:
 			out[a.Name] = cv
 		}
 	}
 	return tftypes.NewValue(cfg.Type(), out)
+}
+
+// hasNonComputedValue reports whether v, a value of the nested type o, holds a
+// non-null value of an attribute that is not computed, at any depth.
+func hasNonComputedValue(o *tfprotov6.SchemaObject, v tftypes.Value) bool {
+	if v.IsNull() || !v.IsKnown() {
+		return false
+	}
+	var items []tftypes.Value
+	switch o.Nesting {
+	case tfprotov6.SchemaObjectNestingModeList, tfprotov6.SchemaObjectNestingModeSet:
+		_ = v.As(&items)
+	case tfprotov6.SchemaObjectNestingModeMap:
+		var m map[string]tftypes.Value
+		_ = v.As(&m)
+		for _, e := range m {
+			items = append(items, e)
+		}
+	default:
+		items = []tftypes.Value{v}
+	}
+	for _, item := range items {
+		if item.IsNull() || !item.IsKnown() {
+			continue
+		}
+		var m map[string]tftypes.Value
+		_ = item.As(&m)
+		for _, a := range o.Attributes {
+			av, ok := m[a.Name]
+			if !ok || av.IsNull() {
+				continue
+			}
+			if !a.Computed {
+				return true
+			}
+			if a.NestedType != nil && hasNonComputedValue(a.NestedType, av) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func proposedNested(o *tfprotov6.SchemaObject, prior tftypes.Value, hasPrior bool, cfg tftypes.Value) tftypes.Value {
@@ -1094,6 +1138,36 @@ func TestInconsistentSetPairsItemsOneToOne(t *testing.T) {
 		inconsistent("", tftypes.NewValue(set, test.planned), tftypes.NewValue(set, test.actual), &out)
 		if got := len(out) != 0; got != test.want {
 			t.Errorf("%s: inconsistent = %v, want %t", test.name, out, test.want)
+		}
+	}
+}
+
+func TestProposedNewNullsAnOmittedNestedValueWithConfiguredParts(t *testing.T) {
+	obj := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"name": tftypes.String, "id": tftypes.String}}
+	set := tftypes.Set{ElementType: obj}
+	root := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"items": set}}
+	nested := &tfprotov6.SchemaObject{Nesting: tfprotov6.SchemaObjectNestingModeSet, Attributes: []*tfprotov6.SchemaAttribute{
+		{Name: "name", Optional: true},
+		{Name: "id", Computed: true},
+	}}
+	attrs := []*tfprotov6.SchemaAttribute{{Name: "items", Optional: true, Computed: true, NestedType: nested}}
+	item := func(name, id any) tftypes.Value {
+		return tftypes.NewValue(obj, map[string]tftypes.Value{"name": tftypes.NewValue(tftypes.String, name), "id": tftypes.NewValue(tftypes.String, id)})
+	}
+	cfg := tftypes.NewValue(root, map[string]tftypes.Value{"items": tftypes.NewValue(set, nil)})
+	for _, test := range []struct {
+		name     string
+		prior    tftypes.Value
+		wantNull bool
+	}{
+		{"a prior item has a configured name", item("a", "1"), true},
+		{"a prior item has only computed values", item(nil, "1"), false},
+	} {
+		prior := tftypes.NewValue(root, map[string]tftypes.Value{"items": tftypes.NewValue(set, []tftypes.Value{test.prior})})
+		var got map[string]tftypes.Value
+		_ = proposedNew(attrs, prior, cfg).As(&got)
+		if got["items"].IsNull() != test.wantNull {
+			t.Errorf("%s: proposed items = %v, want null %t", test.name, got["items"], test.wantNull)
 		}
 	}
 }
