@@ -28,7 +28,8 @@
           "enabled": false,
           "hidden": false,
           "name": "tf-rule-group",
-          "order": 0
+          "order": 0,
+          "ruleSubgroups": []
         },
         "status": 400
       }

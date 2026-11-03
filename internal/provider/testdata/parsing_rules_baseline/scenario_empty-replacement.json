@@ -97,7 +97,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_parsing_rules | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Request errors:\\n* Missing ReplaceParameters.replaceNewVal\"}\noperation - Create"
+      "error: Unable to create parsing_rules | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Request errors:\\n* Missing ReplaceParameters.replaceNewVal\"}"
     ],
     "state": null
   },
@@ -325,7 +325,7 @@
       "hidden": "(unknown)",
       "id": "00000000-0000-4000-9000-000000000003",
       "name": "tf-rule-group",
-      "order": "(unknown)",
+      "order": 1,
       "rule_subgroups": [
         {
           "active": true,
@@ -369,7 +369,7 @@
           "enabled": false,
           "hidden": false,
           "name": "tf-rule-group",
-          "order": 0,
+          "order": 1,
           "ruleSubgroups": [
             {
               "enabled": true,
@@ -468,7 +468,7 @@
       "hidden": "(unknown)",
       "id": "00000000-0000-4000-9000-000000000003",
       "name": "tf-rule-group",
-      "order": "(unknown)",
+      "order": 1,
       "rule_subgroups": [
         {
           "active": true,
@@ -512,7 +512,7 @@
           "enabled": false,
           "hidden": false,
           "name": "tf-rule-group",
-          "order": 0,
+          "order": 1,
           "ruleSubgroups": [
             {
               "enabled": true,

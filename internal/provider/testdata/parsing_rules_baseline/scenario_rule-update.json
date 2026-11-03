@@ -749,7 +749,7 @@
       "hidden": "(unknown)",
       "id": "00000000-0000-4000-9000-000000000011",
       "name": "tf-rule-group",
-      "order": "(unknown)",
+      "order": 1,
       "rule_subgroups": [
         {
           "active": true,
@@ -954,7 +954,7 @@
           "enabled": false,
           "hidden": false,
           "name": "tf-rule-group",
-          "order": 0,
+          "order": 1,
           "ruleSubgroups": [
             {
               "enabled": true,
@@ -1594,7 +1594,7 @@
       "hidden": "(unknown)",
       "id": "00000000-0000-4000-9000-000000000011",
       "name": "tf-rule-group",
-      "order": "(unknown)",
+      "order": 1,
       "rule_subgroups": [
         {
           "active": true,
@@ -1799,7 +1799,7 @@
           "enabled": false,
           "hidden": false,
           "name": "tf-rule-group",
-          "order": 0,
+          "order": 1,
           "ruleSubgroups": [
             {
               "enabled": true,
@@ -2378,7 +2378,7 @@
       "hidden": "(unknown)",
       "id": "00000000-0000-4000-9000-000000000011",
       "name": "tf-rule-group",
-      "order": "(unknown)",
+      "order": 1,
       "rule_subgroups": [
         {
           "active": true,
@@ -2422,7 +2422,7 @@
           "enabled": false,
           "hidden": false,
           "name": "tf-rule-group",
-          "order": 0,
+          "order": 1,
           "ruleSubgroups": [
             {
               "enabled": true,
@@ -2449,7 +2449,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating coralogix_parsing_rules | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Request errors:\\n* Missing ReplaceParameters.replaceNewVal\"}\noperation - Update"
+      "error: Unable to update parsing_rules | id 00000000-0000-4000-9000-000000000011: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Request errors:\\n* Missing ReplaceParameters.replaceNewVal\"}"
     ],
     "state": {
       "active": false,
