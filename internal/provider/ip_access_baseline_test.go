@@ -17,6 +17,7 @@ package provider
 import (
 	"context"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -96,8 +97,10 @@ var ipAccessScenarios = map[string]func(h *grHarness){
 	},
 }
 
-var ipAccessIDPattern = regexp.MustCompile(`settings-id|entry-[0-9]+|imported-settings`)
+var ipAccessIDPattern = regexp.MustCompile(`entry-[0-9]+`)
 
 func maskIpAccessIDs(golden []byte) []byte {
+	golden = []byte(strings.ReplaceAll(string(golden), "imported-settings", "<import-id>"))
+	golden = []byte(strings.ReplaceAll(string(golden), "settings-id", "<settings-id>"))
 	return ipAccessIDPattern.ReplaceAll(golden, []byte("<masked-id>"))
 }

@@ -87,6 +87,26 @@
         },
         {
           "status": 200,
+          "response": {
+            "settings": {
+              "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
+              "id": "\u003csettings-id\u003e",
+              "ipAccess": {}
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "settings": {
+              "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+              "id": "\u003csettings-id\u003e",
+              "ipAccess": {}
+            }
+          }
+        },
+        {
+          "status": 200,
           "response": {}
         },
         {

@@ -41,7 +41,7 @@
     ],
     "state": {
       "enable_coralogix_customer_support_access": "enabled",
-      "id": "<masked-id>",
+      "id": "<settings-id>",
       "ip_access": [
         {
           "enabled": true,
@@ -63,7 +63,7 @@
     ],
     "state": {
       "enable_coralogix_customer_support_access": "enabled",
-      "id": "<masked-id>",
+      "id": "<settings-id>",
       "ip_access": [
         {
           "enabled": true,
@@ -115,7 +115,7 @@
     ],
     "state": {
       "enable_coralogix_customer_support_access": "disabled",
-      "id": "<masked-id>",
+      "id": "<settings-id>",
       "ip_access": [
         {
           "enabled": false,
@@ -137,7 +137,7 @@
     ],
     "state": {
       "enable_coralogix_customer_support_access": "disabled",
-      "id": "<masked-id>",
+      "id": "<settings-id>",
       "ip_access": [
         {
           "enabled": false,
@@ -169,7 +169,7 @@
     ],
     "state": {
       "enable_coralogix_customer_support_access": "unspecified",
-      "id": "<masked-id>",
+      "id": "<settings-id>",
       "ip_access": []
     },
     "replanEmpty": true
@@ -185,7 +185,7 @@
     ],
     "state": {
       "enable_coralogix_customer_support_access": "disabled",
-      "id": "<masked-id>",
+      "id": "<settings-id>",
       "ip_access": []
     },
     "drift": [

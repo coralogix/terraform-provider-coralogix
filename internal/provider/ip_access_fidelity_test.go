@@ -123,7 +123,8 @@ func ipAccessFidelityVars(run string) map[string]string {
 // singleton: recording creates and deletes team IP access entries. Run only against a disposable
 // team with no existing IP access entries and customer-support access disabled. The entries used
 // here are disabled and use 0.0.0.0/0, so the range is universal even if the backend unexpectedly
-// applies it. The recorder refuses to delete unless the only current entry is its disabled rule.
+// applies it. Before Delete, the recorder requires either no current entries or only its own
+// disabled rule.
 func TestRecordIpAccessFidelity(t *testing.T) {
 	if os.Getenv("RECORD_IP_ACCESS_FIDELITY") != "1" {
 		t.Skip("set RECORD_IP_ACCESS_FIDELITY=1 to record against a disposable tenant")
@@ -180,8 +181,11 @@ func ensureIpAccessFidelityEntriesOwned(t *testing.T, base, apiKey, run string) 
 	settings := asObject(asObject(body)["settings"])
 	access, _ := settings["enableCoralogixCustomerSupportAccess"].(string)
 	entries := asObject(settings["ipAccess"])
-	if access != "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED" || len(entries) != 1 {
+	if access != "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED" || len(entries) > 1 {
 		t.Fatalf("pre-delete found changed support access or unexpected entry count; refusing to delete IP access entries")
+	}
+	if len(entries) == 0 {
+		return
 	}
 	for _, raw := range entries {
 		entry := asObject(raw)
