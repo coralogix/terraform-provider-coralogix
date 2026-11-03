@@ -74,6 +74,106 @@ func (r *recordingRuleGroupSetResource) Schema(_ context.Context, _ resource.Sch
 	resp.Schema = s
 }
 
+// ModifyPlan keeps the labels of a rule that the configuration leaves out, as the released resource
+// did: the API keeps no labels that a request omits. Terraform plans them as unknown when another
+// value of their group changes, so they come from the state of the rule with the same group name and
+// record. Matching by identity, and not by position, keeps a reorder from moving labels to another
+// rule. A record that a group has twice is left to the API.
+func (r *recordingRuleGroupSetResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
+		return
+	}
+	var configGroups, planGroups, stateGroups types.Set
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("groups"), &configGroups)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("groups"), &planGroups)...)
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("groups"), &stateGroups)...)
+	if resp.Diagnostics.HasError() || configGroups.IsNull() || configGroups.IsUnknown() || planGroups.IsUnknown() || stateGroups.IsNull() {
+		return
+	}
+	configured := rulesByIdentity(ctx, configGroups, &resp.Diagnostics)
+	stored := rulesByIdentity(ctx, stateGroups, &resp.Diagnostics)
+	var groups []recordingrulesgroupsset.OutRuleGroupModel
+	resp.Diagnostics.Append(planGroups.ElementsAs(ctx, &groups, false)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	changed := false
+	for i := range groups {
+		if groups[i].Name.IsUnknown() || groups[i].Rules.IsNull() || groups[i].Rules.IsUnknown() {
+			continue
+		}
+		var rules []recordingrulesgroupsset.OutRuleModel
+		resp.Diagnostics.Append(groups[i].Rules.ElementsAs(ctx, &rules, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		for j := range rules {
+			key, ok := ruleIdentity(groups[i].Name, rules[j].Record)
+			if !ok || !rules[j].Labels.IsUnknown() {
+				continue
+			}
+			config, inConfig := configured[key]
+			prior, inState := stored[key]
+			if inConfig && config.Labels.IsNull() && inState && !prior.Labels.IsUnknown() {
+				rules[j].Labels = prior.Labels
+				changed = true
+			}
+		}
+		list, d := types.ListValueFrom(ctx, groups[i].Rules.ElementType(ctx), rules)
+		resp.Diagnostics.Append(d...)
+		groups[i].Rules = list
+	}
+	if !changed || resp.Diagnostics.HasError() {
+		return
+	}
+	set, d := types.SetValueFrom(ctx, planGroups.ElementType(ctx), groups)
+	resp.Diagnostics.Append(d...)
+	if !resp.Diagnostics.HasError() {
+		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("groups"), set)...)
+	}
+}
+
+// rulesByIdentity maps the rules of the groups by group name and record. A record that a group has
+// more than once is left out, because its rules cannot be told apart.
+func rulesByIdentity(ctx context.Context, groups types.Set, diags *diag.Diagnostics) map[string]recordingrulesgroupsset.OutRuleModel {
+	out := map[string]recordingrulesgroupsset.OutRuleModel{}
+	twice := map[string]bool{}
+	var models []recordingrulesgroupsset.OutRuleGroupModel
+	if diags.Append(groups.ElementsAs(ctx, &models, false)...); diags.HasError() {
+		return out
+	}
+	for _, g := range models {
+		if g.Rules.IsNull() || g.Rules.IsUnknown() {
+			continue
+		}
+		var rules []recordingrulesgroupsset.OutRuleModel
+		if diags.Append(g.Rules.ElementsAs(ctx, &rules, false)...); diags.HasError() {
+			return out
+		}
+		for _, rule := range rules {
+			key, ok := ruleIdentity(g.Name, rule.Record)
+			if !ok {
+				continue
+			}
+			if _, seen := out[key]; seen {
+				twice[key] = true
+			}
+			out[key] = rule
+		}
+	}
+	for key := range twice {
+		delete(out, key)
+	}
+	return out
+}
+
+func ruleIdentity(group, record types.String) (string, bool) {
+	if group.IsNull() || group.IsUnknown() || record.IsNull() || record.IsUnknown() {
+		return "", false
+	}
+	return group.ValueString() + "\x00" + record.ValueString(), true
+}
+
 // recordingRulesHooks send the groups of yaml_content, and its name when the configuration sets no
 // name. The data source shares them: it writes no request.
 var recordingRulesHooks = recordingrulesgroupsset.Hooks{

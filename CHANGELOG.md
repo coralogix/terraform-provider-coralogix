@@ -22,7 +22,7 @@
 - FIX: A 404 for a missing API route is an error. Before, the refresh removed the set from state. A set that the API does not find is still removed, with the warning `Resource disappeared during read`.
 - FIX: When the read after a create fails, the state keeps the id of the new set, so Terraform marks it tainted instead of losing it, and the next apply deletes it and creates it again. Before, the set stayed in the API with no state, and every later apply failed with `duplicate_rule_group_set_name`.
 - CHORE: A negative `limit` is an error at apply, before the request. Before, the API refused it.
-- CHORE: `labels` stays `Optional` and `Computed`, as before: removing it alone does not clear the labels. Set `labels = {}` to clear them. Unlike before, labels that the configuration leaves out are cleared when another value of the same group changes in the same apply (for example its `expr`), because the request no longer sends them from state.
+- CHORE: `labels` stays `Optional` and `Computed`, as before: removing it does not clear the labels, and a change of another value of the rule keeps them. Set `labels = {}` to clear them. The labels are now matched to a rule by its group name and `record`, so reordering rules no longer moves them to another rule.
 - CHORE: Upgrading a state of schema version 0 reads the set from the API. When the set was deleted outside Terraform, the upgrade fails with `Resource no longer exists`; run `terraform state rm` on its address, and the next plan creates it again. Before, the upgrade kept the state and the refresh removed it.
 - CHORE: API errors read `Unable to create recording_rules_groups_set`, `Unable to update recording_rules_groups_set`, and so on, instead of `Error creating coralogix_recording_rule_groups`.
 

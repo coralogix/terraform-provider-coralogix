@@ -278,7 +278,7 @@
             {
               "evaluation_delay_ms": null,
               "expr": "vector(1)",
-              "labels": "(unknown)",
+              "labels": {},
               "record": "tf:a"
             }
           ]
@@ -315,6 +315,7 @@
                 },
                 {
                   "expr": "vector(1)",
+                  "labels": {},
                   "record": "tf:a"
                 }
               ]
@@ -459,7 +460,7 @@
             {
               "evaluation_delay_ms": null,
               "expr": "vector(1)",
-              "labels": "(unknown)",
+              "labels": {},
               "record": "tf:a"
             },
             {
@@ -496,6 +497,7 @@
               "rules": [
                 {
                   "expr": "vector(1)",
+                  "labels": {},
                   "record": "tf:a"
                 },
                 {

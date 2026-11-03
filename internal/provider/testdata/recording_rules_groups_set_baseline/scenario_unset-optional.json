@@ -125,7 +125,9 @@
             {
               "evaluation_delay_ms": null,
               "expr": "vector(1)",
-              "labels": "(unknown)",
+              "labels": {
+                "a": "1"
+              },
               "record": "tf:r1"
             }
           ]
@@ -146,6 +148,9 @@
               "rules": [
                 {
                   "expr": "vector(1)",
+                  "labels": {
+                    "a": "1"
+                  },
                   "record": "tf:r1"
                 }
               ]
@@ -171,7 +176,9 @@
             {
               "evaluation_delay_ms": null,
               "expr": "vector(1)",
-              "labels": {},
+              "labels": {
+                "a": "1"
+              },
               "record": "tf:r1"
             }
           ]
@@ -202,7 +209,9 @@
             {
               "evaluation_delay_ms": null,
               "expr": "vector(1)",
-              "labels": {},
+              "labels": {
+                "a": "1"
+              },
               "record": "tf:r1"
             }
           ]
