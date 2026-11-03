@@ -118,16 +118,14 @@
     "plan": {
       "groups": [
         {
-          "interval": 120,
-          "limit": 5,
+          "interval": "(unknown)",
+          "limit": "(unknown)",
           "name": "g1",
           "rules": [
             {
               "evaluation_delay_ms": null,
               "expr": "vector(1)",
-              "labels": {
-                "a": "1"
-              },
+              "labels": "(unknown)",
               "record": "tf:r1"
             }
           ]
@@ -144,15 +142,10 @@
         "body": {
           "groups": [
             {
-              "interval": 120,
-              "limit": "5",
               "name": "g1",
               "rules": [
                 {
                   "expr": "vector(1)",
-                  "labels": {
-                    "a": "1"
-                  },
                   "record": "tf:r1"
                 }
               ]
@@ -171,16 +164,14 @@
     "state": {
       "groups": [
         {
-          "interval": 120,
-          "limit": 5,
+          "interval": 60,
+          "limit": 0,
           "name": "g1",
           "rules": [
             {
               "evaluation_delay_ms": null,
               "expr": "vector(1)",
-              "labels": {
-                "a": "1"
-              },
+              "labels": {},
               "record": "tf:r1"
             }
           ]
@@ -204,16 +195,14 @@
     "state": {
       "groups": [
         {
-          "interval": 120,
-          "limit": 5,
+          "interval": 60,
+          "limit": 0,
           "name": "g1",
           "rules": [
             {
               "evaluation_delay_ms": null,
               "expr": "vector(1)",
-              "labels": {
-                "a": "1"
-              },
+              "labels": {},
               "record": "tf:r1"
             }
           ]

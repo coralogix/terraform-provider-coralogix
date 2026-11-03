@@ -42,8 +42,6 @@
         "body": {
           "groups": [
             {
-              "interval": 60,
-              "limit": "0",
               "name": "g1",
               "rules": [
                 {
@@ -64,12 +62,28 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_recording_rule_groups | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: rule store unavailable\"}\noperation - Read"
+      "error: Unable to create recording_rules_groups_set | created recording_rules_groups_set with id 01J00000000000000000000001, but could not read it: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: rule store unavailable\"}"
+    ],
+    "state": {
+      "groups": null,
+      "id": "01J00000000000000000000001",
+      "name": null,
+      "yaml_content": null
+    }
+  },
+  {
+    "step": "next apply after the API recovers: delete the tainted resource",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000001",
+        "status": 200
+      }
     ],
     "state": null
   },
   {
-    "step": "next apply after the API recovers: no state, so create again",
+    "step": "next apply after the API recovers: create it again",
     "config": {
       "groups": [
         {
@@ -111,8 +125,6 @@
         "body": {
           "groups": [
             {
-              "interval": 60,
-              "limit": "0",
               "name": "g1",
               "rules": [
                 {
@@ -124,12 +136,65 @@
           ],
           "name": "tf-set"
         },
-        "status": 400
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000002",
+        "status": 200
       }
     ],
-    "applyDiagnostics": [
-      "error: Error creating coralogix_recording_rule_groups | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: duplicate_rule_group_set_name\"}\noperation - Create"
+    "state": {
+      "groups": [
+        {
+          "interval": 60,
+          "limit": 0,
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {},
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000002",
+      "name": "tf-set",
+      "yaml_content": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000002",
+        "status": 200
+      }
     ],
-    "state": null
+    "state": {
+      "groups": [
+        {
+          "interval": 60,
+          "limit": 0,
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {},
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000002",
+      "name": "tf-set",
+      "yaml_content": null
+    },
+    "replanEmpty": true
   }
 ]

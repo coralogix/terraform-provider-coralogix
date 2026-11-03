@@ -13,6 +13,24 @@
 - FIX: A read when no metrics archive exists fails with `coralogix_archive_metrics not found`. Before, it warned that the archive would be recreated, which a data source cannot do.
 - CHORE: API errors read `Unable to read coralogix_archive_metrics` instead of `Error reading coralogix_archive_metrics`.
 
+#### resource/coralogix_recording_rules_groups_set
+- CHORE: The resource is generated from the API contract. The schema, `yaml_content`, the import by id, and the state version are the same, and a state of schema version 0 is upgraded by reading the set (its `yaml_content` is kept).
+- FIX: A set without `name` can be created; the API names it after its id. Before, the unknown name was sent as `""` and the API refused it.
+- FIX: An `interval` or `limit` that the configuration does not set is the API default (60 and 0), also after it is removed from the configuration or changed outside Terraform. Before, the old value stayed, and an update sent it again. A set that still has another value for a field that the configuration leaves out (removed under an earlier version, imported, or changed in the UI) shows an in-place update to the default on the first plan after the upgrade; set the field to keep its value.
+- FIX: Changing a group whose rules leave out `labels`, or setting `rules = []`, no longer fails the apply with `Provider produced inconsistent result`. Reordering the rules of a group no longer copies the labels of one rule to another.
+- FIX: An update of a set that was deleted outside Terraform fails with `Resource no longer exists`, and the next refresh removes it from state. Before, Terraform failed with `Missing Resource State After Update`.
+- FIX: A 404 for a missing API route is an error. Before, the refresh removed the set from state. A set that the API does not find is still removed, with the warning `Resource disappeared during read`.
+- FIX: When the read after a create fails, the state keeps the id of the new set, so Terraform marks it tainted instead of losing it, and the next apply deletes it and creates it again. Before, the set stayed in the API with no state, and every later apply failed with `duplicate_rule_group_set_name`.
+- CHORE: A negative `limit` is an error at apply, before the request. Before, the API refused it.
+- CHORE: `labels` stays `Optional` and `Computed`, as before: removing it alone does not clear the labels. Set `labels = {}` to clear them. Unlike before, labels that the configuration leaves out are cleared when another value of the same group changes in the same apply (for example its `expr`), because the request no longer sends them from state.
+- CHORE: Upgrading a state of schema version 0 reads the set from the API. When the set was deleted outside Terraform, the upgrade fails with `Resource no longer exists`; run `terraform state rm` on its address, and the next plan creates it again. Before, the upgrade kept the state and the refresh removed it.
+- CHORE: API errors read `Unable to create recording_rules_groups_set`, `Unable to update recording_rules_groups_set`, and so on, instead of `Error creating coralogix_recording_rule_groups`.
+
+#### data-source/coralogix_recording_rules_groups_set
+- CHORE: The data source is generated with the resource and uses its schema.
+- FIX: A read of an id that does not exist fails with `coralogix_recording_rules_groups_set not found`. Before, it warned that the set would be recreated, which a data source cannot do.
+- CHORE: A group without rules reads `rules` as `[]`, as the API returns it, instead of null.
+
 #### resource/coralogix_webhook
 - CHORE: The resource and data source use generated code. The released schema, ten webhook types, import, and write-only fields remain available.
 - FIX: Empty email and Slack collections now produce a stable plan after apply.

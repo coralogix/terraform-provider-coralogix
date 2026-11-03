@@ -42,8 +42,6 @@
         "body": {
           "groups": [
             {
-              "interval": 60,
-              "limit": "0",
               "name": "g1",
               "rules": [
                 {
@@ -151,7 +149,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_recording_rule_groups | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: rule store unavailable\"}\noperation - Read"
+      "error: Unable to update recording_rules_groups_set | id 01J00000000000000000000001: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: rule store unavailable\"}"
     ],
     "state": {
       "groups": [

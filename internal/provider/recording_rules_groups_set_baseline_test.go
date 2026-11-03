@@ -132,7 +132,8 @@ var rrScenarios = map[string]func(h *grHarness){
 		h.Destroy("destroy", s)
 	},
 
-	// The resource sends the unknown name as "", which the API refuses.
+	// The API names a set without a name after its id. The handwritten resource sent the unknown
+	// name as "", which the API refused.
 	"without-name": func(h *grHarness) {
 		h.Apply("create without a name", h.null(), rrCfg("", rrGroup("g1", nil, rrRule("tf:r1", nil))))
 	},
@@ -159,8 +160,8 @@ var rrScenarios = map[string]func(h *grHarness){
 		h.Destroy("destroy", s)
 	},
 
-	// interval, limit, and labels keep the state value when removed, and evaluation_delay_ms is
-	// cleared.
+	// Removing interval and limit resets them to the API default, and evaluation_delay_ms is
+	// cleared. The handwritten resource kept the interval and the limit of the state.
 	"unset-optional": func(h *grHarness) {
 		s := h.Apply("create", h.null(), rrCfg("tf-set",
 			rrGroup("g1", j{"interval": 120.0, "limit": 5.0}, rrRule("tf:r1", j{"labels": j{"a": "1"}, "evaluation_delay_ms": 1000.0}))))

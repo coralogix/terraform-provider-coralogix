@@ -47,8 +47,6 @@
         "body": {
           "groups": [
             {
-              "interval": 60,
-              "limit": "0",
               "name": "g1",
               "rules": [
                 {
@@ -176,16 +174,14 @@
     "plan": {
       "groups": [
         {
-          "interval": 60,
-          "limit": 0,
+          "interval": "(unknown)",
+          "limit": "(unknown)",
           "name": "g1",
           "rules": [
             {
               "evaluation_delay_ms": null,
               "expr": "vector(2)",
-              "labels": {
-                "a": "1"
-              },
+              "labels": "(unknown)",
               "record": "tf:r1"
             }
           ]
@@ -202,15 +198,10 @@
         "body": {
           "groups": [
             {
-              "interval": 60,
-              "limit": "0",
               "name": "g1",
               "rules": [
                 {
                   "expr": "vector(2)",
-                  "labels": {
-                    "a": "1"
-                  },
                   "record": "tf:r1"
                 }
               ]
@@ -236,9 +227,7 @@
             {
               "evaluation_delay_ms": null,
               "expr": "vector(2)",
-              "labels": {
-                "a": "1"
-              },
+              "labels": {},
               "record": "tf:r1"
             }
           ]
@@ -269,9 +258,7 @@
             {
               "evaluation_delay_ms": null,
               "expr": "vector(2)",
-              "labels": {
-                "a": "1"
-              },
+              "labels": {},
               "record": "tf:r1"
             }
           ]

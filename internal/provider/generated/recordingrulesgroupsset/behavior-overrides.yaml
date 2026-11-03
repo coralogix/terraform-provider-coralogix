@@ -1,0 +1,78 @@
+# Where coralogix_recording_rules_groups_set differs from the API contract, because users already
+# have it.
+#
+# A field with a line here keeps its released behavior. A field without a line follows the API
+# contract.
+resource: OutRuleGroupSet
+mode: existing
+typeName: recording_rules_groups_set
+
+markdownDescription: "Coralogix recording rules group set. Recording rules pre-compute frequently used or computationally heavy PromQL expressions into new metrics. For more info please review - https://coralogix.com/docs/user-guides/data-transformation/metric-rules/recording-rules/."
+
+schema:
+  version: 1
+  upgrade:
+    # State of version 0, with `group` and `rule`, is upgraded by reading the set from the API.
+    0: {priorSchema: github.com/coralogix/terraform-provider-coralogix/internal/provider/recording_rules/recording_rules_schema.V0, strategy: refresh}
+
+validators:
+  inferred: false
+
+api:
+  operations:
+    create: RuleGroupSets_Create
+    get: RuleGroupSets_Fetch
+    update: RuleGroupSets_Update
+    delete: RuleGroupSets_Delete
+  createResponseOnlyIDProperty: id
+
+types:
+  OutRuleGroupSet:
+    fields:
+      name:
+        computed: true # the API names an unnamed set after its id
+        useStateForUnknown: true
+        markdownDescription: "The name of the rule group. Overrides the name specified in the YAML if provided."
+      groups:
+        computed: true # yaml_content can set the groups instead
+        useStateForUnknown: true
+    # The groups as a YAML document. internal/provider/recording_rules turns it into the request
+    # with a hook, and adds its validators, the ExactlyOneOf of groups, and its plan modifier.
+    extraAttributes:
+      yaml_content:
+        type: string
+        markdownDescription: "YAML specification of rules. Cannot be used together with `groups`. Keys are the lowercased field names (for example the evaluation delay is `evaluationdelayms`). Unrecognized keys are ignored silently, so prefer `groups` if you want your attribute names validated."
+  OutRuleGroup:
+    fields:
+      # Server values that the released resource did not show. lastEvalAt changes on every
+      # evaluation, so an attribute would plan a change on every refresh.
+      id: {skip: true}
+      version: {skip: true}
+      lastEvalAt: {skip: true}
+      name:
+        validators: [{lengthAtLeast: 1}]
+        description: "The (unique) rule-group name."
+      interval:
+        validators: [{atLeast: 60}]
+        description: "How often rules in the group are evaluated (in seconds). Default is 60 seconds."
+      limit:
+        terraformType: Int64 # the API sends the uint64 as a string; the released attribute is Int64
+        description: "Limits the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit."
+      rules:
+        required: true
+  OutRule:
+    fields:
+      lastEvalDurationMs: {skip: true}
+      record:
+        description: "The name of the time series to output to. Must be a valid metric name."
+      expr:
+        description: "The PromQL expression to evaluate. Every evaluation cycle this is evaluated at the current time, and the result recorded as a new set of time series with the metric name as given by 'record'."
+      labels:
+        computed: true # the API reads an omitted map as {}
+        description: "Labels to add or overwrite before storing the result. The labels are computed: removing the attribute does not clear them on its own, so set `labels = {}` to clear them."
+      evaluationDelayMs:
+        validators: [{between: [0, 1800000]}]
+        description: "Delays the rule's evaluation (in milliseconds) so late-arriving data is ingested first. Must be between 0 and 1800000 (30 minutes). When omitted, no delay is configured; an explicit 0 is a distinct, persisted value. Removing the attribute clears the delay."
+
+# The released data source reads a set by its id, with the schema of the resource.
+dataSource: {}
