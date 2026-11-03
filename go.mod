@@ -7,7 +7,7 @@ replace github.com/grpc-ecosystem/grpc-gateway/v2 => github.com/coralogix/grpc-g
 require (
 	github.com/ahmetalpbalkan/go-linq v3.0.0+incompatible
 	github.com/cenkalti/backoff/v5 v5.0.3
-	github.com/coralogix/coralogix-management-sdk v1.9.4-0.20261029153403-55f9acc80d9a
+	github.com/coralogix/coralogix-management-sdk v1.9.4-0.20261103084233-06e7ab8b8e18
 	github.com/google/uuid v1.6.0
 	github.com/grafana/grafana-api-golang-client v0.27.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
@@ -84,7 +84,7 @@ require (
 	github.com/yuin/goldmark v1.7.17 // indirect
 	github.com/yuin/goldmark-meta v1.1.0 // indirect
 	go.abhg.dev/goldmark/frontmatter v0.2.0 // indirect
-	golang.org/x/crypto v0.58.0 // indirect
+	golang.org/x/crypto v0.58.1-0.20261009181718-2f1f834330b2 // indirect
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect

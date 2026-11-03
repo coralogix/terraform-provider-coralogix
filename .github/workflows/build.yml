@@ -28,6 +28,10 @@ jobs:
           go-version: ${{ matrix.go-version }}
       - name: Run build
         run: make build
+      - name: Build the test resource cleanup
+        # The build tag keeps the nightly cleanup script out of `go build ./...`, so an SDK change
+        # can break it without failing the build above.
+        run: go build -o /dev/null scripts/cx-test-resource-cleanup.go
 
   test:
     name: Unit tests

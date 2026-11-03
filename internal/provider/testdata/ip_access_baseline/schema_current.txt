@@ -1,0 +1,15 @@
+(schema)  version=0
+    markdown: "Coralogix IP access control. Restricts access to a Coralogix team to a configured set of IP ranges. For more info please review - https://coralogix.com/docs/user-guides/account-management/account-settings/ip-access-control/."
+enable_coralogix_customer_support_access  StringAttribute optional computed
+    default: stringdefault.staticStringDefault value defaults to unspecified
+    validator: stringvalidator.oneOfValidator value must be one of: ["disabled" "enabled" "unspecified"]
+id  StringAttribute computed
+    markdown: "The unique identifier for the company IP access settings. This is typically a company ID."
+ip_access  SetNestedAttribute optional computed
+ip_access[]  NestedObject
+ip_access[].enabled  BoolAttribute required
+    markdown: "Whether this IP access entry is enabled."
+ip_access[].ip_range  StringAttribute required
+    markdown: "The IP range in CIDR notation."
+ip_access[].name  StringAttribute optional
+    markdown: "The name of the IP access entry."

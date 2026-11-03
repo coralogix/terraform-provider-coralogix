@@ -1,0 +1,86 @@
+{
+  "comment": "Live API requests used to validate the IP access fake. Recording is only safe on a disposable team with no IP access entries and customer-support access disabled. The live recorder never enables customer-support access; the fake-backed full-lifecycle scenario exercises ENABLED, but that backend response remains unverified. Every IP rule is disabled except the final named 0.0.0.0/0 safety probe.",
+  "cases": [
+    {
+      "name": "singleton-lifecycle",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+            "ipAccess": [
+              {"enabled": false, "ipRange": "not-a-cidr", "name": "{{NAME}}-invalid"}
+            ]
+          }
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
+            "ipAccess": [
+              {"enabled": false, "ipRange": "0.0.0.0/1", "name": "{{NAME}}-first"},
+              {"enabled": false, "ipRange": "128.0.0.0/1"}
+            ]
+          }
+        },
+        {"method": "GET", "path": ""},
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+            "ipAccess": [
+              {"enabled": false, "ipRange": "0.0.0.0/0", "name": "{{NAME}}-duplicate"}
+            ]
+          }
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
+            "ipAccess": [
+              {"enabled": false, "ipRange": "0.0.0.0/0"}
+            ]
+          }
+        },
+        {"method": "GET", "path": ""},
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED"
+          }
+        },
+        {"method": "GET", "path": ""},
+        {"method": "DELETE", "path": ""},
+        {"method": "GET", "path": ""},
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED"
+          }
+        },
+        {"method": "GET", "path": ""},
+        {"method": "DELETE", "path": ""},
+        {"method": "GET", "path": ""},
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+            "ipAccess": [
+              {"enabled": true, "ipRange": "0.0.0.0/0", "name": "{{NAME}}-enabled-broad"}
+            ]
+          }
+        },
+        {"method": "GET", "path": ""},
+        {"method": "DELETE", "path": ""},
+        {"method": "GET", "path": ""}
+      ]
+    }
+  ]
+}

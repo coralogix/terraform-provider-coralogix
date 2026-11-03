@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 )
 
@@ -237,7 +238,10 @@ func TestAccCoralogixResourceLegacyThingGenerated(t *testing.T) {
 	t.Run("full-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
-			PreCheck:                 func() { preCheck(t) },
+			PreCheck: func() {
+				preCheck(t)
+				acctest.RemoveLeftoverLegacyThings(t, config(run, fullConfig), config(run, updatedConfig))
+			},
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, fullConfig), Check: fullChecks(run)},
@@ -254,7 +258,10 @@ func TestAccCoralogixResourceLegacyThingGenerated(t *testing.T) {
 	t.Run("minimal-lifecycle", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
-			PreCheck:                 func() { preCheck(t) },
+			PreCheck: func() {
+				preCheck(t)
+				acctest.RemoveLeftoverLegacyThings(t, config(run, minimalConfig), config(run, fullConfig))
+			},
 			ProtoV6ProviderFactories: providerFactories,
 			Steps: []resource.TestStep{
 				{Config: config(run, minimalConfig), Check: minimalChecks(run)},
@@ -341,7 +348,10 @@ func TestAccCoralogixResourceLegacyThingGeneratedUpgrade(t *testing.T) {
 	t.Run("upgrade-full", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
-			PreCheck: func() { preCheck(t) },
+			PreCheck: func() {
+				preCheck(t)
+				acctest.RemoveLeftoverLegacyThings(t, config(run, upgradeFullConfig), config(run, upgradeUpdatedConfig))
+			},
 			Steps: upgradeSteps(run, upgradeFullConfig, upgradeFullChecks(run),
 				upgradeUpdatedConfig, updatedChecks(run), []plancheck.PlanCheck{expectNoReplace{}}),
 		})
@@ -351,8 +361,11 @@ func TestAccCoralogixResourceLegacyThingGeneratedUpgrade(t *testing.T) {
 	t.Run("upgrade-minimal", func(t *testing.T) {
 		run := newRun()
 		resource.Test(t, resource.TestCase{
-			PreCheck: func() { preCheck(t) },
-			Steps:    upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), upgradeFullConfig, fullChecks(run), []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionNoop)}),
+			PreCheck: func() {
+				preCheck(t)
+				acctest.RemoveLeftoverLegacyThings(t, config(run, upgradeMinimalConfig), config(run, upgradeFullConfig))
+			},
+			Steps: upgradeSteps(run, upgradeMinimalConfig, upgradeMinimalChecks(run), upgradeFullConfig, fullChecks(run), []plancheck.PlanCheck{plancheck.ExpectResourceAction(resourceAddress, plancheck.ResourceActionNoop)}),
 		})
 	})
 }

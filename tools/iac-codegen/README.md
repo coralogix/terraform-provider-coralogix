@@ -370,7 +370,10 @@ upgradeCases:                   # extra upgrade subtests (needs upgradeFrom)
   - name: write-only
     values:
       token_wo: '{ secret = "x" }'  # extraAttributes need a real map key, not a made-up `key`
+leftovers: internal/acctest.RemoveLeftoverGlobalRouters  # runs before each subtest creates
 ```
+
+`leftovers` names a handwritten function, as `<package directory in the provider module>.<Func>`, with the signature `func(t *testing.T, configs ...string)`. The package name must be the last element of the directory. Each subtest calls it in its `PreCheck`, after the environment checks, with the rendered configs that the subtest applies. Use it for a resource that holds a value that must be unique, such as a routing label: a cancelled CI run leaves its resource behind, and the next create fails on the value. The function should remove only the resources that hold the exact values of those configs. It cannot live in the output directory, because the generator owns every Go file there.
 
 The test makes its configs from the final schema, after the behavior overrides. Each lifecycle is a subtest on its own resource, so a failure in one does not hide the others:
 

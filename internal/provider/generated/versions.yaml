@@ -8,10 +8,11 @@ configurationgroup: v0.1.0-beta.51
 connector: v0.1.0-beta.49
 dashboardsfolder: v0.1.0-beta.49
 events2metric: v0.1.0-beta.49
-globalrouter: v0.1.0-beta.54
+globalrouter: v0.1.0-beta.60
 integration: v0.1.0-beta.51
 preset: v0.1.0-beta.49
 quotaallocationruleset: v0.1.0-beta.49
 slov2: v0.1.0-beta.51
 view: v0.1.0-beta.49
 viewfolder: v0.1.0-beta.49
+webhook: v0.1.0-beta.59

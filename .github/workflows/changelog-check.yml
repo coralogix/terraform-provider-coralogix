@@ -34,3 +34,15 @@ jobs:
             { echo "ERROR: CHANGELOG.md was not updated in this PR."; \
               echo "Update CHANGELOG.md, or add the 'skip changelog' label to bypass."; \
               exit 1; }
+
+  version-bump:
+    # A PR keeps the version, or is a release PR from `make bump`; release-provider.yml
+    # publishes the version when a release PR merges.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check the version bump
+        run: python3 .github/scripts/release/release.py check "origin/${{ github.base_ref }}"

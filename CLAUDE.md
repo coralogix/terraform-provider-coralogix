@@ -7,7 +7,7 @@ Project guidance for AI coding agents (Claude Code, Codex, Cursor, etc.) working
 ```bash
 make build       # Compile the provider binary
 make install     # Build and install into ~/.terraform.d/plugins/locally/debug/coralogix/1.5/<os_arch>
-make test        # Unit tests (parallel, 30s timeout)
+make test        # Unit tests (parallel, 120s timeout)
 make testacc     # Acceptance tests (TF_ACC=1, 120m timeout) — hits real Coralogix APIs
 make generate    # Regenerate docs/ via terraform-plugin-docs (note: `git checkout -- docs/guides` runs after)
 ```
@@ -87,10 +87,9 @@ Every PR must update `CHANGELOG.md`. The CI `changelog-check` workflow enforces 
 
 Exception: non-user-facing repository hygiene changes, such as pre-commit hook updates or CI-only changes, do not need a changelog entry unless the user explicitly asks for one.
 
-**Where to add your entry:**
+Add your bullet points under `# Unreleased`. Don't bump the version or add a `# Release X.Y.Z` heading in a normal PR.
 
-- **Normal PR** — add bullet points under the `# Unreleased` section at the top of the file.
-- **Release PR** (the PR that bumps `internal/clientset/version.go` to a new version) — rename `# Unreleased` to `# Release X.Y.Z` matching the new version, and add a fresh empty `# Unreleased` section above it.
+**Releases are on demand.** `make bump` (`make bump BUMP=minor` or `BUMP=major` for a bigger step) opens a "Release X.Y.Z" PR from `origin/master`, from any branch and without touching the current checkout. The PR sets the next version in `internal/clientset/version.go` and moves the `# Unreleased` entries under `# Release X.Y.Z`. `approve-release.yml` approves and merges the PR once every check on it is green, if it changes only `CHANGELOG.md` and the version line and passes the release check, so no human review is needed. It merges the PR itself rather than through auto-merge, which would merge on any approval while non-required checks still run, and then starts `release-provider.yml` by `workflow_dispatch`, because a merge by the Actions token starts no push workflow. `release-provider.yml` tags the commit, publishes the release, and waits for the Terraform Registry. Only `coralogix/team-eco-system` releases: `check-releaser.sh` makes both workflows refuse a release PR unless its author and the signer of every commit are listed in `.github/RELEASERS`, as it is on master. Keep that file in sync with the team; CODEOWNERS gives it to the team alone. The `version-bump` job of `changelog-check` fails a PR that adds a release heading by hand, skips a version, edits a released section, drops an entry that master has under `# Unreleased`, or bumps from an outdated base; for the last, close the release PR, delete its branch, and run `make bump` again.
 
 Keep entries concise: one line per change, prefixed with the affected resource/data-source path when relevant. Examples:
 

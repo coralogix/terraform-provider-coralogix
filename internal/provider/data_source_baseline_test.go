@@ -61,10 +61,12 @@ var dataSourceBaselines = map[string]dataSourceBaseline{
 	"archive_metrics": {amGoldenDir, func(t *testing.T) *grHarness {
 		return newProtocolHarness(t, amTypeName, newAMFake(t))
 	}, amDataSourceScenarios},
-	"quota_allocation_rule_set": {quotaGoldenDir, newQuotaHarness, quotaDataSourceScenarios},
-	"action":                    {actionGoldenDir, newActionHarness, actionDataSourceScenarios},
-	"integration":               {integrationGoldenDir, newIntegrationHarness, integrationDataSourceScenarios},
-	"webhook":                   {webhookGoldenDir, newWebhookHarness, webhookDataSourceScenarios},
+	"quota_allocation_rule_set":  {quotaGoldenDir, newQuotaHarness, quotaDataSourceScenarios},
+	"action":                     {actionGoldenDir, newActionHarness, actionDataSourceScenarios},
+	"integration":                {integrationGoldenDir, newIntegrationHarness, integrationDataSourceScenarios},
+	"parsing_rules":              {parsingRulesGoldenDir, newParsingRulesHarness, parsingRulesDataSourceScenarios},
+	"webhook":                    {webhookGoldenDir, newWebhookHarness, webhookDataSourceScenarios},
+	"recording_rules_groups_set": {rrGoldenDir, newRRHarness, rrDataSourceScenarios},
 }
 
 func TestDataSourceBaselineSchema(t *testing.T) {

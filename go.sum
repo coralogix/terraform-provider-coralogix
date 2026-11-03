@@ -42,8 +42,8 @@ github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDk
 github.com/cloudflare/circl v1.6.3 h1:9GPOhQGF9MCYUeXyMYlqTR6a5gTrgR/fBLXvUgtVcg8=
 github.com/cloudflare/circl v1.6.3/go.mod h1:2eXP6Qfat4O/Yhh8BznvKnJ+uzEoTQ6jVKJRn81BiS4=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
-github.com/coralogix/coralogix-management-sdk v1.9.4-0.20261029153403-55f9acc80d9a h1:itjA/KkWdJRdfQmR8jZa0FGFxO4B0g3pXln9dXwoF58=
-github.com/coralogix/coralogix-management-sdk v1.9.4-0.20261029153403-55f9acc80d9a/go.mod h1:LNGRtwM197S6aeF1Ri/65Q+8tHMSBo7PR4Uw5K0Aq+c=
+github.com/coralogix/coralogix-management-sdk v1.9.4-0.20261103084233-06e7ab8b8e18 h1:bZDsmU0cFcUNOm9k8D1L4dDZYhOZRtgQsnZqqnZiaWM=
+github.com/coralogix/coralogix-management-sdk v1.9.4-0.20261103084233-06e7ab8b8e18/go.mod h1:LNGRtwM197S6aeF1Ri/65Q+8tHMSBo7PR4Uw5K0Aq+c=
 github.com/coralogix/grpc-gateway/v2 v2.0.0-20251017075809-7f84c876b2e5 h1:mqmL/WJA8Cdzim6r3jmXY8uiPn9KX4AvqxjEPDRXKj4=
 github.com/coralogix/grpc-gateway/v2 v2.0.0-20251017075809-7f84c876b2e5/go.mod h1:bqGO/kNOHTFiDIfPmXLQcox10aWQs5Q3b9sXUFoaFFk=
 github.com/cyphar/filepath-securejoin v0.4.1 h1:JyxxyPEaktOD+GAnqIqTf9A8tHyAG22rowi7HkoSU1s=
@@ -288,8 +288,8 @@ golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550/go.mod h1:yigFU9vqHzYiE8U
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
 golang.org/x/crypto v0.0.0-20210921155107-089bfa567519/go.mod h1:GvvjBRRGRdwPK5ydBHafDWAxML/pGHZbMvKqRZ5+Abc=
 golang.org/x/crypto v0.3.0/go.mod h1:hebNnKkNXi2UzZN1eVRvBB7co0a+JxK6XbPiWVs/3J4=
-golang.org/x/crypto v0.58.0 h1:COkYLr4k7nDI4r6QtMML2AfzeIswWHAJthLS6K/M/54=
-golang.org/x/crypto v0.58.0/go.mod h1:Xh+kl5A+M0gMiWDytH2Hhr5Z7WbNCpv/eB/EFgfSk+w=
+golang.org/x/crypto v0.58.1-0.20261009181718-2f1f834330b2 h1:zGDaB+/Mus2mScKvZ23k+W9NAUbP56sNM9SptgvWI5A=
+golang.org/x/crypto v0.58.1-0.20261009181718-2f1f834330b2/go.mod h1:Xh+kl5A+M0gMiWDytH2Hhr5Z7WbNCpv/eB/EFgfSk+w=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
 golang.org/x/exp v0.0.0-20251009144603-d2f985daa21b h1:18qgiDvlvH7kk8Ioa8Ov+K6xCi0GMvmGfGW0sgd/SYA=
 golang.org/x/exp v0.0.0-20251009144603-d2f985daa21b/go.mod h1:j/pmGrbnkbPtQfxEe5D0VQhZC6qKbfKifgD0oM7sR70=
