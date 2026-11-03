@@ -52,8 +52,15 @@ func TestRecordingRulesFakeMatchesRecordedBackend(t *testing.T) {
 				status, resp := fake.handle(s.Method, rrBasePath+substString(s.Path, vars), body)
 				fake.mu.Unlock()
 				got := roundTrip(t, resp)
-				if name := rrCaptureName(s, si); s.Method == http.MethodPost && status == http.StatusOK && name != "" {
-					vars[name] = rrIDOf(got)
+				if s.Method == http.MethodPost && status == http.StatusOK {
+					vars[rrCaptureName(s, si)] = rrIDOf(got)
+					if s.Capture == "" {
+						// As the recorder does: a set that the case expected the API to refuse is
+						// deleted at once.
+						fake.mu.Lock()
+						fake.handle(http.MethodDelete, rrBasePath+"/"+rrIDOf(got), nil)
+						fake.mu.Unlock()
+					}
 				}
 				got = rrNormalize(unsubstJSON(t, got, vars))
 				compareFidelityStep(t, label, status, got, rc.Steps[si].Status, rc.Steps[si].Response)
@@ -166,12 +173,18 @@ func recordRRStep(t *testing.T, base, apiKey string, s fidelityStep, si int, var
 	} else {
 		parsed = map[string]any{}
 	}
-	// Every set that a POST created is deleted afterwards, also one that the case expected the API
-	// to refuse. Its id is written as a placeholder, so recorded.json holds no id of a run.
+	// Every set that a POST created is deleted, and its id is written as a placeholder, so
+	// recorded.json holds no id of a run. A set that the case expected the API to refuse is
+	// deleted at once, so the later probes of the case, which reuse its name, show their own
+	// answer and not a duplicate name. A captured set is deleted after the case.
 	if s.Method == http.MethodPost && resp.StatusCode == http.StatusOK {
 		if id := rrIDOf(parsed); id != "" {
-			*created = append(*created, id)
 			vars[rrCaptureName(s, si)] = id
+			if s.Capture == "" {
+				cleanupRecordedRuleGroupSets(base, apiKey, []string{id})
+			} else {
+				*created = append(*created, id)
+			}
 		}
 	}
 	return resp.StatusCode, rrNormalize(unsubstJSON(t, parsed, vars))
