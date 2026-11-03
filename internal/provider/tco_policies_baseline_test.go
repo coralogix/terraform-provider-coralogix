@@ -670,6 +670,17 @@ var tcoRumScenarios = map[string]func(h *grHarness, f *tcoFake){
 		h.RefreshPlan("refresh", s)
 	},
 
+	// Recorded in fidelity/cases.json: rum-rule-types.
+	"rule-types": func(h *grHarness, _ *tcoFake) {
+		policy := func(app, sub string) j {
+			return tcoPolicies(tcoPolicy("first", "medium", tcoSeverities("error"), j{"applications": tcoRule(app, "web"), "subsystems": tcoRule(sub, "cx")}))
+		}
+		s := h.Apply("create: includes and starts_with", h.null(), policy("includes", "starts_with"))
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: swap the rule types", s, policy("starts_with", "includes"))
+		h.RefreshPlan("refresh", s)
+	},
+
 	"import": func(h *grHarness, f *tcoFake) {
 		f.seed("rum", j{"policies": l{tcoRumEntry("seeded", "PRIORITY_TYPE_MEDIUM", "SEVERITY_ERROR")}})
 		s := h.Import("import", "anything")

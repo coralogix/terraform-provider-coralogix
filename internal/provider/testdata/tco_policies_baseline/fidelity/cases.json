@@ -1723,6 +1723,84 @@
           }
         }
       ]
+    },
+    {
+      "name": "rum-rule-types",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "/rum-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "policy": {
+                  "applicationRule": {
+                    "name": "web",
+                    "ruleTypeId": "RULE_TYPE_ID_INCLUDES"
+                  },
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_MEDIUM",
+                  "subsystemRule": {
+                    "name": "cx",
+                    "ruleTypeId": "RULE_TYPE_ID_START_WITH"
+                  }
+                },
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_ERROR"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_RUM"
+        },
+        {
+          "method": "PUT",
+          "path": "/rum-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "policy": {
+                  "applicationRule": {
+                    "name": "web",
+                    "ruleTypeId": "RULE_TYPE_ID_START_WITH"
+                  },
+                  "description": "",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_MEDIUM",
+                  "subsystemRule": {
+                    "name": "cx",
+                    "ruleTypeId": "RULE_TYPE_ID_INCLUDES"
+                  }
+                },
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_ERROR"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_RUM"
+        },
+        {
+          "method": "PUT",
+          "path": "/rum-policies/v1",
+          "body": {
+            "policies": []
+          }
+        }
+      ]
     }
   ]
 }

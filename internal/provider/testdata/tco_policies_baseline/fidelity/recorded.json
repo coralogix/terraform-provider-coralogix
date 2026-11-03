@@ -2820,6 +2820,153 @@
           }
         }
       ]
+    },
+    {
+      "name": "rum-rule-types",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "applicationRule": {
+                    "name": "web",
+                    "ruleTypeId": "RULE_TYPE_ID_INCLUDES"
+                  },
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": true,
+                  "id": "<id>",
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_MEDIUM",
+                  "rumRules": {
+                    "severities": [
+                      "SEVERITY_ERROR"
+                    ]
+                  },
+                  "subsystemRule": {
+                    "name": "cx",
+                    "ruleTypeId": "RULE_TYPE_ID_START_WITH"
+                  },
+                  "targets": [],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "applicationRule": {
+                  "name": "web",
+                  "ruleTypeId": "RULE_TYPE_ID_INCLUDES"
+                },
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_MEDIUM",
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_ERROR"
+                  ]
+                },
+                "subsystemRule": {
+                  "name": "cx",
+                  "ruleTypeId": "RULE_TYPE_ID_START_WITH"
+                },
+                "targets": [],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "applicationRule": {
+                    "name": "web",
+                    "ruleTypeId": "RULE_TYPE_ID_START_WITH"
+                  },
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": true,
+                  "id": "<id>",
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_MEDIUM",
+                  "rumRules": {
+                    "severities": [
+                      "SEVERITY_ERROR"
+                    ]
+                  },
+                  "subsystemRule": {
+                    "name": "cx",
+                    "ruleTypeId": "RULE_TYPE_ID_INCLUDES"
+                  },
+                  "targets": [],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "applicationRule": {
+                  "name": "web",
+                  "ruleTypeId": "RULE_TYPE_ID_START_WITH"
+                },
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": true,
+                "id": "<id>",
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_MEDIUM",
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_ERROR"
+                  ]
+                },
+                "subsystemRule": {
+                  "name": "cx",
+                  "ruleTypeId": "RULE_TYPE_ID_INCLUDES"
+                },
+                "targets": [],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": []
+          }
+        }
+      ]
     }
   ]
 }
