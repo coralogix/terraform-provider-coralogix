@@ -121,10 +121,10 @@ func ipAccessFidelityVars(run string) map[string]string {
 
 // TestRecordIpAccessFidelity writes real API answers for cases.json. The IP access API is a
 // singleton: recording creates and deletes team IP access entries. Run only against a disposable
-// team with no existing IP access entries and customer-support access disabled. Every rule is
-// disabled. The two Create ranges split IPv4 without overlap, and Replace uses 0.0.0.0/0, so even
-// an unexpectedly enabled rule would not lock out an IPv4 client. Before Delete and cleanup, the
-// recorder verifies that current entries are disabled and their IDs came from this run's writes.
+// team with no existing IP access entries and customer-support access disabled. The two Create
+// ranges split IPv4 without overlap. The final enabled safety probe uses 0.0.0.0/0, so it permits
+// every IPv4 client. Before Delete and cleanup, the recorder verifies ownership and refuses any
+// enabled rule other than that universal probe.
 func TestRecordIpAccessFidelity(t *testing.T) {
 	if os.Getenv("RECORD_IP_ACCESS_FIDELITY") != "1" {
 		t.Skip("set RECORD_IP_ACCESS_FIDELITY=1 to record against a disposable tenant")
@@ -172,7 +172,7 @@ func ensureIpAccessFidelityTeamSafe(t *testing.T, base, apiKey string) {
 	}
 }
 
-func ensureIpAccessFidelityEntriesOwned(t *testing.T, base, apiKey string, ownedEntryIDs map[string]struct{}) {
+func ensureIpAccessFidelityEntriesOwned(t *testing.T, base, apiKey, run string, ownedEntryIDs map[string]struct{}) {
 	t.Helper()
 	status, body := sendIpAccessFidelityRequest(t, base, apiKey, fidelityStep{Method: http.MethodGet})
 	if status != http.StatusOK {
@@ -185,13 +185,17 @@ func ensureIpAccessFidelityEntriesOwned(t *testing.T, base, apiKey string, owned
 		t.Fatalf("pre-delete found changed support access or unexpected entry count; refusing to delete IP access entries")
 	}
 	for id, raw := range entries {
-		if _, ok := ownedEntryIDs[id]; !ok {
+		entry := asObject(raw)
+		name, _ := entry["name"].(string)
+		_, knownID := ownedEntryIDs[id]
+		knownName := strings.HasPrefix(name, run+"-")
+		if !knownID && !knownName {
 			t.Fatalf("pre-delete found an entry ID not returned by this run; refusing to delete IP access entries")
 		}
-		entry := asObject(raw)
 		enabled, _ := entry["enabled"].(bool)
-		if enabled {
-			t.Fatalf("pre-delete found an enabled rule; refusing to delete IP access entries")
+		ipRange, _ := entry["ipRange"].(string)
+		if enabled && (!knownName || ipRange != "0.0.0.0/0") {
+			t.Fatalf("pre-delete found an enabled rule other than this run's universal IPv4 probe; refusing to delete IP access entries")
 		}
 	}
 }
@@ -212,7 +216,7 @@ func recordIpAccessFidelity(t *testing.T, base, apiKey, outPath string) {
 		if vars["CREATED"] == "" {
 			return
 		}
-		if err := cleanupIpAccessFidelity(base, apiKey, ownedEntryIDs); err != nil {
+		if err := cleanupIpAccessFidelity(base, apiKey, vars["NAME"], ownedEntryIDs); err != nil {
 			t.Errorf("could not safely restore disposable IP access team: %v", err)
 		}
 	})
@@ -228,7 +232,7 @@ func recordIpAccessFidelity(t *testing.T, base, apiKey, outPath string) {
 		}{Name: c.Name}
 		for _, step := range c.Steps {
 			if step.Method == http.MethodDelete {
-				ensureIpAccessFidelityEntriesOwned(t, base, apiKey, ownedEntryIDs)
+				ensureIpAccessFidelityEntriesOwned(t, base, apiKey, vars["NAME"], ownedEntryIDs)
 			}
 			status, body := sendIpAccessFidelityRequest(t, base, apiKey, fidelityStep{
 				Method: step.Method,
@@ -311,7 +315,7 @@ func captureIpAccessFidelityEntryIDs(ownedEntryIDs map[string]struct{}, body any
 	}
 }
 
-func cleanupIpAccessFidelity(base, apiKey string, ownedEntryIDs map[string]struct{}) error {
+func cleanupIpAccessFidelity(base, apiKey, run string, ownedEntryIDs map[string]struct{}) error {
 	if ownedEntryIDs == nil {
 		return nil
 	}
@@ -326,13 +330,17 @@ func cleanupIpAccessFidelity(base, apiKey string, ownedEntryIDs map[string]struc
 	}
 	entries := asObject(settings["ipAccess"])
 	for id, raw := range entries {
-		if _, ok := ownedEntryIDs[id]; !ok {
+		entry := asObject(raw)
+		name, _ := entry["name"].(string)
+		_, knownID := ownedEntryIDs[id]
+		knownName := strings.HasPrefix(name, run+"-")
+		if !knownID && !knownName {
 			return fmt.Errorf("found an IP access entry ID not returned by this recorder; left settings untouched")
 		}
-		entry := asObject(raw)
 		enabled, _ := entry["enabled"].(bool)
-		if enabled {
-			return fmt.Errorf("found an enabled IP access entry; left settings untouched")
+		ipRange, _ := entry["ipRange"].(string)
+		if enabled && (!knownName || ipRange != "0.0.0.0/0") {
+			return fmt.Errorf("found an enabled IP access entry other than this recorder's universal IPv4 rule; left settings untouched")
 		}
 	}
 	status, body = sendIpAccessFidelityRequestNoTest(base, apiKey, http.MethodPut, "", map[string]any{
@@ -369,10 +377,37 @@ func TestIpAccessRecorderCleanupOwnsUnnamedRules(t *testing.T) {
 	if len(ownedEntryIDs) != 1 {
 		t.Fatalf("captured %d owned entry IDs, want 1", len(ownedEntryIDs))
 	}
-	if err := cleanupIpAccessFidelity(srv.URL, "dry-run-key", ownedEntryIDs); err != nil {
+	if err := cleanupIpAccessFidelity(srv.URL, "dry-run-key", "dry-run", ownedEntryIDs); err != nil {
 		t.Fatalf("cleanup rejected its unnamed rule: %v", err)
 	}
 	status, response = sendIpAccessFidelityRequest(t, srv.URL, "dry-run-key", fidelityStep{Method: http.MethodGet})
+	settings := asObject(asObject(response)["settings"])
+	if status != http.StatusOK || len(asObject(settings["ipAccess"])) != 0 || settings["enableCoralogixCustomerSupportAccess"] != "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED" {
+		t.Fatalf("cleanup left unexpected settings: status=%d response=%s", status, compact(response))
+	}
+}
+
+func TestIpAccessRecorderCleanupAllowsNamedUniversalEnabledRule(t *testing.T) {
+	fake := newIpAccessFidelityFake()
+	fake.seed(map[string]any{
+		"enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+		"ipAccess": map[string]any{
+			"entry-1": map[string]any{
+				"enabled": true,
+				"ipRange": "0.0.0.0/0",
+				"name":    "cleanup-test-enabled-broad",
+			},
+		},
+	})
+	srv := httptest.NewServer(fake)
+	defer srv.Close()
+
+	ownedEntryIDs := map[string]struct{}{}
+	ensureIpAccessFidelityEntriesOwned(t, srv.URL, "dry-run-key", "cleanup-test", ownedEntryIDs)
+	if err := cleanupIpAccessFidelity(srv.URL, "dry-run-key", "cleanup-test", ownedEntryIDs); err != nil {
+		t.Fatalf("cleanup rejected its named universal enabled rule: %v", err)
+	}
+	status, response := sendIpAccessFidelityRequest(t, srv.URL, "dry-run-key", fidelityStep{Method: http.MethodGet})
 	settings := asObject(asObject(response)["settings"])
 	if status != http.StatusOK || len(asObject(settings["ipAccess"])) != 0 || settings["enableCoralogixCustomerSupportAccess"] != "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED" {
 		t.Fatalf("cleanup left unexpected settings: status=%d response=%s", status, compact(response))

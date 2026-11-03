@@ -1,5 +1,5 @@
 {
-  "comment": "Live API requests used to validate the IP access fake. Recording is only safe on a disposable team with no IP access entries and customer-support access disabled. Every created IP entry is disabled.",
+  "comment": "Live API requests used to validate the IP access fake. Recording is only safe on a disposable team with no IP access entries and customer-support access disabled. Every rule is disabled except the final named 0.0.0.0/0 safety probe.",
   "cases": [
     {
       "name": "singleton-lifecycle",
@@ -62,6 +62,19 @@
           "path": "",
           "body": {
             "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED"
+          }
+        },
+        {"method": "GET", "path": ""},
+        {"method": "DELETE", "path": ""},
+        {"method": "GET", "path": ""},
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+            "ipAccess": [
+              {"enabled": true, "ipRange": "0.0.0.0/0", "name": "{{NAME}}-enabled-broad"}
+            ]
           }
         },
         {"method": "GET", "path": ""},

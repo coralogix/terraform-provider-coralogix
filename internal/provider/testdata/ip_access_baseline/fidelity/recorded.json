@@ -164,6 +164,54 @@
               "ipAccess": {}
             }
           }
+        },
+        {
+          "status": 200,
+          "response": {
+            "settings": {
+              "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+              "id": "\u003csettings-id\u003e",
+              "ipAccess": {
+                "\u003centry-1\u003e": {
+                  "enabled": true,
+                  "ipRange": "0.0.0.0/0",
+                  "name": "{{NAME}}-enabled-broad",
+                  "scopes": []
+                }
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "settings": {
+              "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+              "id": "\u003csettings-id\u003e",
+              "ipAccess": {
+                "\u003centry-1\u003e": {
+                  "enabled": true,
+                  "ipRange": "0.0.0.0/0",
+                  "name": "{{NAME}}-enabled-broad",
+                  "scopes": []
+                }
+              }
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "settings": {
+              "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+              "id": "\u003csettings-id\u003e",
+              "ipAccess": {}
+            }
+          }
         }
       ]
     }
