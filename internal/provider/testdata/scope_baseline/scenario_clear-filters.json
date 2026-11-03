@@ -4,7 +4,12 @@
     "config": {
       "default_expression": "<v1>true",
       "display_name": "example",
-      "filters": []
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ]
     },
     "plan": {
       "default_expression": "<v1>true",

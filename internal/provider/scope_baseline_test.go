@@ -56,10 +56,42 @@ func TestScopeBaselineScenarios(t *testing.T) {
 	}
 }
 
+func TestScopeBaselinePartialSuccess(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		response map[string]any
+	}{
+		{"null-scope", j{"scope": nil}},
+		{"missing-id", j{"scope": j{}}},
+		{"empty-id", j{"scope": j{"id": ""}}},
+	} {
+		t.Run("create-"+tc.name, func(t *testing.T) {
+			h := newScopeHarness(t)
+			h.scopes().replyToWrite(tc.response)
+			h.Apply("create returns "+tc.name, h.null(), scopeConfig())
+			checkGoldenAt(t, scopeGoldenDir, "scenario_create-"+tc.name+".json", marshalGolden(t, h.steps))
+		})
+		t.Run("update-"+tc.name, func(t *testing.T) {
+			h := newScopeHarness(t)
+			cfg := scopeConfig()
+			s := h.Apply("create", h.null(), cfg)
+			h.scopes().replyToWrite(tc.response)
+			cfg = maps.Clone(cfg)
+			cfg["display_name"] = "changed"
+			s = h.Apply("update returns "+tc.name, s, cfg)
+			h.scopes().replyToWrite(nil)
+			s = h.RefreshPlan("refresh and plan after partial success", s)
+			h.Destroy("destroy", s)
+			checkGoldenAt(t, scopeGoldenDir, "scenario_update-"+tc.name+".json", marshalGolden(t, h.steps))
+		})
+	}
+}
+
 var scopeScenarios = map[string]func(*grHarness){
 	"clear-filters": func(h *grHarness) {
 		cfg := scopeConfig()
 		s := h.Apply("create nonempty filters", h.null(), cfg)
+		cfg = maps.Clone(cfg)
 		cfg["filters"] = []any{}
 		s = h.Apply("clear filters", s, cfg)
 		s = h.RefreshPlan("refresh and plan cleared filters", s)

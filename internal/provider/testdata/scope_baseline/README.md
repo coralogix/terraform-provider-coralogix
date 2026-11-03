@@ -21,6 +21,7 @@ in this baseline; a later migration must show each fix in its golden diff.
 | Import, empty import ID, version-zero state | `import`, `import-empty-id`, `upgrade-version-zero` |
 | Missing resource and missing route | `read-not-found`, `update-not-found`, `delete-not-found`, `route-missing`, `delete-route-missing` |
 | Injected API failures | `create-api-error`, `read-api-error`, `delete-api-error` |
+| Successful Create and Update replies with null scope, missing ID, or empty ID | `create-null-scope`, `create-missing-id`, `create-empty-id`, `update-null-scope`, `update-missing-id`, `update-empty-id` |
 | Duplicate display names are allowed | `duplicate-display-names` |
 | Data-source ID lookup, absent ID, empty ID, missing scope | `datasource_read-by-id`, `datasource_no-id`, `datasource_empty-id`, `datasource_not-found` |
 
@@ -43,8 +44,10 @@ verified absent. `TestScopeFakeMatchesRecordedBackend` replays these cases.
   entity-type strings; Terraform rejects values outside its released enum.
 - The fake preserves input filter order. General backend reordering is not modeled.
 - The 500 responses are injected test faults, not recorded live outages.
-- Every successful fake create returns an ID. Success without an ID is not covered
-  by these protocol recordings; the fake cannot produce that response.
+- Malformed successful write replies are injected faults, not observed live API
+  behavior. The fake saves the write before returning a null scope or an ID-less
+  scope. Create records the error and null state. Update records the error and
+  unchanged prior state, then refreshes the stored change and replans.
 
 ## Verification
 
