@@ -5,6 +5,7 @@
 resource: GroupSetThing
 mode: existing
 typeName: group_set_thing
+afterFlatten: true
 schema:
   version: 1
   upgrade:

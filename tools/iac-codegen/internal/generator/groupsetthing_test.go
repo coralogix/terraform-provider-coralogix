@@ -3,6 +3,7 @@ package generator
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -55,4 +56,82 @@ func generateGroupSetThing(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return out
+}
+
+// Another resource's operation that sends OutGroupThing in its request does not make the required
+// line of OutGroupThing stale: only the Create and Update of the selected resource count.
+func TestRequiredLineIgnoresAnotherResourcesRequest(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "groupsetthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	const other = `  /groupset/v1/imports:
+    post:
+      tags: [Group Import Things Service]
+      operationId: GroupImports_Create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/OutGroupThing'}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {type: object}
+components:
+`
+	text := strings.Replace(string(spec), "components:\n", other, 1)
+	if text == string(spec) {
+		t.Fatal("fixture text not found")
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = []byte(text)
+	options := Options{Resource: "GroupSetThing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: filepath.Join("testdata", "groupsetthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+}
+
+// A keep-state line on a nested field with a server default keeps the released behavior: the plan
+// keeps the state, and no server-default modifier changes it back to unknown.
+func TestKeepStateLineDropsTheNestedServerDefault(t *testing.T) {
+	for _, key := range []string{"useStateForUnknown", "useNonNullStateForUnknown"} {
+		t.Run(key, func(t *testing.T) {
+			overrides, err := os.ReadFile(filepath.Join("testdata", "groupsetthing-overrides.yaml"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			const line = "      interval:\n        validators: [{atLeast: 60}]\n"
+			text := strings.Replace(string(overrides), line, line+"        "+key+": true\n", 1)
+			if text == string(overrides) {
+				t.Fatal("fixture text not found")
+			}
+			dir := t.TempDir()
+			path := filepath.Join(dir, "overrides.yaml")
+			if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			spec, err := os.ReadFile(filepath.Join("testdata", "groupsetthing.yaml"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			input, loadDir := syntheticInput(t)
+			input.OpenAPI = spec
+			out := filepath.Join(dir, "out")
+			if err := generateFromInput(Options{Resource: "GroupSetThing", OutputDir: out, OverridesPath: path}, input, loadDir); err != nil {
+				t.Fatalf("generate: %v", err)
+			}
+			schema := string(mustRead(t, filepath.Join(out, "schema.go")))
+			start := strings.Index(schema, `"interval": schema.Int64Attribute{`)
+			if start < 0 {
+				t.Fatalf("schema.go has no interval attribute:\n%s", schema)
+			}
+			attr := schema[start : start+strings.Index(schema[start:], "Description:")]
+			if strings.Contains(attr, "serverDefaultModifier") {
+				t.Fatalf("interval keeps the server-default modifier with %s:\n%s", key, attr)
+			}
+		})
+	}
 }

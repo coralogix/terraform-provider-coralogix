@@ -49,6 +49,8 @@ type Hooks struct {
 	// BeforeFlatten mutates the API value before flatten, for a value that only an older
 	// record has, such as a deprecated field that a newer one replaces.
 	BeforeFlatten func(context.Context, *group_set_things_service.GroupSetThing) diag.Diagnostics
+	// AfterFlatten projects API values into the Terraform model before it enters state.
+	AfterFlatten func(context.Context, *GroupSetThingModel, *group_set_things_service.GroupSetThing) diag.Diagnostics
 	// ValidateConfig adds checks that no attribute validator expresses, such as a rule over
 	// the items of a set.
 	ValidateConfig func(context.Context, tfsdk.Config) diag.Diagnostics
@@ -291,6 +293,12 @@ func (r *Resource) delete(ctx context.Context, id string) error {
 // the state takes the value of the API. flatten returns an error when the response has no
 // resource.
 func (r *Resource) setState(ctx context.Context, v *group_set_things_service.GroupSetThing, prior tfData, state *tfsdk.State) diag.Diagnostics {
+	return r.setStateKept(ctx, v, prior, prior, state)
+}
+
+// setStateKept is setState that takes the attributes that the API does not hold from keptFrom,
+// for a state upgrade, whose kept values are in the state of the prior schema.
+func (r *Resource) setStateKept(ctx context.Context, v *group_set_things_service.GroupSetThing, prior, keptFrom tfData, state *tfsdk.State) diag.Diagnostics {
 	var diags diag.Diagnostics
 	if r.hooks.BeforeFlatten != nil && v != nil {
 		diags.Append(r.hooks.BeforeFlatten(ctx, v)...)
@@ -303,12 +311,18 @@ func (r *Resource) setState(ctx context.Context, v *group_set_things_service.Gro
 	if diags.HasError() {
 		return diags
 	}
-	if prior != nil {
+	if keptFrom != nil {
 		// The API holds no value of this attribute. Start with the value from the plan or prior
 		// state, then let AfterFlatten replace it when the API supplies another value.
 		var kept types.String
-		if !prior.GetAttribute(ctx, path.Root("document"), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
+		if !keptFrom.GetAttribute(ctx, path.Root("document"), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
 			m.Document = kept
+		}
+	}
+	if r.hooks.AfterFlatten != nil {
+		diags.Append(r.hooks.AfterFlatten(ctx, m, v)...)
+		if diags.HasError() {
+			return diags
 		}
 	}
 	diags.Append(state.Set(ctx, m)...)
@@ -361,14 +375,9 @@ func (r *Resource) upgradeByRefresh(ctx context.Context, req resource.UpgradeSta
 		resp.Diagnostics.AddError("Unable to read "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 		return
 	}
-	resp.Diagnostics.Append(r.setState(ctx, v, nil, &resp.State)...)
-	if !resp.Diagnostics.HasError() {
-		// The API holds no value of this attribute. A prior schema that has it keeps its value.
-		var kept types.String
-		if !req.State.GetAttribute(ctx, path.Root("document"), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
-			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("document"), kept)...)
-		}
-	}
+	// The API holds no value of the kept attributes. A prior schema that has one keeps its value,
+	// and AfterFlatten can still replace it.
+	resp.Diagnostics.Append(r.setStateKept(ctx, v, nil, req.State, &resp.State)...)
 }
 
 // stateID returns the id in the state.

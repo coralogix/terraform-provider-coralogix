@@ -982,9 +982,12 @@ func (l Field) replacesServerDefault() bool {
 }
 
 // KeepsReleasedOmission reports whether the line decides how an omitted value behaves, so a
-// server default of the contract does not apply. A line that only changes a text, a validator, the
-// order, or the Terraform type keeps the server default.
-func (l Field) KeepsReleasedOmission() bool { return l.statesPresence() || l.replacesServerDefault() }
+// server default of the contract does not apply: it states presence, its own default, no computed
+// value, or that the plan keeps the state. A line that only changes a text, a validator, the order,
+// or the Terraform type keeps the server default.
+func (l Field) KeepsReleasedOmission() bool {
+	return l.statesPresence() || l.replacesServerDefault() || l.UseStateForUnknown || l.UseNonNullStateForUnknown
+}
 
 func (e ExtraAttribute) check(name string) error {
 	if err := checkExtraName(name); err != nil {

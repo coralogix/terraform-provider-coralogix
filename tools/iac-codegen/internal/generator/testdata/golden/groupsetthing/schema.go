@@ -125,23 +125,34 @@ func (m serverDefaultModifier) MarkdownDescription(ctx context.Context) string {
 	return m.Description(ctx)
 }
 
-// rootConfigured reports whether the configuration sets the top-level attribute that holds p. A set
-// that the configuration leaves out comes from the API or another attribute, so a null value of
-// one of its items is not a removal.
-func rootConfigured(ctx context.Context, config tfsdk.Config, p path.Path) bool {
-	steps := p.Steps()
-	if len(steps) == 0 {
-		return true
+// setConfigured reports whether the configuration sets every attribute on the path p down to the
+// set that holds it. A set that the configuration leaves out, directly or with an object that holds
+// it, comes from the API or another attribute, so a null value of one of its items is not a
+// removal. The walk stops at the first set element: its key is a planned value.
+func setConfigured(ctx context.Context, config tfsdk.Config, p path.Path) bool {
+	at := path.Empty()
+	for _, step := range p.Steps() {
+		switch step := step.(type) {
+		case path.PathStepAttributeName:
+			at = at.AtName(string(step))
+		case path.PathStepElementKeyInt:
+			at = at.AtListIndex(int(step))
+			continue
+		case path.PathStepElementKeyString:
+			at = at.AtMapKey(string(step))
+			continue
+		default:
+			return true
+		}
+		var v attr.Value
+		if config.GetAttribute(ctx, at, &v).HasError() || v == nil {
+			return true
+		}
+		if v.IsNull() {
+			return false
+		}
 	}
-	name, ok := steps[0].(path.PathStepAttributeName)
-	if !ok {
-		return true
-	}
-	var v attr.Value
-	if config.GetAttribute(ctx, path.Root(string(name)), &v).HasError() || v == nil {
-		return true
-	}
-	return !v.IsNull()
+	return true
 }
 
 func serverDefaultPlan(config, state, declared attr.Value) (unknown, preserve bool) {
@@ -158,7 +169,7 @@ func (m serverDefaultModifier) PlanModifyInt64(ctx context.Context, req planmodi
 	if req.Plan.Raw.IsNull() {
 		return
 	}
-	if m.fromPlan && !rootConfigured(ctx, req.Config, req.Path) {
+	if m.fromPlan && !setConfigured(ctx, req.Config, req.Path) {
 		return
 	}
 	prior := req.StateValue

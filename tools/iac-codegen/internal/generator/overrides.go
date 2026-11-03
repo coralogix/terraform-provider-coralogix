@@ -102,7 +102,7 @@ func overrideIssues(doc *v3.Document, component string, file *overrides.File, id
 	if err != nil {
 		requestOnly = nil // the model reports the operations that it cannot resolve
 	}
-	requested := requestComponents(doc)
+	requested := requestComponents(doc, requestOperations(doc, component, ids, file))
 	for _, line := range file.Lines() {
 		if line.Kind == overrides.KindField && line.Component == component && slices.Equal(line.Keys, []string{"skip"}) && slices.Contains(requestOnly, line.Field) {
 			continue
@@ -289,8 +289,26 @@ func hasZeroValue(contract []string) bool {
 	return len(contract) > 0 && strings.HasSuffix(contract[0], "_UNSPECIFIED")
 }
 
-// requestComponents returns the components that a request body of an operation reaches.
-func requestComponents(doc *v3.Document) map[string]bool {
+// requestOperations returns the ids of the Create and Update operations of the resource, or nil
+// when the model cannot be built yet; the build then reports why.
+func requestOperations(doc *v3.Document, component string, ids model.OperationIDs, file *overrides.File) map[string]bool {
+	resource, err := model.BuildWithPolicy(doc, component, ids, file.Policy())
+	if err != nil {
+		return nil
+	}
+	out := map[string]bool{}
+	for _, id := range []string{resource.Create.OperationID, resource.Update.OperationID} {
+		if id != "" {
+			out[id] = true
+		}
+	}
+	return out
+}
+
+// requestComponents returns the components that the request body of an operation in ops reaches,
+// or of any operation when ops is nil. Another resource's operation can send a component that
+// this resource only reads.
+func requestComponents(doc *v3.Document, ops map[string]bool) map[string]bool {
 	out := map[string]bool{}
 	if doc.Paths == nil || doc.Paths.PathItems == nil {
 		return out
@@ -330,7 +348,7 @@ func requestComponents(doc *v3.Document) map[string]bool {
 	}
 	for _, item := range doc.Paths.PathItems.FromOldest() {
 		for _, op := range item.GetOperations().FromOldest() {
-			if op.RequestBody == nil || op.RequestBody.Content == nil {
+			if op.RequestBody == nil || op.RequestBody.Content == nil || ops != nil && !ops[op.OperationId] {
 				continue
 			}
 			for _, media := range op.RequestBody.Content.FromOldest() {

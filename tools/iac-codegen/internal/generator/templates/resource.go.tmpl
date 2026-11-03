@@ -730,7 +730,17 @@ func absent(v *{{$sdk}}.{{.Resource}}) bool {
 // after Create or Update, or the state before Read. flatten
 // returns an error when the response has no resource.
 {{- end}}
+{{- if and .Upgrades .KeptExtras}}
 func (r *Resource) setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prior tfData, state *tfsdk.State) diag.Diagnostics {
+	return r.setStateKept(ctx, v, prior, prior, state)
+}
+
+// setStateKept is setState that takes the attributes that the API does not hold from keptFrom,
+// for a state upgrade, whose kept values are in the state of the prior schema.
+func (r *Resource) setStateKept(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prior, keptFrom tfData, state *tfsdk.State) diag.Diagnostics {
+{{- else}}
+func (r *Resource) setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prior tfData, state *tfsdk.State) diag.Diagnostics {
+{{- end}}
 	var diags diag.Diagnostics
 {{- if .Existing}}
 	if r.hooks.BeforeFlatten != nil && v != nil {
@@ -745,12 +755,13 @@ func (r *Resource) setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prio
 	if diags.HasError() {
 		return diags
 	}
+{{- $keptFrom := "prior"}}{{if .Upgrades}}{{$keptFrom = "keptFrom"}}{{end}}
 {{- range .KeptExtras}}
-	if prior != nil {
+	if {{$keptFrom}} != nil {
 		// The API holds no value of this attribute. Start with the value from the plan or prior
 		// state, then let AfterFlatten replace it when the API supplies another value.
 		var kept {{.Type}}
-		if !prior.GetAttribute(ctx, path.Root({{printf "%q" .TFName}}), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
+		if !{{$keptFrom}}.GetAttribute(ctx, path.Root({{printf "%q" .TFName}}), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
 			m.{{.Model}} = kept
 		}
 	}
@@ -851,15 +862,12 @@ func (r *Resource) upgradeByRefresh(ctx context.Context, req resource.UpgradeSta
 		resp.Diagnostics.AddError("Unable to read "+TypeName, fmt.Sprintf("id %v: %s", id, err))
 		return
 	}
+{{- if .KeptExtras}}
+	// The API holds no value of the kept attributes. A prior schema that has one keeps its value,
+	// and AfterFlatten can still replace it.
+	resp.Diagnostics.Append(r.setStateKept(ctx, v, nil, req.State, &resp.State)...)
+{{- else}}
 	resp.Diagnostics.Append(r.setState(ctx, v, nil, &resp.State)...)
-{{- range .KeptExtras}}
-	if !resp.Diagnostics.HasError() {
-		// The API holds no value of this attribute. A prior schema that has it keeps its value.
-		var kept {{.Type}}
-		if !req.State.GetAttribute(ctx, path.Root({{printf "%q" .TFName}}), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
-			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root({{printf "%q" .TFName}}), kept)...)
-		}
-	}
 {{- end}}
 }
 {{- end}}

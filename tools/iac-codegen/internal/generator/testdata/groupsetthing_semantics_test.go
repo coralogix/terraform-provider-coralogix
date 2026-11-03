@@ -5,8 +5,11 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
+	frameworkschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -197,5 +200,71 @@ func TestServerDefaultInAnUnconfiguredSetKeepsThePlan(t *testing.T) {
 	m.PlanModifyInt64(ctx, req, resp)
 	if !resp.PlanValue.Equal(types.Int64Value(120)) {
 		t.Fatalf("plan = %v, want the planned 120 of a set that the document sets", resp.PlanValue)
+	}
+}
+
+// A state upgrade restores the document of the prior state before AfterFlatten, so a hook that
+// derives the document from the API value wins over the prior one.
+func TestUpgradeRunsAfterFlattenOnTheKeptDocument(t *testing.T) {
+	ctx := context.Background()
+	limit, interval := "0", int64(60)
+	group_set_things_service.Stored = group_set_things_service.GroupSetThing{Id: "set-1", Name: "s", Groups: []group_set_things_service.OutGroupThing{{Name: "g", Interval: &interval, Limit: &limit}}}
+	r, schemaResp, root := setSchema(t)
+	r.hooks.AfterFlatten = func(_ context.Context, m *GroupSetThingModel, v *group_set_things_service.GroupSetThing) diag.Diagnostics {
+		if m.Document.ValueString() == "doc" {
+			m.Document = types.StringValue("from " + v.Name)
+		}
+		return nil
+	}
+	upgrader := r.UpgradeState(ctx)[0]
+	priorType := upgrader.PriorSchema.Type().TerraformType(ctx).(tftypes.Object)
+	prior := tftypes.NewValue(priorType, map[string]tftypes.Value{
+		"id":       tftypes.NewValue(tftypes.String, "set-1"),
+		"document": tftypes.NewValue(tftypes.String, "doc"),
+		"group":    tftypes.NewValue(tftypes.String, "old"),
+	})
+	resp := &frameworkresource.UpgradeStateResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(root, nil)}}
+	upgrader.StateUpgrader(ctx, frameworkresource.UpgradeStateRequest{State: &tfsdk.State{Schema: *upgrader.PriorSchema, Raw: prior}}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	var document string
+	if d := resp.State.GetAttribute(ctx, pathRoot("document"), &document); d.HasError() {
+		t.Fatal(d)
+	}
+	if document != "from s" {
+		t.Fatalf("upgraded document %q, want the value of AfterFlatten", document)
+	}
+}
+
+// setConfigured follows the path down to the set: a set inside a configured object that the
+// configuration leaves out is not configured.
+func TestSetConfiguredChecksTheContainingSet(t *testing.T) {
+	ctx := context.Background()
+	item := map[string]frameworkschema.Attribute{"interval": frameworkschema.Int64Attribute{Optional: true, Computed: true}}
+	s := frameworkschema.Schema{Attributes: map[string]frameworkschema.Attribute{
+		"settings": frameworkschema.SingleNestedAttribute{Optional: true, Attributes: map[string]frameworkschema.Attribute{
+			"other":  frameworkschema.StringAttribute{Optional: true},
+			"groups": frameworkschema.SetNestedAttribute{Optional: true, Computed: true, NestedObject: frameworkschema.NestedAttributeObject{Attributes: item}},
+		}},
+	}}
+	itemType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"interval": tftypes.Number}}
+	settingsType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"other": tftypes.String, "groups": tftypes.Set{ElementType: itemType}}}
+	rootType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"settings": settingsType}}
+	element := tftypes.NewValue(itemType, map[string]tftypes.Value{"interval": tftypes.NewValue(tftypes.Number, nil)})
+	at := path.Root("settings").AtName("groups").AtSetValue(types.ObjectNull(map[string]attr.Type{"interval": types.Int64Type})).AtName("interval")
+	for _, test := range []struct {
+		name     string
+		settings tftypes.Value
+		want     bool
+	}{
+		{"no settings", tftypes.NewValue(settingsType, nil), false},
+		{"settings without groups", tftypes.NewValue(settingsType, map[string]tftypes.Value{"other": tftypes.NewValue(tftypes.String, "x"), "groups": tftypes.NewValue(tftypes.Set{ElementType: itemType}, nil)}), false},
+		{"settings with groups", tftypes.NewValue(settingsType, map[string]tftypes.Value{"other": tftypes.NewValue(tftypes.String, nil), "groups": tftypes.NewValue(tftypes.Set{ElementType: itemType}, []tftypes.Value{element})}), true},
+	} {
+		config := tfsdk.Config{Schema: s, Raw: tftypes.NewValue(rootType, map[string]tftypes.Value{"settings": test.settings})}
+		if got := setConfigured(ctx, config, at); got != test.want {
+			t.Errorf("%s: setConfigured = %t, want %t", test.name, got, test.want)
+		}
 	}
 }
