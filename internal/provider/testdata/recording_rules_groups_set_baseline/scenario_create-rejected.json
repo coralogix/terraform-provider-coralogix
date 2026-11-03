@@ -188,5 +188,134 @@
       "error: Error creating coralogix_recording_rule_groups | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: No rule groups in the set\"}\noperation - Create"
     ],
     "state": null
+  },
+  {
+    "step": "create: a negative limit",
+    "config": {
+      "groups": [
+        {
+          "limit": -1,
+          "name": "g1",
+          "rules": [
+            {
+              "expr": "vector(1)",
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "name": "tf-set"
+    },
+    "plan": {
+      "groups": [
+        {
+          "interval": "(unknown)",
+          "limit": -1,
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": "(unknown)",
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "id": "(unknown)",
+      "name": "tf-set",
+      "yaml_content": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1",
+        "body": {
+          "groups": [
+            {
+              "interval": 60,
+              "limit": "-1",
+              "name": "g1",
+              "rules": [
+                {
+                  "expr": "vector(1)",
+                  "record": "tf:r1"
+                }
+              ]
+            }
+          ],
+          "name": "tf-set"
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_recording_rule_groups | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: proto: (line 1:1): invalid value for uint64 field limit: \\\"-1\\\"\"}\noperation - Create"
+    ],
+    "state": null
+  },
+  {
+    "step": "create: an empty record",
+    "config": {
+      "groups": [
+        {
+          "name": "g1",
+          "rules": [
+            {
+              "expr": "vector(1)",
+              "record": ""
+            }
+          ]
+        }
+      ],
+      "name": "tf-set"
+    },
+    "plan": {
+      "groups": [
+        {
+          "interval": "(unknown)",
+          "limit": "(unknown)",
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": "(unknown)",
+              "record": ""
+            }
+          ]
+        }
+      ],
+      "id": "(unknown)",
+      "name": "tf-set",
+      "yaml_content": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1",
+        "body": {
+          "groups": [
+            {
+              "interval": 60,
+              "limit": "0",
+              "name": "g1",
+              "rules": [
+                {
+                  "expr": "vector(1)",
+                  "record": ""
+                }
+              ]
+            }
+          ],
+          "name": "tf-set"
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_recording_rule_groups | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\n  \\\"groups\\\": {\\n    \\\"0\\\": {\\n      \\\"rules\\\": {\\n        \\\"0\\\": {\\n          \\\"record\\\": [\\n            {\\n              \\\"code\\\": \\\"length\\\",\\n              \\\"message\\\": null,\\n              \\\"params\\\": {\\n                \\\"min\\\": 1,\\n                \\\"value\\\": \\\"\\\"\\n              }\\n            },\\n            {\\n              \\\"code\\\": \\\"invalid_promql\\\",\\n              \\\"message\\\": \\\"SingleExpr: unexpected token ; want \\\\\\\"\\\\\\\"(\\\\\\\", \\\\\\\"{\\\\\\\", \\\\\\\"-\\\\\\\", \\\\\\\"+\\\\\\\"\\\\\\\"\\\",\\n              \\\"params\\\": {\\n                \\\"value\\\": \\\"\\\"\\n              }\\n            }\\n          ]\\n        }\\n      }\\n    }\\n  }\\n}\"}\noperation - Create"
+    ],
+    "state": null
   }
 ]

@@ -273,6 +273,8 @@ var rrScenarios = map[string]func(h *grHarness){
 		h.Apply("create: two groups have one name", h.null(), rrCfg("tf-set",
 			rrGroup("g1", j{"interval": 60.0}, rrRule("tf:r1", nil)), rrGroup("g1", j{"interval": 120.0}, rrRule("tf:r1", nil))))
 		h.Apply("create: empty groups", h.null(), j{"name": "tf-set", "groups": []any{}})
+		h.Apply("create: a negative limit", h.null(), rrCfg("tf-set", rrGroup("g1", j{"limit": -1.0}, rrRule("tf:r1", nil))))
+		h.Apply("create: an empty record", h.null(), rrCfg("tf-set", rrGroup("g1", nil, rrRule("", nil))))
 	},
 
 	"duplicate-name": func(h *grHarness) {
