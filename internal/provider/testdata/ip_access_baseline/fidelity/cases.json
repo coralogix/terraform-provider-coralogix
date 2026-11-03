@@ -18,9 +18,10 @@
           "method": "POST",
           "path": "",
           "body": {
-            "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+            "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
             "ipAccess": [
-              {"enabled": false, "ipRange": "0.0.0.0/0", "name": "{{NAME}}-first"}
+              {"enabled": false, "ipRange": "0.0.0.0/1", "name": "{{NAME}}-first"},
+              {"enabled": false, "ipRange": "128.0.0.0/1"}
             ]
           }
         },
@@ -41,7 +42,7 @@
           "body": {
             "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
             "ipAccess": [
-              {"enabled": false, "ipRange": "0.0.0.0/0", "name": "{{NAME}}-replacement"}
+              {"enabled": false, "ipRange": "0.0.0.0/0"}
             ]
           }
         },

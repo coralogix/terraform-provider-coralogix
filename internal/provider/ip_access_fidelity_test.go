@@ -23,7 +23,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"slices"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -80,9 +80,18 @@ func normalizeIpAccessValue(value any, parent string) any {
 	case map[string]any:
 		out := map[string]any{}
 		if parent == "ipAccess" {
-			keys := sortedKeysAny(x)
-			for i, key := range keys {
-				out[fmt.Sprintf("<entry-%d>", i+1)] = normalizeIpAccessValue(x[key], "entry")
+			values := make([]any, 0, len(x))
+			for _, item := range x {
+				values = append(values, item)
+			}
+			// Backend map keys are generated IDs and don't define Terraform set order.
+			sort.Slice(values, func(i, j int) bool {
+				left, _ := json.Marshal(values[i])
+				right, _ := json.Marshal(values[j])
+				return bytes.Compare(left, right) < 0
+			})
+			for i, item := range values {
+				out[fmt.Sprintf("<entry-%d>", i+1)] = normalizeIpAccessValue(item, "entry")
 			}
 			return out
 		}
@@ -104,15 +113,6 @@ func normalizeIpAccessValue(value any, parent string) any {
 	default:
 		return value
 	}
-}
-
-func sortedKeysAny(value map[string]any) []string {
-	keys := make([]string, 0, len(value))
-	for key := range value {
-		keys = append(keys, key)
-	}
-	slices.Sort(keys)
-	return keys
 }
 
 func ipAccessFidelityVars(run string) map[string]string {

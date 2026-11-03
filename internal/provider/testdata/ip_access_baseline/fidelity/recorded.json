@@ -14,12 +14,18 @@
           "status": 200,
           "response": {
             "settings": {
-              "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+              "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
               "id": "\u003csettings-id\u003e",
               "ipAccess": {
                 "\u003centry-1\u003e": {
                   "enabled": false,
-                  "ipRange": "0.0.0.0/0",
+                  "ipRange": "128.0.0.0/1",
+                  "name": "",
+                  "scopes": []
+                },
+                "\u003centry-2\u003e": {
+                  "enabled": false,
+                  "ipRange": "0.0.0.0/1",
                   "name": "{{NAME}}-first",
                   "scopes": []
                 }
@@ -36,7 +42,13 @@
               "ipAccess": {
                 "\u003centry-1\u003e": {
                   "enabled": false,
-                  "ipRange": "0.0.0.0/0",
+                  "ipRange": "128.0.0.0/1",
+                  "name": "",
+                  "scopes": []
+                },
+                "\u003centry-2\u003e": {
+                  "enabled": false,
+                  "ipRange": "0.0.0.0/1",
                   "name": "{{NAME}}-first",
                   "scopes": []
                 }
@@ -61,7 +73,7 @@
                 "\u003centry-1\u003e": {
                   "enabled": false,
                   "ipRange": "0.0.0.0/0",
-                  "name": "{{NAME}}-replacement",
+                  "name": "",
                   "scopes": []
                 }
               }
@@ -78,7 +90,7 @@
                 "\u003centry-1\u003e": {
                   "enabled": false,
                   "ipRange": "0.0.0.0/0",
-                  "name": "{{NAME}}-replacement",
+                  "name": "",
                   "scopes": []
                 }
               }

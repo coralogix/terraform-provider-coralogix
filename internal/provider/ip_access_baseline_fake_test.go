@@ -35,10 +35,13 @@ const (
 // ipAccessFake models the public REST contract and the behavior recorded by the handwritten
 // resource tests. The settings ID and entry keys are synthetic; no tenant or company data is used.
 type ipAccessFake struct {
-	mu       sync.Mutex
-	settings map[string]any
-	seq      int
-	requests []grRequest
+	mu            sync.Mutex
+	settings      map[string]any
+	seq           int
+	requests      []grRequest
+	getStatus     int
+	replaceStatus int
+	deleteStatus  int
 }
 
 func newIpAccessFake(t *testing.T) *ipAccessFake {
@@ -119,6 +122,9 @@ func (f *ipAccessFake) handle(method, path string, body any) (int, any) {
 		f.applyWrite(request)
 		return http.StatusOK, map[string]any{"settings": f.copySettingsWithAccess(enumValue(request))}
 	case http.MethodPut:
+		if f.replaceStatus != 0 {
+			return ipAccessFakeError(f.replaceStatus)
+		}
 		request := asObject(body)
 		responseAccess := enumValue(request)
 		if err := validateIpAccessInput(request); err != "" {
@@ -127,13 +133,30 @@ func (f *ipAccessFake) handle(method, path string, body any) (int, any) {
 		f.applyWrite(request)
 		return http.StatusOK, map[string]any{"settings": f.copySettingsWithAccess(responseAccess)}
 	case http.MethodGet:
+		if f.getStatus != 0 {
+			return ipAccessFakeError(f.getStatus)
+		}
 		return http.StatusOK, map[string]any{"settings": f.copySettings()}
 	case http.MethodDelete:
+		if f.deleteStatus != 0 {
+			return ipAccessFakeError(f.deleteStatus)
+		}
 		f.settings["ipAccess"] = map[string]any{}
 		return http.StatusOK, map[string]any{}
 	default:
 		return http.StatusNotFound, map[string]any{"code": http.StatusNotFound, "message": "Not Found"}
 	}
+}
+
+func ipAccessFakeError(status int) (int, any) {
+	message := http.StatusText(status)
+	return status, map[string]any{"code": status, "message": message}
+}
+
+func (f *ipAccessFake) clearOutside() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.settings["ipAccess"] = map[string]any{}
 }
 
 func validateIpAccessInput(input map[string]any) string {
@@ -188,6 +211,9 @@ func ipAccessResponseEntry(value any) map[string]any {
 	out := make(map[string]any, len(entry)+1)
 	for key, field := range entry {
 		out[key] = field
+	}
+	if _, ok := out["name"]; !ok {
+		out["name"] = ""
 	}
 	if _, ok := out["scopes"]; !ok {
 		out["scopes"] = []any{}

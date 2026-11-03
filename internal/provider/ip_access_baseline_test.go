@@ -48,6 +48,8 @@ func TestIpAccessBaselineSchema(t *testing.T) {
 }
 
 func TestIpAccessBaselineScenarios(t *testing.T) {
+	// A read after Delete is intentionally not a 404 case: the live Get response
+	// is 200 with an empty ipAccess map, so the singleton remains in state.
 	for name, run := range ipAccessScenarios {
 		t.Run(name, func(t *testing.T) {
 			h := newIpAccessHarness(t)
@@ -66,21 +68,69 @@ var ipAccessScenarios = map[string]func(h *grHarness){
 	"full-lifecycle": func(h *grHarness) {
 		config := j{
 			"enable_coralogix_customer_support_access": "enabled",
-			"ip_access": l{j{"enabled": true, "ip_range": "192.0.2.0/24", "name": "office"}},
+			"ip_access": l{
+				j{"enabled": true, "ip_range": "192.0.2.0/24", "name": "office"},
+				j{"enabled": false, "ip_range": "198.51.100.0/24"},
+			},
 		}
 		s := h.Apply("create", h.null(), config)
 		s = h.Refresh("refresh", s)
 		updated := j{
 			"enable_coralogix_customer_support_access": "disabled",
-			"ip_access": l{
-				j{"enabled": false, "ip_range": "198.51.100.0/24", "name": "vpn"},
-			},
+			"ip_access": l{j{"enabled": false, "ip_range": "203.0.113.0/24"}},
 		}
-		s = h.Apply("update: replace settings", s, updated)
+		s = h.Apply("update: replace two rules with one and omit name", s, updated)
 		s = h.Refresh("refresh after replace", s)
 		s = h.Apply("update: clear rules and omit support access", s, j{"ip_access": l{}})
 		h.RefreshPlan("refresh after clearing rules", s)
 		h.Destroy("destroy", s)
+	},
+	"create-invalid-cidr": func(h *grHarness) {
+		h.Apply("create: invalid CIDR", h.null(), j{"ip_access": l{
+			j{"enabled": false, "ip_range": "not-a-cidr"},
+		}})
+	},
+	"create-conflict": func(h *grHarness) {
+		h.ipAccess().seed(j{
+			"enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+			"ipAccess": map[string]any{
+				"entry-1": j{"enabled": false, "ipRange": "192.0.2.0/24", "name": "existing"},
+			},
+		})
+		h.Apply("create: settings already exist", h.null(), j{"ip_access": l{
+			j{"enabled": false, "ip_range": "198.51.100.0/24", "name": "new"},
+		}})
+	},
+	"replace-invalid-cidr": func(h *grHarness) {
+		s := h.Apply("create", h.null(), j{"ip_access": l{
+			j{"enabled": false, "ip_range": "192.0.2.0/24", "name": "existing"},
+		}})
+		h.Apply("replace: invalid CIDR", s, j{"ip_access": l{
+			j{"enabled": false, "ip_range": "not-a-cidr"},
+		}})
+	},
+	"read-after-delete-outside": func(h *grHarness) {
+		s := h.Apply("create", h.null(), j{"ip_access": l{
+			j{"enabled": false, "ip_range": "192.0.2.0/24", "name": "first"},
+		}})
+		h.ipAccess().clearOutside()
+		h.Refresh("refresh: Get still returns settings with no rules", s)
+	},
+	"update-not-found": func(h *grHarness) {
+		s := h.Apply("create", h.null(), j{"ip_access": l{
+			j{"enabled": false, "ip_range": "192.0.2.0/24", "name": "first"},
+		}})
+		h.ipAccess().replaceStatus = 404
+		h.Apply("update: API answers 404", s, j{"ip_access": l{
+			j{"enabled": false, "ip_range": "198.51.100.0/24", "name": "replacement"},
+		}})
+	},
+	"delete-not-found": func(h *grHarness) {
+		s := h.Apply("create", h.null(), j{"ip_access": l{
+			j{"enabled": false, "ip_range": "192.0.2.0/24", "name": "first"},
+		}})
+		h.ipAccess().deleteStatus = 404
+		h.Destroy("destroy: API answers 404", s)
 	},
 	"import": func(h *grHarness) {
 		h.ipAccess().seed(j{
@@ -89,7 +139,12 @@ var ipAccessScenarios = map[string]func(h *grHarness){
 				"entry-1": j{"enabled": true, "ipRange": "203.0.113.0/24", "name": "seeded"},
 			},
 		})
-		s := h.Import("import", "imported-settings")
+		const importedID = "imported-settings"
+		s := h.Import("import", importedID)
+		// The import protocol request carries an ID that the refresh then replaces
+		// with the backend settings ID. Record both so a migration cannot preserve
+		// the imported value unnoticed.
+		h.steps[len(h.steps)-2].Config = j{"id": importedID}
 		h.Apply("plan matching config", s, j{
 			"enable_coralogix_customer_support_access": "enabled",
 			"ip_access": l{j{"enabled": true, "ip_range": "203.0.113.0/24", "name": "seeded"}},

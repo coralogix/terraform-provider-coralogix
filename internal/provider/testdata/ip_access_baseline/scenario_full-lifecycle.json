@@ -8,6 +8,10 @@
           "enabled": true,
           "ip_range": "192.0.2.0/24",
           "name": "office"
+        },
+        {
+          "enabled": false,
+          "ip_range": "198.51.100.0/24"
         }
       ]
     },
@@ -19,6 +23,11 @@
           "enabled": true,
           "ip_range": "192.0.2.0/24",
           "name": "office"
+        },
+        {
+          "enabled": false,
+          "ip_range": "198.51.100.0/24",
+          "name": null
         }
       ]
     },
@@ -33,11 +42,18 @@
               "enabled": true,
               "ipRange": "192.0.2.0/24",
               "name": "office"
+            },
+            {
+              "enabled": false,
+              "ipRange": "198.51.100.0/24"
             }
           ]
         },
         "status": 200
       }
+    ],
+    "inconsistentResult": [
+      "ip_access"
     ],
     "state": {
       "enable_coralogix_customer_support_access": "enabled",
@@ -47,10 +63,23 @@
           "enabled": true,
           "ip_range": "192.0.2.0/24",
           "name": "office"
+        },
+        {
+          "enabled": false,
+          "ip_range": "198.51.100.0/24",
+          "name": ""
         }
       ]
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"id\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"198.51.100.0/24\">, \"name\":tftypes.String<\"\">>)",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"198.51.100.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"enabled\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"198.51.100.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"ip_range\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"198.51.100.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"name\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"198.51.100.0/24\">, \"name\":tftypes.String<null>>)"
+    ]
   },
   {
     "step": "refresh",
@@ -69,19 +98,23 @@
           "enabled": true,
           "ip_range": "192.0.2.0/24",
           "name": "office"
+        },
+        {
+          "enabled": false,
+          "ip_range": "198.51.100.0/24",
+          "name": ""
         }
       ]
     }
   },
   {
-    "step": "update: replace settings",
+    "step": "update: replace two rules with one and omit name",
     "config": {
       "enable_coralogix_customer_support_access": "disabled",
       "ip_access": [
         {
           "enabled": false,
-          "ip_range": "198.51.100.0/24",
-          "name": "vpn"
+          "ip_range": "203.0.113.0/24"
         }
       ]
     },
@@ -91,8 +124,8 @@
       "ip_access": [
         {
           "enabled": false,
-          "ip_range": "198.51.100.0/24",
-          "name": "vpn"
+          "ip_range": "203.0.113.0/24",
+          "name": null
         }
       ]
     },
@@ -105,13 +138,15 @@
           "ipAccess": [
             {
               "enabled": false,
-              "ipRange": "198.51.100.0/24",
-              "name": "vpn"
+              "ipRange": "203.0.113.0/24"
             }
           ]
         },
         "status": 200
       }
+    ],
+    "inconsistentResult": [
+      "ip_access"
     ],
     "state": {
       "enable_coralogix_customer_support_access": "disabled",
@@ -119,12 +154,20 @@
       "ip_access": [
         {
           "enabled": false,
-          "ip_range": "198.51.100.0/24",
-          "name": "vpn"
+          "ip_range": "203.0.113.0/24",
+          "name": ""
         }
       ]
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"id\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"203.0.113.0/24\">, \"name\":tftypes.String<\"\">>)",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"203.0.113.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"enabled\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"203.0.113.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"ip_range\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"203.0.113.0/24\">, \"name\":tftypes.String<\"\">>).AttributeName(\"name\")",
+      "AttributeName(\"ip_access\").ElementKeyValue(tftypes.Object[\"enabled\":tftypes.Bool, \"ip_range\":tftypes.String, \"name\":tftypes.String]<\"enabled\":tftypes.Bool<\"false\">, \"ip_range\":tftypes.String<\"203.0.113.0/24\">, \"name\":tftypes.String<null>>)"
+    ]
   },
   {
     "step": "refresh after replace",
@@ -141,8 +184,8 @@
       "ip_access": [
         {
           "enabled": false,
-          "ip_range": "198.51.100.0/24",
-          "name": "vpn"
+          "ip_range": "203.0.113.0/24",
+          "name": ""
         }
       ]
     }

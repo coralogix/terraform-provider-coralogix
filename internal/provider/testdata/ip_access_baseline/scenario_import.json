@@ -1,6 +1,9 @@
 [
   {
     "step": "import",
+    "config": {
+      "id": "<import-id>"
+    },
     "state": null
   },
   {
