@@ -291,6 +291,48 @@ func TestAcceptanceUpgradeCaseIncludesWriteOnlyExtra(t *testing.T) {
 	}
 }
 
+// With a leftovers function, every subtest calls it before the create with the configs that it applies.
+func TestAcceptanceLeftoversRunBeforeEverySubtest(t *testing.T) {
+	file := extraUpgradeFile(t)
+	file.Leftovers = "internal/acctest.RemoveLeftoverThings"
+	data, err := buildAcceptance(extraUpgradeResource(), "example.com/provider", file,
+		&acceptance.UpgradeAttributes{From: "1.0.0", Attributes: extraReleased()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := renderAcceptance(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(out)
+	for _, want := range []string{
+		`"example.com/provider/internal/acctest"`,
+		"acctest.RemoveLeftoverThings(t, config(run, fullConfig), config(run, updatedConfig))",
+		"acctest.RemoveLeftoverThings(t, config(run, minimalConfig), config(run, fullConfig))",
+		"acctest.RemoveLeftoverThings(t, config(run, upgradeWriteOnlyConfig))",
+	} {
+		if !strings.Contains(text, want) {
+			t.Errorf("generated test lacks %s:\n%s", want, text)
+		}
+	}
+	if got, want := strings.Count(text, "acctest.RemoveLeftoverThings("), strings.Count(text, "preCheck(t)"); got != want {
+		t.Errorf("%d subtests remove leftovers, want all %d", got, want)
+	}
+
+	file.Leftovers = ""
+	data, err = buildAcceptance(extraUpgradeResource(), "example.com/provider", file,
+		&acceptance.UpgradeAttributes{From: "1.0.0", Attributes: extraReleased()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out, err = renderAcceptance(data); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(out), "acctest") {
+		t.Errorf("without leftovers the test must not call a leftovers function:\n%s", out)
+	}
+}
+
 // The released provider rejects an extraAttribute that the upgrade snapshot does not list.
 func TestAcceptanceUpgradeCaseRequiresReleasedExtra(t *testing.T) {
 	released := extraReleased()

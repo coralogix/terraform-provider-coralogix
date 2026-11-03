@@ -29,6 +29,7 @@ const FileName = "acceptance.yaml"
 //	values:                            # HCL for a field, instead of a made-up value
 //	  rules[].targets[].connector_id: coralogix_connector.slack.id
 //	upgradeFrom: "3.19.0"              # a released provider for the upgrade test
+//	leftovers: internal/acctest.RemoveLeftoverGlobalRouters  # runs before each subtest creates
 //	upgradeCases:                      # extra upgrade subtests (needs upgradeFrom)
 //	  - name: write-only
 //	    values:
@@ -76,6 +77,24 @@ type File struct {
 	// created with UpgradeFrom and planned with this build. Use one for extraAttributes that
 	// need a real map key: the dummy key of a made-up map is not an API field.
 	UpgradeCases []UpgradeCase `yaml:"upgradeCases"`
+	// Leftovers names a function that each subtest calls before it creates the resource, to remove
+	// what a cancelled run left behind and what would make the create fail, such as a resource that
+	// holds a value that must be unique. The form is <package directory in the provider
+	// module>.<Func>, and the package name is the last element of the directory. The signature is
+	// func(t *testing.T, configs ...string): configs are the rendered configs that the subtest applies.
+	Leftovers string `yaml:"leftovers"`
+}
+
+// LeftoversPackage and LeftoversFunc split Leftovers into the package directory and the function.
+func (f *File) LeftoversPackage() string {
+	dir, _, _ := strings.Cut(f.Leftovers, ".")
+	return dir
+}
+
+// LeftoversFunc is the function of Leftovers.
+func (f *File) LeftoversFunc() string {
+	_, name, _ := strings.Cut(f.Leftovers, ".")
+	return name
 }
 
 // UpgradeCase is one extra upgrade subtest in the acceptance file.
@@ -92,6 +111,7 @@ var (
 	version     = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
 	placeholder = regexp.MustCompile(`@\{[^}]*\}`)
 	caseName    = regexp.MustCompile(`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`)
+	leftovers   = regexp.MustCompile(`^[a-z][a-z0-9_]*(/[a-z][a-z0-9_]*)*\.[A-Z][A-Za-z0-9]*$`)
 )
 
 // Parse reads the file. An unknown key or a wrong value is an error.
@@ -213,6 +233,9 @@ func (f *File) checkVersionAndText() error {
 	}
 	if f.UpgradeFrom == "" && len(f.UpgradeMinimal) != 0 {
 		return errors.New("upgradeMinimal needs upgradeFrom: without it there is no upgrade test")
+	}
+	if f.Leftovers != "" && !leftovers.MatchString(f.Leftovers) {
+		return fmt.Errorf("leftovers is %q, want <package directory>.<Func>, such as internal/acctest.RemoveLeftovers", f.Leftovers)
 	}
 	texts := append([]string{f.Prerequisites}, f.valueTexts()...)
 	for _, text := range f.UpdatedValues {
