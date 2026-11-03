@@ -76,6 +76,11 @@ jobs:
           go vet ./...
       - name: Test generator version check
         run: bash tools/iac-codegen/scripts/check-version-change_test.sh
+      - name: Test generated resources check
+        run: bash tools/iac-codegen/scripts/check-generated-resources_test.sh
       - name: Require generator version change
         if: github.event_name == 'pull_request'
         run: tools/iac-codegen/scripts/check-version-change.sh '${{ github.event.pull_request.base.sha }}'
+      - name: Require current generated resources
+        if: github.event_name == 'pull_request'
+        run: bash tools/iac-codegen/scripts/check-generated-resources.sh
