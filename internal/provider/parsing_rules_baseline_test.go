@@ -415,6 +415,18 @@ var parsingRulesScenarios = map[string]func(h *grHarness){
 		h.Apply("update: change only the description of the first", first, prCfg(nil, j{"name": "first", "description": "changed"}))
 	},
 
+	"order-delete-and-update": func(h *grHarness) {
+		// A delete lowers the order of every group after the deleted one. When one apply deletes a
+		// group and updates another without order, the update plans the order that it read before
+		// the delete.
+		first := h.Apply("create a rule group without order", h.null(), prCfg(nil, j{"name": "first"}))
+		second := h.Apply("create another rule group without order", h.null(), prCfg(nil, j{"name": "second"}))
+		h.Apply("create a third rule group without order", h.null(), prCfg(nil, j{"name": "third"}))
+		h.Destroy("destroy the first", first)
+		s := h.Apply("update: change only the description of the second", second, prCfg(nil, j{"name": "second", "description": "changed"}))
+		h.Refresh("refresh the second", s)
+	},
+
 	"config-validation": func(h *grHarness) {
 		h.Validate("empty config", j{})
 		h.Validate("unknown severity", prCfg(nil, j{"severities": []any{"fatal"}}))
