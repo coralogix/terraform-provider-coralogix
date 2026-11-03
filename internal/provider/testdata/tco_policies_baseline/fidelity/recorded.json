@@ -755,7 +755,7 @@
           "status": 400,
           "response": {
             "code": 400,
-            "message": "Bad Request: DPXL compile failed for policy tf-fidelity-a, id:708a9023-bf5d-4a7c-9472-789ede0497ef, error: DPXL compilation errors:\n - expected version tag. e.g. \"<v1> foo == 'bar'\" at [0:0-0:20]: $d.severity == 'INFO"
+            "message": "Bad Request: DPXL compile failed for policy tf-fidelity-a, id:<id>, error: DPXL compilation errors:\n - expected version tag. e.g. \"<v1> foo == 'bar'\" at [0:0-0:20]: $d.severity == 'INFO"
           }
         },
         {

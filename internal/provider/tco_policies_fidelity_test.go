@@ -247,8 +247,8 @@ func tcoRestoreBody(t *testing.T, got any, source string) map[string]any {
 	return map[string]any{"policies": policies}
 }
 
-// tcoMask replaces what differs in every run and what belongs to the tenant: policy ids, the
-// company id, and the times.
+// tcoMask replaces what differs in every run and what belongs to the tenant: policy ids, also inside
+// error messages, the company id, and the times.
 func tcoMask(v any) any {
 	switch x := v.(type) {
 	case map[string]any:
@@ -276,6 +276,9 @@ func tcoMask(v any) any {
 			out[i] = tcoMask(e)
 		}
 		return out
+	case string:
+		// An error message can name a policy by its id ("DPXL compile failed for policy a, id:...").
+		return uuidPattern.ReplaceAllString(x, "<id>")
 	}
 	return v
 }

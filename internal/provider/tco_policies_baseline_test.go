@@ -497,6 +497,8 @@ var tcoRumScenarios = map[string]func(h *grHarness, f *tcoFake){
 		s = h.RefreshPlan("refresh", s)
 		s = h.Apply("update: reorder", s, tcoPolicies(second, first))
 		s = h.Apply("update: remove a policy", s, tcoPolicies(first))
+		s = h.Apply("update: remove the optional fields", s, tcoPolicies(tcoPolicy("first", "low", tcoSeverities("error", "critical"))))
+		s = h.RefreshPlan("refresh", s)
 		h.Destroy("destroy", s)
 	},
 
