@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Fails unless a release PR comes from the team that releases: the PR's author and the signer of
 # each of its commits must be listed in the allowlist (.github/RELEASERS, the members of
-# coralogix/team-eco-system). The repository is public, so without this anyone with write access
+# coralogix/team-eco-system), both as it was at the PR's base and as it is now on the base branch. The repository is public, so without this anyone with write access
 # could release.
 #
 # Usage: check-releaser.sh <pr-number>
@@ -23,10 +23,20 @@ if ! allowlist=$(gh api "repos/$GH_REPO/contents/.github/RELEASERS?ref=$base_sha
   echo "::error::.github/RELEASERS is missing at $base_sha, the base of PR #$pr."
   exit 1
 fi
+# The allowlist as it is now on the base branch too, so removing someone from it also stops a
+# release PR they opened before. A login must be in both lists.
+if ! current=$(gh api "repos/$GH_REPO/contents/.github/RELEASERS?ref=$base_ref" -H "Accept: application/vnd.github.raw"); then
+  echo "::error::.github/RELEASERS is missing on $base_ref."
+  exit 1
+fi
 # GitHub logins are case-insensitive.
-releasers=$(sed -e 's/#.*//' -e 's/[[:space:]]//g' <<< "$allowlist" | grep -v '^$' | tr '[:upper:]' '[:lower:]')
+logins() { sed -e 's/#.*//' -e 's/[[:space:]]//g' <<< "$1" | grep -v '^$' | tr '[:upper:]' '[:lower:]'; }
+releasers=$(logins "$allowlist")
+current_releasers=$(logins "$current")
 member() {
-  grep -qxF "$(tr '[:upper:]' '[:lower:]' <<< "$1")" <<< "$releasers"
+  local login
+  login=$(tr '[:upper:]' '[:lower:]' <<< "$1")
+  grep -qxF "$login" <<< "$releasers" && grep -qxF "$login" <<< "$current_releasers"
 }
 
 author=$(gh pr view "$pr" --json author --jq .author.login)
