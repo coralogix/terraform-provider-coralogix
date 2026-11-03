@@ -969,11 +969,12 @@ func (l Field) Fixed() bool { return l.RequestValue != "" || len(l.RequestValueB
 
 // replacesServerDefault reports whether the line states a mode that a server default of the
 // contract cannot have: its own default, no computed value, or what an omitted value plans and
-// sends (sendUnknownAsZero, useStateForUnknown, useNonNullStateForUnknown). The server-default
-// plan modifier would make a removal unknown on top of them. required: true needs no check: a
+// sends (sendUnknownAsZero, useStateForUnknown, useNonNullStateForUnknown), or a Terraform value
+// that is the opposite of the API value (invert). The server-default plan modifier would make a
+// removal unknown on top of them, or compare the inverted state with the API default. required: true needs no check: a
 // server default needs a field that Get requires, and then the line is unused.
 func (l Field) replacesServerDefault() bool {
-	return l.Default != nil || l.Computed != nil && !*l.Computed || l.SendUnknownAsZero || l.UseStateForUnknown || l.UseNonNullStateForUnknown
+	return l.Default != nil || l.Computed != nil && !*l.Computed || l.SendUnknownAsZero || l.UseStateForUnknown || l.UseNonNullStateForUnknown || l.Invert
 }
 
 func (e ExtraAttribute) check(name string) error {

@@ -206,6 +206,9 @@ type convCarry struct {
 	Pkg   string     // the name of the SDK package
 	Field *convField // the field of the object that holds the oneOf
 	Arms  []*carryArm
+	// RequireOne: the line has requireOne. Flatten fails when the response has no arm or more
+	// than one, as for a oneOf group that requires an arm.
+	RequireOne bool
 }
 
 // carryArm is one arm attribute of a carrySiblings object.
@@ -1190,6 +1193,16 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 			m.Read = append(m.Read, enumMapValue{TF: over.RejectedTFValue(v), API: v})
 		}
 	}
+	if over.CaseInsensitive {
+		// Expand folds the case of the configured value, so two values may not differ only in case.
+		for i, a := range m.Values {
+			for _, c := range m.Values[i+1:] {
+				if strings.EqualFold(a.TF, c.TF) {
+					return nil, fmt.Errorf("enum %s: caseInsensitive needs values that differ in more than case: %s and %s", schema, a.TF, c.TF)
+				}
+			}
+		}
+	}
 	b.enumMaps = append(b.enumMaps, m)
 	return m, nil
 }
@@ -1296,6 +1309,9 @@ func (b *convBuilder) applyFixedRequest(cf *convField) error {
 	switch {
 	case cf.RequestValue == "":
 	case cf.Conv == convEnum:
+		if cf.EnumMap != nil && !slices.ContainsFunc(cf.EnumMap.Values, func(v enumMapValue) bool { return v.API == cf.RequestValue }) {
+			return fmt.Errorf("%s: requestValue %q is no accepted value of the enum %s", cf.TFName, cf.RequestValue, cf.SDKType)
+		}
 		cf.FixedValue = fmt.Sprintf("%s(%q)", cf.SDKType, cf.RequestValue)
 	case cf.Conv == convString:
 		cf.FixedValue, cf.SDKType = fmt.Sprintf("%q", cf.RequestValue), "string"
@@ -1401,19 +1417,41 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 }
 
 // checkPositions reports a position field outside the items of a list: only a list gives an item
-// a place.
+// a place. The component must be a list item in every place, hold one position field, and the
+// requests must send it.
 func checkPositions(objects []*convObject) error {
-	listed := map[*convObject]bool{}
+	listed, elsewhere := map[*convObject]bool{}, map[*convObject]bool{}
 	for _, obj := range objects {
 		for _, f := range obj.Fields {
-			if f.Conv == convObjects && f.Collection == "List" {
+			switch {
+			case f.Object == nil:
+			case f.Conv == convObjects && f.Collection == "List":
 				listed[f.Object] = true
+			default:
+				elsewhere[f.Object] = true
 			}
 		}
 	}
 	for _, obj := range objects {
-		if p := obj.PositionField(); p != nil && !listed[obj] {
+		var positions []*convField
+		for _, f := range obj.Fields {
+			if f.Position && !f.Carried {
+				positions = append(positions, f)
+			}
+		}
+		if len(positions) == 0 {
+			continue
+		}
+		p := positions[0]
+		switch {
+		case len(positions) > 1:
+			return fmt.Errorf("%s: position on %s and %s: a list item has one position field", obj.Model, p.TFName, positions[1].TFName)
+		case !listed[obj]:
 			return fmt.Errorf("%s: position needs a field of the items of a list, and %s is no list item", p.TFName, obj.Model)
+		case elsewhere[obj]:
+			return fmt.Errorf("%s: position needs a component that is a list item in every place, and %s is also held outside a list", p.TFName, obj.Model)
+		case p.FlattenOnly:
+			return fmt.Errorf("%s: position needs a field that Create and Update send, and %s only reads it", p.TFName, obj.Model)
 		}
 	}
 	return nil
@@ -1779,7 +1817,7 @@ func (b *convBuilder) carry(obj *convObject, component string, t *model.Type) er
 	for _, arm := range oneOf.Fields {
 		byArm[arm.Model] = arm
 	}
-	c := &convCarry{Pkg: b.ix.pkg.Name, Field: field}
+	c := &convCarry{Pkg: b.ix.pkg.Name, Field: field, RequireOne: b.file.Types[component].Fields[carryName].RequireOne}
 	for _, armField := range oneOf.Fields {
 		armName := lowerFirst(armField.Model)
 		if _, folded := line.Fold[armName]; folded {

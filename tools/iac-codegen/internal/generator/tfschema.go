@@ -544,6 +544,9 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 		if a.Kind != "Int64" && a.Kind != "Int32" {
 			return fmt.Errorf("position needs an integer attribute, not %s", a.Kind)
 		}
+		if a.Computed && !a.Optional && !a.Required || slices.ContainsFunc(a.Modifiers, func(m string) bool { return strings.Contains(m, "RequiresReplace") }) {
+			return errors.New("position needs a field that Create and Update send, not a read-only or immutable one")
+		}
 		// The position in the list is the value, so the user does not set it.
 		a.Required, a.Optional, a.Computed, a.Validators = false, false, true, nil
 	}
@@ -1265,9 +1268,17 @@ func carryField(file *overrides.File, t *model.Type) *model.Field {
 // arm, and the flag of an arm that a fold folds into it.
 func (b *tfBuilder) carryAttributes(p attrPath, t *model.Type, carry *model.Field) ([]*tfAttr, error) {
 	line := b.file.Types[t.Schema].Fields[carry.Name]
+	for _, f := range t.Fields {
+		if f != carry && b.file.Types[t.Schema].Fields[f.Name].CarrySiblings != nil {
+			return nil, fmt.Errorf("%s: carrySiblings on %s and %s: an object shows one oneOf as its arms", t.Schema, carry.Name, f.Name)
+		}
+	}
 	oneOf := carry.Type
 	if oneOf.Kind != model.OneOf || len(t.Groups) != 0 {
 		return nil, fmt.Errorf("%s.%s: carrySiblings needs a oneOf field in an object without other oneOf groups", t.Schema, carry.Name)
+	}
+	if carry.Behavior != model.Normal {
+		return nil, fmt.Errorf("%s.%s: carrySiblings needs a oneOf that Create and Update send, not a %s one: every arm is an optional attribute", t.Schema, carry.Name, carry.Behavior)
 	}
 	if b.carried == nil {
 		b.carried, b.flags = map[*model.Field]string{}, map[*model.Field]overrides.Fold{}
@@ -1277,7 +1288,7 @@ func (b *tfBuilder) carryAttributes(p attrPath, t *model.Type, carry *model.Fiel
 	for _, arm := range oneOf.Fields {
 		arms[arm.Name] = arm
 	}
-	if err := checkCarry(t, line.CarrySiblings, arms); err != nil {
+	if err := checkCarry(t, carry, line.CarrySiblings, arms); err != nil {
 		return nil, err
 	}
 	var attrs []*tfAttr
@@ -1331,6 +1342,26 @@ func (b *tfBuilder) carryArm(p attrPath, t *model.Type, carry, arm *model.Field,
 		b.flags[flag] = folded
 		held.Fields = append(held.Fields, flag)
 	}
+	// The arm holds fields of two components and the fold flags, which the name checks of each
+	// component do not see together.
+	byTF, byGo := map[string]string{}, map[string]string{}
+	for _, f := range held.Fields {
+		owner := arm.Type.Schema
+		if _, sibling := b.carried[f]; sibling && !slices.Contains(arm.Type.Fields, f) {
+			owner = t.Schema
+		}
+		tf := terraformName(b.policy, owner, f.Name)
+		if _, flag := b.flags[f]; flag {
+			tf = f.Name
+		}
+		if other, ok := byTF[tf]; ok {
+			return nil, fmt.Errorf("%s: the carried arm has two fields named %s in Terraform: %s and %s", arm.Name, tf, other, f.Name)
+		}
+		if other, ok := byGo[camelize(tf)]; ok {
+			return nil, fmt.Errorf("%s: the carried arm has two fields named %s in Go: %s and %s", arm.Name, camelize(tf), other, f.Name)
+		}
+		byTF[tf], byGo[camelize(tf)] = f.Name, f.Name
+	}
 	component := model.ComponentOf(carry.Type)
 	name := terraformName(b.policy, component, arm.Name)
 	a := &tfAttr{Name: name, Kind: "SingleNested", ValueKind: "Object", Optional: true, Description: arm.Description, Component: component, Property: arm.Name}
@@ -1360,49 +1391,75 @@ func oneExactlyOneOf(attrs []*tfAttr) {
 	attrs[0].GroupValidators = []string{v}
 }
 
-// checkCarry reports a carrySiblings line that names an arm or a sibling that t does not have, and
-// a fold into an arm with other fields.
-func checkCarry(t *model.Type, c *overrides.Carry, arms map[string]*model.Field) error {
-	siblings := map[string]bool{}
+// checkCarry reports a carrySiblings line that names an arm or a sibling that t does not have, a
+// fixed value for the carried field itself or for a field that the requests do not send, and a
+// fold into an arm with other fields or into an arm that another fold uses.
+func checkCarry(t *model.Type, carry *model.Field, c *overrides.Carry, arms map[string]*model.Field) error {
+	siblings := map[string]*model.Field{}
 	for _, f := range t.Fields {
-		siblings[f.Name] = true
+		if f != carry {
+			siblings[f.Name] = f
+		}
 	}
 	for _, arm := range slices.Sorted(maps.Keys(c.RequestValues)) {
 		if arms[arm] == nil {
 			return fmt.Errorf("%s: carrySiblings.requestValues names %s, which is no arm", t.Schema, arm)
 		}
 		for _, sibling := range slices.Sorted(maps.Keys(c.RequestValues[arm])) {
-			if !siblings[sibling] {
+			switch f := siblings[sibling]; {
+			case sibling == carry.Name:
+				return fmt.Errorf("%s: carrySiblings.requestValues.%s names %s, the field that holds the oneOf", t.Schema, arm, sibling)
+			case f == nil:
 				return fmt.Errorf("%s: carrySiblings.requestValues.%s names %s, which is no field of %s", t.Schema, arm, sibling, t.Schema)
+			case f.Behavior != model.Normal:
+				return fmt.Errorf("%s: carrySiblings.requestValues.%s names %s, which Create and Update do not send", t.Schema, arm, sibling)
 			}
 		}
 	}
+	folds := map[string]string{}
 	for _, arm := range slices.Sorted(maps.Keys(c.Fold)) {
-		into := arms[c.Fold[arm].Into]
-		if arms[arm] == nil || into == nil {
+		target := arms[c.Fold[arm].Into]
+		if arms[arm] == nil || target == nil {
 			return fmt.Errorf("%s: carrySiblings.fold.%s names an arm that the oneOf does not have", t.Schema, arm)
 		}
-		if !sameFieldNames(arms[arm].Type, into.Type) {
-			return fmt.Errorf("%s: carrySiblings.fold.%s: the arms %s and %s need the same fields", t.Schema, arm, arm, into.Name)
+		if other, ok := folds[target.Name]; ok {
+			return fmt.Errorf("%s: carrySiblings.fold.%s and fold.%s both fold into %s: an arm takes one fold", t.Schema, other, arm, target.Name)
 		}
-		if !maps.Equal(c.RequestValues[arm], c.RequestValues[into.Name]) {
-			return fmt.Errorf("%s: carrySiblings.fold.%s: the arms %s and %s need the same requestValues", t.Schema, arm, arm, into.Name)
+		folds[target.Name] = arm
+		if _, folded := c.Fold[target.Name]; folded {
+			return fmt.Errorf("%s: carrySiblings.fold.%s folds into %s, which is folded itself", t.Schema, arm, target.Name)
+		}
+		if !sameFieldNames(arms[arm].Type, target.Type) {
+			return fmt.Errorf("%s: carrySiblings.fold.%s: the arms %s and %s need the same fields", t.Schema, arm, arm, target.Name)
+		}
+		if !maps.Equal(c.RequestValues[arm], c.RequestValues[target.Name]) {
+			return fmt.Errorf("%s: carrySiblings.fold.%s: the arms %s and %s need the same requestValues", t.Schema, arm, arm, target.Name)
 		}
 	}
 	return nil
 }
 
-// sameFieldNames reports whether two objects have fields of the same names and kinds, in order.
+// sameFieldNames reports whether two objects have fields of the same names and types, in order: a
+// fold copies each field of one SDK struct into the other.
 func sameFieldNames(a, b *model.Type) bool {
 	if a == nil || b == nil || len(a.Fields) != len(b.Fields) {
 		return false
 	}
 	for i := range a.Fields {
-		if a.Fields[i].Name != b.Fields[i].Name || a.Fields[i].Type.Kind != b.Fields[i].Type.Kind {
+		if a.Fields[i].Name != b.Fields[i].Name || !sameWireType(a.Fields[i].Type, b.Fields[i].Type) {
 			return false
 		}
 	}
 	return true
+}
+
+// sameWireType reports whether two field types have the same SDK type: the same kind, format,
+// component, and element.
+func sameWireType(a, b *model.Type) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return a.Kind == b.Kind && a.Format == b.Format && a.Schema == b.Schema && sameWireType(a.Elem, b.Elem)
 }
 
 // sortedFoldsInto returns the folds into arm, by folded arm.
@@ -1483,6 +1540,9 @@ func (r *tfResource) RequestFilter() bool { return len(r.ServerPaths) != 0 || le
 // places of a component, with its Go type in each place.
 func modelFieldDifference(first, other []tfModelField) string {
 	for i := range min(len(first), len(other)) {
+		if first[i].TFName != other[i].TFName {
+			return fmt.Sprintf("one place has the field %s where another has %s", first[i].TFName, other[i].TFName)
+		}
 		if first[i] != other[i] {
 			return fmt.Sprintf("field %s is %s in one place and %s in another", first[i].TFName, first[i].Type, other[i].Type)
 		}
@@ -2089,6 +2149,19 @@ func (b *tfBuilder) splitAttributes(out *tfResource, root *tfModel, r *model.Res
 	}
 	if f.Behavior != model.Normal || file.GroupOf(f.Name) != "" {
 		return errors.New("splitArms needs a field that Create and Update send, outside a group")
+	}
+	// The arm collections hold no order across arms: a list [a1, b1, a2] would come back as
+	// [a1, a2, b1].
+	if t.Kind != model.Set {
+		return errors.New("splitArms needs a set (collection: set): a list has an order across arms that the arm collections cannot keep")
+	}
+	// Flatten writes an empty collection for an arm without values, so a null configuration
+	// needs the computed empty default.
+	if line := file.Types[r.Name].Fields[f.Name]; line.Computed == nil || !*line.Computed {
+		return errors.New("splitArms needs computed: true and default: []: an arm without values reads as an empty collection")
+	}
+	if file.Validators.Inferred != nil && *file.Validators.Inferred && (t.MinItems != nil || t.MaxItems != nil) {
+		return errors.New("splitArms cannot keep the minItems or maxItems of the collection: the limit counts the items of every arm together")
 	}
 	component := model.ComponentOf(t.Elem)
 	for _, arm := range t.Elem.Fields {

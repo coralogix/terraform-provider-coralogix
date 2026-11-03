@@ -674,6 +674,11 @@ func flattenParseThing(ctx context.Context, p path.Path, v *parse_things_service
 	out.Enabled = types.BoolPointerValue(v.Enabled)
 	out.Order = types.Int64PointerValue(v.Order)
 	out.Note = types.StringPointerValue(v.Note)
+	for i := range v.Matchers {
+		if v.Matchers[i].AppName == nil && v.Matchers[i].Severity == nil {
+			diags.AddAttributeError(path.Root("apps"), "Invalid response from server", fmt.Sprintf("Item %d of the response has none of apps, severities.", i))
+		}
+	}
 	{
 		values := []string{}
 		for i := range v.Matchers {
@@ -775,6 +780,24 @@ func flattenParseStep(ctx context.Context, p path.Path, v *parse_things_service.
 	}
 	out := &ParseStepModel{}
 	oneOf := v.Params
+	arms := 0
+	if oneOf != nil {
+		if oneOf.KeepParams != nil {
+			arms++
+		}
+		if oneOf.DropParams != nil {
+			arms++
+		}
+		if oneOf.CopyParams != nil {
+			arms++
+		}
+		if oneOf.PickParams != nil {
+			arms++
+		}
+	}
+	if arms != 1 {
+		diags.AddAttributeError(p, "Invalid response from server", fmt.Sprintf("The response has %d of keep, drop_params, copy, pick; it must have exactly one.", arms))
+	}
 	if oneOf == nil {
 		return out
 	}

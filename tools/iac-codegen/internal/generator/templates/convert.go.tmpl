@@ -2035,6 +2035,11 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 {{- else if eq .Conv "splitarms"}}
 	{{- $f := .}}
+	for i := range {{$f.Src}} {
+		if {{range $i, $a := $f.Object.Fields}}{{if $i}} && {{end}}{{$f.Src}}[i].{{$a.SDK}} == nil{{end}} {
+			diags.AddAttributeError(path.Root({{printf "%q" (index $f.Object.Fields 0).TFName}}), "Invalid response from server", fmt.Sprintf("Item %d of the response has none of {{range $i, $a := $f.Object.Fields}}{{if $i}}, {{end}}{{$a.TFName}}{{end}}.", i))
+		}
+	}
 	{{- range .Object.Fields}}
 	{
 		values := []string{}
@@ -2154,6 +2159,19 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$carry.Pkg}}.{{.SDK
 	}
 	out := &{{.Model}}{}
 	oneOf := {{if $carry.Field.Value}}&{{end}}v.{{$carry.Field.SDK}}
+{{- if $carry.RequireOne}}
+	arms := 0
+	if oneOf != nil {
+{{- range $carry.Field.Object.Fields}}
+		if oneOf.{{.SDK}} != nil {
+			arms++
+		}
+{{- end}}
+	}
+	if arms != 1 {
+		diags.AddAttributeError(p, "Invalid response from server", fmt.Sprintf("The response has %d of {{range $i, $f := $carry.Field.Object.Fields}}{{if $i}}, {{end}}{{$f.TFName}}{{end}}; it must have exactly one.", arms))
+	}
+{{- end}}
 	if oneOf == nil {
 		return out
 	}

@@ -216,12 +216,13 @@ func TestLinesThatReplaceTheServerDefault(t *testing.T) {
 	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n" +
 		"      a: {default: 0}\n      b: {required: true}\n      c: {computed: false}\n" +
 		"      d: {computed: true}\n      e: {computed: true, useStateForUnknown: true}\n      f: {description: Text.}\n" +
-		"      g: {computed: true, sendUnknownAsZero: true}\n      h: {computed: true, useNonNullStateForUnknown: true}\n"))
+		"      g: {computed: true, sendUnknownAsZero: true}\n      h: {computed: true, useNonNullStateForUnknown: true}\n" +
+		"      i: {invert: true}\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(f.Policy().Defaults, ","); got != "R.a,R.c,R.e,R.g,R.h" {
-		t.Fatalf("policy defaults = %s, want R.a,R.c,R.e,R.g,R.h", got)
+	if got := strings.Join(f.Policy().Defaults, ","); got != "R.a,R.c,R.e,R.g,R.h,R.i" {
+		t.Fatalf("policy defaults = %s, want R.a,R.c,R.e,R.g,R.h,R.i", got)
 	}
 }
 

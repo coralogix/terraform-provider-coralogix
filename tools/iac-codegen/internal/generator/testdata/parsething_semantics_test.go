@@ -5,6 +5,8 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -150,6 +152,31 @@ func TestSplitArmsReadNoItemAsEmptySets(t *testing.T) {
 	}
 	if state.AppName.IsNull() || len(state.AppName.Elements()) != 0 || state.Severity.IsNull() || len(state.Severity.Elements()) != 0 {
 		t.Fatalf("state apps = %v, severities = %v; want empty sets", state.AppName, state.Severity)
+	}
+}
+
+// A matcher that the API returns with no arm fails the read: the arm sets cannot hold it, and a
+// later replace would drop it.
+func TestSplitArmsFailTheReadOfAnItemWithoutAnArm(t *testing.T) {
+	var diags diag.Diagnostics
+	flattenParseThing(context.Background(), path.Empty(), &parse_things_service.ParseThing{Matchers: []parse_things_service.ParseMatcher{{}}}, nil, &diags)
+	if !diags.HasError() {
+		t.Fatal("reading a matcher without an arm gave no error")
+	}
+}
+
+// A step that the API returns without params, or with two arms, fails the read: requireOne says
+// that a step has exactly one arm.
+func TestCarrySiblingsFailTheReadOfAStepWithoutOneArm(t *testing.T) {
+	two := &parse_things_service.ParseStep{Params: &parse_things_service.ParseParams{
+		KeepParams: &parse_things_service.ParseKeepParams{}, CopyParams: &parse_things_service.ParseCopyParams{},
+	}}
+	for name, step := range map[string]*parse_things_service.ParseStep{"no arm": {}, "two arms": two} {
+		var diags diag.Diagnostics
+		flattenParseStep(context.Background(), path.Empty(), step, nil, &diags)
+		if !diags.HasError() {
+			t.Errorf("%s: the read gave no error", name)
+		}
 	}
 }
 
