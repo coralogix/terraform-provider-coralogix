@@ -86,6 +86,66 @@ func TestRequiredExtraAttribute(t *testing.T) {
 	}
 }
 
+func TestExtraAttributeValidatorsAndPlanModifier(t *testing.T) {
+	tests := []struct {
+		name       string
+		attribute  *tfAttr
+		extra      overrides.ExtraAttribute
+		validators []string
+		modifiers  []string
+	}{
+		{
+			name:      "sibling validators",
+			attribute: &tfAttr{Kind: "String", ValueKind: "String"},
+			extra: overrides.ExtraAttribute{Validators: []overrides.Validator{
+				{AlsoRequires: []string{"version"}},
+				{ConflictsWith: []string{"plain"}},
+			}},
+			validators: []string{
+				`stringvalidator.AlsoRequires(path.MatchRelative().AtParent().AtName("version"))`,
+				`stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("plain"))`,
+			},
+		},
+		{
+			name:      "set element values",
+			attribute: &tfAttr{Kind: "Set", ValueKind: "Set"},
+			extra:     overrides.ExtraAttribute{ElementValues: []string{"first", "second"}},
+			validators: []string{
+				`setvalidator.ValueStringsAre(stringvalidator.OneOf("first", "second"))`,
+			},
+		},
+		{
+			name:      "computed value",
+			attribute: &tfAttr{Kind: "String", ValueKind: "String"},
+			extra:     overrides.ExtraAttribute{Computed: true, UseStateForUnknown: true},
+			modifiers: []string{"stringplanmodifier.UseStateForUnknown()"},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if err := configureExtraAttribute(test.attribute, test.extra, &overrides.File{}); err != nil {
+				t.Fatal(err)
+			}
+			if !slices.Equal(test.attribute.Validators, test.validators) || !slices.Equal(test.attribute.Modifiers, test.modifiers) {
+				t.Errorf("validators = %v, modifiers = %v; want %v, %v", test.attribute.Validators, test.attribute.Modifiers, test.validators, test.modifiers)
+			}
+		})
+	}
+}
+
+func TestSchemaOptionalKeepsRequiredRequestFieldOptionalInTerraform(t *testing.T) {
+	attribute := &tfAttr{Name: "name", Kind: "String", ValueKind: "String", Required: true}
+	if err := applyField(attribute, overrides.Field{SchemaOptional: true}, &overrides.File{}); err != nil {
+		t.Fatal(err)
+	}
+	if attribute.Required || !attribute.Optional {
+		t.Fatalf("required = %t, optional = %t; want optional", attribute.Required, attribute.Optional)
+	}
+	if err := applyField(&tfAttr{Kind: "String", ValueKind: "String", Optional: true}, overrides.Field{SchemaOptional: true}, &overrides.File{}); err == nil {
+		t.Fatal("schemaOptional accepted an API-optional field")
+	}
+}
+
 func TestWriteOnlyExtraOfComputedObjectIsRejected(t *testing.T) {
 	out := &tfResource{
 		Attributes: []*tfAttr{{Name: "response", ObjectComponent: "SharedConfig", Computed: true}},
