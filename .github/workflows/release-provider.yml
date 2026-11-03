@@ -14,6 +14,9 @@
 # starts no workflow, so it starts this one by workflow_dispatch with the merge commit.
 # A release PR merged by a person starts it by push.
 name: release-provider
+# The commit it releases, so approve-release.yml can tell whether a run covers a merge: a dispatched
+# run's own commit is master's tip, not the sha input.
+run-name: release-provider ${{ inputs.sha || github.sha }}
 
 on:
   push:

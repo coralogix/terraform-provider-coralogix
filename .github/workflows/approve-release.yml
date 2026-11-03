@@ -93,10 +93,12 @@ jobs:
             -H "Accept: application/vnd.github.raw" | sed -n 's/^const TF_PROVIDER_VERSION = "\(.*\)"$/\1/p')
           if [ -z "$version" ]; then echo "::error::No version in internal/clientset/version.go at $merged"; exit 1; fi
           if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$version" --silent 2>/dev/null; then exit 0; fi
-          active=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release-provider.yml --limit 50 \
-            --json status --jq '[.[] | select(.status != "completed")] | length')
+          # Only a run of this merge commit counts; one publishing another version doesn't release it.
+          active=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release-provider.yml --limit 100 \
+            --json status,displayTitle \
+            --jq "[.[] | select(.status != \"completed\" and (.displayTitle | endswith(\" $merged\")))] | length")
           if [ "$active" != "0" ]; then
-            echo "::notice::v$version is not tagged yet, and a release-provider.yml run is in progress"; exit 0
+            echo "::notice::v$version is not tagged yet, and a release-provider.yml run for $merged is in progress"; exit 0
           fi
           gh workflow run release-provider.yml --repo "$GITHUB_REPOSITORY" --ref master -f sha="$merged"
           echo "Started release-provider.yml for $merged (v$version), which a merge left without a release" | tee -a "$GITHUB_STEP_SUMMARY"
