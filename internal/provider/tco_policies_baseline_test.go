@@ -241,6 +241,23 @@ var tcoLogsScenarios = map[string]func(h *grHarness, f *tcoFake){
 		h.RefreshPlan("refresh", s)
 	},
 
+	"target-priority-override": func(h *grHarness, f *tcoFake) {
+		f.datasets = map[string]bool{"audit": true}
+		policy := func(override j) j {
+			target := j{"dataset": "audit", "priority": "low"}
+			if override != nil {
+				target["priority_override"] = override
+			}
+			return tcoPolicies(tcoPolicy("first", "", tcoSeverities("info"), j{"targets": l{target}}))
+		}
+		s := h.Apply("create: a target with a priority override", h.null(), policy(tcoTiers(tcoTier(40, "medium"))))
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: change the override", s, policy(tcoTiers(tcoTier(60, "high"))))
+		s = h.Apply("update: remove the override, keep the target", s, policy(nil))
+		s = h.RefreshPlan("refresh", s)
+		h.Destroy("destroy", s)
+	},
+
 	"targets-rejected": func(h *grHarness, _ *tcoFake) {
 		h.Apply("create: priority on the policy and on the target", h.null(), tcoPolicies(tcoPolicy("first", "high", tcoSeverities("info"), j{"targets": l{
 			j{"dataset": "logs", "priority": "high"},
@@ -414,6 +431,16 @@ var tcoTracesScenarios = map[string]func(h *grHarness, f *tcoFake){
 	},
 
 	// The API keeps no order of the tag rules.
+	// An explicit empty map can differ from an omitted one in the Framework conversion.
+	"empty-tags": func(h *grHarness, _ *tcoFake) {
+		s := h.Apply("create: tags = {}", h.null(), tcoPolicies(tcoPolicy("first", "high", j{"services": tcoRule("", "checkout"), "tags": j{}})))
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: set a tag", s, tcoPolicies(tcoPolicy("first", "high", j{"services": tcoRule("", "checkout"), "tags": j{"tags.region": tcoRule("is_not", "eu")}})))
+		s = h.Apply("update: back to tags = {}", s, tcoPolicies(tcoPolicy("first", "high", j{"services": tcoRule("", "checkout"), "tags": j{}})))
+		s = h.RefreshPlan("refresh", s)
+		h.Destroy("destroy", s)
+	},
+
 	"tag-rules-reordered": func(h *grHarness, f *tcoFake) {
 		s := h.Apply("create", h.null(), tcoPolicies(tcoPolicy("first", "high", j{"tags": j{
 			"tags.http.method": tcoRule("", "GET"),
