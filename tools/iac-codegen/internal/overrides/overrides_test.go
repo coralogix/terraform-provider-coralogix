@@ -209,17 +209,19 @@ func TestADefaultCanBeANumber(t *testing.T) {
 	}
 }
 
-// A line whose mode a server default cannot have replaces the server default of the contract.
+// A line whose mode a server default cannot have replaces the server default of the contract:
+// a default, no computed value, or a key that states what an omitted value plans and sends.
 // Another line keeps it.
 func TestLinesThatReplaceTheServerDefault(t *testing.T) {
 	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n" +
 		"      a: {default: 0}\n      b: {required: true}\n      c: {computed: false}\n" +
-		"      d: {computed: true}\n      e: {computed: true, useStateForUnknown: true}\n      f: {description: Text.}\n"))
+		"      d: {computed: true}\n      e: {computed: true, useStateForUnknown: true}\n      f: {description: Text.}\n" +
+		"      g: {computed: true, sendUnknownAsZero: true}\n      h: {computed: true, useNonNullStateForUnknown: true}\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(f.Policy().Defaults, ","); got != "R.a,R.c" {
-		t.Fatalf("policy defaults = %s, want R.a,R.c", got)
+	if got := strings.Join(f.Policy().Defaults, ","); got != "R.a,R.c,R.e,R.g,R.h" {
+		t.Fatalf("policy defaults = %s, want R.a,R.c,R.e,R.g,R.h", got)
 	}
 }
 
