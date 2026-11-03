@@ -87,18 +87,21 @@ jobs:
         # workflow, so nothing else would release it.
         if: steps.pr.outputs.number == ''
         run: |
-          merged=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$HEAD_REF" --base master --state merged \
-            --json mergeCommit --jq '.[0].mergeCommit.oid // empty')
-          if [ -z "$merged" ]; then exit 0; fi
+          pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$HEAD_REF" --base master --state merged \
+            --json mergeCommit,mergedAt --jq '.[0] // empty | "\(.mergeCommit.oid) \(.mergedAt)"')
+          if [ -z "$pr" ]; then exit 0; fi
+          read -r merged merged_at <<<"$pr"
           version=$(gh api "repos/$GITHUB_REPOSITORY/contents/internal/clientset/version.go?ref=$merged" \
             -H "Accept: application/vnd.github.raw" | sed -n 's/^const TF_PROVIDER_VERSION = "\(.*\)"$/\1/p')
           if [ -z "$version" ]; then echo "::error::No version in internal/clientset/version.go at $merged"; exit 1; fi
           if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$version" --silent 2>/dev/null; then exit 0; fi
           # Only a merge that never got a release run is started here. Any run of this merge commit,
           # also a cancelled or failed one, leaves the release to a person: someone may have stopped
-          # it on purpose. A run of another version doesn't count.
-          runs=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release-provider.yml --limit 100 \
-            --json displayTitle --jq "[.[] | select(.displayTitle | endswith(\" $merged\"))] | length")
+          # it on purpose. A run of another version doesn't count. Every run since the merge is read,
+          # not the newest few: a run of this merge can't be older than the merge.
+          runs=$(gh api --paginate \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/release-provider.yml/runs?created=%3E%3D$merged_at&per_page=100" \
+            --jq ".workflow_runs[] | select(.display_title | endswith(\" $merged\")) | .id" | wc -l | tr -d ' ')
           if [ "$runs" != "0" ]; then
             echo "::notice::v$version is not tagged yet, but release-provider.yml already ran for $merged. Re-run or start it from the Actions tab to release it."; exit 0
           fi
@@ -198,12 +201,29 @@ jobs:
           if ! "$RUNNER_TEMP/check-ci.sh" "$HEAD_SHA"; then
             echo "::error::A check on #$PR changed after the approval; the approval is withdrawn until every check passes again."; exit 1
           fi
+          # GitHub can't merge against an expected base: --match-head-commit pins only the PR head.
+          # So right before merging, check the PR again against master as it is now, until master
+          # holds still, which leaves only the merge call itself between check and merge.
+          for attempt in 1 2 3 4 5; do
+            git fetch --quiet --no-tags origin master
+            now=$(git rev-parse origin/master)
+            if [ "$now" = "$BASE" ]; then break; fi
+            if [ "$attempt" = 5 ]; then echo "::error::master keeps moving; not merging #$PR. The next CI event retries."; exit 1; fi
+            echo "master moved from $BASE to $now since the check; checking again"
+            git checkout --quiet --detach "$HEAD_SHA"
+            if ! git -c user.name=approve-release -c user.email=approve-release@localhost \
+                merge --quiet --no-edit --no-ff origin/master; then
+              echo "::error::Release PR #$PR conflicts with master. Close it, delete its branch, and run \`make bump\` again."; exit 1
+            fi
+            python3 -I "$RUNNER_TEMP/release.py" check "$now"
+            BASE=$now
+          done
           # --match-head-commit refuses to merge if the branch moved after the checks above.
           gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --match-head-commit "$HEAD_SHA"
           merged=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json mergeCommit --jq '.mergeCommit.oid // empty')
           if [ -z "$merged" ]; then echo "::error::PR #$PR has no merge commit after merging"; exit 1; fi
-          # GitHub can't merge against an expected base. If master moved in the seconds since the
-          # check, release-provider.yml repeats it against the real parent before tagging.
+          # If master moved during the merge call itself, release-provider.yml repeats the check
+          # against the real parent before tagging.
           parent=$(gh api "repos/$GITHUB_REPOSITORY/commits/$merged" --jq '.parents[0].sha')
           if [ "$parent" != "$BASE" ]; then
             echo "::warning::master moved from $BASE to $parent while merging; release-provider.yml re-checks before tagging."
