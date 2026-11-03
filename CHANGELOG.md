@@ -36,6 +36,7 @@
 #### provider
 - CHORE: Bump `coralogix-management-sdk` to the version with the actions contract: the defaults of `isHidden` and `isPrivate`, `createdBy` as output-only, and the description of the replace.
 - CHORE: Bump `coralogix-management-sdk` to the version with the integrations contract. The SDK holds the required fields of `IntegrationMetadata` and `DeployedIntegrationInformation` as values; `coralogix_integration` adapts, with no change to plans. The dashboard tests answer a Get with the `permissions` object that the SDK now requires in the response.
+- CHORE: Bump `golang.org/x/crypto` to v0.58.1-0.20261009181718-2f1f834330b2 to clear GO-2026-5932. The provider does not import `golang.org/x/crypto/openpgp`. No change to provider behavior.
 
 #### tools/iac-codegen
 - FEAT: An existing-resource Create body that is the resource itself, while only the Update body wraps it in `api.requestWrapper`, generates a flat Create request. Before, the wrapper applied to both bodies and the SDK check failed on Create. The model of the SDK `iac` module infers this from the spec, so no key is needed.
