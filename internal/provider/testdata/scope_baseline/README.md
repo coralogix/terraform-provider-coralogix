@@ -24,6 +24,8 @@ in this baseline; a later migration must show each fix in its golden diff.
 | Import, empty import ID, version-zero state | `import`, `import-empty-id`, `upgrade-version-zero` |
 | Missing resource and missing route | `read-not-found`, `update-not-found`, `delete-not-found`, `route-missing`, `delete-route-missing` |
 | Injected API failures | `create-api-error`, `read-api-error`, `update-api-error`, `delete-api-error` |
+| Transport failures without an HTTP response, followed by recovery | `transport-create`, `transport-update`, `transport-delete`, `transport-read`, `transport-data-source` |
+| Create and update plans with unknown fields, lists, items, and nested values | Seven `unknown-*` scenarios |
 | Successful Create and Update replies with null scope, missing ID, or empty ID | `create-null-scope`, `create-missing-id`, `create-empty-id`, `update-null-scope`, `update-missing-id`, `update-empty-id` |
 | Successful Read replies with empty/null lists or ID-less items, for both resource and data source | `read-empty-scopes`, `read-null-scopes`, `read-missing-id`, `read-empty-id` |
 | Duplicate display names are allowed | `duplicate-display-names` |
@@ -31,17 +33,29 @@ in this baseline; a later migration must show each fix in its golden diff.
 
 ### API outcome matrix
 
-| Caller | Normal success | Missing resource | Other API error | Unusable 200 reply |
-| --- | --- | --- | --- | --- |
-| Create | `minimal` | No resource ID yet | `create-api-error` | `create-null-scope`, `create-missing-id`, `create-empty-id` |
-| Resource Read | `minimal` | `read-not-found` | `read-api-error`, `route-missing` | `read-empty-scopes`, `read-null-scopes`, `read-missing-id`, `read-empty-id` |
-| Update | `full-lifecycle` | `update-not-found` | `update-api-error` | `update-null-scope`, `update-missing-id`, `update-empty-id` |
-| Delete | `minimal` | `delete-not-found`, `delete-route-missing` | `delete-api-error` | The response body is not used |
-| Data-source Read | `datasource_read-by-id` | `datasource_not-found` | `datasource_api-error` | All four paired `read-*` response cases |
+| Caller | Normal success | Missing resource | Other API error | No HTTP response | Unusable 200 reply |
+| --- | --- | --- | --- | --- | --- |
+| Create | `minimal` | No resource ID yet | `create-api-error` | `transport-create` | `create-null-scope`, `create-missing-id`, `create-empty-id` |
+| Resource Read | `minimal` | `read-not-found` | `read-api-error`, `route-missing` | `transport-read` | `read-empty-scopes`, `read-null-scopes`, `read-missing-id`, `read-empty-id` |
+| Update | `full-lifecycle` | `update-not-found` | `update-api-error` | `transport-update` | `update-null-scope`, `update-missing-id`, `update-empty-id` |
+| Delete | `minimal` | `delete-not-found`, `delete-route-missing` | `delete-api-error` | `transport-delete` | The response body is not used |
+| Data-source Read | `datasource_read-by-id` | `datasource_not-found` | `datasource_api-error` | `transport-data-source` | All four paired `read-*` response cases |
 
 The injected 500 cases cover the non-not-found API error category for each caller.
 Existing `TestScopeReadDoesNotPanicOnAPIFailure` unit tests also cover authorization,
 rate-limit, and transport failures for both readers.
+
+The `transport-*` cases return a nil HTTP response and an error before the fake
+server receives a request. They record all five callers' diagnostics and state,
+then retry or refresh after recovery and reach an empty plan. Failed Create leaves
+null state; failed Update, Delete, and resource Read keep prior state. The failed
+data-source read keeps only its configured ID in protocol state.
+
+The `unknown-*` cases call the protocol planner before Create and before Update.
+Unknown `display_name`, `description`, `default_expression`, the whole `filters`
+list, and either filter field remain unknown in the plan without diagnostics.
+A wholly unknown filter item currently produces required-child validation errors
+for `entity_type` and `expression`; this released limitation is recorded separately.
 
 The required `filters` attribute cannot be omitted or null in Terraform config.
 The API fidelity cases separately record empty, null, and omitted filters on

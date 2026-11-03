@@ -39,6 +39,7 @@ type scopeFake struct {
 	message       string
 	writeResponse map[string]any
 	readResponse  map[string]any
+	transportErr  error
 }
 
 func newScopeFake(t *testing.T) *scopeFake {
@@ -51,9 +52,30 @@ func newScopeFake(t *testing.T) *scopeFake {
 		t.Fatal(err)
 	}
 	original := http.DefaultTransport
-	http.DefaultTransport = redirectTransport{target: target, next: original}
+	http.DefaultTransport = scopeTransport{fake: f, next: redirectTransport{target: target, next: original}}
 	t.Cleanup(func() { http.DefaultTransport = original })
 	return f
+}
+
+type scopeTransport struct {
+	fake *scopeFake
+	next http.RoundTripper
+}
+
+func (s scopeTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	s.fake.mu.Lock()
+	err := s.fake.transportErr
+	s.fake.mu.Unlock()
+	if err != nil {
+		return nil, err
+	}
+	return s.next.RoundTrip(req)
+}
+
+func (f *scopeFake) failTransport(err error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.transportErr = err
 }
 
 func (f *scopeFake) takeRequests() []grRequest {

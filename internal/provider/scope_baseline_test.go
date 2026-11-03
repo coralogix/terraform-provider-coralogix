@@ -16,6 +16,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"maps"
 	"os"
 	"testing"
@@ -68,6 +69,67 @@ func TestScopeBaselineFalseBranch(t *testing.T) {
 			cfg["default_expression"] = expression
 			h.Apply("apply expression accepted by the released false branch", h.null(), cfg)
 			checkGoldenAt(t, scopeGoldenDir, "scenario_"+name+".json", marshalGolden(t, h.steps))
+		})
+	}
+}
+
+func TestScopeBaselineUnknownPlans(t *testing.T) {
+	for name, values := range map[string]j{
+		"display-name":       {"display_name": unknownJSON{}},
+		"description":        {"description": unknownJSON{}},
+		"default-expression": {"default_expression": unknownJSON{}},
+		"filters":            {"filters": unknownJSON{}},
+		"filter-item":        {"filters": []any{unknownJSON{}}},
+		"filter-entity-type": {"filters": []any{j{"entity_type": unknownJSON{}, "expression": "<v1>true"}}},
+		"filter-expression":  {"filters": []any{j{"entity_type": "logs", "expression": unknownJSON{}}}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			h := newScopeHarness(t)
+			cfg := scopeConfig()
+			maps.Copy(cfg, values)
+			h.Plan("create with unknown "+name, h.null(), cfg)
+			s := h.Apply("create known values", h.null(), scopeConfig())
+			h.Plan("update with unknown "+name, s, cfg)
+			h.Destroy("destroy", s)
+			checkGoldenAt(t, scopeGoldenDir, "scenario_unknown-"+name+".json", marshalGolden(t, h.steps))
+		})
+	}
+}
+
+func TestScopeBaselineTransportErrors(t *testing.T) {
+	for _, operation := range []string{"create", "update", "delete", "read", "data-source"} {
+		t.Run(operation, func(t *testing.T) {
+			h := newScopeHarness(t)
+			cfg := scopeConfig()
+			s := h.null()
+			if operation != "create" {
+				s = h.Apply("create", s, cfg)
+			}
+			if operation == "update" {
+				cfg = maps.Clone(cfg)
+				cfg["display_name"] = "changed"
+			}
+			h.scopes().failTransport(errors.New("scope transport unavailable"))
+			switch operation {
+			case "create", "update":
+				s = h.Apply(operation+" transport failure", s, cfg)
+			case "delete":
+				h.Destroy("delete transport failure", s)
+			case "read":
+				s = h.Refresh("read transport failure", s)
+			case "data-source":
+				h.ReadDataSource("data source transport failure", byID(idOf(s)))
+			}
+			h.scopes().failTransport(nil)
+			if operation == "create" || operation == "update" {
+				s = h.Apply("retry "+operation, s, cfg)
+			}
+			s = h.RefreshPlan("refresh and plan after transport recovery", s)
+			if operation == "data-source" {
+				h.ReadDataSource("retry data source read", byID(idOf(s)))
+			}
+			h.Destroy("destroy after transport recovery", s)
+			checkGoldenAt(t, scopeGoldenDir, "scenario_transport-"+operation+".json", marshalGolden(t, h.steps))
 		})
 	}
 }
