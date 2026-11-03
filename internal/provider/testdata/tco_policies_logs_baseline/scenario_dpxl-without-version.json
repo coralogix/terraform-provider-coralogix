@@ -1,0 +1,61 @@
+[
+  {
+    "step": "create: the expression has no version tag",
+    "config": {
+      "policies": [
+        {
+          "dpxl_expression": "$d.severity == 'INFO'",
+          "name": "first",
+          "priority": "high"
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": "$d.severity == 'INFO'",
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": "(unknown)",
+          "subsystems": null,
+          "targets": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/log-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "logRules": {
+                "dpxlExpression": "$d.severity == 'INFO'",
+                "severities": null
+              },
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_HIGH"
+              }
+            }
+          ]
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_tco_policies_logs | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: DPXL compile failed for policy first, id:00000000-0000-4000-8000-000000000001, error: DPXL compilation errors:\\n - expected version tag. e.g. \\\"\\u003cv1\\u003e foo == 'bar'\\\" at [0:0-0:20]: $d.severity == 'INFO\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

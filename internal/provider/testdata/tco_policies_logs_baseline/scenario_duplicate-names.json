@@ -1,0 +1,103 @@
+[
+  {
+    "step": "create: two policies with one name",
+    "config": {
+      "policies": [
+        {
+          "name": "first",
+          "priority": "high",
+          "severities": [
+            "info"
+          ]
+        },
+        {
+          "name": "first",
+          "priority": "low",
+          "severities": [
+            "error"
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": null
+        },
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "low",
+          "quota_based_priority_override": null,
+          "severities": [
+            "error"
+          ],
+          "subsystems": null,
+          "targets": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/log-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "logRules": {
+                "severities": [
+                  "SEVERITY_INFO"
+                ]
+              },
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_HIGH"
+              }
+            },
+            {
+              "logRules": {
+                "severities": [
+                  "SEVERITY_ERROR"
+                ]
+              },
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_LOW"
+              }
+            }
+          ]
+        },
+        "status": 409
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_tco_policies_logs | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Duplicate names found\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

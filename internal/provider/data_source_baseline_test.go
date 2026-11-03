@@ -67,6 +67,15 @@ var dataSourceBaselines = map[string]dataSourceBaseline{
 	"parsing_rules":              {parsingRulesGoldenDir, newParsingRulesHarness, parsingRulesDataSourceScenarios},
 	"webhook":                    {webhookGoldenDir, newWebhookHarness, webhookDataSourceScenarios},
 	"recording_rules_groups_set": {rrGoldenDir, newRRHarness, rrDataSourceScenarios},
+	"tco_policies_logs": {tcoLogsGoldenDir, func(t *testing.T) *grHarness {
+		return newProtocolHarness(t, tcoLogsTypeName, newTCOFake(t))
+	}, tcoLogsDataSourceScenarios},
+	"tco_policies_traces": {tcoTracesGoldenDir, func(t *testing.T) *grHarness {
+		return newProtocolHarness(t, tcoTracesTypeName, newTCOFake(t))
+	}, tcoTracesDataSourceScenarios},
+	"tco_policies_rum": {tcoRumGoldenDir, func(t *testing.T) *grHarness {
+		return newProtocolHarness(t, tcoRumTypeName, newTCOFake(t))
+	}, tcoRumDataSourceScenarios},
 }
 
 func TestDataSourceBaselineSchema(t *testing.T) {
