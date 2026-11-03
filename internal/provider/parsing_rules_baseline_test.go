@@ -216,6 +216,40 @@ var parsingRulesScenarios = map[string]func(h *grHarness){
 		}, nil))
 	},
 
+	"empty-replacement": func(h *grHarness) {
+		// replacement_string = "" removes the match. The API takes an empty replaceNewVal.
+		empty := prCfg([]any{prRule("replace", j{"source_field": "text", "destination_field": "text", "regular_expression": "a", "replacement_string": ""})}, nil)
+		s := h.Apply("create with replacement_string = \"\"", h.null(), empty)
+		s = prRefreshPlan(h, "refresh", s)
+		s = h.Apply("update: replacement_string = \"b\"", s, prCfg([]any{prRule("replace", j{"source_field": "text", "destination_field": "text", "regular_expression": "a", "replacement_string": "b"})}, nil))
+		s = h.Apply("update: replacement_string = \"\" again", s, empty)
+		prRefreshPlan(h, "refresh", s)
+	},
+
+	"unknown-config": func(h *grHarness) {
+		// Values that come from another resource are unknown during the plan. The validators wait
+		// for them, and the plan keeps them unknown.
+		h.Plan("plan an unknown rule", h.null(), prCfg([]any{unknownJSON{}}, nil))
+		h.Plan("plan an unknown rule arm", h.null(), prCfg([]any{j{"extract": unknownJSON{}}}, nil))
+		h.Plan("plan an unknown rule arm next to a known one", h.null(), prCfg([]any{j{
+			"extract": unknownJSON{},
+			"parse":   j{"name": "b", "source_field": "text", "destination_field": "text", "regular_expression": "b"},
+		}}, nil))
+		h.Plan("plan unknown values in a rule", h.null(), prCfg([]any{
+			prRule("extract", j{"source_field": unknownJSON{}, "regular_expression": unknownJSON{}, "active": unknownJSON{}}),
+			prRule("json_extract", j{"json_key": "k", "destination_field": unknownJSON{}}),
+			prRule("extract_timestamp", j{"source_field": "text", "field_format_standard": unknownJSON{}, "time_format": "%Y"}),
+			prRule("remove_fields", j{"excluded_fields": unknownJSON{}}),
+		}, nil))
+		h.Plan("plan unknown subgroups", h.null(), prCfg(nil, j{"rule_subgroups": unknownJSON{}}))
+		h.Plan("plan unknown group values", h.null(), prCfg(nil, j{
+			"name": unknownJSON{}, "order": unknownJSON{}, "active": unknownJSON{},
+			"applications": unknownJSON{}, "severities": unknownJSON{}, "subsystems": []any{unknownJSON{}},
+		}))
+		s := h.Apply("create", h.null(), prCfg(nil, nil))
+		h.Plan("plan an update with an unknown rule arm", s, prCfg([]any{j{"extract": unknownJSON{}}}, nil))
+	},
+
 	"write-api-error": func(h *grHarness) {
 		h.ruleGroups().failNext(500)
 		h.Apply("create: the API answers 500", h.null(), prCfg(nil, nil))
