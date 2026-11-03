@@ -336,7 +336,7 @@ func webhookBeforeWrite(ctx context.Context, config tfsdk.Config, request any) d
 		diags.AddError("Invalid webhook request", "The generated request has an unknown type.")
 		return diags
 	}
-	if kind := webhookType(data); kind != "" {
+	if kind := releasedWebhookType(data); kind != "" {
 		data.Type = &kind
 	}
 	webhookWriteCollections(data)
@@ -423,8 +423,9 @@ func webhookWriteSlack(ctx context.Context, model *generatedwebhook.OutgoingWebh
 	return diags
 }
 
-// The API marks type read-only, but the released provider sends it on writes.
-func webhookType(data *webhooks.OutgoingWebhookInputData) webhooks.WebhookType {
+// Released webhook arms send type to preserve their request bodies. The API infers type from a
+// future config arm, so an arm that is not listed here leaves type unset.
+func releasedWebhookType(data *webhooks.OutgoingWebhookInputData) webhooks.WebhookType {
 	switch {
 	case data.GenericWebhook != nil:
 		return webhooks.WEBHOOKTYPE_GENERIC

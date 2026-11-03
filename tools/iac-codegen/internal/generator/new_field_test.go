@@ -183,6 +183,64 @@ func TestWebhookTakesLaterAPIFieldWithoutOverride(t *testing.T) {
 	}
 }
 
+// A later webhook config arm gets a schema field and both conversions without an override.
+// Existing arms still send type for request parity; the API infers type for the new arm.
+func TestWebhookTakesLaterConfigArmWithoutOverride(t *testing.T) {
+	input, err := source.Resolve(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := readOverrides(filepath.Join(input.ModuleRoot, "internal", "provider", "generated", "webhook", "behavior-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := file.Types["OutgoingWebhook"].Fields["discord"]; ok {
+		t.Fatal("discord must have no override")
+	}
+	var doc map[string]any
+	if err := yaml.Unmarshal(input.OpenAPI, &doc); err != nil {
+		t.Fatal(err)
+	}
+	schemas := doc["components"].(map[string]any)["schemas"].(map[string]any)
+	schemas["DiscordConfig"] = map[string]any{
+		"type": "object",
+		"properties": map[string]any{
+			"channel": map[string]any{"type": "string", "x-coralogix-presence": true},
+		},
+	}
+	for _, component := range []string{"OutgoingWebhook", "OutgoingWebhookInputData"} {
+		resource := schemas[component].(map[string]any)
+		resource["properties"].(map[string]any)["discord"] = map[string]any{"$ref": "#/components/schemas/DiscordConfig"}
+		arm := map[string]any{"required": []any{"discord"}, "type": "object"}
+		oneOf := resource["oneOf"].([]any)
+		resource["oneOf"] = append(oneOf, arm)
+	}
+	contract, err := yaml.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	validated, err := validateOpenAPIWith(contract, "OutgoingWebhook", model.OperationIDs{}, input.SDKModule, input.Module, file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	files, err := renderWith(validated.resource, validated.refs, "webhook", file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []struct{ file, text string }{
+		{"schema.go", `"discord": schema.SingleNestedAttribute{`},
+		{"schema.go", `"channel": schema.StringAttribute{`},
+		{"model.go", "Discord *DiscordConfigModel"},
+		{"model.go", "Channel types.String"},
+		{"convert.go", `out.Discord = expandDiscordConfig(ctx, p.AtName("discord"), m.Discord, diags)`},
+		{"convert.go", `out.Discord = flattenDiscordConfig(ctx, p.AtName("discord"), v.Discord, diags)`},
+	} {
+		if !strings.Contains(normalizeSpace(string(files[want.file])), normalizeSpace(want.text)) {
+			t.Errorf("%s has no %q", want.file, want.text)
+		}
+	}
+}
+
 // withNewFields adds the optional fields probeNote to the rule and probeLimit to its time frame.
 func withNewFields(t *testing.T, spec []byte) []byte {
 	t.Helper()
