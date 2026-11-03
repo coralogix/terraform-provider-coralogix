@@ -1029,6 +1029,16 @@ func requireOneArm(a *tfAttr) {
 // anyListItem is any element of a list, and anyMapValue any value of a map.
 type attrPath []string
 
+func countSetItems(p attrPath) int {
+	n := 0
+	for _, step := range p {
+		if step == anySetItem {
+			n++
+		}
+	}
+	return n
+}
+
 const (
 	anyListItem = "[]"
 	anyMapValue = "{}"
@@ -1562,6 +1572,11 @@ func (b *tfBuilder) nestedServerDefault(a *tfAttr, p attrPath, component string,
 	d := *f.Create.Default
 	if !f.Attrs.Required && (f.Attrs.Default == nil || *f.Attrs.Default != d) {
 		return nil
+	}
+	if sets := countSetItems(p); sets > 1 {
+		// The modifier asks whether the configuration sets the set that holds the field, and can
+		// address only the outermost set: the key of a set element is a planned value.
+		return fmt.Errorf("%s: a nested server default inside a set within another set is unsupported", p.dotted())
 	}
 	if slices.Contains(p, anySetItem) && !f.Attrs.Required {
 		// Flatten cannot match a set element that the API returns without the default to the

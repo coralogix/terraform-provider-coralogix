@@ -135,3 +135,31 @@ func TestKeepStateLineDropsTheNestedServerDefault(t *testing.T) {
 		})
 	}
 }
+
+// A server default inside a set within another set is refused: the modifier can ask the
+// configuration only about the outermost set.
+func TestServerDefaultInsideANestedSetIsRefused(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "groupsetthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(spec)
+	for _, r := range [][2]string{
+		{"items: {type: array, items: {$ref: '#/components/schemas/InItemThing'}}", "items: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/InItemThing'}}"},
+		{"items: {type: array, items: {$ref: '#/components/schemas/OutItemThing'}}", "items: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/OutItemThing'}}"},
+		{"      required: [key]\n      properties:\n        key: {type: string, minLength: 1}\n", "      required: [key]\n      properties:\n        key: {type: string, minLength: 1}\n        weight: {type: integer, format: int64, default: 1, x-coralogix-presence: true}\n"},
+		{"      required: [key, labels]\n      properties:\n        key: {type: string, minLength: 1}\n", "      required: [key, labels, weight]\n      properties:\n        key: {type: string, minLength: 1}\n        weight: {type: integer, format: int64, default: 1, x-coralogix-presence: true}\n"},
+	} {
+		if !strings.Contains(text, r[0]) {
+			t.Fatalf("fixture text not found: %s", r[0])
+		}
+		text = strings.Replace(text, r[0], r[1], 1)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = []byte(text)
+	options := Options{Resource: "GroupSetThing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: filepath.Join("testdata", "groupsetthing-overrides.yaml")}
+	err = generateFromInput(options, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "inside a set within another set is unsupported") {
+		t.Fatalf("generate = %v, want the nested-set server default refused", err)
+	}
+}
