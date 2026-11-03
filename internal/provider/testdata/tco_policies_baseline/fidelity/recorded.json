@@ -2354,6 +2354,102 @@
           }
         }
       ]
+    },
+    {
+      "name": "logs-unspecified-rule-type",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies: ValidationError: \"policies[0].policy.applicationRule.ruleTypeId\" must be one of [3, 2, 6, 4]"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": []
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "spans-unspecified-rule-type",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteSpanPolicies: ValidationError: \"policies[0].spanRules.serviceRule.ruleTypeId\" must be one of [3, 2, 6, 4]"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": []
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "spans-unspecified-tag-rule-type",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteSpanPolicies: ValidationError: \"policies[0].spanRules.tagRules[0].ruleTypeId\" must be one of [3, 2, 6, 4]"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": []
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "rum-unspecified-rule-type",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteRumPolicies: ValidationError: \"policies[0].policy.applicationRule.ruleTypeId\" must be one of [3, 2, 6, 4]"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": []
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": []
+          }
+        }
+      ]
     }
   ]
 }

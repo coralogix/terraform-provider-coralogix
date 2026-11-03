@@ -229,6 +229,18 @@ var tcoLogsScenarios = map[string]func(h *grHarness, f *tcoFake){
 		h.Destroy("destroy", s)
 	},
 
+	// The schema accepts rule_type "unspecified", and the released extractor sends it as
+	// RULE_TYPE_ID_UNSPECIFIED, which the API rejects for every rule (recorded in fidelity/cases.json:
+	// logs-unspecified-rule-type and the others).
+	"unspecified-rule-type": func(h *grHarness, _ *tcoFake) {
+		unspecified := tcoPolicies(tcoPolicy("first", "high", tcoSeverities("info"), j{"applications": tcoRule("unspecified", "web")}))
+		h.Apply("create: rejected by the API", h.null(), unspecified)
+		s := h.Apply("create with is", h.null(), tcoPolicies(tcoPolicy("first", "high", tcoSeverities("info"), j{"applications": tcoRule("is", "web")})))
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update to unspecified: rejected by the API", s, unspecified)
+		h.RefreshPlan("refresh", s)
+	},
+
 	"targets-rejected": func(h *grHarness, _ *tcoFake) {
 		h.Apply("create: priority on the policy and on the target", h.null(), tcoPolicies(tcoPolicy("first", "high", tcoSeverities("info"), j{"targets": l{
 			j{"dataset": "logs", "priority": "high"},

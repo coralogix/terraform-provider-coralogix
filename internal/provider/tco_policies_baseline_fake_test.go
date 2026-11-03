@@ -236,6 +236,9 @@ func (f *tcoFake) overwrite(source string, body any) (int, any) {
 		entry, _ := e.(map[string]any)
 		policy, _ := entry["policy"].(map[string]any)
 		rules, _ := entry[s.rules].(map[string]any)
+		if msg := tcoValidateRuleTypes(i, s.rules, policy, rules); msg != "" {
+			return tcoFail(http.StatusBadRequest, "validation failed for method /com.coralogix.quota.v1.PoliciesService/"+s.rpc+": ValidationError: "+msg)
+		}
 		if msg := tcoValidate(source, policy, rules); msg != "" {
 			return tcoFail(http.StatusBadRequest, "validation failed for method /com.coralogix.quota.v1.PoliciesService/"+s.rpc+": ValidationError: "+msg)
 		}
@@ -329,6 +332,36 @@ func tcoValidate(source string, policy, rules map[string]any) string {
 			return "Targets must be unique by (dataspace, dataset)"
 		}
 		seen[key] = true
+	}
+	return ""
+}
+
+// tcoValidateRuleTypes rejects a rule without a rule type, as the API does for every source type:
+// RULE_TYPE_ID_UNSPECIFIED is not one of the accepted values (recorded in fidelity/cases.json:
+// logs-, spans-, and rum-unspecified-rule-type, spans-unspecified-tag-rule-type).
+func tcoValidateRuleTypes(i int, rulesKey string, policy, rules map[string]any) string {
+	type rule struct {
+		path string
+		rule map[string]any
+	}
+	var all []rule
+	for _, k := range []string{"applicationRule", "subsystemRule"} {
+		if r, ok := policy[k].(map[string]any); ok {
+			all = append(all, rule{fmt.Sprintf("policies[%d].policy.%s", i, k), r})
+		}
+	}
+	for _, k := range []string{"serviceRule", "actionRule"} {
+		if r, ok := rules[k].(map[string]any); ok {
+			all = append(all, rule{fmt.Sprintf("policies[%d].%s.%s", i, rulesKey, k), r})
+		}
+	}
+	for ti, r := range tcoList(rules["tagRules"]) {
+		all = append(all, rule{fmt.Sprintf("policies[%d].%s.tagRules[%d]", i, rulesKey, ti), r})
+	}
+	for _, r := range all {
+		if id, _ := r.rule["ruleTypeId"].(string); id == "" || id == "RULE_TYPE_ID_UNSPECIFIED" {
+			return fmt.Sprintf("%q must be one of [3, 2, 6, 4]", r.path+".ruleTypeId")
+		}
 	}
 	return ""
 }
