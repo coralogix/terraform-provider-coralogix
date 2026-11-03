@@ -1,5 +1,5 @@
 {
-  "comment": "Requests that a recorder sends to the real TCO policies API, and the offline test sends to the fake. Paths are relative to /dataplans. The recorder first saves the log and span policies of the tenant, and puts them back at the end (with new ids). Bodies are the ones that the released resources send. Ids, companyId, createdAt, and updatedAt are masked.",
+  "comment": "Requests that a recorder sends to the real TCO policies API, and the offline test sends to the fake. Paths are relative to /dataplans. The recorder first saves the log, span, and RUM policies of the tenant, and puts them back at the end (with new ids); it stops before any write when it cannot read one of them. Bodies are the ones that the released resources send. Ids, companyId, createdAt, and updatedAt are masked.",
   "cases": [
     {
       "name": "logs-empty",

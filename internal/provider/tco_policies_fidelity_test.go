@@ -73,12 +73,12 @@ func TestTCOPoliciesFakeMatchesRecordedBackend(t *testing.T) {
 // fidelity/recorded.json. Set RECORD_TCO_POLICIES_FIDELITY=1 with CORALOGIX_API_KEY and
 // CORALOGIX_ENV (or CX_REGION).
 //
-// The cases replace every log, span, and RUM policy of the tenant. The recorder saves the log and
-// span policies first and writes them back at the end; they get new ids. The API cannot read RUM
-// policies on every region, so RUM policies are not saved: record on a tenant without them.
+// The cases replace every log, span, and RUM policy of the tenant. The recorder saves all three
+// first and writes them back at the end; they get new ids. When it cannot read one of them, it stops
+// before it sends anything.
 func TestRecordTCOPoliciesFidelity(t *testing.T) {
 	if os.Getenv("RECORD_TCO_POLICIES_FIDELITY") != "1" {
-		t.Skip("set RECORD_TCO_POLICIES_FIDELITY=1 with CORALOGIX_API_KEY and CORALOGIX_ENV to record against a tenant; it replaces the TCO policies of the tenant and puts the log and span policies back")
+		t.Skip("set RECORD_TCO_POLICIES_FIDELITY=1 with CORALOGIX_API_KEY and CORALOGIX_ENV to record against a tenant; it replaces the TCO policies of the tenant and puts the log, span, and RUM policies back")
 	}
 	base, apiKey := tcoRecordingTarget(t)
 
@@ -93,7 +93,7 @@ func TestRecordTCOPoliciesFidelity(t *testing.T) {
 
 	retentions := tcoTenantArchiveRetentions(t, base, apiKey)
 	restore := map[string]any{}
-	for source, overwrite := range map[string]string{"SOURCE_TYPE_LOGS": "/log-policies/v1", "SOURCE_TYPE_SPANS": "/span-policies/v1"} {
+	for source, overwrite := range map[string]string{"SOURCE_TYPE_LOGS": "/log-policies/v1", "SOURCE_TYPE_SPANS": "/span-policies/v1", "SOURCE_TYPE_RUM": "/rum-policies/v1"} {
 		status, got := amSend(t, base+"/policies/v1?source_type="+source, apiKey, http.MethodGet, nil)
 		if status != http.StatusOK {
 			t.Fatalf("cannot save the %s policies of the tenant (%d): %s", source, status, compact(got))
@@ -232,19 +232,35 @@ func tcoRestoreBody(t *testing.T, got any, source string) map[string]any {
 		if _, ok := generic["description"]; !ok {
 			generic["description"] = ""
 		}
-		// A policy-level priority means the backend added the targets; the API refuses both.
-		if p, _ := policy["priority"].(string); (p != "" && p != "PRIORITY_TYPE_UNSPECIFIED") || policy["priorityOverride"] != nil {
+		// A policy-level priority means the backend added the targets; the API refuses both. A RUM
+		// policy has no targets, and the API refuses them.
+		if p, _ := policy["priority"].(string); (p != "" && p != "PRIORITY_TYPE_UNSPECIFIED") || policy["priorityOverride"] != nil || source == "SOURCE_TYPE_RUM" {
 			delete(generic, "targets")
 		}
 		entry := map[string]any{"policy": generic}
-		if source == "SOURCE_TYPE_LOGS" {
-			entry["logRules"] = cmp.Or[any](policy["logRules"], map[string]any{})
-		} else {
-			entry["spanRules"] = cmp.Or[any](policy["spanRules"], map[string]any{})
-		}
+		rules := map[string]string{"SOURCE_TYPE_LOGS": "logRules", "SOURCE_TYPE_SPANS": "spanRules", "SOURCE_TYPE_RUM": "rumRules"}[source]
+		entry[rules] = cmp.Or[any](policy[rules], map[string]any{})
 		policies = append(policies, entry)
 	}
 	return map[string]any{"policies": policies}
+}
+
+// The recorder restores a RUM policy with its RUM rules and without the targets that a Get adds.
+func TestTCORestoreBodyRUM(t *testing.T) {
+	got := map[string]any{"policies": []any{map[string]any{
+		"name": "rum", "priority": "PRIORITY_TYPE_MEDIUM", "enabled": true,
+		"rumRules": map[string]any{"severities": []any{"SEVERITY_ERROR"}},
+		"targets":  []any{},
+	}}}
+	body := tcoRestoreBody(t, got, "SOURCE_TYPE_RUM")
+	entry := body["policies"].([]any)[0].(map[string]any)
+	policy := entry["policy"].(map[string]any)
+	if _, ok := entry["rumRules"]; !ok || entry["logRules"] != nil || entry["spanRules"] != nil {
+		t.Fatalf("entry = %v, want rumRules only", entry)
+	}
+	if _, ok := policy["targets"]; ok || policy["disabled"] != false {
+		t.Fatalf("policy = %v, want no targets and disabled false", policy)
+	}
 }
 
 // tcoMask replaces what differs in every run and what belongs to the tenant: policy ids, also inside
