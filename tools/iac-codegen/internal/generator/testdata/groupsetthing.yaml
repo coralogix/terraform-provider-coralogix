@@ -1,0 +1,112 @@
+# A released resource like the recording rules group sets. Create returns only the id, and Update and
+# Delete return {}. The requests send InGroupThing and InItemThing, and the response returns
+# OutGroupThing and OutItemThing, which require what the server always fills in: the interval and
+# the limit of a group, which have server defaults, and the labels of an item. The groups are a set.
+# The limit and lastSeenAt are uint64 numbers sent as strings of up to 20 digits. The limit has the
+# shape that protoc-gen-openapiv3 writes for a uint64: a digit pattern and no format.
+openapi: 3.1.0
+info: {title: groupset, version: 1.0.0}
+paths:
+  /groupset/v1/sets:
+    post:
+      tags: [Group Set Things Service]
+      operationId: GroupSets_Create
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CreateGroupSetThing
+              type: object
+              properties:
+                name: {type: string, minLength: 1, x-coralogix-presence: true}
+                groups: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/InGroupThing'}}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreateGroupSetThingResult'}
+  /groupset/v1/sets/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: string}}
+    get:
+      tags: [Group Set Things Service]
+      operationId: GroupSets_Fetch
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GroupSetThing'}
+    put:
+      tags: [Group Set Things Service]
+      operationId: GroupSets_Update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: UpdateGroupSetThing
+              type: object
+              properties:
+                name: {type: string, minLength: 1, x-coralogix-presence: true}
+                groups: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/InGroupThing'}}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {type: object}
+    delete:
+      tags: [Group Set Things Service]
+      operationId: GroupSets_Delete
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {type: object}
+components:
+  schemas:
+    CreateGroupSetThingResult:
+      type: object
+      required: [id]
+      properties:
+        id: {type: string, minLength: 1}
+    GroupSetThing:
+      type: object
+      required: [id, name, groups]
+      properties:
+        id: {type: string, minLength: 1}
+        name: {type: string, minLength: 1}
+        groups: {type: array, x-coralogix-collection: set, items: {$ref: '#/components/schemas/OutGroupThing'}}
+    InGroupThing:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string, minLength: 1}
+        interval: {type: integer, format: int64, minimum: 60, default: 60, x-coralogix-presence: true}
+        limit: {type: string, pattern: "^[0-9]+$", minLength: 1, maxLength: 20, default: "0", x-coralogix-presence: true}
+        items: {type: array, items: {$ref: '#/components/schemas/InItemThing'}}
+    OutGroupThing:
+      type: object
+      required: [name, interval, limit, items]
+      properties:
+        name: {type: string, minLength: 1}
+        interval: {type: integer, format: int64, minimum: 60, default: 60, x-coralogix-presence: true}
+        limit: {type: string, pattern: "^[0-9]+$", minLength: 1, maxLength: 20, default: "0", x-coralogix-presence: true}
+        lastSeenAt: {type: string, format: uint64, maxLength: 20, x-coralogix-presence: true}
+        items: {type: array, items: {$ref: '#/components/schemas/OutItemThing'}}
+    InItemThing:
+      type: object
+      required: [key]
+      properties:
+        key: {type: string, minLength: 1}
+        labels: {type: object, additionalProperties: {type: string}}
+    OutItemThing:
+      type: object
+      required: [key, labels]
+      properties:
+        key: {type: string, minLength: 1}
+        labels: {type: object, additionalProperties: {type: string}}

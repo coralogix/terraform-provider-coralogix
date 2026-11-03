@@ -28,6 +28,9 @@ import (
 {{- end}}
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+{{- if .SetServerDefaults}}
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+{{- end}}
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 {{- range .PlanModifierPkgs}}
@@ -103,7 +106,17 @@ func (m requestReplaceModifier) PlanModify{{.}}(ctx context.Context, req planmod
 // It never inserts the default into configuration or an API request. When a
 // user removes a different value, it makes the plan unknown. Update then sends
 // the field in the update mask without a body value, and the API resets it.
+{{- if .SetServerDefaults}}
+// fromPlan reads the prior value from the plan, for an attribute inside a set
+// item: the framework gives it the state of the item at the same index, and
+// Terraform proposes the value of the prior item that it paired with the item.
+type serverDefaultModifier struct {
+	value    attr.Value
+	fromPlan bool
+}
+{{- else}}
 type serverDefaultModifier struct{ value attr.Value }
+{{- end}}
 
 func (m serverDefaultModifier) Description(context.Context) string {
 	return "Resets a removed value to the server default."
@@ -113,6 +126,27 @@ func (m serverDefaultModifier) MarkdownDescription(ctx context.Context) string {
 	return m.Description(ctx)
 }
 
+{{if .SetServerDefaults -}}
+// rootConfigured reports whether the configuration sets the top-level attribute that holds p. A set
+// that the configuration leaves out comes from the API or another attribute, so a null value of
+// one of its items is not a removal.
+func rootConfigured(ctx context.Context, config tfsdk.Config, p path.Path) bool {
+	steps := p.Steps()
+	if len(steps) == 0 {
+		return true
+	}
+	name, ok := steps[0].(path.PathStepAttributeName)
+	if !ok {
+		return true
+	}
+	var v attr.Value
+	if config.GetAttribute(ctx, path.Root(string(name)), &v).HasError() || v == nil {
+		return true
+	}
+	return !v.IsNull()
+}
+
+{{end -}}
 func serverDefaultPlan(config, state, declared attr.Value) (unknown, preserve bool) {
 	if config.IsUnknown() || !config.IsNull() || state.IsNull() || state.IsUnknown() {
 		return false, false
@@ -124,16 +158,32 @@ func serverDefaultPlan(config, state, declared attr.Value) (unknown, preserve bo
 }
 
 {{range .ServerDefaultKinds}}
-func (m serverDefaultModifier) PlanModify{{.}}(_ context.Context, req planmodifier.{{.}}Request, resp *planmodifier.{{.}}Response) {
+func (m serverDefaultModifier) PlanModify{{.}}({{if $.SetServerDefaults}}ctx{{else}}_{{end}} context.Context, req planmodifier.{{.}}Request, resp *planmodifier.{{.}}Response) {
 	if req.Plan.Raw.IsNull() {
 		return
 	}
+{{- if $.SetServerDefaults}}
+	if m.fromPlan && !rootConfigured(ctx, req.Config, req.Path) {
+		return
+	}
+	prior := req.StateValue
+	if m.fromPlan {
+		prior = req.PlanValue
+	}
+	unknown, preserve := serverDefaultPlan(req.ConfigValue, prior, m.value)
+	if unknown {
+		resp.PlanValue = types.{{.}}Unknown()
+	} else if preserve {
+		resp.PlanValue = prior
+	}
+{{- else}}
 	unknown, preserve := serverDefaultPlan(req.ConfigValue, req.StateValue, m.value)
 	if unknown {
 		resp.PlanValue = types.{{.}}Unknown()
 	} else if preserve {
 		resp.PlanValue = req.StateValue
 	}
+{{- end}}
 }
 {{end}}
 {{- end}}

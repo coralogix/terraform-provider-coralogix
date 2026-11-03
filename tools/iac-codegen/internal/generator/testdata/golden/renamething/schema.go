@@ -45,6 +45,10 @@ func Schema() schema.Schema {
 				},
 				MarkdownDescription: "",
 			},
+			"note": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "A text that a hook turns into request values.",
+			},
 			"settings": schema.DynamicAttribute{
 				Required:            true,
 				MarkdownDescription: "Settings that a hook turns into request values.",

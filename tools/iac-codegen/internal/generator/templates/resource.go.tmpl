@@ -745,11 +745,11 @@ func (r *Resource) setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prio
 	if diags.HasError() {
 		return diags
 	}
-{{- range .DynamicExtras}}
+{{- range .KeptExtras}}
 	if prior != nil {
 		// The API holds no value of this attribute. Start with the value from the plan or prior
 		// state, then let AfterFlatten replace it when the API supplies another value.
-		var kept types.Dynamic
+		var kept {{.Type}}
 		if !prior.GetAttribute(ctx, path.Root({{printf "%q" .TFName}}), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
 			m.{{.Model}} = kept
 		}
@@ -852,6 +852,15 @@ func (r *Resource) upgradeByRefresh(ctx context.Context, req resource.UpgradeSta
 		return
 	}
 	resp.Diagnostics.Append(r.setState(ctx, v, nil, &resp.State)...)
+{{- range .KeptExtras}}
+	if !resp.Diagnostics.HasError() {
+		// The API holds no value of this attribute. A prior schema that has it keeps its value.
+		var kept {{.Type}}
+		if !req.State.GetAttribute(ctx, path.Root({{printf "%q" .TFName}}), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root({{printf "%q" .TFName}}), kept)...)
+		}
+	}
+{{- end}}
 }
 {{- end}}
 

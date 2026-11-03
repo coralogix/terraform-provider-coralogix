@@ -34,3 +34,6 @@ types:
         required: true
         inUpdate: true
         markdownDescription: Settings that a hook turns into request values.
+      note:
+        type: string
+        markdownDescription: A text that a hook turns into request values.

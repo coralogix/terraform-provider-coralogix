@@ -3258,6 +3258,39 @@ func TestDynamicExtraInANestedComponentIsRefused(t *testing.T) {
 	}
 }
 
+// A configurable string extra attribute of a nested component is generated, and the state does not
+// keep it from the plan or the prior state: an AfterFlatten hook supplies it. Only the top level
+// keeps one.
+func TestNestedStringExtraIsNotKept(t *testing.T) {
+	overrides, err := os.ReadFile(filepath.Join("testdata", "renamething-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, "overrides.yaml")
+	nested := string(overrides) + "  RenameParam:\n    extraAttributes:\n      other:\n        type: string\n        markdownDescription: A note.\n"
+	if err := os.WriteFile(path, []byte(nested), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	spec, err := os.ReadFile(filepath.Join("testdata", "renamething.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(dir, "out")
+	if err := generateFromInput(Options{Resource: "RenameThing", OutputDir: out, OverridesPath: path}, input, loadDir); err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+	resource := string(mustRead(t, filepath.Join(out, "resource.go")))
+	if strings.Contains(resource, `path.Root("other")`) {
+		t.Fatalf("resource.go keeps the nested string extra from the prior state:\n%s", resource)
+	}
+	if !strings.Contains(resource, `path.Root("note")`) {
+		t.Fatalf("resource.go does not keep the top-level string extra note:\n%s", resource)
+	}
+}
+
 // A skipped field has no request path in the generated code: the object that only it goes through
 // is not set, and the field is not an attribute.
 func TestRequestShapeSkippedFieldHasNoRequestPath(t *testing.T) {
@@ -3294,5 +3327,28 @@ func TestRequestShapeSkippedFieldHasNoRequestPath(t *testing.T) {
 	}
 	if !strings.Contains(string(convert), "out.SpecKind = expandString(m.Kind)") {
 		t.Error("convert.go does not write the renamed kind")
+	}
+}
+
+// A digit string becomes an integer only where a terraformType Int64 line names the field. A string
+// that the API validates as digits, such as a company id, stays a string without a line.
+func TestReadDigitStringsNeedsAnInt64Line(t *testing.T) {
+	digits := func() *model.Type { return &model.Type{Kind: model.String, DigitString: "uint64"} }
+	limit, companyID, nested := digits(), digits(), digits()
+	r := &model.Resource{Name: "Set", Fields: []*model.ResourceField{
+		{Name: "companyId", Type: companyID},
+		{Name: "groups", Type: &model.Type{Kind: model.Set, Elem: &model.Type{Kind: model.Object, Schema: "Group", Fields: []*model.Field{
+			{Name: "limit", Type: limit},
+			{Name: "other", Type: nested},
+		}}}},
+	}}
+	readDigitStrings(r, model.Policy{Int64: []string{"Group.limit"}})
+	if limit.Kind != model.Integer || !limit.WireString || limit.Format != "uint64" {
+		t.Errorf("Group.limit = %+v, want an integer sent as a string, format uint64", *limit)
+	}
+	for name, typ := range map[string]*model.Type{"Set.companyId": companyID, "Group.other": nested} {
+		if typ.Kind != model.String || typ.WireString || typ.Format != "" {
+			t.Errorf("%s = %+v, want it to stay a string", name, *typ)
+		}
 	}
 }

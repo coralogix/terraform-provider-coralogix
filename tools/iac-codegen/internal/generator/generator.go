@@ -278,6 +278,7 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 	if err != nil {
 		return nil, fmt.Errorf("build validated resource: %w", err)
 	}
+	readDigitStrings(resource, policy)
 	if report := readBackIssues(resource, file); len(report) != 0 {
 		return nil, &EligibilityError{Report: report}
 	}
@@ -475,4 +476,33 @@ func checkVersionHeaders(files map[string][]byte) error {
 		}
 	}
 	return nil
+}
+
+// readDigitStrings reads a digit string (protoc-gen-openapiv3 writes a 64-bit number as one, without
+// a format) as the integer string that it holds, where a terraformType Int64 line names the field.
+// The schema alone cannot tell it from a string that is validated as digits, so a field without a
+// line stays a string.
+func readDigitStrings(r *model.Resource, p model.Policy) {
+	seen := map[*model.Type]bool{}
+	var walk func(component string, t *model.Type)
+	read := func(component, field string, t *model.Type) {
+		if t != nil && t.Kind == model.String && t.DigitString != "" && p.AsInt64(component, field) {
+			t.Kind, t.WireString, t.Format = model.Integer, true, t.DigitString
+		}
+	}
+	walk = func(component string, t *model.Type) {
+		if t == nil || seen[t] {
+			return
+		}
+		seen[t] = true
+		walk(component, t.Elem)
+		for _, f := range t.Fields {
+			read(t.Schema, f.Name, f.Type)
+			walk(t.Schema, f.Type)
+		}
+	}
+	for _, f := range r.Fields {
+		read(r.Name, f.Name, f.Type)
+		walk(r.Name, f.Type)
+	}
 }
