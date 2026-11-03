@@ -78,6 +78,9 @@ type grHarness struct {
 	steps    []grStep
 	// applied is the config of the last apply that succeeded. RefreshPlan plans it again.
 	applied map[string]any
+	// failedCreate is the state that the last Create that failed returned, or null. Terraform core
+	// saves it tainted, so the next apply replaces it.
+	failedCreate tftypes.Value
 }
 
 func newGRHarness(t *testing.T) *grHarness {
@@ -314,6 +317,7 @@ func (h *grHarness) Apply(name string, prior tftypes.Value, cfgJSON map[string]a
 		step.State = toJSON(state)
 		h.record(step)
 		if prior.IsNull() {
+			h.failedCreate = state
 			return prior
 		}
 		return state
@@ -338,6 +342,19 @@ func (h *grHarness) Apply(name string, prior tftypes.Value, cfgJSON map[string]a
 }
 
 // Refresh reads the resource. It returns the new state, or a null value when the resource is gone.
+// ApplyAfterFailedCreate is the next apply after a Create that failed. Terraform core saved the
+// state that the Create returned as tainted, so it deletes that resource and creates a new one.
+// Without such a state, it creates the resource again.
+func (h *grHarness) ApplyAfterFailedCreate(name string, cfgJSON map[string]any) tftypes.Value {
+	h.t.Helper()
+	if !h.failedCreate.IsNull() && h.failedCreate.IsKnown() {
+		h.Destroy(name+": delete the tainted resource", h.failedCreate)
+		h.failedCreate = h.null()
+		return h.Apply(name+": create it again", h.null(), cfgJSON)
+	}
+	return h.Apply(name+": no state, so create again", h.null(), cfgJSON)
+}
+
 func (h *grHarness) Refresh(name string, state tftypes.Value) tftypes.Value {
 	h.t.Helper()
 	step := grStep{Step: name}

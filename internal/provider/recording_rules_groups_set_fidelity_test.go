@@ -52,8 +52,8 @@ func TestRecordingRulesFakeMatchesRecordedBackend(t *testing.T) {
 				status, resp := fake.handle(s.Method, rrBasePath+substString(s.Path, vars), body)
 				fake.mu.Unlock()
 				got := roundTrip(t, resp)
-				if s.Capture != "" && status == http.StatusOK {
-					vars[s.Capture] = rrIDOf(got)
+				if name := rrCaptureName(s, si); s.Method == http.MethodPost && status == http.StatusOK && name != "" {
+					vars[name] = rrIDOf(got)
 				}
 				got = rrNormalize(unsubstJSON(t, got, vars))
 				compareFidelityStep(t, label, status, got, rc.Steps[si].Status, rc.Steps[si].Response)
@@ -110,8 +110,8 @@ func TestRecordRecordingRulesFidelity(t *testing.T) {
 			} `json:"steps"`
 		}{Name: c.Name}
 		vars := map[string]string{}
-		for _, s := range c.Steps {
-			status, got := recordRRStep(t, base, apiKey, s, vars, &created)
+		for si, s := range c.Steps {
+			status, got := recordRRStep(t, base, apiKey, s, si, vars, &created)
 			if (status == http.StatusForbidden || status == http.StatusUnauthorized) && s.Method == http.MethodPost {
 				t.Fatalf("the recording rules API returned %d on %s %s. Recording needs a management API key that can manage recording rules.", status, s.Method, s.Path)
 			}
@@ -131,7 +131,7 @@ func TestRecordRecordingRulesFidelity(t *testing.T) {
 	}
 }
 
-func recordRRStep(t *testing.T, base, apiKey string, s fidelityStep, vars map[string]string, created *[]string) (int, any) {
+func recordRRStep(t *testing.T, base, apiKey string, s fidelityStep, si int, vars map[string]string, created *[]string) (int, any) {
 	t.Helper()
 	url := strings.TrimRight(base, "/") + rrBasePath + substString(s.Path, vars)
 	var body io.Reader
@@ -167,16 +167,23 @@ func recordRRStep(t *testing.T, base, apiKey string, s fidelityStep, vars map[st
 		parsed = map[string]any{}
 	}
 	// Every set that a POST created is deleted afterwards, also one that the case expected the API
-	// to refuse. Capture only names the id for the later steps.
+	// to refuse. Its id is written as a placeholder, so recorded.json holds no id of a run.
 	if s.Method == http.MethodPost && resp.StatusCode == http.StatusOK {
 		if id := rrIDOf(parsed); id != "" {
 			*created = append(*created, id)
-			if s.Capture != "" {
-				vars[s.Capture] = id
-			}
+			vars[rrCaptureName(s, si)] = id
 		}
 	}
 	return resp.StatusCode, rrNormalize(unsubstJSON(t, parsed, vars))
+}
+
+// rrCaptureName is the variable for the id that a POST returns: the step's capture, or one named
+// after the step for a POST that the case expected the API to refuse.
+func rrCaptureName(s fidelityStep, si int) string {
+	if s.Capture != "" {
+		return s.Capture
+	}
+	return fmt.Sprintf("unexpected_id_%d", si+1)
 }
 
 var rrCompany = regexp.MustCompile(`company[_ ]?[iI]d[": ]*\d+`)

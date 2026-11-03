@@ -280,9 +280,28 @@ var rrScenarios = map[string]func(h *grHarness){
 		h.Apply("create: another set has the name", h.null(), rrCfg("tf-set", rrGroup("g1", nil, rrRule("tf:r1", nil))))
 	},
 
+	// The set exists in the API after the POST. The next apply shows what Terraform does with it.
 	"create-read-fails": func(h *grHarness) {
+		cfg := rrCfg("tf-set", rrGroup("g1", nil, rrRule("tf:r1", nil)))
 		h.recordingRules().failMethod(http.MethodGet, http.StatusInternalServerError, "Internal: rule store unavailable")
-		h.Apply("create: the read after create fails", h.null(), rrCfg("tf-set", rrGroup("g1", nil, rrRule("tf:r1", nil))))
+		h.Apply("create: the read after create fails", h.null(), cfg)
+		h.recordingRules().heal()
+		if s := h.ApplyAfterFailedCreate("next apply after the API recovers", cfg); !s.IsNull() {
+			h.RefreshPlan("refresh", s)
+		}
+	},
+
+	// Values that Terraform knows only at apply, such as values from another resource or a module
+	// output. Terraform plans them and applies them once they are known.
+	"unknown-config": func(h *grHarness) {
+		h.PlanOnly("plan create: groups are unknown", h.null(), j{"name": "tf-set", "groups": unknownConfig})
+		h.PlanOnly("plan create: nested values are unknown", h.null(), rrCfg("tf-set",
+			rrGroup("g1", j{"interval": unknownConfig}, rrRule("tf:r1", j{"expr": unknownConfig, "labels": unknownConfig}))))
+		h.PlanOnly("plan create: yaml_content is unknown", h.null(), j{"yaml_content": unknownConfig})
+		s := h.Apply("create", h.null(), rrCfg("tf-set", rrGroup("g1", j{"interval": 120.0}, rrRule("tf:r1", j{"labels": j{"a": "1"}}))))
+		h.PlanOnly("plan update: the name and a nested value are unknown", s, rrCfg(unknownConfig,
+			rrGroup("g1", j{"interval": unknownConfig}, rrRule("tf:r1", j{"labels": j{"a": "1"}}))))
+		h.PlanOnly("plan update: groups are unknown", s, j{"name": "tf-set", "groups": unknownConfig})
 	},
 
 	"import": func(h *grHarness) {
