@@ -34,9 +34,9 @@ const (
 	ipAccessBasePath  = "/aaa/team-sec-ip-access/v1"
 )
 
-// These tests record the handwritten coralogix_ip_access resource. The data source is
-// intentionally excluded. After migration, the golden diff should show only message wording or
-// explicitly accepted bug fixes.
+// These tests record the handwritten coralogix_ip_access resource and paired data source. The
+// data source remains handwritten for this migration; its schema and read behavior are baselined.
+// After migration, the golden diff should show only message wording or explicitly accepted bugs.
 //
 //	UPDATE_GOLDEN=1 go test ./internal/provider -run TestIpAccessBaseline
 func newIpAccessHarness(t *testing.T) *grHarness {
@@ -49,6 +49,14 @@ func TestIpAccessBaselineSchema(t *testing.T) {
 	checkGoldenAt(t, ipAccessGoldenDir, "schema_current.txt", []byte(schemadump.Text(current.Schema)))
 }
 
+func TestIpAccessBaselineDataSourceSchema(t *testing.T) {
+	h := newIpAccessHarness(t)
+	if h.dsSchema == nil {
+		t.Fatal("coralogix_ip_access data source is not registered")
+	}
+	checkGoldenAt(t, ipAccessGoldenDir, "data_source_schema_current.txt", []byte(dataSourceSchemaText(h.dsSchema)))
+}
+
 func TestIpAccessBaselineScenarios(t *testing.T) {
 	// A read after Delete is intentionally not a 404 case: the live Get response
 	// is 200 with an empty ipAccess map, so the singleton remains in state.
@@ -58,6 +66,17 @@ func TestIpAccessBaselineScenarios(t *testing.T) {
 			run(h)
 			canonicalizeIpAccessStepValues(h.steps)
 			checkGoldenAt(t, ipAccessGoldenDir, "scenario_"+name+".json", maskIpAccessIDs(marshalGolden(t, h.steps)))
+		})
+	}
+}
+
+func TestIpAccessBaselineDataSourceScenarios(t *testing.T) {
+	for name, run := range ipAccessDataSourceScenarios {
+		t.Run(name, func(t *testing.T) {
+			h := newIpAccessHarness(t)
+			run(h)
+			canonicalizeIpAccessStepValues(h.steps)
+			checkGoldenAt(t, ipAccessGoldenDir, "data_source_scenario_"+name+".json", maskIpAccessIDs(marshalGolden(t, h.steps)))
 		})
 	}
 }
@@ -135,6 +154,20 @@ var ipAccessScenarios = map[string]func(h *grHarness){
 		h.ipAccess().clearOutside()
 		h.Refresh("refresh: Get still returns settings with no rules", s)
 	},
+	"read-api-not-found": func(h *grHarness) {
+		s := h.Apply("create", h.null(), j{"ip_access": l{
+			j{"enabled": false, "ip_range": "192.0.2.0/24", "name": "first"},
+		}})
+		h.ipAccess().getStatus = 404
+		h.Refresh("refresh: Get answers 404", s)
+	},
+	"read-api-error": func(h *grHarness) {
+		s := h.Apply("create", h.null(), j{"ip_access": l{
+			j{"enabled": false, "ip_range": "192.0.2.0/24", "name": "first"},
+		}})
+		h.ipAccess().getStatus = 500
+		h.Refresh("refresh: Get answers 500", s)
+	},
 	"update-not-found": func(h *grHarness) {
 		s := h.Apply("create", h.null(), j{"ip_access": l{
 			j{"enabled": false, "ip_range": "192.0.2.0/24", "name": "first"},
@@ -168,6 +201,33 @@ var ipAccessScenarios = map[string]func(h *grHarness){
 			"enable_coralogix_customer_support_access": "enabled",
 			"ip_access": l{j{"enabled": true, "ip_range": "203.0.113.0/24", "name": "seeded"}},
 		})
+	},
+}
+
+var ipAccessDataSourceScenarios = map[string]func(h *grHarness){
+	"read-by-id": func(h *grHarness) {
+		h.ipAccess().seed(j{
+			"enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_ENABLED",
+			"ipAccess": map[string]any{
+				"entry-1": j{"enabled": false, "ipRange": "192.0.2.0/24", "name": "seeded"},
+			},
+		})
+		h.ReadDataSource("read configured id", j{"id": "configured-id"})
+	},
+	"read-without-id": func(h *grHarness) {
+		h.ipAccess().seed(j{
+			"enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
+			"ipAccess":                             map[string]any{},
+		})
+		h.ReadDataSource("read without id", j{})
+	},
+	"read-api-not-found": func(h *grHarness) {
+		h.ipAccess().getStatus = 404
+		h.ReadDataSource("Get answers 404", j{"id": "configured-id"})
+	},
+	"read-api-error": func(h *grHarness) {
+		h.ipAccess().getStatus = 500
+		h.ReadDataSource("Get answers 500", j{"id": "configured-id"})
 	},
 }
 
