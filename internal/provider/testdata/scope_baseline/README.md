@@ -22,6 +22,7 @@ in this baseline; a later migration must show each fix in its golden diff.
 | Missing resource and missing route | `read-not-found`, `update-not-found`, `delete-not-found`, `route-missing`, `delete-route-missing` |
 | Injected API failures | `create-api-error`, `read-api-error`, `delete-api-error` |
 | Successful Create and Update replies with null scope, missing ID, or empty ID | `create-null-scope`, `create-missing-id`, `create-empty-id`, `update-null-scope`, `update-missing-id`, `update-empty-id` |
+| Successful Read replies with empty/null lists or ID-less items, for both resource and data source | `read-empty-scopes`, `read-null-scopes`, `read-missing-id`, `read-empty-id` |
 | Duplicate display names are allowed | `duplicate-display-names` |
 | Data-source ID lookup, absent ID, empty ID, missing scope | `datasource_read-by-id`, `datasource_no-id`, `datasource_empty-id`, `datasource_not-found` |
 
@@ -48,6 +49,11 @@ verified absent. `TestScopeFakeMatchesRecordedBackend` replays these cases.
   behavior. The fake saves the write before returning a null scope or an ID-less
   scope. Create records the error and null state. Update records the error and
   unchanged prior state, then refreshes the stored change and replans.
+- Successful but unusable GET replies are injected faults. Empty or null lists
+  remove resource state with a warning; ID-less items produce an error and keep
+  prior resource state. In all four cases, the data source reports an error and
+  its protocol state keeps the configured ID with all other attributes null.
+  Normal missing lookups still return the recorded 404 response.
 
 ## Verification
 

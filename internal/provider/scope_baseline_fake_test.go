@@ -29,7 +29,7 @@ import (
 
 const scopeBasePath = "/aaa/team-scopes/v1"
 
-// scopeFake follows the EU2 replies in fidelity/recorded.json.
+// scopeFake follows recorded EU2 replies unless a response fault is injected.
 type scopeFake struct {
 	mu            sync.Mutex
 	scopes        map[string]map[string]any
@@ -38,6 +38,7 @@ type scopeFake struct {
 	status        int
 	message       string
 	writeResponse map[string]any
+	readResponse  map[string]any
 }
 
 func newScopeFake(t *testing.T) *scopeFake {
@@ -117,6 +118,9 @@ func (f *scopeFake) handle(r *http.Request, body map[string]any) (int, any) {
 	pathID, hasPathID := strings.CutPrefix(rest, "/")
 	switch {
 	case r.Method == http.MethodGet && rest == "":
+		if f.readResponse != nil {
+			return 200, f.readResponse
+		}
 		var found []any
 		for _, id := range r.URL.Query()["ids"] {
 			if scope, ok := f.scopes[id]; ok {
@@ -185,4 +189,10 @@ func (f *scopeFake) replyToWrite(response map[string]any) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.writeResponse = response
+}
+
+func (f *scopeFake) replyToRead(response map[string]any) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.readResponse = response
 }

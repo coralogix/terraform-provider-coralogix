@@ -87,6 +87,27 @@ func TestScopeBaselinePartialSuccess(t *testing.T) {
 	}
 }
 
+func TestScopeBaselineReadResponses(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		response map[string]any
+	}{
+		{"empty-scopes", j{"scopes": []any{}}},
+		{"null-scopes", j{"scopes": nil}},
+		{"missing-id", j{"scopes": []any{j{}}}},
+		{"empty-id", j{"scopes": []any{j{"id": ""}}}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newScopeHarness(t)
+			s := h.Apply("create", h.null(), scopeConfig())
+			h.scopes().replyToRead(tc.response)
+			h.Refresh("resource read returns "+tc.name, s)
+			h.ReadDataSource("data source read returns "+tc.name, byID(idOf(s)))
+			checkGoldenAt(t, scopeGoldenDir, "scenario_read-"+tc.name+".json", marshalGolden(t, h.steps))
+		})
+	}
+}
+
 var scopeScenarios = map[string]func(*grHarness){
 	"clear-filters": func(h *grHarness) {
 		cfg := scopeConfig()
