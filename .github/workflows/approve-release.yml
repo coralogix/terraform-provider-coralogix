@@ -14,7 +14,8 @@
 # later push is never merged on an old approval. A check that fails or runs again, also a re-run
 # after the approval, withdraws it until every check passes.
 # A merge that fails also withdraws it. A run is never cancelled once it starts, and a run that
-# finds the release PR merged but not tagged starts release-provider.yml itself.
+# finds the release PR merged but never released starts release-provider.yml itself; a release
+# run that was cancelled or failed stays stopped until a person restarts it.
 # check-ci.sh runs again right before the merge, and a re-run starts this workflow when it is
 # requested, so a check re-run after the approval holds the merge: master requires only
 # "Acceptance tests result".
@@ -93,12 +94,13 @@ jobs:
             -H "Accept: application/vnd.github.raw" | sed -n 's/^const TF_PROVIDER_VERSION = "\(.*\)"$/\1/p')
           if [ -z "$version" ]; then echo "::error::No version in internal/clientset/version.go at $merged"; exit 1; fi
           if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$version" --silent 2>/dev/null; then exit 0; fi
-          # Only a run of this merge commit counts; one publishing another version doesn't release it.
-          active=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release-provider.yml --limit 100 \
-            --json status,displayTitle \
-            --jq "[.[] | select(.status != \"completed\" and (.displayTitle | endswith(\" $merged\")))] | length")
-          if [ "$active" != "0" ]; then
-            echo "::notice::v$version is not tagged yet, and a release-provider.yml run for $merged is in progress"; exit 0
+          # Only a merge that never got a release run is started here. Any run of this merge commit,
+          # also a cancelled or failed one, leaves the release to a person: someone may have stopped
+          # it on purpose. A run of another version doesn't count.
+          runs=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow release-provider.yml --limit 100 \
+            --json displayTitle --jq "[.[] | select(.displayTitle | endswith(\" $merged\"))] | length")
+          if [ "$runs" != "0" ]; then
+            echo "::notice::v$version is not tagged yet, but release-provider.yml already ran for $merged. Re-run or start it from the Actions tab to release it."; exit 0
           fi
           gh workflow run release-provider.yml --repo "$GITHUB_REPOSITORY" --ref master -f sha="$merged"
           echo "Started release-provider.yml for $merged (v$version), which a merge left without a release" | tee -a "$GITHUB_STEP_SUMMARY"
