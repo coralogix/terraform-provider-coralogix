@@ -104,7 +104,7 @@ func newTCOFake(t *testing.T) *tcoFake {
 func (f *tcoFake) seed(source string, body map[string]any) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	status, resp := f.overwrite(source, roundTripAny(body))
+	status, resp := f.overwrite(source, tcoClone(body))
 	if status != http.StatusOK {
 		panic(fmt.Sprintf("seed %s: %d %v", source, status, resp))
 	}
@@ -615,4 +615,4 @@ func deepCloneMap(m map[string]any) map[string]any {
 	return out
 }
 
-func roundTripAny(v any) any { return deepCloneAny(v) }
+func tcoClone(v any) any { return deepCloneAny(v) }
