@@ -555,6 +555,62 @@
           "capture": ""
         }
       ]
+    },
+    {
+      "name": "clear description on replacement",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "body": {
+            "displayName": "{{name}}",
+            "description": "original",
+            "defaultExpression": "<v1>true",
+            "filters": [
+              {
+                "entityType": "ENTITY_TYPE_LOGS",
+                "expression": "<v1>true"
+              }
+            ]
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "?ids={{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": {
+            "displayName": "{{name}}",
+            "description": "",
+            "defaultExpression": "<v1>true",
+            "filters": [
+              {
+                "entityType": "ENTITY_TYPE_LOGS",
+                "expression": "<v1>true"
+              }
+            ],
+            "id": "{{id}}"
+          },
+          "capture": ""
+        },
+        {
+          "method": "GET",
+          "path": "?ids={{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "DELETE",
+          "path": "/{{id}}",
+          "body": null,
+          "capture": ""
+        }
+      ]
     }
   ]
 }

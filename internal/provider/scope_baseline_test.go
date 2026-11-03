@@ -224,6 +224,17 @@ var scopeScenarios = map[string]func(*grHarness){
 		s = h.RefreshPlan("refresh and plan empty description", s)
 		h.Destroy("destroy", s)
 	},
+	"clear-description": func(h *grHarness) {
+		cfg := scopeConfig()
+		cfg["description"] = "original"
+		s := h.Apply("create nonempty description", h.null(), cfg)
+		cfg = maps.Clone(cfg)
+		cfg["description"] = ""
+		s = h.Apply("clear description with empty string", s, cfg)
+		s = h.RefreshPlan("refresh and plan cleared description", s)
+		h.ReadDataSource("read cleared description", byID(idOf(s)))
+		h.Destroy("destroy", s)
+	},
 	"delete-route-missing": func(h *grHarness) {
 		s := h.Apply("create", h.null(), scopeConfig())
 		h.scopes().fail(404, "Not Found: Not Found")

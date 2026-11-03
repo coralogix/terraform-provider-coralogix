@@ -12,6 +12,7 @@ in this baseline; a later migration must show each fix in its golden diff.
 | Create, refresh, follow-up plan, update every writable field, delete | `minimal`, `full-lifecycle` |
 | Description omitted on create, changed, removed on update | `minimal`, `full-lifecycle` |
 | Explicitly empty description, including import and data source | `empty-description`, `import-empty-description` |
+| Change nonempty description to an empty string, refresh, replan, data source | `clear-description` |
 | Empty display name on create, update, refresh, import, and data-source read | `empty-display-name` |
 | Nonempty and explicitly empty filters | `full-lifecycle`, `empty-filters` |
 | Clear nonempty filters on update, refresh, replan, data source | `clear-filters` |
@@ -50,8 +51,8 @@ write-only field in the released schema.
 ## Fake API evidence and limits
 
 `fidelity/cases.json` and `fidelity/recorded.json` contain anonymized API requests
-and replies. The additional expression, replacement, duplicate-name, and empty-name cases
-were recorded on EU2 on 2026-11-03. All probe-created scopes were deleted and
+and replies. The additional expression, replacement, duplicate-name, empty-name,
+and description-clearing cases were recorded on EU2 on 2026-11-03. All probe-created scopes were deleted and
 verified absent. `TestScopeFakeMatchesRecordedBackend` replays these cases.
 
 - Expression failures model only the recorded inputs: `true`, an empty string,
@@ -59,6 +60,10 @@ verified absent. `TestScopeFakeMatchesRecordedBackend` replays these cases.
 - The fake rejects `ENTITY_TYPE_UNSPECIFIED`. It does not validate arbitrary
   entity-type strings; Terraform rejects values outside its released enum.
 - The fake preserves input filter order. General backend reordering is not modeled.
+- Clearing a nonempty description sends `description: ""`. The API returns the
+  empty string, but the handwritten resource and data source flatten it to null.
+  `clear-description` records the inconsistent update result and the nonempty
+  follow-up plan. Omitting the description is a separate case in `full-lifecycle`.
 - The 500 responses are injected test faults, not recorded live outages.
 - Malformed successful write replies are injected faults, not observed live API
   behavior. The fake saves the write before returning a null scope or an ID-less

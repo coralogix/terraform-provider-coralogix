@@ -683,6 +683,91 @@
           "response": {}
         }
       ]
+    },
+    {
+      "name": "clear description on replacement",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "description": "original",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "description": "original",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "description": "",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "description": "",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
     }
   ]
 }
