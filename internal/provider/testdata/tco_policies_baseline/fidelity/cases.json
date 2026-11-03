@@ -803,6 +803,134 @@
       ]
     },
     {
+      "name": "rum-accepted",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "/rum-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "policy": {
+                  "applicationRule": {
+                    "name": "web",
+                    "ruleTypeId": "RULE_TYPE_ID_IS"
+                  },
+                  "description": "first policy",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_LOW",
+                  "priorityOverride": {
+                    "quotaBased": {
+                      "usageTiers": [
+                        {
+                          "dailyQuotaPercentage": 30,
+                          "priority": "PRIORITY_TYPE_MEDIUM"
+                        }
+                      ]
+                    }
+                  },
+                  "subsystemRule": {
+                    "name": "cx_rum",
+                    "ruleTypeId": "RULE_TYPE_ID_IS_NOT"
+                  }
+                },
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_ERROR",
+                    "SEVERITY_CRITICAL"
+                  ]
+                }
+              },
+              {
+                "policy": {
+                  "description": "",
+                  "disabled": true,
+                  "name": "tf-fidelity-b",
+                  "priority": "PRIORITY_TYPE_BLOCK"
+                },
+                "rumRules": {
+                  "dpxlExpression": "<v1> true",
+                  "severities": null
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_RUM"
+        },
+        {
+          "method": "PUT",
+          "path": "/rum-policies/v1",
+          "body": {
+            "policies": [
+              {
+                "policy": {
+                  "description": "",
+                  "disabled": true,
+                  "name": "tf-fidelity-b",
+                  "priority": "PRIORITY_TYPE_BLOCK"
+                },
+                "rumRules": {
+                  "dpxlExpression": "<v1> true",
+                  "severities": null
+                }
+              },
+              {
+                "policy": {
+                  "applicationRule": {
+                    "name": "web",
+                    "ruleTypeId": "RULE_TYPE_ID_IS"
+                  },
+                  "description": "first policy",
+                  "disabled": false,
+                  "name": "tf-fidelity-a",
+                  "priority": "PRIORITY_TYPE_LOW",
+                  "priorityOverride": {
+                    "quotaBased": {
+                      "usageTiers": [
+                        {
+                          "dailyQuotaPercentage": 30,
+                          "priority": "PRIORITY_TYPE_MEDIUM"
+                        }
+                      ]
+                    }
+                  },
+                  "subsystemRule": {
+                    "name": "cx_rum",
+                    "ruleTypeId": "RULE_TYPE_ID_IS_NOT"
+                  }
+                },
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_ERROR",
+                    "SEVERITY_CRITICAL"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_RUM"
+        },
+        {
+          "method": "PUT",
+          "path": "/rum-policies/v1",
+          "body": {
+            "policies": []
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/policies/v1?source_type=SOURCE_TYPE_RUM"
+        }
+      ]
+    },
+    {
       "name": "unfiltered-get",
       "steps": [
         {

@@ -57,7 +57,10 @@ func TestTCOPoliciesFakeMatchesRecordedBackend(t *testing.T) {
 			for si, s := range c.Steps {
 				label := fmt.Sprintf("step %d: %s %s %s", si+1, s.Method, s.Path, compact(s.Body))
 				status, resp := send(s)
-				compareFidelityStep(t, label, status, tcoMask(roundTrip(t, resp)), rc.Steps[si].Status, rc.Steps[si].Response)
+				got, want := tcoMask(roundTrip(t, resp)), roundTrip(t, rc.Steps[si].Response)
+				sortResponseTagRules(got)
+				sortResponseTagRules(want)
+				compareFidelityStep(t, label, status, got, rc.Steps[si].Status, want)
 			}
 		})
 	}

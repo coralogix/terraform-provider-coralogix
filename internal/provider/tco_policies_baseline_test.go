@@ -404,6 +404,15 @@ var tcoTracesScenarios = map[string]func(h *grHarness, f *tcoFake){
 		h.Apply("create: two policies with one name", h.null(), tcoPolicies(tcoPolicy("first", "high"), tcoPolicy("first", "low")))
 	},
 
+	"archive-retention": func(h *grHarness, f *tcoFake) {
+		f.archiveRetentions = map[string]bool{"11111111-1111-4111-8111-111111111111": true}
+		s := h.Apply("create", h.null(), tcoPolicies(tcoPolicy("first", "high", j{"archive_retention_id": "11111111-1111-4111-8111-111111111111"})))
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: remove the archive retention", s, tcoPolicies(tcoPolicy("first", "high")))
+		s = h.RefreshPlan("refresh", s)
+		h.Destroy("destroy", s)
+	},
+
 	"import": func(h *grHarness, f *tcoFake) {
 		f.seed("spans", j{"policies": l{
 			tcoSpanEntry("seeded", "PRIORITY_TYPE_MEDIUM", j{
@@ -469,6 +478,15 @@ var tcoRumScenarios = map[string]func(h *grHarness, f *tcoFake){
 		s = h.RefreshPlan("refresh", s)
 		s = h.Apply("update: reorder", s, tcoPolicies(second, first))
 		s = h.Apply("update: remove a policy", s, tcoPolicies(first))
+		h.Destroy("destroy", s)
+	},
+
+	"archive-retention": func(h *grHarness, f *tcoFake) {
+		f.archiveRetentions = map[string]bool{"11111111-1111-4111-8111-111111111111": true}
+		s := h.Apply("create", h.null(), tcoPolicies(tcoPolicy("first", "medium", tcoSeverities("error"), j{"archive_retention_id": "11111111-1111-4111-8111-111111111111"})))
+		s = h.RefreshPlan("refresh", s)
+		s = h.Apply("update: remove the archive retention", s, tcoPolicies(tcoPolicy("first", "medium", tcoSeverities("error"))))
+		s = h.RefreshPlan("refresh", s)
 		h.Destroy("destroy", s)
 	},
 

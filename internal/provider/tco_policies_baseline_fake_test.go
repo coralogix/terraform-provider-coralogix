@@ -66,8 +66,7 @@ var tcoPriorityRank = map[string]int{"PRIORITY_TYPE_BLOCK": 0, "PRIORITY_TYPE_LO
 //     version tag.
 //
 // The fake does not check limits (policy count, targets, tiers, names in a rule), tier order, the
-// target restrictions of each source type, or feature flags. The answer to a RUM overwrite that
-// the API accepts was not recorded; it follows the backend formatter.
+// target restrictions of each source type, or feature flags.
 type tcoFake struct {
 	mu       sync.Mutex
 	policies map[string][]map[string]any // by source type: logs, spans, rum
@@ -477,11 +476,34 @@ func tcoStoreTargets(source string, policy, p map[string]any) []any {
 
 // sortTagRules sorts the tag rules of every span policy of an overwrite request by tag name. The
 // released coralogix_tco_policies_traces builds them from a map, so it sends them in a new order on
-// every run; sorted, the goldens stay stable. The API keeps the order that it receives.
+// every run; sorted, the goldens stay stable. The API does not keep the order of the tag rules
+// either (see sortResponseTagRules).
 func sortTagRules(body any) {
 	in, _ := body.(map[string]any)
 	for _, e := range tcoList(in["policies"]) {
 		rules, _ := e["spanRules"].(map[string]any)
+		tags, _ := rules["tagRules"].([]any)
+		slices.SortStableFunc(tags, func(a, b any) int {
+			an, _ := a.(map[string]any)["tagName"].(string)
+			bn, _ := b.(map[string]any)["tagName"].(string)
+			return strings.Compare(an, bn)
+		})
+	}
+}
+
+// sortResponseTagRules sorts the tag rules of each policy of a Get or overwrite response by tag
+// name, in place. The real API returned the same tag rules in different orders on two recordings, so
+// the fidelity test compares them as a set.
+func sortResponseTagRules(body any) {
+	in, _ := body.(map[string]any)
+	policies := tcoList(in["policies"])
+	for _, c := range tcoList(in["createResponses"]) {
+		if p, ok := c["policy"].(map[string]any); ok {
+			policies = append(policies, p)
+		}
+	}
+	for _, p := range policies {
+		rules, _ := p["spanRules"].(map[string]any)
 		tags, _ := rules["tagRules"].([]any)
 		slices.SortStableFunc(tags, func(a, b any) int {
 			an, _ := a.(map[string]any)["tagName"].(string)

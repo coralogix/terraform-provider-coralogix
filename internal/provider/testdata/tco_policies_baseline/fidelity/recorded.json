@@ -755,7 +755,7 @@
           "status": 400,
           "response": {
             "code": 400,
-            "message": "Bad Request: DPXL compile failed for policy tf-fidelity-a, id:90caa5f8-0ce4-43e0-b1d4-554bc767847e, error: DPXL compilation errors:\n - expected version tag. e.g. \"<v1> foo == 'bar'\" at [0:0-0:20]: $d.severity == 'INFO"
+            "message": "Bad Request: DPXL compile failed for policy tf-fidelity-a, id:3707c5a7-9098-4d3f-b67f-040b5a70c420, error: DPXL compilation errors:\n - expected version tag. e.g. \"<v1> foo == 'bar'\" at [0:0-0:20]: $d.severity == 'INFO"
           }
         },
         {
@@ -1036,14 +1036,14 @@
                   },
                   "tagRules": [
                     {
-                      "ruleTypeId": "RULE_TYPE_ID_IS",
-                      "tagName": "tags.http.method",
-                      "tagValue": "GET,POST"
-                    },
-                    {
                       "ruleTypeId": "RULE_TYPE_ID_IS_NOT",
                       "tagName": "tags.region",
                       "tagValue": "eu"
+                    },
+                    {
+                      "ruleTypeId": "RULE_TYPE_ID_IS",
+                      "tagName": "tags.http.method",
+                      "tagValue": "GET,POST"
                     }
                   ]
                 },
@@ -1245,6 +1245,289 @@
           "status": 200,
           "response": {
             "createResponses": []
+          }
+        }
+      ]
+    },
+    {
+      "name": "rum-accepted",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "applicationRule": {
+                    "name": "web",
+                    "ruleTypeId": "RULE_TYPE_ID_IS"
+                  },
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "first policy",
+                  "enabled": true,
+                  "id": "<id>",
+                  "name": "tf-fidelity-a",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_LOW",
+                  "priorityOverride": {
+                    "quotaBased": {
+                      "usageTiers": [
+                        {
+                          "dailyQuotaPercentage": 30,
+                          "priority": "PRIORITY_TYPE_MEDIUM"
+                        }
+                      ]
+                    }
+                  },
+                  "rumRules": {
+                    "severities": [
+                      "SEVERITY_ERROR",
+                      "SEVERITY_CRITICAL"
+                    ]
+                  },
+                  "subsystemRule": {
+                    "name": "cx_rum",
+                    "ruleTypeId": "RULE_TYPE_ID_IS_NOT"
+                  },
+                  "targets": [],
+                  "updatedAt": "<time>"
+                }
+              },
+              {
+                "policy": {
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": false,
+                  "id": "<id>",
+                  "name": "tf-fidelity-b",
+                  "order": 2,
+                  "priority": "PRIORITY_TYPE_BLOCK",
+                  "rumRules": {
+                    "dpxlExpression": "<v1> true",
+                    "severities": []
+                  },
+                  "targets": [],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "applicationRule": {
+                  "name": "web",
+                  "ruleTypeId": "RULE_TYPE_ID_IS"
+                },
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "first policy",
+                "enabled": true,
+                "id": "<id>",
+                "name": "tf-fidelity-a",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_LOW",
+                "priorityOverride": {
+                  "quotaBased": {
+                    "usageTiers": [
+                      {
+                        "dailyQuotaPercentage": 30,
+                        "priority": "PRIORITY_TYPE_MEDIUM"
+                      }
+                    ]
+                  }
+                },
+                "priorityOverrideStatus": {
+                  "quotaBased": {
+                    "currentPriority": "PRIORITY_TYPE_MEDIUM",
+                    "currentUsage": 0,
+                    "dailyLimit": 1000
+                  }
+                },
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_ERROR",
+                    "SEVERITY_CRITICAL"
+                  ]
+                },
+                "subsystemRule": {
+                  "name": "cx_rum",
+                  "ruleTypeId": "RULE_TYPE_ID_IS_NOT"
+                },
+                "targets": [],
+                "updatedAt": "<time>"
+              },
+              {
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": false,
+                "id": "<id>",
+                "name": "tf-fidelity-b",
+                "order": 2,
+                "priority": "PRIORITY_TYPE_BLOCK",
+                "rumRules": {
+                  "dpxlExpression": "<v1> true",
+                  "severities": []
+                },
+                "targets": [],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": [
+              {
+                "policy": {
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "",
+                  "enabled": false,
+                  "id": "<id>",
+                  "name": "tf-fidelity-b",
+                  "order": 1,
+                  "priority": "PRIORITY_TYPE_BLOCK",
+                  "rumRules": {
+                    "dpxlExpression": "<v1> true",
+                    "severities": []
+                  },
+                  "targets": [],
+                  "updatedAt": "<time>"
+                }
+              },
+              {
+                "policy": {
+                  "applicationRule": {
+                    "name": "web",
+                    "ruleTypeId": "RULE_TYPE_ID_IS"
+                  },
+                  "companyId": "<companyId>",
+                  "createdAt": "<time>",
+                  "deleted": false,
+                  "description": "first policy",
+                  "enabled": true,
+                  "id": "<id>",
+                  "name": "tf-fidelity-a",
+                  "order": 2,
+                  "priority": "PRIORITY_TYPE_LOW",
+                  "priorityOverride": {
+                    "quotaBased": {
+                      "usageTiers": [
+                        {
+                          "dailyQuotaPercentage": 30,
+                          "priority": "PRIORITY_TYPE_MEDIUM"
+                        }
+                      ]
+                    }
+                  },
+                  "rumRules": {
+                    "severities": [
+                      "SEVERITY_ERROR",
+                      "SEVERITY_CRITICAL"
+                    ]
+                  },
+                  "subsystemRule": {
+                    "name": "cx_rum",
+                    "ruleTypeId": "RULE_TYPE_ID_IS_NOT"
+                  },
+                  "targets": [],
+                  "updatedAt": "<time>"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": [
+              {
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "",
+                "enabled": false,
+                "id": "<id>",
+                "name": "tf-fidelity-b",
+                "order": 1,
+                "priority": "PRIORITY_TYPE_BLOCK",
+                "rumRules": {
+                  "dpxlExpression": "<v1> true",
+                  "severities": []
+                },
+                "targets": [],
+                "updatedAt": "<time>"
+              },
+              {
+                "applicationRule": {
+                  "name": "web",
+                  "ruleTypeId": "RULE_TYPE_ID_IS"
+                },
+                "companyId": "<companyId>",
+                "createdAt": "<time>",
+                "deleted": false,
+                "description": "first policy",
+                "enabled": true,
+                "id": "<id>",
+                "name": "tf-fidelity-a",
+                "order": 2,
+                "priority": "PRIORITY_TYPE_LOW",
+                "priorityOverride": {
+                  "quotaBased": {
+                    "usageTiers": [
+                      {
+                        "dailyQuotaPercentage": 30,
+                        "priority": "PRIORITY_TYPE_MEDIUM"
+                      }
+                    ]
+                  }
+                },
+                "priorityOverrideStatus": {
+                  "quotaBased": {
+                    "currentPriority": "PRIORITY_TYPE_MEDIUM",
+                    "currentUsage": 0,
+                    "dailyLimit": 1000
+                  }
+                },
+                "rumRules": {
+                  "severities": [
+                    "SEVERITY_ERROR",
+                    "SEVERITY_CRITICAL"
+                  ]
+                },
+                "subsystemRule": {
+                  "name": "cx_rum",
+                  "ruleTypeId": "RULE_TYPE_ID_IS_NOT"
+                },
+                "targets": [],
+                "updatedAt": "<time>"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "createResponses": []
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "policies": []
           }
         }
       ]
