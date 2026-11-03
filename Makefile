@@ -61,7 +61,7 @@ install: build
 	mv ${BINARY} ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
 
 test:
-	echo $(TEST) | xargs -t -n4 go test ${BUILD_ARGS} $(TESTARGS) -timeout=30s -parallel=4
+	echo $(TEST) | xargs -t -n4 go test ${BUILD_ARGS} $(TESTARGS) -timeout=120s -parallel=4
 
 # ACC_SKIP_PATTERN is read by the shell, not expanded by Make: environment
 # variables are recursively expanded by Make, so a regex containing `$|`

@@ -7,7 +7,7 @@ Project guidance for AI coding agents (Claude Code, Codex, Cursor, etc.) working
 ```bash
 make build       # Compile the provider binary
 make install     # Build and install into ~/.terraform.d/plugins/locally/debug/coralogix/1.5/<os_arch>
-make test        # Unit tests (parallel, 30s timeout)
+make test        # Unit tests (parallel, 120s timeout)
 make testacc     # Acceptance tests (TF_ACC=1, 120m timeout) — hits real Coralogix APIs
 make generate    # Regenerate docs/ via terraform-plugin-docs (note: `git checkout -- docs/guides` runs after)
 ```
