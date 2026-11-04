@@ -531,8 +531,8 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 {{- end}}
 {{- end}}
 {{- range .DropEmptyParents}}
-	if out.{{.SDK}} != nil && reflect.ValueOf(*out.{{.SDK}}).IsZero() {
-		out.{{.SDK}} = nil // an optional object without a set field is left out
+	if out.{{.SDK}} != nil{{range .Models}} && modelNull(m.{{.}}){{end}} {
+		out.{{.SDK}} = nil // an optional object that the configuration sets no attribute of is left out
 	}
 {{- end}}
 {{- range .DefaultArms}}
@@ -841,6 +841,21 @@ func splitStrings(v *string, sep string) types.Set {
 		elems = append(elems, types.StringValue(s))
 	}
 	return types.SetValueMust(types.StringType, elems)
+}
+{{- end}}
+{{- if .Conv.DropsEmpty}}
+
+// modelNull reports whether the configuration leaves a model field out: a null value, or a nil
+// object, list, or map.
+func modelNull(v any) bool {
+	if a, ok := v.(attr.Value); ok {
+		return a.IsNull()
+	}
+	switch rv := reflect.ValueOf(v); rv.Kind() {
+	case reflect.Pointer, reflect.Slice, reflect.Map:
+		return rv.IsNil()
+	}
+	return false
 }
 {{- end}}
 {{- if .Conv.UsesNegated}}

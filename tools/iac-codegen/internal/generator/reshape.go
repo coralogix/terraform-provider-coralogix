@@ -549,8 +549,8 @@ func (h inliner) inlineNested(doc *yaml.Node, nested map[string][]string) (map[s
 		for _, field := range nested[component] {
 			value := mapValue(mapValue(schema, "properties"), field)
 			object := refName(value)
-			if all := mapValue(value, "allOf"); object == "" && all != nil && len(all.Content) == 1 {
-				object = refName(all.Content[0])
+			if object == "" {
+				object = allOfRef(value)
 			}
 			if object == "" {
 				return nil, issue.Report{inlineIssue(component, fmt.Sprintf("inline: %s.%s must be a $ref to an object component", component, field))}
@@ -571,6 +571,7 @@ func (h inliner) inlineNested(doc *yaml.Node, nested map[string][]string) (map[s
 		h.reachable(mapValue(mapValue(mapValue(mapValue(op, "requestBody"), "content"), "application/json"), "schema"), requests)
 	}
 	out := map[string]map[string]overrides.Parent{}
+	counterparts := map[string]string{} // the request counterpart of each component
 	for _, name := range slices.Sorted(maps.Keys(mergeSets(responses, requests))) {
 		schema := mapValue(h.schemas, name)
 		props := mapValue(schema, "properties")
@@ -588,6 +589,14 @@ func (h inliner) inlineNested(doc *yaml.Node, nested map[string][]string) (map[s
 			}
 			if len(fields) == 0 {
 				continue
+			}
+			if name != component {
+				// Only the line names C, so two request components that hold the object leave its
+				// counterpart unclear: one of them may not be C at all.
+				if other, ok := counterparts[component]; ok {
+					return nil, issue.Report{inlineIssue(component, fmt.Sprintf("inline: the requests hold the inlined object of %s in both %s and %s, so its request counterpart is unclear", component, other, name))}
+				}
+				counterparts[component] = name
 			}
 			slices.Sort(fields)
 			nestedInliner := inliner{schemas: h.schemas, fields: fields, resource: component, file: h.file, done: h.done}

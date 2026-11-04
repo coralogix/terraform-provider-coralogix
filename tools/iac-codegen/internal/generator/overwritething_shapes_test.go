@@ -3,6 +3,7 @@ package generator
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -52,6 +53,20 @@ func TestOverwriteThingRefusesShapes(t *testing.T) {
 			},
 			want: "zero value instead of null",
 		},
+		"zeroNull on an enum field with a default": {
+			edit: func(t *testing.T, spec, overrides string) (string, string) {
+				return spec, replaceOnce(t, overrides, "      bRules: {skip: true}\n", "      bRules: {skip: true}\n      priority: {default: high}\n")
+			},
+			want: "cannot have a default",
+		},
+		"an inlined object that two request components hold": {
+			edit: func(t *testing.T, spec, overrides string) (string, string) {
+				spec = replaceOnce(t, spec, "                  items: {$ref: '#/components/schemas/KindAThingWrite'}\n",
+					"                  items: {$ref: '#/components/schemas/KindAThingWrite'}\n                options: {$ref: '#/components/schemas/BulkOptions'}\n")
+				return replaceOnce(t, spec, "    ThingCore:\n", "    BulkOptions:\n      type: object\n      required: [aRules]\n      properties:\n        aRules: {$ref: '#/components/schemas/Rules'}\n    ThingCore:\n"), overrides
+			},
+			want: "request counterpart is unclear",
+		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -93,18 +108,29 @@ func TestNestedInlineStaysOnItsComponent(t *testing.T) {
 	}
 }
 
-// Expand clears the optional request objects that it set no field in, the deepest first.
+// Expand clears the optional request objects that the configuration sets no attribute of, the
+// deepest first, by the model fields that write to them: a configured zero value still sends the
+// object. An object with a field that the request always sends is always sent.
 func TestDropEmptyParentsDeepestFirst(t *testing.T) {
-	o := &convObject{Parents: []convParent{
-		{SDK: "Policy", DropEmpty: true},
-		{SDK: "Inlined"},
-		{SDK: "Policy.Details", DropEmpty: true},
-	}}
-	var got []string
-	for _, p := range o.DropEmptyParents() {
-		got = append(got, p.SDK)
+	o := &convObject{
+		Parents: []convParent{
+			{SDK: "Policy", DropEmpty: true},
+			{SDK: "Inlined"},
+			{SDK: "Policy.Details", DropEmpty: true},
+			{SDK: "Fixed", DropEmpty: true},
+		},
+		Fields: []*convField{
+			{SDK: "Policy.Name", Model: "Name", Conv: "string"},
+			{SDK: "Policy.Details.Rules", Model: "Rules", Conv: convObj},
+			{SDK: "Policy.Order", Model: "Order", Conv: "int32", FlattenOnly: true},
+			{SDK: "Inlined.Kind", Model: "Kind", Conv: "string"},
+			{SDK: "Fixed.Kind", Model: "FixedKind", Conv: "fixed"},
+			{SDK: "Fixed.Note", Model: "Note", Conv: "string"},
+		},
 	}
-	if !slices.Equal(got, []string{"Policy.Details", "Policy"}) {
-		t.Fatalf("drop order = %v, want Policy.Details then Policy, without the top-level inlined object", got)
+	got := o.DropEmptyParents()
+	want := []dropParent{{SDK: "Policy.Details", Models: []string{"Rules"}}, {SDK: "Policy", Models: []string{"Name", "Rules"}}}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("drop = %+v, want %+v", got, want)
 	}
 }

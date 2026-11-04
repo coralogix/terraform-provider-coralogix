@@ -402,16 +402,52 @@ type convField struct {
 	Split string
 }
 
-// DropEmptyParents are the optional request objects that expand leaves out when it set no field in
-// them, the deepest first, so an object that only held an empty one is empty too.
-func (o *convObject) DropEmptyParents() []convParent {
-	var out []convParent
+// dropParent is an optional request object that expand leaves out when the configuration sets
+// none of the attributes that write to it.
+type dropParent struct {
+	SDK    string   // the Go path of the object in the SDK struct
+	Models []string // the model fields that write to it
+}
+
+// DropEmptyParents are the optional request objects that expand leaves out when the configuration
+// sets none of their attributes, the deepest first. A configured "", false, 0, or {} still sends the
+// object, so the check reads the model, not the zero value of the SDK struct. An object with a field
+// that the request always sends is always sent.
+func (o *convObject) DropEmptyParents() []dropParent {
+	var out []dropParent
 	for i := len(o.Parents) - 1; i >= 0; i-- {
-		if o.Parents[i].DropEmpty {
-			out = append(out, o.Parents[i])
+		p := o.Parents[i]
+		if !p.DropEmpty {
+			continue
+		}
+		d := dropParent{SDK: p.SDK}
+		always := false
+		for _, f := range o.Fields {
+			if f.FlattenOnly || !strings.HasPrefix(f.SDK, p.SDK+".") {
+				continue
+			}
+			if f.Conv == "fixed" || len(f.Fold) != 0 {
+				always = true
+				break
+			}
+			d.Models = append(d.Models, f.Model)
+		}
+		if !always {
+			out = append(out, d)
 		}
 	}
 	return out
+}
+
+// DropsEmpty reports whether expand leaves out an optional request object. The template then emits
+// modelNull.
+func (d *convData) DropsEmpty() bool {
+	for _, obj := range d.Objects {
+		if obj.Expand && len(obj.DropEmptyParents()) != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // Dst is the Go expression that expand writes the value to: the SDK field, or the value inside
@@ -1477,6 +1513,10 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 		return nil, err
 	}
 	b.applyMissingEnum(cf, component, name, presence)
+	if cf.Conv == convEnum && cf.EnumMap != nil && cf.EnumMap.ZeroNull != "" && b.file != nil && b.file.Types[component].Fields[name].Default != nil {
+		// A missing value reads as null, so the planned default would come back as null.
+		return nil, fmt.Errorf("%s: zeroNull reads a missing value as null, so the field cannot have a default", cf.TFName)
+	}
 	if err := checkReadAs(cf); err != nil {
 		return nil, err
 	}

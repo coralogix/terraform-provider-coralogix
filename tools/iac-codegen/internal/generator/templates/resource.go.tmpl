@@ -690,8 +690,12 @@ func (r *Resource) update(ctx context.Context{{if or (not .UpdateIDInBody) .Upda
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 	}
+{{- if .Overwrite}}
+	// The write returns what it changed in its own shape. Read the list that it replaced.
+{{- else}}
 	// The Update response has no fields. Read the resource that it changed. Create reaches here
 	// too, for an attribute that only Update sends.
+{{- end}}
 	v, err := r.get(ctx, id)
 	if err != nil {
 		return nil, err

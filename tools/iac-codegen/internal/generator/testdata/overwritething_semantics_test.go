@@ -269,7 +269,7 @@ func TestSplitRejectsTheSeparator(t *testing.T) {
 	t.Fatal("names has no validator against the separator")
 }
 
-// The API returns the zero priority for a thing without one, and it reads back as null.
+// A zero priority reads as null; a business value reads as its name.
 func TestZeroPriorityReadsNull(t *testing.T) {
 	var diags diag.Diagnostics
 	zero := overwrite_things_service.THINGPRIORITY_THING_PRIORITY_UNSPECIFIED

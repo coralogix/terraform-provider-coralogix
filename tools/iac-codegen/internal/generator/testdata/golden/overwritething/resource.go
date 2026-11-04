@@ -260,8 +260,7 @@ func (r *Resource) update(ctx context.Context, id string, body *overwrite_things
 	if err != nil {
 		return nil, cxsdk.NewAPIError(httpResp, err)
 	}
-	// The Update response has no fields. Read the resource that it changed. Create reaches here
-	// too, for an attribute that only Update sends.
+	// The write returns what it changed in its own shape. Read the list that it replaced.
 	v, err := r.get(ctx, id)
 	if err != nil {
 		return nil, err
