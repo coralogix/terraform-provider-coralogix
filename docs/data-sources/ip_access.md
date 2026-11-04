@@ -40,8 +40,8 @@ data "coralogix_ip_access" "ip_access" {}
 
 ### Read-Only
 
-- `enable_coralogix_customer_support_access` (String)
-- `ip_access` (Attributes Set) (see [below for nested schema](#nestedatt--ip_access))
+- `enable_coralogix_customer_support_access` (String) The Coralogix customer support access setting.
+- `ip_access` (Attributes Set) The list of IP access entries. (see [below for nested schema](#nestedatt--ip_access))
 
 <a id="nestedatt--ip_access"></a>
 ### Nested Schema for `ip_access`
@@ -50,4 +50,4 @@ Read-Only:
 
 - `enabled` (Boolean) Whether this IP access entry is enabled.
 - `ip_range` (String) The IP range in CIDR notation.
-- `name` (String) The name of the IP access entry.
+- `name` (String) The name of this IP access entry.

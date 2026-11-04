@@ -164,6 +164,14 @@
 
 #### resource/coralogix_ip_access
 - CHORE: Add a schema and lifecycle baseline for the handwritten resource, with an opt-in recorder for checking the API fake against a disposable tenant.
+- CHORE: Generate the resource from the API contract while keeping the existing set schema and enum values. Replace omits the optional `id` body field; Get flattens API map values into the Terraform set.
+
+#### data-source/coralogix_ip_access
+- CHORE: Keep the data source handwritten and use the generated resource flattener. An optional `id` is passed to the API's optional Get query parameter when configured.
+
+#### tools/iac-codegen
+- FEAT: `collection: set` supports a map-of-objects Get response with list-of-objects write requests, preserving each API operation's wire shape while exposing one Terraform set.
+- CHORE: Bump the generator to `v0.1.0-beta.61` and the SDK `iac` module to the revision containing the wire collection model.
 
 # Release 3.23.0
 
