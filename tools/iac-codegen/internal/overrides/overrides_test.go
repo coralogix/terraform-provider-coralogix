@@ -94,7 +94,8 @@ func TestParseIsStrict(t *testing.T) {
 		"fold into itself":                           {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {carrySiblings: {fold: {a: {into: a, flag: f, markdownDescription: x}}}}\n", "needs into (another arm)"},
 		"fold into a folded arm":                     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {carrySiblings: {fold: {a: {into: b, flag: f, markdownDescription: x}, b: {into: c, flag: g, markdownDescription: y}}}}\n", "is folded itself"},
 		"empty carried request value":                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {carrySiblings: {requestValues: {a: {s: \"\"}}}}\n", "is empty"},
-		"position with a mode":                       {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {position: true, computed: true}\n", "computed-only"},
+		"carrySiblings without requireOne":           {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {carrySiblings: {}}\n", "carrySiblings needs requireOne: true"},
+		"requestPosition with a mode":                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {requestPosition: true, computed: true}\n", "computed-only"},
 		"split arms with another key":                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {splitArms: true, requiresReplace: true}\n", "no attribute of its own"},
 		"two validators":                             {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {validators: [{oneOf: [a], sizeAtLeast: 1}]}\n", "exactly one"},
 		"empty line":                                 {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {}\n", "sets nothing"},
@@ -217,7 +218,7 @@ func TestLinesThatReplaceTheServerDefault(t *testing.T) {
 		"      a: {default: 0}\n      b: {required: true}\n      c: {computed: false}\n" +
 		"      d: {computed: true}\n      e: {computed: true, useStateForUnknown: true}\n      f: {description: Text.}\n" +
 		"      g: {computed: true, sendUnknownAsZero: true}\n      h: {computed: true, useNonNullStateForUnknown: true}\n" +
-		"      i: {invert: true}\n"))
+		"      i: {showInverted: true}\n"))
 	if err != nil {
 		t.Fatal(err)
 	}

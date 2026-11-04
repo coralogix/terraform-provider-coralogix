@@ -71,12 +71,12 @@ func TestParseThingKeysRefuseOtherShapes(t *testing.T) {
 		"splitArms on a string": {
 			"      note: {computed: true}\n", "      note: {splitArms: true}\n",
 			"splitArms needs a list or set whose items are a oneOf", "", ""},
-		"invert on a string": {
-			"      escaped: {requestValue: \"true\"}\n", "      escaped: {requestValue: \"true\"}\n      target: {invert: true}\n",
-			"invert needs a bool field", "", ""},
-		"position on a string": {
-			"      order: {position: true}\n      enabled: {name: active", "      order: {position: true}\n      source: {position: true}\n      enabled: {name: active",
-			"position needs an integer attribute", "", ""},
+		"showInverted on a string": {
+			"      escaped: {requestValue: \"true\"}\n", "      escaped: {requestValue: \"true\"}\n      target: {showInverted: true}\n",
+			"showInverted needs a bool field", "", ""},
+		"requestPosition on a string": {
+			"      order: {requestPosition: true}\n      enabled: {name: active", "      order: {requestPosition: true}\n      source: {requestPosition: true}\n      enabled: {name: active",
+			"requestPosition needs an integer attribute", "", ""},
 		"sendUnknownAsZero on a list": {
 			"      matchers: {splitArms: true, collection: set, computed: true, default: []}\n", "      matchers: {splitArms: true, collection: set, computed: true, default: []}\n      groups: {computed: true, sendUnknownAsZero: true}\n",
 			"sendUnknownAsZero needs a string, bool, or number field", "", ""},
@@ -89,22 +89,22 @@ func TestParseThingKeysRefuseOtherShapes(t *testing.T) {
 		"carry request value for no sibling": {
 			"requestValues: {pickParams: {source: text}}", "requestValues: {pickParams: {origin: text}}",
 			"origin, which is no field of ParseStep", "", ""},
-		"position outside a list item": {
-			"      order: {computed: true, sendUnknownAsZero: true}\n", "      order: {position: true}\n",
-			"position needs a field of the items of a list", "", ""},
+		"requestPosition outside a list item": {
+			"      order: {computed: true, sendUnknownAsZero: true}\n", "      order: {requestPosition: true}\n",
+			"requestPosition needs a field of the items of a list", "", ""},
 		"caseInsensitive on an enum set": {
 			"    trimPrefix: SEVERITY_\n", "    trimPrefix: SEVERITY_\n    caseInsensitive: true\n",
 			"is for a scalar field of the enum", "", ""},
 		"fold of arms with other fields": {
 			"dropParams: {into: keepParams,", "copyParams: {into: keepParams,",
 			"the arms copyParams and keepParams need the same fields", "", ""},
-		"two position fields in an item": {
-			"      order: {position: true}\n      enabled: {name: active", "      order: {position: true}\n      rank: {position: true}\n      enabled: {name: active",
-			"a list item has one position field",
+		"two requestPosition fields in an item": {
+			"      order: {requestPosition: true}\n      enabled: {name: active", "      order: {requestPosition: true}\n      rank: {requestPosition: true}\n      enabled: {name: active",
+			"a list item has one requestPosition field",
 			"        source: {type: string, x-coralogix-presence: true}\n        params:", "        source: {type: string, x-coralogix-presence: true}\n        rank: {type: integer, format: int64, x-coralogix-presence: true}\n        params:"},
-		"position on a read-only field": {
-			"      order: {position: true}\n      enabled: {name: active", "      order: {computed: true, sendUnknownAsZero: true}\n      rank: {position: true}\n      enabled: {name: active",
-			"position needs a field that Create and Update send",
+		"requestPosition on a read-only field": {
+			"      order: {requestPosition: true}\n      enabled: {name: active", "      order: {computed: true, sendUnknownAsZero: true}\n      rank: {requestPosition: true}\n      enabled: {name: active",
+			"requestPosition needs a field that Create and Update send",
 			"        id: {type: string, x-coralogix-presence: true}\n        name: {type: string, x-coralogix-presence: true}\n        enabled: {type: boolean, x-coralogix-presence: true}\n        order: {type: integer, format: int64, x-coralogix-presence: true}\n        source:", "        id: {type: string, x-coralogix-presence: true}\n        name: {type: string, x-coralogix-presence: true}\n        enabled: {type: boolean, x-coralogix-presence: true}\n        order: {type: integer, format: int64, x-coralogix-presence: true}\n        rank: {type: integer, format: int64, readOnly: true}\n        source:"},
 		"caseInsensitive values that differ only in case": {
 			"    names: {PICK_FIELD_THREADID: threadID}\n", "    names: {PICK_FIELD_THREADID: threadID, PICK_FIELD_TEXT: ThreadId}\n",
@@ -125,7 +125,7 @@ func TestParseThingKeysRefuseOtherShapes(t *testing.T) {
 			"      pickParams: {name: pick}\n", "      pickParams: {name: pick}\n  ParseKeepParams:\n    fields:\n      rule: {name: source}\n",
 			"two fields named source in Terraform", "", ""},
 		"two carrySiblings fields": {
-			"      order: {position: true}\n      enabled: {name: active", "      order: {position: true}\n      name: {carrySiblings: {}}\n      enabled: {name: active",
+			"      order: {requestPosition: true}\n      enabled: {name: active", "      order: {requestPosition: true}\n      name: {requireOne: true, carrySiblings: {}}\n      enabled: {name: active",
 			"an object shows one oneOf as its arms", "", ""},
 		"fold of arms with other field types": {
 			"dropParams: {into: keepParams,", "dropParams: {into: keepParams,",
@@ -137,8 +137,8 @@ func TestParseThingKeysRefuseOtherShapes(t *testing.T) {
 		"splitArms without computed": {
 			"      matchers: {splitArms: true, collection: set, computed: true, default: []}\n", "      matchers: {splitArms: true, collection: set}\n",
 			"splitArms needs computed: true", "", ""},
-		"position on a component that is also outside a list": {
-			"      order: {position: true}\n      enabled: {name: active", "      order: {position: true}\n      enabled: {name: active",
+		"requestPosition on a component that is also outside a list": {
+			"      order: {requestPosition: true}\n      enabled: {name: active", "      order: {requestPosition: true}\n      enabled: {name: active",
 			"is also held outside a list",
 			"                teamId: {$ref: '#/components/schemas/ParseTeamId'}\n|        groups:\n          type: array\n          items: {$ref: '#/components/schemas/ParseGroup'}\n",
 			"                teamId: {$ref: '#/components/schemas/ParseTeamId'}\n                lastGroup: {$ref: '#/components/schemas/CreateParseGroup'}\n|        groups:\n          type: array\n          items: {$ref: '#/components/schemas/ParseGroup'}\n        lastGroup: {$ref: '#/components/schemas/ParseGroup'}\n"},

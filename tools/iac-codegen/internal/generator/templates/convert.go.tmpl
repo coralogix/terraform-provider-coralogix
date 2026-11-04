@@ -1588,7 +1588,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- end}}
 
 {{- define "expandField"}}
-{{- if or .FlattenOnly .Position}}
+{{- if or .FlattenOnly .RequestPosition}}
 {{- else if .Wrap}}
 	{
 		var inner {{.Wrap.Inner}}

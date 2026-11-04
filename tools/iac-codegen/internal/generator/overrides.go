@@ -427,13 +427,8 @@ func hiddenKeys(r *model.Resource, line overrides.Line) []string {
 	return slices.DeleteFunc(slices.Clone(line.Keys), func(key string) bool { return key == "unwrap" })
 }
 
-// requiredLineStatesPresence reports whether a required key on a field that the contract already
-// requires is what states its presence: a bool or number whose zero value is valid and that has
-// no presence marker and no server default. Terraform requires the attribute and sends it every time, so omission
-// never happens, but the contract cannot say so without a presence-tracking scalar. A plain string
-// that accepts "" is the same: the contract cannot say that a required value may be empty, and the
-// line says that the released attribute sends what the user writes, "" too.
-// stringAcceptsEmpty reports whether a string schema accepts "".
+// stringAcceptsEmpty reports whether a string schema accepts "": it has no format, no minimum
+// length, and no pattern that refuses "".
 func stringAcceptsEmpty(built *base.Schema) bool {
 	if built.Format != "" || built.MinLength != nil && *built.MinLength >= 1 {
 		return false
@@ -446,6 +441,13 @@ func stringAcceptsEmpty(built *base.Schema) bool {
 	return true
 }
 
+// requiredLineStatesPresence reports whether a required key on a field that the contract already
+// requires is what states its presence: a bool or number whose zero value is valid and that has
+// no presence marker and no server default. Terraform requires the attribute and sends it every
+// time, so omission never happens, but the contract cannot say so without a presence-tracking
+// scalar. A plain string that accepts "" is the same: the contract cannot say that a required
+// value may be empty, and the line says that the released attribute sends what the user writes,
+// "" too.
 func requiredLineStatesPresence(schema *base.Schema, field string) bool {
 	built, err := schema.Properties.GetOrZero(field).BuildSchema()
 	if err != nil || len(built.Type) != 1 || len(built.Enum) != 0 || built.Default != nil {

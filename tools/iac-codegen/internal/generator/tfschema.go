@@ -527,34 +527,11 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 	if err := applyTerraformType(a, l); err != nil {
 		return err
 	}
-	if l.RequireOne {
-		// On an arm of a top-level oneOf, the resource validator becomes ExactlyOneOf. Elsewhere,
-		// the line names the field that holds the oneOf.
-		if !a.RootArm && !slices.ContainsFunc(a.Attributes, func(c *tfAttr) bool { return c.OneOfGroup != "" }) {
-			return errors.New("requireOne needs a field that holds a oneOf, or an arm of a top-level oneOf")
-		}
-		if !a.RootArm {
-			requireOneArm(a)
-		}
+	if err := applyRequireOne(a, l); err != nil {
+		return err
 	}
-	if l.Required {
-		a.Required, a.Optional = true, false
-	}
-	if l.SchemaOptional {
-		if !a.Required {
-			return errors.New("schemaOptional needs a field that the API request requires")
-		}
-		a.Required, a.Optional = false, true
-	}
-	if l.Position {
-		if a.Kind != "Int64" && a.Kind != "Int32" {
-			return fmt.Errorf("position needs an integer attribute, not %s", a.Kind)
-		}
-		if a.Computed && !a.Optional && !a.Required || slices.ContainsFunc(a.Modifiers, func(m string) bool { return strings.Contains(m, "RequiresReplace") }) {
-			return errors.New("position needs a field that Create and Update send, not a read-only or immutable one")
-		}
-		// The position in the list is the value, so the user does not set it.
-		a.Required, a.Optional, a.Computed, a.Validators = false, false, true, nil
+	if err := applyMode(a, l); err != nil {
+		return err
 	}
 	if l.Description != nil {
 		a.Description, a.PlainDescription = *l.Description, true
@@ -566,6 +543,76 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 	if l.Computed != nil {
 		a.Computed = *l.Computed
 	}
+	if err := applyModifiers(a, l); err != nil {
+		return err
+	}
+	if err := applyDefault(a, l); err != nil {
+		return err
+	}
+	for _, v := range l.Validators {
+		expr, err := validatorExpr(a, v, file)
+		if err != nil {
+			return err
+		}
+		a.Validators = append(a.Validators, expr)
+		if (v.Enum || v.EnumExceptZero) && (a.ValueKind == "List" || a.ValueKind == "Set") {
+			// The acceptance test picks an element from the element validators, so they name the
+			// Terraform values of the enums line, not the API values of the contract.
+			oneOf, err := enumOneOf(a, file, v.EnumExceptZero)
+			if err != nil {
+				return err
+			}
+			a.ElemValidators = append(slices.DeleteFunc(a.ElemValidators, func(e string) bool { return strings.HasPrefix(e, "stringvalidator.OneOf") }), oneOf)
+		}
+	}
+	return nil
+}
+
+// applyRequireOne makes the arms of the oneOf that a requireOne line names exactly one of. On an
+// arm of a top-level oneOf, the resource validator becomes ExactlyOneOf. Elsewhere, the line names
+// the field that holds the oneOf.
+func applyRequireOne(a *tfAttr, l overrides.Field) error {
+	if !l.RequireOne {
+		return nil
+	}
+	if !a.RootArm && !slices.ContainsFunc(a.Attributes, func(c *tfAttr) bool { return c.OneOfGroup != "" }) {
+		return errors.New("requireOne needs a field that holds a oneOf, or an arm of a top-level oneOf")
+	}
+	if !a.RootArm {
+		requireOneArm(a)
+	}
+	return nil
+}
+
+// applyMode applies the keys of a line that make the attribute required, optional, or computed:
+// required, schemaOptional, and requestPosition.
+func applyMode(a *tfAttr, l overrides.Field) error {
+	if l.Required {
+		a.Required, a.Optional = true, false
+	}
+	if l.SchemaOptional {
+		if !a.Required {
+			return errors.New("schemaOptional needs a field that the API request requires")
+		}
+		a.Required, a.Optional = false, true
+	}
+	if !l.RequestPosition {
+		return nil
+	}
+	if a.Kind != "Int64" && a.Kind != "Int32" {
+		return fmt.Errorf("requestPosition needs an integer attribute, not %s", a.Kind)
+	}
+	if a.Computed && !a.Optional && !a.Required || slices.ContainsFunc(a.Modifiers, func(m string) bool { return strings.Contains(m, "RequiresReplace") }) {
+		return errors.New("requestPosition needs a field that Create and Update send, not a read-only or immutable one")
+	}
+	// The position in the list is the value, so the user does not set it.
+	a.Required, a.Optional, a.Computed, a.Validators = false, false, true, nil
+	return nil
+}
+
+// applyModifiers adds the plan modifiers of a line: useStateForUnknown,
+// useNonNullStateForUnknown, and equality.
+func applyModifiers(a *tfAttr, l overrides.Field) error {
 	if l.UseStateForUnknown {
 		modifier := strings.ToLower(a.ValueKind) + "planmodifier.UseStateForUnknown()"
 		if containsString(a.Modifiers, modifier) {
@@ -585,36 +632,26 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 		// First, so that RequiresReplace and the other modifiers see the state value of an equal document.
 		a.Modifiers = append([]string{"equivalentDocument{equal: " + l.Equality + "Equal}"}, a.Modifiers...)
 	}
-	if l.Default != nil {
-		expr, err := defaultExpr(a, l.Default)
-		if err != nil {
-			return err
-		}
-		a.Default = expr
-		if a.Required {
-			// A released default on a field that the contract requires means that the contract is
-			// wrong about the field. The line states the exception with optional: true.
-			if !l.Optional {
-				return errors.New("the line gives a default to a field that the contract requires: add optional: true, so the overrides file states that the released attribute is optional")
-			}
-			a.Required, a.Optional = false, true
-		}
+	return nil
+}
+
+// applyDefault sets the static default of a line.
+func applyDefault(a *tfAttr, l overrides.Field) error {
+	if l.Default == nil {
+		return nil
 	}
-	for _, v := range l.Validators {
-		expr, err := validatorExpr(a, v, file)
-		if err != nil {
-			return err
+	expr, err := defaultExpr(a, l.Default)
+	if err != nil {
+		return err
+	}
+	a.Default = expr
+	if a.Required {
+		// A released default on a field that the contract requires means that the contract is
+		// wrong about the field. The line states the exception with optional: true.
+		if !l.Optional {
+			return errors.New("the line gives a default to a field that the contract requires: add optional: true, so the overrides file states that the released attribute is optional")
 		}
-		a.Validators = append(a.Validators, expr)
-		if (v.Enum || v.EnumExceptZero) && (a.ValueKind == "List" || a.ValueKind == "Set") {
-			// The acceptance test picks an element from the element validators, so they name the
-			// Terraform values of the enums line, not the API values of the contract.
-			oneOf, err := enumOneOf(a, file, v.EnumExceptZero)
-			if err != nil {
-				return err
-			}
-			a.ElemValidators = append(slices.DeleteFunc(a.ElemValidators, func(e string) bool { return strings.HasPrefix(e, "stringvalidator.OneOf") }), oneOf)
-		}
+		a.Required, a.Optional = false, true
 	}
 	return nil
 }
@@ -640,7 +677,6 @@ func checkAttrMode(a *tfAttr) error {
 	return nil
 }
 
-// defaultExpr is the Go expression of a static default of the attribute.
 // intDefaultExpr is the default of an integer value, and false when a is no number attribute.
 func intDefaultExpr(a *tfAttr, v int) (string, bool, error) {
 	switch a.Kind {
@@ -658,6 +694,7 @@ func intDefaultExpr(a *tfAttr, v int) (string, bool, error) {
 	return "", false, nil
 }
 
+// defaultExpr is the Go expression of a static default of the attribute.
 func defaultExpr(a *tfAttr, value any) (string, error) {
 	switch v := value.(type) {
 	case string:
@@ -1278,9 +1315,6 @@ func carryField(file *overrides.File, t *model.Type) *model.Field {
 	return nil
 }
 
-// carryAttributes are the attributes of an object t whose field carry holds a oneOf with a
-// carrySiblings line: one attribute per arm, which holds the other fields of t, the fields of the
-// arm, and the flag of an arm that a fold folds into it.
 // checkCarryField rejects a carrySiblings line that is not the only one of t, or that is not on a
 // oneOf that Create and Update send.
 func (b *tfBuilder) checkCarryField(t *model.Type, carry *model.Field) error {
@@ -1298,6 +1332,9 @@ func (b *tfBuilder) checkCarryField(t *model.Type, carry *model.Field) error {
 	return nil
 }
 
+// carryAttributes are the attributes of an object t whose field carry holds a oneOf with a
+// carrySiblings line: one attribute per arm, which holds the other fields of t, the fields of the
+// arm, and the flag of an arm that a fold folds into it.
 func (b *tfBuilder) carryAttributes(p attrPath, t *model.Type, carry *model.Field) ([]*tfAttr, error) {
 	line := b.file.Types[t.Schema].Fields[carry.Name]
 	if err := b.checkCarryField(t, carry); err != nil {

@@ -284,7 +284,7 @@ const (
 	// of the parent. The API has no object for it.
 	convGroup = "group"
 
-	// convNotBool is a bool that Terraform shows as its opposite (invert).
+	// convNotBool is a bool that Terraform shows as its opposite (showInverted).
 	convNotBool = "notbool" // types.Bool ↔ *bool, negated
 
 	// convSplitArms is a list of oneOf items that Terraform shows as one collection per arm
@@ -333,9 +333,10 @@ type convField struct {
 	// Carried: a sibling or a fold flag in the model of a carrySiblings arm. The arm functions
 	// leave it to the object that holds the oneOf; it counts for the attribute types.
 	Carried bool
-	// SplitArms: the line of the field has splitArms. Invert: the line has invert. Position: the
-	// line has position; the list that holds the object sends the position of each item.
-	SplitArms, Invert, Position bool
+	// SplitArms: the line of the field has splitArms. ShowInverted: the line has showInverted.
+	// RequestPosition: the line has requestPosition; the list that holds the object sends the
+	// position of each item.
+	SplitArms, ShowInverted, RequestPosition bool
 	// SendUnknownAsZero: expand sends the zero value of the scalar when the plan is unknown
 	// (sendUnknownAsZero). ZeroType is its Go type.
 	SendUnknownAsZero bool
@@ -420,7 +421,7 @@ func (f *convField) WrappedSrc() string {
 func (obj *convObject) PositionField() *convField {
 	for _, f := range obj.Fields {
 		// A carried copy in the model of a carrySiblings arm is no request field.
-		if f.Position && !f.Carried {
+		if f.RequestPosition && !f.Carried {
 			return f
 		}
 	}
@@ -1269,8 +1270,8 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	cf.SendNullAsEmpty = line.SendNullAsEmpty
 	cf.SendUnknownAsZero = line.SendUnknownAsZero
 	cf.SplitArms = line.SplitArms
-	cf.Invert = line.Invert
-	cf.Position = line.Position
+	cf.ShowInverted = line.ShowInverted
+	cf.RequestPosition = line.RequestPosition
 	cf.Equality = line.Equality
 	cf.RequestValue = line.RequestValue
 	cf.RequestValueBy = nil
@@ -1426,9 +1427,9 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	return checkFieldType(cf, ref, want)
 }
 
-// checkPositions reports a position field outside the items of a list: only a list gives an item
-// a place. The component must be a list item in every place, hold one position field, and the
-// requests must send it.
+// checkPositions reports a requestPosition field outside the items of a list: only a list gives
+// an item a place. The component must be a list item in every place, hold one requestPosition
+// field, and the requests must send it.
 func checkPositions(objects []*convObject) error {
 	listed, elsewhere := map[*convObject]bool{}, map[*convObject]bool{}
 	for _, obj := range objects {
@@ -1445,7 +1446,7 @@ func checkPositions(objects []*convObject) error {
 	for _, obj := range objects {
 		var positions []*convField
 		for _, f := range obj.Fields {
-			if f.Position && !f.Carried {
+			if f.RequestPosition && !f.Carried {
 				positions = append(positions, f)
 			}
 		}
@@ -1455,13 +1456,13 @@ func checkPositions(objects []*convObject) error {
 		p := positions[0]
 		switch {
 		case len(positions) > 1:
-			return fmt.Errorf("%s: position on %s and %s: a list item has one position field", obj.Model, p.TFName, positions[1].TFName)
+			return fmt.Errorf("%s: requestPosition on %s and %s: a list item has one requestPosition field", obj.Model, p.TFName, positions[1].TFName)
 		case !listed[obj]:
-			return fmt.Errorf("%s: position needs a field of the items of a list, and %s is no list item", p.TFName, obj.Model)
+			return fmt.Errorf("%s: requestPosition needs a field of the items of a list, and %s is no list item", p.TFName, obj.Model)
 		case elsewhere[obj]:
-			return fmt.Errorf("%s: position needs a component that is a list item in every place, and %s is also held outside a list", p.TFName, obj.Model)
+			return fmt.Errorf("%s: requestPosition needs a component that is a list item in every place, and %s is also held outside a list", p.TFName, obj.Model)
 		case p.FlattenOnly:
-			return fmt.Errorf("%s: position needs a field that Create and Update send, and %s only reads it", p.TFName, obj.Model)
+			return fmt.Errorf("%s: requestPosition needs a field that Create and Update send, and %s only reads it", p.TFName, obj.Model)
 		}
 	}
 	return nil
@@ -1486,15 +1487,15 @@ func (b *convBuilder) splitArmsConv(cf *convField, t *model.Type) (string, error
 	return "[]" + obj.SDK, nil
 }
 
-// applyReleasedKeys applies the keys of a field line that change how a scalar is sent: position,
-// invert, requestValue, and sendUnknownAsZero.
+// applyReleasedKeys applies the keys of a field line that change how a scalar is sent:
+// requestPosition, showInverted, requestValue, and sendUnknownAsZero.
 func (b *convBuilder) applyReleasedKeys(cf *convField) error {
-	if cf.Position && cf.Conv != convInt64 && cf.Conv != convInt32 {
-		return fmt.Errorf("%s: position needs an int32 or int64 field, not a %s field", cf.TFName, cf.Conv)
+	if cf.RequestPosition && cf.Conv != convInt64 && cf.Conv != convInt32 {
+		return fmt.Errorf("%s: requestPosition needs an int32 or int64 field, not a %s field", cf.TFName, cf.Conv)
 	}
-	if cf.Invert {
+	if cf.ShowInverted {
 		if cf.Conv != convBool || cf.Wrap != nil {
-			return fmt.Errorf("%s: invert needs a bool field without wrappers, not a %s field", cf.TFName, cf.Conv)
+			return fmt.Errorf("%s: showInverted needs a bool field without wrappers, not a %s field", cf.TFName, cf.Conv)
 		}
 		cf.Conv = convNotBool
 	}

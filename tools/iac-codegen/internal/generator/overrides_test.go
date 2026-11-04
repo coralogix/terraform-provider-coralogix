@@ -1007,7 +1007,7 @@ func TestRequestValueByIsRefusedWithAnUpdateMask(t *testing.T) {
 // their Terraform paths. The generator refuses the line on a resource that Update patches with a
 // mask, and accepts it when Update sends no mask.
 func TestCarrySiblingsIsRefusedWithAnUpdateMask(t *testing.T) {
-	base := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Step:\n    fields:\n      params: {carrySiblings: {}}\n"
+	base := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Step:\n    fields:\n      params: {requireOne: true, carrySiblings: {}}\n"
 	if err := replaceOnlyLines(mustParse(t, base)); err == nil || !strings.Contains(err.Error(), "Step.params: carrySiblings needs an Update that replaces the resource") {
 		t.Fatalf("err = %v, want carrySiblings refused for a masked Update", err)
 	}

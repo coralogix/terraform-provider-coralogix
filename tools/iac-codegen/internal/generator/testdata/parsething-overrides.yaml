@@ -31,10 +31,10 @@ types:
   # The released resource sent the position of each group and step as its order.
   ParseGroup:
     fields:
-      order: {position: true}
+      order: {requestPosition: true}
   ParseStep:
     fields:
-      order: {position: true}
+      order: {requestPosition: true}
       enabled: {name: active, computed: true, default: true}
       # Terraform shows a step as the arms of params, each with the fields of the step. The
       # pick arm has no source: the released resource always sent "text". The drop arm is the
@@ -53,7 +53,7 @@ types:
   ParseCopyParams:
     fields:
       # The released resource showed the opposite of deleteSource, and always sent escaped.
-      deleteSource: {name: keep_source, invert: true, computed: true, default: false}
+      deleteSource: {name: keep_source, showInverted: true, computed: true, default: false}
       escaped: {requestValue: "true"}
   ParsePickParams:
     fields:
