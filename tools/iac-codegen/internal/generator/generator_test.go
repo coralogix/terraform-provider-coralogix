@@ -1661,6 +1661,8 @@ go 1.26.0
 	example.com/iac-test-sdk v0.0.0
 	github.com/coralogix/terraform-provider-coralogix v0.0.0
 	github.com/hashicorp/terraform-plugin-framework v1.17.0
+	github.com/hashicorp/terraform-plugin-go v0.29.0
+	github.com/hashicorp/terraform-plugin-testing v1.13.3
 )
 
 replace example.com/iac-test-sdk => %s

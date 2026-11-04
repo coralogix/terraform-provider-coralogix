@@ -2,18 +2,26 @@ package groupsetthing
 
 import (
 	"context"
+	"fmt"
 	"math/big"
+	"sort"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
-	frameworkschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 
 	"example.com/iac-test-sdk/go/openapi/gen/group_set_things_service"
 )
@@ -140,31 +148,76 @@ func TestUpgradeKeepsTheDocumentOfThePriorState(t *testing.T) {
 	}
 }
 
+// groupValue is a group with one item and an interval and a limit that are null when they are nil.
+func groupValue(root tftypes.Object, name string, interval, limit *int64) tftypes.Value {
+	group := root.AttributeTypes["groups"].(tftypes.Set).ElementType.(tftypes.Object)
+	items := group.AttributeTypes["items"].(tftypes.List)
+	item := items.ElementType.(tftypes.Object)
+	number := func(n *int64) tftypes.Value {
+		if n == nil {
+			return tftypes.NewValue(tftypes.Number, nil)
+		}
+		return num(*n)
+	}
+	return tftypes.NewValue(group, map[string]tftypes.Value{
+		"name":     tftypes.NewValue(tftypes.String, name),
+		"interval": number(interval),
+		"limit":    number(limit),
+		"items": tftypes.NewValue(items, []tftypes.Value{tftypes.NewValue(item, map[string]tftypes.Value{
+			"key":    tftypes.NewValue(tftypes.String, "k"),
+			"labels": tftypes.NewValue(item.AttributeTypes["labels"], nil),
+		})}),
+	})
+}
+
+// thingWithGroups is a configuration that sets the groups.
+func thingWithGroups(root tftypes.Object, groups ...tftypes.Value) tftypes.Value {
+	return tftypes.NewValue(root, map[string]tftypes.Value{
+		"id":       tftypes.NewValue(tftypes.String, nil),
+		"name":     tftypes.NewValue(tftypes.String, nil),
+		"groups":   tftypes.NewValue(root.AttributeTypes["groups"], groups),
+		"document": tftypes.NewValue(tftypes.String, nil),
+	})
+}
+
+// groupPath is the path of the interval of the planned group.
+func groupPath(t *testing.T, schemaResp frameworkresource.SchemaResponse, planned tftypes.Value) path.Path {
+	t.Helper()
+	elem, err := schemaResp.Schema.Attributes["groups"].GetType().(types.SetType).ElemType.ValueFromTerraform(context.Background(), planned)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return path.Root("groups").AtSetValue(elem).AtName("interval")
+}
+
+func int64p(n int64) *int64 { return &n }
+
 // Inside a set item the server default reads the plan, which Terraform proposes from the prior item
-// that it paired with the configured one. The framework gives it the state of the item at the same
-// index, here another group with interval 120.
+// that it paired with the configured one, and the configuration of the item that the planned item
+// matches. The framework gives it the state and the configuration of the item at the same index,
+// here another group with interval 120 that the configuration sets.
 func TestServerDefaultInASetReadsThePlan(t *testing.T) {
 	ctx := context.Background()
 	m := serverDefaultModifier{value: types.Int64Value(60), fromPlan: true}
 	for _, test := range []struct {
 		name        string
-		plan        types.Int64
+		plan        int64
 		wantUnknown bool
 	}{
-		{name: "the paired item has the default", plan: types.Int64Value(60)},
-		{name: "the paired item has another value that the config removes", plan: types.Int64Value(90), wantUnknown: true},
+		{name: "the paired item has the default", plan: 60},
+		{name: "the paired item has another value that the config removes", plan: 90, wantUnknown: true},
 	} {
 		_, schemaResp, root := setSchema(t)
-		config := thingWithGroups(root)
+		config := thingWithGroups(root, groupValue(root, "g", nil, nil), groupValue(root, "other", int64p(120), nil))
 		req := planmodifier.Int64Request{
-			Path:        path.Root("groups").AtSetValue(types.StringValue("g")).AtName("interval"),
+			Path:        groupPath(t, schemaResp, groupValue(root, "g", int64p(test.plan), int64p(0))),
 			Config:      tfsdk.Config{Schema: schemaResp.Schema, Raw: config},
-			ConfigValue: types.Int64Null(),
+			ConfigValue: types.Int64Value(120),
 			StateValue:  types.Int64Value(120),
-			PlanValue:   test.plan,
+			PlanValue:   types.Int64Value(test.plan),
 			Plan:        tfsdk.Plan{Schema: schemaResp.Schema, Raw: config},
 		}
-		resp := &planmodifier.Int64Response{PlanValue: test.plan}
+		resp := &planmodifier.Int64Response{PlanValue: req.PlanValue}
 		m.PlanModifyInt64(ctx, req, resp)
 		if resp.PlanValue.IsUnknown() != test.wantUnknown {
 			t.Errorf("%s: plan = %v, want unknown %t", test.name, resp.PlanValue, test.wantUnknown)
@@ -172,9 +225,26 @@ func TestServerDefaultInASetReadsThePlan(t *testing.T) {
 	}
 }
 
-// thingWithGroups is a configuration that sets the groups.
-func thingWithGroups(root tftypes.Object) tftypes.Value {
-	return plannedSet(root)
+// A planned item whose interval comes from its configuration keeps it, even when the framework
+// gives the modifier the configuration of another item that leaves the interval out.
+func TestServerDefaultInASetKeepsAConfiguredValue(t *testing.T) {
+	ctx := context.Background()
+	m := serverDefaultModifier{value: types.Int64Value(60), fromPlan: true}
+	_, schemaResp, root := setSchema(t)
+	config := thingWithGroups(root, groupValue(root, "a", nil, nil), groupValue(root, "b", int64p(90), nil))
+	req := planmodifier.Int64Request{
+		Path:        groupPath(t, schemaResp, groupValue(root, "b", int64p(90), int64p(0))),
+		Config:      tfsdk.Config{Schema: schemaResp.Schema, Raw: config},
+		ConfigValue: types.Int64Null(),
+		StateValue:  types.Int64Value(60),
+		PlanValue:   types.Int64Value(90),
+		Plan:        tfsdk.Plan{Schema: schemaResp.Schema, Raw: config},
+	}
+	resp := &planmodifier.Int64Response{PlanValue: req.PlanValue}
+	m.PlanModifyInt64(ctx, req, resp)
+	if !resp.PlanValue.Equal(types.Int64Value(90)) {
+		t.Fatalf("plan = %v, want the configured 90", resp.PlanValue)
+	}
 }
 
 // A set that the configuration leaves out, which the document sets instead, keeps the values of its
@@ -237,22 +307,16 @@ func TestUpgradeRunsAfterFlattenOnTheKeptDocument(t *testing.T) {
 	}
 }
 
-// setConfigured follows the path down to the set: a set inside a configured object that the
+// setItemConfig follows the path down to the set: a set inside a configured object that the
 // configuration leaves out is not configured.
-func TestSetConfiguredChecksTheContainingSet(t *testing.T) {
+func TestSetItemConfigChecksTheContainingSet(t *testing.T) {
 	ctx := context.Background()
-	item := map[string]frameworkschema.Attribute{"interval": frameworkschema.Int64Attribute{Optional: true, Computed: true}}
-	s := frameworkschema.Schema{Attributes: map[string]frameworkschema.Attribute{
-		"settings": frameworkschema.SingleNestedAttribute{Optional: true, Attributes: map[string]frameworkschema.Attribute{
-			"other":  frameworkschema.StringAttribute{Optional: true},
-			"groups": frameworkschema.SetNestedAttribute{Optional: true, Computed: true, NestedObject: frameworkschema.NestedAttributeObject{Attributes: item}},
-		}},
-	}}
 	itemType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"interval": tftypes.Number}}
 	settingsType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"other": tftypes.String, "groups": tftypes.Set{ElementType: itemType}}}
 	rootType := tftypes.Object{AttributeTypes: map[string]tftypes.Type{"settings": settingsType}}
 	element := tftypes.NewValue(itemType, map[string]tftypes.Value{"interval": tftypes.NewValue(tftypes.Number, nil)})
-	at := path.Root("settings").AtName("groups").AtSetValue(types.ObjectNull(map[string]attr.Type{"interval": types.Int64Type})).AtName("interval")
+	planned := types.ObjectValueMust(map[string]attr.Type{"interval": types.Int64Type}, map[string]attr.Value{"interval": types.Int64Value(60)})
+	at := path.Root("settings").AtName("groups").AtSetValue(planned).AtName("interval")
 	for _, test := range []struct {
 		name     string
 		settings tftypes.Value
@@ -262,9 +326,102 @@ func TestSetConfiguredChecksTheContainingSet(t *testing.T) {
 		{"settings without groups", tftypes.NewValue(settingsType, map[string]tftypes.Value{"other": tftypes.NewValue(tftypes.String, "x"), "groups": tftypes.NewValue(tftypes.Set{ElementType: itemType}, nil)}), false},
 		{"settings with groups", tftypes.NewValue(settingsType, map[string]tftypes.Value{"other": tftypes.NewValue(tftypes.String, nil), "groups": tftypes.NewValue(tftypes.Set{ElementType: itemType}, []tftypes.Value{element})}), true},
 	} {
-		config := tfsdk.Config{Schema: s, Raw: tftypes.NewValue(rootType, map[string]tftypes.Value{"settings": test.settings})}
-		if got := setConfigured(ctx, config, at); got != test.want {
-			t.Errorf("%s: setConfigured = %t, want %t", test.name, got, test.want)
+		config := tftypes.NewValue(rootType, map[string]tftypes.Value{"settings": test.settings})
+		if value, got := setItemConfig(ctx, config, at); got != test.want || (got && !value.IsNull()) {
+			t.Errorf("%s: setItemConfig = %v, %t, want null, %t", test.name, value, got, test.want)
+		}
+	}
+}
+
+type setProvider struct{}
+
+func (setProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "test"
+}
+
+func (setProvider) Schema(context.Context, provider.SchemaRequest, *provider.SchemaResponse) {}
+
+func (setProvider) Configure(context.Context, provider.ConfigureRequest, *provider.ConfigureResponse) {}
+
+func (setProvider) Resources(context.Context) []func() frameworkresource.Resource {
+	return []func() frameworkresource.Resource{func() frameworkresource.Resource {
+		return NewResourceWithClient(&group_set_things_service.GroupSetThingsServiceAPIService{}, Hooks{})
+	}}
+}
+
+func (setProvider) DataSources(context.Context) []func() datasource.DataSource { return nil }
+
+// setConfig is a group set whose groups have the given HCL attributes next to their name and item.
+func setConfig(groups map[string]string) string {
+	names := make([]string, 0, len(groups))
+	for name := range groups {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	var b strings.Builder
+	b.WriteString("resource \"test_group_set_thing\" \"s\" {\n  groups = [\n")
+	for _, name := range names {
+		fmt.Fprintf(&b, "    { name = %q, items = [{ key = \"k\" }]%s },\n", name, groups[name])
+	}
+	b.WriteString("  ]\n}\n")
+	return b.String()
+}
+
+func checkGroup(name string, interval, limit int64) resource.TestCheckFunc {
+	return resource.TestCheckTypeSetElemNestedAttrs("test_group_set_thing.s", "groups.*", map[string]string{
+		"name":     name,
+		"interval": strconv.FormatInt(interval, 10),
+		"limit":    strconv.FormatInt(limit, 10),
+	})
+}
+
+// With real Terraform, a set item that leaves out a field with a server default sits next to one
+// that sets it. The framework pairs the configuration and the plan of set items by index, and the
+// two sort their items apart, so the modifier must not read the configuration of another item.
+// The test framework fails a step whose plan after the apply is not empty. Each case runs for
+// several pairs of names, so that some pair sorts the plan and the configuration apart.
+func TestServerDefaultsInASetWithRealTerraform(t *testing.T) {
+	factories := map[string]func() (tfprotov6.ProviderServer, error){"test": providerserver.NewProtocol6WithError(setProvider{})}
+	for _, names := range [][2]string{{"a", "b"}, {"b", "a"}, {"x", "y"}, {"first", "second"}} {
+		a, b := names[0], names[1]
+		for _, test := range []struct {
+			name  string
+			steps []resource.TestStep
+		}{
+			{"an item without the interval next to one with it", []resource.TestStep{{
+				Config: setConfig(map[string]string{a: "", b: ", interval = 90"}),
+				Check:  resource.ComposeTestCheckFunc(checkGroup(a, 60, 0), checkGroup(b, 90, 0)),
+			}}},
+			{"an item without the limit next to one with it", []resource.TestStep{{
+				Config: setConfig(map[string]string{a: "", b: ", limit = 5"}),
+				Check:  resource.ComposeTestCheckFunc(checkGroup(a, 60, 0), checkGroup(b, 60, 5)),
+			}}},
+			{"each item sets the field that the other leaves out", []resource.TestStep{{
+				Config: setConfig(map[string]string{a: ", limit = 5", b: ", interval = 90"}),
+				Check:  resource.ComposeTestCheckFunc(checkGroup(a, 60, 5), checkGroup(b, 90, 0)),
+			}}},
+			{"three items", []resource.TestStep{{
+				Config: setConfig(map[string]string{a: "", b: ", interval = 90, limit = 5", "c": ", interval = 120"}),
+				Check:  resource.ComposeTestCheckFunc(checkGroup(a, 60, 0), checkGroup(b, 90, 5), checkGroup("c", 120, 0)),
+			}}},
+			{"an item removes its interval next to one that keeps it", []resource.TestStep{
+				{Config: setConfig(map[string]string{a: ", interval = 120", b: ", interval = 90"})},
+				{
+					Config: setConfig(map[string]string{a: "", b: ", interval = 90"}),
+					Check:  resource.ComposeTestCheckFunc(checkGroup(a, 60, 0), checkGroup(b, 90, 0)),
+				},
+			}},
+			{"an item sets the interval that it left out", []resource.TestStep{
+				{Config: setConfig(map[string]string{a: "", b: ""})},
+				{
+					Config: setConfig(map[string]string{a: "", b: ", interval = 90"}),
+					Check:  resource.ComposeTestCheckFunc(checkGroup(a, 60, 0), checkGroup(b, 90, 0)),
+				},
+			}},
+		} {
+			t.Run(a+"_"+b+"/"+test.name, func(t *testing.T) {
+				resource.UnitTest(t, resource.TestCase{ProtoV6ProviderFactories: factories, Steps: test.steps})
+			})
 		}
 	}
 }
