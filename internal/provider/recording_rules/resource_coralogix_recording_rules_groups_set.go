@@ -16,6 +16,7 @@ package recording_rules
 import (
 	"context"
 	"fmt"
+	"maps"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/recordingrulesgroupsset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -24,6 +25,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -78,7 +80,10 @@ func (r *recordingRuleGroupSetResource) Schema(_ context.Context, _ resource.Sch
 // did: the API keeps no labels that a request omits. Terraform plans them as unknown when another
 // value of their group changes, so they come from the state of the rule with the same group name and
 // record. Matching by identity, and not by position, keeps a reorder from moving labels to another
-// rule. A record that a group has twice is left to the API.
+// rule. A rule whose record changes takes the labels of the state rule whose record the group no
+// longer has, when the group has as many new records as removed ones: they pair in order. A record
+// or a group name that appears twice is left to the API. A rule or a group that is unknown is left
+// out, and so is a group whose configured rules are unknown.
 func (r *recordingRuleGroupSetResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
 		return
@@ -87,91 +92,230 @@ func (r *recordingRuleGroupSetResource) ModifyPlan(ctx context.Context, req reso
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("groups"), &configGroups)...)
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("groups"), &planGroups)...)
 	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("groups"), &stateGroups)...)
-	if resp.Diagnostics.HasError() || configGroups.IsNull() || configGroups.IsUnknown() || planGroups.IsUnknown() || stateGroups.IsNull() {
+	if resp.Diagnostics.HasError() || !isKnown(configGroups) || !isKnown(planGroups) || !isKnown(stateGroups) {
 		return
 	}
-	configured := rulesByIdentity(ctx, configGroups, &resp.Diagnostics)
-	stored := rulesByIdentity(ctx, stateGroups, &resp.Diagnostics)
-	var groups []recordingrulesgroupsset.OutRuleGroupModel
-	resp.Diagnostics.Append(planGroups.ElementsAs(ctx, &groups, false)...)
-	if resp.Diagnostics.HasError() {
+	elems := planGroups.Elements()
+	changed, d := keepLabels(ctx, elems, rulesByGroup(configGroups), rulesByGroup(stateGroups))
+	if resp.Diagnostics.Append(d...); !changed || resp.Diagnostics.HasError() {
 		return
 	}
-	changed := false
-	for i := range groups {
-		if groups[i].Name.IsUnknown() || groups[i].Rules.IsNull() || groups[i].Rules.IsUnknown() {
-			continue
-		}
-		var rules []recordingrulesgroupsset.OutRuleModel
-		resp.Diagnostics.Append(groups[i].Rules.ElementsAs(ctx, &rules, false)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		for j := range rules {
-			key, ok := ruleIdentity(groups[i].Name, rules[j].Record)
-			if !ok || !rules[j].Labels.IsUnknown() {
-				continue
-			}
-			config, inConfig := configured[key]
-			prior, inState := stored[key]
-			if inConfig && config.Labels.IsNull() && inState && !prior.Labels.IsUnknown() {
-				rules[j].Labels = prior.Labels
-				changed = true
-			}
-		}
-		list, d := types.ListValueFrom(ctx, groups[i].Rules.ElementType(ctx), rules)
-		resp.Diagnostics.Append(d...)
-		groups[i].Rules = list
-	}
-	if !changed || resp.Diagnostics.HasError() {
-		return
-	}
-	set, d := types.SetValueFrom(ctx, planGroups.ElementType(ctx), groups)
-	resp.Diagnostics.Append(d...)
-	if !resp.Diagnostics.HasError() {
+	set, d := types.SetValue(planGroups.ElementType(ctx), elems)
+	if resp.Diagnostics.Append(d...); !resp.Diagnostics.HasError() {
 		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("groups"), set)...)
 	}
 }
 
-// rulesByIdentity maps the rules of the groups by group name and record. A record that a group has
-// more than once is left out, because its rules cannot be told apart.
-func rulesByIdentity(ctx context.Context, groups types.Set, diags *diag.Diagnostics) map[string]recordingrulesgroupsset.OutRuleModel {
-	out := map[string]recordingrulesgroupsset.OutRuleModel{}
-	twice := map[string]bool{}
-	var models []recordingrulesgroupsset.OutRuleGroupModel
-	if diags.Append(groups.ElementsAs(ctx, &models, false)...); diags.HasError() {
-		return out
-	}
-	for _, g := range models {
-		if g.Rules.IsNull() || g.Rules.IsUnknown() {
+// keepLabels replaces each known planned group whose rules keep labels, and reports whether any did.
+func keepLabels(ctx context.Context, elems []attr.Value, configured, stored map[string][]types.Object) (bool, diag.Diagnostics) {
+	changed := false
+	for i, elem := range elems {
+		group, ok := elem.(types.Object)
+		if !ok {
 			continue
 		}
-		var rules []recordingrulesgroupsset.OutRuleModel
-		if diags.Append(g.Rules.ElementsAs(ctx, &rules, false)...); diags.HasError() {
-			return out
+		name, ok := knownString(group, "name")
+		if !ok {
+			continue
 		}
-		for _, rule := range rules {
-			key, ok := ruleIdentity(g.Name, rule.Record)
-			if !ok {
-				continue
-			}
-			if _, seen := out[key]; seen {
-				twice[key] = true
-			}
-			out[key] = rule
+		config, inConfig := configured[name]
+		prior, inState := stored[name]
+		if !inConfig || !inState {
+			continue
+		}
+		updated, keep, d := keepGroupLabels(ctx, group, config, prior)
+		if d.HasError() {
+			return false, d
+		}
+		if keep {
+			elems[i], changed = updated, true
 		}
 	}
-	for key := range twice {
-		delete(out, key)
+	return changed, nil
+}
+
+// keepGroupLabels sets the labels of every planned rule of the group whose labels are unknown, whose
+// configuration leaves them out, and that has a prior rule.
+func keepGroupLabels(ctx context.Context, group types.Object, config, prior []types.Object) (types.Object, bool, diag.Diagnostics) {
+	rules, ok := group.Attributes()["rules"].(types.List)
+	if !ok || !isKnown(rules) {
+		return group, false, nil
+	}
+	configByRecord, configComplete := byRecord(config)
+	priorByRecord, _ := byRecord(prior)
+	planned := rules.Elements()
+	renamed := renamedRules(planned, configByRecord, configComplete, prior)
+	changed := false
+	var diags diag.Diagnostics
+	for j, elem := range planned {
+		rule, ok := elem.(types.Object)
+		if !ok {
+			continue
+		}
+		labels, ok := priorLabels(rule, configByRecord, priorByRecord, renamed[j])
+		if !ok {
+			continue
+		}
+		attrs := maps.Clone(rule.Attributes())
+		attrs["labels"] = labels
+		value, d := types.ObjectValue(rule.AttributeTypes(ctx), attrs)
+		if diags.Append(d...); diags.HasError() {
+			return group, false, diags
+		}
+		planned[j], changed = value, true
+	}
+	if !changed {
+		return group, false, diags
+	}
+	list, d := types.ListValue(rules.ElementType(ctx), planned)
+	if diags.Append(d...); diags.HasError() {
+		return group, false, diags
+	}
+	attrs := maps.Clone(group.Attributes())
+	attrs["rules"] = list
+	value, d := types.ObjectValue(group.AttributeTypes(ctx), attrs)
+	diags.Append(d...)
+	return value, !diags.HasError(), diags
+}
+
+// priorLabels returns the labels that a planned rule keeps: its labels are unknown, its configuration
+// leaves them out, and it has a prior rule, with the same record or the renamed one.
+func priorLabels(rule types.Object, config, prior map[string]types.Object, renamed types.Object) (attr.Value, bool) {
+	if !isKnown(rule) || !rule.Attributes()["labels"].IsUnknown() {
+		return nil, false
+	}
+	record, ok := knownString(rule, "record")
+	if !ok {
+		return nil, false
+	}
+	configRule, inConfig := config[record]
+	if !inConfig || !configRule.Attributes()["labels"].IsNull() {
+		return nil, false
+	}
+	priorRule, inState := prior[record]
+	if !inState {
+		priorRule = renamed
+	}
+	if !isKnown(priorRule) || priorRule.Attributes()["labels"].IsUnknown() {
+		return nil, false
+	}
+	return priorRule.Attributes()["labels"], true
+}
+
+// renamedRules pairs, by index of the plan, each planned rule with a record that the prior rules do
+// not have with a prior rule whose record the configuration no longer has. They pair in order, and
+// only when both counts are the same and every configured record is known.
+func renamedRules(planned []attr.Value, config map[string]types.Object, configComplete bool, prior []types.Object) map[int]types.Object {
+	if !configComplete {
+		return nil
+	}
+	priorRecords := map[string]bool{}
+	var removed []types.Object
+	for _, rule := range prior {
+		record, ok := knownString(rule, "record")
+		if !ok {
+			return nil
+		}
+		priorRecords[record] = true
+		if _, kept := config[record]; !kept {
+			removed = append(removed, rule)
+		}
+	}
+	var added []int
+	for j, elem := range planned {
+		rule, ok := elem.(types.Object)
+		if !ok {
+			return nil
+		}
+		record, ok := knownString(rule, "record")
+		if !ok {
+			return nil
+		}
+		if !priorRecords[record] {
+			added = append(added, j)
+		}
+	}
+	if len(added) != len(removed) {
+		return nil
+	}
+	out := make(map[int]types.Object, len(added))
+	for k, j := range added {
+		out[j] = removed[k]
 	}
 	return out
 }
 
-func ruleIdentity(group, record types.String) (string, bool) {
-	if group.IsNull() || group.IsUnknown() || record.IsNull() || record.IsUnknown() {
+// rulesByGroup maps the known groups by name to their known rules. A name that appears twice, or a
+// group whose rules are unknown, is left out. An unknown rule is kept, so byRecord can tell that the
+// records are incomplete.
+func rulesByGroup(groups types.Set) map[string][]types.Object {
+	out := map[string][]types.Object{}
+	twice := map[string]bool{}
+	for _, elem := range groups.Elements() {
+		group, ok := elem.(types.Object)
+		if !ok || !isKnown(group) {
+			continue
+		}
+		name, ok := knownString(group, "name")
+		if !ok {
+			continue
+		}
+		if _, seen := out[name]; seen {
+			twice[name] = true
+		}
+		var rules []types.Object
+		if list, ok := group.Attributes()["rules"].(types.List); ok && isKnown(list) {
+			for _, rule := range list.Elements() {
+				if rule, ok := rule.(types.Object); ok {
+					rules = append(rules, rule)
+				}
+			}
+		} else {
+			twice[name] = true
+		}
+		out[name] = rules
+	}
+	for name := range twice {
+		delete(out, name)
+	}
+	return out
+}
+
+// byRecord maps the rules by record. A record that appears twice is left out, because its rules
+// cannot be told apart. complete is false when a rule or its record is unknown.
+func byRecord(rules []types.Object) (out map[string]types.Object, complete bool) {
+	out, complete = map[string]types.Object{}, true
+	twice := map[string]bool{}
+	for _, rule := range rules {
+		record, ok := knownString(rule, "record")
+		if !ok {
+			complete = complete && rule.IsNull()
+			continue
+		}
+		if _, seen := out[record]; seen {
+			twice[record] = true
+		}
+		out[record] = rule
+	}
+	for record := range twice {
+		delete(out, record)
+	}
+	return out, complete
+}
+
+func knownString(object types.Object, name string) (string, bool) {
+	if !isKnown(object) {
 		return "", false
 	}
-	return group.ValueString() + "\x00" + record.ValueString(), true
+	value, ok := object.Attributes()[name].(types.String)
+	if !ok || !isKnown(value) {
+		return "", false
+	}
+	return value.ValueString(), true
+}
+
+func isKnown(value attr.Value) bool {
+	return !value.IsNull() && !value.IsUnknown()
 }
 
 // recordingRulesHooks send the groups of yaml_content, and its name when the configuration sets no

@@ -213,6 +213,15 @@ var rrScenarios = map[string]func(h *grHarness){
 		h.RefreshPlan("refresh", s)
 	},
 
+	// A rule whose record changes keeps its labels when the configuration leaves them out.
+	"rename-record-keeps-labels": func(h *grHarness) {
+		s := h.Apply("create", h.null(), rrCfg("tf-set", rrGroup("g1", nil,
+			rrRule("tf:r1", j{"labels": j{"a": "1"}}), rrRule("tf:r2", j{"labels": j{"b": "2"}}))))
+		s = h.Apply("update: change the record of the first rule, without labels", s, rrCfg("tf-set", rrGroup("g1", nil,
+			rrRule("tf:r1_renamed", nil), rrRule("tf:r2", nil))))
+		h.RefreshPlan("refresh", s)
+	},
+
 	// The API accepts a group without rules on Update, and refuses a set without groups. The
 	// handwritten resource reads the empty rules back as null, an inconsistent result.
 	"clear-collections": func(h *grHarness) {
