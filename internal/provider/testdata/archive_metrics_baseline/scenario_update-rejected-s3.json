@@ -9,9 +9,9 @@
     },
     "plan": {
       "ibm": null,
-      "id": "(unknown)",
+      "id": "archive-metrics-settings",
       "prefix": "(unknown)",
-      "retention_policy": "(unknown)",
+      "retention_policy": null,
       "s3": {
         "bucket": "metrics-bucket",
         "region": "eu-north-1"
@@ -82,7 +82,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error update coralogix_archive_metrics | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Invalid bucket: Cannot write file\"}\noperation - Create"
+      "error: Unable to update archive_metrics | id archive-metrics-settings: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Invalid bucket: Cannot write file\"}"
     ],
     "state": {
       "ibm": null,

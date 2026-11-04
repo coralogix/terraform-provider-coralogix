@@ -19,4 +19,5 @@ package provider
 //go:generate make -C ../.. codegen RESOURCE=ViewFolder OUT=viewfolder
 //go:generate make -C ../.. codegen RESOURCE=OutgoingWebhook OUT=webhook
 //go:generate make -C ../.. codegen RESOURCE=v2.Target OUT=archivelogs
+//go:generate make -C ../.. codegen RESOURCE=TenantConfigV2 OUT=archivemetrics
 //go:generate make -C ../.. codegen RESOURCE=v2.Action OUT=action

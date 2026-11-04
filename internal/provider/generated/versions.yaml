@@ -4,6 +4,7 @@ action: v0.1.0-beta.60
 aievaluation: v0.1.0-beta.60
 alertsscheduler: v0.1.0-beta.60
 archivelogs: v0.1.0-beta.60
+archivemetrics: v0.1.0-beta.60
 configurationgroup: v0.1.0-beta.60
 connector: v0.1.0-beta.60
 dashboardsfolder: v0.1.0-beta.60

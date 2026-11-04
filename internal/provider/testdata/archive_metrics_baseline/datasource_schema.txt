@@ -4,9 +4,10 @@ ibm  nested SINGLE computed
 ibm.crn  tftypes.String computed
 ibm.endpoint  tftypes.String computed
 id  tftypes.String computed
+    description: The fixed id of this singleton: there is one per company.
 prefix  tftypes.String computed
 retention_policy  nested SINGLE computed
-    description: The retention policy (in days) for the archived metrics. Having default values when not specified.
+    description: The retention policy (in days) for the archived metrics. Leave it out to keep no retention policy: a configuration without it clears one that was set outside Terraform.
 retention_policy.five_minutes_resolution  tftypes.Number computed
 retention_policy.one_hour_resolution  tftypes.Number computed
 retention_policy.raw_resolution  tftypes.Number computed
