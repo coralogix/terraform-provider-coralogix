@@ -1,0 +1,15 @@
+# What the generated acceptance test needs for coralogix_archive_metrics, besides the schema.
+# The company has one metrics archive, so every subtest sets the same one.
+resource: TenantConfigV2
+
+# The API writes a probe object to the bucket, so the bucket must exist and allow Coralogix.
+env: [ARCHIVE_METRICS_BUCKET]
+
+values:
+  s3.bucket: '"@{env.ARCHIVE_METRICS_BUCKET}"'
+  s3.region: '"eu-north-1"'
+
+upgradeFrom: "3.23.0"
+
+skip:
+  - ibm   # needs a real IBM bucket; the test sets the S3 arm

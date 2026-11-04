@@ -3,8 +3,7 @@
     "step": "no storage",
     "config": {},
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"ibm\")] | No attribute specified when one (and only one) of [ibm.<.s3] is required",
-      "error: Invalid Attribute Combination [AttributeName(\"s3\")] | No attribute specified when one (and only one) of [s3.<.ibm] is required"
+      "error: Missing Attribute Configuration | Exactly one of these attributes must be configured: [ibm,s3]"
     ],
     "state": null
   },
@@ -21,8 +20,7 @@
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Combination [AttributeName(\"ibm\")] | 2 attributes specified when one (and only one) of [ibm.<.s3] is required",
-      "error: Invalid Attribute Combination [AttributeName(\"s3\")] | 2 attributes specified when one (and only one) of [s3.<.ibm] is required"
+      "error: Invalid Attribute Combination [AttributeName(\"ibm\")] | Exactly one of these attributes must be configured: [ibm,s3]"
     ],
     "state": null
   },

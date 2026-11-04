@@ -41,12 +41,12 @@ resource "coralogix_archive_metrics" "example" {
 ### Optional
 
 - `ibm` (Attributes) (see [below for nested schema](#nestedatt--ibm))
-- `retention_policy` (Attributes) The retention policy (in days) for the archived metrics. Having default values when not specified. (see [below for nested schema](#nestedatt--retention_policy))
+- `retention_policy` (Attributes) The retention policy (in days) for the archived metrics. Leave it out to keep no retention policy: a configuration without it clears one that was set outside Terraform. (see [below for nested schema](#nestedatt--retention_policy))
 - `s3` (Attributes) (see [below for nested schema](#nestedatt--s3))
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The fixed id of this singleton: there is one per company.
 - `prefix` (String)
 - `tenant_id` (Number)
 

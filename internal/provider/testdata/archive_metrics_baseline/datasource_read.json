@@ -11,7 +11,7 @@
     ],
     "state": {
       "ibm": null,
-      "id": "",
+      "id": "archive-metrics-settings",
       "prefix": "cx_metrics/",
       "retention_policy": null,
       "s3": {
