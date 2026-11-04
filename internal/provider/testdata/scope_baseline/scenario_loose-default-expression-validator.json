@@ -1,0 +1,49 @@
+[
+  {
+    "step": "apply expression accepted by the released validator",
+    "config": {
+      "default_expression": "<v1>true-whatever",
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ]
+    },
+    "plan": {
+      "default_expression": "<v1>true-whatever",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "(unknown)",
+      "team_id": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1",
+        "body": {
+          "defaultExpression": "\u003cv1\u003etrue-whatever",
+          "displayName": "example",
+          "filters": [
+            {
+              "entityType": "ENTITY_TYPE_LOGS",
+              "expression": "\u003cv1\u003etrue"
+            }
+          ]
+        },
+        "status": 412
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_scope | error - 412 Precondition Failed — {\"code\":412,\"message\":\"Failed Precondition: Failed to compile expression. Expression: [\\u003cv1\\u003etrue-whatever], Errors: [expression type could not be inferred, please add a cast, operator cannot be applied to types bool and unknown, expected one of [number and number, timestamp and interval, timestamp and timestamp, interval and interval]]\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

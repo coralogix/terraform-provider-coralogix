@@ -1,0 +1,342 @@
+[
+  {
+    "step": "create empty display name",
+    "config": {
+      "default_expression": "<v1>true",
+      "description": "name lifecycle",
+      "display_name": "",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ]
+    },
+    "plan": {
+      "default_expression": "<v1>true",
+      "description": "name lifecycle",
+      "display_name": "",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "(unknown)",
+      "team_id": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1",
+        "body": {
+          "defaultExpression": "\u003cv1\u003etrue",
+          "description": "name lifecycle",
+          "displayName": "",
+          "filters": [
+            {
+              "entityType": "ENTITY_TYPE_LOGS",
+              "expression": "\u003cv1\u003etrue"
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": "name lifecycle",
+      "display_name": "",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and plan empty display name",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1?ids=00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": "name lifecycle",
+      "display_name": "",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "set display name",
+    "config": {
+      "default_expression": "<v1>true",
+      "description": "name lifecycle",
+      "display_name": "named",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ]
+    },
+    "plan": {
+      "default_expression": "<v1>true",
+      "description": "name lifecycle",
+      "display_name": "named",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1",
+        "body": {
+          "defaultExpression": "\u003cv1\u003etrue",
+          "description": "name lifecycle",
+          "displayName": "named",
+          "filters": [
+            {
+              "entityType": "ENTITY_TYPE_LOGS",
+              "expression": "\u003cv1\u003etrue"
+            }
+          ],
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": "name lifecycle",
+      "display_name": "named",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "clear display name",
+    "config": {
+      "default_expression": "<v1>true",
+      "description": "name lifecycle",
+      "display_name": "",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ]
+    },
+    "plan": {
+      "default_expression": "<v1>true",
+      "description": "name lifecycle",
+      "display_name": "",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1",
+        "body": {
+          "defaultExpression": "\u003cv1\u003etrue",
+          "description": "name lifecycle",
+          "displayName": "",
+          "filters": [
+            {
+              "entityType": "ENTITY_TYPE_LOGS",
+              "expression": "\u003cv1\u003etrue"
+            }
+          ],
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": "name lifecycle",
+      "display_name": "",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and plan cleared display name",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1?ids=00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": "name lifecycle",
+      "display_name": "",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "import empty display name",
+    "state": null
+  },
+  {
+    "step": "import empty display name (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1?ids=00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": "name lifecycle",
+      "display_name": "",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "drift": [
+      "AttributeName(\"default_expression\")",
+      "AttributeName(\"description\")",
+      "AttributeName(\"display_name\")",
+      "AttributeName(\"filters\")",
+      "AttributeName(\"filters\").ElementKeyInt(0)",
+      "AttributeName(\"team_id\")"
+    ]
+  },
+  {
+    "step": "plan imported empty display name",
+    "config": {
+      "default_expression": "<v1>true",
+      "description": "name lifecycle",
+      "display_name": "",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ]
+    },
+    "plan": {
+      "default_expression": "<v1>true",
+      "description": "name lifecycle",
+      "display_name": "",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "noChange": true,
+    "state": {
+      "default_expression": "<v1>true",
+      "description": "name lifecycle",
+      "display_name": "",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    }
+  },
+  {
+    "step": "read empty display name",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1?ids=00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": "name lifecycle",
+      "display_name": "",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    }
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

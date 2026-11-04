@@ -1,0 +1,809 @@
+{
+  "cases": [
+    {
+      "name": "missing route",
+      "steps": [
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Not Found"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Not Found"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create read change remove description delete",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "description": "original",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "description": "original",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}-updated",
+              "description": "changed",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_SPANS",
+                  "expression": "<v1>false"
+                },
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>false"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}-updated",
+                "description": "changed",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_SPANS",
+                    "expression": "<v1>false"
+                  },
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>false"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}-updated",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_SPANS",
+                  "expression": "<v1>false"
+                },
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>false"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}-updated",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_SPANS",
+                    "expression": "<v1>false"
+                  },
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>false"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: No scopes found"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Scope not found"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "empty description",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "description": "",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "description": "",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "empty filters",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "teamId": 1234,
+                "filters": [],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "null filters",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "teamId": 1234,
+                "filters": [],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "spans filter",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_SPANS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_SPANS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "unspecified entity type",
+      "steps": [
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Incoming entity type is unspecified"
+          }
+        }
+      ]
+    },
+    {
+      "name": "clear filters on replacement",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "teamId": 1234,
+                "filters": [],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "teamId": 1234,
+                "filters": [],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "teamId": 1234,
+                "filters": [],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "unversioned filter expression",
+      "steps": [
+        {
+          "status": 412,
+          "response": {
+            "code": 412,
+            "message": "Failed Precondition: Failed to compile expression. Expression: [true], Errors: [expected version tag. e.g. \"<v1> foo == 'bar'\"]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "empty filter expression",
+      "steps": [
+        {
+          "status": 412,
+          "response": {
+            "code": 412,
+            "message": "Failed Precondition: Failed to compile expression. Expression: [], Errors: [expected version tag. e.g. \"<v1> foo == 'bar'\"]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "loose default expression validator",
+      "steps": [
+        {
+          "status": 412,
+          "response": {
+            "code": 412,
+            "message": "Failed Precondition: Failed to compile expression. Expression: [<v1>true-whatever], Errors: [expression type could not be inferred, please add a cast, operator cannot be applied to types bool and unknown, expected one of [number and number, timestamp and interval, timestamp and timestamp, interval and interval]]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "duplicate display names",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{duplicate_id}}",
+              "displayName": "{{name}}",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "empty display name lifecycle",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "",
+              "description": "name lifecycle",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "",
+                "description": "name lifecycle",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "description": "name lifecycle",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "description": "name lifecycle",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "",
+              "description": "name lifecycle",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "",
+                "description": "name lifecycle",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "clear description on replacement",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "description": "original",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "description": "original",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scope": {
+              "id": "{{id}}",
+              "displayName": "{{name}}",
+              "description": "",
+              "teamId": 1234,
+              "filters": [
+                {
+                  "entityType": "ENTITY_TYPE_LOGS",
+                  "expression": "<v1>true"
+                }
+              ],
+              "defaultExpression": "<v1>true"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "scopes": [
+              {
+                "id": "{{id}}",
+                "displayName": "{{name}}",
+                "description": "",
+                "teamId": 1234,
+                "filters": [
+                  {
+                    "entityType": "ENTITY_TYPE_LOGS",
+                    "expression": "<v1>true"
+                  }
+                ],
+                "defaultExpression": "<v1>true"
+              }
+            ]
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "bare false default expression",
+      "steps": [
+        {
+          "status": 412,
+          "response": {
+            "code": 412,
+            "message": "Failed Precondition: Failed to compile expression. Expression: [false], Errors: [expected version tag. e.g. \"<v1> foo == 'bar'\"]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "prefixed false default expression",
+      "steps": [
+        {
+          "status": 412,
+          "response": {
+            "code": 412,
+            "message": "Failed Precondition: Failed to compile expression. Expression: [prefixfalse], Errors: [expected version tag. e.g. \"<v1> foo == 'bar'\"]"
+          }
+        }
+      ]
+    },
+    {
+      "name": "repeated e default expression",
+      "steps": [
+        {
+          "status": 412,
+          "response": {
+            "code": 412,
+            "message": "Failed Precondition: Failed to compile expression. Expression: [falsee], Errors: [expected version tag. e.g. \"<v1> foo == 'bar'\"]"
+          }
+        }
+      ]
+    }
+  ]
+}

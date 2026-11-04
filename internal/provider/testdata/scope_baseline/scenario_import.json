@@ -1,0 +1,76 @@
+[
+  {
+    "step": "import",
+    "state": null
+  },
+  {
+    "step": "import (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1?ids=00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "seeded",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "drift": [
+      "AttributeName(\"default_expression\")",
+      "AttributeName(\"display_name\")",
+      "AttributeName(\"filters\")",
+      "AttributeName(\"filters\").ElementKeyInt(0)",
+      "AttributeName(\"team_id\")"
+    ]
+  },
+  {
+    "step": "plan matching config",
+    "config": {
+      "default_expression": "<v1>true",
+      "display_name": "seeded",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ]
+    },
+    "plan": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "seeded",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "noChange": true,
+    "state": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "seeded",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    }
+  }
+]

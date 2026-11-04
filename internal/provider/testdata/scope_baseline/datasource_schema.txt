@@ -1,0 +1,18 @@
+(data source schema)
+    description: Coralogix Scope. Scopes assign data access to users via groups. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/scopes/.
+default_expression  tftypes.String computed
+    description: Default expression to use when no filter matches the query. Until further notice, this is limited to `true` (everything is included) or `false` (nothing is included). Use a version tag (e.g `<v1>true` or `<v1>false`)
+description  tftypes.String computed
+    description: Description of the scope. Optional.
+display_name  tftypes.String computed
+    description: Scope display name.
+filters  nested LIST computed
+    description: Filters applied to include data in the scope.
+filters.entity_type  tftypes.String computed
+    description: Entity type to apply the expression on
+filters.expression  tftypes.String computed
+    description: Expression to run
+id  tftypes.String required
+    description: Scope ID.
+team_id  tftypes.String computed
+    description: Associated team.

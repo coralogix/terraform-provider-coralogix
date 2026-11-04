@@ -1,0 +1,23 @@
+(schema)  version=0
+    markdown: "Coralogix Scope. Scopes assign data access to users via groups. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/scopes/."
+default_expression  StringAttribute required
+    markdown: "Default expression to use when no filter matches the query. Until further notice, this is limited to `true` (everything is included) or `false` (nothing is included). Use a version tag (e.g `<v1>true` or `<v1>false`)"
+    validator: stringvalidator.regexMatchesValidator Default expression must be in the format `<vX>true` or `<vX>false where X is a version number. E.g. `<v1>true` or `<v1>false
+description  StringAttribute optional
+    markdown: "Description of the scope. Optional."
+display_name  StringAttribute required
+    markdown: "Scope display name."
+filters  ListNestedAttribute required
+    markdown: "Filters applied to include data in the scope."
+filters[]  NestedObject
+filters[].entity_type  StringAttribute required
+    markdown: "Entity type to apply the expression on"
+    validator: stringvalidator.oneOfValidator value must be one of: ["logs" "spans" "unspecified"]
+filters[].expression  StringAttribute required
+    markdown: "Expression to run"
+id  StringAttribute computed
+    markdown: "Scope ID."
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+team_id  StringAttribute computed
+    markdown: "Associated team."
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.

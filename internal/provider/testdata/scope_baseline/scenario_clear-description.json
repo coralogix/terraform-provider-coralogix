@@ -1,0 +1,191 @@
+[
+  {
+    "step": "create nonempty description",
+    "config": {
+      "default_expression": "<v1>true",
+      "description": "original",
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ]
+    },
+    "plan": {
+      "default_expression": "<v1>true",
+      "description": "original",
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "(unknown)",
+      "team_id": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1",
+        "body": {
+          "defaultExpression": "\u003cv1\u003etrue",
+          "description": "original",
+          "displayName": "example",
+          "filters": [
+            {
+              "entityType": "ENTITY_TYPE_LOGS",
+              "expression": "\u003cv1\u003etrue"
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": "original",
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "clear description with empty string",
+    "config": {
+      "default_expression": "<v1>true",
+      "description": "",
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ]
+    },
+    "plan": {
+      "default_expression": "<v1>true",
+      "description": "",
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1",
+        "body": {
+          "defaultExpression": "\u003cv1\u003etrue",
+          "description": "",
+          "displayName": "example",
+          "filters": [
+            {
+              "entityType": "ENTITY_TYPE_LOGS",
+              "expression": "\u003cv1\u003etrue"
+            }
+          ],
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "description"
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"description\")"
+    ]
+  },
+  {
+    "step": "refresh and plan cleared description",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1?ids=00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"description\")"
+    ]
+  },
+  {
+    "step": "read cleared description",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1?ids=00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    }
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

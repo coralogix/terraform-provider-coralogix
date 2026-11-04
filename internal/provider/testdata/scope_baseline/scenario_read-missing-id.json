@@ -1,0 +1,109 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "default_expression": "<v1>true",
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ]
+    },
+    "plan": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "(unknown)",
+      "team_id": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1",
+        "body": {
+          "defaultExpression": "\u003cv1\u003etrue",
+          "displayName": "example",
+          "filters": [
+            {
+              "entityType": "ENTITY_TYPE_LOGS",
+              "expression": "\u003cv1\u003etrue"
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "resource read returns missing-id",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1?ids=00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to read coralogix_scope \"00000000-0000-4000-8000-000000000001\" | The read returned a scope with no id. State is left unchanged rather than overwritten with an empty id."
+    ],
+    "state": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": "1234"
+    }
+  },
+  {
+    "step": "data source read returns missing-id",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1?ids=00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to read coralogix_scope \"00000000-0000-4000-8000-000000000001\" | The read returned a scope with no id."
+    ],
+    "state": {
+      "default_expression": null,
+      "description": null,
+      "display_name": null,
+      "filters": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "team_id": null
+    }
+  }
+]
