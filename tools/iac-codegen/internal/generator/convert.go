@@ -562,6 +562,11 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if err := checkPositions(b.objects); err != nil {
 		return nil, err
 	}
+	rootUnsupported, err := b.unsupportedArms(&model.Type{Schema: b.resource.Name}, "fields")
+	if err != nil {
+		return nil, err
+	}
+	out.RootUnsupported = rootUnsupported
 	for _, obj := range b.listed {
 		// Only flatten builds Terraform values. An object that only a request
 		// holds needs no attribute types.
