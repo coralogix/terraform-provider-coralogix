@@ -56,3 +56,8 @@ upgradeMinimal:
   - description
 
 upgradeFrom: "3.19.0"
+
+# The routing labels above are pinned, so a router that a cancelled run left behind holds them, and
+# every later create fails with "Routing labels already in use". Each subtest first deletes the
+# routers that hold exactly the routing labels of its own configs.
+leftovers: internal/acctest.RemoveLeftoverGlobalRouters

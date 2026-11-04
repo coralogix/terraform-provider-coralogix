@@ -430,7 +430,7 @@ func webhookFromState(s *terraform.State, resourceName string) (*webhooks.Outgoi
 	if err != nil {
 		return nil, fmt.Errorf("read webhook %s: %w", rs.Primary.ID, err)
 	}
-	return result.Webhook, nil
+	return &result.Webhook, nil
 }
 
 func webhookBackendJiraTokenEquals(resourceName, want string) resource.TestCheckFunc {

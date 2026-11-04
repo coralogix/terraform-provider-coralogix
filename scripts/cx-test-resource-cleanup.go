@@ -287,10 +287,8 @@ func main() {
 	ipaccess, _, err := ipaccessClient.IpAccessServiceGetCompanyIpAccessSettings(ctx).Execute()
 	if err == nil {
 		log.Println("Deleting all IpAccess")
-		if ipaccess.Settings.IpAccess != nil {
-			for _ = range *ipaccess.Settings.IpAccess {
-				ipaccessClient.IpAccessServiceDeleteCompanyIpAccessSettings(ctx).Execute()
-			}
+		if len(ipaccess.GetSettings().IpAccess) > 0 {
+			ipaccessClient.IpAccessServiceDeleteCompanyIpAccessSettings(ctx).Execute()
 		}
 	} else {
 		log.Print("Error listing IP Access:", err)

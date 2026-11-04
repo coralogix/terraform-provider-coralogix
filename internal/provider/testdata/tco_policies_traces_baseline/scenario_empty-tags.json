@@ -1,0 +1,435 @@
+[
+  {
+    "step": "create: tags = {}",
+    "config": {
+      "policies": [
+        {
+          "name": "first",
+          "priority": "high",
+          "services": {
+            "names": [
+              "checkout"
+            ]
+          },
+          "tags": {}
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "services": {
+            "names": [
+              "checkout"
+            ],
+            "rule_type": "is"
+          },
+          "subsystems": null,
+          "tags": {}
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/span-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_HIGH"
+              },
+              "spanRules": {
+                "serviceRule": {
+                  "name": "checkout",
+                  "ruleTypeId": "RULE_TYPE_ID_IS"
+                },
+                "tagRules": []
+              }
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "policies[0].tags"
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "first",
+          "order": 1,
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "services": {
+            "names": [
+              "checkout"
+            ],
+            "rule_type": "is"
+          },
+          "subsystems": null,
+          "tags": null
+        }
+      ]
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"id\")",
+      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"id\")",
+      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"order\")",
+      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"tags\")"
+    ]
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_SPANS",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "first",
+          "order": 1,
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "services": {
+            "names": [
+              "checkout"
+            ],
+            "rule_type": "is"
+          },
+          "subsystems": null,
+          "tags": null
+        }
+      ]
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"id\")",
+      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"id\")",
+      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"order\")",
+      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"tags\")"
+    ]
+  },
+  {
+    "step": "update: set a tag",
+    "config": {
+      "policies": [
+        {
+          "name": "first",
+          "priority": "high",
+          "services": {
+            "names": [
+              "checkout"
+            ]
+          },
+          "tags": {
+            "tags.region": {
+              "names": [
+                "eu"
+              ],
+              "rule_type": "is_not"
+            }
+          }
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "services": {
+            "names": [
+              "checkout"
+            ],
+            "rule_type": "is"
+          },
+          "subsystems": null,
+          "tags": {
+            "tags.region": {
+              "names": [
+                "eu"
+              ],
+              "rule_type": "is_not"
+            }
+          }
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/span-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_HIGH"
+              },
+              "spanRules": {
+                "serviceRule": {
+                  "name": "checkout",
+                  "ruleTypeId": "RULE_TYPE_ID_IS"
+                },
+                "tagRules": [
+                  {
+                    "ruleTypeId": "RULE_TYPE_ID_IS_NOT",
+                    "tagName": "tags.region",
+                    "tagValue": "eu"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "first",
+          "order": 1,
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "services": {
+            "names": [
+              "checkout"
+            ],
+            "rule_type": "is"
+          },
+          "subsystems": null,
+          "tags": {
+            "tags.region": {
+              "names": [
+                "eu"
+              ],
+              "rule_type": "is_not"
+            }
+          }
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: back to tags = {}",
+    "config": {
+      "policies": [
+        {
+          "name": "first",
+          "priority": "high",
+          "services": {
+            "names": [
+              "checkout"
+            ]
+          },
+          "tags": {}
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "services": {
+            "names": [
+              "checkout"
+            ],
+            "rule_type": "is"
+          },
+          "subsystems": null,
+          "tags": {}
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/span-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_HIGH"
+              },
+              "spanRules": {
+                "serviceRule": {
+                  "name": "checkout",
+                  "ruleTypeId": "RULE_TYPE_ID_IS"
+                },
+                "tagRules": []
+              }
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "policies[0].tags"
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000003",
+          "name": "first",
+          "order": 1,
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "services": {
+            "names": [
+              "checkout"
+            ],
+            "rule_type": "is"
+          },
+          "subsystems": null,
+          "tags": null
+        }
+      ]
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"id\")",
+      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"id\")",
+      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"order\")",
+      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"tags\")"
+    ]
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_SPANS",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000003",
+          "name": "first",
+          "order": 1,
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "services": {
+            "names": [
+              "checkout"
+            ],
+            "rule_type": "is"
+          },
+          "subsystems": null,
+          "tags": null
+        }
+      ]
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"id\")",
+      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"id\")",
+      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"order\")",
+      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"tags\")"
+    ]
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/span-policies/v1",
+        "body": {
+          "policies": null
+        },
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

@@ -49,6 +49,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/recording_rules"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/slo_mgmt"
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/views"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/webhook"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -418,7 +419,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		dataplans.NewTCOPoliciesRumDataSource,
 		dataplans.NewQuotaAllocationRuleSetDataSource,
 		dashboards.NewDashboardDataSource,
-		integrations.NewWebhookDataSource,
+		webhook.NewDataSourceWithBehavior,
 		recording_rules.NewRecordingRuleGroupSetDataSource,
 		dataengine.NewArchiveRetentionsDataSource,
 		metrics.NewArchiveMetricsDataSource,
@@ -457,7 +458,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		dataplans.NewTCOPoliciesRumResource,
 		dataplans.NewQuotaAllocationRuleSetResource,
 		dashboards.NewDashboardResource,
-		integrations.NewWebhookResource,
+		webhook.NewResourceWithBehavior,
 		recording_rules.NewRecordingRuleGroupSetResource,
 		dataengine.NewArchiveRetentionsResource,
 		metrics.NewArchiveMetricsResource,

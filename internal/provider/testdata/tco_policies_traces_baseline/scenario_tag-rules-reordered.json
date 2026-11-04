@@ -1,0 +1,172 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "policies": [
+        {
+          "name": "first",
+          "priority": "high",
+          "tags": {
+            "tags.http.method": {
+              "names": [
+                "GET"
+              ]
+            },
+            "tags.region": {
+              "names": [
+                "eu"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "services": null,
+          "subsystems": null,
+          "tags": {
+            "tags.http.method": {
+              "names": [
+                "GET"
+              ],
+              "rule_type": "is"
+            },
+            "tags.region": {
+              "names": [
+                "eu"
+              ],
+              "rule_type": "is"
+            }
+          }
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/span-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_HIGH"
+              },
+              "spanRules": {
+                "tagRules": [
+                  {
+                    "ruleTypeId": "RULE_TYPE_ID_IS",
+                    "tagName": "tags.http.method",
+                    "tagValue": "GET"
+                  },
+                  {
+                    "ruleTypeId": "RULE_TYPE_ID_IS",
+                    "tagName": "tags.region",
+                    "tagValue": "eu"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "first",
+          "order": 1,
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "services": null,
+          "subsystems": null,
+          "tags": {
+            "tags.http.method": {
+              "names": [
+                "GET"
+              ],
+              "rule_type": "is"
+            },
+            "tags.region": {
+              "names": [
+                "eu"
+              ],
+              "rule_type": "is"
+            }
+          }
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: the API returns the tag rules in another order",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_SPANS",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "first",
+          "order": 1,
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "services": null,
+          "subsystems": null,
+          "tags": {
+            "tags.http.method": {
+              "names": [
+                "GET"
+              ],
+              "rule_type": "is"
+            },
+            "tags.region": {
+              "names": [
+                "eu"
+              ],
+              "rule_type": "is"
+            }
+          }
+        }
+      ]
+    },
+    "replanEmpty": true
+  }
+]

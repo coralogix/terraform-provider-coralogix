@@ -1,0 +1,366 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "policies": [
+        {
+          "archive_retention_id": "11111111-1111-4111-8111-111111111111",
+          "name": "first",
+          "priority": "high",
+          "severities": [
+            "info"
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": "11111111-1111-4111-8111-111111111111",
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/log-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "logRules": {
+                "severities": [
+                  "SEVERITY_INFO"
+                ]
+              },
+              "policy": {
+                "archiveRetention": {
+                  "id": "11111111-1111-4111-8111-111111111111"
+                },
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_HIGH"
+              }
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": "11111111-1111-4111-8111-111111111111",
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "first",
+          "order": 1,
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_LOGS",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": "11111111-1111-4111-8111-111111111111",
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "first",
+          "order": 1,
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: an archive retention that does not exist",
+    "config": {
+      "policies": [
+        {
+          "archive_retention_id": "00000000-0000-4000-8000-999999999999",
+          "name": "first",
+          "priority": "high",
+          "severities": [
+            "info"
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": "00000000-0000-4000-8000-999999999999",
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/log-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "logRules": {
+                "severities": [
+                  "SEVERITY_INFO"
+                ]
+              },
+              "policy": {
+                "archiveRetention": {
+                  "id": "00000000-0000-4000-8000-999999999999"
+                },
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_HIGH"
+              }
+            }
+          ]
+        },
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error replacing coralogix_tco_policies_logs | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Unexpected server error occurred\"}\noperation - Replace"
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": "11111111-1111-4111-8111-111111111111",
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "first",
+          "order": 1,
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": null
+        }
+      ]
+    }
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_LOGS",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": "11111111-1111-4111-8111-111111111111",
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "first",
+          "order": 1,
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": null
+        }
+      ]
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"id\")",
+      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"archive_retention_id\")",
+      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"id\")",
+      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"order\")"
+    ]
+  },
+  {
+    "step": "update: remove the archive retention",
+    "config": {
+      "policies": [
+        {
+          "name": "first",
+          "priority": "high",
+          "severities": [
+            "info"
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/log-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "logRules": {
+                "severities": [
+                  "SEVERITY_INFO"
+                ]
+              },
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_HIGH"
+              }
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "first",
+          "order": 1,
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_LOGS",
+        "status": 200
+      }
+    ],
+    "state": {
+      "id": null,
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000002",
+          "name": "first",
+          "order": 1,
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": null
+        }
+      ]
+    },
+    "replanEmpty": true
+  }
+]

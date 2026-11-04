@@ -13,6 +13,13 @@
 - FIX: A read when no metrics archive exists fails with `coralogix_archive_metrics not found`. Before, it warned that the archive would be recreated, which a data source cannot do.
 - CHORE: API errors read `Unable to read coralogix_archive_metrics` instead of `Error reading coralogix_archive_metrics`.
 
+#### resource/coralogix_webhook
+- CHORE: The resource and data source use generated code. The released schema, ten webhook types, import, and write-only fields remain available.
+- FIX: Empty email and Slack collections now produce a stable plan after apply.
+- FIX: A failed read after Create keeps the new id in state. Terraform can then delete the partial resource.
+- FIX: Delete succeeds when the webhook is already absent. An Update of an absent webhook keeps the prior state and returns an error. The next refresh can remove it.
+- CHORE: The SDK sends empty strings for omitted fields that the API requires. The API rejects these configurations as before. A legacy Microsoft Teams webhook can still be read and imported. Its rejected update now reports that this type is deprecated.
+
 #### resource/coralogix_action
 - CHORE: The resource is generated from the API contract. The schema, the import by id, and the state version are the same. A plan with an action that was created by 3.22.1 shows no change.
 - FIX: An update of an action that was deleted outside Terraform fails with `Resource no longer exists` and the next refresh removes it from state. Before, it printed a warning with a pointer instead of the id, and Terraform failed with `Missing Resource State After Update`.
@@ -49,6 +56,7 @@
 #### provider
 - CHORE: Bump `coralogix-management-sdk` to the version with the actions contract: the defaults of `isHidden` and `isPrivate`, `createdBy` as output-only, and the description of the replace.
 - CHORE: Bump `coralogix-management-sdk` to the version with the integrations contract. The SDK holds the required fields of `IntegrationMetadata` and `DeployedIntegrationInformation` as values; `coralogix_integration` adapts, with no change to plans. The dashboard tests answer a Get with the `permissions` object that the SDK now requires in the response.
+- CHORE: Bump `golang.org/x/crypto` to v0.58.1-0.20261009181718-2f1f834330b2 to clear GO-2026-5932. The provider does not import `golang.org/x/crypto/openpgp`. No change to provider behavior.
 
 #### tools/iac-codegen
 - FEAT: An existing-resource Create body that is the resource itself, while only the Update body wraps it in `api.requestWrapper`, generates a flat Create request. Before, the wrapper applied to both bodies and the SDK check failed on Create. The model of the SDK `iac` module infers this from the spec, so no key is needed.
@@ -57,6 +65,9 @@
 - FEAT: `updatedValues` in `acceptance.yaml` gives the updated config of the generated acceptance test another expression for a field that `values` sets, for a value that the generator cannot change on its own, such as the object of a dynamic attribute. A line for an immutable or skipped field, or one that `values` does not set, is an error.
 - FEAT: An existing resource whose Create and Update requests hold another component than the resource in their wrapper can map a field to its request path with `requestAs` on the field line (a renamed property, or one inside an object), and send the Update id beside the wrapper with `api.updateIDOutsideWrapper`.
 - FEAT: `upgradeValues` in `acceptance.yaml` gives every config of the generated upgrade test another expression for a field that `values` sets, for a value that must differ from the lifecycle test's, such as a routing label that is unique across routers. A line without `upgradeFrom`, for a path that `values` does not set, or for a path that an `upgradeCases` entry also sets, is an error.
+
+#### resource/coralogix_ip_access
+- CHORE: Add a schema and lifecycle baseline for the handwritten resource, with an opt-in recorder for checking the API fake against a disposable tenant.
 
 # Release 3.23.0
 

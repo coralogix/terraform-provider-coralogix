@@ -1,0 +1,234 @@
+[
+  {
+    "step": "create: priority on the policy and on the target",
+    "config": {
+      "policies": [
+        {
+          "name": "first",
+          "priority": "high",
+          "severities": [
+            "info"
+          ],
+          "targets": [
+            {
+              "dataset": "logs",
+              "priority": "high"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": [
+            {
+              "archive_retention_id": null,
+              "dataset": "logs",
+              "dataspace": "default",
+              "priority": "high",
+              "priority_override": null
+            }
+          ]
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/log-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "logRules": {
+                "severities": [
+                  "SEVERITY_INFO"
+                ]
+              },
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_HIGH",
+                "targets": [
+                  {
+                    "dataset": "logs",
+                    "dataspace": "default",
+                    "priority": "PRIORITY_TYPE_HIGH"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_tco_policies_logs | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies: ValidationError: \\\"policies[0]\\\" failed custom validation because FAILED_PRECONDITION: priority/priorityOverride must be set either at the policy level or per-target, not both.\"}\noperation - Create"
+    ],
+    "state": null
+  },
+  {
+    "step": "create: neither a policy priority nor targets",
+    "config": {
+      "policies": [
+        {
+          "name": "first",
+          "severities": [
+            "info"
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": null,
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/log-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "logRules": {
+                "severities": [
+                  "SEVERITY_INFO"
+                ]
+              },
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_UNSPECIFIED"
+              }
+            }
+          ]
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_tco_policies_logs | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies: ValidationError: \\\"policies[0]\\\" failed custom validation because FAILED_PRECONDITION: A priority is required: set the policy priority (or a quota-based priority override), or provide targets that each specify a priority.\"}\noperation - Create"
+    ],
+    "state": null
+  },
+  {
+    "step": "create: a dataset that does not exist",
+    "config": {
+      "policies": [
+        {
+          "name": "first",
+          "severities": [
+            "info"
+          ],
+          "targets": [
+            {
+              "dataset": "missing",
+              "priority": "low"
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": null,
+          "quota_based_priority_override": null,
+          "severities": [
+            "info"
+          ],
+          "subsystems": null,
+          "targets": [
+            {
+              "archive_retention_id": null,
+              "dataset": "missing",
+              "dataspace": "default",
+              "priority": "low",
+              "priority_override": null
+            }
+          ]
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/log-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "logRules": {
+                "severities": [
+                  "SEVERITY_INFO"
+                ]
+              },
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_UNSPECIFIED",
+                "targets": [
+                  {
+                    "dataset": "missing",
+                    "dataspace": "default",
+                    "priority": "PRIORITY_TYPE_LOW"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "status": 412
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_tco_policies_logs | error - 412 Precondition Failed — {\"code\":412,\"message\":\"Failed Precondition: Dataset 'missing' not found\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

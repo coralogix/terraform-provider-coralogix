@@ -1,0 +1,679 @@
+[
+  {
+    "step": "create with every format standard",
+    "config": {
+      "name": "tf-rule-group",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "extract_timestamp": {
+                "field_format_standard": "strftime",
+                "name": "strftime",
+                "source_field": "text",
+                "time_format": "%Y"
+              }
+            },
+            {
+              "extract_timestamp": {
+                "field_format_standard": "javaSDF",
+                "name": "javaSDF",
+                "source_field": "text",
+                "time_format": "%Y"
+              }
+            },
+            {
+              "extract_timestamp": {
+                "field_format_standard": "golang",
+                "name": "golang",
+                "source_field": "text",
+                "time_format": "%Y"
+              }
+            },
+            {
+              "extract_timestamp": {
+                "field_format_standard": "secondTS",
+                "name": "secondTS",
+                "source_field": "text",
+                "time_format": "%Y"
+              }
+            },
+            {
+              "extract_timestamp": {
+                "field_format_standard": "milliTS",
+                "name": "milliTS",
+                "source_field": "text",
+                "time_format": "%Y"
+              }
+            },
+            {
+              "extract_timestamp": {
+                "field_format_standard": "microTS",
+                "name": "microTS",
+                "source_field": "text",
+                "time_format": "%Y"
+              }
+            },
+            {
+              "extract_timestamp": {
+                "field_format_standard": "nanoTS",
+                "name": "nanoTS",
+                "source_field": "text",
+                "time_format": "%Y"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": [],
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "(unknown)",
+      "name": "tf-rule-group",
+      "order": "(unknown)",
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "strftime",
+                "id": "(unknown)",
+                "name": "strftime",
+                "order": "(unknown)",
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "javaSDF",
+                "id": "(unknown)",
+                "name": "javaSDF",
+                "order": "(unknown)",
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "golang",
+                "id": "(unknown)",
+                "name": "golang",
+                "order": "(unknown)",
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "secondTS",
+                "id": "(unknown)",
+                "name": "secondTS",
+                "order": "(unknown)",
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "milliTS",
+                "id": "(unknown)",
+                "name": "milliTS",
+                "order": "(unknown)",
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "microTS",
+                "id": "(unknown)",
+                "name": "microTS",
+                "order": "(unknown)",
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "nanoTS",
+                "id": "(unknown)",
+                "name": "nanoTS",
+                "order": "(unknown)",
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1",
+        "body": {
+          "creator": "",
+          "description": "",
+          "enabled": false,
+          "hidden": false,
+          "name": "tf-rule-group",
+          "order": 0,
+          "ruleSubgroups": [
+            {
+              "enabled": true,
+              "order": 1,
+              "rules": [
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "strftime",
+                  "order": 1,
+                  "parameters": {
+                    "extractTimestampParameters": {
+                      "format": "%Y",
+                      "standard": "FORMAT_STANDARD_STRFTIME_OR_UNSPECIFIED"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "javaSDF",
+                  "order": 2,
+                  "parameters": {
+                    "extractTimestampParameters": {
+                      "format": "%Y",
+                      "standard": "FORMAT_STANDARD_JAVASDF"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "golang",
+                  "order": 3,
+                  "parameters": {
+                    "extractTimestampParameters": {
+                      "format": "%Y",
+                      "standard": "FORMAT_STANDARD_GOLANG"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "secondTS",
+                  "order": 4,
+                  "parameters": {
+                    "extractTimestampParameters": {
+                      "format": "%Y",
+                      "standard": "FORMAT_STANDARD_SECONDSTS"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "milliTS",
+                  "order": 5,
+                  "parameters": {
+                    "extractTimestampParameters": {
+                      "format": "%Y",
+                      "standard": "FORMAT_STANDARD_MILLITS"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "microTS",
+                  "order": 6,
+                  "parameters": {
+                    "extractTimestampParameters": {
+                      "format": "%Y",
+                      "standard": "FORMAT_STANDARD_MICROTS"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "nanoTS",
+                  "order": 7,
+                  "parameters": {
+                    "extractTimestampParameters": {
+                      "format": "%Y",
+                      "standard": "FORMAT_STANDARD_NANOTS"
+                    }
+                  },
+                  "sourceField": "text"
+                }
+              ]
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": false,
+      "applications": [],
+      "creator": "",
+      "description": "",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000009",
+      "name": "tf-rule-group",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000008",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "strftime",
+                "id": "00000000-0000-4000-9000-000000000001",
+                "name": "strftime",
+                "order": 1,
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "javaSDF",
+                "id": "00000000-0000-4000-9000-000000000002",
+                "name": "javaSDF",
+                "order": 2,
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "golang",
+                "id": "00000000-0000-4000-9000-000000000003",
+                "name": "golang",
+                "order": 3,
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "secondTS",
+                "id": "00000000-0000-4000-9000-000000000004",
+                "name": "secondTS",
+                "order": 4,
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "milliTS",
+                "id": "00000000-0000-4000-9000-000000000005",
+                "name": "milliTS",
+                "order": 5,
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "microTS",
+                "id": "00000000-0000-4000-9000-000000000006",
+                "name": "microTS",
+                "order": 6,
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "nanoTS",
+                "id": "00000000-0000-4000-9000-000000000007",
+                "name": "nanoTS",
+                "order": 7,
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000009",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": false,
+      "applications": [],
+      "creator": "",
+      "description": "",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000009",
+      "name": "tf-rule-group",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000008",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "strftime",
+                "id": "00000000-0000-4000-9000-000000000001",
+                "name": "strftime",
+                "order": 1,
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "javaSDF",
+                "id": "00000000-0000-4000-9000-000000000002",
+                "name": "javaSDF",
+                "order": 2,
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "golang",
+                "id": "00000000-0000-4000-9000-000000000003",
+                "name": "golang",
+                "order": 3,
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "secondTS",
+                "id": "00000000-0000-4000-9000-000000000004",
+                "name": "secondTS",
+                "order": 4,
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "milliTS",
+                "id": "00000000-0000-4000-9000-000000000005",
+                "name": "milliTS",
+                "order": 5,
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "microTS",
+                "id": "00000000-0000-4000-9000-000000000006",
+                "name": "microTS",
+                "order": 6,
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "nanoTS",
+                "id": "00000000-0000-4000-9000-000000000007",
+                "name": "nanoTS",
+                "order": 7,
+                "source_field": "text",
+                "time_format": "%Y"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "replanEmpty": true
+  }
+]

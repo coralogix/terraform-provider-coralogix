@@ -370,7 +370,10 @@ upgradeCases:                   # extra upgrade subtests (needs upgradeFrom)
   - name: write-only
     values:
       token_wo: '{ secret = "x" }'  # extraAttributes need a real map key, not a made-up `key`
+leftovers: internal/acctest.RemoveLeftoverGlobalRouters  # runs before each subtest creates
 ```
+
+`leftovers` names a handwritten function, as `<package directory in the provider module>.<Func>`, with the signature `func(t *testing.T, configs ...string)`. The package name must be the last element of the directory. Each subtest calls it in its `PreCheck`, after the environment checks, with the rendered configs that the subtest applies. Use it for a resource that holds a value that must be unique, such as a routing label: a cancelled CI run leaves its resource behind, and the next create fails on the value. The function should remove only the resources that hold the exact values of those configs. It cannot live in the output directory, because the generator owns every Go file there.
 
 The test makes its configs from the final schema, after the behavior overrides. Each lifecycle is a subtest on its own resource, so a failure in one does not hide the others:
 
@@ -438,7 +441,7 @@ During beta, increment the beta identifier for each generator behavior change. A
 
 A behavior change is a change of what the generator produces, whatever caused it: a change here, or a new version of the `iac` module. A refactor that produces the same output needs no new version. CI enforces this on every pull request that changes this module (`scripts/check-version-change.sh`). It builds `tfgen` at the base commit and at the pull request, runs both on the same input, and fails when their output differs and the version did not change. The input is every resource that `internal/provider/codegen.go` lists, the `check` report of every component of the pinned spec, and the golden files of the generator tests.
 
-`internal/provider/codegen.go` lists every generated resource with the name that its acceptance file uses. Add a line when you generate a new resource. `go generate ./internal/provider/` regenerates them all.
+`internal/provider/codegen.go` lists every generated resource with the name that its acceptance file uses. Add a line when you generate a new resource. `go generate ./internal/provider/` regenerates them all. On every pull request, CI requires each package in `versions.yaml` to use the current generator version. It also regenerates every listed resource in a temporary directory and compares the output with the committed files and examples. Include changed output when generator inputs change.
 
 ## Beta boundary
 

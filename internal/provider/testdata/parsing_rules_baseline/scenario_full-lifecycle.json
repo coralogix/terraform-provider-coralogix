@@ -1,0 +1,2393 @@
+[
+  {
+    "step": "create with every field and every rule type",
+    "config": {
+      "active": true,
+      "applications": [
+        "app-a",
+        "app-b"
+      ],
+      "creator": "terraform",
+      "description": "first",
+      "hidden": false,
+      "name": "tf-rule-group",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "parse": {
+                "destination_field": "text",
+                "name": "rule-parse",
+                "regular_expression": "(?P<a>.*)",
+                "source_field": "text"
+              }
+            },
+            {
+              "block": {
+                "keep_blocked_logs": true,
+                "name": "rule-block",
+                "regular_expression": "error",
+                "source_field": "text"
+              }
+            },
+            {
+              "json_extract": {
+                "destination_field": "Text",
+                "destination_field_text": "text.worker",
+                "json_key": "worker",
+                "name": "rule-json_extract"
+              }
+            },
+            {
+              "replace": {
+                "destination_field": "text",
+                "name": "rule-replace",
+                "regular_expression": ".*{",
+                "replacement_string": "{",
+                "source_field": "text"
+              }
+            },
+            {
+              "extract_timestamp": {
+                "field_format_standard": "javaSDF",
+                "name": "rule-extract_timestamp",
+                "source_field": "text",
+                "time_format": "yyyy-MM-dd"
+              }
+            },
+            {
+              "remove_fields": {
+                "excluded_fields": [
+                  "a",
+                  "b"
+                ],
+                "name": "rule-remove_fields"
+              }
+            },
+            {
+              "json_stringify": {
+                "destination_field": "text.out",
+                "keep_source_field": true,
+                "name": "rule-json_stringify",
+                "source_field": "text"
+              }
+            },
+            {
+              "extract": {
+                "name": "rule-extract",
+                "regular_expression": "(?P<b>.*)",
+                "source_field": "text"
+              }
+            },
+            {
+              "parse_json_field": {
+                "destination_field": "text.parsed",
+                "keep_destination_field": false,
+                "keep_source_field": true,
+                "name": "rule-parse_json_field",
+                "source_field": "text"
+              }
+            }
+          ]
+        }
+      ],
+      "severities": [
+        "error",
+        "critical"
+      ],
+      "subsystems": [
+        "sub-a"
+      ]
+    },
+    "plan": {
+      "active": true,
+      "applications": [
+        "app-a",
+        "app-b"
+      ],
+      "creator": "terraform",
+      "description": "first",
+      "hidden": false,
+      "id": "(unknown)",
+      "name": "tf-rule-group",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": {
+                "active": true,
+                "description": "",
+                "destination_field": "text",
+                "id": "(unknown)",
+                "name": "rule-parse",
+                "order": "(unknown)",
+                "regular_expression": "(?P<a>.*)",
+                "source_field": "text"
+              },
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": {
+                "active": true,
+                "block_all_matching_blocks": true,
+                "description": "",
+                "id": "(unknown)",
+                "keep_blocked_logs": true,
+                "name": "rule-block",
+                "order": "(unknown)",
+                "regular_expression": "error",
+                "source_field": "text"
+              },
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": {
+                "active": true,
+                "description": "",
+                "destination_field": "Text",
+                "destination_field_text": "text.worker",
+                "id": "(unknown)",
+                "json_key": "worker",
+                "name": "rule-json_extract",
+                "order": "(unknown)"
+              },
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": {
+                "active": true,
+                "description": "",
+                "destination_field": "text",
+                "id": "(unknown)",
+                "name": "rule-replace",
+                "order": "(unknown)",
+                "regular_expression": ".*{",
+                "replacement_string": "{",
+                "source_field": "text"
+              }
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "javaSDF",
+                "id": "(unknown)",
+                "name": "rule-extract_timestamp",
+                "order": "(unknown)",
+                "source_field": "text",
+                "time_format": "yyyy-MM-dd"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": {
+                "active": true,
+                "description": "",
+                "excluded_fields": [
+                  "a",
+                  "b"
+                ],
+                "id": "(unknown)",
+                "name": "rule-remove_fields",
+                "order": "(unknown)"
+              },
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": {
+                "active": true,
+                "description": "",
+                "destination_field": "text.out",
+                "id": "(unknown)",
+                "keep_source_field": true,
+                "name": "rule-json_stringify",
+                "order": "(unknown)",
+                "source_field": "text"
+              },
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "(unknown)",
+                "name": "rule-extract",
+                "order": "(unknown)",
+                "regular_expression": "(?P<b>.*)",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": {
+                "active": true,
+                "description": "",
+                "destination_field": "text.parsed",
+                "id": "(unknown)",
+                "keep_destination_field": false,
+                "keep_source_field": true,
+                "name": "rule-parse_json_field",
+                "order": "(unknown)",
+                "source_field": "text"
+              },
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [
+        "error",
+        "critical"
+      ],
+      "subsystems": [
+        "sub-a"
+      ]
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1",
+        "body": {
+          "creator": "terraform",
+          "description": "first",
+          "enabled": true,
+          "hidden": false,
+          "name": "tf-rule-group",
+          "order": 1,
+          "ruleMatchers": [
+            {
+              "applicationName": {
+                "value": "app-a"
+              }
+            },
+            {
+              "applicationName": {
+                "value": "app-b"
+              }
+            },
+            {
+              "subsystemName": {
+                "value": "sub-a"
+              }
+            },
+            {
+              "severity": {
+                "value": "VALUE_ERROR"
+              }
+            },
+            {
+              "severity": {
+                "value": "VALUE_CRITICAL"
+              }
+            }
+          ],
+          "ruleSubgroups": [
+            {
+              "enabled": true,
+              "order": 1,
+              "rules": [
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-parse",
+                  "order": 1,
+                  "parameters": {
+                    "parseParameters": {
+                      "destinationField": "text",
+                      "rule": "(?P<a>.*)"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-block",
+                  "order": 2,
+                  "parameters": {
+                    "blockParameters": {
+                      "keepBlockedLogs": true,
+                      "rule": "error"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-json_extract",
+                  "order": 3,
+                  "parameters": {
+                    "jsonExtractParameters": {
+                      "destinationFieldText": "text.worker",
+                      "destinationFieldType": "DESTINATION_FIELD_TEXT",
+                      "rule": "worker"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-replace",
+                  "order": 4,
+                  "parameters": {
+                    "replaceParameters": {
+                      "destinationField": "text",
+                      "replaceNewVal": "{",
+                      "rule": ".*{"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-extract_timestamp",
+                  "order": 5,
+                  "parameters": {
+                    "extractTimestampParameters": {
+                      "format": "yyyy-MM-dd",
+                      "standard": "FORMAT_STANDARD_JAVASDF"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-remove_fields",
+                  "order": 6,
+                  "parameters": {
+                    "removeFieldsParameters": {
+                      "fields": [
+                        "a",
+                        "b"
+                      ]
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-json_stringify",
+                  "order": 7,
+                  "parameters": {
+                    "jsonStringifyParameters": {
+                      "deleteSource": false,
+                      "destinationField": "text.out"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-extract",
+                  "order": 8,
+                  "parameters": {
+                    "extractParameters": {
+                      "rule": "(?P<b>.*)"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-parse_json_field",
+                  "order": 9,
+                  "parameters": {
+                    "jsonParseParameters": {
+                      "deleteSource": false,
+                      "destinationField": "text.parsed",
+                      "escapedValue": true,
+                      "overrideDest": true
+                    }
+                  },
+                  "sourceField": "text"
+                }
+              ]
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "applications": [
+        "app-a",
+        "app-b"
+      ],
+      "creator": "terraform",
+      "description": "first",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000011",
+      "name": "tf-rule-group",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000010",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": {
+                "active": true,
+                "description": "",
+                "destination_field": "text",
+                "id": "00000000-0000-4000-9000-000000000001",
+                "name": "rule-parse",
+                "order": 1,
+                "regular_expression": "(?P<a>.*)",
+                "source_field": "text"
+              },
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": {
+                "active": true,
+                "block_all_matching_blocks": true,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000002",
+                "keep_blocked_logs": true,
+                "name": "rule-block",
+                "order": 2,
+                "regular_expression": "error",
+                "source_field": "text"
+              },
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": {
+                "active": true,
+                "description": "",
+                "destination_field": "Text",
+                "destination_field_text": "text.worker",
+                "id": "00000000-0000-4000-9000-000000000003",
+                "json_key": "worker",
+                "name": "rule-json_extract",
+                "order": 3
+              },
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": {
+                "active": true,
+                "description": "",
+                "destination_field": "text",
+                "id": "00000000-0000-4000-9000-000000000004",
+                "name": "rule-replace",
+                "order": 4,
+                "regular_expression": ".*{",
+                "replacement_string": "{",
+                "source_field": "text"
+              }
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "javaSDF",
+                "id": "00000000-0000-4000-9000-000000000005",
+                "name": "rule-extract_timestamp",
+                "order": 5,
+                "source_field": "text",
+                "time_format": "yyyy-MM-dd"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": {
+                "active": true,
+                "description": "",
+                "excluded_fields": [
+                  "a",
+                  "b"
+                ],
+                "id": "00000000-0000-4000-9000-000000000006",
+                "name": "rule-remove_fields",
+                "order": 6
+              },
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": {
+                "active": true,
+                "description": "",
+                "destination_field": "text.out",
+                "id": "00000000-0000-4000-9000-000000000007",
+                "keep_source_field": true,
+                "name": "rule-json_stringify",
+                "order": 7,
+                "source_field": "text"
+              },
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000008",
+                "name": "rule-extract",
+                "order": 8,
+                "regular_expression": "(?P<b>.*)",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": {
+                "active": true,
+                "description": "",
+                "destination_field": "text.parsed",
+                "id": "00000000-0000-4000-9000-000000000009",
+                "keep_destination_field": false,
+                "keep_source_field": true,
+                "name": "rule-parse_json_field",
+                "order": 9,
+                "source_field": "text"
+              },
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [
+        "error",
+        "critical"
+      ],
+      "subsystems": [
+        "sub-a"
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000011",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "applications": [
+        "app-a",
+        "app-b"
+      ],
+      "creator": "terraform",
+      "description": "first",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000011",
+      "name": "tf-rule-group",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000010",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": {
+                "active": true,
+                "description": "",
+                "destination_field": "text",
+                "id": "00000000-0000-4000-9000-000000000001",
+                "name": "rule-parse",
+                "order": 1,
+                "regular_expression": "(?P<a>.*)",
+                "source_field": "text"
+              },
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": {
+                "active": true,
+                "block_all_matching_blocks": true,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000002",
+                "keep_blocked_logs": true,
+                "name": "rule-block",
+                "order": 2,
+                "regular_expression": "error",
+                "source_field": "text"
+              },
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": {
+                "active": true,
+                "description": "",
+                "destination_field": "Text",
+                "destination_field_text": "text.worker",
+                "id": "00000000-0000-4000-9000-000000000003",
+                "json_key": "worker",
+                "name": "rule-json_extract",
+                "order": 3
+              },
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": {
+                "active": true,
+                "description": "",
+                "destination_field": "text",
+                "id": "00000000-0000-4000-9000-000000000004",
+                "name": "rule-replace",
+                "order": 4,
+                "regular_expression": ".*{",
+                "replacement_string": "{",
+                "source_field": "text"
+              }
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "javaSDF",
+                "id": "00000000-0000-4000-9000-000000000005",
+                "name": "rule-extract_timestamp",
+                "order": 5,
+                "source_field": "text",
+                "time_format": "yyyy-MM-dd"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": {
+                "active": true,
+                "description": "",
+                "excluded_fields": [
+                  "a",
+                  "b"
+                ],
+                "id": "00000000-0000-4000-9000-000000000006",
+                "name": "rule-remove_fields",
+                "order": 6
+              },
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": {
+                "active": true,
+                "description": "",
+                "destination_field": "text.out",
+                "id": "00000000-0000-4000-9000-000000000007",
+                "keep_source_field": true,
+                "name": "rule-json_stringify",
+                "order": 7,
+                "source_field": "text"
+              },
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000008",
+                "name": "rule-extract",
+                "order": 8,
+                "regular_expression": "(?P<b>.*)",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": {
+                "active": true,
+                "description": "",
+                "destination_field": "text.parsed",
+                "id": "00000000-0000-4000-9000-000000000009",
+                "keep_destination_field": false,
+                "keep_source_field": true,
+                "name": "rule-parse_json_field",
+                "order": 9,
+                "source_field": "text"
+              },
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [
+        "error",
+        "critical"
+      ],
+      "subsystems": [
+        "sub-a"
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: change every field",
+    "config": {
+      "active": false,
+      "applications": [
+        "app-c"
+      ],
+      "creator": "someone",
+      "description": "second",
+      "hidden": true,
+      "name": "tf-rule-group-2",
+      "order": 2,
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "parse": {
+                "active": false,
+                "description": "parse",
+                "destination_field": "text.b",
+                "name": "renamed",
+                "regular_expression": "(?P<c>.*)",
+                "source_field": "text.a"
+              }
+            }
+          ]
+        }
+      ],
+      "severities": [
+        "debug"
+      ],
+      "subsystems": [
+        "sub-b",
+        "sub-c"
+      ]
+    },
+    "plan": {
+      "active": false,
+      "applications": [
+        "app-c"
+      ],
+      "creator": "someone",
+      "description": "second",
+      "hidden": true,
+      "id": "00000000-0000-4000-9000-000000000011",
+      "name": "tf-rule-group-2",
+      "order": 2,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": {
+                "active": false,
+                "description": "parse",
+                "destination_field": "text.b",
+                "id": "(unknown)",
+                "name": "renamed",
+                "order": "(unknown)",
+                "regular_expression": "(?P<c>.*)",
+                "source_field": "text.a"
+              },
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [
+        "debug"
+      ],
+      "subsystems": [
+        "sub-b",
+        "sub-c"
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000011",
+        "body": {
+          "creator": "someone",
+          "description": "second",
+          "enabled": false,
+          "hidden": true,
+          "name": "tf-rule-group-2",
+          "order": 2,
+          "ruleMatchers": [
+            {
+              "applicationName": {
+                "value": "app-c"
+              }
+            },
+            {
+              "subsystemName": {
+                "value": "sub-b"
+              }
+            },
+            {
+              "subsystemName": {
+                "value": "sub-c"
+              }
+            },
+            {
+              "severity": {
+                "value": "VALUE_DEBUG_OR_UNSPECIFIED"
+              }
+            }
+          ],
+          "ruleSubgroups": [
+            {
+              "enabled": true,
+              "order": 1,
+              "rules": [
+                {
+                  "description": "parse",
+                  "enabled": false,
+                  "name": "renamed",
+                  "order": 1,
+                  "parameters": {
+                    "parseParameters": {
+                      "destinationField": "text.b",
+                      "rule": "(?P<c>.*)"
+                    }
+                  },
+                  "sourceField": "text.a"
+                }
+              ]
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": false,
+      "applications": [
+        "app-c"
+      ],
+      "creator": "someone",
+      "description": "second",
+      "hidden": true,
+      "id": "00000000-0000-4000-9000-000000000011",
+      "name": "tf-rule-group-2",
+      "order": 2,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000013",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": {
+                "active": false,
+                "description": "parse",
+                "destination_field": "text.b",
+                "id": "00000000-0000-4000-9000-000000000012",
+                "name": "renamed",
+                "order": 1,
+                "regular_expression": "(?P<c>.*)",
+                "source_field": "text.a"
+              },
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [
+        "debug"
+      ],
+      "subsystems": [
+        "sub-b",
+        "sub-c"
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: remove every optional field",
+    "config": {
+      "name": "tf-rule-group-2",
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "extract": {
+                "name": "rule-extract",
+                "regular_expression": "a",
+                "source_field": "text"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": [],
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "00000000-0000-4000-9000-000000000011",
+      "name": "tf-rule-group-2",
+      "order": "(unknown)",
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "(unknown)",
+                "name": "rule-extract",
+                "order": "(unknown)",
+                "regular_expression": "a",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000011",
+        "body": {
+          "creator": "",
+          "description": "",
+          "enabled": false,
+          "hidden": false,
+          "name": "tf-rule-group-2",
+          "order": 0,
+          "ruleSubgroups": [
+            {
+              "enabled": true,
+              "order": 1,
+              "rules": [
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-extract",
+                  "order": 1,
+                  "parameters": {
+                    "extractParameters": {
+                      "rule": "a"
+                    }
+                  },
+                  "sourceField": "text"
+                }
+              ]
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": false,
+      "applications": [],
+      "creator": "",
+      "description": "",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000011",
+      "name": "tf-rule-group-2",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000015",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000014",
+                "name": "rule-extract",
+                "order": 1,
+                "regular_expression": "a",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000011",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": false,
+      "applications": [],
+      "creator": "",
+      "description": "",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000011",
+      "name": "tf-rule-group-2",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000015",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000014",
+                "name": "rule-extract",
+                "order": 1,
+                "regular_expression": "a",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: no subgroup",
+    "config": {
+      "name": "tf-rule-group-2"
+    },
+    "plan": {
+      "active": "(unknown)",
+      "applications": [],
+      "creator": "(unknown)",
+      "description": "(unknown)",
+      "hidden": "(unknown)",
+      "id": "00000000-0000-4000-9000-000000000011",
+      "name": "tf-rule-group-2",
+      "order": "(unknown)",
+      "rule_subgroups": null,
+      "severities": [],
+      "subsystems": []
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000011",
+        "body": {
+          "creator": "",
+          "description": "",
+          "enabled": false,
+          "hidden": false,
+          "name": "tf-rule-group-2",
+          "order": 0
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error updating coralogix_parsing_rules | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: statusCode: 400, response: Failed to update rule group err: [{min ParsingThemes.RulesGroups slice []*shared.RulesGroup [] 1}]\"}\noperation - Update"
+    ],
+    "state": {
+      "active": false,
+      "applications": [],
+      "creator": "",
+      "description": "",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000011",
+      "name": "tf-rule-group-2",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000015",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000014",
+                "name": "rule-extract",
+                "order": 1,
+                "regular_expression": "a",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    }
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000011",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": false,
+      "applications": [],
+      "creator": "",
+      "description": "",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000011",
+      "name": "tf-rule-group-2",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000015",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000014",
+                "name": "rule-extract",
+                "order": 1,
+                "regular_expression": "a",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [],
+      "subsystems": []
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"active\")",
+      "AttributeName(\"creator\")",
+      "AttributeName(\"description\")",
+      "AttributeName(\"hidden\")",
+      "AttributeName(\"order\")",
+      "AttributeName(\"rule_subgroups\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0)",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"active\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"id\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"order\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0)",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"block\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"extract\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"extract\").AttributeName(\"active\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"extract\").AttributeName(\"description\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"extract\").AttributeName(\"id\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"extract\").AttributeName(\"name\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"extract\").AttributeName(\"order\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"extract\").AttributeName(\"regular_expression\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"extract\").AttributeName(\"source_field\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"extract_timestamp\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"json_extract\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"json_stringify\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"parse\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"parse_json_field\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"remove_fields\")",
+      "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"replace\")"
+    ]
+  },
+  {
+    "step": "update: set them again",
+    "config": {
+      "active": true,
+      "applications": [
+        "app-a",
+        "app-b"
+      ],
+      "creator": "terraform",
+      "description": "first",
+      "hidden": false,
+      "name": "tf-rule-group",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "rules": [
+            {
+              "parse": {
+                "destination_field": "text",
+                "name": "rule-parse",
+                "regular_expression": "(?P<a>.*)",
+                "source_field": "text"
+              }
+            },
+            {
+              "block": {
+                "keep_blocked_logs": true,
+                "name": "rule-block",
+                "regular_expression": "error",
+                "source_field": "text"
+              }
+            },
+            {
+              "json_extract": {
+                "destination_field": "Text",
+                "destination_field_text": "text.worker",
+                "json_key": "worker",
+                "name": "rule-json_extract"
+              }
+            },
+            {
+              "replace": {
+                "destination_field": "text",
+                "name": "rule-replace",
+                "regular_expression": ".*{",
+                "replacement_string": "{",
+                "source_field": "text"
+              }
+            },
+            {
+              "extract_timestamp": {
+                "field_format_standard": "javaSDF",
+                "name": "rule-extract_timestamp",
+                "source_field": "text",
+                "time_format": "yyyy-MM-dd"
+              }
+            },
+            {
+              "remove_fields": {
+                "excluded_fields": [
+                  "a",
+                  "b"
+                ],
+                "name": "rule-remove_fields"
+              }
+            },
+            {
+              "json_stringify": {
+                "destination_field": "text.out",
+                "keep_source_field": true,
+                "name": "rule-json_stringify",
+                "source_field": "text"
+              }
+            },
+            {
+              "extract": {
+                "name": "rule-extract",
+                "regular_expression": "(?P<b>.*)",
+                "source_field": "text"
+              }
+            },
+            {
+              "parse_json_field": {
+                "destination_field": "text.parsed",
+                "keep_destination_field": false,
+                "keep_source_field": true,
+                "name": "rule-parse_json_field",
+                "source_field": "text"
+              }
+            }
+          ]
+        }
+      ],
+      "severities": [
+        "error",
+        "critical"
+      ],
+      "subsystems": [
+        "sub-a"
+      ]
+    },
+    "plan": {
+      "active": true,
+      "applications": [
+        "app-a",
+        "app-b"
+      ],
+      "creator": "terraform",
+      "description": "first",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000011",
+      "name": "tf-rule-group",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "(unknown)",
+          "order": "(unknown)",
+          "rules": [
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": {
+                "active": true,
+                "description": "",
+                "destination_field": "text",
+                "id": "(unknown)",
+                "name": "rule-parse",
+                "order": "(unknown)",
+                "regular_expression": "(?P<a>.*)",
+                "source_field": "text"
+              },
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": {
+                "active": true,
+                "block_all_matching_blocks": true,
+                "description": "",
+                "id": "(unknown)",
+                "keep_blocked_logs": true,
+                "name": "rule-block",
+                "order": "(unknown)",
+                "regular_expression": "error",
+                "source_field": "text"
+              },
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": {
+                "active": true,
+                "description": "",
+                "destination_field": "Text",
+                "destination_field_text": "text.worker",
+                "id": "(unknown)",
+                "json_key": "worker",
+                "name": "rule-json_extract",
+                "order": "(unknown)"
+              },
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": {
+                "active": true,
+                "description": "",
+                "destination_field": "text",
+                "id": "(unknown)",
+                "name": "rule-replace",
+                "order": "(unknown)",
+                "regular_expression": ".*{",
+                "replacement_string": "{",
+                "source_field": "text"
+              }
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "javaSDF",
+                "id": "(unknown)",
+                "name": "rule-extract_timestamp",
+                "order": "(unknown)",
+                "source_field": "text",
+                "time_format": "yyyy-MM-dd"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": {
+                "active": true,
+                "description": "",
+                "excluded_fields": [
+                  "a",
+                  "b"
+                ],
+                "id": "(unknown)",
+                "name": "rule-remove_fields",
+                "order": "(unknown)"
+              },
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": {
+                "active": true,
+                "description": "",
+                "destination_field": "text.out",
+                "id": "(unknown)",
+                "keep_source_field": true,
+                "name": "rule-json_stringify",
+                "order": "(unknown)",
+                "source_field": "text"
+              },
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "(unknown)",
+                "name": "rule-extract",
+                "order": "(unknown)",
+                "regular_expression": "(?P<b>.*)",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": {
+                "active": true,
+                "description": "",
+                "destination_field": "text.parsed",
+                "id": "(unknown)",
+                "keep_destination_field": false,
+                "keep_source_field": true,
+                "name": "rule-parse_json_field",
+                "order": "(unknown)",
+                "source_field": "text"
+              },
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [
+        "error",
+        "critical"
+      ],
+      "subsystems": [
+        "sub-a"
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000011",
+        "body": {
+          "creator": "terraform",
+          "description": "first",
+          "enabled": true,
+          "hidden": false,
+          "name": "tf-rule-group",
+          "order": 1,
+          "ruleMatchers": [
+            {
+              "applicationName": {
+                "value": "app-a"
+              }
+            },
+            {
+              "applicationName": {
+                "value": "app-b"
+              }
+            },
+            {
+              "subsystemName": {
+                "value": "sub-a"
+              }
+            },
+            {
+              "severity": {
+                "value": "VALUE_ERROR"
+              }
+            },
+            {
+              "severity": {
+                "value": "VALUE_CRITICAL"
+              }
+            }
+          ],
+          "ruleSubgroups": [
+            {
+              "enabled": true,
+              "order": 1,
+              "rules": [
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-parse",
+                  "order": 1,
+                  "parameters": {
+                    "parseParameters": {
+                      "destinationField": "text",
+                      "rule": "(?P<a>.*)"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-block",
+                  "order": 2,
+                  "parameters": {
+                    "blockParameters": {
+                      "keepBlockedLogs": true,
+                      "rule": "error"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-json_extract",
+                  "order": 3,
+                  "parameters": {
+                    "jsonExtractParameters": {
+                      "destinationFieldText": "text.worker",
+                      "destinationFieldType": "DESTINATION_FIELD_TEXT",
+                      "rule": "worker"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-replace",
+                  "order": 4,
+                  "parameters": {
+                    "replaceParameters": {
+                      "destinationField": "text",
+                      "replaceNewVal": "{",
+                      "rule": ".*{"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-extract_timestamp",
+                  "order": 5,
+                  "parameters": {
+                    "extractTimestampParameters": {
+                      "format": "yyyy-MM-dd",
+                      "standard": "FORMAT_STANDARD_JAVASDF"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-remove_fields",
+                  "order": 6,
+                  "parameters": {
+                    "removeFieldsParameters": {
+                      "fields": [
+                        "a",
+                        "b"
+                      ]
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-json_stringify",
+                  "order": 7,
+                  "parameters": {
+                    "jsonStringifyParameters": {
+                      "deleteSource": false,
+                      "destinationField": "text.out"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-extract",
+                  "order": 8,
+                  "parameters": {
+                    "extractParameters": {
+                      "rule": "(?P<b>.*)"
+                    }
+                  },
+                  "sourceField": "text"
+                },
+                {
+                  "description": "",
+                  "enabled": true,
+                  "name": "rule-parse_json_field",
+                  "order": 9,
+                  "parameters": {
+                    "jsonParseParameters": {
+                      "deleteSource": false,
+                      "destinationField": "text.parsed",
+                      "escapedValue": true,
+                      "overrideDest": true
+                    }
+                  },
+                  "sourceField": "text"
+                }
+              ]
+            }
+          ]
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "applications": [
+        "app-a",
+        "app-b"
+      ],
+      "creator": "terraform",
+      "description": "first",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000011",
+      "name": "tf-rule-group",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000025",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": {
+                "active": true,
+                "description": "",
+                "destination_field": "text",
+                "id": "00000000-0000-4000-9000-000000000016",
+                "name": "rule-parse",
+                "order": 1,
+                "regular_expression": "(?P<a>.*)",
+                "source_field": "text"
+              },
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": {
+                "active": true,
+                "block_all_matching_blocks": true,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000017",
+                "keep_blocked_logs": true,
+                "name": "rule-block",
+                "order": 2,
+                "regular_expression": "error",
+                "source_field": "text"
+              },
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": {
+                "active": true,
+                "description": "",
+                "destination_field": "Text",
+                "destination_field_text": "text.worker",
+                "id": "00000000-0000-4000-9000-000000000018",
+                "json_key": "worker",
+                "name": "rule-json_extract",
+                "order": 3
+              },
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": {
+                "active": true,
+                "description": "",
+                "destination_field": "text",
+                "id": "00000000-0000-4000-9000-000000000019",
+                "name": "rule-replace",
+                "order": 4,
+                "regular_expression": ".*{",
+                "replacement_string": "{",
+                "source_field": "text"
+              }
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "javaSDF",
+                "id": "00000000-0000-4000-9000-000000000020",
+                "name": "rule-extract_timestamp",
+                "order": 5,
+                "source_field": "text",
+                "time_format": "yyyy-MM-dd"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": {
+                "active": true,
+                "description": "",
+                "excluded_fields": [
+                  "a",
+                  "b"
+                ],
+                "id": "00000000-0000-4000-9000-000000000021",
+                "name": "rule-remove_fields",
+                "order": 6
+              },
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": {
+                "active": true,
+                "description": "",
+                "destination_field": "text.out",
+                "id": "00000000-0000-4000-9000-000000000022",
+                "keep_source_field": true,
+                "name": "rule-json_stringify",
+                "order": 7,
+                "source_field": "text"
+              },
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000023",
+                "name": "rule-extract",
+                "order": 8,
+                "regular_expression": "(?P<b>.*)",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": {
+                "active": true,
+                "description": "",
+                "destination_field": "text.parsed",
+                "id": "00000000-0000-4000-9000-000000000024",
+                "keep_destination_field": false,
+                "keep_source_field": true,
+                "name": "rule-parse_json_field",
+                "order": 9,
+                "source_field": "text"
+              },
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [
+        "error",
+        "critical"
+      ],
+      "subsystems": [
+        "sub-a"
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000011",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": true,
+      "applications": [
+        "app-a",
+        "app-b"
+      ],
+      "creator": "terraform",
+      "description": "first",
+      "hidden": false,
+      "id": "00000000-0000-4000-9000-000000000011",
+      "name": "tf-rule-group",
+      "order": 1,
+      "rule_subgroups": [
+        {
+          "active": true,
+          "id": "00000000-0000-4000-9000-000000000025",
+          "order": 1,
+          "rules": [
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": {
+                "active": true,
+                "description": "",
+                "destination_field": "text",
+                "id": "00000000-0000-4000-9000-000000000016",
+                "name": "rule-parse",
+                "order": 1,
+                "regular_expression": "(?P<a>.*)",
+                "source_field": "text"
+              },
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": {
+                "active": true,
+                "block_all_matching_blocks": true,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000017",
+                "keep_blocked_logs": true,
+                "name": "rule-block",
+                "order": 2,
+                "regular_expression": "error",
+                "source_field": "text"
+              },
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": {
+                "active": true,
+                "description": "",
+                "destination_field": "Text",
+                "destination_field_text": "text.worker",
+                "id": "00000000-0000-4000-9000-000000000018",
+                "json_key": "worker",
+                "name": "rule-json_extract",
+                "order": 3
+              },
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": {
+                "active": true,
+                "description": "",
+                "destination_field": "text",
+                "id": "00000000-0000-4000-9000-000000000019",
+                "name": "rule-replace",
+                "order": 4,
+                "regular_expression": ".*{",
+                "replacement_string": "{",
+                "source_field": "text"
+              }
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": {
+                "active": true,
+                "description": "",
+                "field_format_standard": "javaSDF",
+                "id": "00000000-0000-4000-9000-000000000020",
+                "name": "rule-extract_timestamp",
+                "order": 5,
+                "source_field": "text",
+                "time_format": "yyyy-MM-dd"
+              },
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": {
+                "active": true,
+                "description": "",
+                "excluded_fields": [
+                  "a",
+                  "b"
+                ],
+                "id": "00000000-0000-4000-9000-000000000021",
+                "name": "rule-remove_fields",
+                "order": 6
+              },
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": {
+                "active": true,
+                "description": "",
+                "destination_field": "text.out",
+                "id": "00000000-0000-4000-9000-000000000022",
+                "keep_source_field": true,
+                "name": "rule-json_stringify",
+                "order": 7,
+                "source_field": "text"
+              },
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": {
+                "active": true,
+                "description": "",
+                "id": "00000000-0000-4000-9000-000000000023",
+                "name": "rule-extract",
+                "order": 8,
+                "regular_expression": "(?P<b>.*)",
+                "source_field": "text"
+              },
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": null,
+              "remove_fields": null,
+              "replace": null
+            },
+            {
+              "block": null,
+              "extract": null,
+              "extract_timestamp": null,
+              "json_extract": null,
+              "json_stringify": null,
+              "parse": null,
+              "parse_json_field": {
+                "active": true,
+                "description": "",
+                "destination_field": "text.parsed",
+                "id": "00000000-0000-4000-9000-000000000024",
+                "keep_destination_field": false,
+                "keep_source_field": true,
+                "name": "rule-parse_json_field",
+                "order": 9,
+                "source_field": "text"
+              },
+              "remove_fields": null,
+              "replace": null
+            }
+          ]
+        }
+      ],
+      "severities": [
+        "error",
+        "critical"
+      ],
+      "subsystems": [
+        "sub-a"
+      ]
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000011",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

@@ -1,0 +1,102 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "groups": [
+        {
+          "name": "g1",
+          "rules": [
+            {
+              "expr": "vector(1)",
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "name": "tf-set"
+    },
+    "plan": {
+      "groups": [
+        {
+          "interval": "(unknown)",
+          "limit": "(unknown)",
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": "(unknown)",
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "id": "(unknown)",
+      "name": "tf-set",
+      "yaml_content": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1",
+        "body": {
+          "groups": [
+            {
+              "interval": 60,
+              "limit": "0",
+              "name": "g1",
+              "rules": [
+                {
+                  "expr": "vector(1)",
+                  "record": "tf:r1"
+                }
+              ]
+            }
+          ],
+          "name": "tf-set"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "groups": [
+        {
+          "interval": 60,
+          "limit": 0,
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {},
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "tf-set",
+      "yaml_content": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: the gateway has no such route",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000001",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: coralogix_recording_rule_groups is in state, but no longer exists in Coralogix backend | coralogix_recording_rule_groups will be recreated when you apply"
+    ],
+    "state": null
+  }
+]

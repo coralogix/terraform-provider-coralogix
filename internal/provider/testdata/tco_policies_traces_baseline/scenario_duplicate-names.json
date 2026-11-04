@@ -1,0 +1,91 @@
+[
+  {
+    "step": "create: two policies with one name",
+    "config": {
+      "policies": [
+        {
+          "name": "first",
+          "priority": "high"
+        },
+        {
+          "name": "first",
+          "priority": "low"
+        }
+      ]
+    },
+    "plan": {
+      "id": "(unknown)",
+      "policies": [
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "high",
+          "quota_based_priority_override": null,
+          "services": null,
+          "subsystems": null,
+          "tags": null
+        },
+        {
+          "actions": null,
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "(unknown)",
+          "name": "first",
+          "order": "(unknown)",
+          "priority": "low",
+          "quota_based_priority_override": null,
+          "services": null,
+          "subsystems": null,
+          "tags": null
+        }
+      ]
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dataplans/span-policies/v1",
+        "body": {
+          "policies": [
+            {
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_HIGH"
+              },
+              "spanRules": {
+                "tagRules": []
+              }
+            },
+            {
+              "policy": {
+                "description": "",
+                "disabled": false,
+                "name": "first",
+                "priority": "PRIORITY_TYPE_LOW"
+              },
+              "spanRules": {
+                "tagRules": []
+              }
+            }
+          ]
+        },
+        "status": 409
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_tco_policies_traces | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Duplicate names found\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

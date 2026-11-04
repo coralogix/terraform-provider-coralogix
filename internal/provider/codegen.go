@@ -8,6 +8,7 @@ package provider
 //go:generate make -C ../.. codegen RESOURCE=AlertSchedulerRule OUT=alertsscheduler
 //go:generate make -C ../.. codegen RESOURCE=ConfigurationGroup OUT=configurationgroup
 //go:generate make -C ../.. codegen RESOURCE=Connector OUT=connector
+//go:generate make -C ../.. codegen RESOURCE=DashboardFolder OUT=dashboardsfolder
 //go:generate make -C ../.. codegen RESOURCE=DeployedIntegrationInformation OUT=integration
 //go:generate make -C ../.. codegen RESOURCE=E2M OUT=events2metric
 //go:generate make -C ../.. codegen RESOURCE=GlobalRouter OUT=globalrouter
@@ -16,6 +17,7 @@ package provider
 //go:generate make -C ../.. codegen RESOURCE=Slo OUT=slov2
 //go:generate make -C ../.. codegen RESOURCE=View OUT=view
 //go:generate make -C ../.. codegen RESOURCE=ViewFolder OUT=viewfolder
+//go:generate make -C ../.. codegen RESOURCE=OutgoingWebhook OUT=webhook
 //go:generate make -C ../.. codegen RESOURCE=v2.Target OUT=archivelogs
 //go:generate make -C ../.. codegen RESOURCE=TenantConfigV2 OUT=archivemetrics
 //go:generate make -C ../.. codegen RESOURCE=v2.Action OUT=action

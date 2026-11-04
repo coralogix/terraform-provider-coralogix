@@ -28,6 +28,10 @@ jobs:
           go-version: ${{ matrix.go-version }}
       - name: Run build
         run: make build
+      - name: Build the test resource cleanup
+        # The build tag keeps the nightly cleanup script out of `go build ./...`, so an SDK change
+        # can break it without failing the build above.
+        run: go build -o /dev/null scripts/cx-test-resource-cleanup.go
 
   test:
     name: Unit tests
@@ -72,6 +76,11 @@ jobs:
           go vet ./...
       - name: Test generator version check
         run: bash tools/iac-codegen/scripts/check-version-change_test.sh
+      - name: Test generated resources check
+        run: bash tools/iac-codegen/scripts/check-generated-resources_test.sh
       - name: Require generator version change
         if: github.event_name == 'pull_request'
         run: tools/iac-codegen/scripts/check-version-change.sh '${{ github.event.pull_request.base.sha }}'
+      - name: Require current generated resources
+        if: github.event_name == 'pull_request'
+        run: bash tools/iac-codegen/scripts/check-generated-resources.sh

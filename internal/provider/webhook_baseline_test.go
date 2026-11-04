@@ -3,26 +3,38 @@ package provider
 import (
 	"bytes"
 	"context"
+	"os"
+	"path/filepath"
 	"regexp"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/provider/integrations"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/webhook"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils/schemadump"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
 const webhookGoldenDir = "testdata/webhook_baseline"
+const webhookMigrationDir = "testdata/webhook_migration"
 const webhookUUID = "11111111-1111-4111-8111-111111111111"
 const webhookOtherUUID = "22222222-2222-4222-8222-222222222222"
 
-// These recordings exercise the handwritten resource through the Terraform
-// protocol. They are the comparison point for a later generated resource.
+// The baseline records released behavior. Separate migration files record only
+// the approved request differences and behavior fixes.
 //
 // UPDATE_GOLDEN=1 go test ./internal/provider -run TestWebhookBaseline
 func TestWebhookBaselineSchema(t *testing.T) {
 	var current resource.SchemaResponse
-	integrations.NewWebhookResource().Schema(context.Background(), resource.SchemaRequest{}, &current)
-	checkGoldenAt(t, webhookGoldenDir, "schema_current.txt", []byte(schemadump.Text(current.Schema)))
+	webhook.NewResourceWithBehavior().Schema(context.Background(), resource.SchemaRequest{}, &current)
+	checkWebhookGoldenAt(t, "schema_current.txt", []byte(schemadump.Text(current.Schema)))
+}
+
+func checkWebhookGoldenAt(t *testing.T, name string, actual []byte) {
+	t.Helper()
+	dir := webhookGoldenDir
+	if _, err := os.Stat(filepath.Join(webhookMigrationDir, name)); err == nil {
+		dir = webhookMigrationDir
+	}
+	checkGoldenAt(t, dir, name, actual)
 }
 
 func newWebhookHarness(t *testing.T) *grHarness {
@@ -104,7 +116,7 @@ func TestWebhookBaselineScenarios(t *testing.T) {
 			updated := with(config, j{"name": "renamed"})
 			state = h.Apply("rename", state, updated)
 			h.Destroy("delete", state)
-			checkGoldenAt(t, webhookGoldenDir, "scenario_"+arm+".json", webhookGoldenSteps(t, h))
+			checkWebhookGoldenAt(t, "scenario_"+arm+".json", webhookGoldenSteps(t, h))
 		})
 	}
 }
@@ -154,7 +166,7 @@ func TestWebhookBaselineFieldChanges(t *testing.T) {
 			armFields := with(before[tc.arm].(j), j{tc.field: tc.value})
 			state = h.Apply("change "+tc.field, state, webhookConfig("full", tc.arm, armFields))
 			h.Destroy("delete", state)
-			checkGoldenAt(t, webhookGoldenDir, "field_"+name+".json", webhookGoldenSteps(t, h))
+			checkWebhookGoldenAt(t, "field_"+name+".json", webhookGoldenSteps(t, h))
 		})
 	}
 }
@@ -200,14 +212,14 @@ func TestWebhookBaselineOptionalFields(t *testing.T) {
 				state = h.Apply("remove field from existing webhook", state, withoutField)
 				state = h.RefreshPlan("refresh after rejected removal and plan", state)
 				h.Destroy("delete", state)
-				checkGoldenAt(t, webhookGoldenDir, "optional_"+name+".json", webhookGoldenSteps(t, h))
+				checkWebhookGoldenAt(t, "optional_"+name+".json", webhookGoldenSteps(t, h))
 				return
 			}
 			state = h.RefreshPlan("refresh and plan", state)
 			state = h.Apply("set field", state, before)
 			state = h.Apply("remove field", state, withoutField)
 			h.Destroy("delete", state)
-			checkGoldenAt(t, webhookGoldenDir, "optional_"+name+".json", webhookGoldenSteps(t, h))
+			checkWebhookGoldenAt(t, "optional_"+name+".json", webhookGoldenSteps(t, h))
 		})
 	}
 }
@@ -271,7 +283,7 @@ func TestWebhookBaselineWriteOnly(t *testing.T) {
 			state = h.Apply("switch to ordinary field", state, webhookConfig("secret", tc.arm, plainFields))
 			state = h.RefreshPlan("refresh after switch and plan", state)
 			h.Destroy("delete", state)
-			checkGoldenAt(t, webhookGoldenDir, "write_only_"+name+".json", webhookGoldenSteps(t, h))
+			checkWebhookGoldenAt(t, "write_only_"+name+".json", webhookGoldenSteps(t, h))
 		})
 	}
 }
@@ -477,7 +489,7 @@ func TestWebhookBaselineEdges(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			h := newWebhookHarness(t)
 			run(h)
-			checkGoldenAt(t, webhookGoldenDir, "edge_"+name+".json", webhookGoldenSteps(t, h))
+			checkWebhookGoldenAt(t, "edge_"+name+".json", webhookGoldenSteps(t, h))
 		})
 	}
 }

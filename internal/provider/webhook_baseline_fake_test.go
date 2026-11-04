@@ -15,7 +15,7 @@ import (
 
 const webhookBasePath = "/mgmt/openapi/5/integrations/webhooks/v1"
 
-// webhookFake records the HTTP requests made by the handwritten resource.
+// webhookFake records the HTTP requests made by the webhook resource.
 // Its replies model the create/get/update/delete contract documented for webhooks.
 // The fake is deliberately small: the golden records provider behavior, not a
 // claim that every backend validation rule is implemented here.
@@ -141,6 +141,8 @@ func (f *webhookFake) list() (int, any) {
 		stored := f.webhooks[id]
 		deployed = append(deployed, map[string]any{
 			"id": id, "name": stored["name"], "type": stored["type"],
+			"createdAt": stored["createdAt"], "updatedAt": stored["updatedAt"],
+			"externalId": stored["externalId"],
 		})
 	}
 	return http.StatusOK, map[string]any{"deployed": deployed}
