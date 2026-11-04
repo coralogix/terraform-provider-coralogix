@@ -1,0 +1,13 @@
+(data source schema)
+    description: Coralogix archive-retention. For more info please review - https://coralogix.com/docs/archive-setup-grpc-api/.
+id  tftypes.String computed
+retentions  nested LIST computed
+    description: List of 4 retentions. The first retention is the default retention and can't be renamed.
+retentions.editable  tftypes.Bool computed
+    description: Is the retention editable.
+retentions.id  tftypes.String computed
+    description: The retention id.
+retentions.name  tftypes.String computed
+    description: The retention name. If not set, the retention will be named by backend.
+retentions.order  tftypes.Number computed
+    description: The retention order. Computed by the order of the retention in the retentions list definition.
