@@ -5,6 +5,7 @@ package recordingrulesgroupsset
 
 import (
 	"context"
+	"slices"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -16,8 +17,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // Schema is the Terraform schema of the resource.
@@ -141,34 +142,115 @@ func (m serverDefaultModifier) MarkdownDescription(ctx context.Context) string {
 	return m.Description(ctx)
 }
 
-// setConfigured reports whether the configuration sets every attribute on the path p down to the
-// set that holds it. A set that the configuration leaves out, directly or with an object that holds
-// it, comes from the API or another attribute, so a null value of one of its items is not a
-// removal. The walk stops at the first set element: its key is a planned value.
-func setConfigured(ctx context.Context, config tfsdk.Config, p path.Path) bool {
-	at := path.Empty()
-	for _, step := range p.Steps() {
-		switch step := step.(type) {
-		case path.PathStepAttributeName:
-			at = at.AtName(string(step))
-		case path.PathStepElementKeyInt:
-			at = at.AtListIndex(int(step))
-			continue
-		case path.PathStepElementKeyString:
-			at = at.AtMapKey(string(step))
-			continue
-		default:
-			return true
+// setItemConfig returns the configuration value of the attribute on the path p, which is inside a
+// set item. The framework gives the modifier the configuration of the item at the same index, which
+// can be another item: the configuration and the plan sort their items apart. The set step of p
+// holds the planned item, so the walk takes a configured item that the planned item matches. ok is
+// false when the configuration leaves out the set, directly or with an object that holds it: the
+// set comes from the API or another attribute, so a null value of one of its items is no removal.
+// It is also false when no configured item matches.
+func setItemConfig(ctx context.Context, config tftypes.Value, p path.Path) (value tftypes.Value, ok bool) {
+	return configAt(ctx, config, p.Steps(), false)
+}
+
+func configAt(ctx context.Context, v tftypes.Value, steps path.PathSteps, inSet bool) (tftypes.Value, bool) {
+	if len(steps) == 0 || !v.IsKnown() || v.IsNull() {
+		return v, inSet || len(steps) == 0
+	}
+	switch step := steps[0].(type) {
+	case path.PathStepAttributeName:
+		var attrs map[string]tftypes.Value
+		if v.As(&attrs) != nil {
+			return v, false
 		}
-		var v attr.Value
-		if config.GetAttribute(ctx, at, &v).HasError() || v == nil {
-			return true
+		next, found := attrs[string(step)]
+		return configAt(ctx, next, steps[1:], inSet && found)
+	case path.PathStepElementKeyString:
+		var elems map[string]tftypes.Value
+		if v.As(&elems) != nil {
+			return v, false
 		}
-		if v.IsNull() {
+		next, found := elems[string(step)]
+		if !found {
+			return tftypes.NewValue(v.Type().(tftypes.Map).ElementType, nil), inSet
+		}
+		return configAt(ctx, next, steps[1:], inSet)
+	case path.PathStepElementKeyInt:
+		var elems []tftypes.Value
+		if v.As(&elems) != nil || int(step) < 0 || int(step) >= len(elems) {
+			return v, false
+		}
+		return configAt(ctx, elems[step], steps[1:], inSet)
+	case path.PathStepElementKeyValue:
+		planned, err := step.Value.ToTerraformValue(ctx)
+		var elems []tftypes.Value
+		if err != nil || v.As(&elems) != nil {
+			return v, false
+		}
+		// A planned value that equals a configured value comes from that item, so a match that
+		// configures the attribute wins over one that leaves it out.
+		var value tftypes.Value
+		ok := false
+		for _, elem := range elems {
+			if !configMatches(elem, planned) {
+				continue
+			}
+			if next, found := configAt(ctx, elem, steps[1:], true); found && (!ok || value.IsNull()) {
+				value, ok = next, true
+			}
+		}
+		return value, ok
+	}
+	return v, false
+}
+
+// configMatches reports whether the planned value can come from the configured one: every value
+// that the configuration sets is the planned one. A null or unknown configured value matches any
+// plan, because a computed attribute fills it in.
+func configMatches(config, plan tftypes.Value) bool {
+	if !config.IsKnown() || config.IsNull() || !plan.IsKnown() {
+		return true
+	}
+	if plan.IsNull() {
+		return false
+	}
+	switch config.Type().(type) {
+	case tftypes.Object, tftypes.Map:
+		var c, p map[string]tftypes.Value
+		if config.As(&c) != nil || plan.As(&p) != nil {
 			return false
 		}
+		for k, cv := range c {
+			pv, found := p[k]
+			if !found || !configMatches(cv, pv) {
+				return false
+			}
+		}
+		return true
+	case tftypes.List, tftypes.Tuple:
+		var c, p []tftypes.Value
+		if config.As(&c) != nil || plan.As(&p) != nil || len(c) != len(p) {
+			return false
+		}
+		for i := range c {
+			if !configMatches(c[i], p[i]) {
+				return false
+			}
+		}
+		return true
+	case tftypes.Set:
+		var c, p []tftypes.Value
+		if config.As(&c) != nil || plan.As(&p) != nil || len(c) != len(p) {
+			return false
+		}
+		for _, cv := range c {
+			if !slices.ContainsFunc(p, func(pv tftypes.Value) bool { return configMatches(cv, pv) }) {
+				return false
+			}
+		}
+		return true
 	}
-	return true
+	return config.Equal(plan)
 }
 
 func serverDefaultPlan(config, state, declared attr.Value) (unknown, preserve bool) {
@@ -185,17 +267,18 @@ func (m serverDefaultModifier) PlanModifyInt64(ctx context.Context, req planmodi
 	if req.Plan.Raw.IsNull() {
 		return
 	}
-	if m.fromPlan && !setConfigured(ctx, req.Config, req.Path) {
-		return
-	}
-	prior := req.StateValue
+	config, prior := attr.Value(req.ConfigValue), attr.Value(req.StateValue)
 	if m.fromPlan {
-		prior = req.PlanValue
+		value, ok := setItemConfig(ctx, req.Config.Raw, req.Path)
+		if !ok || !value.IsNull() {
+			return
+		}
+		config, prior = types.Int64Null(), req.PlanValue
 	}
-	unknown, preserve := serverDefaultPlan(req.ConfigValue, prior, m.value)
+	unknown, preserve := serverDefaultPlan(config, prior, m.value)
 	if unknown {
 		resp.PlanValue = types.Int64Unknown()
 	} else if preserve {
-		resp.PlanValue = prior
+		resp.PlanValue = prior.(types.Int64)
 	}
 }
