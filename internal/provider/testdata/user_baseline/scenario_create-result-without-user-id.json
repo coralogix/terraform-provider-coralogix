@@ -1,0 +1,45 @@
+[
+  {
+    "step": "create: response shape no-user-id",
+    "config": {
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "plan": {
+      "active": true,
+      "emails": "(unknown)",
+      "groups": "(unknown)",
+      "id": "(unknown)",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/users/v2",
+        "body": [
+          {
+            "onboardingMode": "ONBOARDING_MODE_NO_INVITE",
+            "userTemplate": {
+              "firstName": "Test",
+              "lastName": "User",
+              "status": "USER_STATUS_ACTIVE",
+              "username": "tf-acc-user-1@coralogix.com"
+            }
+          }
+        ],
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating User | user \"tf-acc-user-1@coralogix.com\" was created, but the response carries no user"
+    ],
+    "state": null
+  }
+]
