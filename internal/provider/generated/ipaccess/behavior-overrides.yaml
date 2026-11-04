@@ -1,0 +1,42 @@
+resource: CompanyIpAccessSettings
+mode: existing
+typeName: ip_access
+markdownDescription: "Coralogix IP access control. Restricts access to a Coralogix team to a configured set of IP ranges. For more info please review - https://coralogix.com/docs/user-guides/account-management/account-settings/ip-access-control/."
+
+validators:
+  inferred: false
+
+singletonID: {fromAPI: true}
+
+types:
+  CompanyIpAccessSettings:
+    fields:
+      id:
+        readOnly: true
+        useStateForUnknown: true
+        markdownDescription: "The unique identifier for the company IP access settings. This is typically a company ID."
+      enableCoralogixCustomerSupportAccess:
+        computed: true
+        default: unspecified
+        validators: [{enum: true}]
+        markdownDescription: "The Coralogix customer support access setting."
+      ipAccess:
+        collection: set
+        computed: true
+        markdownDescription: "The list of IP access entries."
+  IpAccess:
+    fields:
+      enabled:
+        required: true
+        markdownDescription: "Whether this IP access entry is enabled."
+      ipRange:
+        required: true
+        markdownDescription: "The IP range in CIDR notation."
+      name:
+        markdownDescription: "The name of this IP access entry."
+
+enums:
+  CoralogixCustomerSupportAccess:
+    zero: unspecified
+    trimPrefix: CORALOGIX_CUSTOMER_SUPPORT_ACCESS_
+    values: [CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED, CORALOGIX_CUSTOMER_SUPPORT_ACCESS_ENABLED]

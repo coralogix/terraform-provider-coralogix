@@ -20,12 +20,13 @@ import (
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	generatedipaccess "github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/ipaccess"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var _ datasource.DataSourceWithConfigure = &IpAccessDataSource{}
@@ -39,11 +40,9 @@ func (r *IpAccessDataSource) Metadata(ctx context.Context, req datasource.Metada
 }
 
 func (r *IpAccessDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var m *IpAccessResource
-	var resourceResp resource.SchemaResponse
-	m.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
-	attributes := utils.ConvertAttributes(resourceResp.Schema.Attributes)
-	if idSchema, ok := resourceResp.Schema.Attributes["id"]; ok {
+	resourceSchema := generatedipaccess.Schema()
+	attributes := utils.ConvertAttributes(resourceSchema.Attributes)
+	if idSchema, ok := resourceSchema.Attributes["id"]; ok {
 		attributes["id"] = datasourceschema.StringAttribute{
 			Optional:            true,
 			Description:         idSchema.GetDescription(),
@@ -52,22 +51,26 @@ func (r *IpAccessDataSource) Schema(ctx context.Context, req datasource.SchemaRe
 	}
 	resp.Schema = datasourceschema.Schema{
 		Attributes:          attributes,
-		Description:         resourceResp.Schema.Description,
-		MarkdownDescription: resourceResp.Schema.MarkdownDescription,
-		DeprecationMessage:  resourceResp.Schema.DeprecationMessage,
+		Description:         resourceSchema.Description,
+		MarkdownDescription: resourceSchema.MarkdownDescription,
+		DeprecationMessage:  resourceSchema.DeprecationMessage,
 	}
 }
 
 func (r *IpAccessDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data IpAccessCompanySettingsModel
-
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	var config struct {
+		ID types.String `tfsdk:"id"`
+	}
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 	rq := r.client.
 		IpAccessServiceGetCompanyIpAccessSettings(ctx)
+	if !config.ID.IsNull() && !config.ID.IsUnknown() {
+		rq = rq.Id(config.ID.ValueString())
+	}
 
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
@@ -77,9 +80,13 @@ func (r *IpAccessDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	state := flattenReadResponse(result)
+	state, diags := generatedipaccess.Flatten(ctx, result.Settings)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 func (r *IpAccessDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
