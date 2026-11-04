@@ -598,7 +598,7 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	// Without a mask the Update body holds a derived value, and the server updates it.
 	omit := b.file != nil && b.file.UpdateMask == overrides.UpdateMaskOmit
 	if !omit {
-		if err := derivedValuesInMask(b.file); err != nil {
+		if err := replaceOnlyLines(b.file); err != nil {
 			return nil, err
 		}
 	}
@@ -1006,18 +1006,23 @@ func replaceFields(r *model.Resource, out *convData, fixed func(string) bool, fi
 	return nil
 }
 
-// derivedValuesInMask refuses requestValueBy on a resource that Update patches with a mask. The
-// mask holds attributes, and a derived value is not one: when the configuration switches the
-// object that sets it, expand sends the new value but the mask leaves it out, so the API can
-// keep the old one.
-func derivedValuesInMask(file *overrides.File) error {
+// replaceOnlyLines refuses the lines that need an Update that replaces the resource, on a
+// resource that Update patches with a mask. The mask holds attributes. A requestValueBy value is
+// not one: when the configuration switches the object that sets it, expand sends the new value
+// but the mask leaves it out, so the API can keep the old one. A carrySiblings object shows its
+// fields inside the arms, so its Terraform paths are not the API paths that a mask names.
+func replaceOnlyLines(file *overrides.File) error {
 	if file == nil {
 		return nil
 	}
 	for _, component := range slices.Sorted(maps.Keys(file.Types)) {
 		for _, field := range slices.Sorted(maps.Keys(file.Types[component].Fields)) {
-			if len(file.Types[component].Fields[field].RequestValueBy) != 0 {
+			line := file.Types[component].Fields[field]
+			if len(line.RequestValueBy) != 0 {
 				return fmt.Errorf("%s.%s: requestValueBy needs an Update that replaces the resource; an update mask would leave the derived value out", component, field)
+			}
+			if line.CarrySiblings != nil {
+				return fmt.Errorf("%s.%s: carrySiblings needs an Update that replaces the resource; the update mask names API fields, not the arms that Terraform shows", component, field)
 			}
 		}
 	}

@@ -1003,6 +1003,19 @@ func TestRequestValueByIsRefusedWithAnUpdateMask(t *testing.T) {
 	}
 }
 
+// A carrySiblings object shows its fields inside the arms, so the update mask cannot name them by
+// their Terraform paths. The generator refuses the line on a resource that Update patches with a
+// mask, and accepts it when Update sends no mask.
+func TestCarrySiblingsIsRefusedWithAnUpdateMask(t *testing.T) {
+	base := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Step:\n    fields:\n      params: {carrySiblings: {}}\n"
+	if err := replaceOnlyLines(mustParse(t, base)); err == nil || !strings.Contains(err.Error(), "Step.params: carrySiblings needs an Update that replaces the resource") {
+		t.Fatalf("err = %v, want carrySiblings refused for a masked Update", err)
+	}
+	if err := replaceOnlyLines(mustParse(t, "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\n")); err != nil {
+		t.Fatalf("err = %v, want no error without a carrySiblings line", err)
+	}
+}
+
 // valueNames names the numbers of an integer list or set. On any other field it is an error.
 func TestValueNamesNeedIntegerCollection(t *testing.T) {
 	err := generateSuppressedWith(t, "timezone: {name: time_zone}", "timezone: {name: time_zone, valueNames: {1: UTC}}")
