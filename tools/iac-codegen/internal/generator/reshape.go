@@ -575,6 +575,11 @@ func (h inliner) inlineNested(doc *yaml.Node, nested map[string][]string) (map[s
 		schema := mapValue(h.schemas, name)
 		props := mapValue(schema, "properties")
 		for _, component := range slices.Sorted(maps.Keys(objects)) {
+			// A line on C.f inlines f in C, and in a component that only a request holds, the request
+			// counterpart of C. Another component of the response that has the same field keeps it.
+			if name != component && (responses[name] || !requests[name]) {
+				continue
+			}
 			var fields []string
 			for field, object := range objects[component] {
 				if refName(mapValue(props, field)) == object || allOfRef(mapValue(props, field)) == object {

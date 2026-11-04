@@ -73,6 +73,11 @@
 - FIX: Delete of an `api.overwrite` resource fails on a 404. The write never answers 404 for items that are gone already, so a 404 is a route that does not exist and the items can still exist. Before, Delete treated it as success.
 - FIX: Create of an `api.overwrite` resource keeps the fixed id in state when the Get after the write fails, so Terraform marks the resource as tainted. Before, the state stayed empty and the next apply wrote the items again as a new resource.
 - FIX: A `split` attribute rejects an element that is empty or holds the separator, which would read back as no element or two, and reads `""` from the API as an empty set, not a set of one empty string. Before, both failed with `inconsistent result` after apply.
+- FIX: A request path (`requestAs`, `requestWrapper`) or an `inline` line that goes through an optional object of the request leaves the object out when expand sets no field in it. Before, the request sent an empty object, which an API can read as a value.
+- FIX: `inline` on an optional object of the response is refused when the object holds a required scalar, which would read back as `""`, `false`, or `0` instead of null when the API returns no object.
+- FIX: An `inline` line on `C.f` inlines `f` in `C` and in the request components that only a request holds. Before, it also inlined a field of the same name and object in another response component.
+- FIX: `negate` on a field of the resource component, and `zeroNull` on an enum that a list or set holds, are refused. Before, the generator accepted them and ignored the line.
+- FIX: A field line with `inline: true` refuses `requestAs`, `negate`, and `split` next to it, like any other key. Before, they were accepted and ignored.
 - FEAT: An existing-resource Create body that is the resource itself, while only the Update body wraps it in `api.requestWrapper`, generates a flat Create request. Before, the wrapper applied to both bodies and the SDK check failed on Create. The model of the SDK `iac` module infers this from the spec, so no key is needed.
 - CHORE: Bump the generator to `v0.1.0-beta.68`.
 - FEAT: A nested server default inside a set works when the response requires the field, as the recording rules group sets do for `interval` and `limit`. Before, the generator refused every nested server default in a set.

@@ -85,6 +85,9 @@ type convArm struct {
 type convParent struct {
 	SDK  string // Go field of the body
 	Type string // qualified SDK type of the object
+	// DropEmpty: the object is optional in the request, so expand leaves it out when no field in
+	// it is set, instead of sending an empty object that an API can read as a value.
+	DropEmpty bool
 }
 
 // wrapHelper is one pair of generated functions, wrap<Func> and unwrap<Func>. They convert a value
@@ -397,6 +400,18 @@ type convField struct {
 	Negated bool
 	// Split is the separator of a split field: the API holds the values of the set joined by it.
 	Split string
+}
+
+// DropEmptyParents are the optional request objects that expand leaves out when it set no field in
+// them, the deepest first, so an object that only held an empty one is empty too.
+func (o *convObject) DropEmptyParents() []convParent {
+	var out []convParent
+	for i := len(o.Parents) - 1; i >= 0; i-- {
+		if o.Parents[i].DropEmpty {
+			out = append(out, o.Parents[i])
+		}
+	}
+	return out
 }
 
 // Dst is the Go expression that expand writes the value to: the SDK field, or the value inside
@@ -818,6 +833,10 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 	b.objects = append(b.objects, obj)
 	groups := map[string]*convObject{}
 	for _, f := range b.resource.Fields {
+		if b.file != nil && b.file.Types[b.resource.Name].Fields[f.Name].Negate {
+			// Only the request object of a nested component sends a field negated.
+			return fmt.Errorf("%s.%s: negate works on a field of a nested request object, not on a field of the resource component", b.resource.Name, f.Name)
+		}
 		fixed := b.fixedRequest(b.resource.Name, f.Name)
 		if !root.has(f) && !(root.expand && fixed) {
 			continue
@@ -1739,6 +1758,10 @@ func (b *convBuilder) enumsConv(cf *convField, t *model.Type) (string, error) {
 	m, err := b.enumMapFor(t.Elem.Schema, cf.SDKType, t.Elem)
 	if err != nil {
 		return "", err
+	}
+	if m != nil && m.ZeroNull != "" {
+		// A list or set has no null element to read the zero value as.
+		return "", fmt.Errorf("zeroNull on %s reads its zero value as null, but a list or set of it has no null element", t.Elem.Schema)
 	}
 	cf.EnumMap = m
 	return "[]" + enum.Name, nil
@@ -2723,7 +2746,7 @@ func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component strin
 		cf.FlattenOnly = cf.Conv != "fixed" && responseOnly
 		if parent := b.file.NestedParent(t.Schema, f.Name); parent != nil {
 			// An inline line moved the field out of its object: the Go expression goes through it.
-			if err := b.nestedInlineParent(obj, sdkPath, t.Model != "", parent, cf); err != nil {
+			if err := b.nestedInlineParent(obj, sdkPath, t.Model != "", parent, cf, f.Attrs.Required && scalarKind(f.Type)); err != nil {
 				return fmt.Errorf("%s: %w", f.Name, err)
 			}
 		}
@@ -2930,7 +2953,7 @@ func (b *convBuilder) nestedRequestPath(obj *convObject, sdkPath string, f *mode
 		case typ.Name:
 		case "*" + typ.Name:
 			if at := strings.TrimSuffix(prefix, "."); !slices.ContainsFunc(obj.Parents, func(p convParent) bool { return p.SDK == at }) {
-				obj.Parents = append(obj.Parents, convParent{SDK: at, Type: b.qualify(typ.Name)})
+				obj.Parents = append(obj.Parents, convParent{SDK: at, Type: b.qualify(typ.Name), DropEmpty: true})
 			}
 		default:
 			return fmt.Errorf("SDK field %s has type %s, want %s or *%s", ref.SDKName(), ref.Want, typ.Name, typ.Name)
@@ -2949,7 +2972,7 @@ func (b *convBuilder) nestedRequestPath(obj *convObject, sdkPath string, f *mode
 // nestedInlineParent points cf, a field that an inline line moved out of the object parent of the
 // object at sdkPath, at the field of that object. A request allocates an SDK pointer before it writes
 // the field; a response reads a missing one as empty.
-func (b *convBuilder) nestedInlineParent(obj *convObject, sdkPath string, request bool, parent *overrides.Parent, cf *convField) error {
+func (b *convBuilder) nestedInlineParent(obj *convObject, sdkPath string, request bool, parent *overrides.Parent, cf *convField, requiredScalar bool) error {
 	ref, err := b.ix.fieldRef(sdkPath + "." + parent.Field)
 	if err != nil {
 		return err
@@ -2966,7 +2989,13 @@ func (b *convBuilder) nestedInlineParent(obj *convObject, sdkPath string, reques
 	default:
 		return fmt.Errorf("SDK field %s has type %s, want %s or *%s", ref.SDKName(), ref.Want, typ.Name, typ.Name)
 	}
-	p := convParent{SDK: ref.Name, Type: b.qualify(typ.Name)}
+	if !request && (cf.Value || requiredScalar) {
+		// A missing object flattens as a zero value of its type, so a field that the SDK holds as a
+		// value would read as "", false, or 0 instead of null. The SDK holds a required scalar as a
+		// value; the contract says so before the SDK exists.
+		return fmt.Errorf("%s is an optional object, and its field %s is a value in the SDK, so it would read back as a zero value instead of null when the API returns no object", ref.SDKName(), cf.SDK)
+	}
+	p := convParent{SDK: ref.Name, Type: b.qualify(typ.Name), DropEmpty: request}
 	list := &obj.FlattenParents
 	if request {
 		list = &obj.Parents
@@ -2975,4 +3004,16 @@ func (b *convBuilder) nestedInlineParent(obj *convObject, sdkPath string, reques
 		*list = append(*list, p)
 	}
 	return nil
+}
+
+// scalarKind reports whether t is a plain value: a string, a bool, a number, or an enum.
+func scalarKind(t *model.Type) bool {
+	if t == nil {
+		return false
+	}
+	switch t.Kind {
+	case model.String, model.Bool, model.Number, model.Integer, model.Enum:
+		return true
+	}
+	return false
 }

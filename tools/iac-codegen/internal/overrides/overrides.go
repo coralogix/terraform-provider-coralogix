@@ -995,6 +995,9 @@ func (l Field) keys() []string {
 	add(l.Unwrap != nil, "unwrap")
 	add(l.RequiresReplace, "requiresReplace")
 	add(l.UniqueBy != "", "uniqueBy")
+	add(l.RequestAs != "", "requestAs")
+	add(l.Negate, "negate")
+	add(l.Split != "", "split")
 	add(l.Inline, "inline")
 	return keys
 }
