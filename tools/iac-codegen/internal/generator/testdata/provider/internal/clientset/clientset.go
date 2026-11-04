@@ -9,6 +9,7 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/eval_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/folder_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/legacy_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/parse_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/rename_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/rulebook_service"
 	"example.com/iac-test-sdk/go/openapi/gen/settings_service"
@@ -38,6 +39,7 @@ type ClientSet struct {
 	UpsertClient   *upsert_service.UpsertServiceAPIService
 	StorageClient  *storage_service.StorageServiceAPIService
 	Rename         *rename_things_service.RenameThingsServiceAPIService
+	Parse          *parse_things_service.ParseThingsServiceAPIService
 }
 
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
@@ -96,4 +98,8 @@ func (c *ClientSet) RenameThings() *rename_things_service.RenameThingsServiceAPI
 
 func (c *ClientSet) ActionThings() *action_things_service.ActionThingsServiceAPIService {
 	return c.ActionThing
+}
+
+func (c *ClientSet) ParseThings() *parse_things_service.ParseThingsServiceAPIService {
+	return c.Parse
 }

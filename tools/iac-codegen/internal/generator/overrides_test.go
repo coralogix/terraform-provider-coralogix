@@ -625,7 +625,7 @@ func TestEmptyRequiredLineIsUnused(t *testing.T) {
 	if len(report) != 0 {
 		t.Fatal(report)
 	}
-	report = overrideIssues(doc, component, mustParse(t, text))
+	report = overrideIssues(doc, component, mustParse(t, text), model.OperationIDs{}, model.Policy{})
 	if len(report) != 1 || report[0].Code != "OVERRIDE_UNUSED" || report[0].Location != "behavior-overrides.yaml:types.LegacyLabels.required" {
 		t.Fatalf("report = %v, want OVERRIDE_UNUSED for types.LegacyLabels.required", report)
 	}
@@ -740,6 +740,11 @@ func TestModeLinesReplaceTheContractDefault(t *testing.T) {
 		"other line":     {"{description: The priority.}", true, true, ""},
 		"not computed":   {"{computed: false}", false, false, ""},
 		"static default": {"{computed: true, default: 0}", true, false, "int64default.StaticInt64(0)"},
+		// These keys state what an omitted value plans and sends, so the server default of the
+		// contract must not make a removal unknown on top of them.
+		"send unknown as zero":  {"{computed: true, sendUnknownAsZero: true}", true, false, ""},
+		"keep the state":        {"{computed: true, useStateForUnknown: true}", true, false, ""},
+		"keep a non-null state": {"{computed: true, useNonNullStateForUnknown: true}", true, false, ""},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -995,6 +1000,19 @@ func TestRequestValueByIsRefusedWithAnUpdateMask(t *testing.T) {
 	_, err := validateOpenAPIWith([]byte(spec), "Thing", model.OperationIDs{}, "sdk", "provider", mustParse(t, text))
 	if err == nil || !strings.Contains(err.Error(), "requestValueBy needs an Update that replaces the resource") {
 		t.Fatalf("err = %v, want requestValueBy refused for a masked Update", err)
+	}
+}
+
+// A carrySiblings object shows its fields inside the arms, so the update mask cannot name them by
+// their Terraform paths. The generator refuses the line on a resource that Update patches with a
+// mask, and accepts it when Update sends no mask.
+func TestCarrySiblingsIsRefusedWithAnUpdateMask(t *testing.T) {
+	base := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Step:\n    fields:\n      params: {requireOne: true, carrySiblings: {}}\n"
+	if err := replaceOnlyLines(mustParse(t, base)); err == nil || !strings.Contains(err.Error(), "Step.params: carrySiblings needs an Update that replaces the resource") {
+		t.Fatalf("err = %v, want carrySiblings refused for a masked Update", err)
+	}
+	if err := replaceOnlyLines(mustParse(t, "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\n")); err != nil {
+		t.Fatalf("err = %v, want no error without a carrySiblings line", err)
 	}
 }
 

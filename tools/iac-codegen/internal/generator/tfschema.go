@@ -281,6 +281,21 @@ func defaultPackages(attrs []*tfAttr) []string {
 	return packages
 }
 
+// UsesAttr reports whether a static default of an attribute is an empty list or set, whose Go
+// expression names attr.Value.
+func (r *tfResource) UsesAttr() bool {
+	var uses func(attrs []*tfAttr) bool
+	uses = func(attrs []*tfAttr) bool {
+		for _, a := range attrs {
+			if strings.Contains(a.Default, "attr.Value") || uses(a.Attributes) {
+				return true
+			}
+		}
+		return false
+	}
+	return uses(r.Attributes)
+}
+
 // checkSingletonIDAttribute checks that the id attribute of a singleton with singletonID is still
 // computed-only after the field lines: a line that makes it required, optional, or a configured
 // default would let the user set a value that flatten replaces with the id of the server.
@@ -512,24 +527,11 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 	if err := applyTerraformType(a, l); err != nil {
 		return err
 	}
-	if l.RequireOne {
-		// On an arm of a top-level oneOf, the resource validator becomes ExactlyOneOf. Elsewhere,
-		// the line names the field that holds the oneOf.
-		if !a.RootArm && !slices.ContainsFunc(a.Attributes, func(c *tfAttr) bool { return c.OneOfGroup != "" }) {
-			return errors.New("requireOne needs a field that holds a oneOf, or an arm of a top-level oneOf")
-		}
-		if !a.RootArm {
-			requireOneArm(a)
-		}
+	if err := applyRequireOne(a, l); err != nil {
+		return err
 	}
-	if l.Required {
-		a.Required, a.Optional = true, false
-	}
-	if l.SchemaOptional {
-		if !a.Required {
-			return errors.New("schemaOptional needs a field that the API request requires")
-		}
-		a.Required, a.Optional = false, true
+	if err := applyMode(a, l); err != nil {
+		return err
 	}
 	if l.Description != nil {
 		a.Description, a.PlainDescription = *l.Description, true
@@ -541,6 +543,76 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 	if l.Computed != nil {
 		a.Computed = *l.Computed
 	}
+	if err := applyModifiers(a, l); err != nil {
+		return err
+	}
+	if err := applyDefault(a, l); err != nil {
+		return err
+	}
+	for _, v := range l.Validators {
+		expr, err := validatorExpr(a, v, file)
+		if err != nil {
+			return err
+		}
+		a.Validators = append(a.Validators, expr)
+		if (v.Enum || v.EnumExceptZero) && (a.ValueKind == "List" || a.ValueKind == "Set") {
+			// The acceptance test picks an element from the element validators, so they name the
+			// Terraform values of the enums line, not the API values of the contract.
+			oneOf, err := enumOneOf(a, file, v.EnumExceptZero)
+			if err != nil {
+				return err
+			}
+			a.ElemValidators = append(slices.DeleteFunc(a.ElemValidators, func(e string) bool { return strings.HasPrefix(e, "stringvalidator.OneOf") }), oneOf)
+		}
+	}
+	return nil
+}
+
+// applyRequireOne makes the arms of the oneOf that a requireOne line names exactly one of. On an
+// arm of a top-level oneOf, the resource validator becomes ExactlyOneOf. Elsewhere, the line names
+// the field that holds the oneOf.
+func applyRequireOne(a *tfAttr, l overrides.Field) error {
+	if !l.RequireOne {
+		return nil
+	}
+	if !a.RootArm && !slices.ContainsFunc(a.Attributes, func(c *tfAttr) bool { return c.OneOfGroup != "" }) {
+		return errors.New("requireOne needs a field that holds a oneOf, or an arm of a top-level oneOf")
+	}
+	if !a.RootArm {
+		requireOneArm(a)
+	}
+	return nil
+}
+
+// applyMode applies the keys of a line that make the attribute required, optional, or computed:
+// required, schemaOptional, and requestPosition.
+func applyMode(a *tfAttr, l overrides.Field) error {
+	if l.Required {
+		a.Required, a.Optional = true, false
+	}
+	if l.SchemaOptional {
+		if !a.Required {
+			return errors.New("schemaOptional needs a field that the API request requires")
+		}
+		a.Required, a.Optional = false, true
+	}
+	if !l.RequestPosition {
+		return nil
+	}
+	if a.Kind != "Int64" && a.Kind != "Int32" {
+		return fmt.Errorf("requestPosition needs an integer attribute, not %s", a.Kind)
+	}
+	if a.Computed && !a.Optional && !a.Required || slices.ContainsFunc(a.Modifiers, func(m string) bool { return strings.Contains(m, "RequiresReplace") }) {
+		return errors.New("requestPosition needs a field that Create and Update send, not a read-only or immutable one")
+	}
+	// The position in the list is the value, so the user does not set it.
+	a.Required, a.Optional, a.Computed, a.Validators = false, false, true, nil
+	return nil
+}
+
+// applyModifiers adds the plan modifiers of a line: useStateForUnknown,
+// useNonNullStateForUnknown, and equality.
+func applyModifiers(a *tfAttr, l overrides.Field) error {
 	if l.UseStateForUnknown {
 		modifier := strings.ToLower(a.ValueKind) + "planmodifier.UseStateForUnknown()"
 		if containsString(a.Modifiers, modifier) {
@@ -560,27 +632,26 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 		// First, so that RequiresReplace and the other modifiers see the state value of an equal document.
 		a.Modifiers = append([]string{"equivalentDocument{equal: " + l.Equality + "Equal}"}, a.Modifiers...)
 	}
-	if l.Default != nil {
-		expr, err := defaultExpr(a, l.Default)
-		if err != nil {
-			return err
-		}
-		a.Default = expr
-		if a.Required {
-			// A released default on a field that the contract requires means that the contract is
-			// wrong about the field. The line states the exception with optional: true.
-			if !l.Optional {
-				return errors.New("the line gives a default to a field that the contract requires: add optional: true, so the overrides file states that the released attribute is optional")
-			}
-			a.Required, a.Optional = false, true
-		}
+	return nil
+}
+
+// applyDefault sets the static default of a line.
+func applyDefault(a *tfAttr, l overrides.Field) error {
+	if l.Default == nil {
+		return nil
 	}
-	for _, v := range l.Validators {
-		expr, err := validatorExpr(a, v, file)
-		if err != nil {
-			return err
+	expr, err := defaultExpr(a, l.Default)
+	if err != nil {
+		return err
+	}
+	a.Default = expr
+	if a.Required {
+		// A released default on a field that the contract requires means that the contract is
+		// wrong about the field. The line states the exception with optional: true.
+		if !l.Optional {
+			return errors.New("the line gives a default to a field that the contract requires: add optional: true, so the overrides file states that the released attribute is optional")
 		}
-		a.Validators = append(a.Validators, expr)
+		a.Required, a.Optional = false, true
 	}
 	return nil
 }
@@ -606,6 +677,23 @@ func checkAttrMode(a *tfAttr) error {
 	return nil
 }
 
+// intDefaultExpr is the default of an integer value, and false when a is no number attribute.
+func intDefaultExpr(a *tfAttr, v int) (string, bool, error) {
+	switch a.Kind {
+	case "Int64":
+		return fmt.Sprintf("int64default.StaticInt64(%d)", v), true, nil
+	case "Int32":
+		if v < math.MinInt32 || v > math.MaxInt32 {
+			return "", true, fmt.Errorf("the default %d does not fit an Int32 attribute", v)
+		}
+		return fmt.Sprintf("int32default.StaticInt32(%d)", v), true, nil
+	case "Float64", "Float32":
+		expr, err := floatDefaultExpr(a.Kind, float64(v))
+		return expr, true, err
+	}
+	return "", false, nil
+}
+
 // defaultExpr is the Go expression of a static default of the attribute.
 func defaultExpr(a *tfAttr, value any) (string, error) {
 	switch v := value.(type) {
@@ -618,20 +706,16 @@ func defaultExpr(a *tfAttr, value any) (string, error) {
 			return fmt.Sprintf("booldefault.StaticBool(%t)", v), nil
 		}
 	case int:
-		switch a.Kind {
-		case "Int64":
-			return fmt.Sprintf("int64default.StaticInt64(%d)", v), nil
-		case "Int32":
-			if v < math.MinInt32 || v > math.MaxInt32 {
-				return "", fmt.Errorf("the default %d does not fit an Int32 attribute", v)
-			}
-			return fmt.Sprintf("int32default.StaticInt32(%d)", v), nil
-		case "Float64", "Float32":
-			return floatDefaultExpr(a.Kind, float64(v))
+		if expr, ok, err := intDefaultExpr(a, v); ok || err != nil {
+			return expr, err
 		}
 	case float64:
 		if a.Kind == "Float64" || a.Kind == "Float32" {
 			return floatDefaultExpr(a.Kind, v)
+		}
+	case []any:
+		if (a.Kind == "Set" || a.Kind == "List") && a.ElementType != "" {
+			return fmt.Sprintf("%sdefault.StaticValue(types.%sValueMust(%s, []attr.Value{}))", strings.ToLower(a.Kind), a.Kind, a.ElementType), nil
 		}
 	}
 	return "", fmt.Errorf("a default of type %T does not fit a %s attribute", value, a.Kind)
@@ -725,6 +809,9 @@ func enumOneOf(a *tfAttr, file *overrides.File, exceptZero bool) (string, error)
 	quoted := make([]string, 0, len(values))
 	for _, v := range values {
 		quoted = append(quoted, strconv.Quote(v))
+	}
+	if enum.CaseInsensitive {
+		return "stringvalidator.OneOfCaseInsensitive(" + strings.Join(quoted, ", ") + ")", nil
 	}
 	return "stringvalidator.OneOf(" + strings.Join(quoted, ", ") + ")", nil
 }
@@ -902,6 +989,10 @@ type tfBuilder struct {
 	replace      bool              // Update is a full replace, so a group can hold nested fields
 	owners       map[string]string // model struct name to what makes it: the resource, a component, or a group
 	grouped      map[string]bool   // components whose types.<Type>.groups the builder applied
+	// carried are the siblings that a carrySiblings arm holds, with the component whose lines they
+	// take. flags are the fold flags that an arm holds.
+	carried map[*model.Field]string
+	flags   map[*model.Field]overrides.Fold
 }
 
 // claimModel records that owner makes the model struct name. Two owners of one name would share
@@ -1116,20 +1207,34 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	if t.Schema == "" {
 		return nil, fmt.Errorf("inline %s schema is not supported", t.Kind)
 	}
+	if carry := carryField(b.file, t); carry != nil {
+		return b.carryAttributes(p, t, carry)
+	}
 	var attrs []*tfAttr
 	var fields []tfModelField
 	groups := newNestedGroups(b, t.Schema)
 	for _, f := range t.Fields {
-		if requestValue(b.file, t.Schema, f.Name) {
+		if fold, ok := b.flags[f]; ok {
+			// The flag of a folded arm: true selects this arm, false the folded one.
+			attrs = append(attrs, &tfAttr{Name: fold.Flag, Kind: "Bool", ValueKind: "Bool", Optional: true, Computed: true,
+				Default: "booldefault.StaticBool(true)", Description: fold.MarkdownDescription})
+			fields = append(fields, tfModelField{Name: camelize(fold.Flag), Type: "types.Bool", TFName: fold.Flag})
+			continue
+		}
+		component := t.Schema
+		if owner, ok := b.carried[f]; ok {
+			component = owner
+		}
+		if requestValue(b.file, component, f.Name) {
 			continue
 		}
 		group := groups.of(f.Name)
-		child := append(append(attrPath{}, p...), terraformName(b.policy, t.Schema, f.Name))
+		child := append(append(attrPath{}, p...), terraformName(b.policy, component, f.Name))
 		if group != "" {
-			child = append(append(attrPath{}, p...), group, terraformName(b.policy, t.Schema, f.Name))
+			child = append(append(attrPath{}, p...), group, terraformName(b.policy, component, f.Name))
 		}
-		only := b.sent.responseOnly(t.Schema, f)
-		a, err := b.attribute(child, t.Schema, f.Name, f.Description, f.Type, nestedAttrs(f), only)
+		only := b.sent.responseOnly(component, f)
+		a, err := b.attribute(child, component, f.Name, f.Description, f.Type, nestedAttrs(f), only)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
@@ -1143,10 +1248,10 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		case model.Immutable:
 			b.requiresReplace(a, child.dotted())
 		}
-		if err := b.nestedServerDefault(a, child, t.Schema, f); err != nil {
+		if err := b.nestedServerDefault(a, child, component, f); err != nil {
 			return nil, fmt.Errorf("%s: %w", f.Name, err)
 		}
-		field := b.modelField(t.Schema, f.Name, f.Type, f.Behavior, only, f.Attrs.Computed)
+		field := b.modelField(component, f.Name, f.Type, f.Behavior, only, f.Attrs.Computed)
 		if group != "" {
 			if err := groups.add(group, f, a, field); err != nil {
 				return nil, err
@@ -1195,6 +1300,238 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 		}
 	}
 	return attrs, nil
+}
+
+// carryField returns the field of t whose line has carrySiblings, or nil.
+func carryField(file *overrides.File, t *model.Type) *model.Field {
+	if file == nil || t.Kind != model.Object {
+		return nil
+	}
+	for _, f := range t.Fields {
+		if file.Types[t.Schema].Fields[f.Name].CarrySiblings != nil {
+			return f
+		}
+	}
+	return nil
+}
+
+// checkCarryField rejects a carrySiblings line that is not the only one of t, or that is not on a
+// oneOf that Create and Update send.
+func (b *tfBuilder) checkCarryField(t *model.Type, carry *model.Field) error {
+	for _, f := range t.Fields {
+		if f != carry && b.file.Types[t.Schema].Fields[f.Name].CarrySiblings != nil {
+			return fmt.Errorf("%s: carrySiblings on %s and %s: an object shows one oneOf as its arms", t.Schema, carry.Name, f.Name)
+		}
+	}
+	if carry.Type.Kind != model.OneOf || len(t.Groups) != 0 {
+		return fmt.Errorf("%s.%s: carrySiblings needs a oneOf field in an object without other oneOf groups", t.Schema, carry.Name)
+	}
+	if carry.Behavior != model.Normal {
+		return fmt.Errorf("%s.%s: carrySiblings needs a oneOf that Create and Update send, not a %s one: every arm is an optional attribute", t.Schema, carry.Name, carry.Behavior)
+	}
+	return nil
+}
+
+// carryAttributes are the attributes of an object t whose field carry holds a oneOf with a
+// carrySiblings line: one attribute per arm, which holds the other fields of t, the fields of the
+// arm, and the flag of an arm that a fold folds into it.
+func (b *tfBuilder) carryAttributes(p attrPath, t *model.Type, carry *model.Field) ([]*tfAttr, error) {
+	line := b.file.Types[t.Schema].Fields[carry.Name]
+	if err := b.checkCarryField(t, carry); err != nil {
+		return nil, err
+	}
+	oneOf := carry.Type
+	if b.carried == nil {
+		b.carried, b.flags = map[*model.Field]string{}, map[*model.Field]overrides.Fold{}
+	}
+	armComponent := model.ComponentOf(oneOf)
+	arms := map[string]*model.Field{}
+	for _, arm := range oneOf.Fields {
+		arms[arm.Name] = arm
+	}
+	if err := checkCarry(t, carry, line.CarrySiblings, arms); err != nil {
+		return nil, err
+	}
+	var attrs []*tfAttr
+	var fields []tfModelField
+	group := model.OneOfGroup{AllowNone: oneOf.AllowNone && !line.RequireOne}
+	for _, arm := range oneOf.Fields {
+		if _, folded := line.CarrySiblings.Fold[arm.Name]; folded {
+			continue
+		}
+		if arm.Type.Kind != model.Object || arm.Type.Schema == "" {
+			return nil, fmt.Errorf("%s.%s: carrySiblings needs arms that are object components; %s is not", t.Schema, carry.Name, arm.Name)
+		}
+		group.Arms = append(group.Arms, arm.Name)
+		a, err := b.carryArm(p, t, carry, arm, line.CarrySiblings)
+		if err != nil {
+			return nil, err
+		}
+		attrs = append(attrs, a)
+		fields = append(fields, b.modelField(armComponent, arm.Name, arm.Type, model.Normal, false, false))
+	}
+	addGroupValidators(attrs, []model.OneOfGroup{group}, func(arm string) string { return terraformName(b.policy, armComponent, arm) })
+	if !group.AllowNone {
+		oneExactlyOneOf(attrs)
+	}
+	name := typeModelName(t)
+	if err := b.claimModel(name, "the component "+t.Schema); err != nil {
+		return nil, err
+	}
+	if !b.seen[name] {
+		b.seen[name] = true
+		b.models = append(b.models, &tfModel{Name: name, Fields: fields})
+	}
+	return attrs, nil
+}
+
+// carryArm is the attribute of one arm of a carrySiblings oneOf: the siblings of carry in t, the
+// fields of the arm, and the flags of the folds into it.
+func (b *tfBuilder) carryArm(p attrPath, t *model.Type, carry, arm *model.Field, c *overrides.Carry) (*tfAttr, error) {
+	held := *arm.Type
+	held.Fields = nil
+	for _, sibling := range t.Fields {
+		if sibling == carry || c.RequestValues[arm.Name][sibling.Name] != "" {
+			continue
+		}
+		b.carried[sibling] = t.Schema
+		held.Fields = append(held.Fields, sibling)
+	}
+	held.Fields = append(held.Fields, arm.Type.Fields...)
+	for _, folded := range sortedFoldsInto(c, arm.Name) {
+		flag := &model.Field{Name: folded.Flag, Type: &model.Type{Kind: model.Bool}, Behavior: model.Normal}
+		b.flags[flag] = folded
+		held.Fields = append(held.Fields, flag)
+	}
+	// The arm holds fields of two components and the fold flags, which the name checks of each
+	// component do not see together.
+	byTF, byGo := map[string]string{}, map[string]string{}
+	for _, f := range held.Fields {
+		owner := arm.Type.Schema
+		if _, sibling := b.carried[f]; sibling && !slices.Contains(arm.Type.Fields, f) {
+			owner = t.Schema
+		}
+		tf := terraformName(b.policy, owner, f.Name)
+		if _, flag := b.flags[f]; flag {
+			tf = f.Name
+		}
+		if other, ok := byTF[tf]; ok {
+			return nil, fmt.Errorf("%s: the carried arm has two fields named %s in Terraform: %s and %s", arm.Name, tf, other, f.Name)
+		}
+		if other, ok := byGo[camelize(tf)]; ok {
+			return nil, fmt.Errorf("%s: the carried arm has two fields named %s in Go: %s and %s", arm.Name, camelize(tf), other, f.Name)
+		}
+		byTF[tf], byGo[camelize(tf)] = f.Name, f.Name
+	}
+	component := model.ComponentOf(carry.Type)
+	name := terraformName(b.policy, component, arm.Name)
+	a := &tfAttr{Name: name, Kind: "SingleNested", ValueKind: "Object", Optional: true, Description: arm.Description, Component: component, Property: arm.Name}
+	nested, err := b.objectAttributes(append(append(attrPath{}, p...), name), &held)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", arm.Name, err)
+	}
+	a.Attributes = nested
+	return a, nil
+}
+
+// oneExactlyOneOf replaces the group validators of the arms with one ExactlyOneOf on the first arm
+// that names every arm, as the released resource had: a rule without an arm, or with two, gets one
+// error, not one per arm.
+func oneExactlyOneOf(attrs []*tfAttr) {
+	if len(attrs) == 0 {
+		return
+	}
+	var all []string
+	for _, a := range attrs {
+		all = append(all, fmt.Sprintf("path.MatchRelative().AtParent().AtName(%q)", a.Name))
+		a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool { return slices.Contains(a.GroupValidators, v) })
+		a.GroupValidators = nil
+	}
+	v := "objectvalidator.ExactlyOneOf(" + strings.Join(all, ", ") + ")"
+	attrs[0].Validators = append(attrs[0].Validators, v)
+	attrs[0].GroupValidators = []string{v}
+}
+
+// checkCarry reports a carrySiblings line that names an arm or a sibling that t does not have, a
+// fixed value for the carried field itself or for a field that the requests do not send, and a
+// fold into an arm with other fields or into an arm that another fold uses.
+func checkCarry(t *model.Type, carry *model.Field, c *overrides.Carry, arms map[string]*model.Field) error {
+	siblings := map[string]*model.Field{}
+	for _, f := range t.Fields {
+		if f != carry {
+			siblings[f.Name] = f
+		}
+	}
+	for _, arm := range slices.Sorted(maps.Keys(c.RequestValues)) {
+		if arms[arm] == nil {
+			return fmt.Errorf("%s: carrySiblings.requestValues names %s, which is no arm", t.Schema, arm)
+		}
+		for _, sibling := range slices.Sorted(maps.Keys(c.RequestValues[arm])) {
+			switch f := siblings[sibling]; {
+			case sibling == carry.Name:
+				return fmt.Errorf("%s: carrySiblings.requestValues.%s names %s, the field that holds the oneOf", t.Schema, arm, sibling)
+			case f == nil:
+				return fmt.Errorf("%s: carrySiblings.requestValues.%s names %s, which is no field of %s", t.Schema, arm, sibling, t.Schema)
+			case f.Behavior != model.Normal:
+				return fmt.Errorf("%s: carrySiblings.requestValues.%s names %s, which Create and Update do not send", t.Schema, arm, sibling)
+			}
+		}
+	}
+	folds := map[string]string{}
+	for _, arm := range slices.Sorted(maps.Keys(c.Fold)) {
+		target := arms[c.Fold[arm].Into]
+		if arms[arm] == nil || target == nil {
+			return fmt.Errorf("%s: carrySiblings.fold.%s names an arm that the oneOf does not have", t.Schema, arm)
+		}
+		if other, ok := folds[target.Name]; ok {
+			return fmt.Errorf("%s: carrySiblings.fold.%s and fold.%s both fold into %s: an arm takes one fold", t.Schema, other, arm, target.Name)
+		}
+		folds[target.Name] = arm
+		if _, folded := c.Fold[target.Name]; folded {
+			return fmt.Errorf("%s: carrySiblings.fold.%s folds into %s, which is folded itself", t.Schema, arm, target.Name)
+		}
+		if !sameFieldNames(arms[arm].Type, target.Type) {
+			return fmt.Errorf("%s: carrySiblings.fold.%s: the arms %s and %s need the same fields", t.Schema, arm, arm, target.Name)
+		}
+		if !maps.Equal(c.RequestValues[arm], c.RequestValues[target.Name]) {
+			return fmt.Errorf("%s: carrySiblings.fold.%s: the arms %s and %s need the same requestValues", t.Schema, arm, arm, target.Name)
+		}
+	}
+	return nil
+}
+
+// sameFieldNames reports whether two objects have fields of the same names and types, in order: a
+// fold copies each field of one SDK struct into the other.
+func sameFieldNames(a, b *model.Type) bool {
+	if a == nil || b == nil || len(a.Fields) != len(b.Fields) {
+		return false
+	}
+	for i := range a.Fields {
+		if a.Fields[i].Name != b.Fields[i].Name || !sameWireType(a.Fields[i].Type, b.Fields[i].Type) {
+			return false
+		}
+	}
+	return true
+}
+
+// sameWireType reports whether two field types have the same SDK type: the same kind, format,
+// component, and element.
+func sameWireType(a, b *model.Type) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return a.Kind == b.Kind && a.Format == b.Format && a.Schema == b.Schema && sameWireType(a.Elem, b.Elem)
+}
+
+// sortedFoldsInto returns the folds into arm, by folded arm.
+func sortedFoldsInto(c *overrides.Carry, arm string) []overrides.Fold {
+	var out []overrides.Fold
+	for _, folded := range slices.Sorted(maps.Keys(c.Fold)) {
+		if c.Fold[folded].Into == arm {
+			out = append(out, c.Fold[folded])
+		}
+	}
+	return out
 }
 
 // nestedServerDefault makes a an Optional and Computed attribute with the server-default plan
@@ -1264,6 +1601,9 @@ func (r *tfResource) RequestFilter() bool { return len(r.ServerPaths) != 0 || le
 // places of a component, with its Go type in each place.
 func modelFieldDifference(first, other []tfModelField) string {
 	for i := range min(len(first), len(other)) {
+		if first[i].TFName != other[i].TFName {
+			return fmt.Sprintf("one place has the field %s where another has %s", first[i].TFName, other[i].TFName)
+		}
 		if first[i] != other[i] {
 			return fmt.Sprintf("field %s is %s in one place and %s in another", first[i].TFName, first[i].Type, other[i].Type)
 		}
@@ -1824,6 +2164,12 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 		if requestValue(file, r.Name, f.Name) {
 			continue
 		}
+		if splitArms(file, r.Name, f.Name) {
+			if err := b.splitAttributes(out, root, r, f, file); err != nil {
+				return fmt.Errorf("%s: %w", f.Name, err)
+			}
+			continue
+		}
 		group := file.GroupOf(f.Name)
 		if err := checkGroupField(r, f, group); err != nil {
 			return err
@@ -1846,6 +2192,101 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 			root.Fields = append(root.Fields, tfModelField{Name: camelize(group), Type: "*" + groups.models[group].Name, TFName: group})
 			b.models = append(b.models, groups.models[group])
 		}
+	}
+	return checkSplitNames(out, root, r, file)
+}
+
+// checkSplitNames rejects a split arm with the Terraform or Go name of another top-level attribute,
+// also of an arm of another split field. The collision checks of a component do not see a split
+// arm next to the top-level fields.
+func checkSplitNames(out *tfResource, root *tfModel, r *model.Resource, file *overrides.File) error {
+	split := map[string]bool{}
+	for _, f := range r.Fields {
+		if splitArms(file, r.Name, f.Name) {
+			component := model.ComponentOf(f.Type.Elem)
+			for _, arm := range f.Type.Elem.Fields {
+				split[terraformName(r.Policy, component, arm.Name)] = true
+				split[camelize(arm.Name)] = true
+			}
+		}
+	}
+	attrs := map[string]bool{}
+	for _, a := range out.Attributes {
+		if attrs[a.Name] && split[a.Name] {
+			return fmt.Errorf("the split arm %s has the name of another top-level attribute", a.Name)
+		}
+		attrs[a.Name] = true
+	}
+	fields := map[string]bool{}
+	for _, f := range root.Fields {
+		if fields[f.Name] && split[f.Name] {
+			return fmt.Errorf("the split arm %s has the Go name of another top-level field", f.Name)
+		}
+		fields[f.Name] = true
+	}
+	return nil
+}
+
+// splitArms reports whether the field has a splitArms line.
+func splitArms(file *overrides.File, component, field string) bool {
+	return file != nil && file.Types[component].Fields[field].SplitArms
+}
+
+// checkSplitField rejects a splitArms line on a field whose items the arm collections cannot hold.
+func checkSplitField(r *model.Resource, f *model.ResourceField, file *overrides.File) error {
+	t := f.Type
+	if (t.Kind != model.List && t.Kind != model.Set) || t.Elem == nil || t.Elem.Kind != model.OneOf {
+		return errors.New("splitArms needs a list or set whose items are a oneOf")
+	}
+	if f.Behavior != model.Normal || file.GroupOf(f.Name) != "" {
+		return errors.New("splitArms needs a field that Create and Update send, outside a group")
+	}
+	// The arm collections hold no order across arms: a list [a1, b1, a2] would come back as
+	// [a1, a2, b1].
+	if t.Kind != model.Set {
+		return errors.New("splitArms needs a set (collection: set): a list has an order across arms that the arm collections cannot keep")
+	}
+	// Flatten writes an empty collection for an arm without values, so a null configuration
+	// needs the computed empty default.
+	if line := file.Types[r.Name].Fields[f.Name]; line.Computed == nil || !*line.Computed {
+		return errors.New("splitArms needs computed: true and default: []: an arm without values reads as an empty collection")
+	}
+	if file.Validators.Inferred != nil && *file.Validators.Inferred && (t.MinItems != nil || t.MaxItems != nil) {
+		return errors.New("splitArms cannot keep the minItems or maxItems of the collection: the limit counts the items of every arm together")
+	}
+	return nil
+}
+
+// splitAttributes adds one attribute per arm of the oneOf items of a top-level list or set
+// (splitArms). Each attribute is a collection of the kind of f, of the value of its arm.
+func (b *tfBuilder) splitAttributes(out *tfResource, root *tfModel, r *model.Resource, f *model.ResourceField, file *overrides.File) error {
+	t := f.Type
+	if err := checkSplitField(r, f, file); err != nil {
+		return err
+	}
+	component := model.ComponentOf(t.Elem)
+	for _, arm := range t.Elem.Fields {
+		if arm.Type.Kind != model.String && arm.Type.Kind != model.Enum {
+			return fmt.Errorf("splitArms: the arm %s is %s, want a string or an enum (unwrap a wrapper object)", arm.Name, arm.Type.Kind)
+		}
+		armType := &model.Type{Kind: t.Kind, Elem: arm.Type}
+		name := terraformName(b.policy, component, arm.Name)
+		a, err := b.attribute(rootPath("", name), component, arm.Name, arm.Description, armType, model.Attrs{}, false)
+		if err != nil {
+			return err
+		}
+		// The line of the list gives every arm attribute its mode.
+		line := file.Types[r.Name].Fields[f.Name]
+		if line.Computed != nil {
+			a.Computed = *line.Computed
+		}
+		if line.Default != nil {
+			if a.Default, err = defaultExpr(a, line.Default); err != nil {
+				return err
+			}
+		}
+		out.Attributes = append(out.Attributes, a)
+		root.Fields = append(root.Fields, b.modelField(component, arm.Name, armType, model.Normal, false, b.policy.ComputedLine(component, arm.Name)))
 	}
 	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"maps"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -86,7 +87,7 @@ func readOverrides(path string) (*overrides.File, error) {
 
 // overrideIssues reports every line of the file that does not match the contract.
 // A line that matches nothing is an error, so a stale line cannot stay in the file.
-func overrideIssues(doc *v3.Document, component string, file *overrides.File) issue.Report {
+func overrideIssues(doc *v3.Document, component string, file *overrides.File, ids model.OperationIDs, policy model.Policy) issue.Report {
 	var report issue.Report
 	if file.Resource != component {
 		report = append(report, issue.Issue{
@@ -96,7 +97,15 @@ func overrideIssues(doc *v3.Document, component string, file *overrides.File) is
 			Remediation: "Use the behavior-overrides file of the selected resource.",
 		})
 	}
+	// A skip line of the resource component can name a field that only the requests have.
+	requestOnly, err := model.RequestOnlyFields(doc, component, ids, policy)
+	if err != nil {
+		requestOnly = nil // the model reports the operations that it cannot resolve
+	}
 	for _, line := range file.Lines() {
+		if line.Kind == overrides.KindField && line.Component == component && slices.Equal(line.Keys, []string{"skip"}) && slices.Contains(requestOnly, line.Field) {
+			continue
+		}
 		if problem := lineProblem(doc, line, component, file); problem != nil {
 			report = append(report, issue.Issue{
 				Code:        cmp.Or(problem.code, "OVERRIDE_UNUSED"),
@@ -418,14 +427,34 @@ func hiddenKeys(r *model.Resource, line overrides.Line) []string {
 	return slices.DeleteFunc(slices.Clone(line.Keys), func(key string) bool { return key == "unwrap" })
 }
 
+// stringAcceptsEmpty reports whether a string schema accepts "": it has no format, no minimum
+// length, and no pattern that refuses "".
+func stringAcceptsEmpty(built *base.Schema) bool {
+	if built.Format != "" || built.MinLength != nil && *built.MinLength >= 1 {
+		return false
+	}
+	// A pattern that refuses "" makes the value non-empty, so the line states nothing.
+	if built.Pattern != "" {
+		re, err := regexp.Compile(built.Pattern)
+		return err == nil && re.MatchString("")
+	}
+	return true
+}
+
 // requiredLineStatesPresence reports whether a required key on a field that the contract already
 // requires is what states its presence: a bool or number whose zero value is valid and that has
-// no presence marker and no server default. Terraform requires the attribute and sends it every time, so omission
-// never happens, but the contract cannot say so without a presence-tracking scalar.
+// no presence marker and no server default. Terraform requires the attribute and sends it every
+// time, so omission never happens, but the contract cannot say so without a presence-tracking
+// scalar. A plain string that accepts "" is the same: the contract cannot say that a required
+// value may be empty, and the line says that the released attribute sends what the user writes,
+// "" too.
 func requiredLineStatesPresence(schema *base.Schema, field string) bool {
 	built, err := schema.Properties.GetOrZero(field).BuildSchema()
 	if err != nil || len(built.Type) != 1 || len(built.Enum) != 0 || built.Default != nil {
 		return false
+	}
+	if built.Type[0] == "string" {
+		return stringAcceptsEmpty(built)
 	}
 	if presence := built.Extensions.GetOrZero("x-coralogix-presence"); presence != nil && presence.Value == "true" {
 		return false

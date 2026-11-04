@@ -256,7 +256,7 @@ func validateOpenAPIWith(data []byte, resourceName string, operationIDs model.Op
 		return nil, &EligibilityError{Report: report}
 	}
 	if file != nil {
-		if report = overrideIssues(doc, component, file); len(report) != 0 {
+		if report = overrideIssues(doc, component, file, operationIDs, policy); len(report) != 0 {
 			return nil, &EligibilityError{Report: report}
 		}
 		// The upsert and inline keys change the contract that the model reads (reshape.go).

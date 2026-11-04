@@ -196,6 +196,39 @@ type convObject struct {
 	Unsupported []unsupportedArm
 	// Parents are the inlined objects of a request body that are SDK pointers.
 	Parents []convParent
+	// Carry is set when Terraform shows the object as the arms of its oneOf field (carrySiblings).
+	Carry *convCarry
+}
+
+// convCarry is an object that Terraform shows as the arms of its oneOf field: each arm attribute
+// holds the other fields of the object (the siblings) and the fields of the arm.
+type convCarry struct {
+	Pkg   string     // the name of the SDK package
+	Field *convField // the field of the object that holds the oneOf
+	Arms  []*carryArm
+	// RequireOne: the line has requireOne. Flatten fails when the response has no arm or more
+	// than one, as for a oneOf group that requires an arm.
+	RequireOne bool
+}
+
+// carryArm is one arm attribute of a carrySiblings object.
+type carryArm struct {
+	TFName string      // Terraform attribute of the arm
+	Model  string      // Go field of the object model that holds the arm model
+	SDK    string      // Go field of the oneOf struct
+	Object *convObject // the arm; its model also holds the siblings
+	// Siblings are the conversions of the other fields of the object, read from and written to
+	// the arm model. A requestValues line makes one a fixed value in this arm.
+	Siblings []*convField
+	Folds    []*carryFold
+}
+
+// carryFold is an arm that Terraform shows as another arm with a false flag.
+type carryFold struct {
+	SDK     string   // Go field of the folded arm in the oneOf struct
+	SDKType string   // qualified SDK type of the folded arm
+	Flag    string   // Go field of the flag in the arm model
+	Fields  []string // Go fields of the two arm structs, which are the same
 }
 
 // defaultArm is an arm that expand sends empty when no arm of its group is set.
@@ -251,6 +284,13 @@ const (
 	// of the parent. The API has no object for it.
 	convGroup = "group"
 
+	// convNotBool is a bool that Terraform shows as its opposite (showInverted).
+	convNotBool = "notbool" // types.Bool ↔ *bool, negated
+
+	// convSplitArms is a list of oneOf items that Terraform shows as one collection per arm
+	// (splitArms). Object holds the conversion of each arm, whose Model is the attribute.
+	convSplitArms = "splitarms" // types.Set/List per arm ↔ []<SDK type>
+
 	convKeyedObjects = "keyedobjects" // types.Map of objects ↔ []<SDK type> keyed by a property (keyedBy)
 	convKeyedValues  = "keyedvalues"  // types.Map of String ↔ []<SDK type> of a key and a value (keyedBy)
 )
@@ -287,8 +327,24 @@ type convField struct {
 	ReadNullAsEmpty bool
 	// SendNullAsEmpty: expand sends "" for a null string, so the API clears the stored value.
 	SendNullAsEmpty bool
+	// CaseInsensitive: the enums line of a scalar enum field has caseInsensitive. Expand matches
+	// the value in any case, and flatten keeps the prior spelling of an equal value.
+	CaseInsensitive bool
+	// Carried: a sibling or a fold flag in the model of a carrySiblings arm. The arm functions
+	// leave it to the object that holds the oneOf; it counts for the attribute types.
+	Carried bool
+	// SplitArms: the line of the field has splitArms. ShowInverted: the line has showInverted.
+	// RequestPosition: the line has requestPosition; the list that holds the object sends the
+	// position of each item.
+	SplitArms, ShowInverted, RequestPosition bool
+	// SendUnknownAsZero: expand sends the zero value of the scalar when the plan is unknown
+	// (sendUnknownAsZero). ZeroType is its Go type.
+	SendUnknownAsZero bool
+	ZeroType          string
 	// RequestValue is an API value expand always sends. The field is not in the Terraform model.
+	// FixedValue is its Go expression: an enum cast, a quoted string, or a bool.
 	RequestValue string
+	FixedValue   string
 	// RequestValueBy are the API values expand sends when an object field of the model is set,
 	// in the order of the field names.
 	RequestValueBy []fixedBy
@@ -358,6 +414,30 @@ func (f *convField) WrappedSrc() string {
 		return "&v." + f.SDK
 	}
 	return "v." + f.SDK
+}
+
+// PositionField returns the field of obj that a list of obj sets to the position of each item,
+// or nil.
+func (obj *convObject) PositionField() *convField {
+	for _, f := range obj.Fields {
+		// A carried copy in the model of a carrySiblings arm is no request field.
+		if f.RequestPosition && !f.Carried {
+			return f
+		}
+	}
+	return nil
+}
+
+// UsesCaseInsensitive reports whether a field is an enum that reads in any case.
+func (d *convData) UsesCaseInsensitive() bool {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.CaseInsensitive {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // Uses reports whether a field uses the conversion kind conv. The template
@@ -479,6 +559,10 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if err := b.arms(out); err != nil {
 		return nil, err
 	}
+	unmarkCarriedOneOfs(b.objects)
+	if err := checkPositions(b.objects); err != nil {
+		return nil, err
+	}
 	rootUnsupported, err := b.unsupportedArms(&model.Type{Schema: b.resource.Name}, "fields")
 	if err != nil {
 		return nil, err
@@ -515,11 +599,11 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	// Without a mask the Update body holds a derived value, and the server updates it.
 	omit := b.file != nil && b.file.UpdateMask == overrides.UpdateMaskOmit
 	if !omit {
-		if err := derivedValuesInMask(b.file); err != nil {
+		if err := replaceOnlyLines(b.file); err != nil {
 			return nil, err
 		}
 	}
-	if err := buildMask(r, out, fixed, omit); err != nil {
+	if err := buildMask(r, out, fixed, omit, b.file); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -535,6 +619,10 @@ func oneOfArmPaths(r *model.Resource, file *overrides.File) []string {
 		}
 	}
 	for _, f := range r.Fields {
+		if splitArms(file, r.Name, f.Name) {
+			// The arms are collections of values, not objects of the state.
+			continue
+		}
 		out = typeArmPaths(r.Policy, file, out, rootPath(file.GroupOf(f.Name), terraformName(r.Policy, r.Name, f.Name)).dotted(), f.Type, map[*model.Type]bool{})
 	}
 	return out
@@ -548,6 +636,24 @@ func typeArmPaths(p model.Policy, file *overrides.File, out []string, at string,
 	defer delete(seen, t)
 	if t.Elem != nil {
 		return typeArmPaths(p, file, out, at, t.Elem, seen)
+	}
+	if carry := carryField(file, t); carry != nil {
+		// The arms of the oneOf are attributes of the object, and each holds the other fields.
+		line := file.Types[t.Schema].Fields[carry.Name].CarrySiblings
+		for _, arm := range carry.Type.Fields {
+			if _, folded := line.Fold[arm.Name]; folded {
+				continue
+			}
+			child := at + "." + terraformName(p, model.ComponentOf(carry.Type), arm.Name)
+			out = append(out, child)
+			out = typeArmPaths(p, file, out, child, arm.Type, seen)
+			for _, sibling := range t.Fields {
+				if sibling != carry {
+					out = typeArmPaths(p, file, out, child+"."+terraformName(p, t.Schema, sibling.Name), sibling.Type, seen)
+				}
+			}
+		}
+		return out
 	}
 	arms := map[string]bool{}
 	for _, g := range t.Groups {
@@ -874,6 +980,13 @@ func appendCheckField(fields []*maskField, r *model.Resource, f *model.ResourceF
 		}
 		return append(fields, &maskField{TFName: group})
 	}
+	if splitArms(file, r.Name, f.Name) && f.Type.Elem != nil {
+		// The arms are the attributes.
+		for _, arm := range f.Type.Elem.Fields {
+			fields = append(fields, &maskField{TFName: terraformName(r.Policy, model.ComponentOf(f.Type.Elem), arm.Name)})
+		}
+		return fields
+	}
 	return append(fields, &maskField{TFName: terraformName(r.Policy, r.Name, f.Name), ServerDefault: serverDefault(r, f)})
 }
 
@@ -894,18 +1007,23 @@ func replaceFields(r *model.Resource, out *convData, fixed func(string) bool, fi
 	return nil
 }
 
-// derivedValuesInMask refuses requestValueBy on a resource that Update patches with a mask. The
-// mask holds attributes, and a derived value is not one: when the configuration switches the
-// object that sets it, expand sends the new value but the mask leaves it out, so the API can
-// keep the old one.
-func derivedValuesInMask(file *overrides.File) error {
+// replaceOnlyLines refuses the lines that need an Update that replaces the resource, on a
+// resource that Update patches with a mask. The mask holds attributes. A requestValueBy value is
+// not one: when the configuration switches the object that sets it, expand sends the new value
+// but the mask leaves it out, so the API can keep the old one. A carrySiblings object shows its
+// fields inside the arms, so its Terraform paths are not the API paths that a mask names.
+func replaceOnlyLines(file *overrides.File) error {
 	if file == nil {
 		return nil
 	}
 	for _, component := range slices.Sorted(maps.Keys(file.Types)) {
 		for _, field := range slices.Sorted(maps.Keys(file.Types[component].Fields)) {
-			if len(file.Types[component].Fields[field].RequestValueBy) != 0 {
+			line := file.Types[component].Fields[field]
+			if len(line.RequestValueBy) != 0 {
 				return fmt.Errorf("%s.%s: requestValueBy needs an Update that replaces the resource; an update mask would leave the derived value out", component, field)
+			}
+			if line.CarrySiblings != nil {
+				return fmt.Errorf("%s.%s: carrySiblings needs an Update that replaces the resource; the update mask names API fields, not the arms that Terraform shows", component, field)
 			}
 		}
 	}
@@ -914,7 +1032,7 @@ func derivedValuesInMask(file *overrides.File) error {
 
 // buildMask sets the update mask data. Only the Update fields can be in the
 // mask, so application, subsystem, and target never are (D9).
-func buildMask(r *model.Resource, out *convData, fixed func(string) bool, omit bool) error {
+func buildMask(r *model.Resource, out *convData, fixed func(string) bool, omit bool, file *overrides.File) error {
 	// With updateMask: omit, Update sends no mask, so the mask pattern does not matter: the
 	// top-level mask fields only decide whether a value changed.
 	valid, leaf := func(string) bool { return true }, false
@@ -928,6 +1046,9 @@ func buildMask(r *model.Resource, out *convData, fixed func(string) bool, omit b
 	for _, f := range r.Fields {
 		if f.Update == nil || fixed(f.Name) {
 			continue
+		}
+		if splitArms(file, r.Name, f.Name) {
+			return fmt.Errorf("%s: splitArms needs an Update that replaces the resource; the update mask names API fields", f.Name)
 		}
 		mf := &maskField{TFName: terraformName(r.Policy, r.Name, f.Name), API: f.Name}
 		if leaf {
@@ -1083,6 +1204,16 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 			m.Read = append(m.Read, enumMapValue{TF: over.RejectedTFValue(v), API: v})
 		}
 	}
+	if over.CaseInsensitive {
+		// Expand folds the case of the configured value, so two values may not differ only in case.
+		for i, a := range m.Values {
+			for _, c := range m.Values[i+1:] {
+				if strings.EqualFold(a.TF, c.TF) {
+					return nil, fmt.Errorf("enum %s: caseInsensitive needs values that differ in more than case: %s and %s", schema, a.TF, c.TF)
+				}
+			}
+		}
+	}
 	b.enumMaps = append(b.enumMaps, m)
 	return m, nil
 }
@@ -1137,6 +1268,10 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	cf.ReadEmptyAsNull, cf.KeepPriorOrder = line.ReadEmptyAs == "null", line.KeepPriorOrder
 	cf.ReadNullAsEmpty = line.ReadNullAs == "empty"
 	cf.SendNullAsEmpty = line.SendNullAsEmpty
+	cf.SendUnknownAsZero = line.SendUnknownAsZero
+	cf.SplitArms = line.SplitArms
+	cf.ShowInverted = line.ShowInverted
+	cf.RequestPosition = line.RequestPosition
 	cf.Equality = line.Equality
 	cf.RequestValue = line.RequestValue
 	cf.RequestValueBy = nil
@@ -1178,15 +1313,30 @@ func (b *convBuilder) applyValueNames(cf *convField, component, name string) err
 	return nil
 }
 
-func (b *convBuilder) applyFixedRequest(cf *convField) {
+func (b *convBuilder) applyFixedRequest(cf *convField) error {
 	if cf.RequestValue == "" && len(cf.RequestValueBy) == 0 {
-		return
+		return nil
+	}
+	switch {
+	case cf.RequestValue == "":
+	case cf.Conv == convEnum:
+		if cf.EnumMap != nil && !slices.ContainsFunc(cf.EnumMap.Values, func(v enumMapValue) bool { return v.API == cf.RequestValue }) {
+			return fmt.Errorf("%s: requestValue %q is no accepted value of the enum %s", cf.TFName, cf.RequestValue, cf.SDKType)
+		}
+		cf.FixedValue = fmt.Sprintf("%s(%q)", cf.SDKType, cf.RequestValue)
+	case cf.Conv == convString:
+		cf.FixedValue, cf.SDKType = fmt.Sprintf("%q", cf.RequestValue), "string"
+	case cf.Conv == convBool && (cf.RequestValue == "true" || cf.RequestValue == "false"):
+		cf.FixedValue, cf.SDKType = cf.RequestValue, "bool"
+	default:
+		return fmt.Errorf("%s: requestValue %q needs an enum, a string, or a bool field (true or false), not a %s field", cf.TFName, cf.RequestValue, cf.Conv)
 	}
 	if cf.EnumMap != nil {
 		b.releaseEnumMap(cf.EnumMap)
 		cf.EnumMap = nil
 	}
 	cf.Conv = "fixed"
+	return nil
 }
 
 // applyMissingEnum reads a missing business-first enum as the string default.
@@ -1267,15 +1417,122 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 		}
 		cf.Conv, cf.Object = convEmptyBool, nil
 	}
-	b.applyFixedRequest(cf)
-	b.applyMissingEnum(cf, component, name, presence)
-	if err := checkReadEmptyAs(cf); err != nil {
+	if err := b.applyReleasedKeys(cf); err != nil {
 		return nil, err
 	}
-	if cf.ReadNullAsEmpty && cf.Conv != convObjects {
-		return nil, fmt.Errorf("%s: readNullAs: empty needs a list or set of objects", cf.TFName)
+	b.applyMissingEnum(cf, component, name, presence)
+	if err := checkReadAs(cf); err != nil {
+		return nil, err
 	}
 	return checkFieldType(cf, ref, want)
+}
+
+// checkPositions reports a requestPosition field outside the items of a list: only a list gives
+// an item a place. The component must be a list item in every place, hold one requestPosition
+// field, and the requests must send it.
+func checkPositions(objects []*convObject) error {
+	listed, elsewhere := map[*convObject]bool{}, map[*convObject]bool{}
+	for _, obj := range objects {
+		for _, f := range obj.Fields {
+			switch {
+			case f.Object == nil:
+			case f.Conv == convObjects && f.Collection == "List":
+				listed[f.Object] = true
+			default:
+				elsewhere[f.Object] = true
+			}
+		}
+	}
+	for _, obj := range objects {
+		var positions []*convField
+		for _, f := range obj.Fields {
+			if f.RequestPosition && !f.Carried {
+				positions = append(positions, f)
+			}
+		}
+		if len(positions) == 0 {
+			continue
+		}
+		p := positions[0]
+		switch {
+		case len(positions) > 1:
+			return fmt.Errorf("%s: requestPosition on %s and %s: a list item has one requestPosition field", obj.Model, p.TFName, positions[1].TFName)
+		case !listed[obj]:
+			return fmt.Errorf("%s: requestPosition needs a field of the items of a list, and %s is no list item", p.TFName, obj.Model)
+		case elsewhere[obj]:
+			return fmt.Errorf("%s: requestPosition needs a component that is a list item in every place, and %s is also held outside a list", p.TFName, obj.Model)
+		case p.FlattenOnly:
+			return fmt.Errorf("%s: requestPosition needs a field that Create and Update send, and %s only reads it", p.TFName, obj.Model)
+		}
+	}
+	return nil
+}
+
+// splitArmsConv sets the conversion of a list of oneOf items that Terraform shows as one collection
+// per arm. The object converts one value of an arm; it has no expand or flatten function of its own.
+func (b *convBuilder) splitArmsConv(cf *convField, t *model.Type) (string, error) {
+	obj, err := b.nested(t.Elem)
+	if err != nil {
+		return "", err
+	}
+	for _, arm := range obj.Fields {
+		if arm.Conv != convString && arm.Conv != convEnum {
+			return "", fmt.Errorf("splitArms: the arm %s is a %s, want a string or an enum", arm.TFName, arm.Conv)
+		}
+		if arm.CaseInsensitive {
+			return "", fmt.Errorf("%s: enums caseInsensitive is for a scalar field of the enum: a splitArms set has no prior value per element to keep", arm.TFName)
+		}
+	}
+	cf.Conv, cf.Object, cf.SDKType = convSplitArms, obj, b.qualify(obj.SDK)
+	return "[]" + obj.SDK, nil
+}
+
+// applyReleasedKeys applies the keys of a field line that change how a scalar is sent:
+// requestPosition, showInverted, requestValue, and sendUnknownAsZero.
+func (b *convBuilder) applyReleasedKeys(cf *convField) error {
+	if cf.RequestPosition && cf.Conv != convInt64 && cf.Conv != convInt32 {
+		return fmt.Errorf("%s: requestPosition needs an int32 or int64 field, not a %s field", cf.TFName, cf.Conv)
+	}
+	if cf.ShowInverted {
+		if cf.Conv != convBool || cf.Wrap != nil {
+			return fmt.Errorf("%s: showInverted needs a bool field without wrappers, not a %s field", cf.TFName, cf.Conv)
+		}
+		cf.Conv = convNotBool
+	}
+	if err := b.applyFixedRequest(cf); err != nil {
+		return err
+	}
+	return applySendUnknownAsZero(cf)
+}
+
+// zeroTypes are the Go types of the scalar conversions that sendUnknownAsZero supports.
+var zeroTypes = map[string]string{
+	convString: "string", convBool: "bool", convInt32: "int32", convInt64: "int64",
+	convFloat32: "float32", convFloat64: "float64", convInt32AsInt64: "int32",
+}
+
+// applySendUnknownAsZero sets the Go type of the zero value that expand sends for an unknown plan.
+func applySendUnknownAsZero(cf *convField) error {
+	if !cf.SendUnknownAsZero {
+		return nil
+	}
+	zero, ok := zeroTypes[cf.Conv]
+	if !ok || cf.Wrap != nil {
+		return fmt.Errorf("%s: sendUnknownAsZero needs a string, bool, or number field without wrappers, not a %s field", cf.TFName, cf.Conv)
+	}
+	cf.ZeroType = zero
+	return nil
+}
+
+// checkReadAs checks the readEmptyAs and readNullAs keys of the line of cf.
+func checkReadAs(cf *convField) error {
+	if err := checkReadEmptyAs(cf); err != nil {
+		return err
+	}
+	if cf.ReadNullAsEmpty && cf.Conv != convObjects {
+		return fmt.Errorf("%s: readNullAs: empty needs a list or set of objects", cf.TFName)
+	}
+	return nil
 }
 
 // releaseEnumMap drops a map that no field uses. A fixed request value casts the
@@ -1329,6 +1586,7 @@ func (b *convBuilder) fieldConv(cf *convField, t *model.Type, computed bool) (st
 			return "", err
 		}
 		cf.EnumMap = m
+		cf.CaseInsensitive = m != nil && b.file != nil && b.file.Enums[t.Schema].CaseInsensitive
 		return "*" + enum.Name, nil
 	case model.Object, model.OneOf:
 		if len(t.Fields) == 0 {
@@ -1430,6 +1688,25 @@ func scalarConv(cf *convField, t *model.Type, computed bool) (string, error) {
 
 // collectionConv sets the conversion of cf for a Set or List t. It returns
 // the SDK Go type that the conversion needs.
+// enumsConv is the conversion of a list or set of enum values.
+func (b *convBuilder) enumsConv(cf *convField, t *model.Type) (string, error) {
+	enum, err := b.ix.schemaRef(t.Elem.Schema)
+	if err != nil {
+		return "", err
+	}
+	if b.file != nil && b.file.Enums[t.Elem.Schema].CaseInsensitive {
+		return "", fmt.Errorf("%s: enums caseInsensitive (%s) is for a scalar field of the enum: a list or set has no prior value per element to keep", cf.TFName, t.Elem.Schema)
+	}
+	cf.Conv, cf.SDKType, cf.Enum, cf.EnumZero = convStrings, b.qualify(enum.Name), true, t.Elem.EnumZero
+	// An enums line maps each element, the zero value too when the line names it.
+	m, err := b.enumMapFor(t.Elem.Schema, cf.SDKType, t.Elem)
+	if err != nil {
+		return "", err
+	}
+	cf.EnumMap = m
+	return "[]" + enum.Name, nil
+}
+
 func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, error) {
 	cf.Collection = "Set"
 	if t.Kind == model.List {
@@ -1444,18 +1721,7 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		cf.Conv, cf.SDKType = convStrings, "string"
 		return "[]string", nil
 	case model.Enum:
-		enum, err := b.ix.schemaRef(t.Elem.Schema)
-		if err != nil {
-			return "", err
-		}
-		cf.Conv, cf.SDKType, cf.Enum, cf.EnumZero = convStrings, b.qualify(enum.Name), true, t.Elem.EnumZero
-		// An enums line maps each element, the zero value too when the line names it.
-		m, err := b.enumMapFor(t.Elem.Schema, cf.SDKType, t.Elem)
-		if err != nil {
-			return "", err
-		}
-		cf.EnumMap = m
-		return "[]" + enum.Name, nil
+		return b.enumsConv(cf, t)
 	case model.Bool, model.Number, model.Integer:
 		goType, elem, ok := scalarElem(t.Elem)
 		if !ok {
@@ -1463,6 +1729,10 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		}
 		cf.Conv, cf.SDKType, cf.ElemType = convScalars, goType, elem
 		return "[]" + goType, nil
+	case model.OneOf:
+		if cf.SplitArms {
+			return b.splitArmsConv(cf, t)
+		}
 	case model.Object:
 		if len(t.Elem.Fields) == 0 {
 			break
@@ -1523,6 +1793,9 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 	if err := b.injectReadOnly(obj, ref.Path, t); err != nil {
 		return nil, err
 	}
+	if err := b.carry(obj, component, t); err != nil {
+		return nil, err
+	}
 	arms, err := b.defaultArms(component, t, obj.Fields)
 	if err != nil {
 		return nil, err
@@ -1532,6 +1805,137 @@ func (b *convBuilder) nested(t *model.Type) (*convObject, error) {
 		return nil, err
 	}
 	return obj, nil
+}
+
+// carry sets obj.Carry when the line of a field of component has carrySiblings, and adds the
+// siblings and the fold flags to the arm objects, so their attribute types match the schema.
+func (b *convBuilder) carry(obj *convObject, component string, t *model.Type) error {
+	if b.file == nil {
+		return nil
+	}
+	var carryName string
+	// The API names of the arms: the line names an arm as the API does, and lowerFirst of the Go
+	// name is another spelling for an arm such as HTTPServer.
+	armNames := map[string]string{}
+	for _, f := range t.Fields {
+		if b.file.Types[component].Fields[f.Name].CarrySiblings != nil {
+			carryName = f.Name
+			for _, arm := range f.Type.Fields {
+				armNames[camelize(arm.Name)] = arm.Name
+			}
+		}
+	}
+	if carryName == "" {
+		return nil
+	}
+	line := b.file.Types[component].Fields[carryName].CarrySiblings
+	field := fieldByModel(obj.Fields, camelize(carryName))
+	if field == nil || field.Conv != convObj || field.Object == nil {
+		return fmt.Errorf("%s.%s: carrySiblings needs a oneOf object field", component, carryName)
+	}
+	names := apiNames(obj, t)
+	oneOf := field.Object
+	byArm := map[string]*convField{}
+	for _, arm := range oneOf.Fields {
+		byArm[arm.Model] = arm
+	}
+	c := &convCarry{Pkg: b.ix.pkg.Name, Field: field, RequireOne: b.file.Types[component].Fields[carryName].RequireOne}
+	for _, armField := range oneOf.Fields {
+		armName := armNames[armField.Model]
+		if _, folded := line.Fold[armName]; folded {
+			continue
+		}
+		if armField.Conv != convObj || armField.Object == nil {
+			return fmt.Errorf("%s.%s: the arm %s is no object", component, carryName, armName)
+		}
+		arm := &carryArm{TFName: armField.TFName, Model: armField.Model, SDK: armField.SDK, Object: armField.Object}
+		if err := b.carrySiblings(arm, obj, field, line.RequestValues[armName], names); err != nil {
+			return err
+		}
+		if err := b.carryFolds(arm, line, armName, byArm); err != nil {
+			return fmt.Errorf("%s.%s: %w", component, carryName, err)
+		}
+		c.Arms = append(c.Arms, arm)
+	}
+	obj.Carry = c
+	return nil
+}
+
+// carrySiblings adds the other fields of obj to an arm: a fixed value where the line gives one,
+// and else the field, which the arm object also holds for its attribute types.
+func (b *convBuilder) carrySiblings(arm *carryArm, obj *convObject, carry *convField, values map[string]string, names map[*convField]string) error {
+	for _, sibling := range obj.Fields {
+		if sibling == carry {
+			continue
+		}
+		s := sibling
+		if value := values[names[sibling]]; value != "" {
+			fixed := *sibling
+			fixed.RequestValue = value
+			if err := b.applyFixedRequest(&fixed); err != nil {
+				return err
+			}
+			s = &fixed
+		} else {
+			addCarried(arm.Object, sibling)
+		}
+		arm.Siblings = append(arm.Siblings, s)
+	}
+	return nil
+}
+
+// carryFolds adds the folds into an arm, and their flags to the arm object.
+func (b *convBuilder) carryFolds(arm *carryArm, line *overrides.Carry, armName string, byArm map[string]*convField) error {
+	for _, folded := range slices.Sorted(maps.Keys(line.Fold)) {
+		fold := line.Fold[folded]
+		if fold.Into != armName {
+			continue
+		}
+		from := byArm[camelize(folded)]
+		if from == nil || from.Object == nil {
+			return fmt.Errorf("the folded arm %s is no object", folded)
+		}
+		f := &carryFold{SDK: from.SDK, SDKType: b.qualify(from.Object.SDK), Flag: camelize(fold.Flag)}
+		for _, af := range arm.Object.Fields {
+			if !af.Carried {
+				f.Fields = append(f.Fields, af.SDK)
+			}
+		}
+		addCarried(arm.Object, &convField{TFName: fold.Flag, Model: f.Flag, Conv: convBool})
+		arm.Folds = append(arm.Folds, f)
+	}
+	return nil
+}
+
+// apiNames maps the fields of obj to the API names of the fields of t.
+func apiNames(obj *convObject, t *model.Type) map[*convField]string {
+	names := map[*convField]string{}
+	for _, f := range t.Fields {
+		if cf := fieldByModel(obj.Fields, camelize(f.Name)); cf != nil {
+			names[cf] = f.Name
+		}
+	}
+	return names
+}
+
+// fieldByModel returns the field of fields with the Go model name, or nil.
+func fieldByModel(fields []*convField, model string) *convField {
+	for _, cf := range fields {
+		if cf.Model == model {
+			return cf
+		}
+	}
+	return nil
+}
+
+// addCarried adds a sibling or a flag to the fields of an arm object, once.
+func addCarried(arm *convObject, f *convField) {
+	if slices.ContainsFunc(arm.Fields, func(o *convField) bool { return o.Model == f.Model }) {
+		return
+	}
+	carried := *f
+	carried.Carried = true
+	arm.Fields = append(arm.Fields, &carried)
 }
 
 // defaultArms returns the arms of t that expand sends empty when the configuration sets no arm of
@@ -1712,6 +2116,24 @@ func (b *convBuilder) mark(obj *convObject, expand bool) error {
 	return nil
 }
 
+// unmarkCarriedOneOfs turns off the functions of the oneOf objects of carrySiblings objects, and of
+// their folded arms. The arms are attributes of the object, so the oneOf has no model struct, and a
+// folded arm converts through the arm that Terraform shows. The shown arms stay marked.
+func unmarkCarriedOneOfs(objects []*convObject) {
+	for _, obj := range objects {
+		if obj.Carry == nil {
+			continue
+		}
+		oneOf := obj.Carry.Field.Object
+		oneOf.Expand, oneOf.Flatten = false, false
+		for _, f := range oneOf.Fields {
+			if f.Object != nil && !slices.ContainsFunc(obj.Carry.Arms, func(a *carryArm) bool { return a.Object == f.Object }) {
+				f.Object.Expand, f.Object.Flatten = false, false
+			}
+		}
+	}
+}
+
 // attrTypes fills the Terraform attribute types of obj, and of the objects
 // inside it.
 func (b *convBuilder) attrTypes(obj *convObject) error {
@@ -1719,6 +2141,15 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 		return nil
 	}
 	obj.AttrTypes = []convAttrType{}
+	if obj.Carry != nil {
+		for _, arm := range obj.Carry.Arms {
+			if err := b.attrTypes(arm.Object); err != nil {
+				return err
+			}
+			obj.AttrTypes = append(obj.AttrTypes, convAttrType{TFName: arm.TFName, Expr: "types.ObjectType{AttrTypes: " + arm.Object.AttrTypesFunc + "()}"})
+		}
+		return nil
+	}
 	for _, f := range obj.Fields {
 		if f.Conv == "fixed" {
 			continue
@@ -1735,7 +2166,7 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 // scalarAttrTypes are the Terraform attribute types of the scalar kinds.
 var scalarAttrTypes = map[string]string{
 	convString: "types.StringType", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
-	convBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
+	convBool: "types.BoolType", convNotBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
 	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
 	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
 }
@@ -1996,6 +2427,10 @@ func markPriorFields(d *convData) error {
 				}
 				obj.NeedsPrior = true
 			}
+			// An enum read in any case keeps the spelling of the prior value.
+			if f.CaseInsensitive {
+				obj.NeedsPrior = true
+			}
 			// An empty string from the API is null when the value was omitted, and ""
 			// when the configuration set "". Flatten needs the prior value to tell them apart.
 			if f.ReadEmptyAsNull && f.Conv == convString {
@@ -2108,7 +2543,7 @@ func sameCheck(f *convField) (string, error) {
 			break
 		}
 		return "slices.EqualFunc(" + a + ", " + b + ", time.Time.Equal)", nil
-	case convString, convBool, convFloat64, convFloat32, convInt32, convInt32AsInt64, convInt64, convUint64, convEnum, convTime:
+	case convString, convBool, convNotBool, convFloat64, convFloat32, convInt32, convInt32AsInt64, convInt64, convUint64, convEnum, convTime:
 		if !value {
 			a, b = "pointerValue("+a+")", "pointerValue("+b+")"
 		}

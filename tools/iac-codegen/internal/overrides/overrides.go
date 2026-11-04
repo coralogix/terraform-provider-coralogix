@@ -407,12 +407,41 @@ type Field struct {
 	// UseNonNullStateForUnknown keeps a non-null value of the state when the config has none.
 	// A null state value stays unknown, so the server can fill it in.
 	UseNonNullStateForUnknown bool `yaml:"useNonNullStateForUnknown"`
-	// Default is a static default in the schema: a string, a bool, or a number.
+	// Default is a static default in the schema: a string, a bool, a number, or [] (an empty list
+	// or set).
 	Default any `yaml:"default"`
 	// ReadEmptyAs: "null" reads an empty list or object from the API as null.
 	ReadEmptyAs string `yaml:"readEmptyAs"`
 	// ReadNullAs: "empty" reads a missing list or set as an empty collection.
 	ReadNullAs string `yaml:"readNullAs"`
+	// CarrySiblings, on an object field that holds a oneOf, shows the object as the arms of the
+	// oneOf: each arm attribute holds the other fields of the object (the siblings) next to the
+	// fields of the arm, as a released resource that showed rule = {parse = {name, source_field,
+	// regular_expression}} for a rule with a name, a source field, and parameters did. The lines
+	// of the object give the siblings their behavior, in every arm.
+	CarrySiblings *Carry `yaml:"carrySiblings"`
+	// RequestPosition makes an integer field of a list item computed-only, and Create and Update
+	// send the 1-based position of the item in its list, as a released resource that computed the
+	// order of each rule did. The read shows the value of the API.
+	RequestPosition bool `yaml:"requestPosition"`
+	// ShowInverted shows a bool field as its opposite, as a released resource that showed
+	// keep_source_field for the API flag deleteSource did. Expand sends the inverted value, and
+	// flatten reads it inverted. A default on the line is a Terraform value. It differs from the
+	// iac key negate, which sends the opposite of a read field under another request name.
+	ShowInverted bool `yaml:"showInverted"`
+	// SplitArms shows a top-level list or set whose items are each one arm of a oneOf as one
+	// attribute per arm, holding the values of that arm, as a released resource that showed
+	// applications, subsystems, and severities for a list of rule matchers did. Each arm must be a
+	// string or an enum, also in a wrapper object (unwrap). computed and default on this line
+	// apply to every arm attribute, because an arm of a oneOf has no lifecycle of its own. The
+	// lines of the arms name the attributes and give their texts and validators. Create and
+	// Update send one item per value, the arms in the order of the contract.
+	SplitArms bool `yaml:"splitArms"`
+	// SendUnknownAsZero sends the zero value of a scalar when its planned value is unknown, as a
+	// released resource that converted the plan with ValueStringPointer and the like did. The API
+	// stores that zero value (false, 0, ""), not the value that it gives an omitted field. It
+	// needs computed: true, because only a computed attribute is unknown in a plan.
+	SendUnknownAsZero bool `yaml:"sendUnknownAsZero"`
 	// SendNullAsEmpty sends "" for a null string, for an API that keeps the stored value when a
 	// request omits the field. Removing the value from the configuration then clears it. It needs
 	// readEmptyAs: "null", so that the stored "" reads back as null.
@@ -443,6 +472,48 @@ type Field struct {
 	// that must differ between the items. The generated resource reports a duplicate before the
 	// request, for an API that rejects it.
 	UniqueBy string `yaml:"uniqueBy"`
+}
+
+// Carry is a carrySiblings line.
+type Carry struct {
+	// RequestValues leave a sibling out of an arm, and Create and Update send the API value in
+	// that arm instead: arm → sibling → value, for a released arm that had no source field and
+	// always sent "text".
+	RequestValues map[string]map[string]string `yaml:"requestValues"`
+	// Fold shows an arm as another arm with the same fields, chosen by a bool: folded arm →
+	// fold. The flag is true for the arm Into, its default, and false for the folded arm.
+	Fold map[string]Fold `yaml:"fold"`
+}
+
+// Fold is one arm of a carrySiblings oneOf that Terraform shows as the arm Into with Flag false.
+type Fold struct {
+	Into                string `yaml:"into"`
+	Flag                string `yaml:"flag"`
+	MarkdownDescription string `yaml:"markdownDescription"`
+}
+
+// check reports a fold without its arm, flag, or text, and a request value without a value.
+func (c *Carry) check() error {
+	for _, arm := range sortedKeys(c.Fold) {
+		f := c.Fold[arm]
+		if f.Into == "" || f.Flag == "" || f.MarkdownDescription == "" || f.Into == arm {
+			return fmt.Errorf("carrySiblings.fold.%s needs into (another arm), flag, and markdownDescription", arm)
+		}
+		if !validAttrName.MatchString(f.Flag) {
+			return fmt.Errorf("carrySiblings.fold.%s: flag %q is not a Terraform attribute name", arm, f.Flag)
+		}
+		if _, folded := c.Fold[f.Into]; folded {
+			return fmt.Errorf("carrySiblings.fold.%s: the arm %s is folded itself", arm, f.Into)
+		}
+	}
+	for _, arm := range sortedKeys(c.RequestValues) {
+		for _, sibling := range sortedKeys(c.RequestValues[arm]) {
+			if c.RequestValues[arm][sibling] == "" {
+				return fmt.Errorf("carrySiblings.requestValues.%s.%s is empty", arm, sibling)
+			}
+		}
+	}
+	return nil
 }
 
 // Equality values of a field line.
@@ -584,6 +655,11 @@ type Enum struct {
 	// percentage). The alias is the zero value or one of the values, and its target is one of
 	// the values.
 	Aliases map[string]string `yaml:"aliases"`
+	// CaseInsensitive accepts a Terraform value in any case, as a released resource whose
+	// validator was OneOfCaseInsensitive did. Expand matches the value in any case, and flatten
+	// keeps the spelling of the plan or the state when the API value differs only in case. A
+	// scalar field of the enum only: a list or set has no prior value to keep per element.
+	CaseInsensitive bool `yaml:"caseInsensitive"`
 	// Rejected are the values of the contract that the resource does not accept. The generator
 	// reports a value of the contract that is in neither list, so a new API value needs a decision.
 	Rejected []string `yaml:"rejected"`
@@ -862,6 +938,11 @@ func (l Field) keys() []string {
 	add(l.ReadEmptyAs != "", "readEmptyAs")
 	add(l.ReadNullAs != "", "readNullAs")
 	add(l.SendNullAsEmpty, "sendNullAsEmpty")
+	add(l.SendUnknownAsZero, "sendUnknownAsZero")
+	add(l.SplitArms, "splitArms")
+	add(l.ShowInverted, "showInverted")
+	add(l.RequestPosition, "requestPosition")
+	add(l.CarrySiblings != nil, "carrySiblings")
 	add(l.RequireOne, "requireOne")
 	add(l.RequestValue != "", "requestValue")
 	add(len(l.RequestValueBy) != 0, "requestValueBy")
@@ -887,10 +968,14 @@ func (l Field) statesPresence() bool {
 func (l Field) Fixed() bool { return l.RequestValue != "" || len(l.RequestValueBy) != 0 }
 
 // replacesServerDefault reports whether the line states a mode that a server default of the
-// contract cannot have: its own default, or no computed value. required: true needs no check:
-// a server default needs a field that Get requires, and then the line is unused.
+// contract cannot have: its own default, no computed value, or what an omitted value plans and
+// sends (sendUnknownAsZero, useStateForUnknown, useNonNullStateForUnknown), or a Terraform value
+// that is the opposite of the API value (showInverted). The server-default plan modifier would
+// make a removal unknown on top of them, or compare the inverted state with the API default.
+// required: true needs no check: a server default needs a field that Get requires, and then the
+// line is unused.
 func (l Field) replacesServerDefault() bool {
-	return l.Default != nil || l.Computed != nil && !*l.Computed
+	return l.Default != nil || l.Computed != nil && !*l.Computed || l.SendUnknownAsZero || l.UseStateForUnknown || l.UseNonNullStateForUnknown || l.ShowInverted
 }
 
 func (e ExtraAttribute) check(name string) error {
@@ -977,11 +1062,18 @@ func (l Field) empty() bool {
 
 func (l Field) emptyMode() bool {
 	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && !l.SchemaOptional && l.Name == "" && len(l.ValueNames) == 0 && !l.AsBool && l.TerraformType == "" && !l.DefaultArm && l.Deprecation == "" &&
-		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown && !l.RequiresReplace && !l.Inline
+		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown && !l.RequiresReplace && !l.Inline && !l.RequestPosition
 }
 
 func (l Field) emptyValue() bool {
 	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.KeyedBy == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() &&
+		l.emptyShape()
+}
+
+// emptyShape reports whether the line sets none of the keys that change how a value is shown or
+// compared.
+func (l Field) emptyShape() bool {
+	return !l.SendUnknownAsZero && !l.SplitArms && !l.ShowInverted && l.CarrySiblings == nil &&
 		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == ""
 }
 
@@ -992,10 +1084,11 @@ func (l Field) check() error {
 	if err := l.checkConflicts(); err != nil {
 		return err
 	}
-	switch l.Default.(type) {
-	case nil, string, bool, int, float64:
-	default:
-		return fmt.Errorf("default is %T, want a string, a bool, or a number", l.Default)
+	if err := l.checkDefault(); err != nil {
+		return err
+	}
+	if err := l.checkSplitArms(); err != nil {
+		return err
 	}
 	if l.Required && l.Computed != nil && *l.Computed {
 		return errors.New("a required field cannot be computed")
@@ -1057,6 +1150,9 @@ func (l Field) checkConflicts() error {
 	if l.Skip && l.Fixed() {
 		return errors.New("requestValue sends the field, so skip cannot be set")
 	}
+	if err := l.checkReleasedKeys(); err != nil {
+		return err
+	}
 	if l.RequiresReplace && l.Fixed() {
 		return errors.New("a requestValue field is no Terraform attribute and Update always sends it, so requiresReplace cannot be set")
 	}
@@ -1070,6 +1166,67 @@ func (l Field) checkConflicts() error {
 	}
 	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON {
 		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
+	}
+	return nil
+}
+
+// checkDefault checks the type of a default: a string, a bool, a number, or an empty list.
+func (l Field) checkDefault() error {
+	switch d := l.Default.(type) {
+	case nil, string, bool, int, float64:
+	case []any:
+		if len(d) != 0 {
+			return errors.New("a list default must be empty: []")
+		}
+	default:
+		return fmt.Errorf("default is %T, want a string, a bool, a number, or []", l.Default)
+	}
+	return nil
+}
+
+// checkSplitArms rejects a key of a splitArms line that only the lines of the arms can use.
+func (l Field) checkSplitArms() error {
+	if !l.SplitArms {
+		return nil
+	}
+	for _, key := range l.keys() {
+		if key != "splitArms" && key != "collection" && key != "computed" && key != "default" {
+			return fmt.Errorf("a splitArms field has no attribute of its own, so %s has no effect: put it on the lines of the arms", key)
+		}
+	}
+	return nil
+}
+
+// checkReleasedKeys checks the keys that keep a released behavior: sendUnknownAsZero,
+// requestPosition, carrySiblings, and showInverted.
+func (l Field) checkReleasedKeys() error {
+	if l.SendUnknownAsZero && (l.Computed == nil || !*l.Computed) {
+		return errors.New("sendUnknownAsZero needs computed: true: only a computed attribute is unknown in a plan")
+	}
+	if l.SendUnknownAsZero && l.Default != nil {
+		return errors.New("a default is never unknown, so sendUnknownAsZero changes nothing")
+	}
+	if l.RequestPosition && (l.Required || l.Optional || l.Computed != nil || l.Default != nil || l.Fixed() || len(l.Validators) != 0) {
+		return errors.New("requestPosition makes the attribute computed-only and sends the position of the item, so it takes no mode, default, requestValue, or validator")
+	}
+	if l.ShowInverted && l.Fixed() {
+		return errors.New("a requestValue field is no Terraform attribute, so showInverted changes nothing: send the API value")
+	}
+	return l.checkCarry()
+}
+
+// checkCarry checks a carrySiblings line. The siblings live in the arm block, and a response
+// without an arm has no block to hold them, so the line needs requireOne: the read then fails
+// instead of dropping their values.
+func (l Field) checkCarry() error {
+	if l.CarrySiblings == nil {
+		return nil
+	}
+	if err := l.CarrySiblings.check(); err != nil {
+		return err
+	}
+	if !l.RequireOne {
+		return errors.New("carrySiblings needs requireOne: true: a response without an arm has no block to hold the siblings")
 	}
 	return nil
 }
