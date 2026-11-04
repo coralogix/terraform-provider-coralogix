@@ -476,6 +476,21 @@ func nullsUnder(f *convField, prefix, model string, groups []string) (nulls []st
 	return []string{cond}, false
 }
 
+// NilParents are the objects that a field of the object goes through and that can be nil in an
+// SDK value: an optional request object that expand leaves out, and an optional response object
+// that holds inlined fields. The outer one comes first. same<Func> compares copies with an empty
+// object for a missing one, so that a missing object and an empty one are equal.
+func (o *convObject) NilParents() []convParent {
+	var out []convParent
+	for _, p := range append(slices.Clone(o.Parents), o.FlattenParents...) {
+		if (p.DropEmpty || slices.Contains(o.FlattenParents, p)) && !slices.ContainsFunc(out, func(q convParent) bool { return q.SDK == p.SDK }) {
+			out = append(out, p)
+		}
+	}
+	slices.SortStableFunc(out, func(a, b convParent) int { return strings.Count(a.SDK, ".") - strings.Count(b.SDK, ".") })
+	return out
+}
+
 // DropsEmpty reports whether expand leaves out an optional request object. The template then emits
 // modelNull.
 func (d *convData) DropsEmpty() bool {

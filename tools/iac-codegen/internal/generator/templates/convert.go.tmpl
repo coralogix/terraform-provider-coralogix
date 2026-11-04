@@ -595,9 +595,29 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$s
 // same{{.Func}} reports whether two SDK values are equal. It compares the fields that the resource
 // manages. A missing value and an empty one are equal.
 func same{{.Func}}(a, b *{{$sdk}}.{{.SDK}}) bool {
+{{- if .NilParents}}
+	a, b = withParents{{.Func}}(a), withParents{{.Func}}(b)
+{{- end}}
 	return {{range $i, $c := .SameChecks}}{{if $i}} &&
 		{{end}}{{$c}}{{else}}true{{end}}
 }
+{{- if .NilParents}}
+
+// withParents{{.Func}} returns a copy of v with an empty object for each optional object on the way
+// to a compared field that v leaves out. It copies the objects that it changes, so v stays as it is.
+func withParents{{.Func}}(v *{{$sdk}}.{{.SDK}}) *{{$sdk}}.{{.SDK}} {
+	out := *v
+{{- range .NilParents}}
+	if out.{{.SDK}} == nil {
+		out.{{.SDK}} = &{{.Type}}{}
+	} else {
+		c := *out.{{.SDK}}
+		out.{{.SDK}} = &c
+	}
+{{- end}}
+	return &out
+}
+{{- end}}
 {{end}}
 {{- if .AttrTypes}}
 func {{.AttrTypesFunc}}() map[string]attr.Type {
@@ -1055,7 +1075,7 @@ func flattenEnum[T ~string](v *T, zero string) types.String {
 	return types.StringValue(string(*v))
 }
 
-{{- if .Conv.PriorLists}}
+{{- if or .Conv.PriorLists .Conv.UsesPrior .Conv.UsesPriorVia}}
 
 // priorItems returns the items of the prior list, or nil when it cannot be read. The prior only
 // keeps an order or the text of a document, so a prior that cannot be read is not an error.

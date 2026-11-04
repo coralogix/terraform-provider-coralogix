@@ -156,3 +156,95 @@ func TestDropEmptyParentsDeepestFirst(t *testing.T) {
 		t.Fatalf("drop = %+v, want %+v", got, want)
 	}
 }
+
+// A list that keeps the prior order compares the request items that expand makes. When the item
+// holds the common fields in an optional wrapper, expand leaves the wrapper out for an item that
+// sets none of them, and the comparison reads a missing wrapper as an empty one instead of
+// panicking on a nil pointer.
+func TestKeepPriorOrderThroughAnOptionalRequestWrapper(t *testing.T) {
+	input, loadDir := copiedSyntheticInput(t)
+	sdkFile := filepath.Join(input.SDKDir, "go", "openapi", "gen", "overwrite_things_service", "overwrite.go")
+	sdk, err := os.ReadFile(sdkFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The written item holds the wrapper in a pointer, as the SDK does for an optional object.
+	edited := replaceOnce(t, string(sdk), "\tThing  ThingCore\n", "\tThing  *ThingCore\n")
+	edited = replaceOnce(t, edited, "\t\tif item.Thing.Disabled != nil {\n", "\t\tcore := ThingCore{}\n\t\tif item.Thing != nil {\n\t\t\tcore = *item.Thing\n\t\t}\n\t\tif item.Thing.Disabled != nil {\n")
+	start := strings.Index(edited, "\t\tcore := ThingCore{}\n")
+	end := start + strings.Index(edited[start:], "\tStored[")
+	edited = edited[:start] + strings.ReplaceAll(edited[start:end], "item.Thing.", "core.") + edited[end:]
+	// Inside an optional wrapper, the name is optional in the request too.
+	edited = replaceOnce(t, edited, "type ThingCore struct {\n\tName        string\n", "type ThingCore struct {\n\tName        *string\n")
+	edited = replaceOnce(t, edited, "Name: core.Name,", "Name: func() string {\n\t\t\tif core.Name == nil {\n\t\t\t\treturn \"\"\n\t\t\t}\n\t\t\treturn *core.Name\n\t\t}(),")
+	if err := os.WriteFile(sdkFile, []byte(edited), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	spec, err := os.ReadFile(filepath.Join("testdata", "overwritething.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	over, err := os.ReadFile(filepath.Join("testdata", "overwritething-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.OpenAPI = []byte(replaceOnce(t, string(spec), "      required: [thing, aRules]\n", "      required: [aRules]\n"))
+	// The things keep the prior order; values stays a plain string, which the comparison supports.
+	o := replaceOnce(t, string(over), "      things: {required: true}\n", "      things: {required: true, keepPriorOrder: true}\n")
+	o = replaceOnce(t, o, "          - conflictsWith: [names]\n", "")
+	cut, rest := strings.Index(o, "      values:\n"), strings.Index(o, "\n# The API returns")
+	o = o[:cut] + o[rest+1:]
+	overridesPath := filepath.Join(t.TempDir(), "overrides.yaml")
+	if err := os.WriteFile(overridesPath, []byte(o), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(t.TempDir(), "overwritething")
+	if err := generateFromInput(Options{Resource: "ThingList", OutputDir: out, OverridesPath: overridesPath}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	semantics := `package overwritething
+
+import (
+	"context"
+	"testing"
+
+	"example.com/iac-test-sdk/go/openapi/gen/overwrite_things_service"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+)
+
+func item(name types.String) *ThingModel {
+	return &ThingModel{Name: name, Description: types.StringNull(), Enabled: types.BoolNull(), Priority: types.StringNull(), Values: types.StringValue("a")}
+}
+
+func TestMissingWrapperComparesAsEmpty(t *testing.T) {
+	var diags diag.Diagnostics
+	without := expandKindAThingWrite(context.Background(), path.Empty(), item(types.StringNull()), &diags)
+	if without.Thing != nil {
+		t.Fatalf("thing = %+v, want it left out for an item that sets none of its fields", without.Thing)
+	}
+	named := expandKindAThingWrite(context.Background(), path.Empty(), item(types.StringValue("a")), &diags)
+	if named.Thing == nil {
+		t.Fatal("thing is left out, want it sent for an item with a name")
+	}
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	empty := &overwrite_things_service.KindAThingWrite{Thing: &overwrite_things_service.ThingCore{}, ARules: without.ARules}
+	if !sameKindAThingWrite(without, empty) || !sameKindAThingWrite(empty, without) || !sameKindAThingWrite(without, without) {
+		t.Fatal("a missing thing and an empty one compare as different")
+	}
+	if sameKindAThingWrite(without, named) || sameKindAThingWrite(named, without) {
+		t.Fatal("an item without a name and one with a name compare as the same")
+	}
+	if without.Thing != nil {
+		t.Fatal("the comparison changed its argument")
+	}
+}
+`
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), []byte(semantics), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
