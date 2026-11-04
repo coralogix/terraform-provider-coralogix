@@ -641,6 +641,23 @@ func checkAttrMode(a *tfAttr) error {
 }
 
 // defaultExpr is the Go expression of a static default of the attribute.
+// intDefaultExpr is the default of an integer value, and false when a is no number attribute.
+func intDefaultExpr(a *tfAttr, v int) (string, bool, error) {
+	switch a.Kind {
+	case "Int64":
+		return fmt.Sprintf("int64default.StaticInt64(%d)", v), true, nil
+	case "Int32":
+		if v < math.MinInt32 || v > math.MaxInt32 {
+			return "", true, fmt.Errorf("the default %d does not fit an Int32 attribute", v)
+		}
+		return fmt.Sprintf("int32default.StaticInt32(%d)", v), true, nil
+	case "Float64", "Float32":
+		expr, err := floatDefaultExpr(a.Kind, float64(v))
+		return expr, true, err
+	}
+	return "", false, nil
+}
+
 func defaultExpr(a *tfAttr, value any) (string, error) {
 	switch v := value.(type) {
 	case string:
@@ -652,16 +669,8 @@ func defaultExpr(a *tfAttr, value any) (string, error) {
 			return fmt.Sprintf("booldefault.StaticBool(%t)", v), nil
 		}
 	case int:
-		switch a.Kind {
-		case "Int64":
-			return fmt.Sprintf("int64default.StaticInt64(%d)", v), nil
-		case "Int32":
-			if v < math.MinInt32 || v > math.MaxInt32 {
-				return "", fmt.Errorf("the default %d does not fit an Int32 attribute", v)
-			}
-			return fmt.Sprintf("int32default.StaticInt32(%d)", v), nil
-		case "Float64", "Float32":
-			return floatDefaultExpr(a.Kind, float64(v))
+		if expr, ok, err := intDefaultExpr(a, v); ok || err != nil {
+			return expr, err
 		}
 	case float64:
 		if a.Kind == "Float64" || a.Kind == "Float32" {
@@ -1272,20 +1281,29 @@ func carryField(file *overrides.File, t *model.Type) *model.Field {
 // carryAttributes are the attributes of an object t whose field carry holds a oneOf with a
 // carrySiblings line: one attribute per arm, which holds the other fields of t, the fields of the
 // arm, and the flag of an arm that a fold folds into it.
-func (b *tfBuilder) carryAttributes(p attrPath, t *model.Type, carry *model.Field) ([]*tfAttr, error) {
-	line := b.file.Types[t.Schema].Fields[carry.Name]
+// checkCarryField rejects a carrySiblings line that is not the only one of t, or that is not on a
+// oneOf that Create and Update send.
+func (b *tfBuilder) checkCarryField(t *model.Type, carry *model.Field) error {
 	for _, f := range t.Fields {
 		if f != carry && b.file.Types[t.Schema].Fields[f.Name].CarrySiblings != nil {
-			return nil, fmt.Errorf("%s: carrySiblings on %s and %s: an object shows one oneOf as its arms", t.Schema, carry.Name, f.Name)
+			return fmt.Errorf("%s: carrySiblings on %s and %s: an object shows one oneOf as its arms", t.Schema, carry.Name, f.Name)
 		}
 	}
-	oneOf := carry.Type
-	if oneOf.Kind != model.OneOf || len(t.Groups) != 0 {
-		return nil, fmt.Errorf("%s.%s: carrySiblings needs a oneOf field in an object without other oneOf groups", t.Schema, carry.Name)
+	if carry.Type.Kind != model.OneOf || len(t.Groups) != 0 {
+		return fmt.Errorf("%s.%s: carrySiblings needs a oneOf field in an object without other oneOf groups", t.Schema, carry.Name)
 	}
 	if carry.Behavior != model.Normal {
-		return nil, fmt.Errorf("%s.%s: carrySiblings needs a oneOf that Create and Update send, not a %s one: every arm is an optional attribute", t.Schema, carry.Name, carry.Behavior)
+		return fmt.Errorf("%s.%s: carrySiblings needs a oneOf that Create and Update send, not a %s one: every arm is an optional attribute", t.Schema, carry.Name, carry.Behavior)
 	}
+	return nil
+}
+
+func (b *tfBuilder) carryAttributes(p attrPath, t *model.Type, carry *model.Field) ([]*tfAttr, error) {
+	line := b.file.Types[t.Schema].Fields[carry.Name]
+	if err := b.checkCarryField(t, carry); err != nil {
+		return nil, err
+	}
+	oneOf := carry.Type
 	if b.carried == nil {
 		b.carried, b.flags = map[*model.Field]string{}, map[*model.Field]overrides.Fold{}
 	}
@@ -2177,9 +2195,8 @@ func splitArms(file *overrides.File, component, field string) bool {
 	return file != nil && file.Types[component].Fields[field].SplitArms
 }
 
-// splitAttributes adds one attribute per arm of the oneOf items of a top-level list or set
-// (splitArms). Each attribute is a collection of the kind of f, of the value of its arm.
-func (b *tfBuilder) splitAttributes(out *tfResource, root *tfModel, r *model.Resource, f *model.ResourceField, file *overrides.File) error {
+// checkSplitField rejects a splitArms line on a field whose items the arm collections cannot hold.
+func checkSplitField(r *model.Resource, f *model.ResourceField, file *overrides.File) error {
 	t := f.Type
 	if (t.Kind != model.List && t.Kind != model.Set) || t.Elem == nil || t.Elem.Kind != model.OneOf {
 		return errors.New("splitArms needs a list or set whose items are a oneOf")
@@ -2199,6 +2216,16 @@ func (b *tfBuilder) splitAttributes(out *tfResource, root *tfModel, r *model.Res
 	}
 	if file.Validators.Inferred != nil && *file.Validators.Inferred && (t.MinItems != nil || t.MaxItems != nil) {
 		return errors.New("splitArms cannot keep the minItems or maxItems of the collection: the limit counts the items of every arm together")
+	}
+	return nil
+}
+
+// splitAttributes adds one attribute per arm of the oneOf items of a top-level list or set
+// (splitArms). Each attribute is a collection of the kind of f, of the value of its arm.
+func (b *tfBuilder) splitAttributes(out *tfResource, root *tfModel, r *model.Resource, f *model.ResourceField, file *overrides.File) error {
+	t := f.Type
+	if err := checkSplitField(r, f, file); err != nil {
+		return err
 	}
 	component := model.ComponentOf(t.Elem)
 	for _, arm := range t.Elem.Fields {

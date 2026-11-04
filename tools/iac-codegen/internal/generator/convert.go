@@ -1682,6 +1682,25 @@ func scalarConv(cf *convField, t *model.Type, computed bool) (string, error) {
 
 // collectionConv sets the conversion of cf for a Set or List t. It returns
 // the SDK Go type that the conversion needs.
+// enumsConv is the conversion of a list or set of enum values.
+func (b *convBuilder) enumsConv(cf *convField, t *model.Type) (string, error) {
+	enum, err := b.ix.schemaRef(t.Elem.Schema)
+	if err != nil {
+		return "", err
+	}
+	if b.file != nil && b.file.Enums[t.Elem.Schema].CaseInsensitive {
+		return "", fmt.Errorf("%s: enums caseInsensitive (%s) is for a scalar field of the enum: a list or set has no prior value per element to keep", cf.TFName, t.Elem.Schema)
+	}
+	cf.Conv, cf.SDKType, cf.Enum, cf.EnumZero = convStrings, b.qualify(enum.Name), true, t.Elem.EnumZero
+	// An enums line maps each element, the zero value too when the line names it.
+	m, err := b.enumMapFor(t.Elem.Schema, cf.SDKType, t.Elem)
+	if err != nil {
+		return "", err
+	}
+	cf.EnumMap = m
+	return "[]" + enum.Name, nil
+}
+
 func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, error) {
 	cf.Collection = "Set"
 	if t.Kind == model.List {
@@ -1696,21 +1715,7 @@ func (b *convBuilder) collectionConv(cf *convField, t *model.Type) (string, erro
 		cf.Conv, cf.SDKType = convStrings, "string"
 		return "[]string", nil
 	case model.Enum:
-		enum, err := b.ix.schemaRef(t.Elem.Schema)
-		if err != nil {
-			return "", err
-		}
-		if b.file != nil && b.file.Enums[t.Elem.Schema].CaseInsensitive {
-			return "", fmt.Errorf("%s: enums caseInsensitive (%s) is for a scalar field of the enum: a list or set has no prior value per element to keep", cf.TFName, t.Elem.Schema)
-		}
-		cf.Conv, cf.SDKType, cf.Enum, cf.EnumZero = convStrings, b.qualify(enum.Name), true, t.Elem.EnumZero
-		// An enums line maps each element, the zero value too when the line names it.
-		m, err := b.enumMapFor(t.Elem.Schema, cf.SDKType, t.Elem)
-		if err != nil {
-			return "", err
-		}
-		cf.EnumMap = m
-		return "[]" + enum.Name, nil
+		return b.enumsConv(cf, t)
 	case model.Bool, model.Number, model.Integer:
 		goType, elem, ok := scalarElem(t.Elem)
 		if !ok {

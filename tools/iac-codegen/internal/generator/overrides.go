@@ -433,21 +433,26 @@ func hiddenKeys(r *model.Resource, line overrides.Line) []string {
 // never happens, but the contract cannot say so without a presence-tracking scalar. A plain string
 // that accepts "" is the same: the contract cannot say that a required value may be empty, and the
 // line says that the released attribute sends what the user writes, "" too.
+// stringAcceptsEmpty reports whether a string schema accepts "".
+func stringAcceptsEmpty(built *base.Schema) bool {
+	if built.Format != "" || built.MinLength != nil && *built.MinLength >= 1 {
+		return false
+	}
+	// A pattern that refuses "" makes the value non-empty, so the line states nothing.
+	if built.Pattern != "" {
+		re, err := regexp.Compile(built.Pattern)
+		return err == nil && re.MatchString("")
+	}
+	return true
+}
+
 func requiredLineStatesPresence(schema *base.Schema, field string) bool {
 	built, err := schema.Properties.GetOrZero(field).BuildSchema()
 	if err != nil || len(built.Type) != 1 || len(built.Enum) != 0 || built.Default != nil {
 		return false
 	}
 	if built.Type[0] == "string" {
-		if built.Format != "" || built.MinLength != nil && *built.MinLength >= 1 {
-			return false
-		}
-		// A pattern that refuses "" makes the value non-empty, so the line states nothing.
-		if built.Pattern != "" {
-			re, err := regexp.Compile(built.Pattern)
-			return err == nil && re.MatchString("")
-		}
-		return true
+		return stringAcceptsEmpty(built)
 	}
 	if presence := built.Extensions.GetOrZero("x-coralogix-presence"); presence != nil && presence.Value == "true" {
 		return false

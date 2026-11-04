@@ -1065,7 +1065,14 @@ func (l Field) emptyMode() bool {
 }
 
 func (l Field) emptyValue() bool {
-	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.KeyedBy == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() && !l.SendUnknownAsZero && !l.SplitArms && !l.Invert && l.CarrySiblings == nil &&
+	return l.Default == nil && len(l.CreateAs) == 0 && l.Collection == "" && l.KeyedBy == nil && l.ReadEmptyAs == "" && l.ReadNullAs == "" && !l.RequireOne && !l.Fixed() &&
+		l.emptyShape()
+}
+
+// emptyShape reports whether the line sets none of the keys that change how a value is shown or
+// compared.
+func (l Field) emptyShape() bool {
+	return !l.SendUnknownAsZero && !l.SplitArms && !l.Invert && l.CarrySiblings == nil &&
 		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == ""
 }
 
