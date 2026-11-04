@@ -15,16 +15,13 @@
 package provider
 
 import (
-	"context"
 	"encoding/json"
 	"regexp"
 	"sort"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-framework/resource"
-
-	"github.com/coralogix/terraform-provider-coralogix/internal/provider/aaa"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/ipaccess"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils/schemadump"
 )
 
@@ -34,9 +31,9 @@ const (
 	ipAccessBasePath  = "/aaa/team-sec-ip-access/v1"
 )
 
-// These tests record the handwritten coralogix_ip_access resource and paired data source. The
-// data source remains handwritten for this migration; its schema and read behavior are baselined.
-// After migration, the golden diff should show only message wording or explicitly accepted bugs.
+// These goldens were recorded from the handwritten coralogix_ip_access resource and data source.
+// On the migration branch they run against the generated resource and unchanged data source; the
+// diff should show only API-provided descriptions, diagnostic wording, or explicitly accepted bug fixes.
 //
 //	UPDATE_GOLDEN=1 go test ./internal/provider -run TestIpAccessBaseline
 func newIpAccessHarness(t *testing.T) *grHarness {
@@ -44,9 +41,8 @@ func newIpAccessHarness(t *testing.T) *grHarness {
 }
 
 func TestIpAccessBaselineSchema(t *testing.T) {
-	var current resource.SchemaResponse
-	aaa.NewIpAccessResource().Schema(context.Background(), resource.SchemaRequest{}, &current)
-	checkGoldenAt(t, ipAccessGoldenDir, "schema_current.txt", []byte(schemadump.Text(current.Schema)))
+	current := ipaccess.Schema()
+	checkGoldenAt(t, ipAccessGoldenDir, "schema_current.txt", []byte(schemadump.Text(current)))
 }
 
 func TestIpAccessBaselineDataSourceSchema(t *testing.T) {

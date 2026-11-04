@@ -7,9 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
@@ -27,10 +25,7 @@ func Schema() schema.Schema {
 				MarkdownDescription: "The Coralogix customer support access setting.",
 			},
 			"id": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
+				Computed:            true,
 				MarkdownDescription: "The unique identifier for the company IP access settings. This is typically a company ID.",
 			},
 			"ip_access": schema.SetNestedAttribute{
@@ -48,7 +43,7 @@ func Schema() schema.Schema {
 						},
 						"name": schema.StringAttribute{
 							Optional:            true,
-							MarkdownDescription: "The name of this IP access entry.",
+							MarkdownDescription: "The name of the IP access entry.",
 						},
 					},
 				},

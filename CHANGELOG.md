@@ -335,7 +335,10 @@
 
 #### resource/coralogix_ip_access
 - CHORE: Add a schema and lifecycle baseline for the handwritten resource, with an opt-in recorder for checking the API fake against a disposable tenant.
-- CHORE: Generate the resource from the API contract while keeping the existing set schema and enum values. Replace omits the optional `id` body field; Get flattens API map values into the Terraform set.
+- CHORE: Generate the resource from the API contract while keeping the existing set schema and enum values. API descriptions now appear on the matching resource and data-source attributes. Replace omits the optional `id` body field; Get flattens API map values into the Terraform set.
+- FIX: Omitting `ip_access` no longer causes a Terraform value-conversion error. Create omits the field; Replace omits it and clears the rules, as the API does.
+- FIX: An Update 404 returns an error and keeps prior state. Before, the handwritten resource removed state and Terraform followed with `Missing Resource State After Update`.
+- FIX: A generic endpoint 404 during Delete is an error and keeps state. Before, the handwritten resource treated every 404 as successful deletion, including a missing API route.
 
 #### data-source/coralogix_ip_access
 - CHORE: Keep the data source handwritten and use the generated resource flattener. An optional `id` is passed to the API's optional Get query parameter when configured.

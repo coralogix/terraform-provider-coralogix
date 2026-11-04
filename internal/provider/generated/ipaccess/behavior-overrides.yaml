@@ -13,17 +13,13 @@ types:
     fields:
       id:
         readOnly: true
-        useStateForUnknown: true
-        markdownDescription: "The unique identifier for the company IP access settings. This is typically a company ID."
       enableCoralogixCustomerSupportAccess:
         computed: true
         default: unspecified
         validators: [{enum: true}]
-        markdownDescription: "The Coralogix customer support access setting."
       ipAccess:
         collection: set
         computed: true
-        markdownDescription: "The list of IP access entries."
   IpAccess:
     fields:
       enabled:
@@ -33,7 +29,7 @@ types:
         required: true
         markdownDescription: "The IP range in CIDR notation."
       name:
-        markdownDescription: "The name of this IP access entry."
+        markdownDescription: "The name of the IP access entry."
 
 enums:
   CoralogixCustomerSupportAccess:

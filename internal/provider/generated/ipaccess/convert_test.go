@@ -40,8 +40,8 @@ func TestExpandSetAsWriteList(t *testing.T) {
 	if diags.HasError() {
 		t.Fatalf("expand replace: %v", diags)
 	}
-	if update.Id == nil || *update.Id != "company-123" {
-		t.Fatalf("replace id = %v, want company-123", update.Id)
+	if update.Id != nil {
+		t.Fatalf("replace id = %v, want omitted", update.Id)
 	}
 	if len(update.IpAccess) != 1 || update.IpAccess[0].IpRange == nil || *update.IpAccess[0].IpRange != "10.0.0.0/8" {
 		t.Fatalf("replace ip_access = %#v, want one API list entry", update.IpAccess)

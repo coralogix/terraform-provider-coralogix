@@ -7,9 +7,21 @@
       "id": "(unknown)",
       "ip_access": "(unknown)"
     },
-    "applyDiagnostics": [
-      "error: Value Conversion Error [AttributeName(\"ip_access\")] | An unexpected error was encountered trying to build a value. This is always an error in the provider. Please report the following to the provider developer:\n\nReceived unknown value, however the target type cannot handle unknown values. Use the corresponding `types` package type or a custom type that handles unknown values.\n\nPath: ip_access\nTarget Type: []aaa.IpAccessRuleModel\nSuggested Type: basetypes.SetValue"
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/team-sec-ip-access/v1",
+        "body": {
+          "enableCoralogixCustomerSupportAccess": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED"
+        },
+        "status": 200
+      }
     ],
-    "state": null
+    "state": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "<settings-id>",
+      "ip_access": []
+    },
+    "replanEmpty": true
   }
 ]

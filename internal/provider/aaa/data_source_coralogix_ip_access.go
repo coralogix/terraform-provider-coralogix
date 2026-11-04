@@ -26,7 +26,6 @@ import (
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var _ datasource.DataSourceWithConfigure = &IpAccessDataSource{}
@@ -58,18 +57,18 @@ func (r *IpAccessDataSource) Schema(ctx context.Context, req datasource.SchemaRe
 }
 
 func (r *IpAccessDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var config struct {
-		ID types.String `tfsdk:"id"`
-	}
-	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	// Decode the full data-source model because its schema includes the resource
+	// attributes as computed outputs in addition to the optional lookup id.
+	var data generatedipaccess.CompanyIpAccessSettingsModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 	rq := r.client.
 		IpAccessServiceGetCompanyIpAccessSettings(ctx)
-	if !config.ID.IsNull() && !config.ID.IsUnknown() {
-		rq = rq.Id(config.ID.ValueString())
+	if !data.Id.IsNull() && !data.Id.IsUnknown() {
+		rq = rq.Id(data.Id.ValueString())
 	}
 
 	result, httpResponse, err := rq.Execute()
