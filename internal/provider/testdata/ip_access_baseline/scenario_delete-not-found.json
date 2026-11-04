@@ -60,6 +60,19 @@
         "status": 404
       }
     ],
-    "state": null
+    "applyDiagnostics": [
+      "error: Unable to delete ip_access | id <settings-id>: 404 Not Found — {\"code\":404,\"message\":\"Not Found\"}"
+    ],
+    "state": {
+      "enable_coralogix_customer_support_access": "unspecified",
+      "id": "<settings-id>",
+      "ip_access": [
+        {
+          "enabled": false,
+          "ip_range": "192.0.2.0/24",
+          "name": "first"
+        }
+      ]
+    }
   }
 ]
