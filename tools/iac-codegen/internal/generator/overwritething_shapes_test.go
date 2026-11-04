@@ -109,8 +109,10 @@ func TestNestedInlineStaysOnItsComponent(t *testing.T) {
 }
 
 // Expand clears the optional request objects that the configuration sets no attribute of, the
-// deepest first, by the model fields that write to them, a group by its fields: a configured zero
-// value still sends the object. An object with a field that the request always sends is always sent.
+// deepest first, by the model fields that write to them: a configured zero value still sends the
+// object. A group counts by its fields that write to the object, through the group, which can be nil:
+// a group that writes to two objects keeps each one only for its own fields. An object with a field
+// that the request always sends is always sent.
 func TestDropEmptyParentsDeepestFirst(t *testing.T) {
 	o := &convObject{
 		Parents: []convParent{
@@ -118,6 +120,9 @@ func TestDropEmptyParentsDeepestFirst(t *testing.T) {
 			{SDK: "Inlined"},
 			{SDK: "Policy.Details", DropEmpty: true},
 			{SDK: "Fixed", DropEmpty: true},
+			{SDK: "Left", DropEmpty: true},
+			{SDK: "Right", DropEmpty: true},
+			{SDK: "Grouped", DropEmpty: true},
 		},
 		Fields: []*convField{
 			{SDK: "Policy.Name", Model: "Name", Conv: "string"},
@@ -128,18 +133,24 @@ func TestDropEmptyParentsDeepestFirst(t *testing.T) {
 			{SDK: "Fixed.Note", Model: "Note", Conv: "string"},
 			// A group has no SDK path: its fields write to the struct that holds it.
 			{Model: "Limits", Conv: convGroup, Object: &convObject{Fields: []*convField{
-				{SDK: "Policy.Details.Max", Model: "Max", Conv: "int32"},
+				{SDK: "Left.Min", Model: "Min", Conv: "int32"},
+				{SDK: "Right.Max", Model: "Max", Conv: "int32"},
+				{Model: "Inner", Conv: convGroup, Object: &convObject{Fields: []*convField{
+					{SDK: "Policy.Details.Step", Model: "Step", Conv: "int32"},
+				}}},
 			}}},
 			{Model: "FixedGroup", Conv: convGroup, Object: &convObject{Fields: []*convField{
 				{SDK: "Grouped.Kind", Model: "Kind", Conv: "fixed"},
 			}}},
 		},
 	}
-	o.Parents = append(o.Parents, convParent{SDK: "Grouped", DropEmpty: true})
 	got := o.DropEmptyParents()
+	step := "(m.Limits == nil || m.Limits.Inner == nil || modelNull(m.Limits.Inner.Step))"
 	want := []dropParent{
-		{SDK: "Policy.Details", Models: []string{"Rules", "Limits"}},
-		{SDK: "Policy", Models: []string{"Name", "Rules", "Limits"}},
+		{SDK: "Right", Nulls: []string{"(m.Limits == nil || modelNull(m.Limits.Max))"}},
+		{SDK: "Left", Nulls: []string{"(m.Limits == nil || modelNull(m.Limits.Min))"}},
+		{SDK: "Policy.Details", Nulls: []string{"modelNull(m.Rules)", step}},
+		{SDK: "Policy", Nulls: []string{"modelNull(m.Name)", "modelNull(m.Rules)", step}},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("drop = %+v, want %+v", got, want)

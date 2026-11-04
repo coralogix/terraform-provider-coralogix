@@ -405,14 +405,15 @@ type convField struct {
 // dropParent is an optional request object that expand leaves out when the configuration sets
 // none of the attributes that write to it.
 type dropParent struct {
-	SDK    string   // the Go path of the object in the SDK struct
-	Models []string // the model fields that write to it
+	SDK   string   // the Go path of the object in the SDK struct
+	Nulls []string // a Go condition for each attribute that writes to it: true when it is not set
 }
 
 // DropEmptyParents are the optional request objects that expand leaves out when the configuration
 // sets none of their attributes, the deepest first. A configured "", false, 0, or {} still sends the
-// object, so the check reads the model, not the zero value of the SDK struct. An object with a field
-// that the request always sends is always sent.
+// object, so the check reads the model, not the zero value of the SDK struct. Only the attributes
+// that write to the object count, also inside a group. An object with a field that the request
+// always sends is always sent.
 func (o *convObject) DropEmptyParents() []dropParent {
 	var out []dropParent
 	for i := len(o.Parents) - 1; i >= 0; i-- {
@@ -423,14 +424,12 @@ func (o *convObject) DropEmptyParents() []dropParent {
 		d := dropParent{SDK: p.SDK}
 		always := false
 		for _, f := range o.Fields {
-			writes, alwaysSent := writesUnder(f, p.SDK+".")
+			nulls, alwaysSent := nullsUnder(f, p.SDK+".", "m", nil)
 			if alwaysSent {
 				always = true
 				break
 			}
-			if writes {
-				d.Models = append(d.Models, f.Model)
-			}
+			d.Nulls = append(d.Nulls, nulls...)
 		}
 		if !always {
 			out = append(out, d)
@@ -439,27 +438,42 @@ func (o *convObject) DropEmptyParents() []dropParent {
 	return out
 }
 
-// writesUnder reports whether expand writes field f, or a field of the group f, to an SDK path that
-// starts with prefix, and whether it always does: a fixed value or a fold. A group has no SDK path:
-// its fields write to the struct of the object that holds it.
-func writesUnder(f *convField, prefix string) (writes, always bool) {
+// nullsUnder returns a Go condition for each attribute of field f, a field of the model at model,
+// that expand writes to an SDK path that starts with prefix: true when the configuration does not
+// set it. It also reports whether expand always writes there: a fixed value or a fold. A group has
+// no SDK path: its fields write to the struct of the object that holds it, so each one is checked
+// through the group, which is nil when the configuration leaves it out. groups are the group
+// expressions on the way.
+func nullsUnder(f *convField, prefix, model string, groups []string) (nulls []string, always bool) {
 	if f.FlattenOnly {
-		return false, false
+		return nil, false
 	}
+	at := model + "." + f.Model
 	if f.Conv == convGroup && f.Object != nil {
 		for _, child := range f.Object.Fields {
-			w, a := writesUnder(child, prefix)
+			n, a := nullsUnder(child, prefix, at, append(slices.Clone(groups), at))
 			if a {
-				return true, true
+				return nil, true
 			}
-			writes = writes || w
+			nulls = append(nulls, n...)
 		}
-		return writes, false
+		return nulls, false
 	}
 	if !strings.HasPrefix(f.SDK, prefix) {
-		return false, false
+		return nil, false
 	}
-	return true, f.Conv == "fixed" || len(f.Fold) != 0
+	if f.Conv == "fixed" || len(f.Fold) != 0 {
+		return nil, true
+	}
+	cond := "modelNull(" + at + ")"
+	if len(groups) != 0 {
+		var parts []string
+		for _, g := range groups {
+			parts = append(parts, g+" == nil")
+		}
+		cond = "(" + strings.Join(append(parts, cond), " || ") + ")"
+	}
+	return []string{cond}, false
 }
 
 // DropsEmpty reports whether expand leaves out an optional request object. The template then emits
