@@ -1135,8 +1135,18 @@ func flattenRuleGroup(ctx context.Context, p path.Path, v *rule_groups_service.R
 	out.Name = types.StringPointerValue(&v.Name)
 	out.Order = types.Int64PointerValue(&v.Order)
 	for i := range v.RuleMatchers {
-		if v.RuleMatchers[i].ApplicationName == nil && v.RuleMatchers[i].Severity == nil && v.RuleMatchers[i].SubsystemName == nil {
-			diags.AddAttributeError(path.Root("applications"), "Invalid response from server", fmt.Sprintf("Item %d of the response has none of applications, severities, subsystems.", i))
+		arms := 0
+		if v.RuleMatchers[i].ApplicationName != nil {
+			arms++
+		}
+		if v.RuleMatchers[i].Severity != nil {
+			arms++
+		}
+		if v.RuleMatchers[i].SubsystemName != nil {
+			arms++
+		}
+		if arms != 1 {
+			diags.AddAttributeError(path.Root("applications"), "Invalid response from server", fmt.Sprintf("Item %d of the response has %d of applications, severities, subsystems; it must have exactly one.", i, arms))
 		}
 	}
 	{

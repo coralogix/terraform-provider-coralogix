@@ -9,7 +9,7 @@
 - CHORE: A rule with no type, or with two, reports `Invalid Attribute Combination` at `block` instead of `parse`. The rule is the same: exactly one type per rule.
 - CHORE: API errors read `Unable to create parsing_rules`, `Unable to update parsing_rules`, `Unable to delete parsing_rules`, and `Unable to read parsing_rules` instead of `Error creating coralogix_parsing_rules`, and so on. A refresh that finds the rule group deleted warns `Resource disappeared during read`.
 - CHORE: A refresh that gets a 404 of a route that does not exist fails instead of removing the rule group from state. A severity, format standard, or destination field that the provider does not know fails the read instead of reading as `""`.
-- CHORE: A read fails with `Invalid response from server` when the API returns a rule without parameters or with two kinds of parameters, or a matcher without an application, subsystem, or severity. Before, the rule or the matcher was left out. The API refuses a rule without parameters on write.
+- CHORE: A read fails with `Invalid response from server` when the API returns a rule without parameters or with two kinds of parameters, or a matcher without exactly one of an application, subsystem, or severity. Before, the rule or the matcher was left out, and a matcher with two values was read twice. The API refuses a rule without parameters on write.
 - CHORE: When Create succeeds but its response cannot be written to state, the state keeps the id, so Terraform marks the rule group tainted and the next apply replaces it, instead of leaving it outside Terraform.
 - CHORE: Create and Update send the rule matchers grouped by kind: applications, then severities, then subsystems. The attributes are sets, so plans do not change.
 - CHORE: A configuration without `rule_subgroups` sends `ruleSubgroups: null`, and `rule_subgroups = []` sends an empty list, instead of leaving the field out. The API refuses all three the same way: a rule group needs a rule.
@@ -93,7 +93,7 @@
 - DOCS: The descriptions of the attributes follow the new API contract.
 
 #### provider
-- CHORE: Bump `coralogix-management-sdk` to the version with the rule groups contract. The SDK holds required fields as values. The TCO policies still send `description` and `priority` on every create, and `coralogix_recording_rules_groups_set` reads `limit` without a pointer, with no change to plans.
+- CHORE: Bump `coralogix-management-sdk` to the version with the rule groups contract. The SDK holds required fields as values. The TCO policies still send `description` and `priority` on every create, with no change to plans. The new SDK leaves out the null `severities` next to a TCO `dpxl_expression`; the API reads it as empty.
 - CHORE: Bump `coralogix-management-sdk` to the version with the recording rules contract: unordered `groups`, the defaults of `interval` (60) and `limit` ("0"), which the response requires, and `groups` required with at least one item in Create and Update.
 - CHORE: Bump `coralogix-management-sdk` to the version with the actions contract: the defaults of `isHidden` and `isPrivate`, `createdBy` as output-only, and the description of the replace.
 - CHORE: Bump `coralogix-management-sdk` to the version with the integrations contract. The SDK holds the required fields of `IntegrationMetadata` and `DeployedIntegrationInformation` as values; `coralogix_integration` adapts, with no change to plans. The dashboard tests answer a Get with the `permissions` object that the SDK now requires in the response.
