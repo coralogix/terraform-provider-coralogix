@@ -82,8 +82,12 @@ type grHarness struct {
 	// saves it tainted, so the next apply replaces it.
 	failedCreate tftypes.Value
 	// private is the private state of the resource that the last write, read, or import returned.
-	// Terraform core hands it back to the provider on the next apply, read, and destroy.
+	// Terraform core hands it back to the provider as PriorPrivate when it plans, as Private when it
+	// reads, and as PlannedPrivate, taken from the plan, when it applies.
 	private []byte
+	// plannedPrivate is the PlannedPrivate that the last plan returned. The apply that follows
+	// the plan receives it.
+	plannedPrivate []byte
 }
 
 func newGRHarness(t *testing.T) *grHarness {
@@ -239,8 +243,10 @@ func (h *grHarness) plan(prior, cfg tftypes.Value) (tftypes.Value, []string, []*
 		PriorState:       h.dynamic(h.typ, prior),
 		ProposedNewState: h.dynamic(h.typ, proposed),
 		Config:           h.dynamic(h.typ, cfg),
+		PriorPrivate:     h.privateOf(prior),
 	})
 	h.must(err)
+	h.plannedPrivate = resp.PlannedPrivate
 	var replace []string
 	for _, p := range resp.RequiresReplace {
 		replace = append(replace, p.String())
@@ -304,12 +310,14 @@ func (h *grHarness) Apply(name string, prior tftypes.Value, cfgJSON map[string]a
 		return prior
 	}
 
+	// The apply gets the private state that this plan planned, as Terraform core hands it over.
+	plannedPrivate := h.plannedPrivate
 	resp, err := h.server.ApplyResourceChange(h.ctx, &tfprotov6.ApplyResourceChangeRequest{
 		TypeName:       h.typeName,
 		PriorState:     h.dynamic(h.typ, prior),
 		PlannedState:   h.dynamic(h.typ, planned),
 		Config:         h.dynamic(h.typ, cfg),
-		PlannedPrivate: h.privateOf(prior),
+		PlannedPrivate: plannedPrivate,
 	})
 	h.must(err)
 	step.Requests = h.api.takeRequests()
@@ -424,6 +432,7 @@ func (h *grHarness) Destroy(name string, state tftypes.Value) {
 		PriorState:       h.dynamic(h.typ, state),
 		ProposedNewState: h.dynamic(h.typ, null),
 		Config:           h.dynamic(h.typ, null),
+		PriorPrivate:     h.privateOf(state),
 	})
 	h.must(err)
 	step.PlanDiags = diagStrings(plan.Diagnostics)
@@ -437,7 +446,7 @@ func (h *grHarness) Destroy(name string, state tftypes.Value) {
 		PriorState:     h.dynamic(h.typ, state),
 		PlannedState:   plan.PlannedState,
 		Config:         h.dynamic(h.typ, null),
-		PlannedPrivate: h.privateOf(state),
+		PlannedPrivate: plan.PlannedPrivate,
 	})
 	h.must(err)
 	step.Requests = h.api.takeRequests()
