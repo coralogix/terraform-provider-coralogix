@@ -423,20 +423,43 @@ func (o *convObject) DropEmptyParents() []dropParent {
 		d := dropParent{SDK: p.SDK}
 		always := false
 		for _, f := range o.Fields {
-			if f.FlattenOnly || !strings.HasPrefix(f.SDK, p.SDK+".") {
-				continue
-			}
-			if f.Conv == "fixed" || len(f.Fold) != 0 {
+			writes, alwaysSent := writesUnder(f, p.SDK+".")
+			if alwaysSent {
 				always = true
 				break
 			}
-			d.Models = append(d.Models, f.Model)
+			if writes {
+				d.Models = append(d.Models, f.Model)
+			}
 		}
 		if !always {
 			out = append(out, d)
 		}
 	}
 	return out
+}
+
+// writesUnder reports whether expand writes field f, or a field of the group f, to an SDK path that
+// starts with prefix, and whether it always does: a fixed value or a fold. A group has no SDK path:
+// its fields write to the struct of the object that holds it.
+func writesUnder(f *convField, prefix string) (writes, always bool) {
+	if f.FlattenOnly {
+		return false, false
+	}
+	if f.Conv == convGroup && f.Object != nil {
+		for _, child := range f.Object.Fields {
+			w, a := writesUnder(child, prefix)
+			if a {
+				return true, true
+			}
+			writes = writes || w
+		}
+		return writes, false
+	}
+	if !strings.HasPrefix(f.SDK, prefix) {
+		return false, false
+	}
+	return true, f.Conv == "fixed" || len(f.Fold) != 0
 }
 
 // DropsEmpty reports whether expand leaves out an optional request object. The template then emits

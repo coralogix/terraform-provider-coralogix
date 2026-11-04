@@ -109,8 +109,8 @@ func TestNestedInlineStaysOnItsComponent(t *testing.T) {
 }
 
 // Expand clears the optional request objects that the configuration sets no attribute of, the
-// deepest first, by the model fields that write to them: a configured zero value still sends the
-// object. An object with a field that the request always sends is always sent.
+// deepest first, by the model fields that write to them, a group by its fields: a configured zero
+// value still sends the object. An object with a field that the request always sends is always sent.
 func TestDropEmptyParentsDeepestFirst(t *testing.T) {
 	o := &convObject{
 		Parents: []convParent{
@@ -126,10 +126,21 @@ func TestDropEmptyParentsDeepestFirst(t *testing.T) {
 			{SDK: "Inlined.Kind", Model: "Kind", Conv: "string"},
 			{SDK: "Fixed.Kind", Model: "FixedKind", Conv: "fixed"},
 			{SDK: "Fixed.Note", Model: "Note", Conv: "string"},
+			// A group has no SDK path: its fields write to the struct that holds it.
+			{Model: "Limits", Conv: convGroup, Object: &convObject{Fields: []*convField{
+				{SDK: "Policy.Details.Max", Model: "Max", Conv: "int32"},
+			}}},
+			{Model: "FixedGroup", Conv: convGroup, Object: &convObject{Fields: []*convField{
+				{SDK: "Grouped.Kind", Model: "Kind", Conv: "fixed"},
+			}}},
 		},
 	}
+	o.Parents = append(o.Parents, convParent{SDK: "Grouped", DropEmpty: true})
 	got := o.DropEmptyParents()
-	want := []dropParent{{SDK: "Policy.Details", Models: []string{"Rules"}}, {SDK: "Policy", Models: []string{"Name", "Rules"}}}
+	want := []dropParent{
+		{SDK: "Policy.Details", Models: []string{"Rules", "Limits"}},
+		{SDK: "Policy", Models: []string{"Name", "Rules", "Limits"}},
+	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("drop = %+v, want %+v", got, want)
 	}
