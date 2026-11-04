@@ -138,8 +138,7 @@
                 "priority": "PRIORITY_TYPE_BLOCK"
               },
               "rumRules": {
-                "dpxlExpression": "<v1> true",
-                "severities": null
+                "dpxlExpression": "<v1> true"
               }
             }
           ]
@@ -373,8 +372,7 @@
                 "priority": "PRIORITY_TYPE_BLOCK"
               },
               "rumRules": {
-                "dpxlExpression": "<v1> true",
-                "severities": null
+                "dpxlExpression": "<v1> true"
               }
             },
             {
@@ -788,8 +786,7 @@
                 "priority": "PRIORITY_TYPE_LOW"
               },
               "rumRules": {
-                "dpxlExpression": "<v1> true",
-                "severities": null
+                "dpxlExpression": "<v1> true"
               }
             }
           ]
