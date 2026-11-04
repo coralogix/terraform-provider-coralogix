@@ -303,3 +303,34 @@ func TestUpsertIgnoresAnUnusedPutAndPatch(t *testing.T) {
 		t.Fatalf("an unused PUT and PATCH changed the output:\n%s", diff)
 	}
 }
+
+// The required line of a component that only the response of an upsert reaches is not stale when
+// another operation sends that component. The model of an upsert builds only after reshape, so the
+// check takes the Create and Update that api.operations names.
+func TestUpsertRequiredLineIgnoresAnotherOperationsRequest(t *testing.T) {
+	spec, overrides := upsertInputs(t)
+	spec = replaceOnce(t, spec, "    Meta:\n      type: object\n      properties:\n", "    Meta:\n      type: object\n      required: [version]\n      properties:\n")
+	spec = replaceOnce(t, spec, "components:\n", `  /upsert/v1/meta:
+    post:
+      tags: [Meta Import Service]
+      operationId: MetaImportService_ImportMeta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Meta'}
+      responses: {'200': {description: ok}}
+components:
+`)
+	overrides += "  Meta:\n    fields:\n      version: {required: true}\n"
+	path := filepath.Join(t.TempDir(), "overrides.yaml")
+	if err := os.WriteFile(path, []byte(overrides), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = []byte(spec)
+	options := Options{Resource: "Target", OutputDir: filepath.Join(t.TempDir(), "upsertthing"), OverridesPath: path}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatalf("generate: %v", err)
+	}
+}

@@ -289,9 +289,17 @@ func hasZeroValue(contract []string) bool {
 	return len(contract) > 0 && strings.HasSuffix(contract[0], "_UNSPECIFIED")
 }
 
-// requestOperations returns the ids of the Create and Update operations of the resource, or nil
-// when the model cannot be built yet; the build then reports why.
+// requestOperations returns the ids of the Create and Update operations of the resource. The ids
+// that api.operations names come first: an upsert or a delete: none contract builds only after
+// reshape, which runs later, and it always names them. Otherwise the model infers them, and
+// nil means that it cannot be built yet; the build then reports why.
 func requestOperations(doc *v3.Document, component string, ids model.OperationIDs, file *overrides.File) map[string]bool {
+	if o := file.API.Operations; o != nil && o.Create != "" && o.Update != "" {
+		return map[string]bool{o.Create: true, o.Update: true}
+	}
+	if ids.Create != "" && ids.Update != "" {
+		return map[string]bool{ids.Create: true, ids.Update: true}
+	}
 	resource, err := model.BuildWithPolicy(doc, component, ids, file.Policy())
 	if err != nil {
 		return nil

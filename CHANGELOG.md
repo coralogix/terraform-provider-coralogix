@@ -60,7 +60,7 @@
 
 #### tools/iac-codegen
 - FEAT: An existing-resource Create body that is the resource itself, while only the Update body wraps it in `api.requestWrapper`, generates a flat Create request. Before, the wrapper applied to both bodies and the SDK check failed on Create. The model of the SDK `iac` module infers this from the spec, so no key is needed.
-- CHORE: Bump the generator to `v0.1.0-beta.60`.
+- CHORE: Bump the generator to `v0.1.0-beta.68`.
 - FEAT: A nested server default inside a set works when the response requires the field, as the recording rules group sets do for `interval` and `limit`. Before, the generator refused every nested server default in a set.
 - FEAT: A field line that only adds a text, a validator, or `terraformType` keeps the nested server default of the contract, as a top-level field already did. Before, any line removed it.
 - FEAT: `terraformType: Int64` also applies to a uint64 that the API sends as a string, for a released Int64 attribute; the contract may then allow 20 digits, and flatten reports a value above the Int64 maximum. A skipped uint64 field is no longer checked for its length.
@@ -74,6 +74,7 @@
 - FIX: A state upgrade by refresh restores a kept extra attribute of the prior state before `AfterFlatten`, so the hook can still replace it. Before, the prior value was written over the hook's.
 - FIX: The server default inside a set item checks every attribute down to the set, so a set that the configuration leaves out inside a configured object is not read as a removal. Before, only the top-level attribute was checked.
 - FEAT: A nested server default inside a set within another set is refused at generation, because the plan modifier can address only the outermost set in the configuration.
+- FIX: The stale-line check of an upsert or a `delete: none` resource reads the Create and Update that `api.operations` names. Before, the model of such a contract could not be built before reshape, so the check read the requests of every operation, and a `required` line on a component that another operation sends was reported as stale.
 - CHORE: Bump the generator to `v0.1.0-beta.54`.
 - FEAT: `types.<Type>.extraAttributes` can set `dynamic: true` for a Terraform-only `DynamicAttribute` (a `types.Dynamic` model field), `required: true` for a required one, and `inUpdate: true` on an attribute of a resource whose Update replaces it, so that a change of only that attribute makes an Update. A handwritten `BeforeWrite` hook turns the value into request values. An extra attribute can take the name of a skipped API field. The API holds no value of it, so a Create, Update, or Read keeps the value of the plan or the prior state, with no hook.
 - FEAT: `updatedValues` in `acceptance.yaml` gives the updated config of the generated acceptance test another expression for a field that `values` sets, for a value that the generator cannot change on its own, such as the object of a dynamic attribute. A line for an immutable or skipped field, or one that `values` does not set, is an error.
