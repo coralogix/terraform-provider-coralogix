@@ -74,7 +74,7 @@ types:
     fields:
       id: {description: ""}
       enabled: {name: active, computed: true, default: true, description: ""}
-      order: {position: true, description: ""}
+      order: {requestPosition: true, description: ""}
       rules: {description: ""}
   rules.v1.Rule:
     fields:
@@ -82,7 +82,7 @@ types:
       name: {description: "The rule name."}
       description: {computed: true, default: "", description: "The rule description."}
       enabled: {name: active, computed: true, default: true, description: "Determines whether the rule will be active or not."}
-      order: {position: true, description: "Determines the index of the rule inside the rule-subgroup. Will be computed by the order it was declared (1-based indexing)."}
+      order: {requestPosition: true, description: "Determines the index of the rule inside the rule-subgroup. Will be computed by the order it was declared (1-based indexing)."}
       sourceField:
         markdownDescription: "The field on which the Regex will operate on. Accepts lowercase only."
       parameters:
@@ -151,15 +151,15 @@ types:
   JsonStringifyParameters:
     fields:
       destinationField: {markdownDescription: "The field that will be populated by the results of the RegEx operation."}
-      deleteSource: {optional: true, name: keep_source_field, invert: true, computed: true, default: false, description: "Determines whether to keep or to delete the source field."}
+      deleteSource: {optional: true, name: keep_source_field, showInverted: true, computed: true, default: false, description: "Determines whether to keep or to delete the source field."}
   ExtractParameters:
     fields:
       rule: {name: regular_expression, markdownDescription: "Regular expiration. More info: https://coralogix.com/blog/regex-101/"}
   JsonParseParameters:
     fields:
       destinationField: {markdownDescription: "The field that will be populated by the results of the RegEx operation."}
-      deleteSource: {optional: true, name: keep_source_field, invert: true, computed: true, default: false, description: "Determines whether to keep or to delete the source field."}
-      overrideDest: {optional: true, name: keep_destination_field, invert: true, computed: true, default: true, description: "Determines whether to keep or to delete the destination field."}
+      deleteSource: {optional: true, name: keep_source_field, showInverted: true, computed: true, default: false, description: "Determines whether to keep or to delete the source field."}
+      overrideDest: {optional: true, name: keep_destination_field, showInverted: true, computed: true, default: true, description: "Determines whether to keep or to delete the destination field."}
       escapedValue: {requestValue: "true"}
 
 enums:
