@@ -1,0 +1,10 @@
+[
+  {
+    "step": "config sets neither id nor user_name",
+    "config": {},
+    "validateDiagnostics": [
+      "error: Missing Attribute Configuration | Exactly one of these attributes must be configured: [id,user_name]"
+    ],
+    "state": null
+  }
+]

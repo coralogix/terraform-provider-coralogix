@@ -1,0 +1,107 @@
+{
+  "comment": "Live API requests used to validate the Users fake. Recording creates users on a disposable team, and the Users API has no delete, so every user the recorder creates is left inactive. Every create uses onboardingMode NO_INVITE, every search passes a username that only this run's users match, and every email has the tf-acc-user-<run>-<letter>@coralogix.com shape. The data source is not recorded: its protocol scenarios stay fake-backed.",
+  "cases": [
+    {
+      "name": "user-lifecycle",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "ID_A",
+          "body": [
+            {
+              "onboardingMode": "ONBOARDING_MODE_NO_INVITE",
+              "userTemplate": {"username": "{{USER_A}}", "firstName": "Test", "lastName": "User", "status": "USER_STATUS_ACTIVE"}
+            }
+          ]
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "body": [
+            {
+              "onboardingMode": "ONBOARDING_MODE_NO_INVITE",
+              "userTemplate": {"username": "{{USER_A}}", "firstName": "Test", "lastName": "User", "status": "USER_STATUS_ACTIVE"}
+            }
+          ]
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "ID_B",
+          "body": [
+            {
+              "onboardingMode": "ONBOARDING_MODE_NO_INVITE",
+              "userTemplate": {"username": "{{USER_B}}", "status": "USER_STATUS_INACTIVE"}
+            }
+          ]
+        },
+        {"method": "GET", "path": "?page_size=100&username={{USER_A}}"},
+        {"method": "GET", "path": "?page_size=100&username={{USER_A_UPPER}}"},
+        {"method": "GET", "path": "?page_size=100&username={{PARTIAL}}"},
+        {"method": "GET", "path": "?page_size=100&username={{RUN}}-no-such-user"},
+        {
+          "method": "PUT",
+          "path": "",
+          "body": [
+            {"userId": "{{ID_A}}", "userTemplate": {"firstName": "Renamed", "lastName": "Person", "status": "USER_STATUS_ACTIVE"}}
+          ]
+        },
+        {"method": "GET", "path": "?page_size=100&username={{USER_A}}"},
+        {
+          "method": "PUT",
+          "path": "",
+          "body": [
+            {"userId": "{{ID_A}}", "userTemplate": {"status": "USER_STATUS_INACTIVE"}}
+          ]
+        },
+        {
+          "method": "PUT",
+          "path": "",
+          "body": [
+            {"userId": "{{ID_A}}", "userTemplate": {"status": "USER_STATUS_INACTIVE"}}
+          ]
+        },
+        {"method": "GET", "path": "?page_size=100&username={{USER_A}}"},
+        {
+          "method": "PUT",
+          "path": "",
+          "body": [
+            {"userId": "00000000-0000-4000-8000-000000000000", "userTemplate": {"status": "USER_STATUS_INACTIVE"}}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "search-paging",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "ID_A",
+          "body": [
+            {
+              "onboardingMode": "ONBOARDING_MODE_NO_INVITE",
+              "userTemplate": {"username": "{{USER_A}}", "status": "USER_STATUS_INACTIVE"}
+            }
+          ]
+        },
+        {
+          "method": "POST",
+          "path": "",
+          "capture": "ID_B",
+          "body": [
+            {
+              "onboardingMode": "ONBOARDING_MODE_NO_INVITE",
+              "userTemplate": {"username": "{{USER_B}}", "status": "USER_STATUS_INACTIVE"}
+            }
+          ]
+        },
+        {"method": "GET", "path": "?page_size=1&username={{PARTIAL}}"},
+        {"method": "GET", "path": "?page_size=1&page_token=1&username={{PARTIAL}}"},
+        {"method": "GET", "path": "?page_size=1&page_token=2&username={{PARTIAL}}"},
+        {"method": "GET", "path": "?page_size=1&page_token=5&username={{PARTIAL}}"}
+      ]
+    }
+  ]
+}
