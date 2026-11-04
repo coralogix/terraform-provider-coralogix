@@ -878,27 +878,15 @@ func modelNull(v any) bool {
 	return false
 }
 {{- end}}
-{{- if .Conv.UsesNegated}}
+{{- if or .Conv.UsesNegated (.Conv.Uses "notbool")}}
 
-// negateBool returns the opposite of a bool that a request sends under the opposite name.
+// negateBool returns the opposite of a bool, and nil for nil.
 func negateBool(v *bool) *bool {
 	if v == nil {
 		return nil
 	}
 	b := !*v
 	return &b
-}
-{{- end}}
-
-{{- if .Conv.Uses "notbool"}}
-
-// negateBool returns the opposite of b, and nil for nil.
-func negateBool(b *bool) *bool {
-	if b == nil {
-		return nil
-	}
-	n := !*b
-	return &n
 }
 {{- end}}
 
