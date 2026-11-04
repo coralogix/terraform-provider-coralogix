@@ -9,9 +9,9 @@
     },
     "plan": {
       "ibm": null,
-      "id": "(unknown)",
+      "id": "archive-metrics-settings",
       "prefix": "(unknown)",
-      "retention_policy": "(unknown)",
+      "retention_policy": null,
       "s3": {
         "bucket": "metrics-bucket",
         "region": "eu-north-1"
@@ -82,7 +82,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error update coralogix_archive_metrics | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Tenant config not found\"}\noperation - Create"
+      "error: Resource no longer exists | The API did not find archive_metrics with id archive-metrics-settings. Run terraform apply without -refresh=false: the refresh removes it from state, and the plan creates it again."
     ],
     "state": {
       "ibm": null,

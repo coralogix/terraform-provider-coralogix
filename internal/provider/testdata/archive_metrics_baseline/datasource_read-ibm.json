@@ -14,7 +14,7 @@
         "crn": "crn:v1:bluemix:public:cloud-object-storage:eu-de:a/0:0:bucket:metrics-bucket",
         "endpoint": "https://s3.eu-de.cloud-object-storage.appdomain.cloud"
       },
-      "id": "",
+      "id": "archive-metrics-settings",
       "prefix": "cx_metrics/",
       "retention_policy": null,
       "s3": null,

@@ -14,7 +14,7 @@
     ],
     "state": {
       "ibm": null,
-      "id": "anything",
+      "id": "archive-metrics-settings",
       "prefix": "cx_metrics/",
       "retention_policy": null,
       "s3": {
@@ -24,6 +24,7 @@
       "tenant_id": 4711
     },
     "drift": [
+      "AttributeName(\"id\")",
       "AttributeName(\"prefix\")",
       "AttributeName(\"s3\")",
       "AttributeName(\"s3\").AttributeName(\"bucket\")",
