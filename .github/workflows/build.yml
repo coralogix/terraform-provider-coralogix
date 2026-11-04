@@ -66,9 +66,10 @@ jobs:
         uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8
         with:
           go-version: 1.26.x
-      - name: Download the pinned SDK
-        # A generator test renders a released resource from the pinned SDK contract.
-        run: go mod download github.com/coralogix/coralogix-management-sdk
+      - name: Download the provider modules
+        # A generator test renders a released resource from the pinned SDK contract, and
+        # check-generated-resources.sh loads provider packages such as internal/clientset.
+        run: go mod download
       - name: Test generator
         working-directory: tools/iac-codegen
         run: |
