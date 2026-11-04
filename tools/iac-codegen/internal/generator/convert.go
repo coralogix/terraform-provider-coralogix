@@ -85,6 +85,9 @@ type convArm struct {
 type convParent struct {
 	SDK  string // Go field of the body
 	Type string // qualified SDK type of the object
+	// DropEmpty: the object is optional in the request, so expand leaves it out when no field in
+	// it is set, instead of sending an empty object that an API can read as a value.
+	DropEmpty bool
 }
 
 // wrapHelper is one pair of generated functions, wrap<Func> and unwrap<Func>. They convert a value
@@ -138,6 +141,8 @@ type enumMap struct {
 	// Read are rejected API values. Flatten returns the API spelling. Expand and the
 	// schema validator do not accept them.
 	Read []enumMapValue
+	// ZeroNull is the API zero value that flatten reads as null (zeroNull), or "".
+	ZeroNull string
 }
 
 type enumMapValue struct{ TF, API string }
@@ -196,6 +201,9 @@ type convObject struct {
 	Unsupported []unsupportedArm
 	// Parents are the inlined objects of a request body that are SDK pointers.
 	Parents []convParent
+	// FlattenParents are the SDK pointers of a response object that hold the fields of an inlined
+	// nested object. Flatten reads a missing one as an empty object, so its fields are null.
+	FlattenParents []convParent
 	// Carry is set when Terraform shows the object as the arms of its oneOf field (carrySiblings).
 	Carry *convCarry
 }
@@ -249,6 +257,7 @@ type convAttrType struct {
 // Conversion kinds of a convField.
 const (
 	convString  = "string"  // types.String ↔ *string
+	convSplit   = "split"   // types.Set of strings ↔ *string of values joined by a separator (split)
 	convBool    = "bool"    // types.Bool ↔ *bool
 	convFloat64 = "float64" // types.Float64 ↔ *float64
 	convUint64  = "uint64"  // types.Int64 ↔ *string (D7)
@@ -386,6 +395,111 @@ type convField struct {
 	// Fold: for the fold conversion, the properties of the object that Create sends as
 	// top-level fields. Each one reads the object model and writes its own SDK field.
 	Fold []*convField
+	// Negated: the request sends the opposite of the bool (a negate line), for example
+	// disabled for enabled.
+	Negated bool
+	// Split is the separator of a split field: the API holds the values of the set joined by it.
+	Split string
+}
+
+// dropParent is an optional request object that expand leaves out when the configuration sets
+// none of the attributes that write to it.
+type dropParent struct {
+	SDK   string   // the Go path of the object in the SDK struct
+	Nulls []string // a Go condition for each attribute that writes to it: true when it is not set
+}
+
+// DropEmptyParents are the optional request objects that expand leaves out when the configuration
+// sets none of their attributes, the deepest first. A configured "", false, 0, or {} still sends the
+// object, so the check reads the model, not the zero value of the SDK struct. Only the attributes
+// that write to the object count, also inside a group. An object with a field that the request
+// always sends is always sent.
+func (o *convObject) DropEmptyParents() []dropParent {
+	var out []dropParent
+	for i := len(o.Parents) - 1; i >= 0; i-- {
+		p := o.Parents[i]
+		if !p.DropEmpty {
+			continue
+		}
+		d := dropParent{SDK: p.SDK}
+		always := false
+		for _, f := range o.Fields {
+			nulls, alwaysSent := nullsUnder(f, p.SDK+".", "m", nil)
+			if alwaysSent {
+				always = true
+				break
+			}
+			d.Nulls = append(d.Nulls, nulls...)
+		}
+		if !always {
+			out = append(out, d)
+		}
+	}
+	return out
+}
+
+// nullsUnder returns a Go condition for each attribute of field f, a field of the model at model,
+// that expand writes to an SDK path that starts with prefix: true when the configuration does not
+// set it. It also reports whether expand always writes there: a fixed value or a fold. A group has
+// no SDK path: its fields write to the struct of the object that holds it, so each one is checked
+// through the group, which is nil when the configuration leaves it out. groups are the group
+// expressions on the way.
+func nullsUnder(f *convField, prefix, model string, groups []string) (nulls []string, always bool) {
+	if f.FlattenOnly {
+		return nil, false
+	}
+	at := model + "." + f.Model
+	if f.Conv == convGroup && f.Object != nil {
+		for _, child := range f.Object.Fields {
+			n, a := nullsUnder(child, prefix, at, append(slices.Clone(groups), at))
+			if a {
+				return nil, true
+			}
+			nulls = append(nulls, n...)
+		}
+		return nulls, false
+	}
+	if !strings.HasPrefix(f.SDK, prefix) {
+		return nil, false
+	}
+	if f.Conv == "fixed" || len(f.Fold) != 0 {
+		return nil, true
+	}
+	cond := "modelNull(" + at + ")"
+	if len(groups) != 0 {
+		var parts []string
+		for _, g := range groups {
+			parts = append(parts, g+" == nil")
+		}
+		cond = "(" + strings.Join(append(parts, cond), " || ") + ")"
+	}
+	return []string{cond}, false
+}
+
+// NilParents are the objects that a field of the object goes through and that can be nil in an
+// SDK value: an optional request object that expand leaves out, and an optional response object
+// that holds inlined fields. The outer one comes first. same<Func> compares copies with an empty
+// object for a missing one, so that a missing object and an empty one are equal.
+func (o *convObject) NilParents() []convParent {
+	var out []convParent
+	for _, p := range append(slices.Clone(o.Parents), o.FlattenParents...) {
+		if (p.DropEmpty || slices.Contains(o.FlattenParents, p)) && !slices.ContainsFunc(out, func(q convParent) bool { return q.SDK == p.SDK }) {
+			out = append(out, p)
+		}
+	}
+	slices.SortStableFunc(out, func(a, b convParent) int { return strings.Count(a.SDK, ".") - strings.Count(b.SDK, ".") })
+	return out
+}
+
+// DropsEmpty reports whether expand leaves out an optional request object. The template then emits
+// modelNull.
+func (d *convData) DropsEmpty() bool {
+	for _, obj := range d.Objects {
+		if obj.Expand && len(obj.DropEmptyParents()) != 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // Dst is the Go expression that expand writes the value to: the SDK field, or the value inside
@@ -446,6 +560,18 @@ func (d *convData) Uses(conv string) bool {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
 			if f.Conv == conv {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// UsesNegated reports whether a request sends a bool negated. The template then emits negateBool.
+func (d *convData) UsesNegated() bool {
+	for _, obj := range d.Objects {
+		for _, f := range obj.Fields {
+			if f.Negated {
 				return true
 			}
 		}
@@ -795,6 +921,10 @@ func (b *convBuilder) buildRoot(out *convData, root convRoot) error {
 	b.objects = append(b.objects, obj)
 	groups := map[string]*convObject{}
 	for _, f := range b.resource.Fields {
+		if b.file != nil && b.file.Types[b.resource.Name].Fields[f.Name].Negate {
+			// Only the request object of a nested component sends a field negated.
+			return fmt.Errorf("%s.%s: negate works on a field of a nested request object, not on a field of the resource component", b.resource.Name, f.Name)
+		}
 		fixed := b.fixedRequest(b.resource.Name, f.Name)
 		if !root.has(f) && !(root.expand && fixed) {
 			continue
@@ -1190,6 +1320,12 @@ func (b *convBuilder) enumMapFor(schema, sdkType string, t *model.Type) (*enumMa
 		}
 	}
 	m := &enumMap{Name: lowerFirst(camelize(schema)), SDKType: sdkType}
+	if over.ZeroNull {
+		if t.EnumZero == "" {
+			return nil, fmt.Errorf("enum %s has no *_UNSPECIFIED zero value", schema)
+		}
+		m.ZeroNull = t.EnumZero
+	}
 	if over.Zero != "" {
 		if t.EnumZero == "" {
 			return nil, fmt.Errorf("enum %s has no *_UNSPECIFIED zero value", schema)
@@ -1404,6 +1540,12 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	if err != nil {
 		return nil, err
 	}
+	if sep := splitOf(b.file, component, name); sep != "" {
+		if cf.Conv != convString || cf.Wrap != nil {
+			return nil, fmt.Errorf("%s: split needs a plain string field", cf.TFName)
+		}
+		cf.Conv, cf.Split, cf.Collection = convSplit, sep, "Set"
+	}
 	if cf.Wrap != nil && (cf.KeepPriorOrder || cf.Equality != "") {
 		return nil, fmt.Errorf("%s: %w", cf.TFName, errUnwrapCombination)
 	}
@@ -1423,6 +1565,10 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 		return nil, err
 	}
 	b.applyMissingEnum(cf, component, name, presence)
+	if cf.Conv == convEnum && cf.EnumMap != nil && cf.EnumMap.ZeroNull != "" && b.file != nil && b.file.Types[component].Fields[name].Default != nil {
+		// A missing value reads as null, so the planned default would come back as null.
+		return nil, fmt.Errorf("%s: zeroNull reads a missing value as null, so the field cannot have a default", cf.TFName)
+	}
 	if err := checkReadAs(cf); err != nil {
 		return nil, err
 	}
@@ -1704,6 +1850,10 @@ func (b *convBuilder) enumsConv(cf *convField, t *model.Type) (string, error) {
 	m, err := b.enumMapFor(t.Elem.Schema, cf.SDKType, t.Elem)
 	if err != nil {
 		return "", err
+	}
+	if m != nil && m.ZeroNull != "" {
+		// A list or set has no null element to read the zero value as.
+		return "", fmt.Errorf("zeroNull on %s reads its zero value as null, but a list or set of it has no null element", t.Elem.Schema)
 	}
 	cf.EnumMap = m
 	return "[]" + enum.Name, nil
@@ -2167,7 +2317,7 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 
 // scalarAttrTypes are the Terraform attribute types of the scalar kinds.
 var scalarAttrTypes = map[string]string{
-	convString: "types.StringType", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
+	convString: "types.StringType", convSplit: "types.SetType{ElemType: types.StringType}", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
 	convBool: "types.BoolType", convNotBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
 	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
 	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
@@ -2305,12 +2455,13 @@ type refIndex struct {
 	fields   map[string]sdkcheck.Ref   // field refs by path
 	methods  map[string][]sdkcheck.Ref // method refs by path
 	funcs    map[string]sdkcheck.Ref   // func refs by path and name
+	consts   map[string]sdkcheck.Ref   // const refs by path
 	bySchema map[string]sdkcheck.Ref   // component type refs by schema name
 }
 
 func indexRefs(refs []sdkcheck.Ref) (*refIndex, error) {
 	ix := &refIndex{pkgs: map[string]sdkcheck.Ref{}, types: map[string]sdkcheck.Ref{}, fields: map[string]sdkcheck.Ref{},
-		methods: map[string][]sdkcheck.Ref{}, funcs: map[string]sdkcheck.Ref{}, bySchema: map[string]sdkcheck.Ref{}}
+		methods: map[string][]sdkcheck.Ref{}, funcs: map[string]sdkcheck.Ref{}, consts: map[string]sdkcheck.Ref{}, bySchema: map[string]sdkcheck.Ref{}}
 	for _, ref := range refs {
 		switch ref.Kind {
 		case sdkcheck.KindPackage:
@@ -2329,6 +2480,8 @@ func indexRefs(refs []sdkcheck.Ref) (*refIndex, error) {
 			ix.methods[ref.Path] = append(ix.methods[ref.Path], ref)
 		case sdkcheck.KindFunc:
 			ix.funcs[ref.Path+"."+ref.Name] = ref
+		case sdkcheck.KindConst:
+			ix.consts[ref.Path] = ref
 		}
 	}
 	pkg, ok := ix.pkgs["resource"]
@@ -2683,6 +2836,19 @@ func (b *convBuilder) addMissingFields(obj *convObject, sdkPath, component strin
 			return fmt.Errorf("%s: %w", f.Name, err)
 		}
 		cf.FlattenOnly = cf.Conv != "fixed" && responseOnly
+		if parent := b.file.NestedParent(t.Schema, f.Name); parent != nil {
+			// An inline line moved the field out of its object: the Go expression goes through it.
+			if err := b.nestedInlineParent(obj, sdkPath, t.Model != "", parent, cf, f.Attrs.Required && scalarKind(f.Type)); err != nil {
+				return fmt.Errorf("%s: %w", f.Name, err)
+			}
+		}
+		if t.Model != "" && len(f.RequestPath) != 0 {
+			// A request object that holds the field in a wrapper or under another name: the Go
+			// expression goes through the objects of the request path.
+			if err := b.nestedRequestPath(obj, sdkPath, f, cf); err != nil {
+				return fmt.Errorf("%s: %w", f.Name, err)
+			}
+		}
 		if (f.Behavior == model.Computed || f.Attrs.Computed) && (f.Type.Kind == model.Object || f.Type.Kind == model.OneOf) {
 			// The model holds a computed object as a types.Object, which can
 			// be unknown while its parent is known.
@@ -2857,4 +3023,89 @@ func inlinedParents(r *model.Resource, file *overrides.File) []overrides.Parent 
 		}
 	}
 	return out
+}
+
+// nestedRequestPath points cf, a field of the request object at sdkPath, at the property that its
+// request path names, through the objects on the way. An object that the SDK holds in a pointer is
+// set by expand before the fields that it holds; one that it holds as a value needs nothing.
+func (b *convBuilder) nestedRequestPath(obj *convObject, sdkPath string, f *model.Field, cf *convField) error {
+	prefix := ""
+	for _, segment := range f.RequestPath[:len(f.RequestPath)-1] {
+		via := sdkPath + "." + f.Name + ".via." + segment
+		ref, err := b.ix.fieldRef(via)
+		if err != nil {
+			return err
+		}
+		typ, err := b.ix.typeRef(via)
+		if err != nil {
+			return err
+		}
+		prefix += ref.Name + "."
+		switch ref.Want {
+		case typ.Name:
+		case "*" + typ.Name:
+			if at := strings.TrimSuffix(prefix, "."); !slices.ContainsFunc(obj.Parents, func(p convParent) bool { return p.SDK == at }) {
+				obj.Parents = append(obj.Parents, convParent{SDK: at, Type: b.qualify(typ.Name), DropEmpty: true})
+			}
+		default:
+			return fmt.Errorf("SDK field %s has type %s, want %s or *%s", ref.SDKName(), ref.Want, typ.Name, typ.Name)
+		}
+	}
+	cf.SDK = prefix + cf.SDK
+	if f.Negated {
+		if cf.Conv != "bool" {
+			return fmt.Errorf("negate needs a bool, the conversion is %s", cf.Conv)
+		}
+		cf.Negated = true
+	}
+	return nil
+}
+
+// nestedInlineParent points cf, a field that an inline line moved out of the object parent of the
+// object at sdkPath, at the field of that object. A request allocates an SDK pointer before it writes
+// the field; a response reads a missing one as empty.
+func (b *convBuilder) nestedInlineParent(obj *convObject, sdkPath string, request bool, parent *overrides.Parent, cf *convField, requiredScalar bool) error {
+	ref, err := b.ix.fieldRef(sdkPath + "." + parent.Field)
+	if err != nil {
+		return err
+	}
+	typ, err := b.ix.typeRef(sdkPath + "." + parent.Field)
+	if err != nil {
+		return err
+	}
+	cf.SDK = ref.Name + "." + cf.SDK
+	switch ref.Want {
+	case typ.Name:
+		return nil
+	case "*" + typ.Name:
+	default:
+		return fmt.Errorf("SDK field %s has type %s, want %s or *%s", ref.SDKName(), ref.Want, typ.Name, typ.Name)
+	}
+	if !request && (cf.Value || requiredScalar) {
+		// A missing object flattens as a zero value of its type, so a field that the SDK holds as a
+		// value would read as "", false, or 0 instead of null. The SDK holds a required scalar as a
+		// value; the contract says so before the SDK exists.
+		return fmt.Errorf("%s is an optional object, and its field %s is a value in the SDK, so it would read back as a zero value instead of null when the API returns no object", ref.SDKName(), cf.SDK)
+	}
+	p := convParent{SDK: ref.Name, Type: b.qualify(typ.Name), DropEmpty: request}
+	list := &obj.FlattenParents
+	if request {
+		list = &obj.Parents
+	}
+	if !slices.Contains(*list, p) {
+		*list = append(*list, p)
+	}
+	return nil
+}
+
+// scalarKind reports whether t is a plain value: a string, a bool, a number, or an enum.
+func scalarKind(t *model.Type) bool {
+	if t == nil {
+		return false
+	}
+	switch t.Kind {
+	case model.String, model.Bool, model.Number, model.Integer, model.Enum:
+		return true
+	}
+	return false
 }

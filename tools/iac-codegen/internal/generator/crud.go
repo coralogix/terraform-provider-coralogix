@@ -41,6 +41,13 @@ type crudData struct {
 	// Upsert: Create and Update are one Set call, and Delete makes no call. The API cannot remove
 	// the resource.
 	Upsert bool
+	// Overwrite: the resource is the list that one write replaces (api.overwrite). Create and
+	// Update send the write and read the resource with Get. Delete sends the write with every
+	// list empty.
+	Overwrite bool
+	// GetQuery are the query values that Get always sends: the request builder method and the Go
+	// expression of the value.
+	GetQuery []crudQuery
 	// Arms are the Go fields of the inlined oneOf arms of the resource. Read treats a response
 	// without one as a resource that does not exist.
 	Arms []string
@@ -89,6 +96,9 @@ type crudData struct {
 	Create, Get               crudOp
 	Update, Delete            crudOp
 }
+
+// crudQuery is one query value that Get always sends: request.<Method>(<Value>).
+type crudQuery struct{ Method, Value string }
 
 // upgradeData is a state upgrader. It reads the resource from the API, so the prior schema is
 // only used to decode the old state.
@@ -152,6 +162,7 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		IDTFType:    "String",
 		Singleton:   r.Singleton,
 		Upsert:      file.Upserts(),
+		Overwrite:   r.Overwrite,
 		SingletonID: file.IDFromAPI(),
 		Replace:     r.Replace,
 		MaskInBody:  r.MaskInBody,
@@ -210,17 +221,21 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		return nil, err
 	}
 
+	if err := getQuery(ix, r, out); err != nil {
+		return nil, err
+	}
 	ops := []crudSpec{
 		{"create", r.Create, &out.Create, true, true},
 		{"get", r.Get, &out.Get, false, true},
 		{"update", r.Update, &out.Update, true, true},
-		{"delete", r.Delete, &out.Delete, false, false},
+		// The Delete of an overwrite resource is the write, with every list empty.
+		{"delete", r.Delete, &out.Delete, r.Overwrite, false},
 	}
 	for _, o := range ops {
 		if o.name == "delete" && file.Upserts() {
 			continue // the API cannot remove an upsert, so Delete makes no call
 		}
-		if *o.out, err = buildCRUDOp(ix, o, client.Name, resource.Name); err != nil {
+		if *o.out, err = buildCRUDOp(ix, o, client.Name, resource.Name, r.Overwrite); err != nil {
 			return nil, err
 		}
 	}
@@ -313,12 +328,15 @@ type crudSpec struct {
 
 // buildCRUDOp returns the SDK names of one operation. client is the SDK client
 // type, and resource is the SDK type of the resource.
-func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string) (crudOp, error) {
+func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, overwrite bool) (crudOp, error) {
 	var out crudOp
 	if (o.op.Body != "") != o.body {
 		return out, fmt.Errorf("%s: request body %q is not supported", o.name, o.op.Body)
 	}
-	readsBack := o.op.Response.ID != "" || (o.name == "update" || o.name == "create") && o.op.Response.Empty
+	// The write of an overwrite resource returns what it created in its own shape, so Create and
+	// Update read the resource with Get.
+	writes := overwrite && (o.name == "create" || o.name == "update")
+	readsBack := o.op.Response.ID != "" || (o.name == "update" || o.name == "create") && o.op.Response.Empty || writes
 	if (o.op.Response.Field != "" || o.op.Response.Direct) != o.resource && !readsBack {
 		return out, fmt.Errorf("%s: response field %q is not supported", o.name, o.op.Response.Field)
 	}
@@ -349,7 +367,7 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string) (crudOp, err
 		out.ResponseID, out.ResponseIDValue = field.Name, field.Want == "string"
 		return out, nil
 	}
-	if (o.name == "update" || o.name == "create") && o.op.Response.Empty {
+	if (o.name == "update" || o.name == "create") && o.op.Response.Empty || writes {
 		out.Empty = true
 		return out, nil
 	}
@@ -421,6 +439,38 @@ func updateOnlyAttrs(r *model.Resource, out *crudData) error {
 			return fmt.Errorf("%s: server default: %w", f.Name, err)
 		}
 		out.UpdateOnly = append(out.UpdateOnly, updateOnlyAttr{Attr: terraformName(r.Policy, r.Name, f.Name), Default: value})
+	}
+	return nil
+}
+
+// getQuery sets the query values that Get always sends: the request builder method of each, and an
+// enum constant or a Go literal for its value.
+func getQuery(ix *refIndex, r *model.Resource, out *crudData) error {
+	if len(r.GetQuery) == 0 {
+		return nil
+	}
+	builder, err := ix.typeRef("get")
+	if err != nil {
+		return err
+	}
+	for _, q := range r.GetQuery {
+		path := "get.query." + q.Name
+		method, err := ix.methodRef(path, builder.Name)
+		if err != nil {
+			return err
+		}
+		value := fmt.Sprintf("%q", q.Value)
+		switch q.Type.Kind {
+		case model.Enum:
+			c, ok := ix.consts[path+"."+q.Value]
+			if !ok {
+				return fmt.Errorf("%s: no SDK constant for %s", path, q.Value)
+			}
+			value = ix.pkg.Name + "." + c.Name
+		case model.Bool, model.Integer, model.Number:
+			value = q.Value
+		}
+		out.GetQuery = append(out.GetQuery, crudQuery{Method: method.Name, Value: value})
 	}
 	return nil
 }

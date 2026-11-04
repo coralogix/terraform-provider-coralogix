@@ -1318,3 +1318,39 @@ func TestCreateResponseOnlyIDPropertyIsRefusedForASingleton(t *testing.T) {
 		t.Fatalf("err = %v, want READ_BACK_SINGLETON_UNSUPPORTED", err)
 	}
 }
+
+// A required line on a nested component that no request reaches is not stale: its required list
+// binds only the response, as for an item whose requests hold its fields in an object of their own
+// (requestWrapper).
+func TestRequiredLineOnAResponseOnlyComponent(t *testing.T) {
+	doc, err := model.Load([]byte("openapi: 3.1.0\ninfo: {title: t, version: 1.0.0}\npaths: {}\ncomponents:\n  schemas:\n    Item:\n      type: object\n      required: [priority]\n      properties:\n        priority: {type: string, minLength: 1}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema, err := doc.Components.Schemas.GetOrZero("Item").BuildSchema()
+	if err != nil {
+		t.Fatal(err)
+	}
+	line := overrides.Line{Kind: overrides.KindField, Component: "Item", Field: "priority", Required: true}
+	if problem := fieldLineProblem(schema, line, true, true); problem != nil {
+		t.Fatalf("problem = %v, want none for a component that no request reaches", problem)
+	}
+	if problem := fieldLineProblem(schema, line, true, false); problem == nil || !slices.Contains(problem.stale, "required") {
+		t.Fatalf("problem = %v, want a stale required key for a shared component", problem)
+	}
+}
+
+// keysAre checks each key of a map, and only fits a map.
+func TestKeysAreValidator(t *testing.T) {
+	v := overrides.Validator{KeysAre: &overrides.RegexMatches{Pattern: "tags.*", Message: "tag names must have a 'tags.' prefix"}}
+	got, err := validatorExpr(&tfAttr{ValueKind: "Map"}, v, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "mapvalidator.KeysAre(stringvalidator.RegexMatches(regexp.MustCompile(`tags.*`), \"tag names must have a 'tags.' prefix\"))"; got != want {
+		t.Fatalf("expr = %s, want %s", got, want)
+	}
+	if _, err := validatorExpr(&tfAttr{ValueKind: "String"}, v, nil); err == nil {
+		t.Fatal("keysAre fits a string, want an error")
+	}
+}

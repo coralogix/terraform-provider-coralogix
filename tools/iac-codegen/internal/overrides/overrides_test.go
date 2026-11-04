@@ -599,7 +599,9 @@ func TestParseRejectsUpsertInlineAndNameMistakes(t *testing.T) {
 		"singletonID with both keys":  {head + "singletonID: {fixed: a, fromAPI: true}\n", "exactly one of fixed"},
 		"singletonID with no key":     {head + "singletonID: {}\n", "exactly one of fixed"},
 		"inline with other keys":      {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, computed: true}\n", "sets only inline"},
-		"inline on a nested type":     {head + "types:\n  Other:\n    fields:\n      s3: {inline: true}\n", "applies to a field of the resource Target"},
+		"inline with negate":          {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, negate: true}\n", "sets only inline"},
+		"inline with split":           {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, split: \",\"}\n", "sets only inline"},
+		"inline with requestAs":       {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, requestAs: bucket}\n", "sets only inline"},
 		"name not a Terraform name":   {head + "types:\n  Target:\n    fields:\n      isActive: {name: Active}\n", "is not a Terraform attribute name"},
 		"skipped field with a name":   {head + "types:\n  Target:\n    fields:\n      isActive: {skip: true, name: active}\n", "a skipped field has no other behavior"},
 		"the removed fixedID key":     {head + "fixedID: settings\n", "fixedID not found"},
@@ -626,6 +628,58 @@ func TestExtraAttributeShapeErrors(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			if err := test.extra.check("field"); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
+func TestParseOverwriteAndItemShape(t *testing.T) {
+	text := `
+resource: ThingList
+mode: existing
+singletonID: {fixed: things}
+validators:
+  inferred: false
+api:
+  overwrite:
+    getQuery: {kind: THING_KIND_A}
+  operations: {create: W, get: G, update: W, delete: W}
+types:
+  Thing:
+    requestWrapper: thing
+    fields:
+      enabled: {requestAs: disabled, negate: true}
+  Rules:
+    fields:
+      name: {split: ",", name: names}
+`
+	f, err := Parse([]byte(text))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := f.Policy()
+	if !p.Overwrite || p.GetQuery["kind"] != "THING_KIND_A" || p.RequestWrappers["Thing"] != "thing" ||
+		p.RequestNames["Thing.enabled"] != "disabled" || !slices.Equal(p.RequestNegated, []string{"Thing.enabled"}) {
+		t.Fatalf("policy = %+v", p)
+	}
+	if f.Types["Rules"].Fields["name"].Split != "," || f.Upserts() {
+		t.Fatalf("file = %+v", f)
+	}
+}
+
+func TestParseRejectsOverwriteAndItemShapeMistakes(t *testing.T) {
+	const head = "resource: ThingList\nmode: existing\nvalidators:\n  inferred: false\n"
+	const overwrite = "api:\n  overwrite: {getQuery: {kind: A}}\n  operations: {create: W, get: G, update: W, delete: W}\n"
+	tests := map[string]struct{ text, want string }{
+		"overwrite with two writes":        {head + "api:\n  overwrite: {}\n  operations: {create: W, get: G, update: U, delete: W}\n", "name the write as create, update, and delete"},
+		"overwrite with a request wrapper": {head + overwrite + "  requestWrapper: things\n", "cannot go with the other api keys"},
+		"requestWrapper on the resource":   {head + overwrite + "types:\n  ThingList:\n    requestWrapper: list\n", "uses api.requestWrapper"},
+		"split with a collection":          {head + overwrite + "types:\n  Rules:\n    fields:\n      name: {split: \",\", collection: set}\n", "split shows a string as a set"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte(test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
 				t.Fatalf("err = %v, want %q", err, test.want)
 			}
 		})

@@ -14,6 +14,10 @@ types:
         equality: json
       remotes:
         keepPriorOrder: true
+      # A released map validator: each key of the map matches the pattern.
+      metadata:
+        validators:
+          - keysAre: {pattern: "^[a-z.]+$", message: "keys must be lower case"}
   ConfigRemote:
     fields:
       rawConfiguration:

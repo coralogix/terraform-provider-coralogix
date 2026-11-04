@@ -10,7 +10,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Unable to read coralogix_archive_metrics | id archive_metrics: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: tenant config store unavailable\"}"
+      "error: Unable to read coralogix_archive_metrics | id archive-metrics-settings: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: tenant config store unavailable\"}"
     ],
     "state": {
       "ibm": null,
