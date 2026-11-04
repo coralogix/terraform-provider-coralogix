@@ -1,0 +1,46 @@
+[
+  {
+    "step": "missing required fields",
+    "config": {},
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"default_expression\")] | Must set a configuration value for the default_expression attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"display_name\")] | Must set a configuration value for the display_name attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"filters\")] | Must set a configuration value for the filters attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "expression without version",
+    "config": {
+      "default_expression": "true",
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "logs",
+          "expression": "<v1>true"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"default_expression\")] | Attribute default_expression Default expression must be in the format `<vX>true` or `<vX>false where X is a version number. E.g. `<v1>true` or `<v1>false, got: true"
+    ],
+    "state": null
+  },
+  {
+    "step": "unsupported entity type",
+    "config": {
+      "default_expression": "<v1>true",
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "metrics",
+          "expression": "<v1>true"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"filters\").ElementKeyInt(0).AttributeName(\"entity_type\")] | Attribute filters[0].entity_type value must be one of: [\"logs\" \"spans\" \"unspecified\"], got: \"metrics\""
+    ],
+    "state": null
+  }
+]

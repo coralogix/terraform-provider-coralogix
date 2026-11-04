@@ -44,6 +44,7 @@ type dataSourceBaseline struct {
 }
 
 var dataSourceBaselines = map[string]dataSourceBaseline{
+	"scope":               {scopeGoldenDir, newScopeHarness, scopeDataSourceScenarios},
 	"configuration_group": {cgGoldenDir, newCGHarness, cgDataSourceScenarios},
 	"alerts_scheduler": {asGoldenDir, func(t *testing.T) *grHarness {
 		return newProtocolHarness(t, asTypeName, newASFake(t))

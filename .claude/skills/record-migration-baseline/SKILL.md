@@ -17,6 +17,8 @@ Record current behavior from the handwritten resource on the target base commit.
 4. Record protocol plans, request bodies and status, diagnostics, state, and the next plan. Include API errors, missing resources, partial writes, and duplicate or unordered values when they affect state. For write-only fields, record rotation, removal or a switch to the ordinary field, then refresh and plan. Compare the coverage matrix with the golden file list. Resolve every missing cell or state why it does not apply.
 5. Use only synthetic values. Do not read credentials. Do not put secrets, tenant IDs, private links, or internal ticket details in a public repository. Run the baseline tests and review the final diff and fixture content before opening the PR.
 
+**Diagnostic order:** Sort recorded validation diagnostics before comparing them. Framework schema maps can return the same errors in a different order. Keep every severity, attribute path, message, and duplicate.
+
 **Why:** A missing case can make a migration appear safe when it changes released behavior.
 
 The [migration review rubric](../../../docs/generator-migration-review-rubric.md) applies when the generated resource replaces this baseline.

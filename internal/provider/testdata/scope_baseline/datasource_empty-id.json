@@ -1,0 +1,19 @@
+[
+  {
+    "step": "read empty id",
+    "config": {
+      "id": ""
+    },
+    "applyDiagnostics": [
+      "error: Error reading coralogix_scope | id must be set to a non-empty scope id."
+    ],
+    "state": {
+      "default_expression": null,
+      "description": null,
+      "display_name": null,
+      "filters": null,
+      "id": "",
+      "team_id": null
+    }
+  }
+]

@@ -256,6 +256,7 @@ func (h *grHarness) Plan(name string, prior tftypes.Value, cfgJSON map[string]an
 	cfg := h.config(cfgJSON)
 	vd := h.validate(cfg)
 	step.ValidateDiags = diagStrings(vd)
+	slices.Sort(step.ValidateDiags)
 	if !hasError(vd) {
 		planned, replace, pd := h.plan(prior, cfg)
 		step.PlanDiags = diagStrings(pd)

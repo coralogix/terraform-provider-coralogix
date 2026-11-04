@@ -1,0 +1,49 @@
+[
+  {
+    "step": "apply allowed unspecified entity type",
+    "config": {
+      "default_expression": "<v1>true",
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "unspecified",
+          "expression": "<v1>true"
+        }
+      ]
+    },
+    "plan": {
+      "default_expression": "<v1>true",
+      "description": null,
+      "display_name": "example",
+      "filters": [
+        {
+          "entity_type": "unspecified",
+          "expression": "<v1>true"
+        }
+      ],
+      "id": "(unknown)",
+      "team_id": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/team-scopes/v1",
+        "body": {
+          "defaultExpression": "\u003cv1\u003etrue",
+          "displayName": "example",
+          "filters": [
+            {
+              "entityType": "ENTITY_TYPE_UNSPECIFIED",
+              "expression": "\u003cv1\u003etrue"
+            }
+          ]
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_scope | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Incoming entity type is unspecified\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]
