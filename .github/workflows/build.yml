@@ -71,6 +71,12 @@ jobs:
         # The SDK check loads internal/clientset with GOPROXY=off, so every module
         # of the root go.mod must be in the module cache first.
         run: go mod download
+      - name: Setup Terraform
+        # A runtime semantics test runs a generated resource with real Terraform. Without a CLI on
+        # the runner, terraform-plugin-testing downloads one and fails on an expired signing key.
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
       - name: Test generator
         working-directory: tools/iac-codegen
         run: |

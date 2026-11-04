@@ -306,6 +306,14 @@ func (r *Resource) setState(ctx context.Context, v *rename_things_service.Rename
 	if prior != nil {
 		// The API holds no value of this attribute. Start with the value from the plan or prior
 		// state, then let AfterFlatten replace it when the API supplies another value.
+		var kept types.String
+		if !prior.GetAttribute(ctx, path.Root("note"), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
+			m.Note = kept
+		}
+	}
+	if prior != nil {
+		// The API holds no value of this attribute. Start with the value from the plan or prior
+		// state, then let AfterFlatten replace it when the API supplies another value.
 		var kept types.Dynamic
 		if !prior.GetAttribute(ctx, path.Root("settings"), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
 			m.Settings = kept

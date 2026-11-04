@@ -102,11 +102,12 @@ func overrideIssues(doc *v3.Document, component string, file *overrides.File, id
 	if err != nil {
 		requestOnly = nil // the model reports the operations that it cannot resolve
 	}
+	requested := requestComponents(doc, requestOperations(doc, component, ids, file))
 	for _, line := range file.Lines() {
 		if line.Kind == overrides.KindField && line.Component == component && slices.Equal(line.Keys, []string{"skip"}) && slices.Contains(requestOnly, line.Field) {
 			continue
 		}
-		if problem := lineProblem(doc, line, component, file); problem != nil {
+		if problem := lineProblem(doc, line, component, file, requested); problem != nil {
 			report = append(report, issue.Issue{
 				Code:        cmp.Or(problem.code, "OVERRIDE_UNUSED"),
 				Location:    overrides.FileName + ":" + line.String(),
@@ -151,8 +152,9 @@ func (i *lineIssue) remediation(line overrides.Line) string {
 	return fmt.Sprintf("Delete only the key %s. Keep %s: the contract does not state it.", strings.Join(i.stale, ", "), strings.Join(keep, ", "))
 }
 
-// lineProblem checks one line. resource is the component of the resource response.
-func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *overrides.File) *lineIssue {
+// lineProblem checks one line. resource is the component of the resource response. requested are
+// the components that a request body reaches.
+func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *overrides.File, requested map[string]bool) *lineIssue {
 	if doc.Components == nil || doc.Components.Schemas == nil {
 		return wholeLine(errors.New("the API contract has no component schemas"))
 	}
@@ -176,7 +178,10 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 		// A missing required list means that no field is required.
 		return wholeLine(fmt.Errorf("component %q: a missing required list already means that no field is required, so no override is needed", line.Component))
 	case overrides.KindField:
-		return fieldLineProblem(schema, line, line.Component != resource)
+		nested := line.Component != resource
+		// A nested component that only a response reaches binds no request: the request holds its
+		// own component in that place, such as an input object next to its output object.
+		return fieldLineProblem(schema, line, nested, nested && !requested[line.Component])
 	case overrides.KindGroup:
 		for _, field := range line.GroupFields {
 			if schema.Properties == nil || schema.Properties.GetOrZero(field) == nil {
@@ -284,11 +289,90 @@ func hasZeroValue(contract []string) bool {
 	return len(contract) > 0 && strings.HasSuffix(contract[0], "_UNSPECIFIED")
 }
 
+// requestOperations returns the ids of the Create and Update operations of the resource. The ids
+// that api.operations names come first: an upsert or a delete: none contract builds only after
+// reshape, which runs later, and it always names them. Otherwise the model infers them, and
+// nil means that it cannot be built yet; the build then reports why.
+func requestOperations(doc *v3.Document, component string, ids model.OperationIDs, file *overrides.File) map[string]bool {
+	if o := file.API.Operations; o != nil && o.Create != "" && o.Update != "" {
+		return map[string]bool{o.Create: true, o.Update: true}
+	}
+	if ids.Create != "" && ids.Update != "" {
+		return map[string]bool{ids.Create: true, ids.Update: true}
+	}
+	resource, err := model.BuildWithPolicy(doc, component, ids, file.Policy())
+	if err != nil {
+		return nil
+	}
+	out := map[string]bool{}
+	for _, id := range []string{resource.Create.OperationID, resource.Update.OperationID} {
+		if id != "" {
+			out[id] = true
+		}
+	}
+	return out
+}
+
+// requestComponents returns the components that the request body of an operation in ops reaches,
+// or of any operation when ops is nil. Another resource's operation can send a component that
+// this resource only reads.
+func requestComponents(doc *v3.Document, ops map[string]bool) map[string]bool {
+	out := map[string]bool{}
+	if doc.Paths == nil || doc.Paths.PathItems == nil {
+		return out
+	}
+	var walk func(proxy *base.SchemaProxy)
+	walk = func(proxy *base.SchemaProxy) {
+		if proxy == nil {
+			return
+		}
+		if proxy.IsReference() {
+			name := strings.TrimPrefix(proxy.GetReference(), "#/components/schemas/")
+			if out[name] {
+				return
+			}
+			out[name] = true
+		}
+		schema, err := proxy.BuildSchema()
+		if err != nil || schema == nil {
+			return
+		}
+		if schema.Properties != nil {
+			for _, child := range schema.Properties.FromOldest() {
+				walk(child)
+			}
+		}
+		if schema.Items != nil && schema.Items.IsA() {
+			walk(schema.Items.A)
+		}
+		if schema.AdditionalProperties != nil && schema.AdditionalProperties.IsA() {
+			walk(schema.AdditionalProperties.A)
+		}
+		for _, list := range [][]*base.SchemaProxy{schema.AllOf, schema.OneOf, schema.AnyOf} {
+			for _, child := range list {
+				walk(child)
+			}
+		}
+	}
+	for _, item := range doc.Paths.PathItems.FromOldest() {
+		for _, op := range item.GetOperations().FromOldest() {
+			if op.RequestBody == nil || op.RequestBody.Content == nil || ops != nil && !ops[op.OperationId] {
+				continue
+			}
+			for _, media := range op.RequestBody.Content.FromOldest() {
+				walk(media.Schema)
+			}
+		}
+	}
+	return out
+}
+
 // fieldLineProblem checks a field line. The field must exist. A readOnly or required key is
 // stale when the contract states the same fact.
-// shared is true for a nested component, which the requests and the response share, so its
-// required list binds the requests too.
-func fieldLineProblem(schema *base.Schema, line overrides.Line, shared bool) *lineIssue {
+// shared is true for a nested component, which the requests and the response usually share, so
+// its required list binds the requests too. responseOnly is true for a nested component that no
+// request reaches: its required list binds no request, so a required or optional line is not stale.
+func fieldLineProblem(schema *base.Schema, line overrides.Line, shared, responseOnly bool) *lineIssue {
 	if schema.Properties == nil || schema.Properties.GetOrZero(line.Field) == nil {
 		return wholeLine(fmt.Errorf("component %q has no field %q", line.Component, line.Field))
 	}
@@ -299,10 +383,10 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared bool) *li
 	if line.ReadOnly && iacoverrides.ContractReadOnly(schema, line.Field) {
 		stale = append(stale, "readOnly")
 	}
-	if line.Required && slices.Contains(schema.Required, line.Field) && !(shared && requiredLineStatesPresence(schema, line.Field)) {
+	if line.Required && !responseOnly && slices.Contains(schema.Required, line.Field) && !(shared && requiredLineStatesPresence(schema, line.Field)) {
 		stale = append(stale, "required")
 	}
-	if line.Optional && shared && !slices.Contains(schema.Required, line.Field) {
+	if line.Optional && shared && !responseOnly && !slices.Contains(schema.Required, line.Field) {
 		// The resource component has request components of its own: the contract check reports
 		// an optional line that relaxes none of them.
 		stale = append(stale, "optional")

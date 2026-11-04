@@ -16,16 +16,18 @@ import (
 
 // tfResource is the template data for the Terraform schema and model files.
 type tfResource struct {
-	Package            string
-	AfterFlatten       bool
-	VersionHeader      string
-	Model              string // Go type of the resource model, for example "WidgetModel"
-	Attributes         []*tfAttr
-	ConfigValidators   []string // Go expressions of type resource.ConfigValidator
-	Models             []*tfModel
-	Conv               *convData // expand and flatten
-	CRUD               *crudData // CRUD, import, and the provider data
-	HasServerDefaults  bool
+	Package           string
+	AfterFlatten      bool
+	VersionHeader     string
+	Model             string // Go type of the resource model, for example "WidgetModel"
+	Attributes        []*tfAttr
+	ConfigValidators  []string // Go expressions of type resource.ConfigValidator
+	Models            []*tfModel
+	Conv              *convData // expand and flatten
+	CRUD              *crudData // CRUD, import, and the provider data
+	HasServerDefaults bool
+	// SetServerDefaults: a server default is inside a set item, so its modifier reads the plan.
+	SetServerDefaults  bool
 	ServerDefaultKinds []string // Terraform scalar kinds that need reset planning
 	// RequestReplaceKinds are the Terraform value kinds of the immutable
 	// attributes that hold values that the server sets. They use
@@ -114,6 +116,8 @@ type tfAttr struct {
 	WriteOnly bool
 	// TrueOnly: a bool that shows an object without fields (asBool). Only true is a valid value.
 	TrueOnly bool
+	// Uint64: the attribute is a uint64 that the API sends as a string, shown as Int64.
+	Uint64 bool
 	// Extra: the attribute is from types.<Type>.extraAttributes, not the API. The generated
 	// acceptance test leaves it out unless values or an upgrade case supplies the map: a made-up
 	// map key is not a valid API field.
@@ -180,6 +184,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	out.Models = b.models
 	out.RequestReplaceKinds = b.replaceKinds
 	out.DefaultPaths = b.defaultPaths
+	out.SetServerDefaults = b.setDefaults
 	for _, kind := range b.defaultKinds {
 		out.HasServerDefaults = true
 		if !containsString(out.ServerDefaultKinds, kind) {
@@ -984,6 +989,7 @@ type tfBuilder struct {
 	replaceKinds []string        // RequestReplaceKinds
 	defaultKinds []string        // ServerDefaultKinds of nested attributes
 	defaultPaths []defaultPath   // DefaultPaths
+	setDefaults  bool            // SetServerDefaults
 	file         *overrides.File
 	policy       model.Policy      // names the attributes that a name line renames
 	replace      bool              // Update is a full replace, so a group can hold nested fields
@@ -1022,6 +1028,16 @@ func requireOneArm(a *tfAttr) {
 // attrPath is a Terraform attribute path: "root", then the names. The step
 // anyListItem is any element of a list, and anyMapValue any value of a map.
 type attrPath []string
+
+func countSetItems(p attrPath) int {
+	n := 0
+	for _, step := range p {
+		if step == anySetItem {
+			n++
+		}
+	}
+	return n
+}
 
 const (
 	anyListItem = "[]"
@@ -1083,6 +1099,7 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type, computed bool)
 			return err
 		}
 		a.Kind, a.ValueKind, a.Validators = kind, kind, vals
+		a.Uint64 = t.Kind == model.Integer && t.WireString && t.Format == "uint64"
 		if t.Kind == model.Enum {
 			a.EnumSchema = t.Schema
 		}
@@ -1150,7 +1167,9 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 }
 
 // applyTerraformType keeps the released Terraform type of an int32 attribute, or of a list or set
-// of int32: Int64. The validators follow the type.
+// of int32: Int64. The validators follow the type. On a uint64 that the API sends as a string, the
+// attribute is Int64 already: the line states that the released resource showed it as Int64, so a
+// contract that allows more digits than Int64 holds is accepted, and flatten reports a larger value.
 func applyTerraformType(a *tfAttr, l overrides.Field) error {
 	if l.TerraformType == "" {
 		return nil
@@ -1163,13 +1182,15 @@ func applyTerraformType(a *tfAttr, l overrides.Field) error {
 		return out
 	}
 	switch {
+	case a.Uint64:
+		return nil
 	case a.Kind == "Int32":
 		a.Kind, a.ValueKind = "Int64", "Int64"
 	case (a.Kind == "Set" || a.Kind == "List") && a.ElementType == "types.Int32Type":
 		a.ElementType = "types.Int64Type"
 		a.ElemValidators = retype(a.ElemValidators)
 	default:
-		return fmt.Errorf("terraformType Int64 needs an int32 attribute, or a list or set of int32, not a %s", a.Kind)
+		return fmt.Errorf("terraformType Int64 needs an int32 or uint64 attribute, or a list or set of int32, not a %s", a.Kind)
 	}
 	a.Validators, a.GroupValidators = retype(a.Validators), retype(a.GroupValidators)
 	return nil
@@ -1536,11 +1557,12 @@ func sortedFoldsInto(c *overrides.Carry, arm string) []overrides.Fold {
 
 // nestedServerDefault makes a an Optional and Computed attribute with the server-default plan
 // modifier, when f is a nested field of component that the requests may omit and whose server
-// default the response states. A field with a line in the behavior-overrides file keeps the
-// released behavior that the line states.
+// default the response states. A field whose line says how an omitted value behaves keeps the
+// released behavior that the line states. A line that only adds a text or a validator keeps the
+// server default, as on a top-level field.
 func (b *tfBuilder) nestedServerDefault(a *tfAttr, p attrPath, component string, f *model.Field) error {
 	if b.file != nil {
-		if _, line := b.file.Types[component].Fields[f.Name]; line {
+		if line, ok := b.file.Types[component].Fields[f.Name]; ok && line.KeepsReleasedOmission() {
 			return nil
 		}
 	}
@@ -1551,17 +1573,31 @@ func (b *tfBuilder) nestedServerDefault(a *tfAttr, p attrPath, component string,
 	if !f.Attrs.Required && (f.Attrs.Default == nil || *f.Attrs.Default != d) {
 		return nil
 	}
-	if slices.Contains(p, anySetItem) {
+	if sets := countSetItems(p); sets > 1 {
+		// The modifier asks whether the configuration sets the set that holds the field, and can
+		// address only the outermost set: the key of a set element is a planned value.
+		return fmt.Errorf("%s: a nested server default inside a set within another set is unsupported", p.dotted())
+	}
+	if slices.Contains(p, anySetItem) && !f.Attrs.Required {
 		// Flatten cannot match a set element that the API returns without the default to the
-		// configured element, so it could not keep the configured default.
-		return fmt.Errorf("%s: a nested server default inside a set is unsupported", p.dotted())
+		// configured element, so it could not keep the configured default. A response that
+		// requires the field always returns the stored value, so the element needs no match.
+		return fmt.Errorf("%s: a nested server default inside a set is unsupported unless the response requires it", p.dotted())
 	}
 	value, err := serverDefaultValue(f.Type, d)
 	if err != nil {
 		return fmt.Errorf("server default: %w", err)
 	}
 	a.Computed = true
-	a.Modifiers = append(a.Modifiers, "serverDefaultModifier{value: "+value+"}")
+	modifier := "serverDefaultModifier{value: " + value + "}"
+	if slices.Contains(p, anySetItem) {
+		// The framework gives a plan modifier inside a set item the state of the item at the same
+		// index, which can be another item. Terraform proposes the value of the prior item that it
+		// paired with the configured one, so the modifier reads the plan instead.
+		modifier = "serverDefaultModifier{value: " + value + ", fromPlan: true}"
+		b.setDefaults = true
+	}
+	a.Modifiers = append(a.Modifiers, modifier)
 	b.defaultPaths = append(b.defaultPaths, defaultPath{Path: p.dotted(), Value: value, Implicit: f.Type.ImplicitDefault})
 	if !containsString(b.defaultKinds, a.ValueKind) {
 		b.defaultKinds = append(b.defaultKinds, a.ValueKind)

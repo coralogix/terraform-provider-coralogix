@@ -163,3 +163,52 @@ func TestUpdateWhenOnlyTheDynamicAttributeChanges(t *testing.T) {
 		t.Fatalf("state settings = %v, want the planned %v", got["settings"], planned["settings"])
 	}
 }
+
+// The API holds no value of a string extra attribute, so the state keeps the planned text, and a
+// read keeps the text of the prior state.
+func TestStringExtraAttributeKeepsThePlannedText(t *testing.T) {
+	ctx := context.Background()
+	rename_things_service.Updated, rename_things_service.GetIDs = nil, nil
+	id, kind := "thing-10", "k"
+	rename_things_service.Stored = rename_things_service.RenameThing{Id: &id, Kind: &kind}
+	r, schemaResp, root := thingSchema(t)
+	idValue := tftypes.NewValue(tftypes.String, id)
+	withNote := func(v tftypes.Value, note string) tftypes.Value {
+		var values map[string]tftypes.Value
+		if err := v.As(&values); err != nil {
+			t.Fatal(err)
+		}
+		values["note"] = tftypes.NewValue(tftypes.String, note)
+		return tftypes.NewValue(root, values)
+	}
+	state := withNote(withSettings(root, thingValue(root, idValue, "k"), "a"), "first")
+	plan := withNote(withSettings(root, thingValue(root, idValue, "k2"), "a"), "second")
+	resp := &frameworkresource.UpdateResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: state}}
+	r.Update(ctx, frameworkresource.UpdateRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: plan},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan},
+		State:  tfsdk.State{Schema: schemaResp.Schema, Raw: state},
+	}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	var got map[string]tftypes.Value
+	if err := resp.State.Raw.As(&got); err != nil {
+		t.Fatal(err)
+	}
+	if want := tftypes.NewValue(tftypes.String, "second"); !got["note"].Equal(want) {
+		t.Fatalf("state note after update = %v, want the planned %v", got["note"], want)
+	}
+
+	read := &frameworkresource.ReadResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: resp.State.Raw}}
+	r.Read(ctx, frameworkresource.ReadRequest{State: tfsdk.State{Schema: schemaResp.Schema, Raw: resp.State.Raw}}, read)
+	if read.Diagnostics.HasError() {
+		t.Fatal(read.Diagnostics)
+	}
+	if err := read.State.Raw.As(&got); err != nil {
+		t.Fatal(err)
+	}
+	if want := tftypes.NewValue(tftypes.String, "second"); !got["note"].Equal(want) {
+		t.Fatalf("state note after read = %v, want the prior %v", got["note"], want)
+	}
+}

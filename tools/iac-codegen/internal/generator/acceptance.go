@@ -722,7 +722,7 @@ var (
 	// staticDefault matches a static default, such as booldefault.StaticBool(false).
 	staticDefault = regexp.MustCompile(`^\w+default\.Static\w+\((.*)\)$`)
 	// serverDefaultCall matches the plan modifier of a declared server default.
-	serverDefaultCall = regexp.MustCompile(`^serverDefaultModifier\{value: types\.\w+Value\((.*)\)\}$`)
+	serverDefaultCall = regexp.MustCompile(`^serverDefaultModifier\{value: types\.\w+Value\((.*)\)(?:, fromPlan: true)?\}$`)
 )
 
 // defaultState returns the state value of an attribute that its config leaves out, when the

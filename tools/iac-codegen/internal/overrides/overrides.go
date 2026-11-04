@@ -331,7 +331,10 @@ func (t Type) GroupOf(field string) string {
 
 // ExtraAttribute is one Terraform-only attribute of a generated object.
 type ExtraAttribute struct {
-	// Type is "string" or "int64" for a scalar, or "set" for a set. Without it, the attribute is a map.
+	// Type is "string" or "int64" for a scalar, or "set" for a set. Without it, the attribute is a
+	// map. A string of the resource that is neither computed nor writeOnly keeps the value of the
+	// plan or the prior state, as a dynamic one does, for a text that a handwritten hook turns into
+	// request values, such as a document of the whole resource.
 	Type string `yaml:"type"`
 	// ElementType is the map or set value type. A scalar or dynamic attribute has none.
 	ElementType string `yaml:"elementType"`
@@ -976,6 +979,14 @@ func (l Field) Fixed() bool { return l.RequestValue != "" || len(l.RequestValueB
 // line is unused.
 func (l Field) replacesServerDefault() bool {
 	return l.Default != nil || l.Computed != nil && !*l.Computed || l.SendUnknownAsZero || l.UseStateForUnknown || l.UseNonNullStateForUnknown || l.ShowInverted
+}
+
+// KeepsReleasedOmission reports whether the line decides how an omitted value behaves, so a
+// server default of the contract does not apply: it states presence, its own default, no computed
+// value, or that the plan keeps the state. A line that only changes a text, a validator, the order,
+// or the Terraform type keeps the server default.
+func (l Field) KeepsReleasedOmission() bool {
+	return l.statesPresence() || l.replacesServerDefault() || l.UseStateForUnknown || l.UseNonNullStateForUnknown
 }
 
 func (e ExtraAttribute) check(name string) error {

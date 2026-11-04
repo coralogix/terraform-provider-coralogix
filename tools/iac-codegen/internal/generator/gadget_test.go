@@ -137,19 +137,43 @@ func TestRequiredLineStatesAnEmptyStringOfASharedComponent(t *testing.T) {
 }
 
 // Flatten cannot match a set element that the API returns without a nested default to the
-// configured element, so a nested server default inside a set is an error. In a list it works.
+// configured element, so a nested server default inside a set is an error, unless the response
+// requires the field and so always returns the stored value. In a list it works.
 func TestNestedServerDefaultInsideASetIsAnError(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("testdata", "gadget.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for collection, wantErr := range map[string]bool{"set": true, "list": false} {
+	for _, test := range []struct {
+		name             string
+		set, outRequires bool
+		wantErr          bool
+	}{
+		{name: "set", set: true, wantErr: true},
+		{name: "set whose response requires the default", set: true, outRequires: true},
+		{name: "list"},
+	} {
 		extra := ""
-		if collection == "set" {
+		if test.set {
 			extra = ", x-coralogix-collection: set"
 		}
 		spec := strings.ReplaceAll(string(data), "search: {$ref: '#/components/schemas/GadgetSearch'}",
 			"search: {type: array"+extra+", items: {$ref: '#/components/schemas/GadgetSearch'}}")
+		if test.outRequires {
+			// The response holds its own copy of the item, which requires the defaulted field.
+			spec = strings.Replace(spec, "        search: {type: array"+extra+", items: {$ref: '#/components/schemas/GadgetSearch'}}",
+				"        search: {type: array"+extra+", items: {$ref: '#/components/schemas/GadgetSearchOut'}}", 1)
+			spec = strings.Replace(spec, "    GadgetMode:\n", `    GadgetSearchOut:
+      type: object
+      required: [text, syntax]
+      properties:
+        text: {type: string, minLength: 1}
+        syntax:
+          $ref: '#/components/schemas/GadgetSyntax'
+          default: GADGET_SYNTAX_PLAIN
+    GadgetMode:
+`, 1)
+		}
 		doc, err := model.Load([]byte(spec))
 		if err != nil {
 			t.Fatal(err)
@@ -159,8 +183,8 @@ func TestNestedServerDefaultInsideASetIsAnError(t *testing.T) {
 			t.Fatal(err)
 		}
 		_, err = buildTFResource(r, "gadget")
-		if got := err != nil && strings.Contains(err.Error(), "inside a set is unsupported"); got != wantErr {
-			t.Errorf("%s: err = %v, want the set error %t", collection, err, wantErr)
+		if got := err != nil && strings.Contains(err.Error(), "inside a set is unsupported"); got != test.wantErr {
+			t.Errorf("%s: err = %v, want the set error %t", test.name, err, test.wantErr)
 		}
 	}
 }

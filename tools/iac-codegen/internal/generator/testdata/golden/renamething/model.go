@@ -12,6 +12,7 @@ type RenameThingModel struct {
 	Kind       types.String  `tfsdk:"kind"`
 	Version    types.String  `tfsdk:"version"`
 	Parameters types.List    `tfsdk:"parameters"`
+	Note       types.String  `tfsdk:"note"`
 	Settings   types.Dynamic `tfsdk:"settings"`
 }
 

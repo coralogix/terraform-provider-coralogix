@@ -1281,18 +1281,20 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	}
 }
 
-// applyTerraformType converts an int32 field, or a list or set of int32, to the released Int64.
+// applyTerraformType converts an int32 field, or a list or set of int32, to the released Int64. A
+// uint64 that the API sends as a string is an Int64 already.
 func (b *convBuilder) applyTerraformType(cf *convField, component, name string) error {
 	if terraformType(b.resource.Policy, component, name) == "" {
 		return nil
 	}
 	switch {
+	case cf.Conv == convUint64:
 	case cf.Conv == convInt32:
 		cf.Conv = convInt32AsInt64
 	case cf.Conv == convScalars && cf.SDKType == "int32":
 		cf.Conv, cf.ElemType = convInts32AsInt64, "types.Int64Type"
 	default:
-		return fmt.Errorf("%s: terraformType Int64 needs an int32 field, or a list or set of int32", cf.TFName)
+		return fmt.Errorf("%s: terraformType Int64 needs an int32 or uint64 field, or a list or set of int32", cf.TFName)
 	}
 	return nil
 }
