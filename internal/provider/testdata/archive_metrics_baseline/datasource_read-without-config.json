@@ -10,7 +10,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: coralogix_archive_metrics not found | The API did not find coralogix_archive_metrics with id archive_metrics: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Tenant config not found\"}"
+      "error: coralogix_archive_metrics not found | The API did not find coralogix_archive_metrics with id archive-metrics-settings: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Tenant config not found\"}"
     ],
     "state": {
       "ibm": null,

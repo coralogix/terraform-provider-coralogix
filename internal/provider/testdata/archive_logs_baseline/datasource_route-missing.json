@@ -10,7 +10,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Unable to read coralogix_archive_logs | id archive_logs: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}"
+      "error: Unable to read coralogix_archive_logs | id archive-logs-settings: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}"
     ],
     "state": {
       "active": null,

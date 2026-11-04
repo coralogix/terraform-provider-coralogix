@@ -58,6 +58,9 @@
 - CHORE: Bump `coralogix-management-sdk` to the version with the integrations contract. The SDK holds the required fields of `IntegrationMetadata` and `DeployedIntegrationInformation` as values; `coralogix_integration` adapts, with no change to plans. The dashboard tests answer a Get with the `permissions` object that the SDK now requires in the response.
 - CHORE: Bump `golang.org/x/crypto` to v0.58.1-0.20261009181718-2f1f834330b2 to clear GO-2026-5932. The provider does not import `golang.org/x/crypto/openpgp`. No change to provider behavior.
 
+#### data-source/coralogix_archive_logs
+- FIX: A read that the API fails names the fixed id `archive-logs-settings` in its error. Before, it named `archive_logs`.
+
 #### tools/iac-codegen
 - FEAT: `api.overwrite` generates a collection resource: one write replaces every item of a kind, and one Get with fixed `getQuery` values lists them (the TCO policies). Create and Update send the write and read back with Get; Delete sends the write with no items. Before, `tfgen check` stopped with `UPSERT_SHAPE_UNSUPPORTED`. The data source sends the same query.
 - FEAT: `types.<Type>.requestWrapper`, `requestAs` on a nested field, and `negate` describe a request item that holds the fields of the read item in a wrapper, under another name, or negated (`{policy: {disabled}}` for `{enabled}`). Before, `requestAs` worked only on a field of the resource component.
@@ -65,8 +68,8 @@
 - FEAT: Validator lines `lengthAtMost` and `keysAre` (a pattern for each key of a map) state the released `stringvalidator.LengthAtMost` and `mapvalidator.KeysAre` validators.
 - FEAT: `enums.<Enum>.zeroNull: true` reads the zero value (`*_UNSPECIFIED`) as null and does not accept it, for a released resource that did so, as a new resource does. Before, an enum line needed a `zero` value, so the zero read back as that value.
 - FEAT: `split: ","` shows a string of comma-separated values as a set of strings, and a `regexMatches` validator line checks each element of a list or set of strings.
-- CHORE: Bump the generator to `v0.1.0-beta.60`, and the SDK `iac` module to the commit with the collection resource and the TCO policies contract.
-- FIX: The error of a singleton data source names the fixed id of the resource (`archive-logs-settings`). Before, it named the type name (`archive_logs`). A generated package gets the fix when it is generated again.
+- CHORE: Bump the generator to `v0.1.0-beta.69`, and the SDK `iac` module to the commit with the collection resource and the TCO policies contract. Every generated resource is regenerated with it.
+- FIX: The error of a singleton data source names the fixed id of the resource (`archive-logs-settings`). Before, it named the type name (`archive_logs`).
 - FIX: Delete of an `api.overwrite` resource fails on a 404. The write never answers 404 for items that are gone already, so a 404 is a route that does not exist and the items can still exist. Before, Delete treated it as success.
 - FIX: Create of an `api.overwrite` resource keeps the fixed id in state when the Get after the write fails, so Terraform marks the resource as tainted. Before, the state stayed empty and the next apply wrote the items again as a new resource.
 - FIX: A `split` attribute rejects an element that is empty or holds the separator, which would read back as no element or two, and reads `""` from the API as an empty set, not a set of one empty string. Before, both failed with `inconsistent result` after apply.
