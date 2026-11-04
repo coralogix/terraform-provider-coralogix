@@ -19,6 +19,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -48,7 +49,7 @@ func TestUserFakeMatchesRecordedBackend(t *testing.T) {
 			}
 			fake := newUserFidelityFake()
 			vars := userFidelityVars("fidelity")
-			redactor := newUserFidelityRedactor("fidelity")
+			redactor := newUserFidelityRedactor(t, "fidelity")
 			for si, step := range c.Steps {
 				label := fmt.Sprintf("step %d: %s %s", si+1, step.Method, step.Path)
 				status, got := runUserFidelityStep(t, fake, step, vars, redactor)
@@ -160,34 +161,62 @@ func newUserFidelityRunID(t *testing.T) string {
 	return hex.EncodeToString(unique)
 }
 
-// userFidelityRedactor removes what must never be committed from an answer of the live API. The
-// recorder applies it to every answer before it is written, and the fake's answers go through it
-// too, so the two compare on the same terms:
+// userFidelityRedactor removes what must never be committed from an answer of the live API. It denies
+// by default: a key that userFidelityResponseKeys does not name stops the recording, so a field that
+// a future API version adds is never copied unseen. The recorder applies it to every answer before it
+// is written, and the fake's answers go through it too, so the two compare on the same terms:
 //   - ids become placeholders in the shape of the id: userId a UUID, userAccountId an int64
 //   - groupIds, totalCount, and team and company ids become placeholders
 //   - a member that the run did not create gets a synthetic email and name
 //   - every email other than this run's users is replaced, also inside messages
+//   - in a message, a run of five or more digits becomes <n> and a domain other than coralogix.com
+//     becomes <domain>, because a message can quote any value of the request
 //   - request and trace ids are dropped
 //
 // The recorder only searches for usernames that this run's users match, so other members are not
 // expected in an answer. This is the second line of defense.
 type userFidelityRedactor struct {
-	run       string
-	userIDs   map[string]string
-	accounts  map[int64]int64
-	others    map[string]string
-	emailFrom *regexp.Regexp
+	run      string
+	userIDs  map[string]string
+	accounts map[int64]int64
+	others   map[string]string
+	// fail stops the recording. It is t.Fatal in the recorder; a test replaces it to see the reason.
+	fail func(reason string)
 }
 
-var userFidelityUUIDPattern = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`)
+// userFidelityResponseKeys are the keys that an answer of the Users API may have, at any depth: the
+// users, the create results, the update answer, and the error body. Every other key stops the recording.
+// The keys that the redactor drops or replaces are in the list too, because the live API sends them.
+var userFidelityResponseKeys = map[string]bool{
+	"users": true, "user": true, "results": true, "totalCount": true, "nextPageToken": true,
+	"userId": true, "userAccountId": true, "userAccountIds": true, "username": true,
+	"firstName": true, "lastName": true, "status": true, "groupIds": true,
+	"allowedLoginMode": true, "accessType": true, "permanentAccess": true, "temporaryAccess": true, "expireAt": true,
+	"code": true, "message": true,
+	"teamId": true, "companyId": true, "accountId": true,
+	"requestId": true, "request_id": true, "traceId": true, "trace_id": true,
+}
 
-func newUserFidelityRedactor(run string) *userFidelityRedactor {
+var (
+	userFidelityUUIDPattern  = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`)
+	userFidelityEmailPattern = regexp.MustCompile(`[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+[A-Za-z0-9]`)
+	// userFidelityTokenPattern finds what a message holds that has its own placeholder. The email comes
+	// first, so an email that has a UUID in front of the @ is one email.
+	userFidelityTokenPattern  = regexp.MustCompile(userFidelityEmailPattern.String() + "|" + userFidelityUUIDPattern.String())
+	userFidelityDomainPattern = regexp.MustCompile(`\b(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}\b`)
+	userFidelityDigitRun      = regexp.MustCompile(`[0-9]{5,}`)
+)
+
+func newUserFidelityRedactor(t *testing.T, run string) *userFidelityRedactor {
 	return &userFidelityRedactor{
-		run:       strings.ToLower(run),
-		userIDs:   map[string]string{userFidelityUnknownID: userFidelityUnknownID},
-		accounts:  map[int64]int64{},
-		others:    map[string]string{},
-		emailFrom: regexp.MustCompile(`[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+[A-Za-z0-9]`),
+		run:      strings.ToLower(run),
+		userIDs:  map[string]string{userFidelityUnknownID: userFidelityUnknownID},
+		accounts: map[int64]int64{},
+		others:   map[string]string{},
+		fail: func(reason string) {
+			t.Helper()
+			t.Fatal(reason)
+		},
 	}
 }
 
@@ -253,6 +282,10 @@ func (r *userFidelityRedactor) redactObject(object map[string]any) map[string]an
 	out := make(map[string]any, len(object))
 	for _, key := range keys {
 		item := object[key]
+		if !userFidelityResponseKeys[key] {
+			r.fail(fmt.Sprintf("refusing to keep an answer with the key %q: check that it holds no member data, then add it to userFidelityResponseKeys", key))
+			continue
+		}
 		switch key {
 		case "requestId", "request_id", "traceId", "trace_id":
 			continue
@@ -290,6 +323,11 @@ func (r *userFidelityRedactor) redactObject(object map[string]any) map[string]an
 				out[key] = float64(1)
 				continue
 			}
+		case "message":
+			if text, ok := item.(string); ok {
+				out[key] = r.redactMessage(text)
+				continue
+			}
 		case "firstName", "lastName":
 			if text, ok := item.(string); ok && foreign && text != "" {
 				out[key] = map[string]string{"firstName": "Other", "lastName": "Member"}[key]
@@ -306,7 +344,7 @@ func (r *userFidelityRedactor) redactText(text string) string {
 	text = userFidelityUUIDPattern.ReplaceAllStringFunc(text, func(id string) string {
 		return r.userID(strings.ToLower(id))
 	})
-	return r.emailFrom.ReplaceAllStringFunc(text, func(email string) string {
+	return userFidelityEmailPattern.ReplaceAllStringFunc(text, func(email string) string {
 		if r.ours(email) {
 			return email
 		}
@@ -314,8 +352,35 @@ func (r *userFidelityRedactor) redactText(text string) string {
 	})
 }
 
+// redactMessage redacts a message of the API. A message can quote any value of the request, so beyond
+// the ids and emails that redactText replaces, a run of five or more digits becomes <n> and a domain
+// other than coralogix.com becomes <domain>. The ids and emails are replaced first and kept apart, because
+// their placeholders hold digits.
+func (r *userFidelityRedactor) redactMessage(text string) string {
+	var out strings.Builder
+	last := 0
+	for _, loc := range userFidelityTokenPattern.FindAllStringIndex(text, -1) {
+		out.WriteString(redactMessageText(text[last:loc[0]]))
+		out.WriteString(r.redactText(text[loc[0]:loc[1]]))
+		last = loc[1]
+	}
+	out.WriteString(redactMessageText(text[last:]))
+	return out.String()
+}
+
+func redactMessageText(text string) string {
+	text = userFidelityDomainPattern.ReplaceAllStringFunc(text, func(domain string) string {
+		domain = strings.ToLower(domain)
+		if domain == "coralogix.com" || strings.HasSuffix(domain, ".coralogix.com") {
+			return domain
+		}
+		return "<domain>"
+	})
+	return userFidelityDigitRun.ReplaceAllString(text, "<n>")
+}
+
 func TestUserFidelityRedactorRemovesMemberData(t *testing.T) {
-	redactor := newUserFidelityRedactor("run1")
+	redactor := newUserFidelityRedactor(t, "run1")
 	live := map[string]any{
 		"totalCount":    float64(8123),
 		"nextPageToken": float64(1),
@@ -331,17 +396,17 @@ func TestUserFidelityRedactorRemovesMemberData(t *testing.T) {
 				"groupIds": []any{}, "status": "USER_STATUS_ACTIVE", "teamId": float64(4455667),
 			},
 		},
-		"message":   "Jane.Doe@example.com is already a member; request 9a8b7c6d-1111-4222-8333-444455556666",
+		"userAccountIds": []any{float64(93817265), float64(55501234)},
+		"message": "Jane.Doe@example.com is already a member; request 9a8b7c6d-1111-4222-8333-444455556666; " +
+			"account 77889900 of the team at corp.example.org also at login.coralogix.com",
 		"requestId": "abc123",
 	}
-	raw, err := json.Marshal(redactor.redact(live))
-	if err != nil {
-		t.Fatal(err)
-	}
+	// The placeholders <n> and <domain> stay readable: the recorder writes them without HTML escaping.
+	raw := marshalUserFidelity(t, redactor.redact(live))
 	if problems := userGoldenProblems(string(raw)); len(problems) != 0 {
 		t.Fatalf("the redacted answer still has member data: %v\n%s", problems, raw)
 	}
-	for _, leaked := range []string{"Jane", "Doe", "8123", "481516", "2342", "requestId", "93817265", "4455667"} {
+	for _, leaked := range []string{"Jane", "Doe", "8123", "481516", "2342", "requestId", "93817265", "4455667", "55501234", "77889900", "example", "corp"} {
 		if strings.Contains(string(raw), leaked) {
 			t.Errorf("the redacted answer still has %q: %s", leaked, raw)
 		}
@@ -349,17 +414,83 @@ func TestUserFidelityRedactorRemovesMemberData(t *testing.T) {
 	if !strings.Contains(string(raw), "tf-acc-user-run1-a@coralogix.com") {
 		t.Errorf("the run's own user was redacted: %s", raw)
 	}
-	again := newUserFidelityRedactor("run1").redact(live)
-	againRaw, _ := json.Marshal(again)
+	for _, kept := range []string{"account <n> of the team at <domain> also at login.coralogix.com", "00000000-0000-4000-8000-"} {
+		if !strings.Contains(string(raw), kept) {
+			t.Errorf("the redacted answer lost %q: %s", kept, raw)
+		}
+	}
+	again := newUserFidelityRedactor(t, "run1").redact(live)
+	againRaw := marshalUserFidelity(t, again)
 	if !bytes.Equal(raw, againRaw) {
 		t.Errorf("redaction is not deterministic:\n%s\n%s", raw, againRaw)
 	}
+}
+
+func marshalUserFidelity(t *testing.T, value any) []byte {
+	t.Helper()
+	var buffer bytes.Buffer
+	encoder := json.NewEncoder(&buffer)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(value); err != nil {
+		t.Fatal(err)
+	}
+	return buffer.Bytes()
+}
+
+// TestUserFidelityRedactorDeniesUnknownKeys checks that the redactor stops on what it does not know,
+// at any depth, and on a body that is not JSON.
+func TestUserFidelityRedactorDeniesUnknownKeys(t *testing.T) {
+	for name, answer := range map[string]any{
+		"top level":     map[string]any{"users": []any{}, "memberDirectory": "x"},
+		"in a user":     map[string]any{"users": []any{map[string]any{"userId": userFidelityUnknownID, "phoneNumber": "555"}}},
+		"in a result":   map[string]any{"results": []any{map[string]any{"status": "CREATE_USER_STATUS_CREATED", "invitedBy": "x"}}},
+		"snake case":    map[string]any{"users": []any{map[string]any{"user_id": "x"}}},
+		"a raw body":    map[string]any{"raw": "<html>not json</html>"},
+		"in a nested":   map[string]any{"users": []any{map[string]any{"accessType": map[string]any{"owner": "x"}}}},
+		"error details": map[string]any{"code": float64(400), "message": "bad", "details": []any{map[string]any{"email": "x"}}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			redactor := newUserFidelityRedactor(t, "run1")
+			var reasons []string
+			redactor.fail = func(reason string) { reasons = append(reasons, reason) }
+			redactor.redact(answer)
+			if len(reasons) == 0 {
+				t.Fatalf("the redactor kept an answer with a key it does not know: %v", answer)
+			}
+		})
+	}
+
+	known := map[string]any{"code": float64(404), "message": "Not Found: user not found", "users": []any{map[string]any{
+		"userId": userFidelityUnknownID, "accessType": map[string]any{"permanentAccess": map[string]any{}},
+	}}}
+	redactor := newUserFidelityRedactor(t, "run1")
+	redactor.fail = func(reason string) { t.Errorf("the redactor refused a known answer: %s", reason) }
+	redactor.redact(known)
+
+	t.Run("a body that is not JSON stops the recorder", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusBadGateway)
+			_, _ = w.Write([]byte("Jane.Doe@example.com 8123456"))
+		}))
+		defer srv.Close()
+		_, _, err := sendUserFidelityRequestNoTest(srv.URL, "dry-run-key", http.MethodGet, "?username=x", nil)
+		if err == nil {
+			t.Fatal("a body that is not JSON was kept")
+		}
+		if strings.Contains(err.Error(), "Jane") || strings.Contains(err.Error(), "8123456") {
+			t.Errorf("the error shows the body: %v", err)
+		}
+	})
 }
 
 // TestRecordUserFidelity writes real API answers for cases.json. The Users API has no delete, so the
 // recorder leaves every user it creates inactive on the team. Run it only against a disposable team that has
 // room for a few more members. Every create uses ONBOARDING_MODE_NO_INVITE, so no invitation is sent.
 // Every search passes a username that only this run's users match, so the answers hold no other member.
+//
+// The region comes from exactly one of CORALOGIX_ENV (or CX_REGION) and CORALOGIX_DOMAIN, as for the
+// provider. USER_FIDELITY_BASE_URL is for local use only: it points the recorder at a local fake for a
+// dry run, and the recorder sends the API key to it. Never point it at a host you do not control.
 func TestRecordUserFidelity(t *testing.T) {
 	if os.Getenv("RECORD_USER_FIDELITY") != "1" {
 		t.Skip("set RECORD_USER_FIDELITY=1 to record against a disposable tenant")
@@ -374,21 +505,61 @@ func TestRecordUserFidelity(t *testing.T) {
 	if apiKey == "" {
 		t.Fatal("CORALOGIX_API_KEY is required to record")
 	}
-	base := os.Getenv("USER_FIDELITY_BASE_URL")
-	if base == "" {
-		region := os.Getenv("CORALOGIX_ENV")
-		if region == "" {
-			region = os.Getenv("CX_REGION")
-		}
-		if region == "" {
-			t.Fatal("CORALOGIX_ENV or CX_REGION is required to record")
-		}
-		var ok bool
-		if base, ok = cxsdkOpenapi.URLFromRegion(strings.ToLower(region)); !ok {
-			t.Fatalf("unknown region %q", region)
-		}
+	base, err := userFidelityBaseURL(os.Getenv)
+	if err != nil {
+		t.Fatal(err)
 	}
 	recordUserFidelity(t, base, apiKey, filepath.Join(userGoldenDir, "fidelity", "recorded.json"))
+}
+
+// userFidelityBaseURL returns the API URL to record against. USER_FIDELITY_BASE_URL wins, for a
+// dry run against a local fake. Otherwise exactly one of the region and CORALOGIX_DOMAIN picks it.
+func userFidelityBaseURL(getenv func(string) string) (string, error) {
+	if base := getenv("USER_FIDELITY_BASE_URL"); base != "" {
+		return base, nil
+	}
+	region := getenv("CORALOGIX_ENV")
+	if region == "" {
+		region = getenv("CX_REGION")
+	}
+	domain := getenv("CORALOGIX_DOMAIN")
+	switch {
+	case region != "" && domain != "":
+		return "", errors.New("set only one of CORALOGIX_ENV (or CX_REGION) and CORALOGIX_DOMAIN")
+	case domain != "":
+		return cxsdkOpenapi.URLFromDomain(domain), nil
+	case region == "":
+		return "", errors.New("CORALOGIX_ENV, CX_REGION, or CORALOGIX_DOMAIN is required to record")
+	}
+	base, ok := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
+	if !ok {
+		return "", fmt.Errorf("unknown region %q", region)
+	}
+	return base, nil
+}
+
+func TestUserFidelityBaseURL(t *testing.T) {
+	for name, test := range map[string]struct {
+		env     map[string]string
+		want    string
+		wantErr bool
+	}{
+		"region":            {map[string]string{"CORALOGIX_ENV": "EU2"}, "https://api.eu2.coralogix.com/mgmt/openapi/5", false},
+		"region alias":      {map[string]string{"CX_REGION": "us1"}, "https://api.us1.coralogix.com/mgmt/openapi/5", false},
+		"domain":            {map[string]string{"CORALOGIX_DOMAIN": "eu2.coralogix.com"}, "https://api.eu2.coralogix.com/mgmt/openapi/5", false},
+		"domain with api":   {map[string]string{"CORALOGIX_DOMAIN": "api.eu2.coralogix.com"}, "https://api.eu2.coralogix.com/mgmt/openapi/5", false},
+		"local base url":    {map[string]string{"USER_FIDELITY_BASE_URL": "http://127.0.0.1:1", "CORALOGIX_ENV": "EU2"}, "http://127.0.0.1:1", false},
+		"region and domain": {map[string]string{"CORALOGIX_ENV": "EU2", "CORALOGIX_DOMAIN": "eu2.coralogix.com"}, "", true},
+		"neither":           {map[string]string{}, "", true},
+		"unknown region":    {map[string]string{"CORALOGIX_ENV": "nowhere"}, "", true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got, err := userFidelityBaseURL(func(key string) string { return test.env[key] })
+			if (err != nil) != test.wantErr || got != test.want {
+				t.Errorf("got %q, %v; want %q, error %t", got, err, test.want, test.wantErr)
+			}
+		})
+	}
 }
 
 func recordUserFidelity(t *testing.T, base, apiKey, outPath string) {
@@ -419,7 +590,7 @@ func recordUserFidelity(t *testing.T, base, apiKey, outPath string) {
 		// Every case has its own users, because a user stays on the team after the case.
 		caseRun := fmt.Sprintf("%s-%d", run, ci+1)
 		vars := userFidelityVars(caseRun)
-		redactor := newUserFidelityRedactor(caseRun)
+		redactor := newUserFidelityRedactor(t, caseRun)
 		recordedCase := struct {
 			Name  string `json:"name"`
 			Steps []struct {
@@ -590,7 +761,8 @@ func sendUserFidelityRequestNoTest(base, apiKey, method, path string, body any) 
 	if len(bytes.TrimSpace(raw)) == 0 {
 		parsed = map[string]any{}
 	} else if err := json.Unmarshal(raw, &parsed); err != nil {
-		parsed = map[string]any{"raw": string(raw)}
+		// The text could hold anything, so it is neither kept nor shown.
+		return resp.StatusCode, nil, fmt.Errorf("the API answered %d with a body that is not JSON; refusing to keep it", resp.StatusCode)
 	}
 	return resp.StatusCode, parsed, nil
 }
@@ -716,7 +888,7 @@ func TestUserRecorderDryRun(t *testing.T) {
 	for ci, c := range cases.Cases {
 		replay := newUserFidelityFake()
 		vars := userFidelityVars("dry-run")
-		redactor := newUserFidelityRedactor("dry-run")
+		redactor := newUserFidelityRedactor(t, "dry-run")
 		for si, step := range c.Steps {
 			status, body := runUserFidelityStep(t, replay, step, vars, redactor)
 			want := recorded.Cases[ci].Steps[si]

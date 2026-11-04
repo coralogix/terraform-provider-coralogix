@@ -1,7 +1,11 @@
 [
   {
-    "step": "create with name omitted",
+    "step": "create",
     "config": {
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "plan": {
@@ -9,7 +13,10 @@
       "emails": "(unknown)",
       "groups": "(unknown)",
       "id": "(unknown)",
-      "name": "(unknown)",
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "requests": [
@@ -20,6 +27,8 @@
           {
             "onboardingMode": "ONBOARDING_MODE_NO_INVITE",
             "userTemplate": {
+              "firstName": "Test",
+              "lastName": "User",
               "status": "USER_STATUS_ACTIVE",
               "username": "tf-acc-user-1@coralogix.com"
             }
@@ -39,31 +48,16 @@
       ],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
-      "name": null,
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
       "user_name": "tf-acc-user-1@coralogix.com"
     },
     "replanEmpty": true
   },
   {
-    "step": "update active with name omitted: name is unknown in the plan",
-    "config": {
-      "active": false,
-      "user_name": "tf-acc-user-1@coralogix.com"
-    },
-    "plan": {
-      "active": false,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
-      "groups": [],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "name": null,
-      "user_name": "tf-acc-user-1@coralogix.com"
-    },
+    "step": "destroy: the PUT route answers 404",
     "requests": [
       {
         "method": "PUT",
@@ -73,17 +67,20 @@
             "userId": "00000000-0000-4000-8000-000000000001",
             "userTemplate": {
               "allowedLoginMode": [],
-              "firstName": "",
-              "lastName": "",
+              "firstName": "Test",
+              "lastName": "User",
               "status": "USER_STATUS_INACTIVE"
             }
           }
         ],
-        "status": 200
+        "status": 404
       }
     ],
+    "applyDiagnostics": [
+      "error: Error Deleting User 00000000-0000-4000-8000-000000000001 | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}\noperation - UpdateUsers"
+    ],
     "state": {
-      "active": false,
+      "active": true,
       "emails": [
         {
           "primary": true,
@@ -93,34 +90,11 @@
       ],
       "groups": [],
       "id": "00000000-0000-4000-8000-000000000001",
-      "name": null,
+      "name": {
+        "family_name": "User",
+        "given_name": "Test"
+      },
       "user_name": "tf-acc-user-1@coralogix.com"
-    },
-    "replanEmpty": true
-  },
-  {
-    "step": "refresh and replan",
-    "requests": [
-      {
-        "method": "GET",
-        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
-        "status": 200
-      }
-    ],
-    "state": {
-      "active": false,
-      "emails": [
-        {
-          "primary": true,
-          "type": "work",
-          "value": "tf-acc-user-1@coralogix.com"
-        }
-      ],
-      "groups": [],
-      "id": "00000000-0000-4000-8000-000000000001",
-      "name": null,
-      "user_name": "tf-acc-user-1@coralogix.com"
-    },
-    "replanEmpty": true
+    }
   }
 ]

@@ -36,7 +36,8 @@ const (
 )
 
 // These tests record the handwritten coralogix_user resource and paired data source. The data
-// source remains handwritten for this migration; its schema and read behavior are baselined.
+// source is generated in stack 3, so its read behavior is baselined here too: the data source schema
+// golden comes from dataSourceBaselines, as for the other resources.
 // After migration, the golden diff should show only message wording or explicitly accepted bugs.
 //
 // The scenarios record what the resource does today, including behavior that a later change
@@ -52,14 +53,6 @@ func TestUserBaselineSchema(t *testing.T) {
 	var current resource.SchemaResponse
 	aaa.NewUserResource().Schema(context.Background(), resource.SchemaRequest{}, &current)
 	checkGoldenAt(t, userGoldenDir, "schema_current.txt", []byte(schemadump.Text(current.Schema)))
-}
-
-func TestUserBaselineDataSourceSchema(t *testing.T) {
-	h := newUserHarness(t)
-	if h.dsSchema == nil {
-		t.Fatal("coralogix_user data source is not registered")
-	}
-	checkGoldenAt(t, userGoldenDir, "data_source_schema_current.txt", []byte(dataSourceSchemaText(h.dsSchema)))
 }
 
 func TestUserBaselineScenarios(t *testing.T) {
@@ -105,8 +98,16 @@ var (
 	userSyntheticEmailPattern = regexp.MustCompile(`^(?i:tf-acc-user-[a-z0-9-]*@coralogix\.com)$`)
 	userAnyUUIDPattern        = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`)
 	userPlaceholderUUID       = regexp.MustCompile(`^00000000-0000-4000-8000-[0-9]{12}$`)
-	userAccountIDPattern      = regexp.MustCompile(`"(?:userAccountId|teamId|companyId|accountId)":\s*([0-9]+)`)
-	userAccountIDPlaceholders = regexp.MustCompile(`^[0-9]{1,5}$`)
+	// userNumberFieldPattern finds the numeric fields that hold tenant ids and counts, in the camel case
+	// of the API and the snake case of a Terraform-side or SDK-side copy.
+	userNumberFieldPattern = regexp.MustCompile(`"(?:userAccountId|user_account_id|teamId|team_id|companyId|company_id|accountId|account_id|totalCount|total_count)"\s*:\s*([0-9]+)`)
+	// userNumberListPattern finds the arrays of tenant ids: the account ids of an update and the group ids.
+	userNumberListPattern     = regexp.MustCompile(`"(?:userAccountIds|user_account_ids|groupIds|group_ids)"\s*:\s*\[([^\]]*)\]`)
+	userDigitsPattern         = regexp.MustCompile(`[0-9]+`)
+	userJSONStringPattern     = regexp.MustCompile(`"(?:[^"\\]|\\.)*"`)
+	userPlaceholderIDInString = regexp.MustCompile(`00000000-0000-4000-8000-[0-9]{12}`)
+	userNumberPlaceholders    = regexp.MustCompile(`^[0-9]{1,5}$`)
+	userLongDigitRun          = regexp.MustCompile(`[0-9]{5,}`)
 )
 
 func userGoldenProblems(text string) []string {
@@ -121,22 +122,59 @@ func userGoldenProblems(text string) []string {
 			problems = append(problems, "UUID that is not a placeholder: "+id)
 		}
 	}
-	for _, match := range userAccountIDPattern.FindAllStringSubmatch(text, -1) {
-		if !userAccountIDPlaceholders.MatchString(match[1]) {
+	for _, match := range userNumberFieldPattern.FindAllStringSubmatch(text, -1) {
+		if !userNumberPlaceholders.MatchString(match[1]) {
 			problems = append(problems, "numeric id that is not a placeholder: "+match[0])
+		}
+	}
+	for _, match := range userNumberListPattern.FindAllStringSubmatch(text, -1) {
+		for _, number := range userDigitsPattern.FindAllString(match[1], -1) {
+			if !userNumberPlaceholders.MatchString(number) {
+				problems = append(problems, "numeric id in a list that is not a placeholder: "+match[0])
+				break
+			}
+		}
+	}
+	for _, quoted := range userJSONStringPattern.FindAllString(text, -1) {
+		// What is left after the placeholder ids and the synthetic emails, which can hold long digit runs.
+		rest := userPlaceholderIDInString.ReplaceAllString(quoted, "")
+		rest = userAnyEmailPattern.ReplaceAllStringFunc(rest, func(email string) string {
+			if userSyntheticEmailPattern.MatchString(email) {
+				return ""
+			}
+			return email
+		})
+		if run := userLongDigitRun.FindString(rest); run != "" {
+			problems = append(problems, "string with a run of five or more digits: "+quoted)
 		}
 	}
 	return problems
 }
 
 func TestUserGoldenScanFlagsRealLookingData(t *testing.T) {
-	clean := `{"username": "tf-acc-user-1@coralogix.com", "userId": "00000000-0000-4000-8000-000000000001", "userAccountId": 1001}`
+	clean := `{"username": "tf-acc-user-1@coralogix.com", "userId": "00000000-0000-4000-8000-000000000001", "userAccountId": 1001,
+		"userAccountIds": [1001, 1002], "groupIds": [1, 2], "totalCount": 2, "message": "account <n> of <domain>"}`
 	if problems := userGoldenProblems(clean); len(problems) != 0 {
 		t.Fatalf("a synthetic record was flagged: %v", problems)
 	}
 	dirty := `{"username": "jane.doe@example.com", "userId": "3f1c1e0a-52a1-4b8e-9b0e-0c6f4a1d2e77", "userAccountId": 93817265, "teamId": 4455667}`
 	if got := len(userGoldenProblems(dirty)); got != 4 {
 		t.Fatalf("flagged %d problems, want 4", got)
+	}
+	for name, snippet := range map[string]string{
+		"account id list":      `{"userAccountIds": [1001, 93817265]}`,
+		"group id list":        `{"groupIds": [481516]}`,
+		"snake case account":   `{"user_account_id": 93817265}`,
+		"snake case team":      `{"team_id": 4455667}`,
+		"snake case id lists":  `{"user_account_ids": [93817265], "group_ids": [481516]}`,
+		"total count":          `{"totalCount": 8123456}`,
+		"digit run in message": `{"message": "account 77889900 is full"}`,
+		"digit run in string":  `{"username": "tf-acc-user-1@coralogix.com", "note": "ticket 123456"}`,
+		"unknown domain":       `{"message": "user a@corp.example.org is not allowed"}`,
+	} {
+		if len(userGoldenProblems(snippet)) == 0 {
+			t.Errorf("%s was not flagged: %s", name, snippet)
+		}
 	}
 }
 
@@ -289,6 +327,16 @@ var userScenarios = map[string]func(h *grHarness){
 		// The search for the stored username finds nothing, so a scan of the whole team finds the id.
 		h.RefreshPlan("refresh after the username changed outside Terraform", s)
 	},
+	"user-name-changed-outside-multi-page": func(h *grHarness) {
+		h.users().pageLimit = 2
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		for _, name := range []string{"tf-acc-user-3@coralogix.com", "tf-acc-user-4@coralogix.com", "tf-acc-user-5@coralogix.com", "tf-acc-user-6@coralogix.com"} {
+			h.users().seed(j{"username": name})
+		}
+		h.users().change(idOf(s), j{"username": userB})
+		// The search for the stored username misses, so the scan of the whole team reads every page.
+		h.RefreshPlan("refresh: the username search misses and the scan reads three pages", s)
+	},
 	"read-user-gone": func(h *grHarness) {
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
 		h.users().forget(idOf(s))
@@ -343,6 +391,19 @@ var userScenarios = map[string]func(h *grHarness){
 		h.users().searchStatus = 500
 		h.Apply("update with no private state: the search answers 500", s, userConfig(userA, j{"name": userRenamedName}))
 	},
+	"update-route-not-found": func(h *grHarness) {
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		// A 404 on the route itself, "Not Found: Not Found", says nothing about the user. It is an error:
+		// the resource is not removed from state.
+		h.users().updateStatus = 404
+		h.Apply("update: the PUT route answers 404", s, userConfig(userA, j{"name": userRenamedName}))
+	},
+	"delete-route-not-found": func(h *grHarness) {
+		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
+		// Delete is a PUT that deactivates. A 404 on the route is an error, not a user that is gone.
+		h.users().updateStatus = 404
+		h.Destroy("destroy: the PUT route answers 404", s)
+	},
 	"delete-error": func(h *grHarness) {
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
 		h.users().updateStatus = 500
@@ -386,10 +447,11 @@ var userScenarios = map[string]func(h *grHarness){
 		s := h.Apply("create", h.null(), userConfig(userA, j{"name": userTestName}))
 		h.Plan("plan with name unknown", s, userConfig(userA, j{"name": unknownJSON{}}))
 	},
-	"name-unknown-after-use-state": func(h *grHarness) {
-		// The user has no name, so UseStateForUnknown has no value to keep and name stays unknown.
+	"name-null-kept-by-use-state-for-unknown": func(h *grHarness) {
+		// The user has no name, so the prior value in state is null. UseStateForUnknown keeps that
+		// null, and name stays null in the plan, not unknown.
 		s := h.Apply("create with name omitted", h.null(), userConfig(userA, j{}))
-		s = h.Apply("update active with name omitted: name is unknown in the plan", s, userConfig(userA, j{"active": false}))
+		s = h.Apply("update active with name omitted: name stays null because UseStateForUnknown keeps the null prior value", s, userConfig(userA, j{"active": false}))
 		h.RefreshPlan("refresh and replan", s)
 	},
 	"import-by-id": func(h *grHarness) {
