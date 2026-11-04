@@ -2036,8 +2036,14 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- else if eq .Conv "splitarms"}}
 	{{- $f := .}}
 	for i := range {{$f.Src}} {
-		if {{range $i, $a := $f.Object.Fields}}{{if $i}} && {{end}}{{$f.Src}}[i].{{$a.SDK}} == nil{{end}} {
-			diags.AddAttributeError(path.Root({{printf "%q" (index $f.Object.Fields 0).TFName}}), "Invalid response from server", fmt.Sprintf("Item %d of the response has none of {{range $i, $a := $f.Object.Fields}}{{if $i}}, {{end}}{{$a.TFName}}{{end}}.", i))
+		arms := 0
+		{{- range $f.Object.Fields}}
+		if {{$f.Src}}[i].{{.SDK}} != nil {
+			arms++
+		}
+		{{- end}}
+		if arms != 1 {
+			diags.AddAttributeError(path.Root({{printf "%q" (index $f.Object.Fields 0).TFName}}), "Invalid response from server", fmt.Sprintf("Item %d of the response has %d of {{range $i, $a := $f.Object.Fields}}{{if $i}}, {{end}}{{$a.TFName}}{{end}}; it must have exactly one.", i, arms))
 		}
 	}
 	{{- range .Object.Fields}}

@@ -2138,6 +2138,37 @@ func (b *tfBuilder) rootAttributes(out *tfResource, root *tfModel, r *model.Reso
 			b.models = append(b.models, groups.models[group])
 		}
 	}
+	return checkSplitNames(out, root, r, file)
+}
+
+// checkSplitNames rejects a split arm with the Terraform or Go name of another top-level attribute,
+// also of an arm of another split field. The collision checks of a component do not see a split
+// arm next to the top-level fields.
+func checkSplitNames(out *tfResource, root *tfModel, r *model.Resource, file *overrides.File) error {
+	split := map[string]bool{}
+	for _, f := range r.Fields {
+		if splitArms(file, r.Name, f.Name) {
+			component := model.ComponentOf(f.Type.Elem)
+			for _, arm := range f.Type.Elem.Fields {
+				split[terraformName(r.Policy, component, arm.Name)] = true
+				split[camelize(arm.Name)] = true
+			}
+		}
+	}
+	attrs := map[string]bool{}
+	for _, a := range out.Attributes {
+		if attrs[a.Name] && split[a.Name] {
+			return fmt.Errorf("the split arm %s has the name of another top-level attribute", a.Name)
+		}
+		attrs[a.Name] = true
+	}
+	fields := map[string]bool{}
+	for _, f := range root.Fields {
+		if fields[f.Name] && split[f.Name] {
+			return fmt.Errorf("the split arm %s has the Go name of another top-level field", f.Name)
+		}
+		fields[f.Name] = true
+	}
 	return nil
 }
 

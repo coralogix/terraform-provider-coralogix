@@ -157,6 +157,7 @@ func TestParseThingKeysRefuseOtherShapes(t *testing.T) {
 			"component ParseKeepParams needs another model struct in each place: one place has the field",
 			"                teamId: {$ref: '#/components/schemas/ParseTeamId'}\n|        groups:\n          type: array\n          items: {$ref: '#/components/schemas/ParseGroup'}\n",
 			"                teamId: {$ref: '#/components/schemas/ParseTeamId'}\n                defaultKeep: {$ref: '#/components/schemas/ParseKeepParams'}\n|        groups:\n          type: array\n          items: {$ref: '#/components/schemas/ParseGroup'}\n        defaultKeep: {$ref: '#/components/schemas/ParseKeepParams'}\n"},
+		"split arm with the name of a root attribute": {from: "appName: {name: apps}", to: "appName: {name: note}", want: "the split arm note has the name of another top-level attribute"},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -215,5 +216,48 @@ func TestParseThingAcceptanceUsesTerraformEnumValues(t *testing.T) {
 	}
 	if !strings.Contains(string(test), `severities = ["debug"]`) || strings.Contains(string(test), "SEVERITY_") {
 		t.Fatalf("the acceptance configs do not set severities to a Terraform value:\n%s", test)
+	}
+}
+
+// The lines of carrySiblings name an arm as the API does, also when the name starts with an
+// acronym, so lowerFirst of its Go name is another spelling.
+func TestParseThingCarryFindsAcronymArms(t *testing.T) {
+	input, loadDir := copiedSyntheticInput(t)
+	rename := strings.NewReplacer("keepParams", "KEEPParams", "dropParams", "DROPParams", "pickParams", "PICKParams")
+	spec, err := os.ReadFile(filepath.Join("testdata", "parsething.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input.OpenAPI = []byte(rename.Replace(string(spec)))
+	sdkFile := filepath.Join(input.SDKDir, "go", "openapi", "gen", "parse_things_service", "parse.go")
+	sdk, err := os.ReadFile(sdkFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sdkRename := strings.NewReplacer("\tKeepParams *", "\tKEEPParams *", "\tDropParams *", "\tDROPParams *", "\tPickParams *", "\tPICKParams *")
+	if err := os.WriteFile(sdkFile, []byte(sdkRename.Replace(string(sdk))), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	base, err := os.ReadFile(filepath.Join("testdata", "parsething-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, "overrides.yaml")
+	if err := os.WriteFile(path, []byte(rename.Replace(string(base))), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(dir, "out")
+	if err := generateFromInput(Options{Resource: "ParseThing", OutputDir: out, OverridesPath: path}, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	convert, err := os.ReadFile(filepath.Join(out, "convert.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`fixed := "text"`, "oneOf.DROPParams = &", "arm.KeepMatching = types.BoolValue(false)"} {
+		if !strings.Contains(string(convert), want) {
+			t.Errorf("convert.go does not contain %q", want)
+		}
 	}
 }

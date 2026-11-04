@@ -155,13 +155,16 @@ func TestSplitArmsReadNoItemAsEmptySets(t *testing.T) {
 	}
 }
 
-// A matcher that the API returns with no arm fails the read: the arm sets cannot hold it, and a
-// later replace would drop it.
-func TestSplitArmsFailTheReadOfAnItemWithoutAnArm(t *testing.T) {
-	var diags diag.Diagnostics
-	flattenParseThing(context.Background(), path.Empty(), &parse_things_service.ParseThing{Matchers: []parse_things_service.ParseMatcher{{}}}, nil, &diags)
-	if !diags.HasError() {
-		t.Fatal("reading a matcher without an arm gave no error")
+// A matcher that the API returns with no arm, or with two arms, fails the read: the arm sets
+// cannot hold it, and a later replace would drop it or send it as two matchers.
+func TestSplitArmsFailTheReadOfAnItemWithoutOneArm(t *testing.T) {
+	two := parse_things_service.ParseMatcher{AppName: &parse_things_service.ParseAppName{}, Severity: &parse_things_service.ParseSeverity{}}
+	for name, matcher := range map[string]parse_things_service.ParseMatcher{"no arm": {}, "two arms": two} {
+		var diags diag.Diagnostics
+		flattenParseThing(context.Background(), path.Empty(), &parse_things_service.ParseThing{Matchers: []parse_things_service.ParseMatcher{matcher}}, nil, &diags)
+		if !diags.HasError() {
+			t.Errorf("%s: the read gave no error", name)
+		}
 	}
 }
 

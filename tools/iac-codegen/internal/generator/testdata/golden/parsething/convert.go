@@ -675,8 +675,15 @@ func flattenParseThing(ctx context.Context, p path.Path, v *parse_things_service
 	out.Order = types.Int64PointerValue(v.Order)
 	out.Note = types.StringPointerValue(v.Note)
 	for i := range v.Matchers {
-		if v.Matchers[i].AppName == nil && v.Matchers[i].Severity == nil {
-			diags.AddAttributeError(path.Root("apps"), "Invalid response from server", fmt.Sprintf("Item %d of the response has none of apps, severities.", i))
+		arms := 0
+		if v.Matchers[i].AppName != nil {
+			arms++
+		}
+		if v.Matchers[i].Severity != nil {
+			arms++
+		}
+		if arms != 1 {
+			diags.AddAttributeError(path.Root("apps"), "Invalid response from server", fmt.Sprintf("Item %d of the response has %d of apps, severities; it must have exactly one.", i, arms))
 		}
 	}
 	{

@@ -1803,9 +1803,15 @@ func (b *convBuilder) carry(obj *convObject, component string, t *model.Type) er
 		return nil
 	}
 	var carryName string
+	// The API names of the arms: the line names an arm as the API does, and lowerFirst of the Go
+	// name is another spelling for an arm such as HTTPServer.
+	armNames := map[string]string{}
 	for _, f := range t.Fields {
 		if b.file.Types[component].Fields[f.Name].CarrySiblings != nil {
 			carryName = f.Name
+			for _, arm := range f.Type.Fields {
+				armNames[camelize(arm.Name)] = arm.Name
+			}
 		}
 	}
 	if carryName == "" {
@@ -1824,7 +1830,7 @@ func (b *convBuilder) carry(obj *convObject, component string, t *model.Type) er
 	}
 	c := &convCarry{Pkg: b.ix.pkg.Name, Field: field, RequireOne: b.file.Types[component].Fields[carryName].RequireOne}
 	for _, armField := range oneOf.Fields {
-		armName := lowerFirst(armField.Model)
+		armName := armNames[armField.Model]
 		if _, folded := line.Fold[armName]; folded {
 			continue
 		}
