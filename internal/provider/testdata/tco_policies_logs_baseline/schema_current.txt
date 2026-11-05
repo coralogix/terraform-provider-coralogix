@@ -9,8 +9,8 @@ policies[].applications  SingleNestedAttribute optional
     markdown: "The applications to apply the policy on. Applies the policy on all the applications by default."
 policies[].applications.names  SetAttribute required elem=basetypes.StringType
     validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
-    validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: Only lowercase letters are allowed
     validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: must not be empty or contain ","
+    validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: must not contain uppercase letters; the API lowercases these names
 policies[].applications.rule_type  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to is
     markdown: "The rule type. Can be one of [\"includes\" \"is\" \"is_not\" \"starts_with\" \"unspecified\"]."
@@ -58,8 +58,8 @@ policies[].subsystems  SingleNestedAttribute optional
     markdown: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default."
 policies[].subsystems.names  SetAttribute required elem=basetypes.StringType
     validator: setvalidator.sizeAtLeastValidator set must contain at least 1 elements
-    validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: Only lowercase letters are allowed
     validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: must not be empty or contain ","
+    validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: must not contain uppercase letters; the API lowercases these names
 policies[].subsystems.rule_type  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to is
     markdown: "The rule type. Can be one of [\"includes\" \"is\" \"is_not\" \"starts_with\" \"unspecified\"]."

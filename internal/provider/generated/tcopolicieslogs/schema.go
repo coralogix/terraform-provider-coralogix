@@ -41,7 +41,7 @@ func Schema() schema.Schema {
 									Validators: []validator.Set{
 										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(regexp.MustCompile(`^[^,]+$`), "must not be empty or contain \",\"")),
 										setvalidator.SizeAtLeast(1),
-										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(regexp.MustCompile(`[^A-Z]+`), "Only lowercase letters are allowed")),
+										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(regexp.MustCompile(`^[^A-Z]+$`), "must not contain uppercase letters; the API lowercases these names")),
 									},
 									MarkdownDescription: "",
 								},
@@ -156,7 +156,7 @@ func Schema() schema.Schema {
 									Validators: []validator.Set{
 										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(regexp.MustCompile(`^[^,]+$`), "must not be empty or contain \",\"")),
 										setvalidator.SizeAtLeast(1),
-										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(regexp.MustCompile(`[^A-Z]+`), "Only lowercase letters are allowed")),
+										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(regexp.MustCompile(`^[^A-Z]+$`), "must not contain uppercase letters; the API lowercases these names")),
 									},
 									MarkdownDescription: "",
 								},

@@ -50,7 +50,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value Match [AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"actions\").AttributeName(\"names\").ElementKeyValue(tftypes.String<\"GET\">)] | Attribute policies[0].actions.names[Value(\"GET\")] Only lowercase letters are allowed, got: GET"
+      "error: Invalid Attribute Value Match [AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"actions\").AttributeName(\"names\").ElementKeyValue(tftypes.String<\"GET\">)] | Attribute policies[0].actions.names[Value(\"GET\")] must not contain uppercase letters; the API lowercases these names, got: GET"
     ],
     "state": null
   },
