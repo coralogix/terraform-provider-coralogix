@@ -18,9 +18,10 @@ import (
 type convData struct {
 	// IDGuard is the model field of the resource id when flatten must check that the response
 	// has it, or "".
-	IDGuard string
-	SDKPkg  string // import path of the SDK package
-	SDKName string // package name
+	IDGuard  string
+	IDString bool   // a string id must also be non-empty
+	SDKPkg   string // import path of the SDK package
+	SDKName  string // package name
 	// The root objects: the Create body and the Update body (expand), and
 	// the resource (flatten).
 	Create, Update, Resource *convObject
@@ -280,8 +281,9 @@ const (
 	convNamedInts = "namedints" // types.List/Set of types.String ↔ []int32, []int64
 	// convInt32AsInt64 and convInts32AsInt64 keep the released Int64 type of an int32 field
 	// (terraformType: Int64).
-	convInt32AsInt64  = "int32asint64"  // types.Int64 ↔ *int32
-	convInts32AsInt64 = "ints32asint64" // types.List/Set of types.Int64Type ↔ []int32
+	convIntegerAsString = "integerasstring" // computed integer → released string
+	convInt32AsInt64    = "int32asint64"    // types.Int64 ↔ *int32
+	convInts32AsInt64   = "ints32asint64"   // types.List/Set of types.Int64Type ↔ []int32
 
 	convStringMap = "stringmap" // types.Map ↔ map[string]string or map[string]<enum type>
 	convScalarMap = "scalarmap" // types.Map ↔ map[string]bool, int32, int64, float32, float64
@@ -661,6 +663,9 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		return nil, err
 	}
 	out.IDGuard = idGuard(r)
+	if out.IDGuard != "" {
+		out.IDString = r.IDType.Kind == model.String
+	}
 	for _, f := range r.Fields {
 		if r.Policy.DefaultArm(r.Name, f.Name) {
 			return nil, fmt.Errorf("%s: defaultArm is supported on an arm of a nested object only", f.Name)
@@ -1417,9 +1422,15 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	}
 }
 
-// applyTerraformType converts an int32 field, or a list or set of int32, to the released Int64. A
-// uint64 that the API sends as a string is an Int64 already.
+// applyTerraformType keeps released integer or computed string representations.
 func (b *convBuilder) applyTerraformType(cf *convField, component, name string) error {
+	if b.file != nil && b.file.Types[component].Fields[name].TerraformType == "String" {
+		if cf.Conv != convInt32 && cf.Conv != convInt64 {
+			return fmt.Errorf("terraformType String needs an integer")
+		}
+		cf.Conv = convIntegerAsString
+		return nil
+	}
 	if terraformType(b.resource.Policy, component, name) == "" {
 		return nil
 	}
@@ -2320,7 +2331,8 @@ var scalarAttrTypes = map[string]string{
 	convString: "types.StringType", convSplit: "types.SetType{ElemType: types.StringType}", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
 	convBool: "types.BoolType", convNotBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
 	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
-	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
+	convIntegerAsString: "types.StringType",
+	convEmpty:           "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
 }
 
 // attrType returns the Terraform attribute type expression of field f.

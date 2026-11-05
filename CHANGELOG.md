@@ -73,6 +73,7 @@
 - DOCS: The descriptions of the attributes follow the new API contract.
 
 #### provider
+- FIX: Reject empty string response IDs before writing or recovering state in generated resources.
 - CHORE: Bump `coralogix-management-sdk` to the version with the recording rules contract: unordered `groups`, the defaults of `interval` (60) and `limit` ("0"), which the response requires, and `groups` required with at least one item in Create and Update.
 - CHORE: Bump `coralogix-management-sdk` to the version with the actions contract: the defaults of `isHidden` and `isPrivate`, `createdBy` as output-only, and the description of the replace.
 - CHORE: Bump `coralogix-management-sdk` to the version with the integrations contract. The SDK holds the required fields of `IntegrationMetadata` and `DeployedIntegrationInformation` as values; `coralogix_integration` adapts, with no change to plans. The dashboard tests answer a Get with the `permissions` object that the SDK now requires in the response.
@@ -82,6 +83,7 @@
 - FIX: A read that the API fails names the fixed id `archive-logs-settings` in its error. Before, it named `archive_logs`.
 
 #### tools/iac-codegen
+- FEAT: Support existing-resource batch reads through `api.getByIDs`, released required fields that Create leaves optional, and computed integer attributes kept as strings with `terraformType: String`.
 - FEAT: `api.overwrite` generates a collection resource: one write replaces every item of a kind, and one Get with fixed `getQuery` values lists them (the TCO policies). Create and Update send the write and read back with Get; Delete sends the write with no items. Before, `tfgen check` stopped with `UPSERT_SHAPE_UNSUPPORTED`. The data source sends the same query.
 - FEAT: `types.<Type>.requestWrapper`, `requestAs` on a nested field, and `negate` describe a request item that holds the fields of the read item in a wrapper, under another name, or negated (`{policy: {disabled}}` for `{enabled}`). Before, `requestAs` worked only on a field of the resource component.
 - FEAT: `inline: true` works on an object field of a nested component too: its fields are attributes of the component, in the response and in the request item that holds the same object. A missing oneOf arm reads as null fields. Before, inline applied only to a field of the resource component.

@@ -122,6 +122,7 @@ func sortedVersions(file *overrides.File) []int64 {
 //
 //	client.<Method>(ctx[, id]).<Body>(body).Execute()
 type crudOp struct {
+	IDs      string // SDK query setter of a batch Get that returns a resource array
 	Method   string
 	Body     string // request builder method that sets the body; "" when there is no body
 	Response string // response field that holds the resource; "" when there is none, or the response is the resource
@@ -375,6 +376,21 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, overwrite bo
 		field, err := ix.fieldRef(o.name + ".response." + o.op.Response.Field)
 		if err != nil {
 			return out, err
+		}
+		if o.op.Response.Items {
+			if field.Want != "[]"+resource {
+				return out, fmt.Errorf("batch response needs []%s", resource)
+			}
+			builder, err := ix.typeRef("get")
+			if err != nil {
+				return out, err
+			}
+			setter, err := ix.methodRef("get.ids", builder.Name)
+			if err != nil {
+				return out, err
+			}
+			out.Response, out.IDs = field.Name, setter.Name
+			return out, nil
 		}
 		if field.Want != "*"+resource && field.Want != resource {
 			return out, fmt.Errorf("SDK field %s has type %s, want *%s", field.SDKName(), field.Want, resource)
