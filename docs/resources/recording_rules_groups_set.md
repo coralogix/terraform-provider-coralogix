@@ -75,13 +75,13 @@ resource "coralogix_recording_rules_groups_set" "recording_rules_groups_set_expl
 
 ### Optional
 
-- `groups` (Attributes Set) (see [below for nested schema](#nestedatt--groups))
+- `groups` (Attributes Set) The rule groups of the set, in no particular order. (see [below for nested schema](#nestedatt--groups))
 - `name` (String) The name of the rule group. Overrides the name specified in the YAML if provided.
 - `yaml_content` (String) YAML specification of rules. Cannot be used together with `groups`. Keys are the lowercased field names (for example the evaluation delay is `evaluationdelayms`). Unrecognized keys are ignored silently, so prefer `groups` if you want your attribute names validated.
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) Unique identifier.
 
 <a id="nestedatt--groups"></a>
 ### Nested Schema for `groups`
@@ -89,12 +89,12 @@ resource "coralogix_recording_rules_groups_set" "recording_rules_groups_set_expl
 Required:
 
 - `name` (String) The (unique) rule-group name.
-- `rules` (Attributes List) (see [below for nested schema](#nestedatt--groups--rules))
+- `rules` (Attributes List) List of rules. (see [below for nested schema](#nestedatt--groups--rules))
 
 Optional:
 
-- `interval` (Number) How often rules in the group are evaluated (in seconds). Default is 60 seconds.
-- `limit` (Number) Limits the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit.
+- `interval` (Number) How often rules in the group are evaluated (in seconds). Default is 60 seconds. The value is computed: removing the attribute keeps the current value, so set it to change it.
+- `limit` (Number) Limits the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit. The value is computed: removing the attribute keeps the current value, so set it to change it.
 
 <a id="nestedatt--groups--rules"></a>
 ### Nested Schema for `groups.rules`
@@ -107,4 +107,4 @@ Required:
 Optional:
 
 - `evaluation_delay_ms` (Number) Delays the rule's evaluation (in milliseconds) so late-arriving data is ingested first. Must be between 0 and 1800000 (30 minutes). When omitted, no delay is configured; an explicit 0 is a distinct, persisted value. Removing the attribute clears the delay.
-- `labels` (Map of String) Labels to add or overwrite before storing the result.
+- `labels` (Map of String) Labels to add or overwrite before storing the result. The labels are computed: removing the attribute does not clear them on its own, so set `labels = {}` to clear them.

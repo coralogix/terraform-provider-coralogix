@@ -17,7 +17,7 @@
           "interval": 60,
           "limit": 0,
           "name": "g1",
-          "rules": null
+          "rules": []
         }
       ],
       "id": "01J00000000000000000000001",

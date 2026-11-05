@@ -42,8 +42,6 @@
         "body": {
           "groups": [
             {
-              "interval": 60,
-              "limit": "0",
               "name": "g1",
               "rules": [
                 {
@@ -59,7 +57,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_recording_rule_groups | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: duplicate_rule_group_set_name\"}\noperation - Create"
+      "error: Unable to create recording_rules_groups_set | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: duplicate_rule_group_set_name\"}"
     ],
     "state": null
   }

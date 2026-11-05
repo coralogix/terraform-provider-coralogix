@@ -1,0 +1,18 @@
+# What the generated acceptance test needs for coralogix_recording_rules_groups_set, besides the
+# schema. The API parses record as a metric name and expr as PromQL, so made-up text is refused.
+resource: OutRuleGroupSet
+
+values:
+  groups[].rules[].record: '"tf_acc:record"'
+  groups[].rules[].expr: '"vector(1)"'
+
+# A configuration sets exactly one of groups and yaml_content; the test uses groups.
+skip: [yaml_content]
+
+minimal: [groups]
+
+# The released provider sends an unknown name as "", which the API refuses, so it cannot create a
+# set without one.
+upgradeMinimal: [groups, name]
+
+upgradeFrom: "3.23.0"

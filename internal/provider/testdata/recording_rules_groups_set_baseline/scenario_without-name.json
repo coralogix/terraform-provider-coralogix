@@ -41,8 +41,6 @@
         "body": {
           "groups": [
             {
-              "interval": 60,
-              "limit": "0",
               "name": "g1",
               "rules": [
                 {
@@ -51,15 +49,36 @@
                 }
               ]
             }
-          ],
-          "name": ""
+          ]
         },
-        "status": 400
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/recording-rules/recording-rules/v1/01J00000000000000000000001",
+        "status": 200
       }
     ],
-    "applyDiagnostics": [
-      "error: Error creating coralogix_recording_rule_groups | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: {\\n  \\\"name\\\": [\\n    {\\n      \\\"code\\\": \\\"length\\\",\\n      \\\"message\\\": null,\\n      \\\"params\\\": {\\n        \\\"max\\\": 255,\\n        \\\"min\\\": 1,\\n        \\\"value\\\": \\\"\\\"\\n      }\\n    }\\n  ]\\n}\"}\noperation - Create"
-    ],
-    "state": null
+    "state": {
+      "groups": [
+        {
+          "interval": 60,
+          "limit": 0,
+          "name": "g1",
+          "rules": [
+            {
+              "evaluation_delay_ms": null,
+              "expr": "vector(1)",
+              "labels": {},
+              "record": "tf:r1"
+            }
+          ]
+        }
+      ],
+      "id": "01J00000000000000000000001",
+      "name": "01J00000000000000000000001",
+      "yaml_content": null
+    },
+    "replanEmpty": true
   }
 ]
