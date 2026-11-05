@@ -3,9 +3,9 @@
 groups  nested SET computed
     description: The rule groups of the set, in no particular order.
 groups.interval  tftypes.Number computed
-    description: How often rules in the group are evaluated (in seconds). Default is 60 seconds.
+    description: How often rules in the group are evaluated (in seconds). Default is 60 seconds. The value is computed: removing the attribute keeps the current value, so set it to change it.
 groups.limit  tftypes.Number computed
-    description: Limits the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit.
+    description: Limits the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit. The value is computed: removing the attribute keeps the current value, so set it to change it.
 groups.name  tftypes.String computed
     description: The (unique) rule-group name.
 groups.rules  nested LIST computed

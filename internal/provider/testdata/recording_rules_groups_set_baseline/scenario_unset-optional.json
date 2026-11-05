@@ -118,8 +118,8 @@
     "plan": {
       "groups": [
         {
-          "interval": "(unknown)",
-          "limit": "(unknown)",
+          "interval": 120,
+          "limit": 5,
           "name": "g1",
           "rules": [
             {
@@ -144,6 +144,8 @@
         "body": {
           "groups": [
             {
+              "interval": 120,
+              "limit": "5",
               "name": "g1",
               "rules": [
                 {
@@ -169,8 +171,8 @@
     "state": {
       "groups": [
         {
-          "interval": 60,
-          "limit": 0,
+          "interval": 120,
+          "limit": 5,
           "name": "g1",
           "rules": [
             {
@@ -202,8 +204,8 @@
     "state": {
       "groups": [
         {
-          "interval": 60,
-          "limit": 0,
+          "interval": 120,
+          "limit": 5,
           "name": "g1",
           "rules": [
             {

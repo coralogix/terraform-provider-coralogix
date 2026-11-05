@@ -16,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 
 	"github.com/coralogix/coralogix-management-sdk/go/openapi/gen/recording_rules_service"
 )
@@ -44,89 +43,9 @@ func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
 		if fieldDiags.HasError() {
 			continue
 		}
-		p = requestValue(ctx, field.attr, p, &diags)
 		validateRequestValue(path.Root(field.attr), c, p, field.serverDefault, &diags)
 	}
 	return diags
-}
-
-// serverAttrs are the paths of the computed attributes inside the values
-// that a request sends, with list and map steps left out. The server sets
-// them.
-var serverAttrs = map[string]bool{}
-
-// defaultAttrs are the nested attributes with a server default, by path. A
-// request does not send an unknown value of one, so the server stores the default.
-var defaultAttrs = map[string]attr.Value{
-	"groups.interval": types.Int64Value(60),
-	"groups.limit":    types.Int64Value(0),
-}
-
-// defaultObjects are the objects that hold an attribute with a server default, by path.
-var defaultObjects = map[string]bool{
-	"groups": true,
-}
-
-// requestValue returns v with a null value for each attribute that the server
-// sets. When the resource changes, Terraform plans these attributes as
-// unknown. A request does not send them, so a change check and an
-// unknown-value check must not see them.
-func requestValue(ctx context.Context, at string, v attr.Value, diags *diag.Diagnostics) attr.Value {
-	if v == nil || v.IsNull() || v.IsUnknown() {
-		return v
-	}
-	switch v := v.(type) {
-	case types.Object:
-		attrTypes := v.AttributeTypes(ctx)
-		out := make(map[string]attr.Value, len(attrTypes))
-		for name, child := range v.Attributes() {
-			if serverAttrs[at+"."+name] || defaultAttrs[at+"."+name] != nil && child.IsUnknown() {
-				out[name] = nullValue(ctx, attrTypes[name], diags)
-			} else {
-				out[name] = requestValue(ctx, at+"."+name, child, diags)
-			}
-		}
-		value, d := types.ObjectValue(attrTypes, out)
-		diags.Append(d...)
-		return value
-	case types.List:
-		elems := v.Elements()
-		out := make([]attr.Value, len(elems))
-		for i, child := range elems {
-			out[i] = requestValue(ctx, at, child, diags)
-		}
-		value, d := types.ListValue(v.ElementType(ctx), out)
-		diags.Append(d...)
-		return value
-	case types.Set:
-		elems := v.Elements()
-		out := make([]attr.Value, len(elems))
-		for i, child := range elems {
-			out[i] = requestValue(ctx, at, child, diags)
-		}
-		value, d := types.SetValue(v.ElementType(ctx), out)
-		diags.Append(d...)
-		return value
-	case types.Map:
-		elems := v.Elements()
-		out := make(map[string]attr.Value, len(elems))
-		for key, child := range elems {
-			out[key] = requestValue(ctx, at, child, diags)
-		}
-		value, d := types.MapValue(v.ElementType(ctx), out)
-		diags.Append(d...)
-		return value
-	}
-	return v
-}
-
-// nullValue returns the null value of type t.
-func nullValue(ctx context.Context, t attr.Type, diags *diag.Diagnostics) attr.Value {
-	value, err := t.ValueFromTerraform(ctx, tftypes.NewValue(t.TerraformType(ctx), nil))
-	if err != nil {
-		diags.AddError("Invalid value", err.Error())
-	}
-	return value
 }
 
 // expandCreate returns the Create request body. A null value is not sent.
@@ -211,10 +130,6 @@ func keepPriorEmpty(ctx context.Context, prior tfData, state *tfsdk.State) diag.
 // returns v, with the same rule applied to the attributes of an object and to
 // the elements of a list or map.
 func priorEmpty(ctx context.Context, at string, v, p attr.Value, diags *diag.Diagnostics) attr.Value {
-	// A read can leave out a nested value that equals its declared server default.
-	if d := defaultAttrs[at]; d != nil && v.IsNull() && p != nil && p.Equal(d) {
-		return p
-	}
 	if keepAPIValue(at, v, p) {
 		return v
 	}
@@ -294,10 +209,7 @@ func priorEmptyMap(ctx context.Context, at string, v, prior types.Map, diags *di
 }
 
 // emptyValue reports whether v is null, an empty list, set, or map, or an
-// object outside a oneOf arm whose attributes are all empty. The service fills
-// an omitted object that holds an attribute with a server default, so an
-// attribute that is "" or that equals its declared server default is empty
-// inside that object.
+// object outside a oneOf arm whose attributes are all empty.
 func emptyValue(at string, v attr.Value) bool {
 	if v.IsNull() {
 		return true
@@ -317,23 +229,13 @@ func emptyValue(at string, v attr.Value) bool {
 			return false
 		}
 		for name, child := range v.Attributes() {
-			if !emptyValue(at+"."+name, child) && !(defaultObjects[at] && defaultValue(at+"."+name, child)) {
+			if !emptyValue(at+"."+name, child) {
 				return false
 			}
 		}
 		return true
 	}
 	return false
-}
-
-// defaultValue reports whether child, an attribute of an object at path at, is
-// "" or its declared server default.
-func defaultValue(at string, child attr.Value) bool {
-	if d := defaultAttrs[at]; d != nil && child.Equal(d) {
-		return true
-	}
-	s, ok := child.(types.String)
-	return ok && !s.IsNull() && !s.IsUnknown() && s.ValueString() == ""
 }
 
 func expandCreateRuleGroupSet(ctx context.Context, p path.Path, m *OutRuleGroupSetModel, diags *diag.Diagnostics) *recording_rules_service.CreateRuleGroupSet {

@@ -163,8 +163,8 @@
           ]
         },
         {
-          "interval": "(unknown)",
-          "limit": "(unknown)",
+          "interval": 60,
+          "limit": 0,
           "name": "g2",
           "rules": []
         }
@@ -192,6 +192,8 @@
               ]
             },
             {
+              "interval": 60,
+              "limit": "0",
               "name": "g2",
               "rules": []
             }
