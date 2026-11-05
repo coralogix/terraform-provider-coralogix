@@ -1,5 +1,7 @@
 # Unreleased
 
+# Release 3.24.0
+
 #### resource/coralogix_parsing_rules
 - CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the requests are the same, except as listed below. A rule group created without `active` is still created inactive, and one without `order` is still added last.
 - FIX: An update of a rule group without `order` in the configuration keeps its place. Before, every update sent `order = 0`, which the API reads as "after every other group", so changing only the description moved the group to the end of the processing order. A new rule group without `order` is still added last. Removing `order` from the configuration now keeps the current order; set a value to move the group. When the same apply deletes a group before it, the update sends the order that the plan read, and the API lowered the orders after the deleted group, so the updated group can share its order with the next one. Set `order` to control the position exactly.
