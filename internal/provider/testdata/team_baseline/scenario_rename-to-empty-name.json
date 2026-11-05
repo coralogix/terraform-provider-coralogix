@@ -59,7 +59,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating Team | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Team invalid name: invalid or restricted team name\"}\noperation - Update"
+      "error: Unable to update team | id 1001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Team invalid name: invalid or restricted team name\"}"
     ],
     "state": {
       "daily_quota": 0.5,

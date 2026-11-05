@@ -1,5 +1,16 @@
 # Unreleased
 
+#### resource/coralogix_team
+- CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the requests are the same, except as listed below. A plan of a team that 3.24.0 created from the same configuration shows no change.
+- FIX: `daily_quota` reads back as the value that the API stores, a 32-bit float, at its shortest decimal. Before, the read rounded it to three decimals, so a quota such as `0.1234567` failed the apply with `Provider produced inconsistent result after apply`.
+- FIX: An import id that is not an integer fails at the import. Before, the import succeeded and the next refresh failed.
+- FIX: When Create succeeds but the read after it fails, the state keeps the id, so Terraform marks the team tainted and the next apply replaces it. Before, the state was empty and the team stayed outside Terraform.
+- CHORE: API errors read `Unable to create team`, `Unable to update team`, `Unable to delete team`, and `Unable to read team` instead of `Error creating Team`, and so on. A refresh that finds the team gone warns `Resource disappeared during read`, and an update of a team that is gone fails with `Resource no longer exists`. The data source errors read `coralogix_team not found` and `Unable to read coralogix_team`.
+- FEAT: The resource has a generated acceptance test, and an upgrade test from 3.24.0. The example sets `daily_quota = 0.5`.
+
+#### data-source/coralogix_team
+- FEAT: Add the `coralogix_team` data source, generated with the resource. It reads a team by `id`.
+
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.71`. Every generated resource reads and writes its id through small helpers (`apiID`, `setAPIID`, `idStateValue`); the requests and the state are the same.
 - FEAT: The id of an existing resource can be inside a one-property object that `unwrap` names, also in a Create response that holds only the id, as the teams API returns `{"teamId": {"id": 1}}`. A data source lookup by name reads the id in the same wrapper of the List item.

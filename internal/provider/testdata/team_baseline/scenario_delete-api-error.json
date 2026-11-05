@@ -45,7 +45,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error deleting Team | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\noperation - Delete"
+      "error: Unable to delete team | id 1001: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}"
     ],
     "state": {
       "daily_quota": 0.5,

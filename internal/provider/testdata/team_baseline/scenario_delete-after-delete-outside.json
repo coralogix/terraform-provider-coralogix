@@ -45,7 +45,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error deleting Team | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: DailyQuota must be greater than 0.01\"}\noperation - Delete"
+      "error: Unable to delete team | id 1001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: DailyQuota must be greater than 0.01\"}"
     ],
     "state": {
       "daily_quota": 0.5,

@@ -59,7 +59,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating Team | error - 412 Precondition Failed — {\"code\":412,\"message\":\"Failed Precondition: Target team is not active\"}\noperation - Update"
+      "error: Unable to update team | id 1001: 412 Precondition Failed — {\"code\":412,\"message\":\"Failed Precondition: Target team is not active\"}"
     ],
     "state": {
       "daily_quota": 0.5,
