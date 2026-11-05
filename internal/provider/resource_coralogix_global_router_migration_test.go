@@ -136,7 +136,10 @@ func TestAccCoralogixResourceGlobalRouterMigration(t *testing.T) {
 			updated := globalRouterMigrationConfig(name, tc.updated)
 
 			resource.ParallelTest(t, resource.TestCase{
-				PreCheck:     func() { testAccPreCheck(t) },
+				PreCheck: func() {
+					testAccPreCheck(t)
+					testAccRemoveLeftoverGlobalRouters(t, initial, updated)
+				},
 				CheckDestroy: testAccCheckGlobalRouterDestroy,
 				Steps: []resource.TestStep{
 					{
