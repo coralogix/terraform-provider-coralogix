@@ -102,8 +102,8 @@
     "plan": {
       "groups": [
         {
-          "interval": 60,
-          "limit": 0,
+          "interval": "(unknown)",
+          "limit": "(unknown)",
           "name": "g1",
           "rules": [
             {
@@ -126,8 +126,6 @@
         "body": {
           "groups": [
             {
-              "interval": 60,
-              "limit": "0",
               "name": "g1",
               "rules": [
                 {
@@ -187,7 +185,7 @@
     "plan": {
       "groups": [
         {
-          "interval": 60,
+          "interval": "(unknown)",
           "limit": -1,
           "name": "g1",
           "rules": [
@@ -247,8 +245,8 @@
     "plan": {
       "groups": [
         {
-          "interval": 60,
-          "limit": 0,
+          "interval": "(unknown)",
+          "limit": "(unknown)",
           "name": "g1",
           "rules": [
             {
@@ -271,8 +269,6 @@
         "body": {
           "groups": [
             {
-              "interval": 60,
-              "limit": "0",
               "name": "g1",
               "rules": [
                 {
@@ -343,7 +339,6 @@
     },
     "replanEmpty": false,
     "replanDiff": [
-      "AttributeName(\"groups\").ElementKeyValue(tftypes.Object[\"interval\":tftypes.Number, \"limit\":tftypes.Number, \"name\":tftypes.String, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]]<\"interval\":tftypes.Number<\"60\">, \"limit\":tftypes.Number<\"0\">, \"name\":tftypes.String<\"g1\">, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]<tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]<\"evaluation_delay_ms\":tftypes.Number<null>, \"expr\":tftypes.String<\"vector(1)\">, \"labels\":tftypes.Map[tftypes.String]<>, \"record\":tftypes.String<\"\">>>>)",
       "AttributeName(\"groups\").ElementKeyValue(tftypes.Object[\"interval\":tftypes.Number, \"limit\":tftypes.Number, \"name\":tftypes.String, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]]<\"interval\":tftypes.Number<\"60\">, \"limit\":tftypes.Number<\"0\">, \"name\":tftypes.String<\"g1\">, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]<tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]<\"evaluation_delay_ms\":tftypes.Number<null>, \"expr\":tftypes.String<\"vector(1)\">, \"labels\":tftypes.Map[tftypes.String]<>, \"record\":tftypes.String<\"tf:r1\">>>>)",
       "AttributeName(\"groups\").ElementKeyValue(tftypes.Object[\"interval\":tftypes.Number, \"limit\":tftypes.Number, \"name\":tftypes.String, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]]<\"interval\":tftypes.Number<\"60\">, \"limit\":tftypes.Number<\"0\">, \"name\":tftypes.String<\"g1\">, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]<tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]<\"evaluation_delay_ms\":tftypes.Number<null>, \"expr\":tftypes.String<\"vector(1)\">, \"labels\":tftypes.Map[tftypes.String]<>, \"record\":tftypes.String<\"tf:r1\">>>>).AttributeName(\"interval\")",
       "AttributeName(\"groups\").ElementKeyValue(tftypes.Object[\"interval\":tftypes.Number, \"limit\":tftypes.Number, \"name\":tftypes.String, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]]<\"interval\":tftypes.Number<\"60\">, \"limit\":tftypes.Number<\"0\">, \"name\":tftypes.String<\"g1\">, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]<tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]<\"evaluation_delay_ms\":tftypes.Number<null>, \"expr\":tftypes.String<\"vector(1)\">, \"labels\":tftypes.Map[tftypes.String]<>, \"record\":tftypes.String<\"tf:r1\">>>>).AttributeName(\"limit\")",
@@ -353,7 +348,8 @@
       "AttributeName(\"groups\").ElementKeyValue(tftypes.Object[\"interval\":tftypes.Number, \"limit\":tftypes.Number, \"name\":tftypes.String, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]]<\"interval\":tftypes.Number<\"60\">, \"limit\":tftypes.Number<\"0\">, \"name\":tftypes.String<\"g1\">, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]<tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]<\"evaluation_delay_ms\":tftypes.Number<null>, \"expr\":tftypes.String<\"vector(1)\">, \"labels\":tftypes.Map[tftypes.String]<>, \"record\":tftypes.String<\"tf:r1\">>>>).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"evaluation_delay_ms\")",
       "AttributeName(\"groups\").ElementKeyValue(tftypes.Object[\"interval\":tftypes.Number, \"limit\":tftypes.Number, \"name\":tftypes.String, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]]<\"interval\":tftypes.Number<\"60\">, \"limit\":tftypes.Number<\"0\">, \"name\":tftypes.String<\"g1\">, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]<tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]<\"evaluation_delay_ms\":tftypes.Number<null>, \"expr\":tftypes.String<\"vector(1)\">, \"labels\":tftypes.Map[tftypes.String]<>, \"record\":tftypes.String<\"tf:r1\">>>>).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"expr\")",
       "AttributeName(\"groups\").ElementKeyValue(tftypes.Object[\"interval\":tftypes.Number, \"limit\":tftypes.Number, \"name\":tftypes.String, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]]<\"interval\":tftypes.Number<\"60\">, \"limit\":tftypes.Number<\"0\">, \"name\":tftypes.String<\"g1\">, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]<tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]<\"evaluation_delay_ms\":tftypes.Number<null>, \"expr\":tftypes.String<\"vector(1)\">, \"labels\":tftypes.Map[tftypes.String]<>, \"record\":tftypes.String<\"tf:r1\">>>>).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"labels\")",
-      "AttributeName(\"groups\").ElementKeyValue(tftypes.Object[\"interval\":tftypes.Number, \"limit\":tftypes.Number, \"name\":tftypes.String, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]]<\"interval\":tftypes.Number<\"60\">, \"limit\":tftypes.Number<\"0\">, \"name\":tftypes.String<\"g1\">, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]<tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]<\"evaluation_delay_ms\":tftypes.Number<null>, \"expr\":tftypes.String<\"vector(1)\">, \"labels\":tftypes.Map[tftypes.String]<>, \"record\":tftypes.String<\"tf:r1\">>>>).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"record\")"
+      "AttributeName(\"groups\").ElementKeyValue(tftypes.Object[\"interval\":tftypes.Number, \"limit\":tftypes.Number, \"name\":tftypes.String, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]]<\"interval\":tftypes.Number<\"60\">, \"limit\":tftypes.Number<\"0\">, \"name\":tftypes.String<\"g1\">, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]<tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]<\"evaluation_delay_ms\":tftypes.Number<null>, \"expr\":tftypes.String<\"vector(1)\">, \"labels\":tftypes.Map[tftypes.String]<>, \"record\":tftypes.String<\"tf:r1\">>>>).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"record\")",
+      "AttributeName(\"groups\").ElementKeyValue(tftypes.Object[\"interval\":tftypes.Number, \"limit\":tftypes.Number, \"name\":tftypes.String, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]]<\"interval\":tftypes.Number<unknown>, \"limit\":tftypes.Number<unknown>, \"name\":tftypes.String<\"g1\">, \"rules\":tftypes.List[tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]]<tftypes.Object[\"evaluation_delay_ms\":tftypes.Number, \"expr\":tftypes.String, \"labels\":tftypes.Map[tftypes.String], \"record\":tftypes.String]<\"evaluation_delay_ms\":tftypes.Number<null>, \"expr\":tftypes.String<\"vector(1)\">, \"labels\":tftypes.Map[tftypes.String]<>, \"record\":tftypes.String<\"\">>>>)"
     ]
   }
 ]

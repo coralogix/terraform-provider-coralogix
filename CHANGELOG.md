@@ -16,7 +16,8 @@
 #### resource/coralogix_recording_rules_groups_set
 - CHORE: The resource is generated from the API contract. The schema, `yaml_content`, the import by id, and the state version are the same, and a state of schema version 0 is upgraded by reading the set (its `yaml_content` is kept).
 - FIX: A set without `name` can be created; the API names it after its id. Before, the unknown name was sent as `""` and the API refused it.
-- CHORE: Create leaves out an `interval` or `limit` that the configuration does not set, and the API stores its default (60 and 0). Before, Create sent 60 and 0. As before, `interval` and `limit` are `Optional` and `Computed`: removing them, or changing them outside Terraform, keeps the stored value. Set them to change it.
+- CHORE: Create leaves out an `interval` or `limit` that the configuration does not set, and the API stores its default (60 and 0). Before, Create sent 60 and 0.
+- FIX: An `interval` or `limit` that the configuration does not set now becomes the API default (60 and 0). Before, removing it, or changing it outside Terraform, kept the stored value. A group that leaves either out and has another stored value, such as one set in the UI, plans an in-place update to the default on the first plan after the upgrade. Set `interval` or `limit` to keep a value.
 - FIX: Changing a group whose rules leave out `labels`, or setting `rules = []`, no longer fails the apply with `Provider produced inconsistent result`. Reordering the rules of a group no longer copies the labels of one rule to another.
 - FIX: An update of a set that was deleted outside Terraform fails with `Resource no longer exists`, and the next refresh removes it from state. Before, Terraform failed with `Missing Resource State After Update`.
 - FIX: A 404 for a missing API route is an error. Before, the refresh removed the set from state. A set that the API does not find is still removed, with the warning `Resource disappeared during read`.

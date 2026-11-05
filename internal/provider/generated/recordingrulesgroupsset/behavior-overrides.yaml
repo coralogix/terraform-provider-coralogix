@@ -55,18 +55,12 @@ types:
       name:
         validators: [{lengthAtLeast: 1}]
         description: "The (unique) rule-group name."
-      # The released resource kept the state value of an interval or a limit that the configuration
-      # leaves out, also one set outside Terraform, instead of the API default.
       interval:
-        computed: true
-        useStateForUnknown: true
         validators: [{atLeast: 60}]
-        description: "How often rules in the group are evaluated (in seconds). Default is 60 seconds. The value is computed: removing the attribute keeps the current value, so set it to change it."
+        description: "How often rules in the group are evaluated (in seconds). Default is 60 seconds."
       limit:
-        computed: true
-        useStateForUnknown: true
         terraformType: Int64 # the API sends the uint64 as a string; the released attribute is Int64
-        description: "Limits the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit. The value is computed: removing the attribute keeps the current value, so set it to change it."
+        description: "Limits the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit."
       rules:
         required: true
   OutRule:
