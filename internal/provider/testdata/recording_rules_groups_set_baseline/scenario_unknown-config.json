@@ -186,7 +186,7 @@
       "groups": [
         {
           "interval": "(unknown)",
-          "limit": 0,
+          "limit": "(unknown)",
           "name": "g1",
           "rules": [
             {

@@ -93,8 +93,8 @@ Required:
 
 Optional:
 
-- `interval` (Number) How often rules in the group are evaluated (in seconds). Default is 60 seconds. The value is computed: removing the attribute keeps the current value, so set it to change it.
-- `limit` (Number) Limits the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit. The value is computed: removing the attribute keeps the current value, so set it to change it.
+- `interval` (Number) How often rules in the group are evaluated (in seconds). Default is 60 seconds.
+- `limit` (Number) Limits the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit.
 
 <a id="nestedatt--groups--rules"></a>
 ### Nested Schema for `groups.rules`
