@@ -104,12 +104,21 @@ jobs:
             exit 0
           fi
           tag="v$version"
-          existing=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$tag" --jq .object.sha 2>/dev/null || true)
-          if [ -z "$existing" ]; then
+          # Exit code 2 means no such tag. Not gh api: on a 404 it prints the error body to stdout,
+          # which reads as a tag at another commit. The last line is the commit, also for an
+          # annotated tag, whose peeled ^{} line follows the tag object's.
+          status=0
+          remote=$(git ls-remote --exit-code --tags origin "refs/tags/$tag" "refs/tags/$tag^{}") || status=$?
+          if [ "$status" = 2 ]; then
             gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$tag" -f sha="$SHA" >/dev/null
             echo "Tagged $SHA as $tag" | tee -a "$GITHUB_STEP_SUMMARY"
-          elif [ "$existing" != "$SHA" ]; then
-            echo "::error::Tag $tag already exists at $existing, not at $SHA"; exit 1
+          elif [ "$status" != 0 ]; then
+            echo "::error::Could not look up the tag $tag on origin"; exit 1
+          else
+            existing=$(tail -n 1 <<<"$remote" | cut -f1)
+            if [ "$existing" != "$SHA" ]; then
+              echo "::error::Tag $tag already exists at $existing, not at $SHA"; exit 1
+            fi
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
