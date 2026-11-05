@@ -6,8 +6,8 @@
 # No config sets order. A Delete lowers the order of every group above the deleted one, so a
 # configured order would read back changed when a group before it goes, also a group that another
 # test deletes in the same CI run (the rule-groups shard runs these tests one package at a time,
-# but the tests of a package in parallel). An unset order reads back the order that the API gave
-# the group, and the baseline and the legacy tests cover order.
+# but the tests of a package in parallel). An unset order keeps the value of the state, and the
+# baseline and the legacy tests cover order.
 resource: RuleGroup
 
 skip: [order]
