@@ -38,8 +38,7 @@
           "policies": [
             {
               "logRules": {
-                "dpxlExpression": "<v1> $d.severity == 'INFO'",
-                "severities": null
+                "dpxlExpression": "<v1> $d.severity == 'INFO'"
               },
               "policy": {
                 "description": "",
@@ -228,8 +227,7 @@
           "policies": [
             {
               "logRules": {
-                "dpxlExpression": "<v1> true",
-                "severities": null
+                "dpxlExpression": "<v1> true"
               },
               "policy": {
                 "description": "",

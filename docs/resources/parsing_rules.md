@@ -35,7 +35,7 @@ resource "coralogix_parsing_rules" "rules_group_example" {
   severities   = ["warning"]
   # order must be unique across every rule-group in the account. Terraform plans each
   # rule-group on its own, so a duplicate is not caught at plan time.
-  order        = 1
+  order = 1
 
   rule_subgroups = [{
     rules = [{
@@ -68,6 +68,7 @@ resource "coralogix_parsing_rules" "rules_group_example" {
         description        = "Block 2800 pg error"
         source_field       = "text"
         regular_expression = "sql_error_code\\s*=\\s*28000"
+        keep_blocked_logs  = false
       }
     }]
     }, {
@@ -107,7 +108,7 @@ resource "coralogix_parsing_rules" "extract_timestamp_example" {
   severities   = ["warning"]
   # order must be unique across every rule-group in the account. Terraform plans each
   # rule-group on its own, so a duplicate is not caught at plan time.
-  order        = 4
+  order = 4
 
   rule_subgroups = [{
     rules = [{
@@ -130,7 +131,7 @@ resource "coralogix_parsing_rules" "remove_fields_example" {
   severities   = ["warning"]
   # order must be unique across every rule-group in the account. Terraform plans each
   # rule-group on its own, so a duplicate is not caught at plan time.
-  order        = 3
+  order = 3
   rule_subgroups = [{
     rules = [{
       remove_fields = {
@@ -150,7 +151,7 @@ resource "coralogix_parsing_rules" "parse_json_field_example" {
   severities   = ["warning"]
   # order must be unique across every rule-group in the account. Terraform plans each
   # rule-group on its own, so a duplicate is not caught at plan time.
-  order        = 2
+  order = 2
   rule_subgroups = [{
     rules = [{
       parse_json_field = {
@@ -180,7 +181,7 @@ resource "coralogix_parsing_rules" "parse_json_field_example" {
 - `creator` (String) Rule-group creator.
 - `description` (String) Rule-group description
 - `hidden` (Boolean)
-- `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing). The value must be unique across every rule-group in the account. Terraform cannot enforce that, because rule-groups are separate resources that are planned in isolation, so two rule-groups sharing an order are only rejected - if at all - by the API.
+- `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing). The value must be unique across every rule-group in the account. Terraform cannot enforce that, because rule-groups are separate resources that are planned in isolation, so two rule-groups sharing an order are only rejected - if at all - by the API. Removing order from the configuration keeps the current order; set a value to move the rule-group.
 - `rule_subgroups` (Attributes List) List of rule-subgroups. Every rule-subgroup is a list of rules linked with a logical 'OR' (||) operation. (see [below for nested schema](#nestedatt--rule_subgroups))
 - `severities` (Set of String) Rules will execute on logs that match the these severities. Can be one of ["critical" "debug" "error" "info" "verbose" "warning"]
 - `subsystems` (Set of String) Rules will execute on logs that match the following subsystems.
@@ -225,6 +226,7 @@ Optional:
 
 Required:
 
+- `keep_blocked_logs` (Boolean) Determines if to view blocked logs in LiveTail and archive to S3.
 - `name` (String) The rule name.
 - `regular_expression` (String) Regular expiration. More info: https://coralogix.com/blog/regex-101/
 - `source_field` (String) The field on which the Regex will operate on. Accepts lowercase only.
@@ -234,7 +236,6 @@ Optional:
 - `active` (Boolean) Determines whether the rule will be active or not.
 - `block_all_matching_blocks` (Boolean) Block Logic. If true or nor set - blocking all matching blocks, if false - blocking all non-matching blocks.
 - `description` (String) The rule description.
-- `keep_blocked_logs` (Boolean) Determines if to view blocked logs in LiveTail and archive to S3.
 
 Read-Only:
 
@@ -395,13 +396,13 @@ Required:
 - `destination_field` (String) The field that will be populated by the results of the RegEx operation.
 - `name` (String) The rule name.
 - `regular_expression` (String) Regular expiration. More info: https://coralogix.com/blog/regex-101/
+- `replacement_string` (String) The string that will replace the matched RegEx
 - `source_field` (String) The field on which the Regex will operate on. Accepts lowercase only.
 
 Optional:
 
 - `active` (Boolean) Determines whether the rule will be active or not.
 - `description` (String) The rule description.
-- `replacement_string` (String) The string that will replace the matched RegEx
 
 Read-Only:
 

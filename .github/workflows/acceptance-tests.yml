@@ -44,8 +44,13 @@ env:
   # quota-allocation-rule-set shard runs all of them (handwritten, generated, and generated upgrade)
   # with -p 1; every other job skips them.
   QUOTA_ACC_PATTERN: &quota_acc_pattern '^TestAccCoralogix(Resource|DataSource)QuotaAllocation'
+  # Parsing-rules and rules-group resources share one account-wide order, and a Delete lowers the
+  # order of every group after the deleted one, so a test that runs at the same time as another
+  # reads back a changed order. The rule-groups shard runs all of them (handwritten, generated, and
+  # generated upgrade) with -p 1; every other job skips them.
+  RULE_GROUPS_ACC_PATTERN: &rule_groups_acc_pattern '^TestAccCoralogix(Resource|DataSource)(ParsingRules|RulesGroup)'
   # The generated upgrade shard leaves out the tests that have a shard of their own.
-  GENERATED_UPGRADE_SKIP_PATTERN: &generated_upgrade_skip_pattern '^TestAccCoralogix(Resource|DataSource)(Resource)?Archive(Logs|Metrics)|^TestAccCoralogix(Resource|DataSource)QuotaAllocation'
+  GENERATED_UPGRADE_SKIP_PATTERN: &generated_upgrade_skip_pattern '^TestAccCoralogix(Resource|DataSource)(Resource)?Archive(Logs|Metrics)|^TestAccCoralogix(Resource|DataSource)QuotaAllocation|^TestAccCoralogix(Resource|DataSource)(ParsingRules|RulesGroup)'
   DASHBOARD_SHARD_STRUCTURED_LINE_AND_TABLE: &dashboard_shard_structured_line_and_table '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/line-and-table$'
   DASHBOARD_SHARD_STRUCTURED_GAUGE_AND_BARS: &dashboard_shard_structured_gauge_and_bars '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/gauge-and-bars$'
   DASHBOARD_SHARD_STRUCTURED_HORIZONTAL_AND_HEXAGON: &dashboard_shard_structured_horizontal_and_hexagon '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/horizontal-and-hexagon$'
@@ -67,9 +72,8 @@ env:
   # notification-center shard skips the alerts pattern.
   NON_DASHBOARD_SHARD_ALERTS_AND_SCHEDULER: &non_dashboard_shard_alerts_and_scheduler '^TestAccCoralogix.*Alert'
   NON_DASHBOARD_SHARD_NOTIFICATION_CENTER: &non_dashboard_shard_notification_center '^TestAccCoralogix.*(Webhook|Connector|Preset|Integration)'
-  # The legacy rules-group resource and parsing-rules resource share account-wide order.
-  # Run their acceptance tests in one shard so one test cannot reorder another's group.
-  NON_DASHBOARD_SHARD_DATA_PROCESSING: &non_dashboard_shard_data_processing '^TestAccCoralogix.*(ParsingRules|ResourceRulesGroup|Enrichments?|DataSet|TCOPolicies)'
+  # The parsing-rules and rules-group tests run in the rule-groups shard of the provider-migration job.
+  NON_DASHBOARD_SHARD_DATA_PROCESSING: &non_dashboard_shard_data_processing '^TestAccCoralogix.*(Enrichments?|DataSet|TCOPolicies)'
   # The user tests run one after another and are the slowest non-dashboard tests.
   # Three shards keep each job near three minutes.
   # Tests that change team-wide state (archives, global router, IP access) stay
@@ -244,7 +248,7 @@ jobs:
             "$NON_DASHBOARD_SHARD_ACCESS_CONTROL"
             "$NON_DASHBOARD_SHARD_SLO_AI_VIEWS_AND_RECORDING_RULES"
           )
-          skip_pattern="$DASHBOARD_ACC_PATTERN|$EVENTS2METRIC_MIGRATION_ACC_PATTERN|$USER_MIGRATION_ACC_PATTERN|$ARCHIVE_LOGS_ACC_PATTERN|$QUOTA_ACC_PATTERN"
+          skip_pattern="$DASHBOARD_ACC_PATTERN|$EVENTS2METRIC_MIGRATION_ACC_PATTERN|$USER_MIGRATION_ACC_PATTERN|$ARCHIVE_LOGS_ACC_PATTERN|$QUOTA_ACC_PATTERN|$RULE_GROUPS_ACC_PATTERN"
           for pattern in "${shard_patterns[@]}"; do
             skip_pattern+="|($pattern)"
           done
@@ -472,6 +476,9 @@ jobs:
             procs: 1
           - shard: archive-logs
             pattern: *archive_logs_acc_pattern
+            procs: 1
+          - shard: rule-groups
+            pattern: *rule_groups_acc_pattern
             procs: 1
     runs-on: ubuntu-latest
     steps:

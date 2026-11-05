@@ -296,7 +296,7 @@
       "hidden": "(unknown)",
       "id": "00000000-0000-4000-9000-000000000003",
       "name": "first",
-      "order": "(unknown)",
+      "order": 1,
       "rule_subgroups": [
         {
           "active": true,
@@ -338,7 +338,7 @@
           "enabled": false,
           "hidden": false,
           "name": "first",
-          "order": 0,
+          "order": 1,
           "ruleSubgroups": [
             {
               "enabled": true,
@@ -371,7 +371,7 @@
       "hidden": false,
       "id": "00000000-0000-4000-9000-000000000003",
       "name": "first",
-      "order": 3,
+      "order": 1,
       "rule_subgroups": [
         {
           "active": true,

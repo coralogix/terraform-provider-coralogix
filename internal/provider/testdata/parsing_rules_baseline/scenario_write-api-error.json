@@ -93,7 +93,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_parsing_rules | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: injected failure\"}\noperation - Create"
+      "error: Unable to create parsing_rules | 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: injected failure\"}"
     ],
     "state": null
   },
@@ -258,7 +258,7 @@
       "hidden": "(unknown)",
       "id": "00000000-0000-4000-9000-000000000003",
       "name": "renamed",
-      "order": "(unknown)",
+      "order": 1,
       "rule_subgroups": [
         {
           "active": true,
@@ -300,7 +300,7 @@
           "enabled": false,
           "hidden": false,
           "name": "renamed",
-          "order": 0,
+          "order": 1,
           "ruleSubgroups": [
             {
               "enabled": true,
@@ -326,7 +326,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating coralogix_parsing_rules | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: injected failure\"}\noperation - Update"
+      "error: Unable to update parsing_rules | id 00000000-0000-4000-9000-000000000003: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: injected failure\"}"
     ],
     "state": {
       "active": false,
@@ -379,7 +379,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error deleting coralogix_parsing_rules | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: injected failure\"}\noperation - Read"
+      "error: Unable to delete parsing_rules | id 00000000-0000-4000-9000-000000000003: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: injected failure\"}"
     ],
     "state": {
       "active": false,

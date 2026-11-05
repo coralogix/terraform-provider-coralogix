@@ -30,7 +30,7 @@ data "coralogix_parsing_rules" "imported_rules_group_example" {
 - `hidden` (Boolean)
 - `id` (String) The ID of this resource.
 - `name` (String) Rule-group name
-- `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing). The value must be unique across every rule-group in the account. Terraform cannot enforce that, because rule-groups are separate resources that are planned in isolation, so two rule-groups sharing an order are only rejected - if at all - by the API.
+- `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing). The value must be unique across every rule-group in the account. Terraform cannot enforce that, because rule-groups are separate resources that are planned in isolation, so two rule-groups sharing an order are only rejected - if at all - by the API. Removing order from the configuration keeps the current order; set a value to move the rule-group.
 - `rule_subgroups` (Attributes List) List of rule-subgroups. Every rule-subgroup is a list of rules linked with a logical 'OR' (||) operation. (see [below for nested schema](#nestedatt--rule_subgroups))
 - `severities` (Set of String) Rules will execute on logs that match the these severities. Can be one of ["critical" "debug" "error" "info" "verbose" "warning"]
 - `subsystems` (Set of String) Rules will execute on logs that match the following subsystems.
