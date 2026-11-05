@@ -3,6 +3,7 @@ package generator
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/coralogix/coralogix-management-sdk/iac/model"
 	"github.com/coralogix/coralogix-management-sdk/iac/sdkcheck"
@@ -30,6 +31,13 @@ type crudData struct {
 	IDGoType string // string, int32, or int64
 	IDTFType string // String, Int32, or Int64
 	IDBits   int    // 0 for string; 32 or 64 for integer import parsing
+	// IDWrap names the wrap helpers of an id that the API holds in a one-property object, for
+	// example {"thingId": {"id": 1}}: wrap<IDWrap> and unwrap<IDWrap>. "" for an id that is the
+	// SDK field itself.
+	IDWrap string
+	// IDAsString: the integer id has the released Terraform type String (terraformType: String).
+	// The state holds its decimal text.
+	IDAsString bool
 	// Singleton: no id in the path (D18). The id attribute is the fixed value
 	// SingletonID, and the API calls take no id.
 	Singleton bool
@@ -133,6 +141,8 @@ type crudOp struct {
 	ResponseID string
 	// ResponseIDValue: the id field is a value, not a pointer.
 	ResponseIDValue bool
+	// ResponseIDWrap: the id field is the wrapper of the id, as the id field of the resource is.
+	ResponseIDWrap bool
 	// Empty: the response has no fields, so the generated call reads the resource with Get.
 	Empty bool
 }
@@ -180,7 +190,7 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 	if err := updateOnlyAttrs(r, out); err != nil {
 		return nil, err
 	}
-	if err := resourceIDData(r, ix, out); err != nil {
+	if err := resourceIDData(r, ix, file, out); err != nil {
 		return nil, err
 	}
 	if err := updateIDFromState(r, ix, out); err != nil {
@@ -251,7 +261,7 @@ func singletonID(file *overrides.File) string {
 	return "TypeName"
 }
 
-func resourceIDData(r *model.Resource, ix *refIndex, out *crudData) error {
+func resourceIDData(r *model.Resource, ix *refIndex, file *overrides.File, out *crudData) error {
 	if r.Singleton {
 		return nil
 	}
@@ -274,10 +284,50 @@ func resourceIDData(r *model.Resource, ix *refIndex, out *crudData) error {
 	if err != nil {
 		return err
 	}
-	if id.Want != "*"+idGoType && id.Want != idGoType {
-		return fmt.Errorf("SDK field %s has type %s, the id needs *%s or %s", id.SDKName(), id.Want, idGoType, idGoType)
+	// The SDK field holds the id, or the wrapper of the id. The id conversion makes the wrap
+	// helpers of that wrapper.
+	want := idGoType
+	switch len(r.IDType.Wrappers) {
+	case 0:
+	case 1:
+		w := r.IDType.Wrappers[0]
+		wrapper, err := ix.schemaRef(w.Schema)
+		if err != nil {
+			return err
+		}
+		want, out.IDWrap = wrapper.Name, wrapHelperName([]string{camelize(w.Schema)})
+	default:
+		return fmt.Errorf("resource id: %d wrappers, want at most 1", len(r.IDType.Wrappers))
 	}
-	out.IDAttr, out.IDField, out.IDValue = terraformName(r.Policy, r.Name, r.ID()), id.Name, id.Want == idGoType
+	if id.Want != "*"+want && id.Want != want {
+		return fmt.Errorf("SDK field %s has type %s, the id needs *%s or %s", id.SDKName(), id.Want, want, want)
+	}
+	out.IDAttr, out.IDField, out.IDValue = terraformName(r.Policy, r.Name, r.ID()), id.Name, id.Want == want
+	if err := idAsString(r, file, out); err != nil {
+		return err
+	}
+	return nil
+}
+
+// idAsString applies a terraformType String line, which only the integer resource id can have.
+func idAsString(r *model.Resource, file *overrides.File, out *crudData) error {
+	if file == nil {
+		return nil
+	}
+	for component, t := range file.Types {
+		for field, line := range t.Fields {
+			if line.TerraformType != "String" {
+				continue
+			}
+			if component != r.Name || field != r.ID() {
+				return fmt.Errorf("%s.%s: terraformType String is for the resource id %s.%s only", component, field, r.Name, r.ID())
+			}
+			if out.IDGoType != "int64" {
+				return fmt.Errorf("%s.%s: terraformType String needs an int64 id, not %s", component, field, out.IDGoType)
+			}
+			out.IDTFType, out.IDAsString = "String", true
+		}
+	}
 	return nil
 }
 
@@ -355,6 +405,16 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, overwrite bo
 			return out, err
 		}
 		out.Body = body.Name
+	}
+	if o.op.Response.ID != "" && o.op.Response.IDWrapperField != "" {
+		// The response holds the wrapper of the id, as the resource does. The wrap helpers of the
+		// resource id read it.
+		field, err := ix.fieldRef(o.name + ".response." + o.op.Response.ID)
+		if err != nil {
+			return out, err
+		}
+		out.ResponseID, out.ResponseIDValue, out.ResponseIDWrap = field.Name, !strings.HasPrefix(field.Want, "*"), true
+		return out, nil
 	}
 	if o.op.Response.ID != "" {
 		field, err := ix.fieldRef(o.name + ".response." + o.op.Response.ID)

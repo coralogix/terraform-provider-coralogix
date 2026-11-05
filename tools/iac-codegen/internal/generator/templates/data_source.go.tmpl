@@ -5,6 +5,9 @@ package {{.Package}}
 import (
 	"context"
 	"fmt"
+{{- if .CRUD.IDAsString}}
+	"strconv"
+{{- end}}
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
@@ -197,7 +200,16 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+{{- if .IDAsString}}
+	// The id attribute holds the decimal text of the id.
+	id, parseErr := strconv.ParseInt(configured.ValueString(), 10, {{.IDBits}})
+	if parseErr != nil {
+		resp.Diagnostics.AddAttributeError(path.Root({{printf "%q" .IDAttr}}), "Invalid id", fmt.Sprintf("The id %q is not a valid {{.IDGoType}}.", configured.ValueString()))
+		return
+	}
+{{- else}}
 	id := configured.Value{{.IDTFType}}()
+{{- end}}
 {{- if $name}}
 	if !name.IsNull() {
 		var diags diag.Diagnostics

@@ -20,4 +20,6 @@ types:
 ```
 An empty Update response needs no line: Update calls Get afterwards.
 
+**Id inside an object** (teams: `{"teamId": {"id": 1}}`): `idProperty: teamId`, `createResponseOnlyIDProperty: teamId`, and `unwrap: [v2.TeamId]`. A released String id over an int64 needs `terraformType: String` on the id line.
+
 **Why:** the generated Create and Update read the resource with Get when the response has no resource. Record the wire facts on a real tenant first.

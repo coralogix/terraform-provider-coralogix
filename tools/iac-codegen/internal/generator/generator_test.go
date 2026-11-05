@@ -3354,3 +3354,90 @@ func TestReadDigitStringsNeedsAnInt64Line(t *testing.T) {
 		}
 	}
 }
+
+func generateWrappedIDThing(t *testing.T) string {
+	t.Helper()
+	spec, err := os.ReadFile(filepath.Join("testdata", "wrappedidthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	out := filepath.Join(t.TempDir(), "wrappedidthing")
+	options := Options{Resource: "GetThingResponse", OutputDir: out, OverridesPath: filepath.Join("testdata", "wrappedidthing-overrides.yaml")}
+	if err := generateFromInput(options, input, loadDir); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+// An int64 id inside the one-property object thingId, shown as a String (terraformType: String),
+// with a Create response that holds only that object, and a double that the API stores as a
+// float32 (storedAs: float32).
+func TestGoldenOutputWrappedIDThing(t *testing.T) {
+	out := generateWrappedIDThing(t)
+	golden := filepath.Join("testdata", "golden", "wrappedidthing")
+	if *updateGolden {
+		if err := os.RemoveAll(golden); err != nil {
+			t.Fatal(err)
+		}
+		if err := copyDirectory(out, golden); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if diff := compareDirectories(golden, out); diff != "" {
+		t.Fatalf("golden output differs; run go test ./internal/generator -run TestGoldenOutputWrappedIDThing -update:\n%s", diff)
+	}
+}
+
+func TestWrappedIDThingRuntimeSemantics(t *testing.T) {
+	input, _ := syntheticInput(t)
+	out := generateWrappedIDThing(t)
+	semantics, err := os.ReadFile(filepath.Join("testdata", "wrappedidthing_semantics_test.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(out, "semantics_test.go"), semantics, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	compileGenerated(t, out, input)
+}
+
+// terraformType String is for the integer resource id only, and storedAs float32 for a double.
+func TestWrappedIDThingKeysAreChecked(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "wrappedidthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err := os.ReadFile(filepath.Join("testdata", "wrappedidthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := map[string]struct{ old, new, want string }{
+		"String on a field that is not the id": {
+			"      thingId: {name: id, readOnly: true, terraformType: String}\n",
+			"      thingId: {name: id, readOnly: true, terraformType: String}\n      name: {terraformType: String}\n",
+			"terraformType String",
+		},
+		"storedAs on a string": {
+			"      thingId: {name: id, readOnly: true, terraformType: String}\n",
+			"      thingId: {name: id, readOnly: true, terraformType: String}\n      name: {storedAs: float32}\n",
+			"storedAs float32 needs a double field",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			changed := strings.Replace(string(base), test.old, test.new, 1)
+			path := filepath.Join(t.TempDir(), "overrides.yaml")
+			if err := os.WriteFile(path, []byte(changed), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			input, loadDir := syntheticInput(t)
+			input.OpenAPI = spec
+			options := Options{Resource: "GetThingResponse", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: path}
+			if err := generateFromInput(options, input, loadDir); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %q", err, test.want)
+			}
+		})
+	}
+}

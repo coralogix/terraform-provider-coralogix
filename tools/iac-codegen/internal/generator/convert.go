@@ -280,8 +280,14 @@ const (
 	convNamedInts = "namedints" // types.List/Set of types.String ↔ []int32, []int64
 	// convInt32AsInt64 and convInts32AsInt64 keep the released Int64 type of an int32 field
 	// (terraformType: Int64).
-	convInt32AsInt64  = "int32asint64"  // types.Int64 ↔ *int32
-	convInts32AsInt64 = "ints32asint64" // types.List/Set of types.Int64Type ↔ []int32
+	convInt32AsInt64 = "int32asint64" // types.Int64 ↔ *int32
+	// convInt64AsString keeps the released String type of an int64 resource id (terraformType:
+	// String): the decimal text of the id.
+	convInt64AsString = "int64asstring" // types.String ↔ *int64
+	// convFloat64AsFloat32 reads a double that the API stores as a float32 (storedAs: float32) as
+	// the shortest decimal of the float32.
+	convFloat64AsFloat32 = "float64asfloat32" // types.Float64 ↔ *float64
+	convInts32AsInt64    = "ints32asint64"    // types.List/Set of types.Int64Type ↔ []int32
 
 	convStringMap = "stringmap" // types.Map ↔ map[string]string or map[string]<enum type>
 	convScalarMap = "scalarmap" // types.Map ↔ map[string]bool, int32, int64, float32, float64
@@ -1068,8 +1074,10 @@ func (f *convField) ValueKind() string {
 		return "Int32"
 	case convFloat32:
 		return "Float32"
-	case convFloat64:
+	case convFloat64, convFloat64AsFloat32:
 		return "Float64"
+	case convInt64AsString:
+		return "String"
 	}
 	return "Int64" // int64, uint64
 }
@@ -1420,6 +1428,23 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 // applyTerraformType converts an int32 field, or a list or set of int32, to the released Int64. A
 // uint64 that the API sends as a string is an Int64 already.
 func (b *convBuilder) applyTerraformType(cf *convField, component, name string) error {
+	var line overrides.Field
+	if b.file != nil {
+		line = b.file.Types[component].Fields[name]
+	}
+	if line.StoredAs != "" {
+		if cf.Conv != convFloat64 {
+			return fmt.Errorf("%s: storedAs float32 needs a double field", cf.TFName)
+		}
+		cf.Conv = convFloat64AsFloat32
+	}
+	if line.TerraformType == "String" {
+		if cf.Conv != convInt64 {
+			return fmt.Errorf("%s: terraformType String needs an int64 resource id", cf.TFName)
+		}
+		cf.Conv = convInt64AsString
+		return nil
+	}
 	if terraformType(b.resource.Policy, component, name) == "" {
 		return nil
 	}
@@ -1656,7 +1681,7 @@ func (b *convBuilder) applyReleasedKeys(cf *convField) error {
 // zeroTypes are the Go types of the scalar conversions that sendUnknownAsZero supports.
 var zeroTypes = map[string]string{
 	convString: "string", convBool: "bool", convInt32: "int32", convInt64: "int64",
-	convFloat32: "float32", convFloat64: "float64", convInt32AsInt64: "int32",
+	convFloat32: "float32", convFloat64: "float64", convInt32AsInt64: "int32", convFloat64AsFloat32: "float64",
 }
 
 // applySendUnknownAsZero sets the Go type of the zero value that expand sends for an unknown plan.
@@ -2320,6 +2345,7 @@ var scalarAttrTypes = map[string]string{
 	convString: "types.StringType", convSplit: "types.SetType{ElemType: types.StringType}", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
 	convBool: "types.BoolType", convNotBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
 	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
+	convInt64AsString: "types.StringType", convFloat64AsFloat32: "types.Float64Type",
 	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
 }
 
@@ -2698,7 +2724,7 @@ func sameCheck(f *convField) (string, error) {
 			break
 		}
 		return "slices.EqualFunc(" + a + ", " + b + ", time.Time.Equal)", nil
-	case convString, convBool, convNotBool, convFloat64, convFloat32, convInt32, convInt32AsInt64, convInt64, convUint64, convEnum, convTime:
+	case convString, convBool, convNotBool, convFloat64, convFloat32, convFloat64AsFloat32, convInt32, convInt32AsInt64, convInt64, convInt64AsString, convUint64, convEnum, convTime:
 		if !value {
 			a, b = "pointerValue("+a+")", "pointerValue("+b+")"
 		}
