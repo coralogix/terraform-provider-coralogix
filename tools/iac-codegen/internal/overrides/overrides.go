@@ -420,7 +420,7 @@ type Field struct {
 	// as true; one without it reads as null.
 	AsBool bool `yaml:"asBool"`
 	// TerraformType keeps the released Terraform type of an int32 field, or of a list or set of
-	// int32: Int64. Expand converts the value and reports one outside the int32 range.
+	// int32: Int64. String keeps a computed-only integer as decimal text.
 	TerraformType string `yaml:"terraformType"`
 	// DefaultArm: when the configuration sets no arm of the oneOf group of this arm, Create and
 	// Update send this arm empty. The group then allows no arm in Terraform, for an API that
@@ -1171,8 +1171,8 @@ func (l Field) check() error {
 	if l.Skip && (l.hasBehavior() || l.Name != "") {
 		return errors.New("a skipped field has no other behavior")
 	}
-	if l.TerraformType != "" && l.TerraformType != "Int64" {
-		return fmt.Errorf("terraformType is %q, want \"Int64\"", l.TerraformType)
+	if l.TerraformType != "" && l.TerraformType != "Int64" && l.TerraformType != "String" {
+		return fmt.Errorf("terraformType is %q, want \"Int64\" or \"String\"", l.TerraformType)
 	}
 	if l.RequestValue != "" && l.Name != "" {
 		return errors.New("a requestValue field is no Terraform attribute, so name changes nothing")
@@ -1408,6 +1408,9 @@ func (f *File) Policy() model.Policy {
 		t := f.Types[name]
 		for _, field := range sortedKeys(t.Fields) {
 			line := t.Fields[field]
+			if line.Required {
+				p.Required = append(p.Required, name+"."+field)
+			}
 			if line.Fixed() {
 				p.FixedRequest = append(p.FixedRequest, name+"."+field)
 			}

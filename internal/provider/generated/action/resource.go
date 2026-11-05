@@ -145,7 +145,7 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 		// the state, so Terraform marks the resource as tainted.
 		resp.Diagnostics.Append(r.applyUpdateOnly(ctx, req.Config, req.Plan, &resp.State)...)
 	}
-	if diags.HasError() && v != nil && v.Id != nil {
+	if diags.HasError() && v != nil && v.Id != nil && *v.Id != "" {
 		// The resource exists, but the state is not complete. Keep the id, so
 		// Terraform marks the resource as tainted and can delete it.
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), *v.Id)...)

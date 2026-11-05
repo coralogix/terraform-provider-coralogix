@@ -1,0 +1,98 @@
+resource: LegacyThing
+mode: existing
+markdownDescription: A resource that users already have.
+schema:
+  version: 2
+  upgrade:
+    1:
+      priorSchema: example.com/iac-test-sdk/legacyprior.V1
+      strategy: refresh
+validators:
+  inferred: false
+api:
+  requestWrapper: thing
+  updateIDInBody: true
+  clientSetID: true
+  getByIDs: ids
+  operations:
+    create: LegacyThingsService_CreateLegacyThing
+    get: LegacyThingsService_GetLegacyThingsByIds
+    update: LegacyThingsService_ReplaceLegacyThing
+    delete: LegacyThingsService_DeleteLegacyThing
+types:
+  LegacyThing:
+    fields:
+      id:
+        markdownDescription: The id. Leave it empty for a generated one.
+      name:
+        markdownDescription: The name.
+        required: true
+      createTime:
+        useStateForUnknown: true
+      labels:
+        description: The labels.
+        readEmptyAs: 'null'
+      rules:
+        description: The rules.
+        computed: true
+      teamId:
+        terraformType: String
+        useStateForUnknown: true
+  LegacyRule:
+    fields:
+      name:
+        description: The rule name.
+        required: true
+      managed:
+        skip: true
+      kind:
+        computed: true
+        default: alpha
+        useStateForUnknown: true
+        deprecation: Use another field.
+        validators:
+        - enum: true
+      targets:
+        description: The targets.
+        computed: true
+        keepPriorOrder: true
+        validators:
+        - sizeAtLeast: 1
+  LegacyLabels:
+    fields:
+      env:
+        description: ''
+        computed: true
+  LegacyTarget:
+    fields:
+      connectorId:
+        description: The connector.
+        required: true
+        validators:
+        - oneOf:
+          - first
+          - second
+      id:
+        skip: true
+enums:
+  legacy.Kind:
+    zero: unspecified
+    values:
+    - ALPHA
+    - BETA
+    rejected:
+    - GAMMA
+dataSource:
+  description: Reads a legacy thing. It only reads.
+  types:
+    LegacyThing:
+      fields:
+        name:
+          description: The name that the data source shows.
+    LegacyRule:
+      fields:
+        name:
+          description: The name of the rule that the data source shows.
+        managed:
+          show: true
+          description: Whether the rule is managed.
