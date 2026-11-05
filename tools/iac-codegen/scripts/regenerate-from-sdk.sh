@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Pin the Management SDK at a ref, regenerate every generated resource and the docs, and add a
-# changelog entry for each resource whose generated code changed.
+# Pin the Management SDK at a ref, regenerate the resources of tools/iac-codegen/auto-regenerate.txt
+# and the docs, and add a changelog entry for each resource whose generated code changed.
 # Usage: regenerate-from-sdk.sh <SDK ref: commit SHA, tag, or branch>
 # Prints the Terraform name of each changed resource, one per line, and nothing when the
 # generated code is unchanged. TFGEN can name a prebuilt generator.
@@ -34,9 +34,9 @@ else
   (cd tools/iac-codegen && go build -o "$binary" ./cmd/tfgen)
 fi
 
-sed -nE 's#^//go:generate make -C \.\./\.\. codegen RESOURCE=([^ ]+) OUT=([^ ]+)$#\1 \2#p' \
-  internal/provider/codegen.go >"$work/resources"
-while read -r resource out; do
+# Only resources of tools/iac-codegen/auto-regenerate.txt; the check fails when a generated one is missing.
+"$scripts/check-auto-regenerate-list.sh" >"$work/resources"
+while read -r resource out _; do
   printf 'Generating %s into %s\n' "$resource" "$out" >&2
   "$binary" generate --resource "$resource" --out "internal/provider/generated/$out" >&2
 done <"$work/resources"
