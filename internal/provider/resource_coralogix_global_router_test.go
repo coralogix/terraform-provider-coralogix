@@ -46,6 +46,7 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 				"SLACK_INTEGRATION_CHANNEL_UPDATED",
 				"PD_INTEGRATION_ID",
 			)
+			testAccRemoveLeftoverGlobalRouters(t, testAccResourceCoralogixGlobalRouter(name), testAccResourceCoralogixGlobalRouterUpdate(name))
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -181,7 +182,10 @@ func ruleTargets(attrs map[string]string) []string {
 func TestAccCoralogixResourceGlobalRouterOmittedValues(t *testing.T) {
 	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccRemoveLeftoverGlobalRouters(t, testAccResourceCoralogixGlobalRouterOmittedValues(name, ""))
+		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
