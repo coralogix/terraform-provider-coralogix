@@ -1,0 +1,94 @@
+# A released resource like the teams: the id is the int64 property id of the one-property object
+# thingId, in the Get response and in the Create response, which holds only that object. The path
+# parameter thing_id is the inner id. The Create response does not require thingId, so the SDK
+# holds it as a pointer there, and as a value in the Get response. Update takes the fields that it changes, and returns an
+# object with no fields. The API stores quota, a double, as a float32.
+openapi: 3.1.0
+info: {title: wrappedid, version: 1.0.0}
+paths:
+  /wrapped/v1/things:
+    post:
+      tags: [Wrapped Things Service]
+      operationId: WrappedThingsService_CreateThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: CreateThingBody
+              type: object
+              required: [name]
+              properties:
+                name: {type: string, minLength: 1}
+                quota: {type: number, format: double, x-coralogix-presence: true}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CreateThingResponse'}
+  /wrapped/v1/things/{thing_id}:
+    parameters:
+      - {name: thing_id, in: path, required: true, schema: {type: integer, format: int64}}
+    get:
+      tags: [Wrapped Things Service]
+      operationId: WrappedThingsService_GetThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/GetThingResponse'}
+    put:
+      tags: [Wrapped Things Service]
+      operationId: WrappedThingsService_UpdateThing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: UpdateThingBody
+              type: object
+              properties:
+                name: {type: string, minLength: 1, x-coralogix-presence: true}
+                quota: {type: number, format: double, x-coralogix-presence: true}
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/UpdateThingResponse'}
+    delete:
+      tags: [Wrapped Things Service]
+      operationId: WrappedThingsService_DeleteThing
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DeleteThingResponse'}
+components:
+  schemas:
+    ThingId:
+      type: object
+      properties:
+        id: {type: integer, format: int64, minimum: 0}
+    CreateThingResponse:
+      type: object
+      properties:
+        thingId:
+          description: The id of the new thing.
+          allOf: [{$ref: '#/components/schemas/ThingId'}]
+    GetThingResponse:
+      type: object
+      required: [thingId, name, quota]
+      properties:
+        thingId:
+          description: The id of the thing.
+          allOf: [{$ref: '#/components/schemas/ThingId'}]
+        name: {type: string, minLength: 1}
+        quota: {type: number, format: double}
+    UpdateThingResponse:
+      type: object
+    DeleteThingResponse:
+      type: object

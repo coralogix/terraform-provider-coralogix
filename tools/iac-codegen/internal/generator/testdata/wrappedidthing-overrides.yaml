@@ -1,0 +1,30 @@
+# A released resource like the teams: an int64 id in a wrapper, shown as a String, and a double
+# quota that the API stores as a float32.
+resource: GetThingResponse
+mode: existing
+typeName: wrapped_thing
+
+validators:
+  inferred: false
+
+api:
+  operations:
+    create: WrappedThingsService_CreateThing
+    get: WrappedThingsService_GetThing
+    update: WrappedThingsService_UpdateThing
+    delete: WrappedThingsService_DeleteThing
+  idProperty: thingId
+  createResponseOnlyIDProperty: thingId
+
+unwrap: [ThingId]
+
+types:
+  GetThingResponse:
+    fields:
+      thingId: {name: id, readOnly: true, terraformType: String}
+      quota:
+        storedAs: float32
+        computed: true
+        useStateForUnknown: true
+
+dataSource: {}
