@@ -1,0 +1,61 @@
+# A released collection resource like the archive retention tags: GET lists the tags, and one POST
+# renames them by id. The POST takes the list under another name and returns the tags that it
+# renamed, in the shape of the Get response.
+openapi: 3.1.0
+info: {title: retag things, version: 1.0.0}
+paths:
+  /v1/tags:
+    get:
+      operationId: RetagThingsService_ListTags
+      tags: [Retag Things Service]
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/TagList'}}}}
+    post:
+      operationId: RetagThingsService_RenameTags
+      tags: [Retag Things Service]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              title: Rename Tags Request
+              type: object
+              required: [tagUpdates]
+              properties:
+                tagUpdates:
+                  type: array
+                  minItems: 0
+                  items: {$ref: '#/components/schemas/TagUpdate'}
+      responses:
+        '200': {description: ok, content: {application/json: {schema: {$ref: '#/components/schemas/RenameTagsResponse'}}}}
+components:
+  schemas:
+    TagList:
+      type: object
+      required: [tags]
+      properties:
+        tags:
+          type: array
+          minItems: 0
+          items: {$ref: '#/components/schemas/Tag'}
+    RenameTagsResponse:
+      type: object
+      required: [tags]
+      properties:
+        tags:
+          type: array
+          minItems: 0
+          items: {$ref: '#/components/schemas/Tag'}
+    Tag:
+      type: object
+      required: [id, order, name]
+      properties:
+        id: {type: string, minLength: 1, readOnly: true, x-coralogix-presence: true}
+        order: {type: integer, format: int32, readOnly: true, x-coralogix-presence: true}
+        name: {type: string, minLength: 1, maxLength: 255, x-coralogix-presence: true}
+    TagUpdate:
+      type: object
+      required: [id, name]
+      properties:
+        id: {type: string, minLength: 1, x-coralogix-presence: true}
+        name: {type: string, minLength: 1, maxLength: 255, x-coralogix-presence: true}

@@ -135,6 +135,10 @@ type crudOp struct {
 	ResponseIDValue bool
 	// Empty: the response has no fields, so the generated call reads the resource with Get.
 	Empty bool
+	// Copy are the Go fields that the write of an overwrite resource returns
+	// (api.overwrite.writeReturnsResource). The generated call copies them into the resource
+	// instead of reading it with Get.
+	Copy []string
 }
 
 // buildCRUD maps the operations and their SDK names to the template data.
@@ -235,7 +239,7 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		if o.name == "delete" && file.Upserts() {
 			continue // the API cannot remove an upsert, so Delete makes no call
 		}
-		if *o.out, err = buildCRUDOp(ix, o, client.Name, resource.Name, r.Overwrite); err != nil {
+		if *o.out, err = buildCRUDOp(ix, o, client.Name, resource.Name, r); err != nil {
 			return nil, err
 		}
 	}
@@ -328,8 +332,9 @@ type crudSpec struct {
 
 // buildCRUDOp returns the SDK names of one operation. client is the SDK client
 // type, and resource is the SDK type of the resource.
-func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, overwrite bool) (crudOp, error) {
+func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Resource) (crudOp, error) {
 	var out crudOp
+	overwrite := r.Overwrite
 	if (o.op.Body != "") != o.body {
 		return out, fmt.Errorf("%s: request body %q is not supported", o.name, o.op.Body)
 	}
@@ -369,6 +374,18 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, overwrite bo
 	}
 	if (o.name == "update" || o.name == "create") && o.op.Response.Empty || writes {
 		out.Empty = true
+		if writes && r.WriteReturnsResource {
+			for _, f := range r.Fields {
+				if !f.InGet {
+					continue
+				}
+				field, err := ix.fieldRef(o.name + ".response." + f.Name)
+				if err != nil {
+					return out, err
+				}
+				out.Copy = append(out.Copy, field.Name)
+			}
+		}
 		return out, nil
 	}
 	if o.resource && !o.op.Response.Direct {
