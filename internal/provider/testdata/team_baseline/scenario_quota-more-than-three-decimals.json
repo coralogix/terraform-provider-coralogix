@@ -1,0 +1,44 @@
+[
+  {
+    "step": "create with 0.1234567",
+    "config": {
+      "daily_quota": 0.1234567,
+      "name": "precise"
+    },
+    "plan": {
+      "daily_quota": 0.1234567,
+      "id": "(unknown)",
+      "name": "precise",
+      "retention": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/teams/v2",
+        "body": {
+          "dailyQuota": 0.1234567,
+          "teamName": "precise"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "status": 200
+      }
+    ],
+    "inconsistentResult": [
+      "daily_quota"
+    ],
+    "state": {
+      "daily_quota": 0.123,
+      "id": "1001",
+      "name": "precise",
+      "retention": 1
+    },
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"daily_quota\")"
+    ]
+  }
+]
