@@ -94,20 +94,86 @@ func TestRequiredLineStatesPresenceOfASharedComponent(t *testing.T) {
 	}
 }
 
+// A required string of a shared nested component that accepts "" needs a line too: the API takes
+// "", which the contract cannot say next to required. required: true says that the released
+// resource requires the attribute and sends what the user writes, "" too, and the line is not
+// stale. A string that cannot be empty needs no line, so the line is stale there.
+func TestRequiredLineStatesAnEmptyStringOfASharedComponent(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "gadget.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	head := "resource: Gadget\nmode: existing\nvalidators:\n  inferred: true\n"
+	line := head + "types:\n  GadgetSearch:\n    fields:\n      label: {required: true}\n"
+	for name, test := range map[string]struct {
+		field string
+		file  string
+		code  string
+	}{
+		"empty allowed, no line":            {"label: {type: string, x-coralogix-presence: true}", head, "REQUIRED_VALUE_CAN_BE_EMPTY"},
+		"empty allowed, line":               {"label: {type: string, x-coralogix-presence: true}", line, ""},
+		"empty refused, stale line":         {"label: {type: string, minLength: 1, x-coralogix-presence: true}", line, "OVERRIDE_UNUSED"},
+		"empty refused, no line":            {"label: {type: string, minLength: 1, x-coralogix-presence: true}", head, ""},
+		"pattern refuses empty, stale line": {"label: {type: string, pattern: '^[a-z]+$', x-coralogix-presence: true}", line, "OVERRIDE_UNUSED"},
+		"pattern allows empty, line":        {"label: {type: string, pattern: '^[a-z]*$', x-coralogix-presence: true}", line, ""},
+	} {
+		t.Run(name, func(t *testing.T) {
+			spec := strings.Replace(string(data), "      required: [text]\n      properties:\n", "      required: [text, label]\n      properties:\n        "+test.field+"\n", 1)
+			if spec == string(data) {
+				t.Fatal("the fixture changed: update the replaced text")
+			}
+			_, err := validateOpenAPIWith([]byte(spec), "Gadget", model.OperationIDs{}, "candidate.invalid/coralogix-management-sdk", providerModulePath, mustParse(t, test.file))
+			if test.code == "" {
+				if err != nil {
+					t.Fatalf("err = %v, want none", err)
+				}
+				return
+			}
+			if !slices.ContainsFunc(reportOf(t, err), func(i issue.Issue) bool { return i.Code == test.code }) {
+				t.Fatalf("err = %v, want %s", err, test.code)
+			}
+		})
+	}
+}
+
 // Flatten cannot match a set element that the API returns without a nested default to the
-// configured element, so a nested server default inside a set is an error. In a list it works.
+// configured element, so a nested server default inside a set is an error, unless the response
+// requires the field and so always returns the stored value. In a list it works.
 func TestNestedServerDefaultInsideASetIsAnError(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("testdata", "gadget.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for collection, wantErr := range map[string]bool{"set": true, "list": false} {
+	for _, test := range []struct {
+		name             string
+		set, outRequires bool
+		wantErr          bool
+	}{
+		{name: "set", set: true, wantErr: true},
+		{name: "set whose response requires the default", set: true, outRequires: true},
+		{name: "list"},
+	} {
 		extra := ""
-		if collection == "set" {
+		if test.set {
 			extra = ", x-coralogix-collection: set"
 		}
 		spec := strings.ReplaceAll(string(data), "search: {$ref: '#/components/schemas/GadgetSearch'}",
 			"search: {type: array"+extra+", items: {$ref: '#/components/schemas/GadgetSearch'}}")
+		if test.outRequires {
+			// The response holds its own copy of the item, which requires the defaulted field.
+			spec = strings.Replace(spec, "        search: {type: array"+extra+", items: {$ref: '#/components/schemas/GadgetSearch'}}",
+				"        search: {type: array"+extra+", items: {$ref: '#/components/schemas/GadgetSearchOut'}}", 1)
+			spec = strings.Replace(spec, "    GadgetMode:\n", `    GadgetSearchOut:
+      type: object
+      required: [text, syntax]
+      properties:
+        text: {type: string, minLength: 1}
+        syntax:
+          $ref: '#/components/schemas/GadgetSyntax'
+          default: GADGET_SYNTAX_PLAIN
+    GadgetMode:
+`, 1)
+		}
 		doc, err := model.Load([]byte(spec))
 		if err != nil {
 			t.Fatal(err)
@@ -117,8 +183,8 @@ func TestNestedServerDefaultInsideASetIsAnError(t *testing.T) {
 			t.Fatal(err)
 		}
 		_, err = buildTFResource(r, "gadget")
-		if got := err != nil && strings.Contains(err.Error(), "inside a set is unsupported"); got != wantErr {
-			t.Errorf("%s: err = %v, want the set error %t", collection, err, wantErr)
+		if got := err != nil && strings.Contains(err.Error(), "inside a set is unsupported"); got != test.wantErr {
+			t.Errorf("%s: err = %v, want the set error %t", test.name, err, test.wantErr)
 		}
 	}
 }

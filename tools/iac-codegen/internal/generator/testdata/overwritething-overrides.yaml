@@ -1,0 +1,56 @@
+# A released collection resource like the TCO policies: one PUT replaces the things of kind A, Get
+# lists every kind, the written item wraps the common fields and sends disabled for enabled, and
+# the rules of the item show their comma-separated values on the item as a set.
+resource: ThingList
+mode: existing
+typeName: overwrite_thing
+
+validators:
+  inferred: false
+
+singletonID: {fixed: overwrite-things}
+
+api:
+  overwrite:
+    getQuery: {kind: THING_KIND_A}
+  operations:
+    create: OverwriteThingsService_OverwriteKindAThings
+    get: OverwriteThingsService_ListThings
+    update: OverwriteThingsService_OverwriteKindAThings
+    delete: OverwriteThingsService_OverwriteKindAThings
+
+types:
+  ThingList:
+    fields:
+      things: {required: true}
+  Thing:
+    requestWrapper: thing
+    fields:
+      enabled: {requestAs: disabled, negate: true, computed: true, default: true}
+      description:
+        computed: true
+        default: ""
+        # Released validators: a description of at most 50 characters, and none next to the rule values.
+        validators:
+          - lengthAtMost: 50
+          - conflictsWith: [names]
+      # The rules of kind A show their values on the thing. Kind A never has the rules of kind B.
+      aRules: {inline: true}
+      bRules: {skip: true}
+      values:
+        split: ","
+        name: names
+        validators:
+          - sizeAtLeast: 1
+          - regexMatches: {pattern: "^[^A-Z]+$", message: "Only lowercase letters are allowed"}
+
+# The API returns THING_PRIORITY_UNSPECIFIED for a thing without a priority; the released resource
+# read it as null and did not accept it.
+enums:
+  ThingPriority:
+    zeroNull: true
+    trimPrefix: THING_PRIORITY_
+    values: [THING_PRIORITY_LOW, THING_PRIORITY_HIGH]
+
+# The data source reads the things of kind A.
+dataSource: {}

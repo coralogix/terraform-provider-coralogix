@@ -12,6 +12,7 @@ import (
 	"slices"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
@@ -513,6 +514,8 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, out *{{$sd
 {{- template "expandField" .}}
 {{- end}}
 }
+{{else if and .Expand .Carry}}
+{{- template "carryExpand" .}}
 {{else if .Expand}}
 func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{if not .Local}}{{$sdk}}.{{end}}{{.SDK}} {
 	if m == nil {
@@ -523,9 +526,14 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 	out.{{.SDK}} = &{{.Type}}{} // an inlined object: its fields are top-level attributes
 {{- end}}
 {{- range .Fields}}
-{{- if not .FlattenOnly}}
+{{- if not (or .FlattenOnly .Carried)}}
 {{- template "expandField" .}}
 {{- end}}
+{{- end}}
+{{- range .DropEmptyParents}}
+	if out.{{.SDK}} != nil{{range .Nulls}} && {{.}}{{end}} {
+		out.{{.SDK}} = nil // an optional object that the configuration sets no attribute of is left out
+	}
 {{- end}}
 {{- range .DefaultArms}}
 	// No arm is set, so the request sends the empty {{.Field}} arm.
@@ -536,7 +544,9 @@ func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *dia
 	return out
 }
 {{end}}
-{{- if .Flatten}}
+{{- if and .Flatten .Carry}}
+{{- template "carryFlatten" .}}
+{{else if .Flatten}}
 func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$sdk}}.{{end}}{{.SDK}}, {{if .NeedsPrior}}prior *{{.Model}}, {{end}}diags *diag.Diagnostics) *{{.Model}} {
 	if v == nil {
 		return nil
@@ -548,9 +558,21 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$s
 		return &{{$model}}{}
 	}
 {{- end}}
+{{- if .FlattenParents}}
+	// The fields of an inlined object read as null when the API returns no object.
+	copied := *v
+	v = &copied
+{{- range .FlattenParents}}
+	if v.{{.SDK}} == nil {
+		v.{{.SDK}} = &{{.Type}}{}
+	}
+{{- end}}
+{{- end}}
 	out := &{{.Model}}{}
 {{- range .Fields}}
+{{- if not .Carried}}
 {{- template "flattenField" .}}
+{{- end}}
 {{- end}}
 {{- range .ExtraFlatten}}
 	out.{{.Name}} = {{.Expr}}
@@ -573,9 +595,29 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$s
 // same{{.Func}} reports whether two SDK values are equal. It compares the fields that the resource
 // manages. A missing value and an empty one are equal.
 func same{{.Func}}(a, b *{{$sdk}}.{{.SDK}}) bool {
+{{- if .NilParents}}
+	a, b = withParents{{.Func}}(a), withParents{{.Func}}(b)
+{{- end}}
 	return {{range $i, $c := .SameChecks}}{{if $i}} &&
 		{{end}}{{$c}}{{else}}true{{end}}
 }
+{{- if .NilParents}}
+
+// withParents{{.Func}} returns a copy of v with an empty object for each optional object on the way
+// to a compared field that v leaves out. It copies the objects that it changes, so v stays as it is.
+func withParents{{.Func}}(v *{{$sdk}}.{{.SDK}}) *{{$sdk}}.{{.SDK}} {
+	out := *v
+{{- range .NilParents}}
+	if out.{{.SDK}} == nil {
+		out.{{.SDK}} = &{{.Type}}{}
+	} else {
+		c := *out.{{.SDK}}
+		out.{{.SDK}} = &c
+	}
+{{- end}}
+	return &out
+}
+{{- end}}
 {{end}}
 {{- if .AttrTypes}}
 func {{.AttrTypesFunc}}() map[string]attr.Type {
@@ -790,6 +832,75 @@ func expandBool(v types.Bool) *bool {
 	b := v.ValueBool()
 	return &b
 }
+{{- if .Conv.Uses "split"}}
+
+// joinStrings returns the elements of a set of strings joined by sep, as the API holds them, or nil
+// for a null or unknown set.
+func joinStrings(ctx context.Context, p path.Path, v types.Set, sep string, diags *diag.Diagnostics) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	var values []string
+	diags.Append(v.ElementsAs(ctx, &values, false)...)
+	joined := strings.Join(values, sep)
+	return &joined
+}
+
+// splitStrings returns the values that the API holds joined by sep as a set of strings, or a null
+// set when the API has none.
+func splitStrings(v *string, sep string) types.Set {
+	if v == nil {
+		return types.SetNull(types.StringType)
+	}
+	elems := []attr.Value{}
+	if *v == "" {
+		// joinStrings sends an empty set as "": it reads back empty, not as one empty element.
+		return types.SetValueMust(types.StringType, elems)
+	}
+	for _, s := range strings.Split(*v, sep) {
+		elems = append(elems, types.StringValue(s))
+	}
+	return types.SetValueMust(types.StringType, elems)
+}
+{{- end}}
+{{- if .Conv.DropsEmpty}}
+
+// modelNull reports whether the configuration leaves a model field out: a null value, or a nil
+// object, list, or map.
+func modelNull(v any) bool {
+	if a, ok := v.(attr.Value); ok {
+		return a.IsNull()
+	}
+	switch rv := reflect.ValueOf(v); rv.Kind() {
+	case reflect.Pointer, reflect.Slice, reflect.Map:
+		return rv.IsNil()
+	}
+	return false
+}
+{{- end}}
+{{- if .Conv.UsesNegated}}
+
+// negateBool returns the opposite of a bool that a request sends under the opposite name.
+func negateBool(v *bool) *bool {
+	if v == nil {
+		return nil
+	}
+	b := !*v
+	return &b
+}
+{{- end}}
+
+{{- if .Conv.Uses "notbool"}}
+
+// negateBool returns the opposite of b, and nil for nil.
+func negateBool(b *bool) *bool {
+	if b == nil {
+		return nil
+	}
+	n := !*b
+	return &n
+}
+{{- end}}
 
 func expandFloat64(v types.Float64) *float64 {
 	if v.IsNull() || v.IsUnknown() {
@@ -855,6 +966,36 @@ func expandEnumMapped[T ~string](p path.Path, v types.String, toAPI map[string]T
 	return &e
 }
 
+{{if .Conv.UsesCaseInsensitive -}}
+// expandEnumMappedFold is expandEnumMapped for a value that the configuration can write in any case.
+func expandEnumMappedFold[T ~string](p path.Path, v types.String, toAPI map[string]T, diags *diag.Diagnostics) *T {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	if e, ok := toAPI[v.ValueString()]; ok {
+		return &e
+	}
+	for name, e := range toAPI {
+		if strings.EqualFold(name, v.ValueString()) {
+			return &e
+		}
+	}
+	diags.AddAttributeError(p, "Unsupported value", fmt.Sprintf("The value %q is not supported.", v.ValueString()))
+	return nil
+}
+
+// keepPriorCase returns the prior value when the API value differs from it only in case.
+func keepPriorCase(prior, api types.String) types.String {
+	if prior.IsNull() || prior.IsUnknown() || api.IsNull() || api.IsUnknown() {
+		return api
+	}
+	if strings.EqualFold(prior.ValueString(), api.ValueString()) {
+		return prior
+	}
+	return api
+}
+
+{{end -}}
 // flattenEnumMapped returns the Terraform value of an API value. A value that the map lacks is an error.
 func flattenEnumMapped[T ~string](p path.Path, v *T, fromAPI map[T]string, diags *diag.Diagnostics) types.String {
 	if v == nil {
@@ -934,7 +1075,7 @@ func flattenEnum[T ~string](v *T, zero string) types.String {
 	return types.StringValue(string(*v))
 }
 
-{{- if .Conv.PriorLists}}
+{{- if or .Conv.PriorLists .Conv.UsesPrior .Conv.UsesPriorVia}}
 
 // priorItems returns the items of the prior list, or nil when it cannot be read. The prior only
 // keeps an order or the text of a document, so a prior that cannot be read is not an error.
@@ -1539,7 +1680,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- end}}
 
 {{- define "expandField"}}
-{{- if .FlattenOnly}}
+{{- if or .FlattenOnly .RequestPosition}}
 {{- else if .Wrap}}
 	{
 		var inner {{.Wrap.Inner}}
@@ -1560,6 +1701,12 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- define "expandValue"}}
 {{- $p := printf "p.AtName(%q)" .TFName}}
 {{- $l := ""}}{{$r := ""}}{{if .DirectValue}}{{$l = "valueOf("}}{{$r = ")"}}{{end}}
+{{- if .SendUnknownAsZero}}
+	if m.{{.Model}}.IsUnknown() {
+		// The released resource sent an unknown value as its zero value, which the API stores.
+		{{.Dst}} = {{$l}}new({{.ZeroType}}){{$r}}
+	} else {
+{{- end}}
 {{- if and (eq .Conv "string") .SendNullAsEmpty}}
 	if m.{{.Model}}.IsNull() {
 		// The API keeps a stored value that the request omits, so a removed value is sent as "".
@@ -1569,8 +1716,15 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 {{- else if eq .Conv "string"}}
 	{{.Dst}} = {{$l}}expandString(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "split"}}
+	{{.Dst}} = {{$l}}joinStrings(ctx, {{$p}}, m.{{.Model}}, {{printf "%q" .Split}}, diags){{$r}}
+{{- else if and (eq .Conv "bool") .Negated}}
+	{{.Dst}} = {{$l}}negateBool(expandBool(m.{{.Model}})){{$r}}
 {{- else if eq .Conv "bool"}}
 	{{.Dst}} = {{$l}}expandBool(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "notbool"}}
+	// Terraform shows the opposite of the API flag.
+	{{.Dst}} = {{$l}}negateBool(expandBool(m.{{.Model}})){{$r}}
 {{- else if eq .Conv "float64"}}
 	{{.Dst}} = {{$l}}expandFloat64(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "int32"}}
@@ -1599,6 +1753,8 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{.Dst}} = expandMap[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
 {{- else if eq .Conv "uint64"}}
 	{{.Dst}} = {{$l}}expandUint64({{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if and (eq .Conv "enum") .EnumMap .CaseInsensitive}}
+	{{.Dst}} = {{$l}}expandEnumMappedFold({{$p}}, m.{{.Model}}, {{.EnumMap.Name}}ToAPI, diags){{$r}}
 {{- else if and (eq .Conv "enum") .EnumMap}}
 	{{.Dst}} = {{$l}}expandEnumMapped({{$p}}, m.{{.Model}}, {{.EnumMap.Name}}ToAPI, diags){{$r}}
 {{- else if eq .Conv "enum"}}
@@ -1614,7 +1770,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 {{- else if eq .Conv "fixed"}}
 	{
-		fixed := {{.SDKType}}({{printf "%q" .RequestValue}})
+		fixed := {{.FixedValue}}
 		{{.Dst}} = {{if .Value}}fixed{{else}}&fixed{{end}}
 	}
 {{- else if and (eq .Conv "object") .ObjectValue}}
@@ -1696,6 +1852,20 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 			{{.Dst}} = append({{.Dst}}, {{.SDKType}}{ {{- .Keyed.Key}}: {{if .Keyed.KeyValue}}k{{else}}&k{{end}}, {{.Keyed.Value}}: {{if .Keyed.ValueValue}}v{{else}}&v{{end -}} })
 		}
 	}
+{{- else if eq .Conv "splitarms"}}
+	{{- $f := .}}
+	{{- range .Object.Fields}}
+	for _, value := range expandStrings{{if eq $f.Collection "Set"}}Set{{end}}[string](ctx, p.AtName({{printf "%q" .TFName}}), m.{{.Model}}, diags) {
+		// One item per value: the item holds the arm of this attribute.
+		item := {{$f.SDKType}}{}
+		{
+			m := &struct{ {{.Model}} types.String }{ {{- .Model}}: types.StringValue(value)}
+			out := &item
+{{- template "expandField" .}}
+		}
+		{{$f.Dst}} = append({{$f.Dst}}, item)
+	}
+	{{- end}}
 {{- else if eq .Conv "objects"}}
 	if items := expandElements[{{.Object.Model}}](ctx, {{$p}}, m.{{.Model}}, diags); items != nil {
 		{{.Dst}} = make([]{{.SDKType}}, 0, len(items))
@@ -1706,6 +1876,17 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 			{{.Dst}} = append({{.Dst}}, *expand{{.Object.Func}}(ctx, {{$p}}.AtListIndex(i), &items[i], diags))
 			{{- end}}
 		}
+		{{- with .Object.PositionField}}
+		{{- $t := "int64"}}{{if eq .Conv "int32"}}{{$t = "int32"}}{{end}}
+		for i := range {{$.Dst}} {
+			// The position of the item in the list, from 1.
+			position := {{$t}}(i + 1)
+			{{$.Dst}}[i].{{.SDK}} = {{if not .Value}}&{{end}}position
+		}
+		{{- end}}
+	}
+{{- end}}
+{{- if .SendUnknownAsZero}}
 	}
 {{- end}}
 {{- end}}
@@ -1735,7 +1916,9 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- define "flattenValue"}}
 {{- $p := printf "p.AtName(%q)" .TFName}}
 {{- $v := .Src}}{{if .DirectValue}}{{$v = printf "&%s" .Src}}{{end}}
-{{- if eq .Conv "string"}}
+{{- if eq .Conv "split"}}
+	out.{{.Model}} = splitStrings({{$v}}, {{printf "%q" .Split}})
+{{- else if eq .Conv "string"}}
 	out.{{.Model}} = types.StringPointerValue({{$v}})
 	{{- template "readZeroAsNull" .}}
 	{{- if .Equality}}
@@ -1755,6 +1938,9 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{- end}}
 {{- else if eq .Conv "bool"}}
 	out.{{.Model}} = types.BoolPointerValue({{$v}})
+{{- else if eq .Conv "notbool"}}
+	// Terraform shows the opposite of the API flag.
+	out.{{.Model}} = types.BoolPointerValue(negateBool({{$v}}))
 {{- else if eq .Conv "float64"}}
 	out.{{.Model}} = types.Float64PointerValue({{$v}})
 	{{- template "readZeroAsNull" .}}
@@ -1787,6 +1973,13 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.Model}} = flattenRFC3339({{$v}})
 {{- else if eq .Conv "times"}}
 	out.{{.Model}} = flattenTimes{{.Collection}}(ctx, {{.Src}}, diags)
+{{- else if and (eq .Conv "enum") .EnumMap .EnumMap.ZeroNull}}
+	if api := {{$v}}; api != nil && *api == {{printf "%q" .EnumMap.ZeroNull}} {
+		// The zero value means that the API has no value.
+		out.{{.Model}} = types.StringNull()
+	} else {
+		out.{{.Model}} = flattenEnumMapped({{$p}}, api, {{.EnumMap.Name}}FromAPI, diags)
+	}
 {{- else if and (eq .Conv "enum") .EnumMap}}
 	{{- if .Missing}}
 	if {{$v}} == nil {
@@ -1796,6 +1989,12 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 	{{- else}}
 	out.{{.Model}} = flattenEnumMapped({{$p}}, {{$v}}, {{.EnumMap.Name}}FromAPI, diags)
+	{{- end}}
+	{{- if .CaseInsensitive}}
+	if prior != nil {
+		// The value is case-insensitive, so the spelling of the plan or the state stays.
+		out.{{.Model}} = keepPriorCase(prior.{{.Model}}, out.{{.Model}})
+	}
 	{{- end}}
 {{- else if eq .Conv "enum"}}
 	out.{{.Model}} = flattenEnum({{$v}}, {{printf "%q" .EnumZero}})
@@ -1939,6 +2138,36 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		}
 		out.{{.Model}} = flattenMap(ctx, types.StringType, items, diags)
 	}
+{{- else if eq .Conv "splitarms"}}
+	{{- $f := .}}
+	for i := range {{$f.Src}} {
+		arms := 0
+		{{- range $f.Object.Fields}}
+		if {{$f.Src}}[i].{{.SDK}} != nil {
+			arms++
+		}
+		{{- end}}
+		if arms != 1 {
+			diags.AddAttributeError(path.Root({{printf "%q" (index $f.Object.Fields 0).TFName}}), "Invalid response from server", fmt.Sprintf("Item %d of the response has %d of {{range $i, $a := $f.Object.Fields}}{{if $i}}, {{end}}{{$a.TFName}}{{end}}; it must have exactly one.", i, arms))
+		}
+	}
+	{{- range .Object.Fields}}
+	{
+		values := []string{}
+		for i := range {{$f.Src}} {
+			v := &{{$f.Src}}[i]
+			if v.{{.SDK}} == nil {
+				continue
+			}
+			out := &struct{ {{.Model}} types.String }{}
+{{- template "flattenField" .}}
+			if !out.{{.Model}}.IsNull() {
+				values = append(values, out.{{.Model}}.ValueString())
+			}
+		}
+		out.{{.Model}} = flattenStrings{{$f.Collection}}(ctx, values, diags)
+	}
+	{{- end}}
 {{- else if eq .Conv "objects"}}
 	{{- $src := .Src}}{{if .KeepPriorOrder}}{{$src = printf "src%s" .Model}}{{end}}
 	out.{{.Model}} = types.{{.Collection}}Null(types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()})
@@ -1991,4 +2220,109 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		out.{{.Model}} = flatten{{.Collection}}(ctx, types.ObjectType{AttrTypes: {{.Object.AttrTypesFunc}}()}, items, diags)
 	}
 {{- end}}
+{{- end}}
+
+{{- define "carryExpand"}}
+{{- $obj := .}}
+{{- $carry := .Carry}}
+// expand{{.Func}} sends the arm that the model sets, with the fields of {{.SDK}} that the arm
+// holds in Terraform.
+func expand{{.Func}}(ctx context.Context, p path.Path, m *{{.Model}}, diags *diag.Diagnostics) *{{$carry.Pkg}}.{{.SDK}} {
+	if m == nil {
+		return nil
+	}
+	out := &{{$carry.Pkg}}.{{.SDK}}{}
+{{- range .Carry.Arms}}
+{{- $arm := .}}
+	if arm := m.{{.Model}}; arm != nil {
+		p := p.AtName({{printf "%q" .TFName}})
+		m := arm
+{{- range .Siblings}}
+{{- template "expandField" .}}
+{{- end}}
+		oneOf := &{{$carry.Pkg}}.{{$carry.Field.Object.SDK}}{}
+{{- range .Folds}}
+		if flag := m.{{.Flag}}; !flag.IsNull() && !flag.IsUnknown() && !flag.ValueBool() {
+			// false selects the arm that Terraform shows in this one.
+			kept := expand{{$arm.Object.Func}}(ctx, p, m, diags)
+			oneOf.{{.SDK}} = &{{.SDKType}}{ {{- range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f}}: kept.{{$f}}{{end -}} }
+		} else {
+			oneOf.{{$arm.SDK}} = expand{{$arm.Object.Func}}(ctx, p, m, diags)
+		}
+{{- else}}
+		oneOf.{{.SDK}} = expand{{.Object.Func}}(ctx, p, m, diags)
+{{- end}}
+		out.{{$carry.Field.SDK}} = {{if $carry.Field.Value}}*{{end}}oneOf
+	}
+{{- end}}
+	return out
+}
+{{- end}}
+
+{{- define "carryFlatten"}}
+{{- $obj := .}}
+{{- $carry := .Carry}}
+// flatten{{.Func}} reads the arm of {{.SDK}} with the fields of {{.SDK}} that the arm holds in
+// Terraform.
+func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{$carry.Pkg}}.{{.SDK}}, {{if .NeedsPrior}}prior *{{.Model}}, {{end}}diags *diag.Diagnostics) *{{.Model}} {
+	if v == nil {
+		return nil
+	}
+	out := &{{.Model}}{}
+	oneOf := {{if $carry.Field.Value}}&{{end}}v.{{$carry.Field.SDK}}
+{{- if $carry.RequireOne}}
+	arms := 0
+	if oneOf != nil {
+{{- range $carry.Field.Object.Fields}}
+		if oneOf.{{.SDK}} != nil {
+			arms++
+		}
+{{- end}}
+	}
+	if arms != 1 {
+		diags.AddAttributeError(p, "Invalid response from server", fmt.Sprintf("The response has %d of {{range $i, $f := $carry.Field.Object.Fields}}{{if $i}}, {{end}}{{$f.TFName}}{{end}}; it must have exactly one.", arms))
+	}
+{{- end}}
+	if oneOf == nil {
+		return out
+	}
+{{- range .Carry.Arms}}
+{{- $arm := .}}
+	{
+{{- if $obj.NeedsPrior}}
+		var priorArm *{{.Object.Model}}
+		if prior != nil {
+			priorArm = prior.{{.Model}}
+		}
+{{- end}}
+		var arm *{{.Object.Model}}
+{{- range .Folds}}
+{{- $fold := .}}
+		if oneOf.{{.SDK}} != nil {
+			kept := &{{$carry.Pkg}}.{{$arm.Object.SDK}}{ {{- range $i, $f := .Fields}}{{if $i}}, {{end}}{{$f}}: oneOf.{{$fold.SDK}}.{{$f}}{{end -}} }
+			arm = flatten{{$arm.Object.Func}}(ctx, p.AtName({{printf "%q" $arm.TFName}}), kept, {{if $arm.Object.NeedsPrior}}priorArm, {{end}}diags)
+			arm.{{.Flag}} = types.BoolValue(false)
+		}
+{{- end}}
+		if oneOf.{{.SDK}} != nil {
+			arm = flatten{{.Object.Func}}(ctx, p.AtName({{printf "%q" .TFName}}), oneOf.{{.SDK}}, {{if .Object.NeedsPrior}}priorArm, {{end}}diags)
+{{- range .Folds}}
+			arm.{{.Flag}} = types.BoolValue(true)
+{{- end}}
+		}
+		if arm != nil {
+			out := arm
+{{- if $obj.NeedsPrior}}
+			prior := priorArm
+			_ = prior
+{{- end}}
+{{- range .Siblings}}
+{{- template "flattenField" .}}
+{{- end}}
+		}
+		out.{{.Model}} = arm
+	}
+{{- end}}
+	return out
+}
 {{- end}}

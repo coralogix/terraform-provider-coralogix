@@ -8,7 +8,10 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/echo_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/eval_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/folder_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/group_set_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/legacy_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/overwrite_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/parse_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/rename_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/rulebook_service"
 	"example.com/iac-test-sdk/go/openapi/gen/settings_service"
@@ -21,6 +24,7 @@ import (
 )
 
 type ClientSet struct {
+	Overwrite      *overwrite_things_service.OverwriteThingsServiceAPIService
 	ActionThing    *action_things_service.ActionThingsServiceAPIService
 	Folder         *folder_things_service.FolderThingsServiceAPIService
 	Client         *things_service.ThingsServiceAPIService
@@ -38,6 +42,8 @@ type ClientSet struct {
 	UpsertClient   *upsert_service.UpsertServiceAPIService
 	StorageClient  *storage_service.StorageServiceAPIService
 	Rename         *rename_things_service.RenameThingsServiceAPIService
+	Parse          *parse_things_service.ParseThingsServiceAPIService
+	GroupSet       *group_set_things_service.GroupSetThingsServiceAPIService
 }
 
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
@@ -96,4 +102,16 @@ func (c *ClientSet) RenameThings() *rename_things_service.RenameThingsServiceAPI
 
 func (c *ClientSet) ActionThings() *action_things_service.ActionThingsServiceAPIService {
 	return c.ActionThing
+}
+
+func (c *ClientSet) ParseThings() *parse_things_service.ParseThingsServiceAPIService {
+	return c.Parse
+}
+
+func (c *ClientSet) GroupSetThings() *group_set_things_service.GroupSetThingsServiceAPIService {
+	return c.GroupSet
+}
+
+func (c *ClientSet) OverwriteThings() *overwrite_things_service.OverwriteThingsServiceAPIService {
+	return c.Overwrite
 }

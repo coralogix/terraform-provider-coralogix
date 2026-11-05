@@ -625,7 +625,7 @@ func TestEmptyRequiredLineIsUnused(t *testing.T) {
 	if len(report) != 0 {
 		t.Fatal(report)
 	}
-	report = overrideIssues(doc, component, mustParse(t, text))
+	report = overrideIssues(doc, component, mustParse(t, text), model.OperationIDs{}, model.Policy{})
 	if len(report) != 1 || report[0].Code != "OVERRIDE_UNUSED" || report[0].Location != "behavior-overrides.yaml:types.LegacyLabels.required" {
 		t.Fatalf("report = %v, want OVERRIDE_UNUSED for types.LegacyLabels.required", report)
 	}
@@ -740,6 +740,11 @@ func TestModeLinesReplaceTheContractDefault(t *testing.T) {
 		"other line":     {"{description: The priority.}", true, true, ""},
 		"not computed":   {"{computed: false}", false, false, ""},
 		"static default": {"{computed: true, default: 0}", true, false, "int64default.StaticInt64(0)"},
+		// These keys state what an omitted value plans and sends, so the server default of the
+		// contract must not make a removal unknown on top of them.
+		"send unknown as zero":  {"{computed: true, sendUnknownAsZero: true}", true, false, ""},
+		"keep the state":        {"{computed: true, useStateForUnknown: true}", true, false, ""},
+		"keep a non-null state": {"{computed: true, useNonNullStateForUnknown: true}", true, false, ""},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -995,6 +1000,19 @@ func TestRequestValueByIsRefusedWithAnUpdateMask(t *testing.T) {
 	_, err := validateOpenAPIWith([]byte(spec), "Thing", model.OperationIDs{}, "sdk", "provider", mustParse(t, text))
 	if err == nil || !strings.Contains(err.Error(), "requestValueBy needs an Update that replaces the resource") {
 		t.Fatalf("err = %v, want requestValueBy refused for a masked Update", err)
+	}
+}
+
+// A carrySiblings object shows its fields inside the arms, so the update mask cannot name them by
+// their Terraform paths. The generator refuses the line on a resource that Update patches with a
+// mask, and accepts it when Update sends no mask.
+func TestCarrySiblingsIsRefusedWithAnUpdateMask(t *testing.T) {
+	base := "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  Step:\n    fields:\n      params: {requireOne: true, carrySiblings: {}}\n"
+	if err := replaceOnlyLines(mustParse(t, base)); err == nil || !strings.Contains(err.Error(), "Step.params: carrySiblings needs an Update that replaces the resource") {
+		t.Fatalf("err = %v, want carrySiblings refused for a masked Update", err)
+	}
+	if err := replaceOnlyLines(mustParse(t, "resource: Thing\nmode: existing\nvalidators:\n  inferred: false\n")); err != nil {
+		t.Fatalf("err = %v, want no error without a carrySiblings line", err)
 	}
 }
 
@@ -1298,5 +1316,41 @@ func TestCreateResponseOnlyIDPropertyIsRefusedForASingleton(t *testing.T) {
 	_, err = validateOpenAPIWith([]byte(changed), "Settings", model.OperationIDs{}, "sdk", "provider", file)
 	if !slices.Contains(eligibilityCodes(t, err), "READ_BACK_SINGLETON_UNSUPPORTED") {
 		t.Fatalf("err = %v, want READ_BACK_SINGLETON_UNSUPPORTED", err)
+	}
+}
+
+// A required line on a nested component that no request reaches is not stale: its required list
+// binds only the response, as for an item whose requests hold its fields in an object of their own
+// (requestWrapper).
+func TestRequiredLineOnAResponseOnlyComponent(t *testing.T) {
+	doc, err := model.Load([]byte("openapi: 3.1.0\ninfo: {title: t, version: 1.0.0}\npaths: {}\ncomponents:\n  schemas:\n    Item:\n      type: object\n      required: [priority]\n      properties:\n        priority: {type: string, minLength: 1}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema, err := doc.Components.Schemas.GetOrZero("Item").BuildSchema()
+	if err != nil {
+		t.Fatal(err)
+	}
+	line := overrides.Line{Kind: overrides.KindField, Component: "Item", Field: "priority", Required: true}
+	if problem := fieldLineProblem(schema, line, true, true); problem != nil {
+		t.Fatalf("problem = %v, want none for a component that no request reaches", problem)
+	}
+	if problem := fieldLineProblem(schema, line, true, false); problem == nil || !slices.Contains(problem.stale, "required") {
+		t.Fatalf("problem = %v, want a stale required key for a shared component", problem)
+	}
+}
+
+// keysAre checks each key of a map, and only fits a map.
+func TestKeysAreValidator(t *testing.T) {
+	v := overrides.Validator{KeysAre: &overrides.RegexMatches{Pattern: "tags.*", Message: "tag names must have a 'tags.' prefix"}}
+	got, err := validatorExpr(&tfAttr{ValueKind: "Map"}, v, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "mapvalidator.KeysAre(stringvalidator.RegexMatches(regexp.MustCompile(`tags.*`), \"tag names must have a 'tags.' prefix\"))"; got != want {
+		t.Fatalf("expr = %s, want %s", got, want)
+	}
+	if _, err := validatorExpr(&tfAttr{ValueKind: "String"}, v, nil); err == nil {
+		t.Fatal("keysAre fits a string, want an error")
 	}
 }

@@ -145,8 +145,13 @@ func attachExtraBehavior(out *tfResource, resource, component, name string, extr
 			return fmt.Errorf("types.%s.extraAttributes.%s: dynamic applies to an attribute of the resource %s: the state keeps the value of a dynamic attribute only at the top level", component, name, resource)
 		}
 		if out.CRUD != nil {
-			out.CRUD.DynamicExtras = append(out.CRUD.DynamicExtras, dynamicExtra{TFName: name, Model: camelize(name)})
+			out.CRUD.KeptExtras = append(out.CRUD.KeptExtras, keptExtra{TFName: name, Model: camelize(name), Type: "types.Dynamic"})
 		}
+	}
+	// A configurable string of the resource also keeps the value of the plan or the prior state.
+	// A nested one, or a computed one, gets its value from an AfterFlatten hook.
+	if extra.Type == "string" && !extra.Computed && !extra.WriteOnly && component == resource && out.CRUD != nil {
+		out.CRUD.KeptExtras = append(out.CRUD.KeptExtras, keptExtra{TFName: name, Model: camelize(name), Type: "types.String"})
 	}
 	if extra.InUpdate {
 		if component != resource {

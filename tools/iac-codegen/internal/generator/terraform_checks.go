@@ -27,7 +27,7 @@ func terraformContractIssues(doc *v3.Document, component string, ids model.Opera
 	report := omittedMaskIssues(model.ValidateWithPolicy(doc, component, ids, p), file)
 	if t, _ := model.SurveyWithPolicy(doc, component, p); t != nil {
 		report = append(report, terraformNameCollisions(p, "components.schemas."+component, t)...)
-		report = append(report, uint64RangeIssues(component, t)...)
+		report = append(report, uint64RangeIssues(p, component, t)...)
 	}
 	return report.Normalize()
 }
@@ -88,20 +88,24 @@ func terraformNameCollisions(p model.Policy, location string, t *model.Type) iss
 
 // uint64RangeIssues reports a uint64 that may not fit Terraform Int64: it must travel as a
 // string of at most 18 decimal digits. path is the path of the type in the spec, as the model
-// names it.
-func uint64RangeIssues(path string, t *model.Type) issue.Report {
+// names it. A skipped field has no attribute. A field with a terraformType Int64 line was Int64 in
+// the released resource, and flatten reports a larger value.
+func uint64RangeIssues(p model.Policy, path string, t *model.Type) issue.Report {
 	if t == nil {
 		return nil
 	}
 	switch t.Kind {
 	case model.List, model.Set:
-		return uint64RangeIssues(path+"[]", t.Elem)
+		return uint64RangeIssues(p, path+"[]", t.Elem)
 	case model.Map:
-		return uint64RangeIssues(path+"{}", t.Elem)
+		return uint64RangeIssues(p, path+"{}", t.Elem)
 	case model.Object, model.OneOf:
 		var report issue.Report
 		for _, field := range t.Fields {
-			report = append(report, uint64RangeIssues(path+"."+field.Name, field.Type)...)
+			if lists(p.Skip, t.Schema, field.Name) || p.AsInt64(t.Schema, field.Name) {
+				continue
+			}
+			report = append(report, uint64RangeIssues(p, path+"."+field.Name, field.Type)...)
 		}
 		return report
 	}

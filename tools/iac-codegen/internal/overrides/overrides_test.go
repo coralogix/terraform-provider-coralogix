@@ -78,37 +78,47 @@ func TestParseIsStrict(t *testing.T) {
 		text string
 		want string
 	}{
-		"empty file":                        {"", "empty"},
-		"unknown key":                       {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nbogus: 1\n", "bogus"},
-		"unknown nested":                    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrappr: x\n", "requestWrappr"},
-		"no resource":                       {"mode: existing\n", "resource is required"},
-		"wrong mode":                        {"resource: Thing\nmode: new\n", `mode is "new"`},
-		"no mode":                           {"resource: Thing\n", `mode is ""`},
-		"no validators":                     {"resource: Thing\nmode: existing\n", "validators.inferred is required"},
-		"bad readEmptyAs":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {readEmptyAs: zero}\n", "readEmptyAs"},
-		"bad default":                       {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {default: [a]}\n", "default is"},
-		"two validators":                    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {validators: [{oneOf: [a], sizeAtLeast: 1}]}\n", "exactly one"},
-		"empty line":                        {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {}\n", "sets nothing"},
-		"skip and more":                     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, computed: true}\n", "skipped field"},
-		"required list":                     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    required: [a]\n", "only the empty list"},
-		"type with no op":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T: {}\n", "has no override"},
-		"bad extra type":                    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      token_wo:\n        elementType: bool\n        markdownDescription: x\n", "elementType"},
-		"dynamic with elementType":          {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      p:\n        dynamic: true\n        elementType: string\n        markdownDescription: x\n", "dynamic attribute has no elementType"},
-		"inUpdate on a write-only extra":    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      p:\n        elementType: string\n        writeOnly: true\n        inUpdate: true\n        markdownDescription: x\n", "inUpdate cannot be combined with writeOnly"},
-		"computed required extra":           {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      p:\n        elementType: string\n        computed: true\n        required: true\n        markdownDescription: x\n", "computed cannot be combined with required"},
-		"unwrap twice":                      {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nunwrap: [A, A]\n", "names A twice"},
-		"skip and unwrap":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, unwrap: true}\n", "skipped field"},
-		"requestValue and name":             {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {requestValue: X, name: g}\n", "requestValue field is no Terraform attribute"},
-		"terraformType other than Int64":    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {terraformType: Int16}\n", "want \"Int64\""},
-		"skip and terraformType":            {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, terraformType: Int64}\n", "skipped field"},
-		"skip and name":                     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, name: g}\n", "skipped field"},
-		"bad name":                          {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {name: Time-Frame}\n", "is not a Terraform attribute name"},
-		"empty value name":                  {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {valueNames: {1: Sunday, 2: \"\"}}\n", "2 has an empty name"},
-		"skip and asBool":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, asBool: true}\n", "skipped field"},
-		"same value name":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {valueNames: {1: Sunday, 7: Sunday}}\n", "1 and 7 both have the name"},
-		"name of a readable rejected value": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    zero: unspecified\n    values: [E_ONE]\n    rejected: [E_TWO]\n    readRejected: true\n    names: {E_ONE: E_TWO}\n", "have the same Terraform value"},
-		"bad nested group name":             {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    groups:\n      Bad-Name: {fields: [a]}\n", "types.T.groups.Bad-Name: the name is not a Terraform name"},
-		"field in two nested groups":        {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    groups:\n      a: {fields: [x]}\n      b: {fields: [x]}\n", "field x is also in types.T.groups.a"},
+		"empty file":                                 {"", "empty"},
+		"unknown key":                                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nbogus: 1\n", "bogus"},
+		"unknown nested":                             {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\napi:\n  requestWrappr: x\n", "requestWrappr"},
+		"no resource":                                {"mode: existing\n", "resource is required"},
+		"wrong mode":                                 {"resource: Thing\nmode: new\n", `mode is "new"`},
+		"no mode":                                    {"resource: Thing\n", `mode is ""`},
+		"no validators":                              {"resource: Thing\nmode: existing\n", "validators.inferred is required"},
+		"bad readEmptyAs":                            {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {readEmptyAs: zero}\n", "readEmptyAs"},
+		"bad default":                                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {default: {a: 1}}\n", "default is"},
+		"non-empty list default":                     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {default: [a]}\n", "must be empty"},
+		"send unknown as zero not computed":          {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {sendUnknownAsZero: true}\n", "needs computed: true"},
+		"send unknown as zero with default":          {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {sendUnknownAsZero: true, computed: true, default: 1}\n", "never unknown"},
+		"fold without a flag":                        {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {carrySiblings: {fold: {a: {into: b, markdownDescription: x}}}}\n", "needs into (another arm), flag, and markdownDescription"},
+		"fold into itself":                           {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {carrySiblings: {fold: {a: {into: a, flag: f, markdownDescription: x}}}}\n", "needs into (another arm)"},
+		"fold into a folded arm":                     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {carrySiblings: {fold: {a: {into: b, flag: f, markdownDescription: x}, b: {into: c, flag: g, markdownDescription: y}}}}\n", "is folded itself"},
+		"empty carried request value":                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {carrySiblings: {requestValues: {a: {s: \"\"}}}}\n", "is empty"},
+		"carrySiblings without requireOne":           {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {carrySiblings: {}}\n", "carrySiblings needs requireOne: true"},
+		"requestPosition with a mode":                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {requestPosition: true, computed: true}\n", "computed-only"},
+		"split arms with another key":                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {splitArms: true, requiresReplace: true}\n", "no attribute of its own"},
+		"two validators":                             {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {validators: [{oneOf: [a], sizeAtLeast: 1}]}\n", "exactly one"},
+		"empty line":                                 {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {}\n", "sets nothing"},
+		"skip and more":                              {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, computed: true}\n", "skipped field"},
+		"required list":                              {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    required: [a]\n", "only the empty list"},
+		"type with no op":                            {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T: {}\n", "has no override"},
+		"bad extra type":                             {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      token_wo:\n        elementType: bool\n        markdownDescription: x\n", "elementType"},
+		"dynamic with elementType":                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      p:\n        dynamic: true\n        elementType: string\n        markdownDescription: x\n", "dynamic attribute has no elementType"},
+		"inUpdate on a write-only extra":             {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      p:\n        elementType: string\n        writeOnly: true\n        inUpdate: true\n        markdownDescription: x\n", "inUpdate cannot be combined with writeOnly"},
+		"unwrap twice":                               {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nunwrap: [A, A]\n", "names A twice"},
+		"skip and unwrap":                            {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, unwrap: true}\n", "skipped field"},
+		"requestValue and name":                      {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {requestValue: X, name: g}\n", "requestValue field is no Terraform attribute"},
+		"terraformType other than Int64":             {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {terraformType: Int16}\n", "want \"Int64\""},
+		"skip and terraformType":                     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, terraformType: Int64}\n", "skipped field"},
+		"skip and name":                              {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, name: g}\n", "skipped field"},
+		"bad name":                                   {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {name: Time-Frame}\n", "is not a Terraform attribute name"},
+		"empty value name":                           {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {valueNames: {1: Sunday, 2: \"\"}}\n", "2 has an empty name"},
+		"skip and asBool":                            {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {skip: true, asBool: true}\n", "skipped field"},
+		"same value name":                            {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {valueNames: {1: Sunday, 7: Sunday}}\n", "1 and 7 both have the name"},
+		"name of a readable rejected value":          {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    zero: unspecified\n    values: [E_ONE]\n    rejected: [E_TWO]\n    readRejected: true\n    names: {E_ONE: E_TWO}\n", "have the same Terraform value"},
+		"bad nested group name":                      {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    groups:\n      Bad-Name: {fields: [a]}\n", "types.T.groups.Bad-Name: the name is not a Terraform name"},
+		"field in two nested groups":                 {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    groups:\n      a: {fields: [x]}\n      b: {fields: [x]}\n", "field x is also in types.T.groups.a"},
+		"computed required extra":                    {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    extraAttributes:\n      p:\n        elementType: string\n        computed: true\n        required: true\n        markdownDescription: x\n", "computed cannot be combined with required"},
 		"zero spelling of a readable rejected value": {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    zero: E_TWO\n    values: [E_ONE]\n    rejected: [E_TWO]\n    readRejected: true\n", "zero and the rejected \"E_TWO\" have the same Terraform value"},
 		"name that is the lower case":                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    values: [E_ONE]\n    names: {E_ONE: e_one}\n", "already the Terraform value"},
 		"name that trimPrefix makes":                 {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\nenums:\n  E:\n    trimPrefix: E_\n    values: [E_ONE]\n    names: {E_ONE: one}\n", "already the Terraform value"},
@@ -200,17 +210,20 @@ func TestADefaultCanBeANumber(t *testing.T) {
 	}
 }
 
-// A line whose mode a server default cannot have replaces the server default of the contract.
+// A line whose mode a server default cannot have replaces the server default of the contract:
+// a default, no computed value, or a key that states what an omitted value plans and sends.
 // Another line keeps it.
 func TestLinesThatReplaceTheServerDefault(t *testing.T) {
 	f, err := Parse([]byte("resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n" +
 		"      a: {default: 0}\n      b: {required: true}\n      c: {computed: false}\n" +
-		"      d: {computed: true}\n      e: {computed: true, useStateForUnknown: true}\n      f: {description: Text.}\n"))
+		"      d: {computed: true}\n      e: {computed: true, useStateForUnknown: true}\n      f: {description: Text.}\n" +
+		"      g: {computed: true, sendUnknownAsZero: true}\n      h: {computed: true, useNonNullStateForUnknown: true}\n" +
+		"      i: {showInverted: true}\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(f.Policy().Defaults, ","); got != "R.a,R.c" {
-		t.Fatalf("policy defaults = %s, want R.a,R.c", got)
+	if got := strings.Join(f.Policy().Defaults, ","); got != "R.a,R.c,R.e,R.g,R.h,R.i" {
+		t.Fatalf("policy defaults = %s, want R.a,R.c,R.e,R.g,R.h,R.i", got)
 	}
 }
 
@@ -586,7 +599,9 @@ func TestParseRejectsUpsertInlineAndNameMistakes(t *testing.T) {
 		"singletonID with both keys":  {head + "singletonID: {fixed: a, fromAPI: true}\n", "exactly one of fixed"},
 		"singletonID with no key":     {head + "singletonID: {}\n", "exactly one of fixed"},
 		"inline with other keys":      {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, computed: true}\n", "sets only inline"},
-		"inline on a nested type":     {head + "types:\n  Other:\n    fields:\n      s3: {inline: true}\n", "applies to a field of the resource Target"},
+		"inline with negate":          {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, negate: true}\n", "sets only inline"},
+		"inline with split":           {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, split: \",\"}\n", "sets only inline"},
+		"inline with requestAs":       {head + "types:\n  Target:\n    fields:\n      s3: {inline: true, requestAs: bucket}\n", "sets only inline"},
 		"name not a Terraform name":   {head + "types:\n  Target:\n    fields:\n      isActive: {name: Active}\n", "is not a Terraform attribute name"},
 		"skipped field with a name":   {head + "types:\n  Target:\n    fields:\n      isActive: {skip: true, name: active}\n", "a skipped field has no other behavior"},
 		"the removed fixedID key":     {head + "fixedID: settings\n", "fixedID not found"},
@@ -613,6 +628,58 @@ func TestExtraAttributeShapeErrors(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			if err := test.extra.check("field"); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
+func TestParseOverwriteAndItemShape(t *testing.T) {
+	text := `
+resource: ThingList
+mode: existing
+singletonID: {fixed: things}
+validators:
+  inferred: false
+api:
+  overwrite:
+    getQuery: {kind: THING_KIND_A}
+  operations: {create: W, get: G, update: W, delete: W}
+types:
+  Thing:
+    requestWrapper: thing
+    fields:
+      enabled: {requestAs: disabled, negate: true}
+  Rules:
+    fields:
+      name: {split: ",", name: names}
+`
+	f, err := Parse([]byte(text))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := f.Policy()
+	if !p.Overwrite || p.GetQuery["kind"] != "THING_KIND_A" || p.RequestWrappers["Thing"] != "thing" ||
+		p.RequestNames["Thing.enabled"] != "disabled" || !slices.Equal(p.RequestNegated, []string{"Thing.enabled"}) {
+		t.Fatalf("policy = %+v", p)
+	}
+	if f.Types["Rules"].Fields["name"].Split != "," || f.Upserts() {
+		t.Fatalf("file = %+v", f)
+	}
+}
+
+func TestParseRejectsOverwriteAndItemShapeMistakes(t *testing.T) {
+	const head = "resource: ThingList\nmode: existing\nvalidators:\n  inferred: false\n"
+	const overwrite = "api:\n  overwrite: {getQuery: {kind: A}}\n  operations: {create: W, get: G, update: W, delete: W}\n"
+	tests := map[string]struct{ text, want string }{
+		"overwrite with two writes":        {head + "api:\n  overwrite: {}\n  operations: {create: W, get: G, update: U, delete: W}\n", "name the write as create, update, and delete"},
+		"overwrite with a request wrapper": {head + overwrite + "  requestWrapper: things\n", "cannot go with the other api keys"},
+		"requestWrapper on the resource":   {head + overwrite + "types:\n  ThingList:\n    requestWrapper: list\n", "uses api.requestWrapper"},
+		"split with a collection":          {head + overwrite + "types:\n  Rules:\n    fields:\n      name: {split: \",\", collection: set}\n", "split shows a string as a set"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if _, err := Parse([]byte(test.text)); err == nil || !strings.Contains(err.Error(), test.want) {
 				t.Fatalf("err = %v, want %q", err, test.want)
 			}
 		})

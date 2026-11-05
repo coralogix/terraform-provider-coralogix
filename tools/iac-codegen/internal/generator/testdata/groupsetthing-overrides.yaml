@@ -1,0 +1,41 @@
+# The released group set thing: a set of groups whose interval has a validator next to its server
+# default, a uint64 limit that the released attribute shows as Int64, a skipped server value that may
+# not fit Int64, items that the released resource required, labels that the server fills in, and
+# a document that a hook turns into the groups.
+resource: GroupSetThing
+mode: existing
+typeName: group_set_thing
+afterFlatten: true
+schema:
+  version: 1
+  upgrade:
+    0: {priorSchema: example.com/iac-test-sdk/groupsetprior.V0, strategy: refresh}
+validators:
+  inferred: false
+api:
+  operations:
+    create: GroupSets_Create
+    get: GroupSets_Fetch
+    update: GroupSets_Update
+    delete: GroupSets_Delete
+  createResponseOnlyIDProperty: id
+types:
+  GroupSetThing:
+    fields:
+      name: {computed: true, useStateForUnknown: true}
+      groups: {computed: true, useStateForUnknown: true}
+    extraAttributes:
+      document:
+        type: string
+        markdownDescription: A document that a hook turns into the groups.
+  OutGroupThing:
+    fields:
+      lastSeenAt: {skip: true}
+      interval:
+        validators: [{atLeast: 60}]
+        description: How often the group runs, in seconds.
+      limit: {terraformType: Int64}
+      items: {required: true}
+  OutItemThing:
+    fields:
+      labels: {computed: true}

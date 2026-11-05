@@ -73,7 +73,7 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	id := TypeName
+	id := SingletonID
 	var queryID *string
 	if configured.IsUnknown() {
 		resp.Diagnostics.AddError("Unknown singleton data source id", "The id must be known before the API read.")

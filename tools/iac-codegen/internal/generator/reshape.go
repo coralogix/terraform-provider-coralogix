@@ -2,6 +2,7 @@ package generator
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 
@@ -41,7 +42,8 @@ const upsertLocation = "behavior-overrides.yaml:api.operations"
 // gets data and ids unchanged. policy is the policy of file.
 func reshape(data []byte, component string, ids model.OperationIDs, file *overrides.File, policy model.Policy) ([]byte, model.OperationIDs, issue.Report) {
 	inlined := file.InlinedFields()
-	if file == nil || !file.Upserts() && len(inlined) == 0 {
+	nested := file.NestedInlined()
+	if file == nil || !file.Upserts() && len(inlined) == 0 && len(nested) == 0 {
 		return data, ids, nil
 	}
 	var root yaml.Node
@@ -62,6 +64,12 @@ func reshape(data []byte, component string, ids model.OperationIDs, file *overri
 			return data, ids, issue.Report{inlineIssue(component, component+": "+err.Error())}
 		}
 		h.done[response] = shape.Get
+	}
+	if len(nested) != 0 {
+		var report issue.Report
+		if shape.Nested, report = h.inlineNested(doc, nested); len(report) != 0 {
+			return data, ids, report
+		}
 	}
 	out := ids
 	if file.Upserts() {
@@ -389,6 +397,47 @@ func inlineSDKNames(refs []sdkcheck.Ref, file *overrides.File) []sdkcheck.Ref {
 				sdkcheck.Ref{Path: path, Kind: sdkcheck.KindType, Pkg: pkg, Name: typ, Rule: sdkcheck.RuleComponent, Schema: parent.Schema})
 		}
 	}
+	return inlineNestedSDKNames(out, file)
+}
+
+// inlineNestedSDKNames moves the SDK names of the fields that an inline line of a nested component
+// moved to the type of the object that holds them, and adds that object: its field of the
+// component, next to the moved field, and its type.
+func inlineNestedSDKNames(refs []sdkcheck.Ref, file *overrides.File) []sdkcheck.Ref {
+	if len(file.Inlined.Nested) == 0 {
+		return refs
+	}
+	out := slices.Clone(refs)
+	added := map[string]bool{}
+	for i, ref := range refs {
+		if ref.Kind != sdkcheck.KindField {
+			continue
+		}
+		for schema, parents := range file.Inlined.Nested {
+			if ref.Owner != model.GoName(schema) {
+				continue
+			}
+			at := strings.LastIndex(ref.Path, ".")
+			if at < 0 {
+				continue
+			}
+			parent, ok := parents[ref.Path[at+1:]]
+			if !ok {
+				continue
+			}
+			typ := model.GoName(parent.Schema)
+			out[i].Owner = typ
+			path := ref.Path[:at] + "." + parent.Field
+			if added[path] {
+				continue
+			}
+			added[path] = true
+			// A required object can be a value in the SDK. An arm of a oneOf is a pointer.
+			out = append(out,
+				sdkcheck.Ref{Path: path, Kind: sdkcheck.KindField, Pkg: ref.Pkg, Owner: ref.Owner, Name: goFieldName(parent.Field), Want: "*" + typ, WantValue: typ, Rule: sdkcheck.RuleProperty},
+				sdkcheck.Ref{Path: path, Kind: sdkcheck.KindType, Pkg: ref.Pkg, Name: typ, Rule: sdkcheck.RuleComponent, Schema: parent.Schema})
+		}
+	}
 	return out
 }
 
@@ -477,5 +526,126 @@ func stringNode(values []string) *yaml.Node {
 	for _, v := range values {
 		out.Content = append(out.Content, &yaml.Node{Kind: yaml.ScalarNode, Value: v})
 	}
+	return out
+}
+
+// inlineNested inlines the object fields of nested components that inline lines name. A line on
+// field F of component C inlines F in C, and in each component that holds the same object under F
+// and that the resource component or the request bodies of the operations in api.operations reach:
+// the request item of C. It returns the object that holds each moved field, by component.
+func (h inliner) inlineNested(doc *yaml.Node, nested map[string][]string) (map[string]map[string]overrides.Parent, issue.Report) {
+	ops := h.file.API.Operations
+	if ops == nil || ops.Create == "" || ops.Update == "" {
+		return nil, issue.Report{inlineIssue(h.resource, "an inline line on a nested component needs api.operations, which name the requests that hold the object too")}
+	}
+	// The object component that each inlined field holds: component, then field.
+	objects := map[string]map[string]string{}
+	for _, component := range slices.Sorted(maps.Keys(nested)) {
+		schema := mapValue(h.schemas, component)
+		if schema == nil {
+			return nil, issue.Report{inlineIssue(component, "the contract has no component "+component)}
+		}
+		objects[component] = map[string]string{}
+		for _, field := range nested[component] {
+			value := mapValue(mapValue(schema, "properties"), field)
+			object := refName(value)
+			if object == "" {
+				object = allOfRef(value)
+			}
+			if object == "" {
+				return nil, issue.Report{inlineIssue(component, fmt.Sprintf("inline: %s.%s must be a $ref to an object component", component, field))}
+			}
+			objects[component][field] = object
+		}
+	}
+	responses := h.reachable(mapValue(h.schemas, h.resource), map[string]bool{})
+	requests := map[string]bool{}
+	for _, id := range []string{ops.Create, ops.Update} {
+		_, method, op := findOperation(doc, id)
+		if op == nil {
+			continue // the model reports the operation
+		}
+		if method == "patch" {
+			return nil, issue.Report{inlineIssue(h.resource, fmt.Sprintf("an inlined nested field is inside its object in the API, so the Update must send the whole resource, but %s is a PATCH", id))}
+		}
+		h.reachable(mapValue(mapValue(mapValue(mapValue(op, "requestBody"), "content"), "application/json"), "schema"), requests)
+	}
+	out := map[string]map[string]overrides.Parent{}
+	counterparts := map[string]string{} // the request counterpart of each component
+	for _, name := range slices.Sorted(maps.Keys(mergeSets(responses, requests))) {
+		schema := mapValue(h.schemas, name)
+		props := mapValue(schema, "properties")
+		for _, component := range slices.Sorted(maps.Keys(objects)) {
+			// A line on C.f inlines f in C, and in a component that only a request holds, the request
+			// counterpart of C. Another component of the response that has the same field keeps it.
+			if name != component && (responses[name] || !requests[name]) {
+				continue
+			}
+			var fields []string
+			for field, object := range objects[component] {
+				if refName(mapValue(props, field)) == object || allOfRef(mapValue(props, field)) == object {
+					fields = append(fields, field)
+				}
+			}
+			if len(fields) == 0 {
+				continue
+			}
+			if name != component {
+				// Only the line names C, so two request components that hold the object leave its
+				// counterpart unclear: one of them may not be C at all.
+				if other, ok := counterparts[component]; ok {
+					return nil, issue.Report{inlineIssue(component, fmt.Sprintf("inline: the requests hold the inlined object of %s in both %s and %s, so its request counterpart is unclear", component, other, name))}
+				}
+				counterparts[component] = name
+			}
+			slices.Sort(fields)
+			nestedInliner := inliner{schemas: h.schemas, fields: fields, resource: component, file: h.file, done: h.done}
+			parents, err := nestedInliner.inline(schema, responses[name] && !requests[name])
+			if err != nil {
+				return nil, issue.Report{inlineIssue(name, name+": "+err.Error())}
+			}
+			if out[name] == nil {
+				out[name] = map[string]overrides.Parent{}
+			}
+			maps.Copy(out[name], parents)
+		}
+	}
+	for _, component := range slices.Sorted(maps.Keys(nested)) {
+		if len(out[component]) == 0 {
+			return nil, issue.Report{inlineIssue(component, "the resource does not hold "+component+", so its inline lines change nothing")}
+		}
+	}
+	return out, nil
+}
+
+// reachable adds the components that s refers to, directly or through other components, to seen.
+func (h inliner) reachable(s *yaml.Node, seen map[string]bool) map[string]bool {
+	if s == nil {
+		return seen
+	}
+	if name := refName(s); name != "" {
+		if seen[name] {
+			return seen
+		}
+		seen[name] = true
+		return h.reachable(mapValue(h.schemas, name), seen)
+	}
+	for _, child := range s.Content {
+		h.reachable(child, seen)
+	}
+	return seen
+}
+
+// allOfRef is the component of an allOf with one $ref, or "".
+func allOfRef(value *yaml.Node) string {
+	if all := mapValue(value, "allOf"); all != nil && len(all.Content) == 1 {
+		return refName(all.Content[0])
+	}
+	return ""
+}
+
+func mergeSets(a, b map[string]bool) map[string]bool {
+	out := maps.Clone(a)
+	maps.Copy(out, b)
 	return out
 }

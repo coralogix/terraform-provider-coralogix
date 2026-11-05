@@ -1,0 +1,81 @@
+# A released resource like the parsing rule groups.
+resource: ParseThing
+mode: existing
+typeName: parse_thing
+
+validators:
+  inferred: false
+
+api:
+  operations:
+    create: ParseThingsService_CreateParseThing
+    get: ParseThingsService_GetParseThing
+    update: ParseThingsService_ReplaceParseThing
+    delete: ParseThingsService_DeleteParseThing
+  idProperty: id
+  serverSetID: true
+
+types:
+  ParseThing:
+    fields:
+      id: {readOnly: true}
+      name: {required: true}
+      # The released resource sent an unknown plan as false and 0, which the API stores.
+      enabled: {name: active, computed: true, sendUnknownAsZero: true}
+      order: {computed: true, sendUnknownAsZero: true}
+      note: {computed: true}
+      # Only the requests have the team id, which the API ignores.
+      teamId: {skip: true}
+      # One set per arm of the matchers: apps and severities.
+      matchers: {splitArms: true, collection: set, computed: true, default: []}
+  # The released resource sent the position of each group and step as its order.
+  ParseGroup:
+    fields:
+      order: {requestPosition: true}
+  ParseStep:
+    fields:
+      order: {requestPosition: true}
+      enabled: {name: active, computed: true, default: true}
+      # Terraform shows a step as the arms of params, each with the fields of the step. The
+      # pick arm has no source: the released resource always sent "text". The drop arm is the
+      # keep arm with keep_matching = false.
+      params:
+        requireOne: true
+        carrySiblings:
+          requestValues: {pickParams: {source: text}}
+          fold:
+            dropParams: {into: keepParams, flag: keep_matching, markdownDescription: "true keeps the matching logs, false drops them."}
+  ParseParams:
+    fields:
+      keepParams: {name: keep}
+      copyParams: {name: copy}
+      pickParams: {name: pick}
+  ParseCopyParams:
+    fields:
+      # The released resource showed the opposite of deleteSource, and always sent escaped.
+      deleteSource: {name: keep_source, showInverted: true, computed: true, default: false}
+      escaped: {requestValue: "true"}
+  ParsePickParams:
+    fields:
+      field: {validators: [{enum: true}]}
+  ParseMatcher:
+    fields:
+      appName: {name: apps}
+      severity:
+        name: severities
+        validators: [{enum: true}]
+
+unwrap: [ParseAppName, ParseSeverity]
+
+enums:
+  ParseSeverityValue:
+    zero: debug
+    trimPrefix: SEVERITY_
+    values: [SEVERITY_INFO, SEVERITY_ERROR]
+  ParsePickField:
+    zero: category
+    trimPrefix: PICK_FIELD_
+    values: [PICK_FIELD_THREADID, PICK_FIELD_TEXT]
+    names: {PICK_FIELD_THREADID: threadID}
+    # The released validator was OneOfCaseInsensitive: TEXT and Text are text.
+    caseInsensitive: true
