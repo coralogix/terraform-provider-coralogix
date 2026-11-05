@@ -45,6 +45,7 @@ func updateChanged(ctx context.Context, config, plan, state tfData) (bool, diag.
 		if fieldDiags.HasError() {
 			continue
 		}
+		p, s = requestValue(ctx, field.attr, p, &diags), requestValue(ctx, field.attr, s, &diags)
 		validateRequestValue(path.Root(field.attr), c, p, field.serverDefault, &diags)
 		if !p.Equal(s) {
 			changed = true
