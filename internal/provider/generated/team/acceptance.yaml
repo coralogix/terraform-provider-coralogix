@@ -1,8 +1,8 @@
 # What the generated acceptance test needs for coralogix_team, besides the schema.
 #
 # The teams API needs a key whose owner is an organization: a team key gets 403. The CI key belongs
-# to a team, so .github/workflows/acceptance-tests.yml skips these tests (TEAM_ACC_PATTERN). Run
-# them with an organization key:
+# to a team, so the team shard of .github/workflows/acceptance-tests.yml runs these tests with the
+# CORALOGIX_ORG_API_KEY secret, and every other job skips them. To run them locally:
 #
 #   TF_ACC=1 CORALOGIX_API_KEY=<organization key> CORALOGIX_ENV=EU2 \
 #     go test ./internal/provider/generated/team -run TestAccCoralogixResourceTeamGenerated

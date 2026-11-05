@@ -53,9 +53,9 @@ env:
   # same time. The tco-policies shard runs all of them (handwritten, generated, and generated
   # upgrade) with -p 1; every other job skips them.
   TCO_ACC_PATTERN: &tco_acc_pattern '^TestAccCoralogix(Resource|DataSource)(TCO|Tco)Policies'
-  # The teams API needs a key whose owner is an organization, and the CI key belongs to a team (it
-  # gets 403), so no job runs the team tests. Run them locally with an organization key; see
-  # internal/provider/generated/team/acceptance.yaml.
+  # The teams API needs a key whose owner is an organization: the CI key belongs to a team and gets
+  # 403. The team shard runs all team tests (generated and generated upgrade) with the
+  # CORALOGIX_ORG_API_KEY secret; every other job skips them.
   TEAM_ACC_PATTERN: &team_acc_pattern '^TestAccCoralogix(Resource|DataSource)Team'
   # The generated upgrade shard leaves out the tests that have a shard of their own, and the team
   # tests.
@@ -493,6 +493,9 @@ jobs:
           - shard: tco-policies
             pattern: *tco_acc_pattern
             procs: 1
+          - shard: team
+            pattern: *team_acc_pattern
+            org_key: true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -507,7 +510,8 @@ jobs:
       - name: Test pinned gRPC to current REST provider migration
         env:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
-          CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
+          # The team shard needs a key whose owner is an organization.
+          CORALOGIX_API_KEY: ${{ matrix.org_key && secrets.CORALOGIX_ORG_API_KEY || secrets.CORALOGIX_API_KEY }}
           # The coralogix_slo_v2 upgrade test creates APM SLOs, which need a catalog service.
           CORALOGIX_SLO_V2_APM_SERVICE: ${{ secrets.CORALOGIX_SLO_V2_APM_SERVICE }}
           # The coralogix_integration upgrade test needs a role that the tenant can assume.

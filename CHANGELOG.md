@@ -6,7 +6,7 @@
 - FIX: An import id that is not an integer fails at the import. Before, the import succeeded and the next refresh failed.
 - FIX: When Create succeeds but the read after it fails, the state keeps the id, so Terraform marks the team tainted and the next apply replaces it. Before, the state was empty and the team stayed outside Terraform.
 - CHORE: API errors read `Unable to create team`, `Unable to update team`, `Unable to delete team`, and `Unable to read team` instead of `Error creating Team`, and so on. A refresh that finds the team gone warns `Resource disappeared during read`, and an update of a team that is gone fails with `Resource no longer exists`. The data source errors read `coralogix_team not found` and `Unable to read coralogix_team`.
-- FEAT: The resource has a generated acceptance test, and an upgrade test from 3.24.0. The teams API needs an organization key, so CI skips them; they run locally with one. The example sets `daily_quota = 0.5`.
+- FEAT: The resource has a generated acceptance test, and an upgrade test from 3.24.0. The teams API needs an organization key, so CI runs them in a shard of their own with one. The example sets `daily_quota = 0.5`.
 
 #### data-source/coralogix_team
 - FEAT: Add the `coralogix_team` data source, generated with the resource. It reads a team by `id`.
