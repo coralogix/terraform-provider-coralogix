@@ -132,7 +132,8 @@ var rrScenarios = map[string]func(h *grHarness){
 		h.Destroy("destroy", s)
 	},
 
-	// The resource sends the unknown name as "", which the API refuses.
+	// The API names a set without a name after its id. The handwritten resource sent the unknown
+	// name as "", which the API refused.
 	"without-name": func(h *grHarness) {
 		h.Apply("create without a name", h.null(), rrCfg("", rrGroup("g1", nil, rrRule("tf:r1", nil))))
 	},
@@ -209,6 +210,15 @@ var rrScenarios = map[string]func(h *grHarness){
 		s := h.Apply("create", h.null(), rrCfg("tf-set", rrGroup("g1", nil, rrRule("tf:r1", nil))))
 		s = h.Apply("update: change the record and the expression", s, rrCfg("tf-set",
 			rrGroup("g1", nil, rrRule("tf:r1_changed", j{"expr": "vector(2)"}))))
+		h.RefreshPlan("refresh", s)
+	},
+
+	// A rule whose record changes keeps its labels when the configuration leaves them out.
+	"rename-record-keeps-labels": func(h *grHarness) {
+		s := h.Apply("create", h.null(), rrCfg("tf-set", rrGroup("g1", nil,
+			rrRule("tf:r1", j{"labels": j{"a": "1"}}), rrRule("tf:r2", j{"labels": j{"b": "2"}}))))
+		s = h.Apply("update: change the record of the first rule, without labels", s, rrCfg("tf-set", rrGroup("g1", nil,
+			rrRule("tf:r1_renamed", nil), rrRule("tf:r2", nil))))
 		h.RefreshPlan("refresh", s)
 	},
 

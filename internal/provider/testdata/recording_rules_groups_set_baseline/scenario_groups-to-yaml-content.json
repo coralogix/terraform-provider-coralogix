@@ -44,7 +44,6 @@
           "groups": [
             {
               "interval": 180,
-              "limit": "0",
               "name": "yaml-a",
               "rules": [
                 {

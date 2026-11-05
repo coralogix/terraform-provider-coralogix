@@ -13,6 +13,7 @@ globalrouter: v0.1.0-beta.69
 integration: v0.1.0-beta.69
 preset: v0.1.0-beta.69
 quotaallocationruleset: v0.1.0-beta.69
+recordingrulesgroupsset: v0.1.0-beta.69
 slov2: v0.1.0-beta.69
 view: v0.1.0-beta.69
 viewfolder: v0.1.0-beta.69

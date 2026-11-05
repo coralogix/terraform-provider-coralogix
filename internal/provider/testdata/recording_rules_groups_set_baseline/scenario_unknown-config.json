@@ -116,7 +116,6 @@
           "groups": [
             {
               "interval": 120,
-              "limit": "0",
               "name": "g1",
               "rules": [
                 {
