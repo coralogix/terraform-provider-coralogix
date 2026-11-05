@@ -136,7 +136,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value Match [AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"applications\").AttributeName(\"names\").ElementKeyValue(tftypes.String<\"APP\">)] | Attribute policies[0].applications.names[Value(\"APP\")] Only lowercase letters are allowed, got: APP"
+      "error: Invalid Attribute Value Match [AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"applications\").AttributeName(\"names\").ElementKeyValue(tftypes.String<\"APP\">)] | Attribute policies[0].applications.names[Value(\"APP\")] must not contain uppercase letters; the API lowercases these names, got: APP"
     ],
     "state": null
   },
@@ -185,7 +185,7 @@
       ]
     },
     "validateDiagnostics": [
-      "warning: Conflicting Attributes Values Configuration [AttributeName(\"subsystems\")] | Currently, rule_type \"starts_with\" supports only one value, but \"names\" has 2 elements. Remove all but one to remove this warning."
+      "warning: Conflicting Attributes Values Configuration [AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"subsystems\")] | Currently, rule_type \"starts_with\" supports only one value, but \"names\" has 2 elements. Remove all but one to remove this warning."
     ],
     "state": null
   },

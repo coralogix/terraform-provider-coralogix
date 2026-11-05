@@ -1,7 +1,7 @@
 (data source schema)
     description: Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api.
 id  tftypes.String computed
-    description: This field can be ignored
+    description: The fixed id of this singleton: there is one per company.
 policies  nested LIST computed
 policies.applications  nested SINGLE computed
     description: The applications to apply the policy on. Applies the policy on all the applications by default.
@@ -27,7 +27,7 @@ policies.priority  tftypes.String computed
 policies.quota_based_priority_override  nested SINGLE computed
     description: Dynamically reassign the policy's priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy's top-level `priority` is used as the fallback ("Route the remaining quota to" in the UI), which must be more restrictive than the last tier.
 policies.quota_based_priority_override.usage_tiers  nested LIST computed
-    description: Ordered list of quota-consumption tiers; the policy's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached.
+    description: Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached.
 policies.quota_based_priority_override.usage_tiers.daily_quota_percentage  tftypes.Number computed
     description: Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100.
 policies.quota_based_priority_override.usage_tiers.priority  tftypes.String computed
@@ -38,6 +38,7 @@ policies.subsystems  nested SINGLE computed
     description: The subsystems to apply the policy on. Applies the policy on all the subsystems by default.
 policies.subsystems.names  tftypes.Set[tftypes.String] computed
 policies.subsystems.rule_type  tftypes.String computed
+    description: The rule type. Can be one of ["includes" "is" "is_not" "starts_with" "unspecified"].
 policies.targets  nested LIST computed
     description: Route matched logs to specific named datasets. Every target must specify its own `priority`. When `targets` is omitted the backend routes the policy to a single default `logs` dataset using the policy-level `priority`; that implicit target is not reflected in Terraform state.
 policies.targets.archive_retention_id  tftypes.String computed
@@ -51,7 +52,7 @@ policies.targets.priority  tftypes.String computed
 policies.targets.priority_override  nested SINGLE computed
     description: Dynamically reassign this target's priority based on daily quota consumption tiers.
 policies.targets.priority_override.usage_tiers  nested LIST computed
-    description: Ordered list of quota-consumption tiers; the target's priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached.
+    description: Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached.
 policies.targets.priority_override.usage_tiers.daily_quota_percentage  tftypes.Number computed
     description: Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100.
 policies.targets.priority_override.usage_tiers.priority  tftypes.String computed

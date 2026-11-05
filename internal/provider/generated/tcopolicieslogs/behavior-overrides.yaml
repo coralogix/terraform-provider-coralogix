@@ -1,0 +1,179 @@
+# Where coralogix_tco_policies_logs differs from the API contract, because users already have it.
+#
+# A field with a line here keeps its released behavior. A field without a line follows the API
+# contract.
+resource: GetCompanyPoliciesResponse
+mode: existing
+typeName: tco_policies_logs
+
+markdownDescription: "Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api."
+
+validators:
+  inferred: false
+
+singletonID: {fixed: tco-policies-logs}
+
+api:
+  # One PUT replaces every log policy of the company, and GET lists the policies of each source type.
+  overwrite:
+    getQuery: {source_type: SOURCE_TYPE_LOGS}
+  operations:
+    create: PoliciesService_AtomicOverwriteLogPolicies
+    get: PoliciesService_GetCompanyPolicies
+    update: PoliciesService_AtomicOverwriteLogPolicies
+    delete: PoliciesService_AtomicOverwriteLogPolicies
+
+# The released data source reads every log policy. It takes no input.
+dataSource: {}
+
+unwrap: [ArchiveRetention, PriorityOverride]
+
+types:
+  GetCompanyPoliciesResponse:
+    fields:
+      policies:
+        markdownDescription: ""
+  Policy:
+    # A written policy holds these fields in "policy", next to its logRules.
+    requestWrapper: policy
+    fields:
+      companyId: {skip: true}
+      deleted: {skip: true}
+      createdAt: {skip: true}
+      updatedAt: {skip: true}
+      priorityOverrideStatus: {skip: true}
+      id:
+        markdownDescription: "tco-policy ID."
+      name:
+        markdownDescription: "tco-policy name."
+        validators:
+          - lengthAtLeast: 1
+      description:
+        computed: true
+        default: ""
+        markdownDescription: "The policy description"
+      enabled:
+        requestAs: disabled
+        negate: true
+        computed: true
+        default: true
+        markdownDescription: "Determines weather the policy will be enabled. True by default."
+      priority:
+        markdownDescription: 'The policy priority. Can be one of ["block" "high" "low" "medium"]. Priority must be set either here or on every target, not both — set this when `targets` is omitted, and omit it when `targets` is set. For a quota-based policy (when `quota_based_priority_override` is set) this is also the fallback priority applied once all `usage_tiers` are exhausted — the equivalent of "Route the remaining quota to" in the UI — and must be more restrictive than the last tier''s priority (most to least restrictive: `block`, `low`, `medium`, `high`).'
+        validators:
+          - enumExceptZero: true
+      order:
+        terraformType: Int64
+        markdownDescription: "The policy's order between the other policies."
+      archiveRetention:
+        name: archive_retention_id
+        description: "Allowing logs with a specific retention to be tagged."
+        validators:
+          - lengthAtLeast: 1
+      applicationRule:
+        name: applications
+        markdownDescription: "The applications to apply the policy on. Applies the policy on all the applications by default."
+      subsystemRule:
+        name: subsystems
+        markdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default."
+      priorityOverride:
+        name: quota_based_priority_override
+        markdownDescription: 'Dynamically reassign the policy''s priority based on daily quota consumption tiers. Once all `usage_tiers` are exhausted, the policy''s top-level `priority` is used as the fallback ("Route the remaining quota to" in the UI), which must be more restrictive than the last tier.'
+      targets:
+        markdownDescription: "Route matched logs to specific named datasets. Every target must specify its own `priority`. When `targets` is omitted the backend routes the policy to a single default `logs` dataset using the policy-level `priority`; that implicit target is not reflected in Terraform state."
+        validators:
+          - sizeAtLeast: 1
+      # The released attributes severities and dpxl_expression are the fields of logRules. A log
+      # policy never has the rules of another source type.
+      logRules: {inline: true}
+      spanRules: {skip: true}
+      rumRules: {skip: true}
+      severities:
+        computed: true
+        readEmptyAs: "null" # a policy with a dpxl_expression has an empty list
+        markdownDescription: 'The severities to apply the policy on. Valid severities are ["critical" "debug" "error" "info" "verbose" "warning"].'
+        validators:
+          - sizeAtLeast: 1
+          - enumExceptZero: true
+      dpxlExpression:
+        markdownDescription: "DataPrime expression to match logs for this policy. Mutually exclusive with the structured matchers (`severities`, `applications`, `subsystems`) — set either this or those. The expression must include a version prefix, e.g. `<v1> $d.severity == 'INFO'`."
+        validators:
+          - lengthAtLeast: 1
+          - conflictsWith: [severities, applications, subsystems]
+  quota.v1.Rule:
+    fields:
+      name:
+        split: ","
+        name: names
+        required: true
+        markdownDescription: ""
+        validators:
+          - sizeAtLeast: 1
+          - regexMatches: {pattern: "^[^A-Z]+$", message: "must not contain uppercase letters; the API lowercases these names"}
+      ruleTypeId:
+        name: rule_type
+        computed: true
+        default: is
+        markdownDescription: 'The rule type. Can be one of ["includes" "is" "is_not" "starts_with" "unspecified"].'
+        validators:
+          - enum: true
+  QuotaBased:
+    fields:
+      usageTiers:
+        required: true
+        markdownDescription: "Ordered list of quota-consumption tiers; the priority is dynamically reassigned to the matching tier's `priority` once `daily_quota_percentage` is reached."
+        validators:
+          - sizeAtLeast: 1
+  UsageTier:
+    fields:
+      dailyQuotaPercentage:
+        required: true
+        markdownDescription: "Daily quota consumption (in percent) at which this tier becomes active. Must be between 0 and 100."
+        validators:
+          - between: [0, 100]
+      priority:
+        required: true
+        markdownDescription: 'The priority to apply when this tier is active. Can be one of ["block" "high" "low" "medium"].'
+        validators:
+          - enumExceptZero: true
+  v1.Target:
+    fields:
+      dataset:
+        required: true
+        markdownDescription: "Name of the dataset to route matched logs to. Must be non-empty."
+        validators:
+          - lengthAtLeast: 1
+      dataspace:
+        computed: true
+        default: default
+        markdownDescription: "Dataspace name. Defaults to `default` when unset. Maximum 50 characters."
+        validators:
+          - lengthAtMost: 50
+      priority:
+        required: true
+        markdownDescription: 'Per-target priority. Can be one of ["block" "high" "low" "medium"]. Every target must carry its own priority.'
+        validators:
+          - enumExceptZero: true
+      archiveRetention:
+        name: archive_retention_id
+        markdownDescription: "ID of an archive retention policy to apply to this target."
+        validators:
+          - lengthAtLeast: 1
+      priorityOverride:
+        markdownDescription: "Dynamically reassign this target's priority based on daily quota consumption tiers."
+
+enums:
+  # The API returns PRIORITY_TYPE_UNSPECIFIED for a policy whose priority is on its targets.
+  quota.v1.Priority:
+    zeroNull: true
+    trimPrefix: PRIORITY_TYPE_
+    values: [PRIORITY_TYPE_BLOCK, PRIORITY_TYPE_LOW, PRIORITY_TYPE_MEDIUM, PRIORITY_TYPE_HIGH]
+  RuleTypeId:
+    zero: unspecified
+    trimPrefix: RULE_TYPE_ID_
+    names: {RULE_TYPE_ID_START_WITH: starts_with}
+    values: [RULE_TYPE_ID_IS, RULE_TYPE_ID_IS_NOT, RULE_TYPE_ID_START_WITH, RULE_TYPE_ID_INCLUDES]
+  quota.v1.Severity:
+    zero: unspecified
+    trimPrefix: SEVERITY_
+    values: [SEVERITY_DEBUG, SEVERITY_VERBOSE, SEVERITY_INFO, SEVERITY_WARNING, SEVERITY_ERROR, SEVERITY_CRITICAL]

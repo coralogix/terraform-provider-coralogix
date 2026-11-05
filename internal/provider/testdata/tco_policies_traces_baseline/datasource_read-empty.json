@@ -10,8 +10,8 @@
       }
     ],
     "state": {
-      "id": null,
-      "policies": null
+      "id": "tco-policies-traces",
+      "policies": []
     }
   }
 ]

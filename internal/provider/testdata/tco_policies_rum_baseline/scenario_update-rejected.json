@@ -13,7 +13,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -55,10 +55,15 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_RUM",
+        "status": 200
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -95,7 +100,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -140,10 +145,10 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_tco_policies_rum | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Unexpected server error occurred\"}\noperation - Replace"
+      "error: Unable to update tco_policies_rum | id tco-policies-rum: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Unexpected server error occurred\"}"
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -174,7 +179,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -196,7 +201,6 @@
     },
     "replanEmpty": false,
     "replanDiff": [
-      "AttributeName(\"id\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"description\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"id\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"order\")"
