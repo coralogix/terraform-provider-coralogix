@@ -336,6 +336,7 @@
 #### resource/coralogix_ip_access
 - CHORE: Add a schema and lifecycle baseline for the handwritten resource, with an opt-in recorder for checking the API fake against a disposable tenant.
 - CHORE: Generate the resource from the API contract while keeping the existing set schema and enum values. API descriptions now appear on the matching resource and data-source attributes. Replace omits the optional `id` body field; Get flattens API map values into the Terraform set.
+- CHORE: Keep `ip_access[].name` optional when the merged SDK model infers an empty-string server default for this nested proto3 field.
 - FIX: Omitting `ip_access` no longer causes a Terraform value-conversion error. Create omits the field; Replace omits it and clears the rules, as the API does.
 - FIX: An Update 404 returns an error and keeps prior state. Before, the handwritten resource removed state and Terraform followed with `Missing Resource State After Update`.
 - FIX: A generic endpoint 404 during Delete is an error and keeps state. Before, the handwritten resource treated every 404 as successful deletion, including a missing API route.
@@ -345,7 +346,7 @@
 
 #### tools/iac-codegen
 - FEAT: `collection: set` supports a map-of-objects Get response with list-of-objects write requests, preserving each API operation's wire shape while exposing one Terraform set.
-- CHORE: Bump the generator to `v0.1.0-beta.61` and the SDK `iac` module to the revision containing the wire collection model.
+- CHORE: Bump the generator to `v0.1.0-beta.70` and the generator's SDK `iac` module to merged revision `9d300053` containing the wire collection model.
 
 # Release 3.23.0
 

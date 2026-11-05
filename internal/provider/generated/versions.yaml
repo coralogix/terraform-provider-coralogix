@@ -16,6 +16,7 @@ dashboardsfolder: v0.1.0-beta.84
 events2metric: v0.1.0-beta.84
 globalrouter: v0.1.0-beta.84
 integration: v0.1.0-beta.84
+ipaccess: v0.1.0-beta.84
 parsingrules: v0.1.0-beta.84
 preset: v0.1.0-beta.84
 quotaallocationruleset: v0.1.0-beta.84
