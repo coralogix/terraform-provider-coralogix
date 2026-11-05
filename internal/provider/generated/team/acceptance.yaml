@@ -1,6 +1,14 @@
 # What the generated acceptance test needs for coralogix_team, besides the schema.
 #
-# The teams API needs a key whose owner is an organization: a team key gets 403.
+# The teams API needs a key whose owner is an organization: a team key gets 403. The CI key belongs
+# to a team, so .github/workflows/acceptance-tests.yml skips these tests (TEAM_ACC_PATTERN). Run
+# them with an organization key:
+#
+#   TF_ACC=1 CORALOGIX_API_KEY=<organization key> CORALOGIX_ENV=EU2 \
+#     go test ./internal/provider/generated/team -run TestAccCoralogixResourceTeamGenerated
+#
+# The upgrade test also needs TF_ACC_PROVIDER_NAMESPACE=coralogix and
+# CORALOGIX_GENERATED_UPGRADE_ACC=1.
 #
 # Every config sets daily_quota, and the updated config raises it. A team with the minimum quota
 # (no daily_quota) cannot be deleted: Delete gives the quota back to the default team, and the API
