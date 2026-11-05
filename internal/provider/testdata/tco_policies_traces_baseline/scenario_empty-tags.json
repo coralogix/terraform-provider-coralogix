@@ -16,7 +16,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-traces",
       "policies": [
         {
           "actions": null,
@@ -65,13 +65,15 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_SPANS",
+        "status": 200
       }
     ],
-    "inconsistentResult": [
-      "policies[0].tags"
-    ],
     "state": {
-      "id": null,
+      "id": "tco-policies-traces",
       "policies": [
         {
           "actions": null,
@@ -92,17 +94,11 @@
             "rule_type": "is"
           },
           "subsystems": null,
-          "tags": null
+          "tags": {}
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"id\")",
-      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"id\")",
-      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"order\")",
-      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"tags\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -114,7 +110,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-traces",
       "policies": [
         {
           "actions": null,
@@ -135,17 +131,11 @@
             "rule_type": "is"
           },
           "subsystems": null,
-          "tags": null
+          "tags": {}
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"id\")",
-      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"id\")",
-      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"order\")",
-      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"tags\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update: set a tag",
@@ -171,7 +161,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-traces",
       "policies": [
         {
           "actions": null,
@@ -233,10 +223,15 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_SPANS",
+        "status": 200
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-traces",
       "policies": [
         {
           "actions": null,
@@ -287,7 +282,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-traces",
       "policies": [
         {
           "actions": null,
@@ -336,13 +331,15 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_SPANS",
+        "status": 200
       }
     ],
-    "inconsistentResult": [
-      "policies[0].tags"
-    ],
     "state": {
-      "id": null,
+      "id": "tco-policies-traces",
       "policies": [
         {
           "actions": null,
@@ -363,17 +360,11 @@
             "rule_type": "is"
           },
           "subsystems": null,
-          "tags": null
+          "tags": {}
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"id\")",
-      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"id\")",
-      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"order\")",
-      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"tags\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -385,7 +376,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-traces",
       "policies": [
         {
           "actions": null,
@@ -406,17 +397,11 @@
             "rule_type": "is"
           },
           "subsystems": null,
-          "tags": null
+          "tags": {}
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"id\")",
-      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"id\")",
-      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"order\")",
-      "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"tags\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "destroy",

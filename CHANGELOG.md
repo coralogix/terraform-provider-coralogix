@@ -84,6 +84,24 @@
 - FIX: A read of an id that the API does not find fails with `coralogix_integration not found`. Before, it only warned and returned an empty result.
 - CHORE: API errors read `Unable to read coralogix_integration` instead of `Error reading coralogix_integration`.
 
+#### resource/coralogix_tco_policies_logs, resource/coralogix_tco_policies_traces, resource/coralogix_tco_policies_rum
+- CHORE: The resources are generated from the API contract. The attributes, their types, the requests the API sees, and the state are the same as before; the changes are listed below. A plan (with refresh) of policies that were created by 3.23.0 shows no change; with `-refresh=false` it shows `id` being set, and that apply sends no write.
+- CHORE: `id` holds the fixed id of the resource (`tco-policies-logs`, `tco-policies-traces`, `tco-policies-rum`). Before, it was null.
+- CHORE: Create and Update read the policies back with Get after the write, so the state holds what the API stores.
+- FIX: The warning about a `starts_with` or `includes` rule with more than one value names the attribute of the policy (`policies[0].subsystems`). Before, it named a top-level `subsystems` that does not exist.
+- FIX: The `names` of `applications` and `subsystems`, and of `services` and `actions` of `coralogix_tco_policies_traces`, reject a value with any upper-case letter (`App-A`). The API lowercases these names. Before, only a value with no other character than upper-case letters was rejected, and a mixed-case value failed the apply with `inconsistent result` and planned a change every time. `services.names` had no such validator.
+- FIX: The `names` of `applications`, `subsystems`, `services`, and `actions` reject a value with a comma (an empty value was already rejected). The API stores the names of a rule joined by commas, so such a value read back as two names and the apply failed with `inconsistent result`.
+- FIX: A refresh that gets a 404 from the API fails with `Unable to read tco_policies_logs` and keeps the state. Before, it warned that the policies would be recreated and removed them from state, although the API never answers 404 for missing policies: a 404 means a wrong route.
+- CHORE: API errors read `Unable to create tco_policies_logs`, `Unable to update tco_policies_logs`, and `Unable to read tco_policies_logs` (and the same for traces and RUM) instead of `Error creating coralogix_tco_policies_logs`, and so on.
+- FIX: An empty `policies` list of `coralogix_tco_policies_traces`, and a policy with `tags = {}`, store what the configuration says. Before, the apply failed with `inconsistent result` and every plan showed a change.
+- FEAT: The resources have generated acceptance tests, which also check that policies created by 3.23.0 plan no change. All TCO policy tests run in their own serial CI shard, because each source type has one list of policies per company.
+
+#### data-source/coralogix_tco_policies_logs, data-source/coralogix_tco_policies_traces, data-source/coralogix_tco_policies_rum
+- CHORE: The data sources are generated with the resources and use their schema.
+- FIX: `coralogix_tco_policies_traces` with no policies reads `policies = []`, as the logs and RUM data sources do. Before, it read null.
+- FIX: A read that gets a 404 from the API fails with `Unable to read coralogix_tco_policies_logs | id tco-policies-logs: 404 Not Found ...`. Before, it only warned and returned no result. The API never answers 404 for missing policies: a 404 means a wrong route.
+- CHORE: API errors read `Unable to read coralogix_tco_policies_logs | id tco-policies-logs: ...` instead of `Error reading coralogix_tco_policies_logs`, and the same for traces and RUM.
+
 #### resource/coralogix_slo_v2
 - FEAT: New optional `sli.apm_sli.filters[].match_operator` (`is`, `starts_with`, `ends_with`, `includes`, or `unspecified`), from the new API contract. All items of a list use the same mode: all `unspecified` (the default, the legacy mode) or all set. The API returns `unspecified` for a filter that has none, so the attribute is computed with that default. The data source shows it too.
 - CHORE: The generated acceptance test covers the APM SLI, with the service in `CORALOGIX_SLO_V2_APM_SERVICE`.

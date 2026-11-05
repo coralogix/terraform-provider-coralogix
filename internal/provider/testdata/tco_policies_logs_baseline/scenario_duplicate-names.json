@@ -20,7 +20,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -96,7 +96,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_tco_policies_logs | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Duplicate names found\"}\noperation - Create"
+      "error: Unable to create tco_policies_logs | 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Duplicate names found\"}"
     ],
     "state": null
   }

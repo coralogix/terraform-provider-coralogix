@@ -14,7 +14,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-traces",
       "policies": [
         {
           "actions": null,
@@ -63,9 +63,7 @@
                 "name": "first",
                 "priority": "PRIORITY_TYPE_HIGH"
               },
-              "spanRules": {
-                "tagRules": []
-              }
+              "spanRules": {}
             },
             {
               "policy": {
@@ -74,9 +72,7 @@
                 "name": "first",
                 "priority": "PRIORITY_TYPE_LOW"
               },
-              "spanRules": {
-                "tagRules": []
-              }
+              "spanRules": {}
             }
           ]
         },
@@ -84,7 +80,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_tco_policies_traces | error - 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Duplicate names found\"}\noperation - Create"
+      "error: Unable to create tco_policies_traces | 409 Conflict — {\"code\":409,\"message\":\"Already Exists: Duplicate names found\"}"
     ],
     "state": null
   }
