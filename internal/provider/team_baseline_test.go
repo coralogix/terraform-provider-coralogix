@@ -33,8 +33,8 @@ const (
 
 // These tests record the handwritten coralogix_team resource against a fake API that follows
 // answers recorded from the real API. After the switch to generated code, the golden diff must
-// show only message wording or proven bug fixes. The provider registers no coralogix_team data
-// source, so there is none to record.
+// show only message wording or proven bug fixes. The data source is new with the generated
+// resource: the released provider registered none.
 //
 //	UPDATE_GOLDEN=1 go test ./internal/provider -run TestTeamBaseline
 func newTeamHarness(t *testing.T) *grHarness {
@@ -77,8 +77,8 @@ var teamScenarios = map[string]func(h *grHarness){
 		s = h.Apply("update: raise the quota", s, j{"name": "growing", "daily_quota": 0.5})
 		h.RefreshPlan("refresh and replan", s)
 	},
-	// The minimum quota reads back as float32(0.02), and the flatten rounds it to 0.02. Delete then
-	// fails: the API refuses to give the minimum quota back to the default team.
+	// The minimum quota reads back as float32(0.02), which state shows as 0.02. Delete then fails:
+	// the API refuses to give the minimum quota back to the default team.
 	"quota-omitted": func(h *grHarness) {
 		s := h.Apply("create without daily_quota", h.null(), j{"name": "minimum"})
 		s = h.RefreshPlan("refresh and replan", s)
@@ -90,8 +90,8 @@ var teamScenarios = map[string]func(h *grHarness){
 		s = h.Apply("update: remove daily_quota and rename", s, j{"name": "removed-renamed"})
 		h.RefreshPlan("refresh and replan", s)
 	},
-	// A quota with more than three decimals reads back rounded to three decimals, which differs
-	// from the plan.
+	// A quota with more than three decimals. The handwritten resource rounded the read to three
+	// decimals, which differed from the plan.
 	"quota-more-than-three-decimals": func(h *grHarness) {
 		h.Apply("create with 0.1234567", h.null(), j{"name": "precise", "daily_quota": 0.1234567})
 	},
@@ -191,5 +191,23 @@ var teamScenarios = map[string]func(h *grHarness){
 	},
 	"import-not-found": func(h *grHarness) {
 		h.Import("import an id that does not exist", teamFakeID(9))
+	},
+}
+
+var teamDataSourceScenarios = map[string]func(h *grHarness){
+	"read-by-id": func(h *grHarness) {
+		id := h.team().seed("seeded", 0.3)
+		h.ReadDataSource("read by id", j{"id": strconv.FormatInt(id, 10)})
+	},
+	"read-not-found": func(h *grHarness) {
+		h.ReadDataSource("Get answers 404", j{"id": teamFakeID(9)})
+	},
+	"read-api-error": func(h *grHarness) {
+		id := h.team().seed("seeded", 0.3)
+		h.team().getStatus = 500
+		h.ReadDataSource("Get answers 500", j{"id": strconv.FormatInt(id, 10)})
+	},
+	"read-not-a-number": func(h *grHarness) {
+		h.ReadDataSource("read a non-numeric id", j{"id": "not-a-number"})
 	},
 }

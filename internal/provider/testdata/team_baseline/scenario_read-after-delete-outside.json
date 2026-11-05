@@ -45,7 +45,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading Team | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Invalid argument: Team url not found\"}\noperation - Read"
+      "error: Unable to read team | id 1001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Invalid argument: Team url not found\"}"
     ],
     "state": {
       "daily_quota": 0.5,

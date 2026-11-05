@@ -8,8 +8,8 @@ diff must show only message wording or proven bug fixes.
 UPDATE_GOLDEN=1 go test ./internal/provider -run TestTeamBaseline
 ```
 
-The provider registers no `coralogix_team` data source (`aaa.NewTeamDataSource` exists but is not
-in `provider.go`), so there is no data-source baseline.
+The released provider registered no `coralogix_team` data source. The generated one is new, and its
+`datasource_*.json` goldens record it.
 
 ## The fake follows the real API
 

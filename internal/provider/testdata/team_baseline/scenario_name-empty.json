@@ -23,7 +23,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating Team | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: must be not empty.\"}\noperation - Create"
+      "error: Unable to create team | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: must be not empty.\"}"
     ],
     "state": null
   }

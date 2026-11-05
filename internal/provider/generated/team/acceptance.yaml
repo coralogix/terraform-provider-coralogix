@@ -1,0 +1,24 @@
+# What the generated acceptance test needs for coralogix_team, besides the schema.
+#
+# The teams API needs a key whose owner is an organization: a team key gets 403.
+#
+# Every config sets daily_quota, and the updated config raises it. A team with the minimum quota
+# (no daily_quota) cannot be deleted: Delete gives the quota back to the default team, and the API
+# refuses to move 0.01 or less. A lower quota reads back 0.01 higher, because the API keeps 0.01
+# on the team when it moves quota back. The quotas have seven decimals, so the test also shows that
+# the read keeps the float32 that the API stores.
+resource: GetTeamResponse
+
+values:
+  daily_quota: "0.1234567"
+
+updatedValues:
+  daily_quota: "0.2345678"
+
+minimal: [daily_quota]
+upgradeMinimal: [daily_quota]
+upgradeFrom: "3.24.0"
+# 3.24.0 rounded the read to three decimals, so it fails on 0.1234567: the upgrade test gives it a
+# quota that it can store.
+upgradeValues:
+  daily_quota: "0.5"

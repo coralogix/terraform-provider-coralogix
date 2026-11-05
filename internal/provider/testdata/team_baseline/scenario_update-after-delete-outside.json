@@ -59,7 +59,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating Team | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Target team is not active\"}\noperation - Update"
+      "error: Unable to update team | id 1001: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Target team is not active\"}"
     ],
     "state": {
       "daily_quota": 0.5,

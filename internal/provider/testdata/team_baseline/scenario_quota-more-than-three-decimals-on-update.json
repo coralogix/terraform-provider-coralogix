@@ -67,7 +67,7 @@
       "daily_quota"
     ],
     "state": {
-      "daily_quota": 0.133,
+      "daily_quota": 0.1334567,
       "id": "1001",
       "name": "precise",
       "retention": 1
