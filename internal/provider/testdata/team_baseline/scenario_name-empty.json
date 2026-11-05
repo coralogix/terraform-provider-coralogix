@@ -1,0 +1,30 @@
+[
+  {
+    "step": "create with an empty name",
+    "config": {
+      "daily_quota": 0.5,
+      "name": ""
+    },
+    "plan": {
+      "daily_quota": 0.5,
+      "id": "(unknown)",
+      "name": "",
+      "retention": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/teams/v2",
+        "body": {
+          "dailyQuota": 0.5,
+          "teamName": ""
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating Team | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: must be not empty.\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]
