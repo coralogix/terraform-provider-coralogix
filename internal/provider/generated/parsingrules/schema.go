@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -58,12 +57,9 @@ func Schema() schema.Schema {
 				Description: "Rule-group name",
 			},
 			"order": schema.Int64Attribute{
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
-				},
-				Description: "Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing). The value must be unique across every rule-group in the account. Terraform cannot enforce that, because rule-groups are separate resources that are planned in isolation, so two rule-groups sharing an order are only rejected - if at all - by the API. Removing order from the configuration keeps the current order; set a value to move the rule-group.",
+				Optional:    true,
+				Computed:    true,
+				Description: "Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing). The value must be unique across every rule-group in the account. Terraform cannot enforce that, because rule-groups are separate resources that are planned in isolation, so two rule-groups sharing an order are only rejected - if at all - by the API.",
 			},
 			"applications": schema.SetAttribute{
 				Optional:    true,

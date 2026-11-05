@@ -1139,7 +1139,7 @@
       "hidden": "(unknown)",
       "id": "00000000-0000-4000-9000-000000000011",
       "name": "tf-rule-group-2",
-      "order": 2,
+      "order": "(unknown)",
       "rule_subgroups": [
         {
           "active": true,
@@ -1181,7 +1181,7 @@
           "enabled": false,
           "hidden": false,
           "name": "tf-rule-group-2",
-          "order": 2,
+          "order": 0,
           "ruleSubgroups": [
             {
               "enabled": true,
@@ -1214,7 +1214,7 @@
       "hidden": false,
       "id": "00000000-0000-4000-9000-000000000011",
       "name": "tf-rule-group-2",
-      "order": 2,
+      "order": 1,
       "rule_subgroups": [
         {
           "active": true,
@@ -1265,7 +1265,7 @@
       "hidden": false,
       "id": "00000000-0000-4000-9000-000000000011",
       "name": "tf-rule-group-2",
-      "order": 2,
+      "order": 1,
       "rule_subgroups": [
         {
           "active": true,
@@ -1312,7 +1312,7 @@
       "hidden": "(unknown)",
       "id": "00000000-0000-4000-9000-000000000011",
       "name": "tf-rule-group-2",
-      "order": 2,
+      "order": "(unknown)",
       "rule_subgroups": null,
       "severities": [],
       "subsystems": []
@@ -1327,7 +1327,7 @@
           "enabled": false,
           "hidden": false,
           "name": "tf-rule-group-2",
-          "order": 2,
+          "order": 0,
           "ruleSubgroups": null
         },
         "status": 400
@@ -1344,7 +1344,7 @@
       "hidden": false,
       "id": "00000000-0000-4000-9000-000000000011",
       "name": "tf-rule-group-2",
-      "order": 2,
+      "order": 1,
       "rule_subgroups": [
         {
           "active": true,
@@ -1394,7 +1394,7 @@
       "hidden": false,
       "id": "00000000-0000-4000-9000-000000000011",
       "name": "tf-rule-group-2",
-      "order": 2,
+      "order": 1,
       "rule_subgroups": [
         {
           "active": true,
@@ -1432,6 +1432,7 @@
       "AttributeName(\"creator\")",
       "AttributeName(\"description\")",
       "AttributeName(\"hidden\")",
+      "AttributeName(\"order\")",
       "AttributeName(\"rule_subgroups\")",
       "AttributeName(\"rule_subgroups\").ElementKeyInt(0)",
       "AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"active\")",

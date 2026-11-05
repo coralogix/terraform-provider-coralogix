@@ -93,7 +93,7 @@
       "hidden": "(unknown)",
       "id": "00000000-0000-4000-9000-000000000003",
       "name": "seeded",
-      "order": 1,
+      "order": "(unknown)",
       "rule_subgroups": [
         {
           "active": true,
@@ -136,7 +136,7 @@
           "enabled": false,
           "hidden": false,
           "name": "seeded",
-          "order": 1,
+          "order": 0,
           "ruleSubgroups": [
             {
               "enabled": true,

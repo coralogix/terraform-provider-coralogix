@@ -48,14 +48,12 @@ types:
         computed: true
         sendUnknownAsZero: true
         description: "Rule-group creator."
-      # Create sends an omitted order as 0, which adds the group last. An update keeps the order of the
-      # state: the released resource sent 0 there too, and the API then moved the group after every
-      # other group (recorded on EU2).
+      # The released resource sends an omitted order as 0, on Create and on Update, and the API then
+      # puts the group after every other group (recorded on EU2), also a group that had a place.
       order:
         computed: true
         sendUnknownAsZero: true
-        useStateForUnknown: true
-        description: "Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing). The value must be unique across every rule-group in the account. Terraform cannot enforce that, because rule-groups are separate resources that are planned in isolation, so two rule-groups sharing an order are only rejected - if at all - by the API. Removing order from the configuration keeps the current order; set a value to move the rule-group."
+        description: "Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing). The value must be unique across every rule-group in the account. Terraform cannot enforce that, because rule-groups are separate resources that are planned in isolation, so two rule-groups sharing an order are only rejected - if at all - by the API."
       ruleMatchers: {splitArms: true, collection: set, computed: true, default: []}
       # The released attribute is optional. A configuration without it sends an empty list, which the
       # API refuses as it refused the released request without the field.

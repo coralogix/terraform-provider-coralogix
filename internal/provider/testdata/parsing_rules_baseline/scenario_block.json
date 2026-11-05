@@ -439,7 +439,7 @@
       "hidden": "(unknown)",
       "id": "00000000-0000-4000-9000-000000000006",
       "name": "tf-rule-group",
-      "order": 2,
+      "order": "(unknown)",
       "rule_subgroups": [
         {
           "active": true,
@@ -483,7 +483,7 @@
           "enabled": false,
           "hidden": false,
           "name": "tf-rule-group",
-          "order": 2,
+          "order": 0,
           "ruleSubgroups": [
             {
               "enabled": true,
@@ -634,7 +634,7 @@
       "hidden": "(unknown)",
       "id": "00000000-0000-4000-9000-000000000006",
       "name": "tf-rule-group",
-      "order": 2,
+      "order": "(unknown)",
       "rule_subgroups": [
         {
           "active": true,
@@ -678,7 +678,7 @@
           "enabled": false,
           "hidden": false,
           "name": "tf-rule-group",
-          "order": 2,
+          "order": 0,
           "ruleSubgroups": [
             {
               "enabled": true,
