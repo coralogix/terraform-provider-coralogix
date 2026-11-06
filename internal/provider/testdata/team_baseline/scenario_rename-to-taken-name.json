@@ -59,7 +59,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating Team | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Already exist: Team name has already been taken\"}\noperation - Update"
+      "error: Unable to update team | id 1002: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Already exist: Team name has already been taken\"}"
     ],
     "state": {
       "daily_quota": 0.5,

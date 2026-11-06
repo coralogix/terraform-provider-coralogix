@@ -27,18 +27,12 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "daily_quota"
-    ],
     "state": {
-      "daily_quota": 0.123,
+      "daily_quota": 0.1234567,
       "id": "1001",
       "name": "precise",
       "retention": 1
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"daily_quota\")"
-    ]
+    "replanEmpty": true
   }
 ]

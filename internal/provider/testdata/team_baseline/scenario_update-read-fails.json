@@ -64,7 +64,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading Team | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\noperation - Read"
+      "error: Unable to update team | id 1001: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}"
     ],
     "state": {
       "daily_quota": 0.5,

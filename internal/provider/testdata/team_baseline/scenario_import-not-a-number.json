@@ -1,18 +1,9 @@
 [
   {
     "step": "import a non-numeric id",
-    "state": null
-  },
-  {
-    "step": "import a non-numeric id (refresh)",
     "applyDiagnostics": [
-      "error: Error parsing Team ID | Error parsing Team ID: strconv.ParseInt: parsing \"not-a-number\": invalid syntax"
+      "error: Invalid import ID | The import ID \"not-a-number\" is not a valid int64."
     ],
-    "state": {
-      "daily_quota": null,
-      "id": "not-a-number",
-      "name": null,
-      "retention": null
-    }
+    "state": null
   }
 ]
