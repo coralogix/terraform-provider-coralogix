@@ -1,0 +1,268 @@
+name: Regenerate generated resources
+
+# Opens a pull request that pins a new Management SDK and regenerates every resource of
+# internal/provider/codegen.go from its API contract, when that changes generated code.
+#
+# cx-management-apis -> openapi-facade -> coralogix-management-sdk sync each published API
+# change. Only preview and stable elements reach the published spec, so this picks up no
+# element that is still in development. The SDK sends `sdk-spec-updated` with the merged
+# commit SHA after its openapi.yaml changes on master. The daily run catches a lost dispatch.
+#
+# The pull request needs a human review. The build check requires the committed generated
+# code to match the pinned SDK, so the SDK bump and the regeneration land together.
+
+on:
+  repository_dispatch:
+    types: [sdk-spec-updated]
+  schedule:
+    - cron: '0 5 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      sdk_ref:
+        description: 'coralogix-management-sdk commit SHA, tag, or branch. Leave empty for master.'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+# Every run targets the one auto/sdk-regenerate pull request, so a newer SDK commit cancels an
+# older run instead of racing it onto the same branch.
+concurrency:
+  group: regenerate-generated-resources
+  cancel-in-progress: true
+
+env:
+  SDK_REPO: coralogix/coralogix-management-sdk
+
+jobs:
+  build:
+    name: Regenerate from the SDK
+    runs-on: ubuntu-latest
+    outputs:
+      resources: ${{ steps.regenerate.outputs.resources }}
+      sdk_sha: ${{ steps.sdk.outputs.sha }}
+      sdk_short_sha: ${{ steps.sdk.outputs.short_sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve SDK commit
+        id: sdk
+        env:
+          DISPATCH_SHA: ${{ github.event.client_payload.commit_sha }}
+          INPUT_REF: ${{ github.event.inputs.sdk_ref }}
+        run: |
+          set -euo pipefail
+          ref=${DISPATCH_SHA:-${INPUT_REF:-master}}
+          if [[ ! $ref =~ ^[A-Za-z0-9._/-]+$ ]]; then
+            echo "::error::Invalid SDK ref: $ref"
+            exit 1
+          fi
+          if [[ $ref =~ ^[0-9a-f]{40}$ ]]; then
+            sha=$ref
+          else
+            sha=$(git ls-remote "https://github.com/${SDK_REPO}" "$ref" "refs/heads/$ref" "refs/tags/$ref" | awk 'NR == 1 { print $1 }')
+          fi
+          if [[ -z "$sha" ]]; then
+            echo "::error::Could not resolve SDK ref $ref"
+            exit 1
+          fi
+          echo "Using ${SDK_REPO} commit $sha"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${sha:0:7}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Setup Terraform
+        # tfplugindocs exports the provider schema with a Terraform CLI.
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Regenerate
+        id: regenerate
+        env:
+          SDK_SHA: ${{ steps.sdk.outputs.sha }}
+        run: |
+          set -euo pipefail
+          tools/iac-codegen/scripts/regenerate-from-sdk.sh "$SDK_SHA" > "$RUNNER_TEMP/resources"
+          echo "resources=$(paste -sd, - < "$RUNNER_TEMP/resources")" >> "$GITHUB_OUTPUT"
+          if [[ ! -s "$RUNNER_TEMP/resources" ]]; then
+            echo "The generated code is the same with ${SDK_REPO}@${SDK_SHA}. No pull request."
+          fi
+
+      - name: Build and vet
+        if: steps.regenerate.outputs.resources != ''
+        run: |
+          go build ./...
+          go vet ./...
+
+      - name: Write pull request body
+        if: steps.regenerate.outputs.resources != ''
+        env:
+          SDK_SHA: ${{ steps.sdk.outputs.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/regenerated"
+          {
+            echo "Regenerates the generated resources from the API contract of [\`${SDK_REPO}@${SDK_SHA:0:7}\`](https://github.com/${SDK_REPO}/commit/${SDK_SHA})."
+            echo
+            echo "Regenerated resources:"
+            git status --porcelain -- internal/provider/generated |
+              sed -nE 's#^.{3}internal/provider/generated/([^/]+)/.*#\1#p' | sort -u |
+              while read -r out; do
+                sed -nE 's/^const TypeName = "([^"]+)"$/- `coralogix_\1`/p' "internal/provider/generated/$out/resource.go"
+              done
+            echo
+            echo "Changelog:"
+            echo
+            echo '```markdown'
+            git diff -U0 -- CHANGELOG.md | sed -nE 's/^\+([^+].*)$/\1/p'
+            echo '```'
+            echo
+            echo "Review the schema change in \`docs/resources/\` and the generated acceptance tests before merging."
+            echo
+            echo "Opened by [Regenerate generated resources](${RUN_URL})."
+          } > "$RUNNER_TEMP/regenerated/pr-body.md"
+
+      - name: Package the change
+        if: steps.regenerate.outputs.resources != ''
+        # A patch also carries a generated file that the generator no longer writes.
+        run: |
+          git add -A -- go.mod go.sum CHANGELOG.md internal/provider/generated docs examples
+          git diff --cached --binary > "$RUNNER_TEMP/regenerated/change.patch"
+
+      - uses: actions/upload-artifact@v4
+        if: steps.regenerate.outputs.resources != ''
+        with:
+          name: regenerated
+          path: ${{ runner.temp }}/regenerated
+          retention-days: 1
+
+  # The App token is minted and used only here, so the generator and the build in `build`
+  # never see it.
+  open-pr:
+    name: Open pull request
+    needs: build
+    if: needs.build.outputs.resources != ''
+    runs-on: ubuntu-latest
+    outputs:
+      operation: ${{ steps.cpr.outputs.pull-request-operation }}
+      url: ${{ steps.cpr.outputs.pull-request-url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: regenerated
+          path: ${{ runner.temp }}/regenerated
+
+      - name: Apply the change
+        run: git apply --index "$RUNNER_TEMP/regenerated/change.patch"
+
+      # A pull request that GITHUB_TOKEN opens starts no workflow, so the build and acceptance
+      # checks would never run. A GitHub App token starts them.
+      - name: Decode GitHub App private key
+        id: pkey
+        env:
+          RAW_KEY: ${{ secrets.OPENAPI_FACADE_AUTOMATION_APP_PRIVATE_KEY }}
+        run: |
+          if [ -z "$RAW_KEY" ]; then
+            echo "::error::OPENAPI_FACADE_AUTOMATION_APP_ID and OPENAPI_FACADE_AUTOMATION_APP_PRIVATE_KEY must be set to open the pull request."
+            exit 1
+          fi
+          decoded=$(printf '%b' "$RAW_KEY")
+          while IFS= read -r line; do
+            [ -n "$line" ] && echo "::add-mask::$line"
+          done <<< "$decoded"
+          {
+            echo 'key<<PKEY_EOF'
+            printf '%s\n' "$decoded"
+            echo 'PKEY_EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Mint GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.OPENAPI_FACADE_AUTOMATION_APP_ID }}
+          private-key: ${{ steps.pkey.outputs.key }}
+
+      # Fixed branch: while the pull request is open, a newer SDK commit updates it in place.
+      - name: Open pull request
+        id: cpr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          sign-commits: true
+          base: master
+          branch: auto/sdk-regenerate
+          delete-branch: true
+          add-paths: |
+            go.mod
+            go.sum
+            CHANGELOG.md
+            internal/provider/generated/**
+            docs/**
+            examples/**
+          commit-message: "chore: regenerate generated resources from Management SDK ${{ needs.build.outputs.sdk_short_sha }}"
+          title: "Regenerate generated resources from Management SDK ${{ needs.build.outputs.sdk_short_sha }}"
+          body-path: ${{ runner.temp }}/regenerated/pr-body.md
+
+  notify:
+    name: Notify Slack
+    needs: [build, open-pr]
+    # Post a ready pull request, or a failure. Nothing when the generated code is unchanged
+    # or the open pull request already has this content.
+    if: >-
+      always() && (
+        contains(needs.*.result, 'failure') ||
+        needs.open-pr.outputs.operation == 'created' ||
+        needs.open-pr.outputs.operation == 'updated'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post to Slack
+        env:
+          # Slack incoming webhook URL. This is a public repo with public Actions logs: the URL
+          # goes into a 0600 curl config file, never into argv, echo, jq, or `set -x`.
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_CI_WEBHOOK_URL }}
+          FAILED: ${{ contains(needs.*.result, 'failure') }}
+          OPERATION: ${{ needs.open-pr.outputs.operation }}
+          PR_URL: ${{ needs.open-pr.outputs.url }}
+          RESOURCES: ${{ needs.build.outputs.resources }}
+          SDK_SHA: ${{ needs.build.outputs.sdk_sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "::warning::SLACK_CI_WEBHOOK_URL is not set; skipping the Slack notification."
+            exit 0
+          fi
+          umask 077
+          curl_config="$(mktemp)"
+          trap 'rm -f "$curl_config"' EXIT
+          printf 'url = "%s"\n' "$SLACK_WEBHOOK_URL" > "$curl_config"
+
+          resources=$(printf '%s' "$RESOURCES" | tr ',' '\n' | sed '/^$/d; s/.*/`&`/' | paste -sd, - | sed 's/,/, /g')
+          sdk="\`${SDK_SHA:0:7}\`"
+          if [ "$FAILED" = "true" ]; then
+            title=":rotating_light: Regenerating the generated resources from Management SDK ${SDK_SHA:0:7} failed"
+            body="*<${RUN_URL}|Regenerating the generated resources>* from Management SDK ${sdk} failed."
+            if [ -n "$resources" ]; then
+              body="${body}"$'\n'"*Resources:* ${resources}"
+            fi
+          else
+            if [ "$OPERATION" = "created" ]; then state="is ready for review"; else state="was updated and is ready for review"; fi
+            title=":robot_face: Generated resources PR ${state}: ${RESOURCES}"
+            body="*<${PR_URL}|Generated resources PR>* ${state}."$'\n'"*Regenerated resources:* ${resources}"$'\n'"*Management SDK:* ${sdk}"
+          fi
+          jq -n --arg title "$title" --arg body "$body" '{
+            text: $title,
+            blocks: [{ type: "section", text: { type: "mrkdwn", text: $body } }]
+          }' | curl --fail --silent --show-error --config "$curl_config" \
+            -H 'Content-Type: application/json' --data-binary @- > /dev/null

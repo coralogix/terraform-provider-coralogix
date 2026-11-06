@@ -1,0 +1,33 @@
+# Terraform resources that the Regenerate generated resources workflow regenerates from a new
+# Management SDK, one per line. Most resources are handwritten and are not listed.
+#
+# Every resource of internal/provider/codegen.go must be listed (scripts/check-auto-regenerate-list.sh):
+# the build check requires each generated resource to match the pinned SDK, so a pull request
+# that bumps the SDK must regenerate them all. A listed resource that codegen.go does not have
+# yet, such as one whose migration is still in review, is skipped until it is generated.
+
+coralogix_action
+coralogix_ai_evaluation
+coralogix_alerts_scheduler
+coralogix_archive_logs
+coralogix_archive_metrics
+coralogix_configuration_group
+coralogix_connector
+coralogix_dashboards_folder
+coralogix_events2metric
+coralogix_global_router
+coralogix_integration
+coralogix_preset
+coralogix_quota_allocation_rule_set
+coralogix_slo_v2
+coralogix_view
+coralogix_view_folder
+coralogix_webhook
+
+# In review.
+coralogix_ip_access
+coralogix_parsing_rules
+coralogix_recording_rules_groups_set
+coralogix_tco_policies_logs
+coralogix_tco_policies_rum
+coralogix_tco_policies_traces

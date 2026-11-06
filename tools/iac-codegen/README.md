@@ -516,9 +516,23 @@ A behavior change is a change of what the generator produces, whatever caused it
 
 `internal/provider/codegen.go` lists every generated resource with the name that its acceptance file uses. Add a line when you generate a new resource. `go generate ./internal/provider/` regenerates them all. On every pull request, CI requires each package in `versions.yaml` to use the current generator version. It also regenerates every listed resource in a temporary directory and compares the output with the committed files and examples. Include changed output when generator inputs change.
 
+## Automated regeneration
+
+An API change reaches the provider through three syncs: `cx-management-apis` dispatches each merge to `openapi-facade`, the facade dispatches its spec to `coralogix-management-sdk`, and the SDK merges its sync pull request. Only preview and stable elements reach the published spec, so an element that is still in development never reaches the generator. After `openapi.yaml` changes on the SDK master, the SDK dispatches `sdk-spec-updated` to this repository.
+
+The `Regenerate generated resources` workflow (`.github/workflows/regenerate-generated-resources.yml`) then runs `scripts/regenerate-from-sdk.sh` with that SDK commit. The script pins the SDK, regenerates the resources of `auto-regenerate.txt` and the docs, and adds a changelog entry for each changed resource: the attributes that its doc adds or removes, or a regeneration note. When generated code changed, the workflow opens or updates the pull request on the `auto/sdk-regenerate` branch and posts it with the regenerated resource names to Slack. It posts a failure too, for example when the new SDK breaks a handwritten resource. It also runs every weekday and by hand with an SDK ref. The `iac` module of this module stays pinned: a generator change is its own pull request with a new version.
+
+`auto-regenerate.txt` lists the Terraform resources that the workflow regenerates. Most resources are handwritten and are not listed. When you generate a resource, add its name: CI fails when a resource of `internal/provider/codegen.go` is missing (`scripts/check-auto-regenerate-list.sh`), because the build check requires every generated resource to match the pinned SDK. A listed resource that `codegen.go` does not have yet, such as one whose migration is in review, is skipped.
+
+Run the script locally the same way:
+
+```sh
+tools/iac-codegen/scripts/regenerate-from-sdk.sh <SDK commit, tag, or branch>
+```
+
 ## Beta boundary
 
-This beta has no type mode. `generate` has no OpenAPI input flag. The module has no live OpenAPI fetch, custom field hook, force flag, or allow-unsupported flag. The only override is the `behavior-overrides.yaml` file of an existing resource. A Delete override makes one call: it cannot run a step before it, such as an update that an API needs before it archives, and it cannot send a request body. A data source looks up the id, or the name through a List that is not paged. Paging, a name field with another name than `name`, plural "list all" data sources, data sources of handwritten resources, and automated delivery are separate work.
+This beta has no type mode. `generate` has no OpenAPI input flag. The module has no live OpenAPI fetch, custom field hook, force flag, or allow-unsupported flag. The only override is the `behavior-overrides.yaml` file of an existing resource. A Delete override makes one call: it cannot run a step before it, such as an update that an API needs before it archives, and it cannot send a request body. A data source looks up the id, or the name through a List that is not paged. Paging, a name field with another name than `name`, plural "list all" data sources, and data sources of handwritten resources are separate work.
 
 ## Verify changes
 
