@@ -1517,6 +1517,16 @@ func flattenFloat64AsFloat32(v *float64) types.Float64 {
 	}
 	return types.Float64Value(f)
 }
+
+// keepPriorFloat32 returns the plan or state value prior when it is the same float32 as v, the
+// value that the API stores. A configured 0.123456789 then stays, though the API returns the
+// float32 0.12345679.
+func keepPriorFloat32(prior, v types.Float64) types.Float64 {
+	if prior.IsNull() || prior.IsUnknown() || v.IsNull() || v.IsUnknown() || float32(prior.ValueFloat64()) != float32(v.ValueFloat64()) {
+		return v
+	}
+	return prior
+}
 {{- end}}
 {{- if .Conv.Uses "int64asstring"}}
 
@@ -1976,6 +1986,9 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- else if eq .Conv "float64asfloat32"}}
 	out.{{.Model}} = flattenFloat64AsFloat32({{$v}})
 	{{- template "readZeroAsNull" .}}
+	if prior != nil {
+		out.{{.Model}} = keepPriorFloat32(prior.{{.Model}}, out.{{.Model}})
+	}
 {{- else if eq .Conv "int64asstring"}}
 	out.{{.Model}} = types.StringPointerValue(int64AsString({{$v}}))
 {{- else if eq .Conv "int32"}}

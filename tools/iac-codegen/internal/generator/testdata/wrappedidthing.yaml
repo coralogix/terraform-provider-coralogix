@@ -2,11 +2,21 @@
 # thingId, in the Get response and in the Create response, which holds only that object. The path
 # parameter thing_id is the inner id. The Create response does not require thingId, so the SDK
 # holds it as a pointer there, and as a value in the Get response. Update takes the fields that it changes, and returns an
-# object with no fields. The API stores quota, a double, as a float32.
+# object with no fields. The API stores quota, a double, as a float32. The List items hold the
+# same wrapper of the id, so the data source can look a thing up by name.
 openapi: 3.1.0
 info: {title: wrappedid, version: 1.0.0}
 paths:
   /wrapped/v1/things:
+    get:
+      tags: [Wrapped Things Service]
+      operationId: WrappedThingsService_ListThings
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ListThingsResponse'}
     post:
       tags: [Wrapped Things Service]
       operationId: WrappedThingsService_CreateThing
@@ -88,6 +98,15 @@ components:
           allOf: [{$ref: '#/components/schemas/ThingId'}]
         name: {type: string, minLength: 1}
         quota: {type: number, format: double}
+    ListThingsResponse:
+      type: object
+      properties:
+        things: {type: array, items: {$ref: '#/components/schemas/ThingSummary'}}
+    ThingSummary:
+      type: object
+      properties:
+        thingId: {allOf: [{$ref: '#/components/schemas/ThingId'}]}
+        name: {type: string}
     UpdateThingResponse:
       type: object
     DeleteThingResponse:

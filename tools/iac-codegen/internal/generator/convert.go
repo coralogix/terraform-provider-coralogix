@@ -2570,10 +2570,10 @@ func (ix *refIndex) schemaRef(schema string) (sdkcheck.Ref, error) {
 }
 
 // markPrior sets NeedsPrior on every object with a KeepPriorOrder field, a string that reads
-// an empty value as null, or an Equality field, and on every object that holds such an
-// object. Only these flatten functions take the prior model. It also marks the objects that
-// a list keeping the prior order holds, and their nested objects: the package compares their
-// SDK values.
+// an empty value as null, an Equality field, or a double stored as a float32, and on every
+// object that holds such an object. Only these flatten functions take the prior model. It also
+// marks the objects that a list keeping the prior order holds, and their nested objects: the
+// package compares their SDK values.
 func markPrior(d *convData) error {
 	if err := markPriorFields(d); err != nil {
 		return err
@@ -2606,6 +2606,10 @@ func markPriorFields(d *convData) error {
 				if f.Conv != convString {
 					return fmt.Errorf("%s.%s: equality needs a string field", obj.Model, f.TFName)
 				}
+				obj.NeedsPrior = true
+			}
+			// A double that the API stores as a float32 keeps the prior value of the same float32.
+			if f.Conv == convFloat64AsFloat32 {
 				obj.NeedsPrior = true
 			}
 			// An enum read in any case keeps the spelling of the prior value.

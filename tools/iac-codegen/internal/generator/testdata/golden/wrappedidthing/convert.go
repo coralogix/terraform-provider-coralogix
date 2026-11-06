@@ -65,13 +65,13 @@ func expandUpdate(ctx context.Context, m *GetThingResponseModel) (*wrapped_thing
 
 // flatten returns the Terraform model of the resource in an API response.
 // A value that the response does not have is null.
-func flatten(ctx context.Context, v *wrapped_things_service.GetThingResponse) (*GetThingResponseModel, diag.Diagnostics) {
+func flatten(ctx context.Context, v *wrapped_things_service.GetThingResponse, prior *GetThingResponseModel) (*GetThingResponseModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if v == nil {
 		diags.AddError("Missing resource", "The API response has no GetThingResponse.")
 		return nil, diags
 	}
-	out := flattenGetThingResponse(ctx, path.Empty(), v, &diags)
+	out := flattenGetThingResponse(ctx, path.Empty(), v, prior, &diags)
 	return out, diags
 }
 
@@ -251,7 +251,7 @@ func expandUpdateThingBody(ctx context.Context, p path.Path, m *GetThingResponse
 	return out
 }
 
-func flattenGetThingResponse(ctx context.Context, p path.Path, v *wrapped_things_service.GetThingResponse, diags *diag.Diagnostics) *GetThingResponseModel {
+func flattenGetThingResponse(ctx context.Context, p path.Path, v *wrapped_things_service.GetThingResponse, prior *GetThingResponseModel, diags *diag.Diagnostics) *GetThingResponseModel {
 	if v == nil {
 		return nil
 	}
@@ -262,6 +262,9 @@ func flattenGetThingResponse(ctx context.Context, p path.Path, v *wrapped_things
 	}
 	out.Name = types.StringPointerValue(&v.Name)
 	out.Quota = flattenFloat64AsFloat32(&v.Quota)
+	if prior != nil {
+		out.Quota = keepPriorFloat32(prior.Quota, out.Quota)
+	}
 	return out
 }
 
@@ -515,6 +518,16 @@ func flattenFloat64AsFloat32(v *float64) types.Float64 {
 		return types.Float64Value(*v)
 	}
 	return types.Float64Value(f)
+}
+
+// keepPriorFloat32 returns the plan or state value prior when it is the same float32 as v, the
+// value that the API stores. A configured 0.123456789 then stays, though the API returns the
+// float32 0.12345679.
+func keepPriorFloat32(prior, v types.Float64) types.Float64 {
+	if prior.IsNull() || prior.IsUnknown() || v.IsNull() || v.IsUnknown() || float32(prior.ValueFloat64()) != float32(v.ValueFloat64()) {
+		return v
+	}
+	return prior
 }
 
 // expandStringAsInt64 returns the int64 id that a String attribute holds as decimal text.

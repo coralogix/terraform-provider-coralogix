@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -63,6 +64,78 @@ func TestCreateReadsTheWrappedID(t *testing.T) {
 	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("quota"), &gotQuota)...)
 	if resp.Diagnostics.HasError() || id.ValueString() != "1002" || gotQuota.ValueFloat64() != 0.3 {
 		t.Fatalf("state id = %v, quota = %v (%v), want \"1002\" and 0.3", id, gotQuota, resp.Diagnostics)
+	}
+}
+
+// A configured quota with more digits than its float32 stays as configured: the API returns the
+// float32 0.12345679, which is the same float32, and a plain read would make the apply
+// inconsistent.
+func TestCreateKeepsAQuotaOfTheSameFloat32(t *testing.T) {
+	ctx := context.Background()
+	wrapped_things_service.Created, wrapped_things_service.GetIDs = nil, nil
+	wrapped_things_service.Stored = stored(wrapped_things_service.CreatedID, "a", float64(float32(0.123456789)))
+	r, schemaResp, root := thingSchema(t)
+	quota := tftypes.NewValue(tftypes.Number, 0.123456789)
+	resp := &frameworkresource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(root, nil)}}
+	r.Create(ctx, frameworkresource.CreateRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: thingValue(root, nullID, tftypes.NewValue(tftypes.String, "a"), quota)},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: thingValue(root, unknownID, tftypes.NewValue(tftypes.String, "a"), quota)},
+	}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	var gotQuota types.Float64
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("quota"), &gotQuota)...)
+	if resp.Diagnostics.HasError() || gotQuota.ValueFloat64() != 0.123456789 {
+		t.Fatalf("state quota = %v (%v), want 0.123456789", gotQuota, resp.Diagnostics)
+	}
+	// Another float32 is a change, and reads as the API value.
+	wrapped_things_service.Stored = stored(wrapped_things_service.CreatedID, "a", float64(float32(0.5)))
+	resp = &frameworkresource.CreateResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(root, nil)}}
+	r.Create(ctx, frameworkresource.CreateRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: thingValue(root, nullID, tftypes.NewValue(tftypes.String, "a"), quota)},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: thingValue(root, unknownID, tftypes.NewValue(tftypes.String, "a"), quota)},
+	}, resp)
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("quota"), &gotQuota)...)
+	if gotQuota.ValueFloat64() != 0.5 {
+		t.Fatalf("state quota = %v, want the API value 0.5", gotQuota)
+	}
+}
+
+// The data source looks a thing up by name: it leaves the null id unparsed, reads the id in the
+// wrapper of the List item, and reads the thing with Get under that id.
+func TestDataSourceLooksUpTheWrappedIDByName(t *testing.T) {
+	ctx := context.Background()
+	wrapped_things_service.GetIDs = nil
+	other, wanted, otherName, wantedName := int64(8), int64(9), "a", "b"
+	wrapped_things_service.Listed = []wrapped_things_service.ThingSummary{
+		{ThingId: &wrapped_things_service.ThingId{Id: &other}, Name: &otherName},
+		{ThingId: &wrapped_things_service.ThingId{Id: &wanted}, Name: &wantedName},
+	}
+	wrapped_things_service.Stored = stored(wanted, wantedName, 0.5)
+	d := NewDataSource(Hooks{}).(*DataSource)
+	d.resource.client = &wrapped_things_service.WrappedThingsServiceAPIService{}
+	var schemaResp datasource.SchemaResponse
+	d.Schema(ctx, datasource.SchemaRequest{}, &schemaResp)
+	root := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
+	values := map[string]tftypes.Value{}
+	for attr, attrType := range root.AttributeTypes {
+		values[attr] = tftypes.NewValue(attrType, nil)
+	}
+	values["name"] = tftypes.NewValue(tftypes.String, wantedName)
+	config := tftypes.NewValue(root, values)
+	resp := &datasource.ReadResponse{State: tfsdk.State{Schema: schemaResp.Schema, Raw: config}}
+	d.Read(ctx, datasource.ReadRequest{Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: config}}, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	if len(wrapped_things_service.GetIDs) != 1 || wrapped_things_service.GetIDs[0] != wanted {
+		t.Fatalf("get ids = %v, want [9]", wrapped_things_service.GetIDs)
+	}
+	var id types.String
+	resp.Diagnostics.Append(resp.State.GetAttribute(ctx, path.Root("id"), &id)...)
+	if resp.Diagnostics.HasError() || id.ValueString() != "9" {
+		t.Fatalf("data source id = %v (%v), want \"9\"", id, resp.Diagnostics)
 	}
 }
 

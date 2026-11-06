@@ -26,6 +26,15 @@ type UpdateThingBody struct {
 	Quota *float64
 }
 
+type ThingSummary struct {
+	ThingId *ThingId
+	Name    *string
+}
+
+type ListThingsResponse struct {
+	Things []ThingSummary
+}
+
 // The Create response holds only the wrapper of the id, as a pointer: it is not required there.
 type CreateThingResponse struct {
 	ThingId *ThingId
@@ -44,6 +53,7 @@ type ApiWrappedThingsServiceUpdateThingRequest struct {
 	body UpdateThingBody
 }
 type ApiWrappedThingsServiceDeleteThingRequest struct{}
+type ApiWrappedThingsServiceListThingsRequest struct{}
 
 // Created and Updated list the bodies that the calls received, and UpdatedIDs the ids of the
 // updates. Create returns CreatedID. Get returns Stored, and GetIDs lists the ids that it was
@@ -57,6 +67,8 @@ var (
 	GetIDs     []int64
 	// GetErr makes Get fail.
 	GetErr error
+	// Listed is what List returns.
+	Listed []ThingSummary
 )
 
 func (*WrappedThingsServiceAPIService) WrappedThingsServiceCreateThing(ctx context.Context) ApiWrappedThingsServiceCreateThingRequest {
@@ -112,4 +124,13 @@ func (r ApiWrappedThingsServiceUpdateThingRequest) Execute() (map[string]interfa
 
 func (ApiWrappedThingsServiceDeleteThingRequest) Execute() (map[string]interface{}, *http.Response, error) {
 	return nil, nil, nil
+}
+
+func (*WrappedThingsServiceAPIService) WrappedThingsServiceListThings(ctx context.Context) ApiWrappedThingsServiceListThingsRequest {
+	_ = ctx
+	return ApiWrappedThingsServiceListThingsRequest{}
+}
+
+func (ApiWrappedThingsServiceListThingsRequest) Execute() (*ListThingsResponse, *http.Response, error) {
+	return &ListThingsResponse{Things: Listed}, nil, nil
 }

@@ -13,6 +13,7 @@ api:
     get: WrappedThingsService_GetThing
     update: WrappedThingsService_UpdateThing
     delete: WrappedThingsService_DeleteThing
+    list: WrappedThingsService_ListThings
   idProperty: thingId
   createResponseOnlyIDProperty: thingId
 
@@ -27,4 +28,5 @@ types:
         computed: true
         useStateForUnknown: true
 
-dataSource: {}
+dataSource:
+  lookup: [id, name]
