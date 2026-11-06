@@ -16,6 +16,7 @@ package provider
 
 import (
 	_ "embed"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -52,6 +53,24 @@ func TestIpAccessResource(t *testing.T) {
 						},
 					),
 				),
+			},
+			{
+				Config: strings.ReplaceAll(IpAccessResource, "100.64.0.0/10", "10.0.0.0/8"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(ipAccessResourceName, "enable_coralogix_customer_support_access", "enabled"),
+					resource.TestCheckTypeSetElemNestedAttrs(ipAccessResourceName, "ip_access.*", map[string]string{
+						"enabled": "false", "ip_range": "10.0.0.0/8", "name": "random range from wikipedia",
+					}),
+				),
+			},
+			{
+				ResourceName:      ipAccessResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				Config:   strings.ReplaceAll(IpAccessResource, "100.64.0.0/10", "10.0.0.0/8"),
+				PlanOnly: true,
 			},
 		},
 	})

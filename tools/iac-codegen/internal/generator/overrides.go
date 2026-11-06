@@ -779,15 +779,18 @@ func nameProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	return nil
 }
 
-// collectionProblem checks a collection: set line. It needs a list that the contract does not
-// already mark as a set.
+// collectionProblem checks a collection: set line. It accepts a list or an
+// object map of objects; the shared model validates the lifecycle's wire-shape
+// pairing and matching element types.
 func collectionProblem(schema *base.Schema, line overrides.Line) *lineIssue {
 	built, err := schema.Properties.GetOrZero(line.Field).BuildSchema()
 	if err != nil {
 		return wholeLine(fmt.Errorf("field %q: %w", line.Field, err))
 	}
-	if !slices.Equal(built.Type, []string{"array"}) {
-		return wholeLine(fmt.Errorf("collection: set needs a list, but %q is %v", line.Field, built.Type))
+	list := slices.Equal(built.Type, []string{"array"})
+	objectMap := slices.Equal(built.Type, []string{"object"}) && built.AdditionalProperties != nil && built.AdditionalProperties.A != nil
+	if !list && !objectMap {
+		return wholeLine(fmt.Errorf("collection: set needs a list or an object map, but %q is %v", line.Field, built.Type))
 	}
 	if n := built.Extensions.GetOrZero("x-coralogix-collection"); n != nil && n.Value == "set" {
 		return &lineIssue{message: fmt.Sprintf("the contract already states that %q is a set", line.Field), stale: []string{"collection"}}

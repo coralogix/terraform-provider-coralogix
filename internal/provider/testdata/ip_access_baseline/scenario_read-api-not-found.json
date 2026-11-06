@@ -61,7 +61,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_ip_access | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found\"}\noperation - Read"
+      "error: Unable to read ip_access | id <settings-id>: 404 Not Found — {\"code\":404,\"message\":\"Not Found\"}"
     ],
     "state": {
       "enable_coralogix_customer_support_access": "unspecified",

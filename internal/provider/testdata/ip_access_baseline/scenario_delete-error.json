@@ -61,7 +61,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error deleting coralogix_ip_access | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\noperation - Delete"
+      "error: Unable to delete ip_access | id <settings-id>: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}"
     ],
     "state": {
       "enable_coralogix_customer_support_access": "unspecified",

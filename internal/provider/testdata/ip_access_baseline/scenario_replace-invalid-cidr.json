@@ -89,7 +89,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_ip_access | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Invalid IP range format\"}\noperation - Replace"
+      "error: Unable to update ip_access | id <settings-id>: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Invalid IP range format\"}"
     ],
     "state": {
       "enable_coralogix_customer_support_access": "unspecified",
