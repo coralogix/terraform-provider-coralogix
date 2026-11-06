@@ -154,7 +154,7 @@ var teamScenarios = map[string]func(h *grHarness){
 	"update-after-delete-outside": func(h *grHarness) {
 		s := h.Apply("create", h.null(), j{"name": "deleted", "daily_quota": 0.5})
 		h.team().deleteOutside(teamFirstID)
-		h.Apply("update: the API answers 500 for a deleted team", s, j{"name": "deleted-renamed", "daily_quota": 0.5})
+		h.Apply("update: the API answers 412 for a deleted team", s, j{"name": "deleted-renamed", "daily_quota": 0.5})
 	},
 	"update-read-fails": func(h *grHarness) {
 		s := h.Apply("create", h.null(), j{"name": "unread", "daily_quota": 0.5})

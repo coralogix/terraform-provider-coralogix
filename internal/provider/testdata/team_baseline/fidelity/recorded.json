@@ -115,10 +115,10 @@
           }
         },
         {
-          "status": 500,
+          "status": 412,
           "response": {
-            "code": 500,
-            "message": "Internal Server Error: Target team is not active"
+            "code": 412,
+            "message": "Failed Precondition: Target team is not active"
           }
         },
         {
@@ -311,6 +311,142 @@
         {
           "status": 200,
           "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "quota-unchanged-and-small-decrease",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.5,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-h"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.5,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-h2"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.5,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-h2"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: DailyQuota must be greater than 0.01"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.5,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-h2"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.4099999964237213,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-h2"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.4099999964237213,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-h3"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.6000000238418579,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-h3"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.6000000238418579,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-h4"
+          }
         },
         {
           "status": 200,

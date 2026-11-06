@@ -36,7 +36,7 @@
     "replanEmpty": true
   },
   {
-    "step": "update: the API answers 500 for a deleted team",
+    "step": "update: the API answers 412 for a deleted team",
     "config": {
       "daily_quota": 0.5,
       "name": "deleted-renamed"
@@ -55,11 +55,11 @@
           "dailyQuota": 0.5,
           "teamName": "deleted-renamed"
         },
-        "status": 500
+        "status": 412
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating Team | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Target team is not active\"}\noperation - Update"
+      "error: Error updating Team | error - 412 Precondition Failed — {\"code\":412,\"message\":\"Failed Precondition: Target team is not active\"}\noperation - Update"
     ],
     "state": {
       "daily_quota": 0.5,

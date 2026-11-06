@@ -41,7 +41,7 @@ const teamFirstID = 1001
 //     or less is rejected. Update rejects a quota of 0 or less.
 //   - Delete first sets the quota to 0.01 by the same rule, so a team with the minimum quota
 //     (a decrease of 0.01) cannot be deleted.
-//   - A deleted team is not a 404: Get answers 400, Update 500, and Delete 400. An id that never
+//   - A deleted team is not a 404: Get answers 400, Update 412, and Delete 400. An id that never
 //     existed answers 404.
 type teamFake struct {
 	mu       sync.Mutex
@@ -200,7 +200,7 @@ func (f *teamFake) update(id int64, request map[string]any) (int, any) {
 	if f.updateStatus != 0 {
 		return teamError(f.updateStatus, http.StatusText(f.updateStatus))
 	}
-	team, status, answer := f.lookup(id, http.StatusInternalServerError, "Internal Server Error: Target team is not active")
+	team, status, answer := f.lookup(id, http.StatusPreconditionFailed, "Failed Precondition: Target team is not active")
 	if team == nil {
 		return status, answer
 	}
@@ -268,9 +268,10 @@ func (f *teamFake) nameTaken(name string, except int64) bool {
 }
 
 // teamMoveQuota returns the quota that a team with quota current has after the API sets it to
-// target, and false when the API rejects the move.
+// target, and false when the API rejects the move. The API compares float32 values, so sending
+// the stored quota again is no change even when its float32 is not the decimal (0.6).
 func teamMoveQuota(current float32, target float64) (float32, bool) {
-	decrease := float64(current) - target
+	decrease := float64(current) - float64(float32(target))
 	switch {
 	case decrease <= 0:
 		return float32(target), true

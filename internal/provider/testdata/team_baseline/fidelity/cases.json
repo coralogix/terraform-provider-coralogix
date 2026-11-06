@@ -60,6 +60,28 @@
       ]
     },
     {
+      "name": "quota-unchanged-and-small-decrease",
+      "steps": [
+        {"method": "POST", "path": "", "body": {"teamName": "{{NAME}}-h", "dailyQuota": 0.5}, "capture": "H"},
+        {"method": "GET", "path": "/{{H}}"},
+        {"method": "PUT", "path": "/{{H}}", "body": {"teamName": "{{NAME}}-h2", "dailyQuota": 0.5}},
+        {"method": "GET", "path": "/{{H}}"},
+        {"method": "PUT", "path": "/{{H}}", "body": {"dailyQuota": 0.5}},
+        {"method": "GET", "path": "/{{H}}"},
+        {"method": "PUT", "path": "/{{H}}", "body": {"dailyQuota": 0.495}},
+        {"method": "GET", "path": "/{{H}}"},
+        {"method": "PUT", "path": "/{{H}}", "body": {"dailyQuota": 0.4}},
+        {"method": "GET", "path": "/{{H}}"},
+        {"method": "PUT", "path": "/{{H}}", "body": {"teamName": "{{NAME}}-h3", "dailyQuota": 0.41}},
+        {"method": "GET", "path": "/{{H}}"},
+        {"method": "PUT", "path": "/{{H}}", "body": {"dailyQuota": 0.6}},
+        {"method": "GET", "path": "/{{H}}"},
+        {"method": "PUT", "path": "/{{H}}", "body": {"teamName": "{{NAME}}-h4", "dailyQuota": 0.6}},
+        {"method": "GET", "path": "/{{H}}"},
+        {"method": "DELETE", "path": "/{{H}}"}
+      ]
+    },
+    {
       "name": "missing",
       "steps": [
         {"method": "GET", "path": "/4294967295"},
