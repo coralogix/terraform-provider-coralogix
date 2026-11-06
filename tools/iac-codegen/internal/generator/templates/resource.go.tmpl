@@ -268,7 +268,7 @@ func (r *Resource) ImportState(ctx context.Context, req resource.ImportStateRequ
 		resp.Diagnostics.AddError("Invalid import ID", fmt.Sprintf("The import ID %q is not a valid {{.IDGoType}}.", req.ID))
 		return
 	}
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), {{.IDGoType}}(id))...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), idStateValue({{.IDGoType}}(id)))...)
 {{- else}}
 	resource.ImportStatePassthroughID(ctx, path.Root({{printf "%q" .IDAttr}}), req, resp)
 {{- end}}
@@ -305,10 +305,10 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create "+TypeName, err.Error())
 {{- if .Create.ResponseID}}
-		if v != nil {
+		if id, ok := apiID(v); ok {
 			// The resource exists, but reading it failed. Keep the id, so Terraform marks the
 			// resource as tainted and can delete it.
-			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), {{if not .IDValue}}*{{end}}v.{{.IDField}})...)
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), idStateValue(id))...)
 		}
 {{- else if or .Create.Empty .Overwrite}}
 		if v != nil {
@@ -336,10 +336,10 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), SingletonID)...)
 	}
 {{- else}}
-	if diags.HasError() && v != nil{{if not .IDValue}} && v.{{.IDField}} != nil{{end}} {
+	if id, ok := apiID(v); diags.HasError() && ok {
 		// The resource exists, but the state is not complete. Keep the id, so
 		// Terraform marks the resource as tainted and can delete it.
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), {{if not .IDValue}}*{{end}}v.{{.IDField}})...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), idStateValue(id))...)
 	}
 {{- end}}
 }
@@ -627,22 +627,33 @@ func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBod
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
 	}
 {{- if .Create.ResponseID}}
+{{- if .Create.ResponseIDWrap}}
+	var created *{{.IDGoType}}
+	if out != nil {
+		created = unwrap{{.IDWrap}}({{if .Create.ResponseIDValue}}&{{end}}out.{{.Create.ResponseID}})
+	}
+	if created == nil || *created == {{if eq .IDGoType "string"}}""{{else}}0{{end}} {
+		return nil, fmt.Errorf("the API did not return the id of the new resource")
+	}
+	id := *created
+{{- else}}
 	if out == nil || {{if not .Create.ResponseIDValue}}out.{{.Create.ResponseID}} == nil || *out.{{.Create.ResponseID}} == ""{{else}}out.{{.Create.ResponseID}} == ""{{end}} {
 		return nil, fmt.Errorf("the API did not return the id of the new resource")
 	}
 	id := {{if not .Create.ResponseIDValue}}*{{end}}out.{{.Create.ResponseID}}
+{{- end}}
 	// The Create response holds only the id. Read the resource that it created.
 	v, err := r.get(ctx, id)
 	if err != nil {
 		// Return the id with the error, so Create can keep it in the state.
-		return &{{$sdk}}.{{.Resource}}{ {{.IDField}}: {{if not .IDValue}}&{{end}}id}, fmt.Errorf("created %s with id %v, but could not read it: %w", TypeName, id, err)
+		return resourceWithID(id), fmt.Errorf("created %s with id %v, but could not read it: %w", TypeName, id, err)
 	}
 	if v == nil {
-		return &{{$sdk}}.{{.Resource}}{ {{.IDField}}: {{if not .IDValue}}&{{end}}id}, fmt.Errorf("created %s with id %v, but the API returned no resource", TypeName, id)
+		return resourceWithID(id), fmt.Errorf("created %s with id %v, but the API returned no resource", TypeName, id)
 	}
 	// The id that Create returned is the id of the resource, also when Get leaves it out.
-	if {{if .IDValue}}v.{{.IDField}} == ""{{else}}v.{{.IDField}} == nil || *v.{{.IDField}} == ""{{end}} {
-		v.{{.IDField}} = {{if not .IDValue}}&{{end}}id
+	if got, ok := apiID(v); !ok || got == {{if eq .IDGoType "string"}}""{{else}}0{{end}} {
+		setAPIID(v, id)
 	}
 	return v, nil
 }
@@ -702,8 +713,8 @@ func (r *Resource) update(ctx context.Context{{if or (not .UpdateIDInBody) .Upda
 	}
 {{- if not .Singleton}}
 	// The id of the state is the id of the resource, also when Get leaves it out.
-	if v != nil && {{if .IDValue}}v.{{.IDField}} == {{if eq .IDGoType "string"}}""{{else}}0{{end}}{{else}}(v.{{.IDField}} == nil || *v.{{.IDField}} == {{if eq .IDGoType "string"}}""{{else}}0{{end}}){{end}} {
-		v.{{.IDField}} = {{if not .IDValue}}&{{end}}id
+	if got, ok := apiID(v); v != nil && (!ok || got == {{if eq .IDGoType "string"}}""{{else}}0{{end}}) {
+		setAPIID(v, id)
 	}
 {{- end}}
 	return v, nil
@@ -903,6 +914,71 @@ func (r *Resource) upgradeByRefresh(ctx context.Context, req resource.UpgradeSta
 func stateID(ctx context.Context, state tfsdk.State) ({{.IDGoType}}, diag.Diagnostics) {
 	var id types.{{.IDTFType}}
 	diags := state.GetAttribute(ctx, path.Root({{printf "%q" .IDAttr}}), &id)
+{{- if .IDAsString}}
+	if diags.HasError() {
+		return 0, diags
+	}
+	// The state holds the decimal text of the id.
+	n, err := strconv.ParseInt(id.ValueString(), 10, {{.IDBits}})
+	if err != nil {
+		diags.AddAttributeError(path.Root({{printf "%q" .IDAttr}}), "Invalid id", fmt.Sprintf("The id %q is not a valid {{.IDGoType}}.", id.ValueString()))
+		return 0, diags
+	}
+	return {{.IDGoType}}(n), diags
+{{- else}}
 	return id.Value{{.IDTFType}}(), diags
+{{- end}}
 }
+
+{{- if not .Singleton}}
+
+// apiID returns the id that v holds, and false when v holds none.
+func apiID(v *{{$sdk}}.{{.Resource}}) ({{.IDGoType}}, bool) {
+{{- if .IDWrap}}
+	if v == nil {
+		return {{if eq .IDGoType "string"}}""{{else}}0{{end}}, false
+	}
+	id := unwrap{{.IDWrap}}({{if .IDValue}}&{{end}}v.{{.IDField}})
+	if id == nil {
+		return {{if eq .IDGoType "string"}}""{{else}}0{{end}}, false
+	}
+	return *id, true
+{{- else}}
+	if v == nil{{if not .IDValue}} || v.{{.IDField}} == nil{{end}} {
+		return {{if eq .IDGoType "string"}}""{{else}}0{{end}}, false
+	}
+	return {{if not .IDValue}}*{{end}}v.{{.IDField}}, true
+{{- end}}
+}
+
+{{- if or .Create.ResponseID .Update.Empty}}
+
+// setAPIID sets the id that v holds.
+func setAPIID(v *{{$sdk}}.{{.Resource}}, id {{.IDGoType}}) {
+{{- if .IDWrap}}
+	v.{{.IDField}} = {{if .IDValue}}*{{end}}wrap{{.IDWrap}}(&id)
+{{- else}}
+	v.{{.IDField}} = {{if not .IDValue}}&{{end}}id
+{{- end}}
+}
+{{- end}}
+{{- if .Create.ResponseID}}
+
+// resourceWithID returns a resource that holds only id.
+func resourceWithID(id {{.IDGoType}}) *{{$sdk}}.{{.Resource}} {
+	v := &{{$sdk}}.{{.Resource}}{}
+	setAPIID(v, id)
+	return v
+}
+{{- end}}
+
+// idStateValue returns the value of the id attribute for id.
+func idStateValue(id {{.IDGoType}}) {{if .IDAsString}}string{{else}}{{.IDGoType}}{{end}} {
+{{- if .IDAsString}}
+	return strconv.FormatInt(id, 10)
+{{- else}}
+	return id
+{{- end}}
+}
+{{- end}}
 {{- end}}

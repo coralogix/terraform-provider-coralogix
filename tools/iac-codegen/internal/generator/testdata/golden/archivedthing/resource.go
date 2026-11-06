@@ -134,10 +134,10 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	}
 	diags = r.setState(ctx, v, req.Plan, &resp.State)
 	resp.Diagnostics.Append(diags...)
-	if diags.HasError() && v != nil && v.Id != nil {
+	if id, ok := apiID(v); diags.HasError() && ok {
 		// The resource exists, but the state is not complete. Keep the id, so
 		// Terraform marks the resource as tainted and can delete it.
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), *v.Id)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idStateValue(id))...)
 	}
 }
 
@@ -299,4 +299,17 @@ func stateID(ctx context.Context, state tfsdk.State) (string, diag.Diagnostics) 
 	var id types.String
 	diags := state.GetAttribute(ctx, path.Root("id"), &id)
 	return id.ValueString(), diags
+}
+
+// apiID returns the id that v holds, and false when v holds none.
+func apiID(v *archived_things_service.ArchivedThing) (string, bool) {
+	if v == nil || v.Id == nil {
+		return "", false
+	}
+	return *v.Id, true
+}
+
+// idStateValue returns the value of the id attribute for id.
+func idStateValue(id string) string {
+	return id
 }

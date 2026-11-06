@@ -130,19 +130,19 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	v, err := r.create(ctx, body)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to create "+TypeName, err.Error())
-		if v != nil {
+		if id, ok := apiID(v); ok {
 			// The resource exists, but reading it failed. Keep the id, so Terraform marks the
 			// resource as tainted and can delete it.
-			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), v.Id)...)
+			resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idStateValue(id))...)
 		}
 		return
 	}
 	diags = r.setState(ctx, v, req.Plan, &resp.State)
 	resp.Diagnostics.Append(diags...)
-	if diags.HasError() && v != nil {
+	if id, ok := apiID(v); diags.HasError() && ok {
 		// The resource exists, but the state is not complete. Keep the id, so
 		// Terraform marks the resource as tainted and can delete it.
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), v.Id)...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idStateValue(id))...)
 	}
 }
 
@@ -239,14 +239,14 @@ func (r *Resource) create(ctx context.Context, body *integration_service.SaveInt
 	v, err := r.get(ctx, id)
 	if err != nil {
 		// Return the id with the error, so Create can keep it in the state.
-		return &integration_service.DeployedIntegrationInformation{Id: id}, fmt.Errorf("created %s with id %v, but could not read it: %w", TypeName, id, err)
+		return resourceWithID(id), fmt.Errorf("created %s with id %v, but could not read it: %w", TypeName, id, err)
 	}
 	if v == nil {
-		return &integration_service.DeployedIntegrationInformation{Id: id}, fmt.Errorf("created %s with id %v, but the API returned no resource", TypeName, id)
+		return resourceWithID(id), fmt.Errorf("created %s with id %v, but the API returned no resource", TypeName, id)
 	}
 	// The id that Create returned is the id of the resource, also when Get leaves it out.
-	if v.Id == "" {
-		v.Id = id
+	if got, ok := apiID(v); !ok || got == "" {
+		setAPIID(v, id)
 	}
 	return v, nil
 }
@@ -274,8 +274,8 @@ func (r *Resource) update(ctx context.Context, id string, body *integration_serv
 		return nil, err
 	}
 	// The id of the state is the id of the resource, also when Get leaves it out.
-	if v != nil && v.Id == "" {
-		v.Id = id
+	if got, ok := apiID(v); v != nil && (!ok || got == "") {
+		setAPIID(v, id)
 	}
 	return v, nil
 }
@@ -335,4 +335,29 @@ func stateID(ctx context.Context, state tfsdk.State) (string, diag.Diagnostics) 
 	var id types.String
 	diags := state.GetAttribute(ctx, path.Root("id"), &id)
 	return id.ValueString(), diags
+}
+
+// apiID returns the id that v holds, and false when v holds none.
+func apiID(v *integration_service.DeployedIntegrationInformation) (string, bool) {
+	if v == nil {
+		return "", false
+	}
+	return v.Id, true
+}
+
+// setAPIID sets the id that v holds.
+func setAPIID(v *integration_service.DeployedIntegrationInformation, id string) {
+	v.Id = id
+}
+
+// resourceWithID returns a resource that holds only id.
+func resourceWithID(id string) *integration_service.DeployedIntegrationInformation {
+	v := &integration_service.DeployedIntegrationInformation{}
+	setAPIID(v, id)
+	return v
+}
+
+// idStateValue returns the value of the id attribute for id.
+func idStateValue(id string) string {
+	return id
 }

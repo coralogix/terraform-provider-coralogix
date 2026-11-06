@@ -1503,6 +1503,55 @@ func flattenFloat32(v *float32) types.Float32 {
 	return value.(types.Float32)
 }
 {{- end}}
+{{- if .Conv.Uses "float64asfloat32"}}
+
+// flattenFloat64AsFloat32 returns a double that the API stores as a float32 as the shortest
+// decimal of that float32: 0.30000001192092896 reads back as 0.3, as the configuration has it.
+func flattenFloat64AsFloat32(v *float64) types.Float64 {
+	if v == nil {
+		return types.Float64Null()
+	}
+	f, err := strconv.ParseFloat(strconv.FormatFloat(float64(float32(*v)), 'g', -1, 32), 64)
+	if err != nil {
+		return types.Float64Value(*v)
+	}
+	return types.Float64Value(f)
+}
+
+// keepPriorFloat32 returns the plan or state value prior when it is the same float32 as v, the
+// value that the API stores. A configured 0.123456789 then stays, though the API returns the
+// float32 0.12345679.
+func keepPriorFloat32(prior, v types.Float64) types.Float64 {
+	if prior.IsNull() || prior.IsUnknown() || v.IsNull() || v.IsUnknown() || float32(prior.ValueFloat64()) != float32(v.ValueFloat64()) {
+		return v
+	}
+	return prior
+}
+{{- end}}
+{{- if .Conv.Uses "int64asstring"}}
+
+// expandStringAsInt64 returns the int64 id that a String attribute holds as decimal text.
+func expandStringAsInt64(p path.Path, v types.String, diags *diag.Diagnostics) *int64 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n, err := strconv.ParseInt(v.ValueString(), 10, 64)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid id", fmt.Sprintf("%q is not an integer id.", v.ValueString()))
+		return nil
+	}
+	return &n
+}
+
+// int64AsString returns the decimal text of an int64 id.
+func int64AsString(v *int64) *string {
+	if v == nil {
+		return nil
+	}
+	s := strconv.FormatInt(*v, 10)
+	return &s
+}
+{{- end}}
 {{- if .Conv.UsesFloat32}}
 
 // widenFloat32 returns the float64 of the shortest decimal that reads back as v. A plain
@@ -1713,8 +1762,10 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- else if eq .Conv "notbool"}}
 	// Terraform shows the opposite of the API flag.
 	{{.Dst}} = {{$l}}negateBool(expandBool(m.{{.Model}})){{$r}}
-{{- else if eq .Conv "float64"}}
+{{- else if or (eq .Conv "float64") (eq .Conv "float64asfloat32")}}
 	{{.Dst}} = {{$l}}expandFloat64(m.{{.Model}}){{$r}}
+{{- else if eq .Conv "int64asstring"}}
+	{{.Dst}} = {{$l}}expandStringAsInt64({{$p}}, m.{{.Model}}, diags){{$r}}
 {{- else if eq .Conv "int32"}}
 	{{.Dst}} = {{$l}}expandInt32(m.{{.Model}}){{$r}}
 {{- else if eq .Conv "int64"}}
@@ -1932,6 +1983,14 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 {{- else if eq .Conv "float64"}}
 	out.{{.Model}} = types.Float64PointerValue({{$v}})
 	{{- template "readZeroAsNull" .}}
+{{- else if eq .Conv "float64asfloat32"}}
+	out.{{.Model}} = flattenFloat64AsFloat32({{$v}})
+	{{- template "readZeroAsNull" .}}
+	if prior != nil {
+		out.{{.Model}} = keepPriorFloat32(prior.{{.Model}}, out.{{.Model}})
+	}
+{{- else if eq .Conv "int64asstring"}}
+	out.{{.Model}} = types.StringPointerValue(int64AsString({{$v}}))
 {{- else if eq .Conv "int32"}}
 	out.{{.Model}} = types.Int32PointerValue({{$v}})
 	{{- template "readZeroAsNull" .}}

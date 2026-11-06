@@ -1210,6 +1210,19 @@ func applyTerraformType(a *tfAttr, l overrides.Field) error {
 	if l.TerraformType == "" {
 		return nil
 	}
+	if l.TerraformType == "String" {
+		// The released id is the decimal text of an integer id. resourceIDData checks that the
+		// line is on the id.
+		if a.Kind != "Int64" {
+			return fmt.Errorf("terraformType String needs an int64 resource id, not a %s", a.Kind)
+		}
+		prefix := strings.ToLower(a.Kind) + "planmodifier."
+		for i, m := range a.Modifiers {
+			a.Modifiers[i] = strings.Replace(m, prefix, "stringplanmodifier.", 1)
+		}
+		a.Kind, a.ValueKind = "String", "String"
+		return nil
+	}
 	retype := func(vs []string) []string {
 		out := make([]string, 0, len(vs))
 		for _, v := range vs {
@@ -1867,6 +1880,9 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 		goType = "types.Int64"
 		if t.Format == "int32" && terraformType(b.policy, component, name) == "" {
 			goType = "types.Int32"
+		}
+		if b.file != nil && b.file.Types[component].Fields[name].TerraformType == "String" {
+			goType = "types.String" // the released String id
 		}
 	case model.Set:
 		goType = "types.Set"
