@@ -1,0 +1,57 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "daily_quota": 0.5,
+      "name": "deleted"
+    },
+    "plan": {
+      "daily_quota": 0.5,
+      "id": "(unknown)",
+      "name": "deleted",
+      "retention": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/teams/v2",
+        "body": {
+          "dailyQuota": 0.5,
+          "teamName": "deleted"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "daily_quota": 0.5,
+      "id": "1001",
+      "name": "deleted",
+      "retention": 1
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy: the API answers 400 for a deleted team",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error deleting Team | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: DailyQuota must be greater than 0.01\"}\noperation - Delete"
+    ],
+    "state": {
+      "daily_quota": 0.5,
+      "id": "1001",
+      "name": "deleted",
+      "retention": 1
+    }
+  }
+]

@@ -1,0 +1,71 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "daily_quota": 0.5,
+      "name": "gone"
+    },
+    "plan": {
+      "daily_quota": 0.5,
+      "id": "(unknown)",
+      "name": "gone",
+      "retention": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/teams/v2",
+        "body": {
+          "dailyQuota": 0.5,
+          "teamName": "gone"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "daily_quota": 0.5,
+      "id": "1001",
+      "name": "gone",
+      "retention": 1
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: the API answers 404",
+    "config": {
+      "daily_quota": 0.5,
+      "name": "gone-renamed"
+    },
+    "plan": {
+      "daily_quota": 0.5,
+      "id": "1001",
+      "name": "gone-renamed",
+      "retention": 1
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "body": {
+          "dailyQuota": 0.5,
+          "teamName": "gone-renamed"
+        },
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error updating Team | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Could not find team in database: 1001\"}\noperation - Update"
+    ],
+    "state": {
+      "daily_quota": 0.5,
+      "id": "1001",
+      "name": "gone",
+      "retention": 1
+    }
+  }
+]

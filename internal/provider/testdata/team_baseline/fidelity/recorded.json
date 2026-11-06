@@ -1,0 +1,491 @@
+{
+  "cases": [
+    {
+      "name": "lifecycle",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.5,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-a"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.5,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-a2"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.3100000023841858,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-a2"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.3100000023841858,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-a2"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.13345670700073242,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-a2"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: units: value 0 is not more than 0"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: units: value -1 is not more than 0"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Team invalid name: invalid or restricted team name"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Invalid argument: Team url not found"
+          }
+        },
+        {
+          "status": 412,
+          "response": {
+            "code": 412,
+            "message": "Failed Precondition: Target team is not active"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: DailyQuota must be greater than 0.01"
+          }
+        }
+      ]
+    },
+    {
+      "name": "create-quota",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.019999999552965164,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-b"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.019999999552965164,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-c"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.019999999552965164,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-d"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.12345670163631439,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-e"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: DailyQuota must be greater than 0.01"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "names",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: Team url {{NAME}}-f is already taken"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: must be not empty."
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: must be not empty."
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 500,
+          "response": {
+            "code": 500,
+            "message": "Internal Server Error: Already exist: Team name has already been taken"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.5,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-g"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "quota-unchanged-and-small-decrease",
+      "steps": [
+        {
+          "status": 200,
+          "response": {
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            }
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.5,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-h"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.5,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-h2"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.5,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-h2"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: DailyQuota must be greater than 0.01"
+          }
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.5,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-h2"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.4099999964237213,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-h2"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.4099999964237213,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-h3"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.6000000238418579,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-h3"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        },
+        {
+          "status": 200,
+          "response": {
+            "dailyQuota": 0.6000000238418579,
+            "retention": 1,
+            "teamId": {
+              "id": "\u003cteam-id\u003e"
+            },
+            "teamName": "{{NAME}}-h4"
+          }
+        },
+        {
+          "status": 200,
+          "response": {}
+        }
+      ]
+    },
+    {
+      "name": "missing",
+      "steps": [
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Could not find team in database: 4294967295"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Could not find team in database: 4294967295"
+          }
+        },
+        {
+          "status": 404,
+          "response": {
+            "code": 404,
+            "message": "Not Found: Could not find team in database: 4294967295"
+          }
+        },
+        {
+          "status": 400,
+          "response": {
+            "code": 400,
+            "message": "Bad Request: type mismatch, parameter: team_id.id, error: parsing field \"id\": strconv.ParseUint: parsing \"not-a-number\": invalid syntax"
+          }
+        }
+      ]
+    }
+  ]
+}

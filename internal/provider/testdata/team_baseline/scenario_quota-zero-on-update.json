@@ -1,0 +1,71 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "daily_quota": 0.5,
+      "name": "zero"
+    },
+    "plan": {
+      "daily_quota": 0.5,
+      "id": "(unknown)",
+      "name": "zero",
+      "retention": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/teams/v2",
+        "body": {
+          "dailyQuota": 0.5,
+          "teamName": "zero"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "daily_quota": 0.5,
+      "id": "1001",
+      "name": "zero",
+      "retention": 1
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update to 0",
+    "config": {
+      "daily_quota": 0,
+      "name": "zero"
+    },
+    "plan": {
+      "daily_quota": 0,
+      "id": "1001",
+      "name": "zero",
+      "retention": 1
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "body": {
+          "dailyQuota": 0,
+          "teamName": "zero"
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error updating Team | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: units: value 0 is not more than 0\"}\noperation - Update"
+    ],
+    "state": {
+      "daily_quota": 0.5,
+      "id": "1001",
+      "name": "zero",
+      "retention": 1
+    }
+  }
+]
