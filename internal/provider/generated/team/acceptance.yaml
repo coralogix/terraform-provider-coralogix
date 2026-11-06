@@ -15,18 +15,23 @@
 # refuses to move 0.01 or less. A lower quota reads back 0.01 higher, because the API keeps 0.01
 # on the team when it moves quota back. The quotas have seven decimals, so the test also shows that
 # the read keeps the float32 that the API stores.
+#
+# The quotas are small because every team takes them from the default team of the organization,
+# which must keep some quota itself: a Create that would leave it too little stores the minimum
+# quota instead, and the apply fails. Each team that the tests create and delete also costs the
+# default team 0.01.
 resource: GetTeamResponse
 
 values:
-  daily_quota: "0.1234567"
+  daily_quota: "0.0534567"
 
 updatedValues:
-  daily_quota: "0.2345678"
+  daily_quota: "0.0645678"
 
 minimal: [daily_quota]
 upgradeMinimal: [daily_quota]
 upgradeFrom: "3.24.0"
-# 3.24.0 rounded the read to three decimals, so it fails on 0.1234567: the upgrade test gives it a
+# 3.24.0 rounded the read to three decimals, so it fails on 0.0534567: the upgrade test gives it a
 # quota that it can store.
 upgradeValues:
-  daily_quota: "0.5"
+  daily_quota: "0.05"

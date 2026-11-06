@@ -62,35 +62,35 @@ func render(run, text string) string {
 const prerequisites = ``
 
 const fullConfig = `resource "coralogix_team" "test" {
-  daily_quota = 0.1234567
+  daily_quota = 0.0534567
   name = "@{run}-name"
 }`
 
 const updatedConfig = `resource "coralogix_team" "test" {
-  daily_quota = 0.2345678
+  daily_quota = 0.0645678
   name = "@{run}-name-updated"
 }`
 
 const minimalConfig = `resource "coralogix_team" "test" {
-  daily_quota = 0.1234567
+  daily_quota = 0.0534567
   name = "@{run}-name"
 }`
 
 // upgradeFullConfig is the full config without the attributes that provider 3.24.0 does not have.
 const upgradeFullConfig = `resource "coralogix_team" "test" {
-  daily_quota = 0.5
+  daily_quota = 0.05
   name = "@{run}-name"
 }`
 
 // upgradeUpdatedConfig is the updated config with the upgradeValues of the acceptance file.
 const upgradeUpdatedConfig = `resource "coralogix_team" "test" {
-  daily_quota = 0.5
+  daily_quota = 0.05
   name = "@{run}-name-updated"
 }`
 
 // upgradeMinimalConfig is the minimal config plus the fields that the released provider needs.
 const upgradeMinimalConfig = `resource "coralogix_team" "test" {
-  daily_quota = 0.5
+  daily_quota = 0.05
   name = "@{run}-name"
 }`
 
