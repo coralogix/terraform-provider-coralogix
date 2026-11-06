@@ -1,0 +1,41 @@
+[
+  {
+    "step": "import a user whose status is unspecified",
+    "state": null
+  },
+  {
+    "step": "import a user whose status is unspecified (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "status": 200
+      }
+    ],
+    "state": {
+      "active": false,
+      "emails": [
+        {
+          "primary": true,
+          "type": "work",
+          "value": "tf-acc-user-1@coralogix.com"
+        }
+      ],
+      "groups": [],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "name": null,
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "drift": [
+      "AttributeName(\"active\")",
+      "AttributeName(\"emails\")",
+      "AttributeName(\"emails\").ElementKeyValue(tftypes.Object[\"primary\":tftypes.Bool, \"type\":tftypes.String, \"value\":tftypes.String]<\"primary\":tftypes.Bool<\"true\">, \"type\":tftypes.String<\"work\">, \"value\":tftypes.String<\"tf-acc-user-1@coralogix.com\">>)",
+      "AttributeName(\"groups\")"
+    ]
+  }
+]

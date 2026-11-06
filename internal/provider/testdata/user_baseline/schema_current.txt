@@ -1,0 +1,26 @@
+(schema)  version=0
+    markdown: "Coralogix User. For more info please review - https://coralogix.com/docs/user-guides/account-management/user-management/manage-team-members/."
+active  BoolAttribute optional computed
+    default: booldefault.staticBoolDefault value defaults to true
+emails  SetNestedAttribute computed
+    plan modifier: setplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+emails[]  NestedObject
+    plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+emails[].primary  BoolAttribute computed
+    plan modifier: boolplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+emails[].type  StringAttribute computed
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+emails[].value  StringAttribute computed
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+groups  SetAttribute computed elem=basetypes.StringType
+    plan modifier: setplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+id  StringAttribute computed
+    markdown: "User ID."
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+name  SingleNestedAttribute optional computed
+    plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+name.family_name  StringAttribute optional
+name.given_name  StringAttribute optional
+user_name  StringAttribute required
+    markdown: "User name (email). Comparison is case-insensitive: SSO login can normalize letter case in the backend, and that normalization will not trigger drift in subsequent plans."
+    plan modifier: aaa.caseInsensitiveStringPlanModifier Treats the value as case-insensitive — suppresses diffs that only change letter case.

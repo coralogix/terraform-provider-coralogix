@@ -1,0 +1,13 @@
+[
+  {
+    "step": "config sets id and user_name",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Combination [AttributeName(\"id\")] | Exactly one of these attributes must be configured: [id,user_name]"
+    ],
+    "state": null
+  }
+]

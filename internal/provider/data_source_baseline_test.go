@@ -80,6 +80,7 @@ var dataSourceBaselines = map[string]dataSourceBaseline{
 	"tco_policies_rum": {tcoRumGoldenDir, func(t *testing.T) *grHarness {
 		return newProtocolHarness(t, tcoRumTypeName, newTCOFake(t))
 	}, tcoRumDataSourceScenarios},
+	"user": {userGoldenDir, newUserHarness, userDataSourceScenarios},
 }
 
 func TestDataSourceBaselineSchema(t *testing.T) {

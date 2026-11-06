@@ -1,0 +1,26 @@
+[
+  {
+    "step": "read a user_name that two users have in different letter case",
+    "config": {
+      "user_name": "tf-acc-user-1@coralogix.com"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&username=tf-acc-user-1%40coralogix.com",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Multiple Users found with user_name \"tf-acc-user-1@coralogix.com\" | Matched user ids: 00000000-0000-4000-8000-000000000001, 00000000-0000-4000-8000-000000000002. Use the user id instead."
+    ],
+    "state": {
+      "active": null,
+      "emails": null,
+      "groups": null,
+      "id": null,
+      "name": null,
+      "user_name": "tf-acc-user-1@coralogix.com"
+    }
+  }
+]

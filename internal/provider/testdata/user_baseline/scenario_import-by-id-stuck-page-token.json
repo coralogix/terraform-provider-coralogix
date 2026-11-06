@@ -1,0 +1,25 @@
+[
+  {
+    "step": "import by user id: the page token stops advancing, so the scan stops",
+    "state": null
+  },
+  {
+    "step": "import by user id: the page token stops advancing, so the scan stops (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100",
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/users/v2?page_size=100&page_token=2",
+        "status": 200
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: User \"00000000-0000-4000-8000-000000000005\" is in state, but no longer exists in Coralogix backend | 00000000-0000-4000-8000-000000000005 will be recreated when you apply"
+    ],
+    "state": null
+  }
+]
