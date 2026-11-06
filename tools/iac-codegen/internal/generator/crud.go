@@ -245,7 +245,7 @@ func buildCRUDWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		if o.name == "delete" && file.Upserts() {
 			continue // the API cannot remove an upsert, so Delete makes no call
 		}
-		if *o.out, err = buildCRUDOp(ix, o, client.Name, resource.Name, r.Overwrite); err != nil {
+		if *o.out, err = buildCRUDOp(ix, o, client.Name, resource.Name, r.Overwrite, r.IDType != nil && len(r.IDType.Wrappers) == 1); err != nil {
 			return nil, err
 		}
 	}
@@ -377,8 +377,9 @@ type crudSpec struct {
 }
 
 // buildCRUDOp returns the SDK names of one operation. client is the SDK client
-// type, and resource is the SDK type of the resource.
-func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, overwrite bool) (crudOp, error) {
+// type, and resource is the SDK type of the resource. idWrapped is true when the resource id is
+// inside a wrapper: the model then requires a Create response id to hold the same wrapper.
+func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, overwrite, idWrapped bool) (crudOp, error) {
 	var out crudOp
 	if (o.op.Body != "") != o.body {
 		return out, fmt.Errorf("%s: request body %q is not supported", o.name, o.op.Body)
@@ -406,7 +407,7 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, overwrite bo
 		}
 		out.Body = body.Name
 	}
-	if o.op.Response.ID != "" && o.op.Response.IDWrapperField != "" {
+	if o.op.Response.ID != "" && idWrapped {
 		// The response holds the wrapper of the id, as the resource does. The wrap helpers of the
 		// resource id read it.
 		field, err := ix.fieldRef(o.name + ".response." + o.op.Response.ID)
