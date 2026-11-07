@@ -1,0 +1,23 @@
+provider:
+  name: coralogix
+
+resources:
+  alert:
+    create:
+      path: /alerts/alerts/v3
+      method: POST
+    read:
+      path: /alerts/alerts/v3/{id}
+      method: GET
+    update:
+      path: /alerts/alerts/v3
+      method: PUT
+    delete:
+      path: /alerts/alerts/v3/{id}
+      method: DELETE
+
+data_sources:
+  alert:
+    read:
+      path: /alerts/alerts/v3/{id}
+      method: GET
