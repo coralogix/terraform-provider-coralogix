@@ -76,7 +76,7 @@ func TestComputedRequestFieldNeedsAServerSetOverwriteID(t *testing.T) {
 			want: "needs useStateForUnknown",
 		},
 		"on a field that Get does not mark read-only": {
-			from: "id: {computed: true, useStateForUnknown: true}", to: "name: {computed: true, useStateForUnknown: true}",
+			from: "name: {schemaOptional: true, computed: true}", to: "name: {computed: true, useStateForUnknown: true}",
 			want: "required: true needs a field that the user sets",
 		},
 	} {

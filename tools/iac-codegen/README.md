@@ -329,6 +329,8 @@ types:
       rumRules: {skip: true}
 ```
 
+`schemaOptional: true` keeps a released attribute optional while the API request still requires the field; an omitted value is sent as the SDK zero value. With `computed: true`, the attribute is Optional+Computed and can retain values returned by the API. The request field remains required.
+
 A write can name each item by an id that only the server sets: the request requires the id, and Get requires it and marks it read-only (the archive retention tags). `computed: true` with `useStateForUnknown` on that field of the item makes the attribute computed-only, while the request still requires it. Update sends the id that the state keeps. Create has no state, so a `BeforeWrite` hook of the resource fills the request id. The line is accepted only on such a field of an `api.overwrite` resource, and only with `useStateForUnknown`.
 
 `inline: true` on an object field of a nested component shows the fields of that object as attributes of the component, as on the resource (the TCO `severities` of `logRules` are attributes of each policy). The object is inlined in the component, and in each request component that the Create and Update bodies of `api.operations` reach and that holds the same object under the same name, the request item of the component. The lines of its fields are lines of the component. A oneOf arm of the response can be inlined when the file skips the other arms; flatten reads a missing arm as an empty object, so its fields are null. The Update must send the whole resource.

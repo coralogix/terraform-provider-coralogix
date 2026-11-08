@@ -28,5 +28,8 @@ types:
       # The rename names each tag by the id that only the server sets. Update sends the id of the
       # state; a BeforeWrite hook fills it for Create.
       id: {computed: true, useStateForUnknown: true}
+      # The released name is optional and computed: the configuration can leave it out, and the
+      # state keeps the name that the API returns. The rename still requires it.
+      name: {schemaOptional: true, computed: true}
 
 dataSource: {}

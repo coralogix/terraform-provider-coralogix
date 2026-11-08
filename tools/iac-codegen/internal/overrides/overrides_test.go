@@ -685,3 +685,22 @@ func TestParseRejectsOverwriteAndItemShapeMistakes(t *testing.T) {
 		})
 	}
 }
+
+// schemaOptional goes with computed: true, not with computed: false or another mode key.
+func TestSchemaOptionalModeKeys(t *testing.T) {
+	yes, no := true, false
+	if err := (Field{SchemaOptional: true, Computed: &yes}).check(); err != nil {
+		t.Fatalf("schemaOptional with computed: true: %v", err)
+	}
+	optional := Field{SchemaOptional: true}
+	optional.Optional = true
+	for name, line := range map[string]Field{
+		"computed: false": {SchemaOptional: true, Computed: &no},
+		"required":        {SchemaOptional: true, Required: true},
+		"optional":        optional,
+	} {
+		if err := line.check(); err == nil || !strings.Contains(err.Error(), "schemaOptional cannot be combined") {
+			t.Errorf("%s: err = %v, want the schemaOptional error", name, err)
+		}
+	}
+}

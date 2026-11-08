@@ -87,12 +87,15 @@ func noErrors(t *testing.T, diags diag.Diagnostics) {
 	}
 }
 
-// The user cannot set the id of a tag: only the server sets it.
+// The user cannot set the id of a tag: only the server sets it. The name is optional and computed.
 func TestTagIDIsComputedOnly(t *testing.T) {
 	_, s, _ := setup(t)
-	id := s.Attributes["tags"].(schema.ListNestedAttribute).NestedObject.Attributes["id"]
-	if !id.IsComputed() || id.IsOptional() || id.IsRequired() {
+	attrs := s.Attributes["tags"].(schema.ListNestedAttribute).NestedObject.Attributes
+	if id := attrs["id"]; !id.IsComputed() || id.IsOptional() || id.IsRequired() {
 		t.Fatalf("tags.id: computed %t, optional %t, required %t; want computed only", id.IsComputed(), id.IsOptional(), id.IsRequired())
+	}
+	if name := attrs["name"]; !name.IsComputed() || !name.IsOptional() || name.IsRequired() {
+		t.Fatalf("tags.name: computed %t, optional %t, required %t; want optional and computed", name.IsComputed(), name.IsOptional(), name.IsRequired())
 	}
 }
 

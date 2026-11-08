@@ -36,7 +36,8 @@ func Schema() schema.Schema {
 							MarkdownDescription: "",
 						},
 						"name": schema.StringAttribute{
-							Required:            true,
+							Optional:            true,
+							Computed:            true,
 							MarkdownDescription: "",
 						},
 					},

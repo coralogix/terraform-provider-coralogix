@@ -157,12 +157,12 @@ var computedAttrs = map[string]bool{
 	"id":         true,
 	"tags.id":    true,
 	"tags.order": true,
+	"tags.name":  true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
 var requiredAttrs = map[string]bool{
-	"tags":      true,
-	"tags.name": true,
+	"tags": true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
