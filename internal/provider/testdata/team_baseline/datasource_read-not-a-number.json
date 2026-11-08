@@ -1,0 +1,17 @@
+[
+  {
+    "step": "read a non-numeric id",
+    "config": {
+      "id": "not-a-number"
+    },
+    "applyDiagnostics": [
+      "error: Invalid id [AttributeName(\"id\")] | The id \"not-a-number\" is not a valid int64."
+    ],
+    "state": {
+      "daily_quota": null,
+      "id": "not-a-number",
+      "name": null,
+      "retention": null
+    }
+  }
+]

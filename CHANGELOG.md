@@ -1,5 +1,25 @@
 # Unreleased
 
+#### resource/coralogix_team
+- CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the requests are the same, except as listed below. A plan of a team that 3.24.0 created from the same configuration shows no change.
+- FIX: `daily_quota` reads back as the value that the API stores, a 32-bit float, at its shortest decimal. Before, the read rounded it to three decimals, so a quota such as `0.1234567` failed the apply with `Provider produced inconsistent result after apply`.
+- FIX: An import id that is not an integer fails at the import. Before, the import succeeded and the next refresh failed.
+- FIX: When Create succeeds but the read after it fails, the state keeps the id, so Terraform marks the team tainted and the next apply replaces it. Before, the state was empty and the team stayed outside Terraform.
+- CHORE: API errors read `Unable to create team`, `Unable to update team`, `Unable to delete team`, and `Unable to read team` instead of `Error creating Team`, and so on. A refresh that finds the team gone warns `Resource disappeared during read`, and an update of a team that is gone fails with `Resource no longer exists`. The data source errors read `coralogix_team not found` and `Unable to read coralogix_team`.
+- FEAT: The resource has a generated acceptance test, and an upgrade test from 3.24.0. The teams API needs an organization key, so CI runs them in a shard of their own with one. The example sets `daily_quota = 0.5`.
+
+#### data-source/coralogix_team
+- FEAT: Add the `coralogix_team` data source, generated with the resource. It reads a team by `id`.
+
+#### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.71`. Every generated resource reads and writes its id through small helpers (`apiID`, `setAPIID`, `idStateValue`); the requests and the state are the same.
+- FEAT: The id of an existing resource can be inside a one-property object that `unwrap` names, also in a Create response that holds only the id, as the teams API returns `{"teamId": {"id": 1}}`. A data source lookup by name reads the id in the same wrapper of the List item.
+- FEAT: `terraformType: String` on an int64 resource id keeps a released String id: the state holds the decimal text, the calls parse it, and a non-integer import id is an error at the import. A data source lookup by name does not parse the id that it leaves null.
+- FEAT: `storedAs: float32` on a double field reads a value that the API stores as a float32 as its shortest decimal, so `0.3` reads back as `0.3` instead of `0.30000001192092896`. A plan or state value of the same float32 stays, so a configured `0.123456789` does not make the apply inconsistent.
+- CHORE: Bump `coralogix-management-sdk/iac` to the version that reads a resource id inside a one-property wrapper (coralogix-management-sdk#736). Before, `tfgen check` panicked on such an id.
+
+# Release 3.24.0
+
 #### resource/coralogix_parsing_rules
 - CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the requests are the same, except as listed below. A rule group created without `active` is still created inactive, and one without `order` is still added last.
 - FIX: An update of a rule group without `order` in the configuration keeps its place. Before, every update sent `order = 0`, which the API reads as "after every other group", so changing only the description moved the group to the end of the processing order. A new rule group without `order` is still added last. Removing `order` from the configuration now keeps the current order; set a value to move the group. When the same apply deletes a group before it, the update sends the order that the plan read, and the API lowered the orders after the deleted group, so the updated group can share its order with the next one. Set `order` to control the position exactly.

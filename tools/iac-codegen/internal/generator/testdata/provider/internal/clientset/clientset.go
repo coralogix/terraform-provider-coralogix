@@ -22,12 +22,14 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/upsert_service"
 	"example.com/iac-test-sdk/go/openapi/gen/wrap_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/wrapped_things_service"
 )
 
 type ClientSet struct {
 	Overwrite      *overwrite_things_service.OverwriteThingsServiceAPIService
 	ActionThing    *action_things_service.ActionThingsServiceAPIService
 	Folder         *folder_things_service.FolderThingsServiceAPIService
+	WrappedID      *wrapped_things_service.WrappedThingsServiceAPIService
 	Client         *things_service.ThingsServiceAPIService
 	SettingsClient *settings_service.SettingsServiceAPIService
 	Legacy         *legacy_things_service.LegacyThingsServiceAPIService
@@ -96,6 +98,10 @@ func (c *ClientSet) Storage() *storage_service.StorageServiceAPIService {
 
 func (c *ClientSet) FolderThings() *folder_things_service.FolderThingsServiceAPIService {
 	return c.Folder
+}
+
+func (c *ClientSet) WrappedThings() *wrapped_things_service.WrappedThingsServiceAPIService {
+	return c.WrappedID
 }
 
 func (c *ClientSet) RenameThings() *rename_things_service.RenameThingsServiceAPIService {

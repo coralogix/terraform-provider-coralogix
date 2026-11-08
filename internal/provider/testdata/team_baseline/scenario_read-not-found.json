@@ -1,0 +1,52 @@
+[
+  {
+    "step": "create",
+    "config": {
+      "daily_quota": 0.5,
+      "name": "gone"
+    },
+    "plan": {
+      "daily_quota": 0.5,
+      "id": "(unknown)",
+      "name": "gone",
+      "retention": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/teams/v2",
+        "body": {
+          "dailyQuota": 0.5,
+          "teamName": "gone"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "daily_quota": 0.5,
+      "id": "1001",
+      "name": "gone",
+      "retention": 1
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh: Get answers 404",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: Resource disappeared during read | team with id 1001 was not found. Terraform removed it from state."
+    ],
+    "state": null
+  }
+]
