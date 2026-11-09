@@ -3,6 +3,7 @@ package generator
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -53,4 +54,32 @@ func TestKeyThingRuntimeSemantics(t *testing.T) {
 		t.Fatal(err)
 	}
 	compileGenerated(t, out, input)
+}
+
+// A terraformType String line keeps the validators over other attributes, and refuses a validator
+// over the value: the contract limit of the number has no string counterpart.
+func TestTerraformTypeStringRefusesAValueValidator(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "keything.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	overrides, err := os.ReadFile(filepath.Join("testdata", "keything-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, "overrides.yaml")
+	inferred := strings.Replace(string(overrides), "inferred: false", "inferred: true", 1)
+	if inferred == string(overrides) {
+		t.Fatal("the overrides do not have validators.inferred: false")
+	}
+	if err := os.WriteFile(path, []byte(inferred), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	input, loadDir := syntheticInput(t)
+	input.OpenAPI = spec
+	err = generateFromInput(Options{Resource: "KeyThing", OutputDir: filepath.Join(dir, "keything"), OverridesPath: path}, input, loadDir)
+	if err == nil || !strings.Contains(err.Error(), "terraformType String cannot keep the validator") {
+		t.Fatalf("err = %v, want a refusal of the number limit on the team id", err)
+	}
 }
