@@ -45,7 +45,8 @@ done <"$work/resources"
 make generate >&2
 
 # changelog_entries adds the entries of one doc kind (resources or data-sources) of a resource and
-# prints how many it added.
+# counts them in entries. It is not called in a command substitution: there, set -e would not stop
+# the script when an entry cannot be written, and bash 3.2 has no inherit_errexit.
 changelog_entries() {
   local kind=$1 type_name=$2 version=$3 heading added removed breaking relaxed
   if [[ $kind == resources ]]; then
@@ -60,30 +61,32 @@ changelog_entries() {
   names() { awk -F '\t' -v kind="$1" '$1 == kind { out = out sep "`" $2 "`"; sep = ", " } END { print out }' "$work/changes"; }
   # moves prints the changes of one kind as "`a` (Optional String to Required String), ...".
   moves() { awk -F '\t' -v kind="$1" '$1 == kind { out = out sep "`" $2 "` (" $3 " to " $4 ")"; sep = ", " } END { print out }' "$work/changes"; }
-  added=$(names added) removed=$(names removed) breaking=$(moves breaking) relaxed=$(moves relaxed)
+  # One assignment per line: a line of several takes the status of the last substitution only.
+  added=$(names added)
+  removed=$(names removed)
+  breaking=$(moves breaking)
+  relaxed=$(moves relaxed)
 
-  local count=0
   if [[ -n $added ]]; then
     "$scripts/add-changelog-entry.sh" CHANGELOG.md "$heading" \
       "- FEAT: Add $added from the API contract of Management SDK \`$version\`."
-    count=$((count + 1))
+    entries=$((entries + 1))
   fi
   if [[ -n $relaxed ]]; then
     "$scripts/add-changelog-entry.sh" CHANGELOG.md "$heading" \
       "- FEAT: Change $relaxed from the API contract of Management SDK \`$version\`."
-    count=$((count + 1))
+    entries=$((entries + 1))
   fi
   if [[ -n $breaking ]]; then
     "$scripts/add-changelog-entry.sh" CHANGELOG.md "$heading" \
       "- BREAKING: Change $breaking from the API contract of Management SDK \`$version\`."
-    count=$((count + 1))
+    entries=$((entries + 1))
   fi
   if [[ -n $removed ]]; then
     "$scripts/add-changelog-entry.sh" CHANGELOG.md "$heading" \
       "- BREAKING: Remove $removed, which the API contract of Management SDK \`$version\` no longer has."
-    count=$((count + 1))
+    entries=$((entries + 1))
   fi
-  printf '%s\n' "$count"
 }
 
 # A resource changed when its generated package or one of its examples did. The examples of a
@@ -107,8 +110,9 @@ git status --porcelain --untracked-files=all -- internal/provider/generated exam
 
 while read -r name; do
   type_name=${name#coralogix_}
-  entries=$(changelog_entries resources "$type_name" "$version")
-  entries=$((entries + $(changelog_entries data-sources "$type_name" "$version")))
+  entries=0
+  changelog_entries resources "$type_name" "$version"
+  changelog_entries data-sources "$type_name" "$version"
   if [[ $entries -eq 0 ]]; then
     "$scripts/add-changelog-entry.sh" CHANGELOG.md "#### resource/$name" \
       "- CHORE: Regenerate from the API contract of Management SDK \`$version\`."
