@@ -32,5 +32,5 @@ Read-Only:
 
 - `editable` (Boolean) Is the retention editable.
 - `id` (String) The retention id.
-- `name` (String) The retention name. If not set, the retention will be named by backend.
+- `name` (String) The retention name. If not set, the retention keeps its current name.
 - `order` (Number) The retention order. Computed by the order of the retention in the retentions list definition.

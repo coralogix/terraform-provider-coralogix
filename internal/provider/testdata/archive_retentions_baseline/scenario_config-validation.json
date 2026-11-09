@@ -198,5 +198,26 @@
       ]
     },
     "state": null
+  },
+  {
+    "step": "an empty name",
+    "config": {
+      "retentions": [
+        {},
+        {
+          "name": ""
+        },
+        {
+          "name": "b"
+        },
+        {
+          "name": "c"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: error on validating retentions [AttributeName(\"retentions\").ElementKeyInt(1).AttributeName(\"name\")] | a retention name can't be empty"
+    ],
+    "state": null
   }
 ]

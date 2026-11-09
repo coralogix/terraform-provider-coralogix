@@ -226,6 +226,11 @@
     },
     "requests": [
       {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataengine/retention-tags/v1",
+        "status": 200
+      },
+      {
         "method": "POST",
         "path": "/mgmt/openapi/5/dataengine/retention-tags/v1",
         "body": {
@@ -244,15 +249,12 @@
             },
             {
               "id": "44444444-4444-4444-8444-444444444444",
-              "name": ""
+              "name": "long_term"
             }
           ]
         },
-        "status": 400
+        "status": 200
       }
-    ],
-    "applyDiagnostics": [
-      "error: Unable to update archive_retentions | id archive-retention-settings: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: \\\"[3].name\\\" is not allowed to be empty\"}"
     ],
     "state": {
       "id": "archive-retention-settings",
@@ -266,7 +268,7 @@
         {
           "editable": true,
           "id": "22222222-2222-4222-8222-222222222222",
-          "name": "short_term",
+          "name": "medium_term",
           "order": 2
         },
         {
@@ -282,7 +284,8 @@
           "order": 4
         }
       ]
-    }
+    },
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -305,7 +308,7 @@
         {
           "editable": true,
           "id": "22222222-2222-4222-8222-222222222222",
-          "name": "short_term",
+          "name": "medium_term",
           "order": 2
         },
         {
@@ -322,19 +325,6 @@
         }
       ]
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"retentions\").ElementKeyInt(0).AttributeName(\"editable\")",
-      "AttributeName(\"retentions\").ElementKeyInt(0).AttributeName(\"name\")",
-      "AttributeName(\"retentions\").ElementKeyInt(0).AttributeName(\"order\")",
-      "AttributeName(\"retentions\").ElementKeyInt(1).AttributeName(\"editable\")",
-      "AttributeName(\"retentions\").ElementKeyInt(1).AttributeName(\"name\")",
-      "AttributeName(\"retentions\").ElementKeyInt(1).AttributeName(\"order\")",
-      "AttributeName(\"retentions\").ElementKeyInt(2).AttributeName(\"editable\")",
-      "AttributeName(\"retentions\").ElementKeyInt(2).AttributeName(\"order\")",
-      "AttributeName(\"retentions\").ElementKeyInt(3).AttributeName(\"editable\")",
-      "AttributeName(\"retentions\").ElementKeyInt(3).AttributeName(\"name\")",
-      "AttributeName(\"retentions\").ElementKeyInt(3).AttributeName(\"order\")"
-    ]
+    "replanEmpty": true
   }
 ]

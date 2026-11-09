@@ -71,8 +71,9 @@ func (h *archiveRetentionsHooks) hooks() archiveretentions.Hooks {
 }
 
 // beforeWrite sends the ids of the tags and the name of the first one. The plan has no ids before
-// the first write, so Create reads the tags and takes their ids by position. The first tag,
-// Default, cannot be renamed, and the configuration leaves its name out.
+// the first write, so Create reads the tags and takes their ids by position. A name that the
+// configuration leaves out arrives as "", which the API rejects, so it keeps the current name of the
+// tag. The first tag, Default, cannot be renamed, and the configuration leaves its name out.
 func (h *archiveRetentionsHooks) beforeWrite(ctx context.Context, _ tfsdk.Config, body any) diag.Diagnostics {
 	var diags diag.Diagnostics
 	req, ok := body.(*retss.UpdateRetentionsRequest)
@@ -80,7 +81,7 @@ func (h *archiveRetentionsHooks) beforeWrite(ctx context.Context, _ tfsdk.Config
 		return diags
 	}
 	items := req.RetentionUpdateElements
-	if items[0].Id == "" {
+	if items[0].Id == "" || hasLeftOutName(items) {
 		existing, httpResp, err := h.client.RetentionsServiceGetRetentions(ctx).Execute()
 		if err != nil {
 			diags.AddError("Error reading coralogix_archive_retentions", cxsdk.NewAPIError(httpResp, err).Error())
@@ -94,11 +95,25 @@ func (h *archiveRetentionsHooks) beforeWrite(ctx context.Context, _ tfsdk.Config
 			return diags
 		}
 		for i := range items {
-			items[i].Id = existing.Retentions[i].Id
+			if items[i].Id == "" {
+				items[i].Id = existing.Retentions[i].Id
+			}
+			if items[i].Name == "" {
+				items[i].Name = existing.Retentions[i].Name
+			}
 		}
 	}
 	items[0].Name = "Default"
 	return diags
+}
+
+func hasLeftOutName(items []retss.RetentionUpdateElement) bool {
+	for _, item := range items[1:] {
+		if item.Name == "" {
+			return true
+		}
+	}
+	return false
 }
 
 // validateRetentions keeps the released checks: four retentions, and no name on the first one.
@@ -115,12 +130,23 @@ func validateRetentions(ctx context.Context, config tfsdk.Config) diag.Diagnosti
 			fmt.Sprintf("retentions list must have %d elements but got %d", retentionCount, len(items)))
 		return diags
 	}
-	first, ok := items[0].(types.Object)
-	if !ok {
-		return diags
-	}
-	if name, ok := first.Attributes()["name"]; ok && !name.IsNull() {
-		diags.AddAttributeError(path.Root("retentions").AtListIndex(0).AtName("name"), "error on validating retentions", "first retention's name can't be set")
+	for i, item := range items {
+		object, ok := item.(types.Object)
+		if !ok {
+			continue
+		}
+		name, ok := object.Attributes()["name"].(types.String)
+		if !ok || name.IsNull() || i > 0 && name.IsUnknown() {
+			continue
+		}
+		at := path.Root("retentions").AtListIndex(i).AtName("name")
+		switch {
+		case i == 0:
+			diags.AddAttributeError(at, "error on validating retentions", "first retention's name can't be set")
+		case name.ValueString() == "":
+			// The API rejects an empty name. Leave the name out to keep the current one.
+			diags.AddAttributeError(at, "error on validating retentions", "a retention name can't be empty")
+		}
 	}
 	return diags
 }

@@ -60,7 +60,7 @@ resource "coralogix_archive_retentions" "example" {
 
 Optional:
 
-- `name` (String) The retention name. If not set, the retention will be named by backend.
+- `name` (String) The retention name. If not set, the retention keeps its current name.
 
 Read-Only:
 

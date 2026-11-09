@@ -55,24 +55,50 @@
             },
             {
               "id": "22222222-2222-4222-8222-222222222222",
-              "name": ""
+              "name": "Short"
             },
             {
               "id": "33333333-3333-4333-8333-333333333333",
-              "name": ""
+              "name": "Intermediate"
             },
             {
               "id": "44444444-4444-4444-8444-444444444444",
-              "name": ""
+              "name": "Long"
             }
           ]
         },
-        "status": 400
+        "status": 200
       }
     ],
-    "applyDiagnostics": [
-      "error: Unable to create archive_retentions | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: \\\"[1].name\\\" is not allowed to be empty\"}"
-    ],
-    "state": null
+    "state": {
+      "id": "archive-retention-settings",
+      "retentions": [
+        {
+          "editable": false,
+          "id": "11111111-1111-4111-8111-111111111111",
+          "name": "Default",
+          "order": 1
+        },
+        {
+          "editable": true,
+          "id": "22222222-2222-4222-8222-222222222222",
+          "name": "Short",
+          "order": 2
+        },
+        {
+          "editable": true,
+          "id": "33333333-3333-4333-8333-333333333333",
+          "name": "Intermediate",
+          "order": 3
+        },
+        {
+          "editable": true,
+          "id": "44444444-4444-4444-8444-444444444444",
+          "name": "Long",
+          "order": 4
+        }
+      ]
+    },
+    "replanEmpty": true
   }
 ]

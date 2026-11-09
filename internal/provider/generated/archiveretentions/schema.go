@@ -38,7 +38,7 @@ func Schema() schema.Schema {
 						"name": schema.StringAttribute{
 							Optional:            true,
 							Computed:            true,
-							MarkdownDescription: "The retention name. If not set, the retention will be named by backend.",
+							MarkdownDescription: "The retention name. If not set, the retention keeps its current name.",
 						},
 						"order": schema.Int64Attribute{
 							Computed:            true,

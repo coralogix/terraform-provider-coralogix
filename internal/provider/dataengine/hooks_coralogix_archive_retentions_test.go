@@ -126,3 +126,21 @@ func TestBeforeWriteStopsCreate(t *testing.T) {
 		})
 	}
 }
+
+// A name that the configuration leaves out arrives as "", which the API rejects; it keeps the
+// current name of the tag, also on Update.
+func TestBeforeWriteKeepsALeftOutName(t *testing.T) {
+	req := renameRequest("", "warm", "", "frozen")
+	for i, id := range []string{"a", "b", "c", "d"} {
+		req.RetentionUpdateElements[i].Id = id
+	}
+	diags := retentionsHooks(t, serveTags("a", "b", "c", "d")).beforeWrite(context.Background(), tfsdkConfig(), req)
+	if diags.HasError() {
+		t.Fatal(diags)
+	}
+	for i, want := range []string{"Default", "warm", "nc", "frozen"} {
+		if got := req.RetentionUpdateElements[i].Name; got != want {
+			t.Errorf("item %d name = %q, want %q", i, got, want)
+		}
+	}
+}

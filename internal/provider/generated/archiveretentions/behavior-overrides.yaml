@@ -45,12 +45,13 @@ types:
         computed: true
         useStateForUnknown: true
         markdownDescription: "The retention id."
-      # The released resource sent a name that the configuration leaves out as "".
+      # A name that the configuration leaves out is sent as "", and the BeforeWrite hook replaces it
+      # with the current name of the tag.
       name:
         schemaOptional: true
         computed: true
         sendUnknownAsZero: true
-        markdownDescription: "The retention name. If not set, the retention will be named by backend."
+        markdownDescription: "The retention name. If not set, the retention keeps its current name."
       order:
         terraformType: Int64
         markdownDescription: "The retention order. Computed by the order of the retention in the retentions list definition."
