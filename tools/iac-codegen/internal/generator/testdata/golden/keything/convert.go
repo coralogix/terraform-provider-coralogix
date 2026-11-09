@@ -87,11 +87,14 @@ var computedAttrs = map[string]bool{
 	"id":      true,
 	"enabled": true,
 	"hashed":  true,
+	"value":   true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
 var requiredAttrs = map[string]bool{
-	"name": true,
+	"name":        true,
+	"presets":     true,
+	"permissions": true,
 }
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
@@ -273,6 +276,7 @@ func flattenKeyThing(ctx context.Context, p path.Path, v *key_things_service.Key
 	out.Name = types.StringPointerValue(&v.Name)
 	out.Enabled = types.BoolPointerValue(&v.Enabled)
 	out.Hashed = types.BoolPointerValue(&v.Hashed)
+	out.Value = types.StringPointerValue(v.Value)
 	out.Presets = flattenStringsSet(ctx, presetThingNames(v.KeyPermissions.Presets), diags)
 	out.Permissions = flattenStringsSet(ctx, v.KeyPermissions.Permissions, diags)
 	return out

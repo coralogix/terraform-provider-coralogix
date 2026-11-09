@@ -310,6 +310,9 @@ schema.{{.Kind}}Attribute{
 {{- if .DeprecationMessage}}
 	DeprecationMessage: {{printf "%q" .DeprecationMessage}},
 {{- end}}
+{{- if .Sensitive}}
+	Sensitive: true,
+{{- end}}
 {{- if .Validators}}
 	Validators: []validator.{{.ValueKind}}{
 	{{- range .Validators}}

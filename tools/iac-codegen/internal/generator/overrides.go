@@ -179,9 +179,11 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 		return wholeLine(fmt.Errorf("component %q: a missing required list already means that no field is required, so no override is needed", line.Component))
 	case overrides.KindField:
 		nested := line.Component != resource
-		// A nested component that only a response reaches binds no request: the request holds its
-		// own component in that place, such as an input object next to its output object.
-		return fieldLineProblem(schema, line, nested, nested && !requested[line.Component])
+		// A component that only a response reaches binds no request: the request holds its own
+		// component in that place, such as an input object next to its output object, or a
+		// Create body of its own next to the resource response. Its required list says nothing
+		// about the requests, so a required or optional line is not stale.
+		return fieldLineProblem(schema, line, nested, !requested[line.Component])
 	case overrides.KindGroup:
 		for _, field := range line.GroupFields {
 			if schema.Properties == nil || schema.Properties.GetOrZero(field) == nil {

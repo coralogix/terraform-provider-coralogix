@@ -99,6 +99,7 @@ components:
         name: {type: string, minLength: 1}
         enabled: {type: boolean}
         hashed: {type: boolean}
+        value: {type: string, x-coralogix-presence: true}
         keyPermissions: {$ref: '#/components/schemas/KeyThing.KeyPermissions'}
     KeyThing.KeyPermissions:
       type: object

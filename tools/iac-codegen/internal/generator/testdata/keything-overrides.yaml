@@ -27,6 +27,10 @@ types:
       name: {updateAs: newName}
       enabled: {updateAs: isEnabled}
       hashed: {readOnly: true}
+      # The secret that Get returns for a key that is not hashed.
+      value: {sensitive: true}
       keyPermissions: {inline: true}
-      presets: {itemName: name, computed: false, collection: set}
-      permissions: {computed: false, collection: set}
+      # The lists are required in the released schema, but Create takes either one: the Get response
+      # requires both, and Create has a body of its own, so only the line makes them required.
+      presets: {itemName: name, required: true, collection: set}
+      permissions: {required: true, collection: set}
