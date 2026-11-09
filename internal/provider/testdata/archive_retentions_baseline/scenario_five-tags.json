@@ -16,7 +16,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "archive-retention-settings",
       "retentions": [
         {
           "editable": "(unknown)",
@@ -159,17 +159,13 @@
     "replanDiff": [
       "AttributeName(\"retentions\")",
       "AttributeName(\"retentions\").ElementKeyInt(0).AttributeName(\"editable\")",
-      "AttributeName(\"retentions\").ElementKeyInt(0).AttributeName(\"id\")",
       "AttributeName(\"retentions\").ElementKeyInt(0).AttributeName(\"name\")",
       "AttributeName(\"retentions\").ElementKeyInt(0).AttributeName(\"order\")",
       "AttributeName(\"retentions\").ElementKeyInt(1).AttributeName(\"editable\")",
-      "AttributeName(\"retentions\").ElementKeyInt(1).AttributeName(\"id\")",
       "AttributeName(\"retentions\").ElementKeyInt(1).AttributeName(\"order\")",
       "AttributeName(\"retentions\").ElementKeyInt(2).AttributeName(\"editable\")",
-      "AttributeName(\"retentions\").ElementKeyInt(2).AttributeName(\"id\")",
       "AttributeName(\"retentions\").ElementKeyInt(2).AttributeName(\"order\")",
       "AttributeName(\"retentions\").ElementKeyInt(3).AttributeName(\"editable\")",
-      "AttributeName(\"retentions\").ElementKeyInt(3).AttributeName(\"id\")",
       "AttributeName(\"retentions\").ElementKeyInt(3).AttributeName(\"order\")",
       "AttributeName(\"retentions\").ElementKeyInt(4)",
       "AttributeName(\"retentions\").ElementKeyInt(4).AttributeName(\"editable\")",

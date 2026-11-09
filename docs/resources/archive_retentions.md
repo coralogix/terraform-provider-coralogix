@@ -53,14 +53,14 @@ resource "coralogix_archive_retentions" "example" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The fixed id of this singleton: there is one per company.
 
 <a id="nestedatt--retentions"></a>
 ### Nested Schema for `retentions`
 
 Optional:
 
-- `name` (String) The retention name. If not set, the retention will be named by backend.
+- `name` (String) The retention name. If not set, the retention keeps its current name.
 
 Read-Only:
 

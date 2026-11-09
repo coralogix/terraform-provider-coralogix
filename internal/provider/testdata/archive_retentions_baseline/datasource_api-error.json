@@ -10,7 +10,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_archive_retentions | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: failed to get retentions for company\"}\noperation - Read"
+      "error: Unable to read coralogix_archive_retentions | id archive-retention-settings: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: failed to get retentions for company\"}"
     ],
     "state": {
       "id": null,
