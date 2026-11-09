@@ -136,7 +136,7 @@ func validateRetentions(ctx context.Context, config tfsdk.Config) diag.Diagnosti
 			continue
 		}
 		name, ok := object.Attributes()["name"].(types.String)
-		if !ok || name.IsNull() || i > 0 && name.IsUnknown() {
+		if !ok || name.IsNull() || name.IsUnknown() {
 			continue
 		}
 		at := path.Root("retentions").AtListIndex(i).AtName("name")

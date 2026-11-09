@@ -176,9 +176,6 @@
         }
       ]
     },
-    "validateDiagnostics": [
-      "error: error on validating retentions [AttributeName(\"retentions\").ElementKeyInt(0).AttributeName(\"name\")] | first retention's name can't be set"
-    ],
     "state": null
   },
   {

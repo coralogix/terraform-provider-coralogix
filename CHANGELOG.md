@@ -4,6 +4,7 @@
 - CHORE: The resource is generated from the API contract. The schema, the import, and the requests are the same, except as listed below. A plan of the retentions that 3.24.0 created from the same configuration shows no change.
 - FIX: A retention whose `name` the configuration leaves out keeps its current name. Before, the provider sent an empty name and the API rejected it, at create and at every update after a name was removed from the configuration.
 - FIX: An empty `name` fails at plan with `a retention name can't be empty`. Before, it failed at apply with a 400 from the API.
+- FIX: A first retention `name` that is unknown at plan, such as a variable, no longer fails with `first retention's name can't be set`. Terraform checks it again once it is known.
 - FIX: A 404 for a missing API route is an error. Before, a refresh removed the retentions from state.
 - FIX: Importing with any id stores the fixed id `archive-retention-settings`.
 - CHORE: API errors read `Unable to create archive_retentions`, `Unable to update archive_retentions`, and so on.
