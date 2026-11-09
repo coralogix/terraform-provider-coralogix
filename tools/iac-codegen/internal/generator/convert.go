@@ -181,6 +181,9 @@ type convObject struct {
 	// RequireOne: the group holds the arms of a oneOf that the user must set. Flatten fails when
 	// the response has none of them, because the object would have no arm.
 	RequireOne bool
+	// OptionalGroup: the group is optional (the line has optional). Flatten returns nil, a null
+	// group, when the response has none of its fields.
+	OptionalGroup bool
 	// AttrTypes are the Terraform attribute types, when a list holds the
 	// object. The function AttrTypesFunc returns them.
 	AttrTypes     []convAttrType
@@ -710,7 +713,7 @@ func buildConvWith(r *model.Resource, refs []sdkcheck.Ref, file *overrides.File)
 		return nil, err
 	}
 	unmarkCarriedOneOfs(b.objects)
-	if err := checkPositions(b.objects); err != nil {
+	if err := checkObjects(b.objects); err != nil {
 		return nil, err
 	}
 	rootUnsupported, err := b.unsupportedArms(&model.Type{Schema: b.resource.Name}, "fields")
@@ -1681,6 +1684,31 @@ func (b *convBuilder) foldStringConv(cf *convField, t *model.Type, component, na
 	}
 	cf.Conv, cf.StringFold, cf.SDKType = convFoldString, arms, b.qualify(obj.SDK)
 	return "*" + obj.SDK, nil
+}
+
+// checkObjects checks the objects that the fields of the resource built.
+func checkObjects(objects []*convObject) error {
+	if err := checkOptionalGroups(objects); err != nil {
+		return err
+	}
+	return checkPositions(objects)
+}
+
+// checkOptionalGroups reports an optional group that has a field whose absence flatten cannot tell: a
+// field that the SDK holds as a value, in wrappers, or as a list or a map. The group is null when
+// every field is absent, so each one must be a pointer.
+func checkOptionalGroups(objects []*convObject) error {
+	for _, obj := range objects {
+		if !obj.OptionalGroup {
+			continue
+		}
+		for _, f := range obj.Fields {
+			if _, scalar := scalarAttrTypes[f.Conv]; (!scalar && f.Conv != convObj) || f.Value || f.Wrap != nil {
+				return fmt.Errorf("%s: an optional group needs fields that the SDK holds by pointer (a scalar or an object), so that a missing value tells the group is absent; %s is not one", obj.Model, f.TFName)
+			}
+		}
+	}
+	return nil
 }
 
 // checkPositions reports a requestPosition field outside the items of a list: only a list gives
@@ -3031,11 +3059,16 @@ func (b *convBuilder) nestedGroup(obj *convObject, component, group string) *con
 			return cf.Object
 		}
 	}
+	line := b.file.Types[component].Groups[group]
 	g := &convObject{Func: obj.Func + camelize(group), Model: groupModelName(component, group), SDK: obj.SDK, Group: true,
-		RequireOne: b.file.Types[component].Groups[group].RequireOne}
+		RequireOne: line.RequireOne, OptionalGroup: line.Optional}
 	g.AttrTypesFunc = lowerFirst(g.Func) + "AttrTypes"
 	b.objects = append(b.objects, g)
-	obj.Fields = append(obj.Fields, &convField{TFName: group, Model: camelize(group), Conv: convGroup, Object: g})
+	// The model holds a computed group as a types.Object, which can be unknown in a plan.
+	obj.Fields = append(obj.Fields, &convField{TFName: group, Model: camelize(group), Conv: convGroup, Object: g, ObjectValue: line.Computed})
+	if line.Computed {
+		b.listed = append(b.listed, g)
+	}
 	return g
 }
 

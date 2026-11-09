@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -71,6 +72,20 @@ func Schema() schema.Schema {
 							},
 							MarkdownDescription: "",
 						},
+						"period": schema.SingleNestedAttribute{
+							Optional: true,
+							Computed: true,
+							PlanModifiers: []planmodifier.Object{
+								setItemStateModifier{},
+							},
+							Attributes: map[string]schema.Attribute{
+								"period_minutes": schema.Int64Attribute{
+									Required:            true,
+									MarkdownDescription: "Minutes between retriggers.",
+								},
+							},
+							MarkdownDescription: "How often the group is retriggered.",
+						},
 						"items": schema.ListNestedAttribute{
 							Required: true,
 							NestedObject: schema.NestedAttributeObject{
@@ -89,6 +104,9 @@ func Schema() schema.Schema {
 							},
 							MarkdownDescription: "",
 						},
+					},
+					PlanModifiers: []planmodifier.Object{
+						objectplanmodifier.UseStateForUnknown(),
 					},
 				},
 				MarkdownDescription: "",
@@ -267,5 +285,39 @@ func (m serverDefaultModifier) PlanModifyInt64(ctx context.Context, req planmodi
 		resp.PlanValue = types.Int64Unknown()
 	} else if preserve {
 		resp.PlanValue = prior.(types.Int64)
+	}
+}
+
+// setItemStateModifier keeps the state value of an object inside a set item when the plan leaves it
+// unknown. The framework gives a modifier the state of the item at the same index, which can be
+// another item: the plan and the state sort their items apart. The set step of the path holds the
+// planned item, so the modifier takes the state item that the planned item matches: every value
+// that the state item has is the planned one, or the plan leaves it unknown. A planned item that
+// matches no state item, such as one that changes, keeps its unknown value.
+type setItemStateModifier struct{}
+
+func (setItemStateModifier) Description(context.Context) string {
+	return "Once set, the value of this attribute in state will not change."
+}
+
+func (m setItemStateModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (setItemStateModifier) PlanModifyObject(ctx context.Context, req planmodifier.ObjectRequest, resp *planmodifier.ObjectResponse) {
+	if req.State.Raw.IsNull() || !req.PlanValue.IsUnknown() {
+		return
+	}
+	value, ok := setItemConfig(ctx, req.State.Raw, req.Path)
+	if !ok || value.IsNull() || !value.IsFullyKnown() {
+		return
+	}
+	kept, err := req.PlanValue.Type(ctx).ValueFromTerraform(ctx, value)
+	if err != nil {
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid state value", err.Error())
+		return
+	}
+	if object, ok := kept.(types.Object); ok {
+		resp.PlanValue = object
 	}
 }

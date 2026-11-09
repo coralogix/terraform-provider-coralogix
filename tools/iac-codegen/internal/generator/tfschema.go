@@ -36,7 +36,10 @@ type tfResource struct {
 	CRUD              *crudData // CRUD, import, and the provider data
 	HasServerDefaults bool
 	// SetServerDefaults: a server default is inside a set item, so its modifier reads the plan.
-	SetServerDefaults  bool
+	SetServerDefaults bool
+	// SetItemState: an object that keeps its state is inside a set item (types.<Type>.groups), so
+	// its modifier takes the state item that the planned item matches.
+	SetItemState       bool
 	ServerDefaultKinds []string // Terraform scalar kinds that need reset planning
 	// RequestReplaceKinds are the Terraform value kinds of the immutable
 	// attributes that hold values that the server sets. They use
@@ -131,6 +134,9 @@ type tfAttr struct {
 	WriteOnly bool
 	// TrueOnly: a bool that shows an object without fields (asBool). Only true is a valid value.
 	TrueOnly bool
+	// ItemModifiers are the plan modifiers of the object of each item of a list or set of objects
+	// (types.<Type>.useStateForUnknown), not of the attribute that holds the list.
+	ItemModifiers []string
 	// FoldEnum is the enum component of the oneOf that the attribute shows as one string
 	// (asString), "" for any other attribute.
 	FoldEnum string
@@ -172,7 +178,7 @@ func buildTFResource(r *model.Resource, pkg string) (*tfResource, error) {
 // buildTFResourceWith is buildTFResource for a resource with a behavior-overrides file
 // (nil for a new resource).
 func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*tfResource, error) {
-	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}}
+	b := &tfBuilder{seen: map[string]bool{}, sent: sentFields(r), file: file, policy: r.Policy, replace: r.Replace, owners: map[string]string{}, itemModified: map[string]bool{}}
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: modelTypeName(r.Name)}
 	if file != nil {
 		out.AfterFlatten = file.AfterFlatten
@@ -208,6 +214,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	out.RequestReplaceKinds = b.replaceKinds
 	out.DefaultPaths = b.defaultPaths
 	out.SetServerDefaults = b.setDefaults
+	out.SetItemState = b.setItemState
 	for _, kind := range b.defaultKinds {
 		out.HasServerDefaults = true
 		if !containsString(out.ServerDefaultKinds, kind) {
@@ -927,9 +934,12 @@ func planModifierPackages(attrs []*tfAttr) []string {
 	var packages []string
 	for _, attr := range attrs {
 		pkg := strings.ToLower(attr.ValueKind) + "planmodifier"
-		for _, modifier := range attr.Modifiers {
+		for _, modifier := range append(slices.Clone(attr.Modifiers), attr.ItemModifiers...) {
 			if strings.Contains(modifier, pkg+".") && !containsString(packages, pkg) {
 				packages = append(packages, pkg)
+			}
+			if strings.HasPrefix(modifier, "objectplanmodifier.") && !containsString(packages, "objectplanmodifier") {
+				packages = append(packages, "objectplanmodifier")
 			}
 		}
 		for _, nested := range planModifierPackages(attr.Attributes) {
@@ -1083,11 +1093,13 @@ type tfBuilder struct {
 	defaultKinds []string        // ServerDefaultKinds of nested attributes
 	defaultPaths []defaultPath   // DefaultPaths
 	setDefaults  bool            // SetServerDefaults
+	setItemState bool            // SetItemState
 	file         *overrides.File
 	policy       model.Policy      // names the attributes that a name line renames
 	replace      bool              // Update is a full replace, so a group can hold nested fields
 	owners       map[string]string // model struct name to what makes it: the resource, a component, or a group
 	grouped      map[string]bool   // components whose types.<Type>.groups the builder applied
+	itemModified map[string]bool   // components whose items carry types.<Type>.useStateForUnknown
 	// carried are the siblings that a carrySiblings arm holds, with the component whose lines they
 	// take. flags are the fold flags that an arm holds.
 	carried map[*model.Field]string
@@ -1267,6 +1279,10 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 	case model.Object, model.OneOf:
 		a.Kind = kind + "Nested"
 		a.ObjectComponent = t.Elem.Schema
+		if b.file != nil && b.file.Types[t.Elem.Schema].UseStateForUnknown {
+			a.ItemModifiers = []string{"objectplanmodifier.UseStateForUnknown()"}
+			b.itemModified[t.Elem.Schema] = true
+		}
 		attrs, err := b.objectAttributes(append(append(attrPath{}, p...), step), t.Elem)
 		if err != nil {
 			return err
@@ -1380,7 +1396,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 	}
 	var attrs []*tfAttr
 	var fields []tfModelField
-	groups := newNestedGroups(b, t.Schema)
+	groups := newNestedGroups(b, t.Schema, slices.Contains(p, anySetItem))
 	for _, f := range t.Fields {
 		if fold, ok := b.flags[f]; ok {
 			// The flag of a folded arm: true selects this arm, false the folded one.
@@ -2594,10 +2610,11 @@ type nestedGroups struct {
 	attrs     map[string]*tfAttr
 	models    map[string]*tfModel
 	fresh     map[string]bool // the group attribute was made by the last add
+	inSet     bool            // the component is the item of a set
 }
 
-func newNestedGroups(b *tfBuilder, component string) *nestedGroups {
-	g := &nestedGroups{b: b, component: component, attrs: map[string]*tfAttr{}, models: map[string]*tfModel{}, fresh: map[string]bool{}}
+func newNestedGroups(b *tfBuilder, component string, inSet bool) *nestedGroups {
+	g := &nestedGroups{b: b, component: component, inSet: inSet, attrs: map[string]*tfAttr{}, models: map[string]*tfModel{}, fresh: map[string]bool{}}
 	if b.file != nil {
 		g.lines = b.file.Types[component].Groups
 	}
@@ -2610,8 +2627,24 @@ func newNestedGroups(b *tfBuilder, component string) *nestedGroups {
 	return g
 }
 
+// checkItemModifiersUsed reports a types.<Type>.useStateForUnknown of a type that no list or set of
+// the resource holds, such as a misspelled type name or a single object: the modifier would be dropped
+// without a word.
+func (b *tfBuilder) checkItemModifiersUsed() error {
+	if b.file == nil {
+		return nil
+	}
+	for _, name := range slices.Sorted(maps.Keys(b.file.Types)) {
+		if b.file.Types[name].UseStateForUnknown && !b.itemModified[name] {
+			return fmt.Errorf("types.%s.useStateForUnknown: no list or set of the resource holds objects of %s", name, name)
+		}
+	}
+	return nil
+}
+
 // checkNestedGroupsUsed reports types.<Type>.groups of a type that no object of the resource
-// has, such as a misspelled type name: the groups would be dropped without a word.
+// has, such as a misspelled type name: the groups would be dropped without a word. It also checks the
+// useStateForUnknown lines of types.
 func (b *tfBuilder) checkNestedGroupsUsed() error {
 	if b.file == nil {
 		return nil
@@ -2621,7 +2654,7 @@ func (b *tfBuilder) checkNestedGroupsUsed() error {
 			return fmt.Errorf("types.%s.groups: no object of the resource is %s", name, name)
 		}
 	}
-	return nil
+	return b.checkItemModifiersUsed()
 }
 
 // of returns the group that holds field, or "".
@@ -2648,14 +2681,30 @@ func (g *nestedGroups) add(group string, f *model.Field, a *tfAttr, field tfMode
 	attr, found := g.attrs[group]
 	g.fresh[group] = !found
 	if !found {
-		attr = &tfAttr{Name: group, Kind: "SingleNested", ValueKind: "Object", Required: true, Component: g.component,
-			Description: g.lines[group].MarkdownDescription}
+		line := g.lines[group]
+		attr = &tfAttr{Name: group, Kind: "SingleNested", ValueKind: "Object", Required: !line.Optional, Optional: line.Optional,
+			Computed: line.Computed, Component: g.component, Description: line.MarkdownDescription}
+		attr.Modifiers = g.stateModifiers(line)
 		g.attrs[group] = attr
 		g.models[group] = &tfModel{Name: groupModelName(g.component, group)}
 	}
 	attr.Attributes = append(attr.Attributes, a)
 	g.models[group].Fields = append(g.models[group].Fields, field)
 	return nil
+}
+
+// stateModifiers are the plan modifiers of a group that keeps its state. Inside a set item the
+// framework gives the built-in modifier the state of the item at the same index, which can be another
+// item, so the group takes the state of the item that the planned item matches.
+func (g *nestedGroups) stateModifiers(line overrides.Group) []string {
+	switch {
+	case !line.UseStateForUnknown:
+		return nil
+	case g.inSet:
+		g.b.setItemState = true
+		return []string{"setItemStateModifier{}"}
+	}
+	return []string{"objectplanmodifier.UseStateForUnknown()"}
 }
 
 // first returns the group attribute and its model field when the last add made the group, so the
@@ -2672,7 +2721,12 @@ func (g *nestedGroups) first(group string) (*tfAttr, tfModelField, bool, error) 
 		g.b.seen[model.Name] = true
 		g.b.models = append(g.b.models, model)
 	}
-	return g.attrs[group], tfModelField{Name: camelize(group), Type: "*" + model.Name, TFName: group}, true, nil
+	goType := "*" + model.Name
+	if g.lines[group].Computed {
+		// The plan of an omitted computed object is unknown, which a pointer cannot hold.
+		goType = "types.Object"
+	}
+	return g.attrs[group], tfModelField{Name: camelize(group), Type: goType, TFName: group}, true, nil
 }
 
 // addValidators adds the oneOf validators: inside a group when the group holds every arm, else to

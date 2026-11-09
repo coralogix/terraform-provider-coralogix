@@ -555,6 +555,11 @@ func flatten{{.Func}}(ctx context.Context, p path.Path, v *{{if not .Local}}{{$s
 	if v == nil {
 		return nil
 	}
+{{- if .OptionalGroup}}
+	if {{range $i, $f := .Fields}}{{if $i}} && {{end}}v.{{$f.SDK}} == nil{{end}} {
+		return nil // the response has none of the fields: the group is null
+	}
+{{- end}}
 {{- $model := .Model}}
 {{- range .Unsupported}}
 	if v.{{.SDK}} != nil {
@@ -1864,7 +1869,15 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		{{.Dst}} = {{$l}}fold{{$r}}
 	}
 {{- else if eq .Conv "group"}}
+	{{- if .ObjectValue}}
+	if v := m.{{.Model}}; !v.IsNull() && !v.IsUnknown() {
+		var nested {{.Object.Model}}
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		expand{{.Object.Func}}(ctx, {{$p}}, &nested, out, diags)
+	}
+	{{- else}}
 	expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, out, diags)
+	{{- end}}
 {{- else if eq .Conv "empty"}}
 	if m.{{.Model}} != nil {
 		{{.Dst}} = map[string]interface{}{}
@@ -2116,7 +2129,14 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{- end}}
 	{{- end}}
 {{- else if eq .Conv "group"}}
-	{{- if .Object.NeedsPrior}}
+	{{- if .ObjectValue}}
+	out.{{.Model}} = types.ObjectNull({{.Object.AttrTypesFunc}}())
+	if nested := flatten{{.Object.Func}}(ctx, {{$p}}, v, diags); nested != nil {
+		value, valueDiags := types.ObjectValueFrom(ctx, {{.Object.AttrTypesFunc}}(), *nested)
+		diags.Append(valueDiags...)
+		out.{{.Model}} = value
+	}
+	{{- else if .Object.NeedsPrior}}
 	var prior{{.Model}} *{{.Object.Model}}
 	if prior != nil {
 		prior{{.Model}} = prior.{{.Model}}

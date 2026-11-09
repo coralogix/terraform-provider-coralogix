@@ -40,6 +40,7 @@
 - FEAT: `terraformType: Int64` accepts a signed 64-bit number that the API sends as a string (the digit pattern `^-?[0-9]+$`), as it did for the unsigned one. The attribute is an Int64, expand sends its decimal text, and a read of a text that is no 64-bit number is an error. Before, the generator stopped with `integer format "int64" is not supported`.
 - FEAT: `collection: set` on the list inside a wrapper that `unwrap` collapses makes the attribute a set (`{"recipients": {"emails": [..]}}` as a set of strings). Before, the line was reported as unused (`OVERRIDE_UNUSED`).
 - FEAT: `asString: true` shows a oneOf of an enum and a string as one string attribute: a spelling of the enum selects the enum arm and any other text the string arm, and a read gives back whichever arm the API has. The validator is the union of the enum spellings and the `regexMatches` pattern of the line, and the generator refuses a pattern that matches a spelling. Before, the oneOf was a nested object with one attribute per arm.
+- FEAT: A group of `types.<Type>.groups` can be `optional`, `computed`, and `useStateForUnknown`, for a released Optional and Computed object that the API has as plain fields, and `types.<Type>.useStateForUnknown` puts the modifier on the object of each item of a list or set. Inside a set item the group takes the state of the item that the planned item matches, not the item at the same index, so one group no longer takes the value of its neighbour. Before, a group was always a required object.
 
 # Release 3.24.0
 

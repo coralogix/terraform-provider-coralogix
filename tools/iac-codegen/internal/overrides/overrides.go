@@ -231,6 +231,30 @@ type Group struct {
 	// RequireOne: the fields are the arms of a oneOf of the resource, and the user must set one.
 	// The arms then check each other with ExactlyOneOf instead of ConflictsWith.
 	RequireOne bool `yaml:"requireOne"`
+	// Optional makes the object optional, for a released attribute that the user may leave out and
+	// that the API has as plain fields. Expand sends none of its fields when it is null, and
+	// flatten reads it as null when the response has none of them, so every field must be one that
+	// the SDK holds by pointer, or a list or a map. The fields inside stay as their lines say.
+	Optional bool `yaml:"optional"`
+	// Computed, with optional, makes the object Optional and Computed: the plan is unknown when
+	// the configuration leaves it out, and the model holds it as a types.Object.
+	Computed bool `yaml:"computed"`
+	// UseStateForUnknown, with computed, keeps the state value of the object when the
+	// configuration leaves it out.
+	UseStateForUnknown bool `yaml:"useStateForUnknown"`
+}
+
+// check checks the keys of a group that change its mode.
+func (g Group) check() error {
+	switch {
+	case g.Computed && !g.Optional:
+		return errors.New("computed needs optional: true: a required object cannot be computed")
+	case g.UseStateForUnknown && !g.Computed:
+		return errors.New("useStateForUnknown needs computed: true: only a computed object is unknown in a plan")
+	case g.Optional && g.RequireOne:
+		return errors.New("requireOne needs an object that the user sets, so it cannot be optional")
+	}
+	return nil
 }
 
 var tfNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
@@ -263,6 +287,11 @@ func (f *File) checkGroups() error {
 	if err := checkGroupMap("groups", f.Groups); err != nil {
 		return err
 	}
+	for _, name := range sortedKeys(f.Groups) {
+		if g := f.Groups[name]; g.Optional || g.Computed || g.UseStateForUnknown {
+			return fmt.Errorf("groups.%s: optional, computed, and useStateForUnknown are keys of types.<Type>.groups, not of a group of the resource", name)
+		}
+	}
 	for _, name := range sortedKeys(f.Types) {
 		if err := checkGroupMap("types."+name+".groups", f.Types[name].Groups); err != nil {
 			return err
@@ -281,6 +310,9 @@ func checkGroupMap(prefix string, groups map[string]Group) error {
 		}
 		if len(g.Fields) == 0 {
 			return fmt.Errorf("%s.%s: fields is empty", prefix, name)
+		}
+		if err := g.check(); err != nil {
+			return fmt.Errorf("%s.%s: %w", prefix, name, err)
 		}
 		for _, field := range g.Fields {
 			if other, ok := seen[field]; ok {
@@ -363,6 +395,16 @@ type Type struct {
 	RequestWrapper string `yaml:"requestWrapper"`
 	// TypedArms shows this oneOf object as a type attribute plus the merged fields of its arms.
 	TypedArms *TypedArms `yaml:"typedArms"`
+	// UseStateForUnknown puts objectplanmodifier.UseStateForUnknown() on the object of each list
+	// or set that holds this component, for a released schema that has it there. A modifier on
+	// the item, unlike one on an attribute inside it, is not an attribute of the item.
+	UseStateForUnknown bool `yaml:"useStateForUnknown"`
+}
+
+// isEmpty reports whether the type line sets nothing.
+func (t Type) isEmpty() bool {
+	return t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 && len(t.Groups) == 0 && len(t.UnsupportedArms) == 0 &&
+		t.UnsupportedSummary == "" && t.UnsupportedDetail == "" && t.RequestWrapper == "" && !t.UseStateForUnknown && t.TypedArms == nil
 }
 
 // TypedArms shows a oneOf object as one object. A required string attribute (Field) names the arm.
@@ -932,8 +974,7 @@ func (f *File) checkTypes() error {
 		if t.Required != nil && len(*t.Required) != 0 {
 			return fmt.Errorf("types.%s.required: only the empty list [] is allowed", name)
 		}
-		if t.Required == nil && len(t.Fields) == 0 && len(t.ExtraAttributes) == 0 && len(t.Groups) == 0 && len(t.UnsupportedArms) == 0 &&
-			t.UnsupportedSummary == "" && t.UnsupportedDetail == "" && t.RequestWrapper == "" && t.TypedArms == nil {
+		if t.isEmpty() {
 			return fmt.Errorf("types.%s has no override", name)
 		}
 		if err := t.checkUnsupported(); err != nil {

@@ -34,7 +34,18 @@ types:
         equality: json
         markdownDescription: A document that a hook turns into the groups.
   OutGroupThing:
+    # The period is an optional object that the server keeps: a group that leaves it out keeps what
+    # the state has. The object of each item of the set has the modifier too, as the released schema has.
+    useStateForUnknown: true
+    groups:
+      period:
+        fields: [periodMinutes]
+        optional: true
+        computed: true
+        useStateForUnknown: true
+        markdownDescription: How often the group is retriggered.
     fields:
+      periodMinutes: {required: true, markdownDescription: Minutes between retriggers.}
       lastSeenAt: {skip: true}
       interval:
         validators: [{atLeast: 60}]

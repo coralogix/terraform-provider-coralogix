@@ -14,6 +14,10 @@ type GroupSetThingModel struct {
 	Document types.String `tfsdk:"document"`
 }
 
+type OutGroupThingPeriodModel struct {
+	PeriodMinutes types.Int64 `tfsdk:"period_minutes"`
+}
+
 type OutItemThingModel struct {
 	Key    types.String `tfsdk:"key"`
 	Labels types.Map    `tfsdk:"labels"`
@@ -23,5 +27,6 @@ type OutGroupThingModel struct {
 	Name     types.String `tfsdk:"name"`
 	Interval types.Int64  `tfsdk:"interval"`
 	Limit    types.Int64  `tfsdk:"limit"`
+	Period   types.Object `tfsdk:"period"`
 	Items    types.List   `tfsdk:"items"`
 }

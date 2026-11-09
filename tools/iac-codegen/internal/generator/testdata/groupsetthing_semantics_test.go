@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	"example.com/iac-test-sdk/go/openapi/gen/group_set_things_service"
 )
@@ -55,6 +56,7 @@ func plannedSet(root tftypes.Object) tftypes.Value {
 		"name":     tftypes.NewValue(tftypes.String, "g"),
 		"interval": tftypes.NewValue(tftypes.Number, tftypes.UnknownValue),
 		"limit":    num(5),
+		"period":   tftypes.NewValue(group.AttributeTypes["period"], tftypes.UnknownValue),
 		"items":    tftypes.NewValue(items, []tftypes.Value{itemValue}),
 	})
 	return tftypes.NewValue(root, map[string]tftypes.Value{
@@ -96,10 +98,11 @@ func TestCreateSendsTheLimitAsAStringAndReadsItBack(t *testing.T) {
 		Document string `tfsdk:"document"`
 	}
 	var groups []struct {
-		Name     string     `tfsdk:"name"`
-		Interval int64      `tfsdk:"interval"`
-		Limit    int64      `tfsdk:"limit"`
-		Items    types.List `tfsdk:"items"`
+		Name     string       `tfsdk:"name"`
+		Interval int64        `tfsdk:"interval"`
+		Limit    int64        `tfsdk:"limit"`
+		Items    types.List   `tfsdk:"items"`
+		Period   types.Object `tfsdk:"period"`
 	}
 	if d := resp.State.GetAttribute(context.Background(), pathRoot("name"), &state.Name); d.HasError() {
 		t.Fatal(d)
@@ -164,6 +167,7 @@ func groupValue(root tftypes.Object, name string, interval, limit *int64) tftype
 		"name":     tftypes.NewValue(tftypes.String, name),
 		"interval": number(interval),
 		"limit":    number(limit),
+		"period":   tftypes.NewValue(group.AttributeTypes["period"], nil),
 		"items": tftypes.NewValue(items, []tftypes.Value{tftypes.NewValue(item, map[string]tftypes.Value{
 			"key":    tftypes.NewValue(tftypes.String, "k"),
 			"labels": tftypes.NewValue(item.AttributeTypes["labels"], nil),
@@ -342,7 +346,8 @@ func (setProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp 
 
 func (setProvider) Schema(context.Context, provider.SchemaRequest, *provider.SchemaResponse) {}
 
-func (setProvider) Configure(context.Context, provider.ConfigureRequest, *provider.ConfigureResponse) {}
+func (setProvider) Configure(context.Context, provider.ConfigureRequest, *provider.ConfigureResponse) {
+}
 
 func (setProvider) Resources(context.Context) []func() frameworkresource.Resource {
 	return []func() frameworkresource.Resource{func() frameworkresource.Resource {
@@ -479,10 +484,11 @@ func TestModifyPlanHookPlansAValueInASetItem(t *testing.T) {
 		t.Fatal(resp.Diagnostics)
 	}
 	var groups []struct {
-		Name     string     `tfsdk:"name"`
-		Interval int64      `tfsdk:"interval"`
-		Limit    int64      `tfsdk:"limit"`
-		Items    types.List `tfsdk:"items"`
+		Name     string       `tfsdk:"name"`
+		Interval int64        `tfsdk:"interval"`
+		Limit    int64        `tfsdk:"limit"`
+		Items    types.List   `tfsdk:"items"`
+		Period   types.Object `tfsdk:"period"`
 	}
 	if d := resp.Plan.GetAttribute(ctx, pathRoot("groups"), &groups); d.HasError() {
 		t.Fatal(d)
@@ -528,5 +534,173 @@ func TestExtraDocumentKeepsTheStateOfEqualJSON(t *testing.T) {
 		if resp.PlanValue.ValueString() != test.want {
 			t.Errorf("config %s: plan %s, want %s", test.config, resp.PlanValue, test.want)
 		}
+	}
+}
+
+// periodOf finds the group with the name in the flat state of the set, and returns the minutes of its
+// period. ok is false when the group has no period.
+func periodOf(state *terraform.State, name string) (minutes string, found, ok bool) {
+	attrs := state.RootModule().Resources["test_group_set_thing.s"].Primary.Attributes
+	for key, value := range attrs {
+		if strings.HasPrefix(key, "groups.") && strings.HasSuffix(key, ".name") && value == name {
+			found = true
+			minutes, ok = attrs[strings.TrimSuffix(key, ".name")+".period.period_minutes"]
+		}
+	}
+	return minutes, found, ok
+}
+
+// checkPeriod checks the minutes of the period of a group, "" for a group with no period.
+func checkPeriod(name, want string) resource.TestCheckFunc {
+	return func(state *terraform.State) error {
+		minutes, found, ok := periodOf(state, name)
+		switch {
+		case !found:
+			return fmt.Errorf("the state has no group %q", name)
+		case want == "" && ok:
+			return fmt.Errorf("group %q has the period %s, want none", name, minutes)
+		case want != "" && minutes != want:
+			return fmt.Errorf("group %q has the period %q, want %q", name, minutes, want)
+		}
+		return nil
+	}
+}
+
+// With real Terraform, the optional period of a group is an object that the server fills in. A group
+// that leaves it out sits next to one that sets it, and a group that changes sits next to another
+// that changes or keeps its period. The framework gives a modifier inside a set item the state of the
+// item at the same index, which can be another item, so the built-in UseStateForUnknown gave a
+// group the period of its neighbour. The generated modifier takes the state item that the planned
+// item matches, so a group that changes keeps an unknown period, which the API then answers. The
+// test framework fails a step whose plan after the apply is not empty. Each case runs for several
+// pairs of names, so that some pair sorts the plan and the state apart.
+func TestOptionalPeriodInASetWithRealTerraform(t *testing.T) {
+	factories := map[string]func() (tfprotov6.ProviderServer, error){"test": providerserver.NewProtocol6WithError(setProvider{})}
+	period := func(minutes int) string { return fmt.Sprintf(", period = { period_minutes = %d }", minutes) }
+	for _, names := range [][2]string{{"a", "b"}, {"b", "a"}, {"x", "y"}, {"first", "second"}} {
+		a, b := names[0], names[1]
+		for _, test := range []struct {
+			name  string
+			steps []resource.TestStep
+		}{
+			{"a group without the period next to one with it", []resource.TestStep{{
+				Config: setConfig(map[string]string{a: "", b: period(7)}),
+				Check:  resource.ComposeTestCheckFunc(checkPeriod(a, ""), checkPeriod(b, "7")),
+			}}},
+			{"each group sets its own period", []resource.TestStep{{
+				Config: setConfig(map[string]string{a: period(3), b: period(7)}),
+				Check:  resource.ComposeTestCheckFunc(checkPeriod(a, "3"), checkPeriod(b, "7")),
+			}}},
+			{"a group changes its period next to one that keeps it", []resource.TestStep{
+				{Config: setConfig(map[string]string{a: period(3), b: period(7)})},
+				{
+					Config: setConfig(map[string]string{a: period(3), b: period(9)}),
+					Check:  resource.ComposeTestCheckFunc(checkPeriod(a, "3"), checkPeriod(b, "9")),
+				},
+			}},
+			{"two groups that change and leave the period out never take the period of each other", []resource.TestStep{
+				{Config: setConfig(map[string]string{a: period(3), b: period(7)})},
+				{
+					Config: setConfig(map[string]string{a: ", limit = 5", b: ", limit = 6"}),
+					Check:  resource.ComposeTestCheckFunc(checkPeriod(a, ""), checkPeriod(b, "")),
+				},
+			}},
+			{"a group that changes next to one that sets its period", []resource.TestStep{
+				{Config: setConfig(map[string]string{a: period(3), b: period(7)})},
+				{
+					Config: setConfig(map[string]string{a: ", limit = 5", b: period(7)}),
+					Check:  resource.ComposeTestCheckFunc(checkPeriod(a, ""), checkPeriod(b, "7")),
+				},
+			}},
+			{"a group that is new next to one that keeps its period", []resource.TestStep{
+				{Config: setConfig(map[string]string{a: period(3)})},
+				{
+					Config: setConfig(map[string]string{a: period(3), b: ""}),
+					Check:  resource.ComposeTestCheckFunc(checkPeriod(a, "3"), checkPeriod(b, "")),
+				},
+			}},
+		} {
+			t.Run(a+"_"+b+"/"+test.name, func(t *testing.T) {
+				resource.UnitTest(t, resource.TestCase{ProtoV6ProviderFactories: factories, Steps: test.steps})
+			})
+		}
+	}
+}
+
+// setItemStateModifier takes the state of the item that the planned item matches, not the item at the
+// same index: the state holds the groups a (period 3) and b (period 7), and the plan lists them in
+// the other order. A planned item that changed matches no state item and keeps its unknown period.
+func TestSetItemStateModifierTakesTheMatchingItem(t *testing.T) {
+	ctx := context.Background()
+	_, schemaResp, root := setSchema(t)
+	group := root.AttributeTypes["groups"].(tftypes.Set).ElementType.(tftypes.Object)
+	items := group.AttributeTypes["items"].(tftypes.List)
+	item := items.ElementType.(tftypes.Object)
+	period := group.AttributeTypes["period"]
+	stateGroup := func(name string, minutes int64, limit int64) tftypes.Value {
+		return tftypes.NewValue(group, map[string]tftypes.Value{
+			"name": tftypes.NewValue(tftypes.String, name), "interval": num(60), "limit": num(limit),
+			"period": tftypes.NewValue(period, map[string]tftypes.Value{"period_minutes": num(minutes)}),
+			"items": tftypes.NewValue(items, []tftypes.Value{tftypes.NewValue(item, map[string]tftypes.Value{
+				"key": tftypes.NewValue(tftypes.String, "k"), "labels": tftypes.NewValue(item.AttributeTypes["labels"], map[string]tftypes.Value{}),
+			})}),
+		})
+	}
+	planned := func(name string, limit int64) tftypes.Value {
+		return tftypes.NewValue(group, map[string]tftypes.Value{
+			"name": tftypes.NewValue(tftypes.String, name), "interval": tftypes.NewValue(tftypes.Number, tftypes.UnknownValue), "limit": num(limit),
+			"period": tftypes.NewValue(period, tftypes.UnknownValue),
+			"items": tftypes.NewValue(items, []tftypes.Value{tftypes.NewValue(item, map[string]tftypes.Value{
+				"key": tftypes.NewValue(tftypes.String, "k"), "labels": tftypes.NewValue(item.AttributeTypes["labels"], tftypes.UnknownValue),
+			})}),
+		})
+	}
+	state := tfsdk.State{Schema: schemaResp.Schema, Raw: tftypes.NewValue(root, map[string]tftypes.Value{
+		"id": tftypes.NewValue(tftypes.String, "set-1"), "name": tftypes.NewValue(tftypes.String, "s"), "document": tftypes.NewValue(tftypes.String, nil),
+		"groups": tftypes.NewValue(root.AttributeTypes["groups"], []tftypes.Value{stateGroup("b", 7, 0), stateGroup("a", 3, 0)}),
+	})}
+	for _, test := range []struct {
+		name  string
+		group tftypes.Value
+		want  tftypes.Value
+	}{
+		{"a", planned("a", 0), tftypes.NewValue(period, map[string]tftypes.Value{"period_minutes": num(3)})},
+		{"b", planned("b", 0), tftypes.NewValue(period, map[string]tftypes.Value{"period_minutes": num(7)})},
+		{"a with another limit", planned("a", 5), tftypes.NewValue(period, tftypes.UnknownValue)},
+		{"a group that the state lacks", planned("c", 0), tftypes.NewValue(period, tftypes.UnknownValue)},
+	} {
+		element, err := schemaResp.Schema.Attributes["groups"].GetType().(types.SetType).ElemType.ValueFromTerraform(ctx, test.group)
+		if err != nil {
+			t.Fatal(err)
+		}
+		plan := types.ObjectUnknown(map[string]attr.Type{"period_minutes": types.Int64Type})
+		req := planmodifier.ObjectRequest{State: state, PlanValue: plan, Path: path.Root("groups").AtSetValue(element).AtName("period")}
+		resp := &planmodifier.ObjectResponse{PlanValue: plan}
+		setItemStateModifier{}.PlanModifyObject(ctx, req, resp)
+		got, err := resp.PlanValue.ToTerraformValue(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !got.Equal(test.want) {
+			t.Errorf("%s: planned period = %v, want %v", test.name, got, test.want)
+		}
+	}
+}
+
+// An optional group is null when the response has none of its fields, and an object when it has one,
+// also when the value is 0. The real Terraform tests above cover what Create sends of a group.
+func TestOptionalGroupIsNullWhenTheResponseHasNoField(t *testing.T) {
+	ctx := context.Background()
+	var diags diag.Diagnostics
+	if got := flattenOutGroupThingPeriod(ctx, path.Root("period"), &group_set_things_service.OutGroupThing{}, &diags); got != nil {
+		t.Fatalf("flatten without the field = %+v, want a null group", got)
+	}
+	minutes := int64(0)
+	got := flattenOutGroupThingPeriod(ctx, path.Root("period"), &group_set_things_service.OutGroupThing{PeriodMinutes: &minutes}, &diags)
+	if got == nil || got.PeriodMinutes.ValueInt64() != 0 || got.PeriodMinutes.IsNull() {
+		t.Fatalf("flatten with minutes 0 = %+v, want a group that holds 0", got)
+	}
+	if diags.HasError() {
+		t.Fatal(diags)
 	}
 }
