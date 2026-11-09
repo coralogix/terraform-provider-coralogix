@@ -1,6 +1,7 @@
 (data source schema)
     description: Coralogix archive-retention. For more info please review - https://coralogix.com/docs/archive-setup-grpc-api/.
 id  tftypes.String computed
+    description: The fixed id of this singleton: there is one per company.
 retentions  nested LIST computed
     description: List of 4 retentions. The first retention is the default retention and can't be renamed.
 retentions.editable  tftypes.Bool computed

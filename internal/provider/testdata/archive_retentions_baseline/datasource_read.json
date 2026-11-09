@@ -10,7 +10,7 @@
       }
     ],
     "state": {
-      "id": "",
+      "id": "archive-retention-settings",
       "retentions": [
         {
           "editable": false,

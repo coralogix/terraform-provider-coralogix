@@ -22,7 +22,7 @@ data "coralogix_archive_retentions" "example" {
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) The fixed id of this singleton: there is one per company.
 - `retentions` (Attributes List) List of 4 retentions. The first retention is the default retention and can't be renamed. (see [below for nested schema](#nestedatt--retentions))
 
 <a id="nestedatt--retentions"></a>

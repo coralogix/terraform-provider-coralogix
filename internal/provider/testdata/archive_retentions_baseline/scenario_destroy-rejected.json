@@ -16,7 +16,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "archive-retention-settings",
       "retentions": [
         {
           "editable": "(unknown)",
@@ -120,7 +120,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error Deleting coralogix_archive_retentions | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: failed to update retentions for company\"}\noperation - Delete"
+      "error: Unable to delete archive_retentions | id archive-retention-settings: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: failed to update retentions for company\"}"
     ],
     "state": {
       "id": "archive-retention-settings",

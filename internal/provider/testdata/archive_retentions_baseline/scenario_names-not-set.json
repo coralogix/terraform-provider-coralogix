@@ -10,7 +10,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "archive-retention-settings",
       "retentions": [
         {
           "editable": "(unknown)",
@@ -71,7 +71,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_archive_retentions | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: \\\"[1].name\\\" is not allowed to be empty\"}\noperation - Create"
+      "error: Unable to create archive_retentions | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: \\\"[1].name\\\" is not allowed to be empty\"}"
     ],
     "state": null
   }

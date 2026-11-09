@@ -16,7 +16,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "archive-retention-settings",
       "retentions": [
         {
           "editable": "(unknown)",
@@ -128,25 +128,25 @@
       "retentions": [
         {
           "editable": "(unknown)",
-          "id": "(unknown)",
+          "id": "11111111-1111-4111-8111-111111111111",
           "name": "(unknown)",
           "order": "(unknown)"
         },
         {
           "editable": "(unknown)",
-          "id": "(unknown)",
+          "id": "22222222-2222-4222-8222-222222222222",
           "name": "short_term",
           "order": "(unknown)"
         },
         {
           "editable": "(unknown)",
-          "id": "(unknown)",
+          "id": "33333333-3333-4333-8333-333333333333",
           "name": "medium_term",
           "order": "(unknown)"
         },
         {
           "editable": "(unknown)",
-          "id": "(unknown)",
+          "id": "44444444-4444-4444-8444-444444444444",
           "name": "long_term",
           "order": "(unknown)"
         }
@@ -180,7 +180,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error Replacing coralogix_archive_retentions | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Could not set archive retentions, Non existing uuid present on request.\"}\noperation - Replace"
+      "error: Resource no longer exists | The API did not find archive_retentions with id archive-retention-settings. Run terraform apply without -refresh=false: the refresh removes it from state, and the plan creates it again."
     ],
     "state": {
       "id": "archive-retention-settings",

@@ -1,5 +1,14 @@
 # Unreleased
 
+#### resource/coralogix_archive_retentions
+- CHORE: The resource is generated from the API contract. The schema, the import, and the requests are the same, except as listed below. A plan of the retentions that 3.24.0 created from the same configuration shows no change.
+- FIX: A 404 for a missing API route is an error. Before, a refresh removed the retentions from state.
+- FIX: Importing with any id stores the fixed id `archive-retention-settings`.
+- CHORE: API errors read `Unable to create archive_retentions`, `Unable to update archive_retentions`, and so on.
+
+#### data-source/coralogix_archive_retentions
+- CHORE: The data source is generated with the resource. Its `id` is `archive-retention-settings`, the id of the resource. Before, it was `""`.
+
 #### resource/coralogix_team
 - CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the requests are the same, except as listed below. A plan of a team that 3.24.0 created from the same configuration shows no change.
 - FIX: `daily_quota` reads back as the value that the API stores, a 32-bit float, at its shortest decimal. Before, the read rounded it to three decimals, so a quota such as `0.1234567` failed the apply with `Provider produced inconsistent result after apply`.

@@ -1,16 +1,16 @@
 (schema)  version=0
     markdown: "Coralogix archive-retention. For more info please review - https://coralogix.com/docs/archive-setup-grpc-api/."
 id  StringAttribute computed
-    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
+    default: stringdefault.staticStringDefault value defaults to archive-retention-settings
+    markdown: "The fixed id of this singleton: there is one per company."
 retentions  ListNestedAttribute required
     markdown: "List of 4 retentions. The first retention is the default retention and can't be renamed."
-    validator: dataengine.retentionsValidator Retentions validator
-    validator: listvalidator.sizeBetweenValidator list must contain at least 4 elements and at most 4 elements
 retentions[]  NestedObject
 retentions[].editable  BoolAttribute computed
     markdown: "Is the retention editable."
 retentions[].id  StringAttribute computed
     markdown: "The retention id."
+    plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 retentions[].name  StringAttribute optional computed
     markdown: "The retention name. If not set, the retention will be named by backend."
 retentions[].order  Int64Attribute computed
