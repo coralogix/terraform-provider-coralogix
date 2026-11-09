@@ -18,6 +18,9 @@ type keptExtra struct {
 	TFName string // Terraform attribute in the plan or prior state
 	Model  string // Go field in the resource model
 	Type   string // Framework type of the value, for example types.Dynamic
+	// AttrType is the attr.Type of an object. A prior or plan value is kept only when it has this
+	// type and no unknown value inside: a prior schema can hold an object of another shape.
+	AttrType string
 }
 
 // crudData is the template data for the resource: CRUD, import, and the
@@ -77,6 +80,8 @@ type crudData struct {
 	// the resource. The API holds no value for them, so setState starts with the plan or prior
 	// state before AfterFlatten can change it.
 	KeptExtras []keptExtra
+	// KeptObjects: a kept extra attribute is an object, so resource.go names attr.Type.
+	KeptObjects bool
 	// UpdateOnly are the attributes that Create cannot send. Create follows with an Update
 	// when the configuration sets another value than the one Create stored, or omits the
 	// attribute and Create stored another value than the declared server default.

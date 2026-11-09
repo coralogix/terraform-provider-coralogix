@@ -22,8 +22,11 @@ type tfResource struct {
 	AfterFlatten bool
 	// ModifyPlanHook: the Hooks have a ModifyPlan, that the generated ModifyPlan calls last.
 	ModifyPlanHook bool
-	// EqualityFile: the package has equality.go, which defines ModifyPlan for its checks.
-	EqualityFile      bool
+	// EqualityFile: the package has equality.go, with the document comparisons.
+	EqualityFile bool
+	// EqualityPlan: equality.go also defines ModifyPlan, for the equality lines of fields and the
+	// enum aliases. An extra attribute with an equality line is only a plan modifier.
+	EqualityPlan      bool
 	VersionHeader     string
 	Model             string // Go type of the resource model, for example "WidgetModel"
 	Attributes        []*tfAttr

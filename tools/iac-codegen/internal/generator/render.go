@@ -60,14 +60,8 @@ func renderAll(r *model.Resource, refs []sdkcheck.Ref, pkg string, file *overrid
 		return nil, err
 	}
 	files := maps.Clone(generatedFiles)
-	data.EqualityFile = data.Conv.UsesEquality() || len(data.EnumAliases) != 0
-	if data.EqualityFile {
-		if data.HasServerDefaults {
-			// ModifyPlan keeps the state in place of every unknown that the configuration does
-			// not set. A server default plans unknown on purpose, and would be lost.
-			return nil, fmt.Errorf("equality or an enum alias and a server default in one resource are not supported; in existing mode, a default line in %s replaces the server default", overrides.FileName)
-		}
-		files["equality.go"] = "equality.go.tmpl"
+	if err := planEquality(data, files); err != nil {
+		return nil, err
 	}
 	if data.Conv.Replace {
 		// A full replace has no update mask (E11).
@@ -90,6 +84,22 @@ func renderAll(r *model.Resource, refs []sdkcheck.Ref, pkg string, file *overrid
 		}
 	}
 	return out, nil
+}
+
+// planEquality decides whether the package has equality.go, and whether its ModifyPlan applies.
+func planEquality(data *tfResource, files map[string]string) error {
+	data.EqualityFile = data.Conv.UsesEquality() || len(data.EnumAliases) != 0
+	data.EqualityPlan = data.Conv.UsesFieldEquality() || len(data.EnumAliases) != 0
+	if !data.EqualityFile {
+		return nil
+	}
+	if data.EqualityPlan && data.HasServerDefaults {
+		// ModifyPlan keeps the state in place of every unknown that the configuration does
+		// not set. A server default plans unknown on purpose, and would be lost.
+		return fmt.Errorf("equality or an enum alias and a server default in one resource are not supported; in existing mode, a default line in %s replaces the server default", overrides.FileName)
+	}
+	files["equality.go"] = "equality.go.tmpl"
+	return nil
 }
 
 // executeTemplates renders each file of files, a map from file name to template name, in a fixed

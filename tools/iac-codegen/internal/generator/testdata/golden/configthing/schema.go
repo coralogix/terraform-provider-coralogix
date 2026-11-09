@@ -7,10 +7,15 @@ import (
 	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -100,6 +105,82 @@ func Schema() schema.Schema {
 					mapvalidator.KeysAre(stringvalidator.RegexMatches(regexp.MustCompile(`^[a-z.]+$`), "keys must be lower case")),
 				},
 				MarkdownDescription: "",
+			},
+			"limits": schema.SingleNestedAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
+				Attributes: map[string]schema.Attribute{
+					"max": schema.Int64Attribute{
+						Optional:            true,
+						MarkdownDescription: "The most that the thing can do.",
+					},
+				},
+				MarkdownDescription: "Limits that a hook fills in.",
+			},
+			"policy": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					equivalentDocument{equal: jsonEqual},
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				MarkdownDescription: "A JSON policy that a hook sends and reads back.",
+			},
+			"schedule": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"active_on": schema.SingleNestedAttribute{
+						Required: true,
+						Attributes: map[string]schema.Attribute{
+							"days_of_week": schema.SetAttribute{
+								Required:    true,
+								ElementType: types.StringType,
+								Validators: []validator.Set{
+									setvalidator.ValueStringsAre(stringvalidator.OneOf("Monday", "Tuesday")),
+								},
+								MarkdownDescription: "Days of the week.",
+							},
+							"enabled": schema.BoolAttribute{
+								Optional:            true,
+								Computed:            true,
+								Default:             booldefault.StaticBool(true),
+								MarkdownDescription: "Whether the window applies.",
+							},
+							"limit": schema.Int64Attribute{
+								Optional:            true,
+								Computed:            true,
+								Default:             int64default.StaticInt64(3),
+								MarkdownDescription: "How many times the window applies.",
+							},
+							"start_time": schema.StringAttribute{
+								Required: true,
+								Validators: []validator.String{
+									stringvalidator.RegexMatches(regexp.MustCompile(`^([0-1][0-9]|2[0-3]):[0-5][0-9]$`), "use 24h time like 15:04"),
+								},
+								MarkdownDescription: "Start of the window.",
+							},
+							"tags": schema.ListAttribute{
+								Optional:            true,
+								ElementType:         types.StringType,
+								MarkdownDescription: "Labels of the window.",
+							},
+							"utc_offset": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+								Default:  stringdefault.StaticString("+0000"),
+								Validators: []validator.String{
+									stringvalidator.RegexMatches(regexp.MustCompile(`^[+-]([01][0-9]|2[0-3])[0-5][0-9]$`), "use an offset like -0700"),
+								},
+								MarkdownDescription: "Time zone of the window.",
+							},
+						},
+						MarkdownDescription: "The active window.",
+					},
+				},
+				MarkdownDescription: "When the thing is active.",
 			},
 		},
 	}

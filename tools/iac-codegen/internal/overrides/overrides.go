@@ -437,10 +437,11 @@ func (t Type) GroupOf(field string) string {
 
 // ExtraAttribute is one Terraform-only attribute of a generated object.
 type ExtraAttribute struct {
-	// Type is "string" or "int64" for a scalar, or "set" for a set. Without it, the attribute is a
-	// map. A string of the resource that is neither computed nor writeOnly keeps the value of the
-	// plan or the prior state, as a dynamic one does, for a text that a handwritten hook turns into
-	// request values, such as a document of the whole resource.
+	// Type is "string", "int64", or "bool" for a scalar, "set" or "list" for a collection of strings,
+	// or "object" for an object with the attributes below. Without it, the attribute is a map. A
+	// string of the resource that is not read-only or writeOnly keeps the value of the plan or the
+	// prior state, as a dynamic one does, for a text that a handwritten hook turns into request
+	// values, such as a document of the whole resource. So does an object of the resource.
 	Type string `yaml:"type"`
 	// ElementType is the map or set value type. A scalar or dynamic attribute has none.
 	ElementType string `yaml:"elementType"`
@@ -466,6 +467,19 @@ type ExtraAttribute struct {
 	ElementValues []string `yaml:"elementValues"`
 	// UseStateForUnknown keeps a computed value during a plan.
 	UseStateForUnknown bool `yaml:"useStateForUnknown"`
+	// Optional: true, with computed: true, makes the attribute Optional and Computed, for a value
+	// that the user may set and that a handwritten hook fills in otherwise. Without computed, an
+	// extra attribute is optional already.
+	Optional bool `yaml:"optional"`
+	// Default is the static default of an Optional and Computed string, bool, or int64.
+	Default any `yaml:"default"`
+	// Equality is "json" or "yaml" for a string: the plan keeps the state value when the configured
+	// document is equal to it, as the equality line of a field does.
+	Equality string `yaml:"equality"`
+	// Attributes are the attributes of an object (type: object), by Terraform name. They take the
+	// keys of an extra attribute, except dynamic, writeOnly, and inUpdate, and they are optional
+	// unless they say required: true.
+	Attributes map[string]ExtraAttribute `yaml:"attributes"`
 }
 
 // Field overrides one field of an object. A field with a line keeps the released
@@ -1114,14 +1128,61 @@ func (l Field) KeepsReleasedOmission() bool {
 }
 
 func (e ExtraAttribute) check(name string) error {
+	return e.checkAt(name, false)
+}
+
+// checkAt checks the attribute; nested says that it is inside an object extra attribute.
+func (e ExtraAttribute) checkAt(name string, nested bool) error {
 	if err := checkExtraName(name); err != nil {
 		return err
 	}
 	if err := e.checkShape(); err != nil {
 		return err
 	}
+	if err := e.checkMode(nested); err != nil {
+		return err
+	}
 	if e.MarkdownDescription == "" {
 		return errors.New("markdownDescription is required")
+	}
+	for child, attribute := range e.Attributes {
+		if err := attribute.checkAt(child, true); err != nil {
+			return fmt.Errorf("attributes.%s: %w", child, err)
+		}
+	}
+	return nil
+}
+
+// checkMode checks the keys that set how the attribute is planned: optional, default, equality,
+// and what an object may hold.
+func (e ExtraAttribute) checkMode(nested bool) error {
+	if e.Optional && (!e.Computed || e.Required) {
+		return errors.New("optional: true needs computed: true and no required: an extra attribute that is not computed is optional already")
+	}
+	if e.Optional && e.WriteOnly {
+		return errors.New("optional: true cannot be combined with writeOnly")
+	}
+	if e.Default != nil && !e.Optional {
+		return errors.New("default needs optional: true and computed: true: the Framework only allows a default on a computed attribute")
+	}
+	if e.UseStateForUnknown && !e.Computed {
+		return errors.New("useStateForUnknown needs a computed attribute")
+	}
+	if nested && (e.Dynamic || e.WriteOnly || e.InUpdate || e.Equality != "") {
+		return errors.New("an attribute inside an object cannot be dynamic, writeOnly, inUpdate, or have an equality line")
+	}
+	return e.checkEquality()
+}
+
+func (e ExtraAttribute) checkEquality() error {
+	if e.Equality == "" {
+		return nil
+	}
+	if e.Equality != "json" && e.Equality != "yaml" {
+		return fmt.Errorf("equality is %q, want json or yaml", e.Equality)
+	}
+	if e.Type != "string" || e.Computed && !e.Optional || e.WriteOnly {
+		return errors.New("equality needs a string that the user sets, and that is not writeOnly")
 	}
 	return nil
 }
@@ -1148,7 +1209,7 @@ func (e ExtraAttribute) checkShape() error {
 	if err := e.checkType(); err != nil {
 		return err
 	}
-	if e.Computed && (e.Required || e.WriteOnly || e.InUpdate) {
+	if e.Computed && !e.Optional && (e.Required || e.WriteOnly || e.InUpdate) {
 		return errors.New("computed cannot be combined with required, writeOnly, or inUpdate")
 	}
 	if e.WriteOnly && e.InUpdate {
@@ -1168,25 +1229,37 @@ func (e ExtraAttribute) checkDynamic() error {
 }
 
 func (e ExtraAttribute) checkType() error {
+	if e.Type != "object" && len(e.Attributes) != 0 {
+		return errors.New("attributes belong to type: object")
+	}
 	switch e.Type {
 	case "":
 		if e.ElementType != "string" && e.ElementType != "int64" {
 			return fmt.Errorf("elementType is %q, want string or int64", e.ElementType)
 		}
-	case "string":
+	case "string", "int64", "bool":
 		if e.ElementType != "" {
-			return errors.New("a string attribute has no elementType")
+			return fmt.Errorf("a %s attribute has no elementType", e.Type)
 		}
-	case "int64":
-		if e.ElementType != "" {
-			return errors.New("an int64 attribute has no elementType")
-		}
-	case "set":
+	case "set", "list":
 		if e.ElementType != "string" {
-			return fmt.Errorf("a set attribute needs elementType string, got %q", e.ElementType)
+			return fmt.Errorf("a %s attribute needs elementType string, got %q", e.Type, e.ElementType)
 		}
+	case "object":
+		return e.checkObject()
 	default:
-		return fmt.Errorf("type is %q, want string, int64, or set", e.Type)
+		return fmt.Errorf("type is %q, want string, int64, bool, set, list, or object", e.Type)
+	}
+	return nil
+}
+
+// checkObject checks an object extra attribute: the user sets it, and it has attributes.
+func (e ExtraAttribute) checkObject() error {
+	if e.ElementType != "" || len(e.Attributes) == 0 {
+		return errors.New("an object attribute has attributes and no elementType")
+	}
+	if e.Computed && !e.Optional || e.WriteOnly {
+		return errors.New("an object attribute is set by the user: it cannot be computed-only or writeOnly")
 	}
 	return nil
 }

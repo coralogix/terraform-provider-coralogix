@@ -16,6 +16,9 @@ import (
 // and flatten (SDK response → Terraform model). Every SDK name comes from
 // the checked sdkRefs.
 type convData struct {
+	// ExtraEquality are the kinds ("yaml", "json") of the equality lines of extra attributes. They
+	// are no API field, so no field of an object carries them.
+	ExtraEquality []string
 	// IDGuard is the model field of the resource id when flatten must check that the response
 	// has it, or "".
 	IDGuard string
@@ -2838,6 +2841,17 @@ func (d *convData) PriorLists() bool {
 // UsesEquality reports whether a field compares its value as a document of the kind ("yaml" or
 // "json"). With no kind, it reports whether any field does.
 func (d *convData) UsesEquality(kind ...string) bool {
+	for _, k := range d.ExtraEquality {
+		if len(kind) == 0 || slices.Contains(kind, k) {
+			return true
+		}
+	}
+	return d.UsesFieldEquality(kind...)
+}
+
+// UsesFieldEquality is UsesEquality for the equality lines of API fields only. An equality line of an
+// extra attribute is a plan modifier of that attribute, and needs no ModifyPlan.
+func (d *convData) UsesFieldEquality(kind ...string) bool {
 	for _, obj := range d.Objects {
 		for _, f := range obj.Fields {
 			if f.Equality != "" && (len(kind) == 0 || slices.Contains(kind, f.Equality)) {

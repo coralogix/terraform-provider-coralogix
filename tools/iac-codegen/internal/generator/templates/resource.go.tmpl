@@ -16,7 +16,7 @@ import (
 {{- end}}
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-{{- if .CRUD.UpdateOnly}}
+{{- if or .CRUD.UpdateOnly .CRUD.KeptObjects}}
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 {{- end}}
 {{- if or .CRUD.UpdateOnly .UniqueChecks .Float32Paths .EnumAliases}}
@@ -130,7 +130,7 @@ func (r *Resource) ConfigValidators(context.Context) []resource.ConfigValidator 
 }
 {{- if .Existing}}
 
-{{- if and $.ModifyPlanHook (not $.EqualityFile)}}
+{{- if and $.ModifyPlanHook (not $.EqualityPlan)}}
 
 var _ resource.ResourceWithModifyPlan = (*Resource)(nil)
 
@@ -842,7 +842,14 @@ func (r *Resource) setState(ctx context.Context, v *{{$sdk}}.{{.Resource}}, prio
 		// state, then let AfterFlatten replace it when the API supplies another value.
 		var kept {{.Type}}
 		if !{{$keptFrom}}.GetAttribute(ctx, path.Root({{printf "%q" .TFName}}), &kept).HasError() && !kept.IsNull() && !kept.IsUnknown() {
+{{- if .AttrType}}
+			// A value of another shape, or one with an unknown value inside, cannot enter state.
+			if value, err := kept.ToTerraformValue(ctx); err == nil && value.IsFullyKnown() && kept.Type(ctx).Equal({{.AttrType}}) {
+				m.{{.Model}} = kept
+			}
+{{- else}}
 			m.{{.Model}} = kept
+{{- end}}
 		}
 	}
 {{- end}}

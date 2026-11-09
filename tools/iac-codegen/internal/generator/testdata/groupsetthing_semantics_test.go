@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
+	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -504,5 +505,28 @@ func TestModifyPlanHookPlansAValueInASetItem(t *testing.T) {
 	r.ModifyPlan(ctx, req, &frameworkresource.ModifyPlanResponse{Plan: req.Plan})
 	if called {
 		t.Fatal("the hook ran on destroy")
+	}
+}
+
+// An equality line of an extra attribute adds the plan modifier of the attribute, and no ModifyPlan
+// of its own: the resource has a server default, which that ModifyPlan would lose. The same JSON in
+// another format keeps the state text, and another document does not.
+func TestExtraDocumentKeepsTheStateOfEqualJSON(t *testing.T) {
+	ctx := context.Background()
+	_, schemaResp, _ := setSchema(t)
+	document, ok := schemaResp.Schema.Attributes["document"].(resourceschema.StringAttribute)
+	if !ok || len(document.PlanModifiers) == 0 {
+		t.Fatalf("document = %#v, want a string attribute with the plan modifier of the equality line", schemaResp.Schema.Attributes["document"])
+	}
+	for _, test := range []struct{ config, want string }{
+		{"{ \"a\": 1 }", "{\"a\":1}"},
+		{"{\"a\": 2}", "{\"a\": 2}"},
+	} {
+		req := planmodifier.StringRequest{ConfigValue: types.StringValue(test.config), StateValue: types.StringValue("{\"a\":1}"), PlanValue: types.StringValue(test.config)}
+		resp := &planmodifier.StringResponse{PlanValue: req.PlanValue}
+		document.PlanModifiers[0].PlanModifyString(ctx, req, resp)
+		if resp.PlanValue.ValueString() != test.want {
+			t.Errorf("config %s: plan %s, want %s", test.config, resp.PlanValue, test.want)
+		}
 	}
 }

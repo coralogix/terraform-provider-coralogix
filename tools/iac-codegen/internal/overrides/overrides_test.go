@@ -634,10 +634,22 @@ func TestExtraAttributeShapeErrors(t *testing.T) {
 		extra ExtraAttribute
 		want  string
 	}{
-		"unknown shape":        {ExtraAttribute{Type: "list"}, "want string, int64, or set"},
-		"set without elements": {ExtraAttribute{Type: "set"}, "needs elementType string"},
-		"string with elements": {ExtraAttribute{Type: "string", ElementType: "string"}, "string attribute has no elementType"},
-		"computed write-only":  {ExtraAttribute{Type: "string", Computed: true, WriteOnly: true}, "computed cannot be combined"},
+		"unknown shape":                    {ExtraAttribute{Type: "tuple"}, "want string, int64, bool, set, list, or object"},
+		"list without elements":            {ExtraAttribute{Type: "list"}, "needs elementType string"},
+		"object without attributes":        {ExtraAttribute{Type: "object"}, "has attributes"},
+		"attributes of a string":           {ExtraAttribute{Type: "string", Attributes: map[string]ExtraAttribute{"a": {Type: "string"}}}, "attributes belong to type: object"},
+		"read-only object":                 {ExtraAttribute{Type: "object", Computed: true, Attributes: map[string]ExtraAttribute{"a": {Type: "string", MarkdownDescription: "d"}}}, "cannot be computed-only"},
+		"optional without computed":        {ExtraAttribute{Type: "string", Optional: true}, "needs computed: true"},
+		"optional and required":            {ExtraAttribute{Type: "string", Optional: true, Computed: true, Required: true}, "needs computed: true and no required"},
+		"default without optional":         {ExtraAttribute{Type: "string", Computed: true, Default: "x"}, "default needs optional: true"},
+		"equality on a set":                {ExtraAttribute{Type: "set", ElementType: "string", Equality: "json"}, "equality needs a string"},
+		"unknown equality":                 {ExtraAttribute{Type: "string", Equality: "toml"}, "want json or yaml"},
+		"state value of a plain attribute": {ExtraAttribute{Type: "string", UseStateForUnknown: true}, "needs a computed attribute"},
+		"nested write-only":                {ExtraAttribute{Type: "object", Attributes: map[string]ExtraAttribute{"a": {Type: "string", WriteOnly: true, MarkdownDescription: "d"}}, MarkdownDescription: "d"}, "inside an object cannot be"},
+		"nested without text":              {ExtraAttribute{Type: "object", Attributes: map[string]ExtraAttribute{"a": {Type: "string"}}, MarkdownDescription: "d"}, "attributes.a: markdownDescription is required"},
+		"set without elements":             {ExtraAttribute{Type: "set"}, "needs elementType string"},
+		"string with elements":             {ExtraAttribute{Type: "string", ElementType: "string"}, "string attribute has no elementType"},
+		"computed write-only":              {ExtraAttribute{Type: "string", Computed: true, WriteOnly: true}, "computed cannot be combined"},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {

@@ -160,14 +160,23 @@ var oneOfArms = map[string]bool{}
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
 var computedAttrs = map[string]bool{
-	"id":           true,
-	"version":      true,
-	"remotes.id":   true,
-	"remotes.hash": true,
+	"id":                            true,
+	"version":                       true,
+	"remotes.id":                    true,
+	"remotes.hash":                  true,
+	"limits":                        true,
+	"policy":                        true,
+	"schedule.active_on.enabled":    true,
+	"schedule.active_on.limit":      true,
+	"schedule.active_on.utc_offset": true,
 }
 
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
-var requiredAttrs = map[string]bool{}
+var requiredAttrs = map[string]bool{
+	"schedule.active_on":              true,
+	"schedule.active_on.days_of_week": true,
+	"schedule.active_on.start_time":   true,
+}
 
 // keepPriorEmpty keeps the prior form of a value that is empty in both the
 // prior data and the new state. The API does not tell null from an empty
@@ -421,6 +430,9 @@ func flattenConfigThing(ctx context.Context, p path.Path, v *config_things_servi
 	}
 	out.Labels = flattenStringsList(ctx, v.Labels, diags)
 	out.Metadata = flattenStringMap(ctx, v.Metadata, diags)
+	out.Limits = types.ObjectNull(map[string]attr.Type{"max": types.Int64Type})
+	out.Policy = types.StringNull()
+	out.Schedule = types.ObjectNull(map[string]attr.Type{"active_on": types.ObjectType{AttrTypes: map[string]attr.Type{"days_of_week": types.SetType{ElemType: types.StringType}, "enabled": types.BoolType, "limit": types.Int64Type, "start_time": types.StringType, "tags": types.ListType{ElemType: types.StringType}, "utc_offset": types.StringType}}})
 	return out
 }
 

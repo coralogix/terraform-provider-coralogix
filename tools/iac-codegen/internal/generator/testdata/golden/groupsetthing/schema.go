@@ -94,7 +94,10 @@ func Schema() schema.Schema {
 				MarkdownDescription: "",
 			},
 			"document": schema.StringAttribute{
-				Optional:            true,
+				Optional: true,
+				PlanModifiers: []planmodifier.String{
+					equivalentDocument{equal: jsonEqual},
+				},
 				MarkdownDescription: "A document that a hook turns into the groups.",
 			},
 		},
