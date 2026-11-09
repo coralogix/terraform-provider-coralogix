@@ -37,6 +37,11 @@ type File struct {
 	// value that no plan modifier of one attribute can state: one that reads another attribute, or
 	// that changes values inside the items of a set.
 	ModifyPlan bool `yaml:"modifyPlan"`
+	// GetHooks gives a released resource two hooks around its Get call: Get replaces the call, to
+	// add a query parameter or to retry it, and AfterGet receives the whole Get response, with the
+	// values that sit next to the resource. The data source runs them too. A singleton has no
+	// such hooks.
+	GetHooks bool `yaml:"getHooks"`
 	// Resource is the OpenAPI component of the resource. It must match the
 	// generator's --resource flag, so a file cannot be used for the wrong resource.
 	Resource string `yaml:"resource"`

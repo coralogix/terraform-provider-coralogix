@@ -2,6 +2,7 @@ package folder_things_service
 
 import (
 	"context"
+	"errors"
 	"net/http"
 )
 
@@ -28,8 +29,11 @@ type CreateFolderThingResponse struct {
 	ThingId *string
 }
 
+// The Get response holds a revision next to the thing. The server returns it only for a request
+// that asks for it with IncludeRevision.
 type GetFolderThingResponse struct {
-	Thing *FolderThing
+	Thing    *FolderThing
+	Revision *string
 }
 
 type FolderThingsServiceAPIService struct{}
@@ -38,7 +42,8 @@ type ApiFolderThingsServiceCreateFolderThingRequest struct {
 	body CreateFolderThingBody
 }
 type ApiFolderThingsServiceGetFolderThingRequest struct {
-	id string
+	id      string
+	include bool
 }
 type ApiFolderThingsServiceReplaceFolderThingRequest struct {
 	body ReplaceFolderThingBody
@@ -53,6 +58,13 @@ var (
 	CreatedID = "folder-1"
 	Stored    FolderThing
 	GetIDs    []string
+	// StoredRevision is the revision that Get returns for a request that includes it. GetIncludes
+	// lists whether each Get asked for it. With RejectInclude, a Get that asks for it fails with
+	// a 403 and the error GetForbidden.
+	StoredRevision string
+	GetIncludes    []bool
+	RejectInclude  bool
+	GetForbidden   = errors.New("forbidden")
 	// GetErr makes Get fail, and DeleteErr makes Delete fail.
 	GetErr, DeleteErr, ReplaceErr error
 )
@@ -78,6 +90,12 @@ func (*FolderThingsServiceAPIService) FolderThingsServiceDeleteFolderThing(ctx c
 	return ApiFolderThingsServiceDeleteFolderThingRequest{}
 }
 
+// IncludeRevision asks the server for the revision.
+func (r ApiFolderThingsServiceGetFolderThingRequest) IncludeRevision(includeRevision bool) ApiFolderThingsServiceGetFolderThingRequest {
+	r.include = includeRevision
+	return r
+}
+
 func (r ApiFolderThingsServiceCreateFolderThingRequest) CreateFolderThingBody(createFolderThingBody CreateFolderThingBody) ApiFolderThingsServiceCreateFolderThingRequest {
 	r.body = createFolderThingBody
 	return r
@@ -96,11 +114,20 @@ func (r ApiFolderThingsServiceCreateFolderThingRequest) Execute() (*CreateFolder
 
 func (r ApiFolderThingsServiceGetFolderThingRequest) Execute() (*GetFolderThingResponse, *http.Response, error) {
 	GetIDs = append(GetIDs, r.id)
+	GetIncludes = append(GetIncludes, r.include)
 	if GetErr != nil {
 		return nil, nil, GetErr
 	}
 	stored := Stored
-	return &GetFolderThingResponse{Thing: &stored}, nil, nil
+	out := &GetFolderThingResponse{Thing: &stored}
+	if r.include {
+		if RejectInclude {
+			return nil, &http.Response{StatusCode: http.StatusForbidden}, GetForbidden
+		}
+		revision := StoredRevision
+		out.Revision = &revision
+	}
+	return out, nil, nil
 }
 
 // Replace returns an empty object, as the SDK writes for a response with no fields.
