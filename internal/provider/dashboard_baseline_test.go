@@ -20,6 +20,7 @@ import (
 	"maps"
 	"os"
 	"regexp"
+	"sync"
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards"
@@ -138,14 +139,28 @@ func TestDashboardBaselineSchema(t *testing.T) {
 	checkGoldenAt(t, dashboardGoldenDir, "schema_current.txt", []byte(schemadump.Text(resp.Schema)))
 }
 
+// Scenarios without the plan-time Check call run in parallel. Each has its own fake and API key, and
+// the harness is built under a lock, because the provider reads its key from the environment.
 func TestDashboardBaselineScenarios(t *testing.T) {
+	// The parent sets the variables, so the framework restores them when the subtests end.
+	t.Setenv("CORALOGIX_API_KEY", "baseline-test-key")
+	t.Setenv("CORALOGIX_DOMAIN", "eu2.coralogix.com")
+	t.Setenv("CORALOGIX_ENV", "")
+	t.Setenv("CORALOGIX_DASHBOARD_VALIDATION", "false")
+	router := installDashboardRouter(t)
 	for name, run := range dashboardScenarios {
 		t.Run(name, func(t *testing.T) {
-			h := newDashboardHarness(t)
+			t.Parallel()
+			h := newParallelDashboardHarness(t, router, name)
 			run(h)
 			checkGoldenAt(t, dashboardGoldenDir, "scenario_"+name+".json", marshalDashboardGolden(t, h.steps))
 		})
 	}
+}
+
+// The check-* scenarios turn the Check call on. That is a setting of the whole process, so they run
+// one after another, after the parallel scenarios.
+func TestDashboardBaselineScenariosWithCheck(t *testing.T) {
 	for name, run := range dashboardCheckScenarios {
 		t.Run(name, func(t *testing.T) {
 			h := newDashboardCheckHarness(t)
@@ -153,6 +168,20 @@ func TestDashboardBaselineScenarios(t *testing.T) {
 			checkGoldenAt(t, dashboardGoldenDir, "scenario_"+name+".json", marshalDashboardGolden(t, h.steps))
 		})
 	}
+}
+
+var dashboardHarnessEnv sync.Mutex
+
+func newParallelDashboardHarness(t *testing.T, router *routedDashboardFakes, name string) *grHarness {
+	t.Helper()
+	key := "baseline-test-key-" + name
+	fake := newRoutedDashboardFake(t, router, key)
+	dashboardHarnessEnv.Lock()
+	defer dashboardHarnessEnv.Unlock()
+	if err := os.Setenv("CORALOGIX_API_KEY", key); err != nil {
+		t.Fatal(err)
+	}
+	return newEnvFreeProtocolHarness(t, dashboardTypeName, fake)
 }
 
 func init() {
@@ -198,3 +227,37 @@ var dashboardScenarios = map[string]func(*grHarness){
 }
 
 var dashboardCheckScenarios = map[string]func(*grHarness){}
+
+// newEnvFreeProtocolHarness is newProtocolHarness for a process whose environment is already set. It
+// does not call t.Setenv, which a parallel test cannot do.
+func newEnvFreeProtocolHarness(t *testing.T, typeName string, api requestLog) *grHarness {
+	t.Helper()
+	h := &grHarness{t: t, ctx: context.Background(), api: api, typeName: typeName}
+	var err error
+	if h.server, err = testAccProtoV6ProviderFactories["coralogix"](); err != nil {
+		t.Fatal(err)
+	}
+	schemas, err := h.server.GetProviderSchema(h.ctx, &tfprotov6.GetProviderSchemaRequest{})
+	h.must(err)
+	h.fatalOnError(schemas.Diagnostics)
+	h.schema = schemas.ResourceSchemas[typeName]
+	if h.schema == nil {
+		t.Fatalf("%s is not registered", typeName)
+	}
+	h.typ = h.schema.ValueType().(tftypes.Object)
+	h.dsSchema = schemas.DataSourceSchemas[typeName]
+
+	providerType := schemas.Provider.ValueType().(tftypes.Object)
+	nulls := map[string]tftypes.Value{}
+	for name, at := range providerType.AttributeTypes {
+		nulls[name] = tftypes.NewValue(at, nil)
+	}
+	cfg := h.dynamic(providerType, tftypes.NewValue(providerType, nulls))
+	configured, err := h.server.ConfigureProvider(h.ctx, &tfprotov6.ConfigureProviderRequest{
+		TerraformVersion: "1.11.0",
+		Config:           cfg,
+	})
+	h.must(err)
+	h.fatalOnError(configured.Diagnostics)
+	return h
+}

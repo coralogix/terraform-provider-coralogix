@@ -794,7 +794,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows… → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:06156af5] → null"
     ],
     "replanEmpty": true
   },
@@ -815,7 +815,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows… → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:06156af5] → null"
     ],
     "inconsistentResult": [
       "layout.sections"
@@ -956,7 +956,7 @@
     ],
     "requestDiff": [
       "~ .dashboard.actions[0].dataSource: \"ACTION_DATA_SOURCE_TYPE_DATAPRIME\" → \"ACTION_DATA_SOURCE_TYPE_LOGS\"",
-      "+ .dashboard.layout.sections[0].options.custom: {\"collapsed\":true,\"color\":{\"predefined\":\"SECTION_PREDEFINED_COLOR_GREEN\"},\"description\":\"value-description\",\"name\":\"value-name\",\"repetitiveVar\":{\"name\":\"value-n…",
+      "+ .dashboard.layout.sections[0].options.custom: {\"collapsed\":true,\"color\":{\"predefined\":\"SECTION_PREDEFINED_COLOR_GREEN\"},\"description\":\"value-description\",\"name\":\"value-name\",\"repetitiveVar\":{\"name\":\"value-n…[sha256:ef07bc80]",
       "- .dashboard.layout.sections[0].options.internal",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.barValueDisplay: \"BAR_VALUE_DISPLAY_BOTH\" → \"BAR_VALUE_DISPLAY_INSIDE\"",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.colorScheme: \"classic\" → \"severity\"",
@@ -1222,7 +1222,7 @@
     ],
     "requestDiff": [
       "~ .dashboard.actions[0].dataSource: \"ACTION_DATA_SOURCE_TYPE_DATAPRIME\" → \"ACTION_DATA_SOURCE_TYPE_SPANS\"",
-      "+ .dashboard.layout.sections[0].options.custom: {\"collapsed\":true,\"color\":{\"predefined\":\"SECTION_PREDEFINED_COLOR_PURPLE\"},\"description\":\"value-description\",\"name\":\"value-name\",\"repetitiveVar\":{\"name\":\"value-…",
+      "+ .dashboard.layout.sections[0].options.custom: {\"collapsed\":true,\"color\":{\"predefined\":\"SECTION_PREDEFINED_COLOR_PURPLE\"},\"description\":\"value-description\",\"name\":\"value-name\",\"repetitiveVar\":{\"name\":\"value-…[sha256:d40e67af]",
       "- .dashboard.layout.sections[0].options.internal",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.colorScheme: \"classic\" → \"negative\"",
       "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.colorsBy.query: {}",

@@ -710,7 +710,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows… → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:606dde6c] → null"
     ],
     "replanEmpty": true
   },
@@ -729,7 +729,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows… → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:606dde6c] → null"
     ],
     "inconsistentResult": [
       "layout.sections"
@@ -946,7 +946,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.legend.columns[0]: \"avg\" → \"max\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.legend.placement: \"auto\" → \"hidden\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].color_scheme: \"classic\" → \"cold\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.data_prime.filters[0].logs: {\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"… → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.data_prime.filters[0].logs: {\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"…[sha256:bb460cb9] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.data_prime.filters[0].spans: null → {\"field\":{\"type\":\"process_tag\",\"value\":\"value-value\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"}}",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].unit: \"bytes\" → \"custom\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.x_axis_time_format: \"auto\" → \"dd_mm_hh_mm\""

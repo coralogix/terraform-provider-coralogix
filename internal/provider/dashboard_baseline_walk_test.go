@@ -16,6 +16,7 @@ package provider
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -445,7 +446,17 @@ func jsonDiff(a, b any, path string, out *[]string) {
 func short(v any) string {
 	raw, _ := json.Marshal(v)
 	if len(raw) > 160 {
-		return string(raw[:160]) + "…"
+		// The digest covers the whole value, so a change after the cut still changes the golden.
+		// Random ids differ on every run, so each one is replaced by its order of appearance first.
+		seen := map[string]int{}
+		stable := dashboardUUIDPattern.ReplaceAllFunc(raw, func(id []byte) []byte {
+			if _, ok := seen[string(id)]; !ok {
+				seen[string(id)] = len(seen) + 1
+			}
+			return []byte(fmt.Sprintf("<id-%d>", seen[string(id)]))
+		})
+		sum := sha256.Sum256(stable)
+		return fmt.Sprintf("%s…[sha256:%x]", raw[:160], sum[:4])
 	}
 	return string(raw)
 }
@@ -577,13 +588,20 @@ func (h *grHarness) runBatch(out []any, base j, prior tftypes.Value, baseline wa
 //	DASHBOARD_WALK=all UPDATE_GOLDEN=1 go test ./internal/provider -run TestDashboardBaselineWalk
 var walkSmokeBases = []string{"markdown", "reference"}
 
+// The bases run in parallel. Each has its own fake and API key (see newParallelDashboardHarness).
 func TestDashboardBaselineWalk(t *testing.T) {
+	t.Setenv("CORALOGIX_API_KEY", "baseline-test-key")
+	t.Setenv("CORALOGIX_DOMAIN", "eu2.coralogix.com")
+	t.Setenv("CORALOGIX_ENV", "")
+	t.Setenv("CORALOGIX_DASHBOARD_VALIDATION", "false")
+	router := installDashboardRouter(t)
 	for _, b := range walkBases() {
 		t.Run(b.name, func(t *testing.T) {
 			if os.Getenv("DASHBOARD_WALK") != "all" && !slices.Contains(walkSmokeBases, b.name) {
 				t.Skip("set DASHBOARD_WALK=all to walk every base")
 			}
-			h := newDashboardHarness(t)
+			t.Parallel()
+			h := newParallelDashboardHarness(t, router, "walk-"+b.name)
 			steps := runWalk(h, b)
 			checkGoldenAt(t, dashboardGoldenDir, "walk_"+b.name+".json", marshalDashboardGolden(t, steps))
 		})

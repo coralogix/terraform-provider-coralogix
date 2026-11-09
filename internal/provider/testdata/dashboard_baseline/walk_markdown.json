@@ -308,7 +308,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows… → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:3028cfd5] → null"
     ],
     "replanEmpty": true
   },
@@ -325,7 +325,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows… → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:3028cfd5] → null"
     ],
     "inconsistentResult": [
       "layout.sections"
@@ -356,7 +356,7 @@
     ],
     "requestDiff": [
       "~ .dashboard.actions[0].dataSource: \"ACTION_DATA_SOURCE_TYPE_DATAPRIME\" → \"ACTION_DATA_SOURCE_TYPE_LOGS\"",
-      "+ .dashboard.layout.sections[0].options.custom: {\"collapsed\":true,\"color\":{\"predefined\":\"SECTION_PREDEFINED_COLOR_GREEN\"},\"description\":\"value-description\",\"name\":\"value-name\",\"repetitiveVar\":{\"name\":\"value-n…",
+      "+ .dashboard.layout.sections[0].options.custom: {\"collapsed\":true,\"color\":{\"predefined\":\"SECTION_PREDEFINED_COLOR_GREEN\"},\"description\":\"value-description\",\"name\":\"value-name\",\"repetitiveVar\":{\"name\":\"value-n…[sha256:ef07bc80]",
       "- .dashboard.layout.sections[0].options.internal"
     ],
     "stateDiff": [

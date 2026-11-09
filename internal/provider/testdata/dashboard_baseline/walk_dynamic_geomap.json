@@ -649,7 +649,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows… → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:6e9a431e] → null"
     ],
     "replanEmpty": true
   },
@@ -667,7 +667,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows… → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:6e9a431e] → null"
     ],
     "inconsistentResult": [
       "layout.sections"
@@ -750,11 +750,11 @@
     ],
     "requestDiff": [
       "~ .dashboard.actions[0].dataSource: \"ACTION_DATA_SOURCE_TYPE_DATAPRIME\" → \"ACTION_DATA_SOURCE_TYPE_LOGS\"",
-      "+ .dashboard.layout.sections[0].options.custom: {\"collapsed\":true,\"color\":{\"predefined\":\"SECTION_PREDEFINED_COLOR_GREEN\"},\"description\":\"value-description\",\"name\":\"value-name\",\"repetitiveVar\":{\"name\":\"value-n…",
+      "+ .dashboard.layout.sections[0].options.custom: {\"collapsed\":true,\"color\":{\"predefined\":\"SECTION_PREDEFINED_COLOR_GREEN\"},\"description\":\"value-description\",\"name\":\"value-name\",\"repetitiveVar\":{\"name\":\"value-n…[sha256:ef07bc80]",
       "- .dashboard.layout.sections[0].options.internal",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.interpretation: \"INTERPRETATION_CATEGORICAL_ANALYSIS_HORIZONTAL_BARS\" → \"INTERPRETATION_CATEGORICAL_ANALYSIS_PIE_CHART\"",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.queryDefinitions[0].query.dataprime",
-      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.queryDefinitions[0].query.logs: {\"aggregation\":[{\"countDistinct\":{\"observationField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_METADATA\"}}}],\"dataModeType\":\"DATA_MODE_TYPE_ARCHIVE\",\"…",
+      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.queryDefinitions[0].query.logs: {\"aggregation\":[{\"countDistinct\":{\"observationField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_METADATA\"}}}],\"dataModeType\":\"DATA_MODE_TYPE_ARCHIVE\",\"…[sha256:acbc8516]",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.timeFrame.absoluteTimeFrame",
       "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.timeFrame.relativeTimeFrame: \"900s\"",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.geomap.aggregation.avg",
@@ -778,7 +778,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].custom_actions[0].data_source: \"dataprime\" → \"logs\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.interpretation: \"categorical_analysis_horizontal_bars\" → \"categorical_analysis_pie_chart\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.data_prime: {\"data_mode_type\":\"archive\",\"query\":\"value-query\"} → null",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.logs: null → {\"aggregations\":[{\"field\":null,\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"},\"percent\":null,\"type\":\"count_distinct\"}],\"data_mode_type\":\"a…",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.logs: null → {\"aggregations\":[{\"field\":null,\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"},\"percent\":null,\"type\":\"count_distinct\"}],\"data_mode_type\":\"a…[sha256:253ecec6]",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.time_frame.absolute: {\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.time_frame.relative: null → {\"duration\":\"seconds:900\"}",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.geomap.aggregation.avg: {\"field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
@@ -920,7 +920,7 @@
     ],
     "stateDiff": [
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.logs.aggregations: [{\"field\":null,\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"},\"percent\":null,\"type\":\"count_distinct\"}] → null",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.logs.filters: [{\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"},\"operator\":{\"selected_values\":[\"value-selected_values\"],\"selection_… → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.logs.filters: [{\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"},\"operator\":{\"selected_values\":[\"value-selected_values\"],\"selection_…[sha256:9152b5a4] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.logs.group_by: [{\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.geomap.config.coordinate_config.latitude_field: {\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.geomap.config.coordinate_config.longitude_field: {\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"} → null"
@@ -1081,7 +1081,7 @@
       "~ .dashboard.actions[0].dataSource: \"ACTION_DATA_SOURCE_TYPE_DATAPRIME\" → \"ACTION_DATA_SOURCE_TYPE_METRICS\"",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.interpretation: \"INTERPRETATION_CATEGORICAL_ANALYSIS_HORIZONTAL_BARS\" → \"INTERPRETATION_CATEGORICAL_ANALYSIS_VERTICAL_BARS\"",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.queryDefinitions[0].query.dataprime",
-      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.queryDefinitions[0].query.metrics: {\"editorMode\":\"METRICS_QUERY_EDITOR_MODE_BUILDER\",\"promqlQuery\":{\"value\":\"value-promql_query\"},\"promqlQueryType\":\"PROM_QL_QUERY_TYPE_INSTANT\",\"seriesLimitType\":…",
+      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.queryDefinitions[0].query.metrics: {\"editorMode\":\"METRICS_QUERY_EDITOR_MODE_BUILDER\",\"promqlQuery\":{\"value\":\"value-promql_query\"},\"promqlQueryType\":\"PROM_QL_QUERY_TYPE_INSTANT\",\"seriesLimitType\":…[sha256:6be63103]",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.geomap.aggregation.avg",
       "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.geomap.aggregation.max: {\"field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_USER_DATA\"}}",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.geomap.color.colorRange: \"COLOR_GRADIENT_TYPE_BLUE\" → \"COLOR_GRADIENT_TYPE_GREEN\"",
@@ -1174,11 +1174,11 @@
     ],
     "requestDiff": [
       "~ .dashboard.actions[0].dataSource: \"ACTION_DATA_SOURCE_TYPE_DATAPRIME\" → \"ACTION_DATA_SOURCE_TYPE_SPANS\"",
-      "+ .dashboard.layout.sections[0].options.custom: {\"collapsed\":true,\"color\":{\"predefined\":\"SECTION_PREDEFINED_COLOR_PURPLE\"},\"description\":\"value-description\",\"name\":\"value-name\",\"repetitiveVar\":{\"name\":\"value-…",
+      "+ .dashboard.layout.sections[0].options.custom: {\"collapsed\":true,\"color\":{\"predefined\":\"SECTION_PREDEFINED_COLOR_PURPLE\"},\"description\":\"value-description\",\"name\":\"value-name\",\"repetitiveVar\":{\"name\":\"value-…[sha256:d40e67af]",
       "- .dashboard.layout.sections[0].options.internal",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.interpretation: \"INTERPRETATION_CATEGORICAL_ANALYSIS_HORIZONTAL_BARS\" → \"INTERPRETATION_MULTI_VALUE_KPI\"",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.queryDefinitions[0].query.dataprime",
-      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.queryDefinitions[0].query.spans: {\"aggregation\":[{\"average\":{\"observationField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_LABEL\"}}}],\"dataModeType\":\"DATA_MODE_TYPE_ARCHIVE\",\"filters\":…",
+      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.queryDefinitions[0].query.spans: {\"aggregation\":[{\"average\":{\"observationField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_LABEL\"}}}],\"dataModeType\":\"DATA_MODE_TYPE_ARCHIVE\",\"filters\":…[sha256:c906b581]",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.timeFrame.absoluteTimeFrame",
       "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.timeFrame.relativeTimeFrame: \"900s\"",
       "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.geomap.aggregation.avg",
@@ -1201,7 +1201,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].custom_actions[0].data_source: \"dataprime\" → \"spans\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.interpretation: \"categorical_analysis_horizontal_bars\" → \"multi_value_kpi\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.data_prime: {\"data_mode_type\":\"archive\",\"query\":\"value-query\"} → null",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.spans: null → {\"aggregations\":[{\"field\":null,\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"percent\":null,\"type\":\"avg\"}],\"data_mode_type\":\"archive\",\"filte…",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.spans: null → {\"aggregations\":[{\"field\":null,\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"percent\":null,\"type\":\"avg\"}],\"data_mode_type\":\"archive\",\"filte…[sha256:80ce6015]",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.time_frame.absolute: {\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.time_frame.relative: null → {\"duration\":\"seconds:900\"}",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.geomap.aggregation.avg: {\"field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}} → null",
@@ -1337,7 +1337,7 @@
     ],
     "stateDiff": [
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.spans.aggregations: [{\"field\":null,\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"percent\":null,\"type\":\"avg\"}] → null",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.spans.filters: [{\"field\":{\"type\":\"metadata\",\"value\":\"service_name\"},\"observation_field\":{\"keypath\":[\"value-keypath\"],\"relation_type\":\"other\",\"scope\":\"label\"},\"operator\":{\"sele… → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.spans.filters: [{\"field\":{\"type\":\"metadata\",\"value\":\"service_name\"},\"observation_field\":{\"keypath\":[\"value-keypath\"],\"relation_type\":\"other\",\"scope\":\"label\"},\"operator\":{\"sele…[sha256:a2acd84c] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.spans.group_by: [{\"keypath\":[\"value-keypath\"],\"relation_type\":\"other\",\"scope\":\"label\"}] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.geomap.aggregation.min.field: {\"keypath\":[\"value-keypath\"],\"scope\":\"label\"} → null"
     ],

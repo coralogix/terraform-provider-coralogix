@@ -672,7 +672,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows… → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:4ed4f195] → null"
     ],
     "replanEmpty": true
   },
@@ -692,7 +692,7 @@
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows… → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:4ed4f195] → null"
     ],
     "inconsistentResult": [
       "layout.sections"
@@ -792,7 +792,7 @@
     ],
     "requestDiff": [
       "~ .dashboard.actions[0].dataSource: \"ACTION_DATA_SOURCE_TYPE_DATAPRIME\" → \"ACTION_DATA_SOURCE_TYPE_LOGS\"",
-      "+ .dashboard.layout.sections[0].options.custom: {\"collapsed\":true,\"color\":{\"predefined\":\"SECTION_PREDEFINED_COLOR_GREEN\"},\"description\":\"value-description\",\"name\":\"value-name\",\"repetitiveVar\":{\"name\":\"value-n…",
+      "+ .dashboard.layout.sections[0].options.custom: {\"collapsed\":true,\"color\":{\"predefined\":\"SECTION_PREDEFINED_COLOR_GREEN\"},\"description\":\"value-description\",\"name\":\"value-name\",\"repetitiveVar\":{\"name\":\"value-n…[sha256:ef07bc80]",
       "- .dashboard.layout.sections[0].options.internal",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.barValueDisplay: \"BAR_VALUE_DISPLAY_BOTH\" → \"BAR_VALUE_DISPLAY_INSIDE\"",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.colorScheme: \"classic\" → \"severity\"",
@@ -823,7 +823,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.colors_by: \"stack\" → \"group_by\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.legend.columns[0]: \"avg\" → \"last\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.legend.placement: \"auto\" → \"bottom\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.data_prime.filters[0].logs: {\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"… → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.data_prime.filters[0].logs: {\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"…[sha256:bb460cb9] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.data_prime.filters[0].metrics: null → {\"label\":\"value-label\",\"metric_name\":\"value-metric_name\",\"operator\":{\"selected_values\":[\"value-selected_values\"],\"selection_type\":\"list\",\"type\":\"not_equals\"}}",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.data_prime.time_frame.absolute: {\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"} → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.data_prime.time_frame.relative: null → {\"duration\":\"seconds:900\"}",
@@ -1012,7 +1012,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.colors_by: \"stack\" → \"aggregation\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.legend.columns[0]: \"avg\" → \"max\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.legend.placement: \"auto\" → \"hidden\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.data_prime.filters[0].logs: {\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"… → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.data_prime.filters[0].logs: {\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"…[sha256:bb460cb9] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.data_prime.filters[0].spans: null → {\"field\":{\"type\":\"process_tag\",\"value\":\"value-value\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"}}",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.unit: \"bytes\" → \"custom\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.x_axis_time_format: \"auto\" → \"dd_mm_hh_mm\"",
@@ -1050,7 +1050,7 @@
     ],
     "requestDiff": [
       "~ .dashboard.actions[0].dataSource: \"ACTION_DATA_SOURCE_TYPE_DATAPRIME\" → \"ACTION_DATA_SOURCE_TYPE_SPANS\"",
-      "+ .dashboard.layout.sections[0].options.custom: {\"collapsed\":true,\"color\":{\"predefined\":\"SECTION_PREDEFINED_COLOR_PURPLE\"},\"description\":\"value-description\",\"name\":\"value-name\",\"repetitiveVar\":{\"name\":\"value-…",
+      "+ .dashboard.layout.sections[0].options.custom: {\"collapsed\":true,\"color\":{\"predefined\":\"SECTION_PREDEFINED_COLOR_PURPLE\"},\"description\":\"value-description\",\"name\":\"value-name\",\"repetitiveVar\":{\"name\":\"value-…[sha256:d40e67af]",
       "- .dashboard.layout.sections[0].options.internal",
       "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.colorScheme: \"classic\" → \"negative\"",
       "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.barChart.colorsBy.query: {}",
@@ -1134,7 +1134,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.color_scheme: \"classic\" → \"green\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.colors_by: \"stack\" → \"category\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.legend.columns[0]: \"avg\" → \"name\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.data_prime.filters[0].logs: {\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"… → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.data_prime.filters[0].logs: {\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"…[sha256:bb460cb9] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.query.data_prime.filters[0].metrics: null → {\"label\":\"value-label\",\"metric_name\":\"value-metric_name\",\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"}}",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.unit: \"bytes\" → \"euro\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.bar_chart.x_axis_time_format: \"auto\" → \"hh_mm_dd_mm\"",

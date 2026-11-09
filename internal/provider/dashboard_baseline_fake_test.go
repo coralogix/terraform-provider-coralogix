@@ -126,6 +126,16 @@ func newDashboardFake(t *testing.T) *dashboardFake {
 
 // startDashboardFake serves the fake and sends every HTTP call of the process to it, until stop.
 func startDashboardFake() (*dashboardFake, func()) {
+	f, target, closeServer := serveDashboardFake()
+	original := http.DefaultTransport
+	http.DefaultTransport = dashboardTransport{fake: f, next: redirectTransport{target: target, next: original}}
+	return f, func() {
+		http.DefaultTransport = original
+		closeServer()
+	}
+}
+
+func serveDashboardFake() (*dashboardFake, *url.URL, func()) {
 	f := &dashboardFake{
 		dashboards: map[string]map[string]any{},
 		policies:   map[string]string{},
@@ -139,12 +149,43 @@ func startDashboardFake() (*dashboardFake, func()) {
 	if err != nil {
 		panic(err)
 	}
-	original := http.DefaultTransport
-	http.DefaultTransport = dashboardTransport{fake: f, next: redirectTransport{target: target, next: original}}
-	return f, func() {
-		http.DefaultTransport = original
-		srv.Close()
+	return f, target, srv.Close
+}
+
+// routedDashboardFakes lets scenarios run in parallel. The provider sends every call through
+// http.DefaultTransport, so one router is installed for the process. It picks the fake by the API key
+// of the call, and each scenario has its own key.
+type routedDashboardFakes struct {
+	original http.RoundTripper
+	fakes    sync.Map // API key -> http.RoundTripper
+}
+
+func (r *routedDashboardFakes) RoundTrip(req *http.Request) (*http.Response, error) {
+	if next, ok := r.fakes.Load(strings.TrimPrefix(req.Header.Get("Authorization"), "Bearer ")); ok {
+		return next.(http.RoundTripper).RoundTrip(req)
 	}
+	return r.original.RoundTrip(req)
+}
+
+// installDashboardRouter installs the router until the test and all its subtests end.
+func installDashboardRouter(t *testing.T) *routedDashboardFakes {
+	t.Helper()
+	router := &routedDashboardFakes{original: http.DefaultTransport}
+	http.DefaultTransport = router
+	t.Cleanup(func() { http.DefaultTransport = router.original })
+	return router
+}
+
+// newRoutedDashboardFake starts a fake that serves only the calls that carry the key.
+func newRoutedDashboardFake(t *testing.T, router *routedDashboardFakes, key string) *dashboardFake {
+	t.Helper()
+	f, target, closeServer := serveDashboardFake()
+	router.fakes.Store(key, dashboardTransport{fake: f, next: redirectTransport{target: target, next: router.original}})
+	t.Cleanup(func() {
+		router.fakes.Delete(key)
+		closeServer()
+	})
+	return f
 }
 
 type dashboardTransport struct {
