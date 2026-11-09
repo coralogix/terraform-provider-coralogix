@@ -1,0 +1,34 @@
+[
+  {
+    "step": "upgrade a state whose dashboard does not exist",
+    "config": {
+      "id": "missing-dashboard-001",
+      "name": "old name"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/missing-dashboard-001",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "warning: Dashboard \"missing-dashboard-001\" is in state, but no longer exists in Coralogix backend | missing-dashboard-001 will be recreated when you apply"
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "missing-dashboard-001",
+      "layout": null,
+      "name": "old name",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
+  }
+]

@@ -60,8 +60,23 @@ install: build
 	mkdir -p ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
 	mv ${BINARY} ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
 
+# The dashboard baseline tests plan a very large schema. Their CPU time does not fit the 120 s limit of
+# the provider package, so they run in their own CI jobs: `make test-dashboard-baseline` for the
+# scenarios, and `make test-dashboard-walk SHARD=1` to `SHARD=4` for the schema walk.
+DASHBOARD_BASELINE_TESTS=^TestDashboard(Baseline|Walk|Fake|Fidelity)
+
 test:
-	echo $(TEST) | xargs -t -n4 go test ${BUILD_ARGS} $(TESTARGS) -timeout=120s -parallel=4
+	echo $(TEST) | xargs -t -n4 go test ${BUILD_ARGS} $(TESTARGS) -skip '$(DASHBOARD_BASELINE_TESTS)' -timeout=120s -parallel=4
+
+# The second command reads every walk base through the data source. The walk shards are near their
+# limit, so these reads run here.
+test-dashboard-baseline:
+	go test ${BUILD_ARGS} ./internal/provider -run '$(DASHBOARD_BASELINE_TESTS)' -skip '^TestDashboardBaselineWalk$$' $(TESTARGS) -timeout=10m -parallel=4
+	DASHBOARD_WALK=all go test ${BUILD_ARGS} ./internal/provider -run '^TestDataSourceBaselineScenarios$$/^dashboard$$/' $(TESTARGS) -timeout=10m -parallel=4
+
+# One quarter of the schema walk. SHARD is 1 to 4; the lists are in the walk test (walkShards).
+test-dashboard-walk:
+	DASHBOARD_WALK_SHARD=$(SHARD) go test ${BUILD_ARGS} ./internal/provider -run '^TestDashboardBaselineWalk$$' $(TESTARGS) -timeout=7m -parallel=4
 
 # ACC_SKIP_PATTERN is read by the shell, not expanded by Make: environment
 # variables are recursively expanded by Make, so a regex containing `$|`

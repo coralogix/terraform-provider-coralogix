@@ -1,0 +1,3 @@
+# The dashboard baseline goldens are recorded files. GitHub collapses them in a PR diff.
+internal/provider/testdata/dashboard_baseline/** linguist-generated=true
+internal/provider/testdata/dashboard_baseline/README.md -linguist-generated

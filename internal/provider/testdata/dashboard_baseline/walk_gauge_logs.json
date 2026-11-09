@@ -1,0 +1,1083 @@
+[
+  {
+    "step": "create variant 0",
+    "request": {
+      "dashboard": {
+        "actions": [
+          {
+            "dataSource": "ACTION_DATA_SOURCE_TYPE_DATAPRIME",
+            "definition": {
+              "customAction": {
+                "url": "value-url"
+              }
+            },
+            "id": "<id-1>",
+            "name": "value-name",
+            "shouldOpenInNewWindow": true,
+            "widgetId": "<id-1>"
+          }
+        ],
+        "layout": {
+          "sections": [
+            {
+              "id": {
+                "value": "<id-1>"
+              },
+              "options": {
+                "internal": {}
+              },
+              "rows": [
+                {
+                  "appearance": {
+                    "height": 1
+                  },
+                  "id": {
+                    "value": "<id-1>"
+                  },
+                  "widgets": [
+                    {
+                      "appearance": {
+                        "width": 1
+                      },
+                      "definition": {
+                        "gauge": {
+                          "arcDisplay": {
+                            "thresholdArc": true,
+                            "valueArc": true
+                          },
+                          "customUnit": "value-custom_unit",
+                          "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+                          "decimal": 1,
+                          "decimalPrecision": true,
+                          "displaySeriesName": true,
+                          "legend": {
+                            "columns": [
+                              "LEGEND_COLUMN_AVG"
+                            ],
+                            "groupByQuery": true,
+                            "isVisible": true,
+                            "placement": "LEGEND_PLACEMENT_AUTO"
+                          },
+                          "legendBy": "LEGEND_BY_GROUPS",
+                          "max": 1,
+                          "min": 1,
+                          "query": {
+                            "logs": {
+                              "filters": [
+                                {
+                                  "field": "value-field",
+                                  "observationField": {
+                                    "keypath": [
+                                      "value-keypath"
+                                    ],
+                                    "scope": "DATASET_SCOPE_LABEL"
+                                  },
+                                  "operator": {
+                                    "equals": {
+                                      "selection": {
+                                        "all": {}
+                                      }
+                                    }
+                                  }
+                                }
+                              ],
+                              "groupBy": [
+                                {
+                                  "keypath": [
+                                    "value-keypath"
+                                  ],
+                                  "scope": "DATASET_SCOPE_LABEL"
+                                }
+                              ],
+                              "logsAggregation": {
+                                "count": {}
+                              },
+                              "luceneQuery": {
+                                "value": "value-lucene_query"
+                              },
+                              "timeFrame": {
+                                "absoluteTimeFrame": {
+                                  "from": "2024-01-01T00:00:00Z",
+                                  "to": "2024-01-01T00:00:00Z"
+                                }
+                              }
+                            }
+                          },
+                          "showInnerArc": true,
+                          "showMinMax": true,
+                          "showOuterArc": true,
+                          "thresholdBy": "THRESHOLD_BY_BACKGROUND",
+                          "thresholdType": "THRESHOLD_TYPE_ABSOLUTE",
+                          "thresholds": [
+                            {
+                              "color": "value-color",
+                              "from": 1,
+                              "label": "value-label"
+                            }
+                          ],
+                          "unit": "UNIT_BYTES"
+                        }
+                      },
+                      "description": "value-description",
+                      "highlighted": true,
+                      "id": {
+                        "value": "<id-1>"
+                      },
+                      "title": "value-title"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "name": "walk gauge_logs"
+      }
+    },
+    "state": {
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": {
+              "collapsed": null,
+              "color": null,
+              "description": null,
+              "internal": {},
+              "name": null,
+              "repetitive_var": null
+            },
+            "rows": [
+              {
+                "height": 1,
+                "id": "<id-1>",
+                "widgets": [
+                  {
+                    "custom_actions": [
+                      {
+                        "data_source": "dataprime",
+                        "id": "<id-1>",
+                        "name": "value-name",
+                        "should_open_in_new_window": true,
+                        "url": "value-url"
+                      }
+                    ],
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": {
+                        "arc_display": {
+                          "threshold_arc": true,
+                          "value_arc": true
+                        },
+                        "custom_unit": "value-custom_unit",
+                        "data_mode_type": "archive",
+                        "decimal": 1,
+                        "decimal_precision": true,
+                        "display_series_name": true,
+                        "legend": {
+                          "columns": [
+                            "avg"
+                          ],
+                          "group_by_query": true,
+                          "is_visible": true,
+                          "placement": "auto"
+                        },
+                        "legend_by": "groups",
+                        "max": 1,
+                        "min": 1,
+                        "query": {
+                          "data_prime": null,
+                          "logs": {
+                            "filters": [
+                              {
+                                "field": "value-field",
+                                "observation_field": {
+                                  "keypath": [
+                                    "value-keypath"
+                                  ],
+                                  "scope": "label"
+                                },
+                                "operator": {
+                                  "selected_values": [],
+                                  "selection_type": "all",
+                                  "type": "equals"
+                                }
+                              }
+                            ],
+                            "group_by": [
+                              {
+                                "keypath": [
+                                  "value-keypath"
+                                ],
+                                "scope": "label"
+                              }
+                            ],
+                            "logs_aggregation": {
+                              "field": null,
+                              "observation_field": null,
+                              "percent": null,
+                              "type": "count"
+                            },
+                            "lucene_query": "value-lucene_query",
+                            "time_frame": {
+                              "absolute": {
+                                "end": "2024-01-01T00:00:00Z",
+                                "start": "2024-01-01T00:00:00Z"
+                              },
+                              "relative": null
+                            }
+                          },
+                          "metrics": null,
+                          "spans": null
+                        },
+                        "show_inner_arc": true,
+                        "show_min_max": true,
+                        "show_outer_arc": true,
+                        "threshold_by": "background",
+                        "threshold_type": "absolute",
+                        "thresholds": [
+                          {
+                            "color": "value-color",
+                            "from": 1,
+                            "label": "value-label"
+                          }
+                        ],
+                        "unit": "bytes"
+                      },
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": null,
+                      "pie_chart": null
+                    },
+                    "description": "value-description",
+                    "highlighted": true,
+                    "id": "<id-1>",
+                    "reference": null,
+                    "title": "value-title",
+                    "width": 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "walk gauge_logs",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
+  },
+  {
+    "step": "update variant 0 with another name",
+    "request": {
+      "dashboard": {
+        "actions": [
+          {
+            "dataSource": "ACTION_DATA_SOURCE_TYPE_DATAPRIME",
+            "definition": {
+              "customAction": {
+                "url": "value-url"
+              }
+            },
+            "id": "<id-1>",
+            "name": "value-name",
+            "shouldOpenInNewWindow": true,
+            "widgetId": "<id-1>"
+          }
+        ],
+        "id": "fakeboard000000000001",
+        "layout": {
+          "sections": [
+            {
+              "id": {
+                "value": "<id-1>"
+              },
+              "options": {
+                "internal": {}
+              },
+              "rows": [
+                {
+                  "appearance": {
+                    "height": 1
+                  },
+                  "id": {
+                    "value": "<id-1>"
+                  },
+                  "widgets": [
+                    {
+                      "appearance": {
+                        "width": 1
+                      },
+                      "definition": {
+                        "gauge": {
+                          "arcDisplay": {
+                            "thresholdArc": true,
+                            "valueArc": true
+                          },
+                          "customUnit": "value-custom_unit",
+                          "dataModeType": "DATA_MODE_TYPE_ARCHIVE",
+                          "decimal": 1,
+                          "decimalPrecision": true,
+                          "displaySeriesName": true,
+                          "legend": {
+                            "columns": [
+                              "LEGEND_COLUMN_AVG"
+                            ],
+                            "groupByQuery": true,
+                            "isVisible": true,
+                            "placement": "LEGEND_PLACEMENT_AUTO"
+                          },
+                          "legendBy": "LEGEND_BY_GROUPS",
+                          "max": 1,
+                          "min": 1,
+                          "query": {
+                            "logs": {
+                              "filters": [
+                                {
+                                  "field": "value-field",
+                                  "observationField": {
+                                    "keypath": [
+                                      "value-keypath"
+                                    ],
+                                    "scope": "DATASET_SCOPE_LABEL"
+                                  },
+                                  "operator": {
+                                    "equals": {
+                                      "selection": {
+                                        "all": {}
+                                      }
+                                    }
+                                  }
+                                }
+                              ],
+                              "groupBy": [
+                                {
+                                  "keypath": [
+                                    "value-keypath"
+                                  ],
+                                  "scope": "DATASET_SCOPE_LABEL"
+                                }
+                              ],
+                              "logsAggregation": {
+                                "count": {}
+                              },
+                              "luceneQuery": {
+                                "value": "value-lucene_query"
+                              },
+                              "timeFrame": {
+                                "absoluteTimeFrame": {
+                                  "from": "2024-01-01T00:00:00Z",
+                                  "to": "2024-01-01T00:00:00Z"
+                                }
+                              }
+                            }
+                          },
+                          "showInnerArc": true,
+                          "showMinMax": true,
+                          "showOuterArc": true,
+                          "thresholdBy": "THRESHOLD_BY_BACKGROUND",
+                          "thresholdType": "THRESHOLD_TYPE_ABSOLUTE",
+                          "thresholds": [
+                            {
+                              "color": "value-color",
+                              "from": 1,
+                              "label": "value-label"
+                            }
+                          ],
+                          "unit": "UNIT_BYTES"
+                        }
+                      },
+                      "description": "value-description",
+                      "highlighted": true,
+                      "id": {
+                        "value": "<id-1>"
+                      },
+                      "title": "value-title"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "name": "walk gauge_logs updated"
+      }
+    },
+    "state": {
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": {
+              "collapsed": null,
+              "color": null,
+              "description": null,
+              "internal": {},
+              "name": null,
+              "repetitive_var": null
+            },
+            "rows": [
+              {
+                "height": 1,
+                "id": "<id-1>",
+                "widgets": [
+                  {
+                    "custom_actions": [
+                      {
+                        "data_source": "dataprime",
+                        "id": "<id-1>",
+                        "name": "value-name",
+                        "should_open_in_new_window": true,
+                        "url": "value-url"
+                      }
+                    ],
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": {
+                        "arc_display": {
+                          "threshold_arc": true,
+                          "value_arc": true
+                        },
+                        "custom_unit": "value-custom_unit",
+                        "data_mode_type": "archive",
+                        "decimal": 1,
+                        "decimal_precision": true,
+                        "display_series_name": true,
+                        "legend": {
+                          "columns": [
+                            "avg"
+                          ],
+                          "group_by_query": true,
+                          "is_visible": true,
+                          "placement": "auto"
+                        },
+                        "legend_by": "groups",
+                        "max": 1,
+                        "min": 1,
+                        "query": {
+                          "data_prime": null,
+                          "logs": {
+                            "filters": [
+                              {
+                                "field": "value-field",
+                                "observation_field": {
+                                  "keypath": [
+                                    "value-keypath"
+                                  ],
+                                  "scope": "label"
+                                },
+                                "operator": {
+                                  "selected_values": [],
+                                  "selection_type": "all",
+                                  "type": "equals"
+                                }
+                              }
+                            ],
+                            "group_by": [
+                              {
+                                "keypath": [
+                                  "value-keypath"
+                                ],
+                                "scope": "label"
+                              }
+                            ],
+                            "logs_aggregation": {
+                              "field": null,
+                              "observation_field": null,
+                              "percent": null,
+                              "type": "count"
+                            },
+                            "lucene_query": "value-lucene_query",
+                            "time_frame": {
+                              "absolute": {
+                                "end": "2024-01-01T00:00:00Z",
+                                "start": "2024-01-01T00:00:00Z"
+                              },
+                              "relative": null
+                            }
+                          },
+                          "metrics": null,
+                          "spans": null
+                        },
+                        "show_inner_arc": true,
+                        "show_min_max": true,
+                        "show_outer_arc": true,
+                        "threshold_by": "background",
+                        "threshold_type": "absolute",
+                        "thresholds": [
+                          {
+                            "color": "value-color",
+                            "from": 1,
+                            "label": "value-label"
+                          }
+                        ],
+                        "unit": "bytes"
+                      },
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": null,
+                      "pie_chart": null
+                    },
+                    "description": "value-description",
+                    "highlighted": true,
+                    "id": "<id-1>",
+                    "reference": null,
+                    "title": "value-title",
+                    "width": 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "walk gauge_logs updated",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
+  },
+  {
+    "step": "refresh and plan variant 0",
+    "replanEmpty": true
+  },
+  {
+    "step": "remove optional values (33)",
+    "changes": [
+      "remove layout.sections[].id",
+      "remove layout.sections[].rows[].id",
+      "remove layout.sections[].rows[].widgets[].custom_actions[].id",
+      "remove layout.sections[].rows[].widgets[].custom_actions[].should_open_in_new_window",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.arc_display.threshold_arc",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.arc_display.value_arc",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.custom_unit",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.data_mode_type",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.decimal",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.decimal_precision",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.display_series_name",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.legend.columns",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.legend.group_by_query",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.legend.is_visible",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.legend.placement",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.legend_by",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.max",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.min",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.query.logs.filters[].field",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.query.logs.filters[].operator.selection_type",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.query.logs.lucene_query",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.show_inner_arc",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.show_min_max",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.show_outer_arc",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.threshold_by",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.threshold_type",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.thresholds[].color",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.thresholds[].from",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.thresholds[].label",
+      "remove layout.sections[].rows[].widgets[].description",
+      "remove layout.sections[].rows[].widgets[].highlighted",
+      "remove layout.sections[].rows[].widgets[].id",
+      "remove layout.sections[].rows[].widgets[].width"
+    ],
+    "requestDiff": [
+      "- .dashboard.actions[0].shouldOpenInNewWindow",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.arcDisplay.thresholdArc",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.arcDisplay.valueArc",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.customUnit",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.dataModeType: \"DATA_MODE_TYPE_ARCHIVE\" → \"DATA_MODE_TYPE_HIGH_UNSPECIFIED\"",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.decimal",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.decimalPrecision",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.legend.columns[0]",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.legend.groupByQuery: true → false",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters[0].field",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.luceneQuery",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.showInnerArc: true → false",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.showMinMax",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.thresholdBy: \"THRESHOLD_BY_BACKGROUND\" → \"THRESHOLD_BY_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.thresholdType: \"THRESHOLD_TYPE_ABSOLUTE\" → \"THRESHOLD_TYPE_UNSPECIFIED\"",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.thresholds[0].color",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.thresholds[0].from",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.thresholds[0].label",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].description"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions[0].should_open_in_new_window: true → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.arc_display.threshold_arc: true → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.arc_display.value_arc: true → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.custom_unit: \"value-custom_unit\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.data_mode_type: \"archive\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.decimal: 1 → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.decimal_precision: true → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.legend.columns: [\"avg\"] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.legend.group_by_query: true → false",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters[0].field: \"value-field\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.lucene_query: \"value-lucene_query\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.show_inner_arc: true → false",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.show_min_max: true → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.threshold_by: \"background\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.threshold_type: \"absolute\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.thresholds[0].color: \"value-color\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.thresholds[0].from: 1 → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.thresholds[0].label: \"value-label\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].description: \"value-description\" → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove layout.sections",
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections"
+    ],
+    "stateDiff": [
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:d04d0062] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove optional objects, round 2 (2)",
+    "changes": [
+      "remove layout.sections[].options",
+      "remove layout.sections[].rows"
+    ],
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].options",
+      "- .dashboard.layout.sections[0].rows"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].options: {\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null} → null",
+      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:6dadcdaa] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets",
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].rows[0].widgets"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url…[sha256:531488ad] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove optional objects, round 4 (7)",
+    "changes": [
+      "remove layout.sections[].rows[].widgets[].custom_actions",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.arc_display",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.legend",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.query.logs.filters",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.query.logs.group_by",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.query.logs.time_frame",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.thresholds"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.arcDisplay",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.legend",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.groupBy",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.timeFrame",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.thresholds"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.arc_display: {\"threshold_arc\":true,\"value_arc\":true} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.legend: {\"columns\":[\"avg\"],\"group_by_query\":true,\"is_visible\":true,\"placement\":\"auto\"} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters: [{\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals…[sha256:5c322404] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.group_by: [{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.time_frame: {\"absolute\":{\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"},\"relative\":null} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.thresholds: [{\"color\":\"value-color\",\"from\":1,\"label\":\"value-label\"}] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets[].definition.gauge.query.logs.filters[].observation_field",
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters[0].observationField"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters[0].observation_field: {\"keypath\":[\"value-keypath\"],\"scope\":\"label\"} → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "empty layout.sections",
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections"
+    ],
+    "stateDiff": [
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:d04d0062] → null"
+    ],
+    "inconsistentResult": [
+      "layout.sections"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\")"
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\")] | Attribute layout.sections[0].rows list must contain at least 1 elements, got: 0"
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\")] | Attribute layout.sections[0].rows[0].widgets list must contain at least 1 elements, got: 0"
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (5)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].custom_actions",
+      "empty layout.sections[].rows[].widgets[].definition.gauge.legend.columns",
+      "empty layout.sections[].rows[].widgets[].definition.gauge.query.logs.filters",
+      "empty layout.sections[].rows[].widgets[].definition.gauge.query.logs.group_by",
+      "empty layout.sections[].rows[].widgets[].definition.gauge.thresholds"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"legend\").AttributeName(\"columns\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.gauge.legend.columns list must contain at least 1 elements",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters list must co",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"group_by\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.group_by list must ",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (2)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].custom_actions",
+      "empty layout.sections[].rows[].widgets[].definition.gauge.legend.columns"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"legend\").AttributeName(\"columns\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.gauge.legend.columns list must contain at least 1 elements",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].custom_actions",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.gauge.legend.columns",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"legend\").AttributeName(\"columns\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.gauge.legend.columns list must contain at least 1 elements",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (3)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].definition.gauge.query.logs.filters",
+      "empty layout.sections[].rows[].widgets[].definition.gauge.query.logs.group_by",
+      "empty layout.sections[].rows[].widgets[].definition.gauge.thresholds"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters list must co",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"group_by\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.group_by list must ",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.gauge.query.logs.filters",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters list must co",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (2)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].definition.gauge.query.logs.group_by",
+      "empty layout.sections[].rows[].widgets[].definition.gauge.thresholds"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"group_by\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.group_by list must ",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.gauge.query.logs.group_by",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"group_by\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.group_by list must ",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.gauge.thresholds",
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.thresholds"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.thresholds: [{\"color\":\"value-color\",\"from\":1,\"label\":\"value-label\"}] → null"
+    ],
+    "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.gauge.thresholds"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"thresholds\")"
+    ]
+  },
+  {
+    "step": "set enums to unspecified (8)",
+    "changes": [
+      "set layout.sections[].rows[].widgets[].definition.gauge.data_mode_type = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.gauge.legend.placement = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.gauge.legend_by = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.gauge.query.logs.filters[].observation_field.scope = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.gauge.query.logs.group_by[].scope = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.gauge.threshold_by = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.gauge.threshold_type = unspecified",
+      "set layout.sections[].rows[].widgets[].definition.gauge.unit = unspecified"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.dataModeType: \"DATA_MODE_TYPE_ARCHIVE\" → \"DATA_MODE_TYPE_HIGH_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.legend.placement: \"LEGEND_PLACEMENT_AUTO\" → \"LEGEND_PLACEMENT_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.legendBy: \"LEGEND_BY_GROUPS\" → \"LEGEND_BY_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters[0].observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.groupBy[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.thresholdBy: \"THRESHOLD_BY_BACKGROUND\" → \"THRESHOLD_BY_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.thresholdType: \"THRESHOLD_TYPE_ABSOLUTE\" → \"THRESHOLD_TYPE_UNSPECIFIED\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.unit: \"UNIT_BYTES\" → \"UNIT_UNSPECIFIED\""
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.data_mode_type: \"archive\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.legend.placement: \"auto\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.legend_by: \"groups\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters[0].observation_field.scope: \"label\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.group_by[0].scope: \"label\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.threshold_by: \"background\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.threshold_type: \"absolute\" → \"unspecified\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.unit: \"bytes\" → \"unspecified\""
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "set enums to their last value (6)",
+    "changes": [
+      "set layout.sections[].rows[].widgets[].custom_actions[].data_source = spans",
+      "set layout.sections[].rows[].widgets[].definition.gauge.query.logs.filters[].observation_field.scope = user_data",
+      "set layout.sections[].rows[].widgets[].definition.gauge.query.logs.group_by[].scope = user_data",
+      "set layout.sections[].rows[].widgets[].definition.gauge.query.logs.logs_aggregation.type = percentile",
+      "set layout.sections[].rows[].widgets[].definition.gauge.threshold_by = value",
+      "set layout.sections[].rows[].widgets[].definition.gauge.unit = usd_cents"
+    ],
+    "diagnostics": [
+      "error: logs aggregation validation failed | when type is `percentile`, `percent` must be set",
+      "error: logs aggregation validation failed | when type is `percentile`, either `field` or `observation_field` must be set",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "set enums to their last value (3)",
+    "changes": [
+      "set layout.sections[].rows[].widgets[].custom_actions[].data_source = spans",
+      "set layout.sections[].rows[].widgets[].definition.gauge.query.logs.filters[].observation_field.scope = user_data",
+      "set layout.sections[].rows[].widgets[].definition.gauge.query.logs.group_by[].scope = user_data"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "~ .dashboard.actions[0].dataSource: \"ACTION_DATA_SOURCE_TYPE_DATAPRIME\" → \"ACTION_DATA_SOURCE_TYPE_SPANS\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters[0].observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.groupBy[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\""
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions[0].data_source: \"dataprime\" → \"spans\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters[0].observation_field.scope: \"label\" → \"user_data\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.group_by[0].scope: \"label\" → \"user_data\""
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "set enums to their last value (3)",
+    "changes": [
+      "set layout.sections[].rows[].widgets[].definition.gauge.query.logs.logs_aggregation.type = percentile",
+      "set layout.sections[].rows[].widgets[].definition.gauge.threshold_by = value",
+      "set layout.sections[].rows[].widgets[].definition.gauge.unit = usd_cents"
+    ],
+    "diagnostics": [
+      "error: logs aggregation validation failed | when type is `percentile`, `percent` must be set",
+      "error: logs aggregation validation failed | when type is `percentile`, either `field` or `observation_field` must be set",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "set layout.sections[].rows[].widgets[].definition.gauge.query.logs.logs_aggregation.type = percentile",
+    "diagnostics": [
+      "error: logs aggregation validation failed | when type is `percentile`, `percent` must be set",
+      "error: logs aggregation validation failed | when type is `percentile`, either `field` or `observation_field` must be set",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "set enums to their last value (2)",
+    "changes": [
+      "set layout.sections[].rows[].widgets[].definition.gauge.threshold_by = value",
+      "set layout.sections[].rows[].widgets[].definition.gauge.unit = usd_cents"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.thresholdBy: \"THRESHOLD_BY_BACKGROUND\" → \"THRESHOLD_BY_VALUE\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.unit: \"UNIT_BYTES\" → \"UNIT_USD_CENTS\""
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.threshold_by: \"background\" → \"value\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.unit: \"bytes\" → \"usd_cents\""
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "apply variant 1",
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "~ .dashboard.actions[0].dataSource: \"ACTION_DATA_SOURCE_TYPE_DATAPRIME\" → \"ACTION_DATA_SOURCE_TYPE_LOGS\"",
+      "+ .dashboard.layout.sections[0].options.custom: {\"collapsed\":true,\"color\":{\"predefined\":\"SECTION_PREDEFINED_COLOR_GREEN\"},\"description\":\"value-description\",\"name\":\"value-name\",\"repetitiveVar\":{\"name\":\"value-n…[sha256:ef07bc80]",
+      "- .dashboard.layout.sections[0].options.internal",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.legend.columns[0]: \"LEGEND_COLUMN_AVG\" → \"LEGEND_COLUMN_LAST\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.legend.placement: \"LEGEND_PLACEMENT_AUTO\" → \"LEGEND_PLACEMENT_BOTTOM\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.legendBy: \"LEGEND_BY_GROUPS\" → \"LEGEND_BY_THRESHOLDS\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters[0].observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters[0].operator.equals",
+      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters[0].operator.notEquals: {\"selection\":{\"list\":{\"values\":[\"value-selected_values\"]}}}",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.groupBy[0].scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.logsAggregation.count",
+      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.logsAggregation.countDistinct: {\"observationField\":{\"keypath\":[\"value-keypath\"],\"scope\":\"DATASET_SCOPE_METADATA\"}}",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.timeFrame.absoluteTimeFrame",
+      "+ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.timeFrame.relativeTimeFrame: \"900s\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.thresholdBy: \"THRESHOLD_BY_BACKGROUND\" → \"THRESHOLD_BY_VALUE\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.thresholdType: \"THRESHOLD_TYPE_ABSOLUTE\" → \"THRESHOLD_TYPE_RELATIVE\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.unit: \"UNIT_BYTES\" → \"UNIT_BYTES_IEC\""
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].options.collapsed: null → true",
+      "~ .layout.sections[0].options.color: null → \"green\"",
+      "~ .layout.sections[0].options.description: null → \"value-description\"",
+      "~ .layout.sections[0].options.internal: {} → null",
+      "~ .layout.sections[0].options.name: null → \"value-name\"",
+      "~ .layout.sections[0].options.repetitive_var: null → {\"name\":\"value-name\"}",
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions[0].data_source: \"dataprime\" → \"logs\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.legend.columns[0]: \"avg\" → \"last\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.legend.placement: \"auto\" → \"bottom\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.legend_by: \"groups\" → \"thresholds\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters[0].observation_field.scope: \"label\" → \"metadata\"",
+      "+ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters[0].operator.selected_values[0]: \"value-selected_values\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters[0].operator.selection_type: \"all\" → \"list\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.filters[0].operator.type: \"equals\" → \"not_equals\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.group_by[0].scope: \"label\" → \"metadata\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.logs_aggregation.observation_field: null → {\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"}",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.logs_aggregation.type: \"count\" → \"count_distinct\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.time_frame.absolute: {\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.time_frame.relative: null → {\"duration\":\"seconds:900\"}",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.threshold_by: \"background\" → \"value\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.threshold_type: \"absolute\" → \"relative\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.unit: \"bytes\" → \"bytes_iec\""
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets[].definition.gauge.query.logs.filters[].operator.selected_values",
+    "diagnostics": [
+      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets[].definition.gauge.query.logs.logs_aggregation.observation_field",
+    "diagnostics": [
+      "error: logs aggregation validation failed | when type is `count_distinct`, either `field` or `observation_field` must be set",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.gauge.query.logs.filters[].operator.selected_values",
+    "diagnostics": [
+      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "set layout.sections[].rows[].widgets[].definition.gauge.query.logs.logs_aggregation.observation_field.scope = unspecified",
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.logsAggregation.countDistinct.observationField.scope: \"DATASET_SCOPE_METADATA\" → \"DATASET_SCOPE_UNSPECIFIED\""
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.logs_aggregation.observation_field.scope: \"metadata\" → \"unspecified\""
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "set enums to their last value (2)",
+    "changes": [
+      "set layout.sections[].options.color = orange",
+      "set layout.sections[].rows[].widgets[].definition.gauge.query.logs.logs_aggregation.observation_field.scope = user_data"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "~ .dashboard.layout.sections[0].options.custom.color.predefined: \"SECTION_PREDEFINED_COLOR_GREEN\" → \"SECTION_PREDEFINED_COLOR_ORANGE\"",
+      "~ .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.logsAggregation.countDistinct.observationField.scope: \"DATASET_SCOPE_METADATA\" → \"DATASET_SCOPE_USER_DATA\""
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].options.color: \"green\" → \"orange\"",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.logs.logs_aggregation.observation_field.scope: \"metadata\" → \"user_data\""
+    ],
+    "replanEmpty": true
+  }
+]
