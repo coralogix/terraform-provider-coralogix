@@ -1,0 +1,32 @@
+# A released resource whose Update names and wraps values differently from Create and Get: Create
+# takes name, and Update takes newName; enabled is the isEnabled of Update, which Create cannot set;
+# Create and Get hold the lists in keyPermissions, which the resource shows as attributes, and Update
+# holds each list in a one-property object; Get holds each preset as an object with a name, and the
+# requests send the names.
+resource: KeyThing
+mode: existing
+typeName: key_thing
+
+validators:
+  inferred: false
+
+api:
+  idProperty: id
+  createResponseOnlyIDProperty: keyId
+  operations:
+    create: KeyThingsService_CreateKeyThing
+    get: KeyThingsService_GetKeyThing
+    update: KeyThingsService_UpdateKeyThing
+    delete: KeyThingsService_DeleteKeyThing
+
+unwrap: [KeyThingPresets, KeyThingPermissions]
+
+types:
+  KeyThing:
+    fields:
+      name: {updateAs: newName}
+      enabled: {updateAs: isEnabled}
+      hashed: {readOnly: true}
+      keyPermissions: {inline: true}
+      presets: {itemName: name, computed: false, collection: set}
+      permissions: {computed: false, collection: set}
