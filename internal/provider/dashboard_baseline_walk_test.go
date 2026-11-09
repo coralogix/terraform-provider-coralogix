@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"slices"
 	"sort"
 	"strconv"
@@ -462,7 +463,8 @@ func jsonDiff(a, b any, path string, out *[]string) {
 		}
 		return
 	}
-	if fmt.Sprint(a) != fmt.Sprint(b) {
+	// DeepEqual keeps the JSON type: the number 1 and the string "1" print the same, but differ.
+	if !reflect.DeepEqual(a, b) {
 		*out = append(*out, "~ "+path+": "+short(a)+" → "+short(b))
 	}
 }

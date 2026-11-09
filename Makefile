@@ -68,8 +68,11 @@ DASHBOARD_BASELINE_TESTS=^TestDashboard(Baseline|Walk|Fake|Fidelity)
 test:
 	echo $(TEST) | xargs -t -n4 go test ${BUILD_ARGS} $(TESTARGS) -skip '$(DASHBOARD_BASELINE_TESTS)' -timeout=120s -parallel=4
 
+# The second command reads every walk base through the data source. The walk shards are near their
+# limit, so these reads run here.
 test-dashboard-baseline:
 	go test ${BUILD_ARGS} ./internal/provider -run '$(DASHBOARD_BASELINE_TESTS)' -skip '^TestDashboardBaselineWalk$$' $(TESTARGS) -timeout=10m -parallel=4
+	DASHBOARD_WALK=all go test ${BUILD_ARGS} ./internal/provider -run '^TestDataSourceBaselineScenarios$$/^dashboard$$/' $(TESTARGS) -timeout=10m -parallel=4
 
 # One quarter of the schema walk. SHARD is 1 to 4; the lists are in the walk test (walkShards).
 test-dashboard-walk:
