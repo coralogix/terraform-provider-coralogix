@@ -1,0 +1,62 @@
+[
+  {
+    "step": "create for another team",
+    "config": {
+      "name": "other",
+      "owner": {
+        "team_id": "1"
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ]
+    },
+    "plan": {
+      "access_policy": "(unknown)",
+      "active": true,
+      "hashed": "(unknown)",
+      "id": "(unknown)",
+      "name": "other",
+      "owner": {
+        "organisation_id": null,
+        "team_id": "1",
+        "user_id": null
+      },
+      "permissions": [
+        "livetail:Read"
+      ],
+      "presets": [
+        "APM"
+      ],
+      "value": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3",
+        "body": {
+          "hashed": false,
+          "keyPermissions": {
+            "permissions": [
+              "livetail:Read"
+            ],
+            "presets": [
+              "APM"
+            ]
+          },
+          "name": "other",
+          "owner": {
+            "teamId": 1
+          }
+        },
+        "status": 403
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_api_key | error - 403 Forbidden — {\"code\":403,\"message\":\"Permission Denied: Permission denied \\\"Caller is not authorize to perform this action\\\"\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

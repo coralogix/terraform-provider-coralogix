@@ -1,0 +1,16 @@
+[
+  {
+    "step": "validate without presets and permissions",
+    "config": {
+      "name": "bare",
+      "owner": {
+        "team_id": "4000001"
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"permissions\")] | Must set a configuration value for the permissions attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"presets\")] | Must set a configuration value for the presets attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  }
+]
