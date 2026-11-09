@@ -17,6 +17,8 @@ resource: AlertDef
 mode: existing
 markdownDescription: "Coralogix Alert. For more info check - https://coralogix.com/docs/getting-started-with-coralogix-alerts/."
 modifyPlan: true
+afterFlatten: true
+dataSource: {}
 typeName: alert
 schema:
   version: 3

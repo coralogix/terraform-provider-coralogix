@@ -51,6 +51,8 @@ type Hooks struct {
 	// BeforeFlatten mutates the API value before flatten, for a value that only an older
 	// record has, such as a deprecated field that a newer one replaces.
 	BeforeFlatten func(context.Context, *alert_definitions_service.AlertDef) diag.Diagnostics
+	// AfterFlatten projects API values into the Terraform model before it enters state.
+	AfterFlatten func(context.Context, *AlertDefModel, *alert_definitions_service.AlertDef) diag.Diagnostics
 	// ValidateConfig adds checks that no attribute validator expresses, such as a rule over
 	// the items of a set.
 	ValidateConfig func(context.Context, tfsdk.Config) diag.Diagnostics
@@ -319,6 +321,12 @@ func (r *Resource) setStateKept(ctx context.Context, v *alert_definitions_servic
 			if value, err := kept.ToTerraformValue(ctx); err == nil && value.IsFullyKnown() && kept.Type(ctx).Equal(types.ObjectType{AttrTypes: map[string]attr.Type{"active_on": types.ObjectType{AttrTypes: map[string]attr.Type{"days_of_week": types.SetType{ElemType: types.StringType}, "end_time": types.StringType, "start_time": types.StringType, "utc_offset": types.StringType}}}}) {
 				m.Schedule = kept
 			}
+		}
+	}
+	if r.hooks.AfterFlatten != nil {
+		diags.Append(r.hooks.AfterFlatten(ctx, m, v)...)
+		if diags.HasError() {
+			return diags
 		}
 	}
 	diags.Append(state.Set(ctx, m)...)
