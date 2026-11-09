@@ -1076,6 +1076,7 @@ func (l Field) keys() []string {
 	add(l.UniqueBy != "", "uniqueBy")
 	add(l.RequestAs != "", "requestAs")
 	add(l.UpdateAs != "", "updateAs")
+	add(l.UpdateDefault != "", "updateDefault")
 	add(l.ItemName != "", "itemName")
 	add(l.Negate, "negate")
 	add(l.Split != "", "split")
@@ -1210,7 +1211,7 @@ func (l Field) emptyValue() bool {
 // compared.
 func (l Field) emptyShape() bool {
 	return !l.SendUnknownAsZero && !l.SplitArms && !l.ShowInverted && l.CarrySiblings == nil &&
-		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == "" && l.UpdateAs == "" && l.ItemName == "" && !l.Negate && l.Split == ""
+		!l.KeepPriorOrder && len(l.Validators) == 0 && l.Equality == "" && l.Unwrap == nil && l.UniqueBy == "" && l.RequestAs == "" && l.UpdateAs == "" && l.UpdateDefault == "" && l.ItemName == "" && !l.Negate && l.Split == ""
 }
 
 func (l Field) check() error {

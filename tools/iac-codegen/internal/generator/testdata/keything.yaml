@@ -1,6 +1,7 @@
 # A resource that users already have, whose Update names and shapes its values differently from
 # Create and Get: Create takes `name`, Update takes `newName`; Get holds `enabled`, which Create
-# cannot set and Update takes as `isEnabled` with a default; Create and Get hold the permissions in
+# cannot set and Update takes as `isEnabled` (a new thing is enabled, and the contract does not
+# declare it as a default, because omitting it in Update keeps the stored value); Create and Get hold the permissions in
 # `keyPermissions`, Update holds each list in a one-property wrapper at the top level; Get holds
 # each preset as an object with a name, while Create and Update send the names.
 openapi: 3.1.0
@@ -55,7 +56,7 @@ paths:
               type: object
               properties:
                 newName: {type: string, minLength: 1, x-coralogix-presence: true}
-                isEnabled: {type: boolean, default: true, x-coralogix-presence: true}
+                isEnabled: {type: boolean, x-coralogix-presence: true}
                 presets: {$ref: '#/components/schemas/KeyThingPresets'}
                 permissions: {$ref: '#/components/schemas/KeyThingPermissions'}
       responses:
