@@ -13,6 +13,7 @@
 
 #### resource/coralogix_scope
 - CHORE: Bump `coralogix-management-sdk` to the sync that carries the scopes annotation fixes (coralogix-management-sdk#740). The SDK types changed requiredness (`displayName` optional, `defaultExpression` and the filter fields values), so the requests are equivalent: `filters` is omitted instead of sent as `null` when the resource has no filters, and `display_name` still sends the configured name. Requests and state are otherwise unchanged.
+- FIX: A malformed `200` response that returns no usable scope (an empty or null `scope` object) now fails with the API decode error instead of the "reported success but returned no scope id" message; the result is the same — an error, and nothing is written to state. The API marks the scope fields required, so the generated client rejects such a response before the provider reads it.
 
 #### resource/coralogix_dashboards
 - FIX: A dashboard variable without an `id` in the API response (legacy dashboards can omit it) no longer fails the plan: the `id` attribute reads as null. Requests are unchanged — the API assigns the id.
