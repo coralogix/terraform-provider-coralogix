@@ -11,6 +11,12 @@
 #### data-source/coralogix_team
 - FEAT: Add the `coralogix_team` data source, generated with the resource. It reads a team by `id`.
 
+#### resource/coralogix_scope
+- CHORE: Bump `coralogix-management-sdk` to the sync that carries the scopes annotation fixes (coralogix-management-sdk#740, CX-65740). The SDK types changed requiredness (`displayName` optional, `defaultExpression` and the filter fields values), so the requests are equivalent: `filters` is omitted instead of sent as `null` when the resource has no filters, and `display_name` still sends the configured name. Requests and state are otherwise unchanged.
+
+#### resource/coralogix_dashboards
+- FIX: A dashboard variable without an `id` in the API response (legacy dashboards can omit it) no longer fails the plan: the `id` attribute reads as null. Requests are unchanged — the API assigns the id.
+
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.71`. Every generated resource reads and writes its id through small helpers (`apiID`, `setAPIID`, `idStateValue`); the requests and the state are the same.
 - FEAT: The id of an existing resource can be inside a one-property object that `unwrap` names, also in a Create response that holds only the id, as the teams API returns `{"teamId": {"id": 1}}`. A data source lookup by name reads the id in the same wrapper of the List item.
@@ -505,16 +511,12 @@
 - CHORE: Uses the schema and the conversion of the generated resource. `description` still shows the stored value, `""` included, as before.
 
 #### resource/coralogix_scope
-- CHORE: Bump `coralogix-management-sdk` to the sync that carries the scopes annotation fixes (coralogix-management-sdk#740, CX-65740). The SDK types changed requiredness (`displayName` optional, `defaultExpression` and the filter fields values), so the requests are equivalent: `filters` is omitted instead of sent as `null` when the resource has no filters, and `display_name` still sends the configured name. Requests and state are otherwise unchanged.
 - FIX: The provider no longer crashes when a scope can't be read. A scope deleted outside Terraform is removed from state and recreated on the next apply; other API errors are reported and the scope stays in state.
 - FIX: `Create`, `Update` and `Read` report an error instead of writing an empty id to state when the API returns no scope id.
 - FIX: `Update` reports API errors instead of removing the scope from state, which failed the apply with "Missing Resource State After Update". Errors from building the request are no longer dropped.
 
 #### data-source/coralogix_scope
 - FIX: No longer crashes on a failed lookup. A missing scope is an error.
-
-#### resource/coralogix_dashboards
-- FIX: A dashboard variable without an `id` in the API response (legacy dashboards can omit it) no longer fails the plan: the `id` attribute reads as null. Requests are unchanged — the API assigns the id.
 
 # Release 3.21.0
 
