@@ -12,6 +12,7 @@ type KeyThingModel struct {
 	Name        types.String `tfsdk:"name"`
 	Enabled     types.Bool   `tfsdk:"enabled"`
 	Hashed      types.Bool   `tfsdk:"hashed"`
+	Value       types.String `tfsdk:"value"`
 	Presets     types.Set    `tfsdk:"presets"`
 	Permissions types.Set    `tfsdk:"permissions"`
 }

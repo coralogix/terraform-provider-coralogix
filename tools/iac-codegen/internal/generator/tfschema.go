@@ -113,7 +113,9 @@ type tfAttr struct {
 	// PlainDescription: the docs text is Description, not MarkdownDescription.
 	PlainDescription   bool
 	DeprecationMessage string
-	Default            string // Go expression of a static default, or ""
+	// Sensitive: Terraform hides the value (a sensitive line).
+	Sensitive bool
+	Default   string // Go expression of a static default, or ""
 	// WriteOnly: Terraform sends the value and does not store it. Only extraAttributes set this.
 	WriteOnly bool
 	// TrueOnly: a bool that shows an object without fields (asBool). Only true is a valid value.
@@ -568,6 +570,7 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 		a.Description, a.PlainDescription = *l.MarkdownDescription, false
 	}
 	a.DeprecationMessage = l.Deprecation
+	a.Sensitive = l.Sensitive
 	if l.Computed != nil {
 		a.Computed = *l.Computed
 	}
