@@ -37,7 +37,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"
@@ -111,20 +110,31 @@
       "presets": [
         "APM"
       ],
-      "value": "(unknown)"
+      "value": "fake-secret-1"
     },
     "requests": [
       {
         "method": "PUT",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
         "body": {
-          "newName": "broken-renamed"
+          "isActive": true,
+          "newName": "broken-renamed",
+          "permissions": {
+            "permissions": [
+              "livetail:Read"
+            ]
+          },
+          "presets": {
+            "presets": [
+              "APM"
+            ]
+          }
         },
         "status": 500
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_api_key | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}\noperation - Update"
+      "error: Unable to update api_key | id 00000000-0000-4000-8000-000000000001: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error\"}"
     ],
     "state": {
       "access_policy": "",

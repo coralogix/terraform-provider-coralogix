@@ -37,7 +37,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
-          "hashed": false,
           "keyPermissions": {
             "permissions": [
               "livetail:Read"
@@ -112,20 +111,32 @@
       "presets": [
         "APM"
       ],
-      "value": "(unknown)"
+      "value": "fake-secret-1"
     },
     "requests": [
       {
         "method": "PUT",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000001",
         "body": {
-          "accessPolicy": "not json"
+          "accessPolicy": "not json",
+          "isActive": true,
+          "newName": "policy",
+          "permissions": {
+            "permissions": [
+              "livetail:Read"
+            ]
+          },
+          "presets": {
+            "presets": [
+              "APM"
+            ]
+          }
         },
         "status": 400
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_api_key | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: invalid argument: provided access_policy_raw_json is not a valid json: expected ident at line 1 column 2\"}\noperation - Update"
+      "error: Unable to update api_key | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: invalid argument: provided access_policy_raw_json is not a valid json: expected ident at line 1 column 2\"}"
     ],
     "state": {
       "access_policy": "",

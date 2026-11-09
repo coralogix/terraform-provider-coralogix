@@ -25,6 +25,26 @@
 #### data-source/coralogix_team
 - FEAT: Add the `coralogix_team` data source, generated with the resource. It reads a team by `id`.
 
+#### resource/coralogix_api_key
+- CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the state upgrade from schema version 0 are the same, except as listed below. A plan of a key that 3.24.0 created from the same configuration shows no change.
+- FIX: A key created with `active = false` is created inactive. Create cannot set `active`, so the key was active and the apply failed with `Provider produced inconsistent result after apply`; Create now follows with an Update when the configuration sets another value than `true`, so the key is active for a moment first.
+- FIX: An `access_policy` that differs from the stored policy only by white space or key order plans no change. Before, it planned an update, and `hashed` and `value` showed as known after apply.
+- FIX: An update of a key that was deleted outside Terraform fails with `Resource no longer exists`, and the next refresh removes it from state. Before, the resource removed itself from state during the update, and Terraform failed with `Missing Resource State After Update`.
+- FIX: A key that version 0 of the provider created as hashed can be updated, and keeps its `value`. Before, every update failed with `ApiKey hashing can not be updated`, because `hashed` is computed and the plan held an unknown value.
+- FIX: A 404 of a gateway that has no route for the key (`Not Found: Not Found`) is an error. Before, a refresh and an update read it as "the key is gone" and removed the key from state, and a destroy succeeded without deleting the key.
+- FIX: When the read after an Update fails, the apply fails with the error. Before, the error was dropped and the state kept the old values.
+- FIX: When Create succeeds but the read after it fails, the state keeps the id, so Terraform marks the key tainted and the next apply replaces it. Before, the state was empty, and the key and its secret were lost.
+- CHORE: Update sends every attribute, not only the changed ones, as a full replace, except `access_policy`: it is sent only when the configuration sets it. The API answers 200 and changes nothing for a value that is already stored (recorded on EU2). A caller whose key may change a key but holds no permission on its access policy gets a 403 for any request that carries `access_policy`, also an empty one, so a configuration that sets `access_policy` needs that permission on every update, not only when the policy changes.
+- CHORE: `value` is read from the answer of Get, which returns it for every key that is not hashed (recorded on EU2), not from the answer of Create. The state keeps a `value` that it has when Get returns none, on refresh and update.
+- CHORE: Create no longer sends `hashed = false`: `hashed` is computed, and the API reads an omitted value as `false` (recorded on EU2).
+- CHORE: A change of any `owner` id replaces the key through one plan modifier on `owner`, not one on each id, so the plan names `owner` as the reason. The key is replaced in the same cases. The owner ids have a description.
+- CHORE: An `access_policy` that no configuration states (an import, the data source) shows the text that the API returns, not the same JSON with sorted keys.
+- CHORE: API errors read `Unable to create api_key`, `Unable to update api_key`, `Unable to delete api_key`, and `Unable to read api_key` instead of `Error creating coralogix_api_key`, and so on. A refresh that finds the key gone warns `Resource disappeared during read`. A `team_id` that is not an integer reads `Invalid id`.
+- FEAT: The resource has a generated acceptance test, and an upgrade test from 3.24.0.
+
+#### data-source/coralogix_api_key
+- CHORE: The data source is generated with the resource. It reads a key by `id`, and a hashed key is still an error (`Key value is required`). `access_policy` has the description of the resource, which also says how to clear a policy, and the owner ids have a description. API errors read `Unable to read coralogix_api_key`, and a key that is gone reads `coralogix_api_key not found`.
+
 #### tools/iac-codegen
 - CHORE: Bump the generator to `v0.1.0-beta.71`. Every generated resource reads and writes its id through small helpers (`apiID`, `setAPIID`, `idStateValue`); the requests and the state are the same.
 - FEAT: The id of an existing resource can be inside a one-property object that `unwrap` names, also in a Create response that holds only the id, as the teams API returns `{"teamId": {"id": 1}}`. A data source lookup by name reads the id in the same wrapper of the List item.

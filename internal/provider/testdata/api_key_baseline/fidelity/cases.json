@@ -996,6 +996,119 @@
      "path": "/abc"
     }
    ]
+  },
+  {
+   "name": "whole-resource-update",
+   "steps": [
+    {
+     "method": "POST",
+     "path": "",
+     "body": {
+      "name": "{{NAME}}-w",
+      "owner": {
+       "teamId": "{{TEAM}}"
+      },
+      "keyPermissions": {
+       "presets": [
+        "APM"
+       ],
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "hashed": false
+     },
+     "capture": "A"
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "newName": "{{NAME}}-w",
+      "isActive": true,
+      "presets": {
+       "presets": [
+        "APM"
+       ]
+      },
+      "permissions": {
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "accessPolicy": ""
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "accessPolicy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-custom-api-keys:ReadConfig\":\"grant\",\"team-custom-api-keys:Manage\":\"deny\",\"team-custom-api-keys:ReadAccessPolicy\":\"grant\",\"team-custom-api-keys:UpdateAccessPolicy\":\"deny\"}},\"rules\":[]}"
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "newName": "{{NAME}}-w",
+      "isActive": true,
+      "presets": {
+       "presets": [
+        "APM"
+       ]
+      },
+      "permissions": {
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "accessPolicy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-custom-api-keys:ReadConfig\":\"grant\",\"team-custom-api-keys:Manage\":\"deny\",\"team-custom-api-keys:ReadAccessPolicy\":\"grant\",\"team-custom-api-keys:UpdateAccessPolicy\":\"deny\"}},\"rules\":[]}"
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "PUT",
+     "path": "/{{A}}",
+     "body": {
+      "newName": "{{NAME}}-w",
+      "isActive": true,
+      "presets": {
+       "presets": [
+        "APM"
+       ]
+      },
+      "permissions": {
+       "permissions": [
+        "livetail:Read"
+       ]
+      },
+      "accessPolicy": ""
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/{{A}}"
+    },
+    {
+     "method": "DELETE",
+     "path": "/{{A}}"
+    }
+   ]
   }
  ]
 }

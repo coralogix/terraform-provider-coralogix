@@ -17,15 +17,9 @@ package aaa
 import (
 	"context"
 	"fmt"
-	"net/http"
-	"reflect"
-	"strconv"
 	"strings"
 
-	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-
-	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/apikey"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
@@ -40,143 +34,23 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"golang.org/x/exp/slices"
 )
 
+// NewApiKeyResource returns coralogix_api_key, which is generated from the API contract
+// (internal/provider/generated/apikey). Only the state upgrade from schema version 0 is handwritten:
+// it translates the roles of that version to permissions, and it makes no call to the API, so a
+// hashed key keeps the value that only its state holds.
 func NewApiKeyResource() resource.Resource {
-	return &ApiKeyResource{}
+	return &apiKeyResource{Resource: apikey.NewResource(apikey.Hooks{AfterRead: keepStoredKeyValue, BeforeWrite: omitUnconfiguredAccessPolicy}).(*apikey.Resource)}
 }
 
-type ApiKeyResource struct {
-	client *apiKeys.APIKeysServiceAPIService
+type apiKeyResource struct {
+	*apikey.Resource
 }
 
-var _ resource.ResourceWithUpgradeState = &ApiKeyResource{}
-
-func (r *ApiKeyResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_api_key"
-
-}
-
-func (r *ApiKeyResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	if req.ProviderData == nil {
-		return
-	}
-
-	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	r.client = clientSet.APIKeys()
-}
-
-func (r *ApiKeyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
-}
-
-func resourceSchemaV1() schema.Schema {
-	return schema.Schema{
-		Version: 1,
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-				MarkdownDescription: "ApiKey ID.",
-			},
-			"name": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "Api Key name.",
-			},
-			"value": schema.StringAttribute{
-				Computed:  true,
-				Sensitive: true,
-				MarkdownDescription: "The API key's secret value. The Coralogix backend returns this " +
-					"only when the key is first created; the Terraform provider captures it then and " +
-					"preserves it in resource state. Imported resources and data-source lookups cannot " +
-					"recover the value and will surface it as null.",
-			},
-			"owner": schema.SingleNestedAttribute{
-				Attributes: map[string]schema.Attribute{
-					"team_id": schema.StringAttribute{
-						Optional: true,
-						Validators: []validator.String{
-							stringvalidator.ExactlyOneOf(
-								path.MatchRelative().AtParent().AtName("user_id"),
-								path.MatchRelative().AtParent().AtName("organisation_id"),
-							),
-						},
-						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.RequiresReplace(),
-						},
-					},
-					"user_id": schema.StringAttribute{
-						Optional: true,
-						Validators: []validator.String{
-							stringvalidator.ExactlyOneOf(
-								path.MatchRelative().AtParent().AtName("team_id"),
-								path.MatchRelative().AtParent().AtName("organisation_id"),
-							),
-						},
-						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.RequiresReplace(),
-						},
-					},
-					"organisation_id": schema.StringAttribute{
-						Optional: true,
-						Validators: []validator.String{
-							stringvalidator.ExactlyOneOf(
-								path.MatchRelative().AtParent().AtName("team_id"),
-								path.MatchRelative().AtParent().AtName("user_id")),
-						},
-						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.RequiresReplace(),
-						},
-					},
-				},
-				Required:            true,
-				MarkdownDescription: "Api Key Owner. It can either be a team_id, organisation_id, or a user_id ",
-			},
-
-			"active": schema.BoolAttribute{
-				Computed:            true,
-				Optional:            true,
-				Default:             booldefault.StaticBool(true),
-				MarkdownDescription: "Api Key Is Active.",
-			},
-			"hashed": schema.BoolAttribute{
-				Computed:            true,
-				MarkdownDescription: "Api Key Is Hashed.",
-			},
-			"presets": schema.SetAttribute{
-				Required:            true,
-				ElementType:         types.StringType,
-				MarkdownDescription: "Api Key Presets",
-			},
-			"permissions": schema.SetAttribute{
-				Required:            true,
-				ElementType:         types.StringType,
-				MarkdownDescription: "Api Key Permissions",
-			},
-			"access_policy": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					preserveAccessPolicyJSON{},
-					stringplanmodifier.UseStateForUnknown(),
-				},
-				MarkdownDescription: "Api Key Access Policy. To clear an existing policy, explicitly set this to an empty string (\"\"). Omitting the attribute will preserve the existing policy.",
-			},
-		},
-		MarkdownDescription: "Coralogix Api keys. For more info please review - https://coralogix.com/docs/user-guides/account-management/api-keys/api-keys/.",
-	}
-}
+var _ resource.ResourceWithUpgradeState = &apiKeyResource{}
 
 func resourceSchemaV0() schema.Schema {
 	return schema.Schema{
@@ -252,422 +126,9 @@ func resourceSchemaV0() schema.Schema {
 	}
 }
 
-func (r *ApiKeyResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = resourceSchemaV1()
-}
-
-type ApiKeyModel struct {
-	ID           types.String `tfsdk:"id"`
-	Name         types.String `tfsdk:"name"`
-	Owner        *Owner       `tfsdk:"owner"`
-	Active       types.Bool   `tfsdk:"active"`
-	Hashed       types.Bool   `tfsdk:"hashed"`
-	Permissions  types.Set    `tfsdk:"permissions"`
-	Presets      types.Set    `tfsdk:"presets"`
-	Value        types.String `tfsdk:"value"`
-	AccessPolicy types.String `tfsdk:"access_policy"`
-}
-
-type Owner struct {
-	UserId         types.String `tfsdk:"user_id"`
-	TeamId         types.String `tfsdk:"team_id"`
-	OrganisationId types.String `tfsdk:"organisation_id"`
-}
-
-func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var desiredState *ApiKeyModel
-	diags := req.Plan.Get(ctx, &desiredState)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	rq, diags := makeCreateApiKeyRequest(ctx, desiredState)
-	if diags.HasError() {
-		resp.Diagnostics = diags
-		return
-	}
-
-	result, httpResponse, err := r.client.
-		ApiKeysServiceCreateApiKey(context.Background()).
-		CreateApiKeyRequest(*rq).
-		Execute()
-
-	if err != nil {
-		resp.Diagnostics.AddError("Error creating coralogix_api_key",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
-		)
-		return
-	}
-
-	currentKeyId := result.GetKeyId()
-	key, _, diags := getKeyInfo(ctx, r.client, &currentKeyId, result.Value, desiredState.AccessPolicy)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	diags = resp.State.Set(ctx, key)
-	resp.Diagnostics.Append(diags...)
-}
-
-func (r *ApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var currentState *ApiKeyModel
-	diags := req.State.Get(ctx, &currentState)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	key, httpResponse, diags := getKeyInfo(ctx, r.client, currentState.ID.ValueStringPointer(), currentState.Value.ValueStringPointer(), currentState.AccessPolicy)
-	if diags.HasError() {
-		if isNotFoundResponse(httpResponse) {
-			resp.Diagnostics.AddWarning(fmt.Sprintf("coralogix_api_key %q is in state, but no longer exists in Coralogix backend", currentState.ID.ValueString()), fmt.Sprintf("%s will be recreated when you apply", currentState.ID.ValueString()))
-			resp.State.RemoveResource(ctx)
-			return
-		}
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	diags = resp.State.Set(ctx, key)
-	resp.Diagnostics.Append(diags...)
-}
-
-func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var currentState, desiredState *ApiKeyModel
-	diags := req.State.Get(ctx, &currentState)
-	resp.Diagnostics.Append(diags...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	diags = req.Plan.Get(ctx, &desiredState)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	id := currentState.ID.ValueString()
-	rq := apiKeys.UpdateApiKeyRequest{}
-
-	// Detect changes and construct request
-	if currentState.Name.ValueString() != desiredState.Name.ValueString() {
-		rq.NewName = desiredState.Name.ValueStringPointer()
-	}
-
-	if !reflect.DeepEqual(currentState.Permissions.Elements(), desiredState.Permissions.Elements()) {
-		permissions, diags := utils.TypeStringElementsToStringSlice(ctx, desiredState.Permissions.Elements())
-		if diags.HasError() {
-			resp.Diagnostics.Append(diags...)
-			return
-		}
-		rq.Permissions = &apiKeys.UpdateApiKeyRequestPermissions{
-			Permissions: permissions,
-		}
-	}
-
-	if !reflect.DeepEqual(currentState.Presets.Elements(), desiredState.Presets.Elements()) {
-		presets, diags := utils.TypeStringElementsToStringSlice(ctx, desiredState.Presets.Elements())
-		if diags.HasError() {
-			resp.Diagnostics.Append(diags...)
-			return
-		}
-		rq.Presets = &apiKeys.Presets{
-			Presets: presets,
-		}
-	}
-
-	if currentState.Active.ValueBool() != desiredState.Active.ValueBool() {
-		rq.IsActive = desiredState.Active.ValueBoolPointer()
-	}
-
-	setAccessPolicyOnUpdate(currentState, desiredState, &rq)
-
-	if currentState.Hashed.ValueBool() != desiredState.Hashed.ValueBool() {
-		resp.Diagnostics.AddError(
-			"Error updating ApiKey",
-			"ApiKey hashing can not be updated.",
-		)
-		return
-	}
-
-	_, httpResponse, err := r.client.
-		ApiKeysServiceUpdateApiKey(ctx, id).
-		UpdateApiKeyRequest(rq).
-		Execute()
-
-	if err != nil {
-		if isNotFoundResponse(httpResponse) {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("coralogix_api_key %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
-			)
-			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError("Error creating coralogix_api_key", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", rq))
-		}
-		return
-	}
-
-	key, _, diags := getKeyInfo(ctx, r.client, &id, currentState.Value.ValueStringPointer(), desiredState.AccessPolicy)
-	if diags.HasError() {
-		return
-	}
-
-	diags = resp.State.Set(ctx, key)
-	resp.Diagnostics.Append(diags...)
-
-}
-
-func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var currentState *ApiKeyModel
-	diags := req.State.Get(ctx, &currentState)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	id := currentState.ID.ValueString()
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	_, httpResponse, err := r.client.
-		ApiKeysServiceDeleteApiKey(ctx, id).
-		Execute()
-
-	if err != nil {
-		if isNotFoundResponse(httpResponse) {
-			return
-		}
-		resp.Diagnostics.AddError("Error deleting coralogix_api_key",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
-		)
-		return
-	}
-}
-
-// isNotFoundResponse reports whether an HTTP response represents a confirmed
-// 404 Not Found. It guards against a nil *http.Response, which the OpenAPI
-// client may return when the request never reached the backend (transport
-// error, cancelled context); in that case the error is not a confirmed 404 and
-// the resource must not be removed from state.
-func isNotFoundResponse(httpResponse *http.Response) bool {
-	return httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound
-}
-
-// setAccessPolicyOnUpdate populates rq.AccessPolicy based on the difference
-// between the current and desired access_policy values. The desired value is
-// sent as-is, including an explicit empty string ("") which clears the policy
-// on the backend. When nothing changed, or when the desired value is unknown,
-// AccessPolicy is left nil so it is omitted from the request.
-func setAccessPolicyOnUpdate(currentState, desiredState *ApiKeyModel, rq *apiKeys.UpdateApiKeyRequest) {
-	// An unknown desired value means the plan could not resolve the attribute
-	// yet (e.g. it references another resource's computed output). Terraform
-	// semantics are to omit the field rather than clear it, so leave
-	// rq.AccessPolicy nil and return before considering any change.
-	if desiredState.AccessPolicy.IsUnknown() {
-		return
-	}
-	if currentState.AccessPolicy.Equal(desiredState.AccessPolicy) {
-		return
-	}
-	// SDK contract (model_update_api_key_request.go:25-26): AccessPolicy is a
-	// *string with omitempty; sending an empty string clears the policy on the
-	// backend, while nil omits the field. desiredState carries the empty-string
-	// sentinel for an explicit clear, so pass the pointer through verbatim.
-	rq.AccessPolicy = desiredState.AccessPolicy.ValueStringPointer()
-}
-
-func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *string, keyValue *string, configuredAccessPolicy types.String) (*ApiKeyModel, *http.Response, diag.Diagnostics) {
-
-	result, httpResponse, err := r.
-		ApiKeysServiceGetApiKey(ctx, *id).
-		Execute()
-
-	if err != nil {
-		diags := diag.Diagnostics{}
-		diags.AddError("Error reading coralogix_api_key",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
-		)
-		return nil, httpResponse, diags
-	}
-
-	key, diags := flattenGetApiKeyResponse(ctx, id, result, keyValue, configuredAccessPolicy)
-	if diags.HasError() {
-		return nil, httpResponse, diags
-	}
-	return key, httpResponse, nil
-}
-
-func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *apiKeys.GetApiKeyResponse, keyValue *string, configuredAccessPolicy types.String) (*ApiKeyModel, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	permissions := utils.StringSliceToTypeStringSet(response.KeyInfo.KeyPermissions.Permissions)
-	if permissions.IsNull() {
-		permissions = types.SetValueMust(types.StringType, []attr.Value{})
-	}
-	presetNames := make([]attr.Value, len(response.KeyInfo.KeyPermissions.Presets))
-	for i, p := range response.KeyInfo.KeyPermissions.Presets {
-		presetNames[i] = types.StringPointerValue(p.Name)
-	}
-
-	presets, diags := types.SetValueFrom(ctx, types.StringType, presetNames)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	var key types.String
-	hashedKey := (response.KeyInfo.Hashed != nil && *response.KeyInfo.Hashed || false)
-	active := (response.KeyInfo.Active != nil && *response.KeyInfo.Active || false)
-
-	switch {
-	case keyValue != nil && *keyValue != "":
-		key = types.StringValue(*keyValue)
-	case response.KeyInfo.GetValue() != "":
-		key = types.StringValue(response.KeyInfo.GetValue())
-	case hashedKey:
-		diags.AddError("Key value is required",
-			"Hashed API key has no recoverable value from the backend and none was provided.")
-		return nil, diags
-	default:
-		key = types.StringNull()
-	}
-
-	owner := flattenOwner(response.KeyInfo.Owner)
-	return &ApiKeyModel{
-		ID:           types.StringValue(*apiKeyId),
-		Value:        key,
-		Name:         types.StringPointerValue(response.KeyInfo.Name),
-		Active:       types.BoolValue(active),
-		Hashed:       types.BoolValue(hashedKey),
-		Permissions:  permissions,
-		Presets:      presets,
-		Owner:        &owner,
-		AccessPolicy: flattenAccessPolicy(configuredAccessPolicy, response.KeyInfo.AccessPolicy),
-	}, nil
-}
-
-// flattenAccessPolicy stores the configured JSON text when it is equivalent to
-// the backend value. The API compact-encodes the policy and reorders object
-// keys, which would otherwise fail apply with "inconsistent result".
-func flattenAccessPolicy(configured types.String, apiPolicy *string) types.String {
-	if apiPolicy == nil || *apiPolicy == "" {
-		if !configured.IsNull() && !configured.IsUnknown() && configured.ValueString() == "" {
-			return configured
-		}
-		return types.StringValue("")
-	}
-	if !configured.IsNull() && !configured.IsUnknown() && utils.JSONStringsEqual(configured.ValueString(), *apiPolicy) {
-		return configured
-	}
-	canonical, err := utils.CanonicalJSON(*apiPolicy)
-	if err != nil {
-		return types.StringValue(*apiPolicy)
-	}
-	return types.StringValue(canonical)
-}
-
-// preserveAccessPolicyJSON keeps prior state when config JSON is equivalent, so
-// whitespace and key-order differences do not produce a plan.
-type preserveAccessPolicyJSON struct{}
-
-func (m preserveAccessPolicyJSON) Description(_ context.Context) string {
-	return "Keeps the prior access_policy text when the configured JSON is equivalent."
-}
-
-func (m preserveAccessPolicyJSON) MarkdownDescription(ctx context.Context) string {
-	return m.Description(ctx)
-}
-
-func (m preserveAccessPolicyJSON) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
-	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() || req.StateValue.IsNull() || req.StateValue.IsUnknown() {
-		return
-	}
-	if utils.JSONStringsEqual(req.ConfigValue.ValueString(), req.StateValue.ValueString()) {
-		resp.PlanValue = req.StateValue
-	}
-}
-
-func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*apiKeys.CreateApiKeyRequest, diag.Diagnostics) {
-	permissions, diags := utils.TypeStringElementsToStringSlice(ctx, apiKeyModel.Permissions.Elements())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	presets, diags := utils.TypeStringElementsToStringSlice(ctx, apiKeyModel.Presets.Elements())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	owner, diags := extractOwner(apiKeyModel)
-	if diags.HasError() {
-		return nil, diags
-	}
-	hashed := false
-
-	var accessPolicy *string = nil
-	if !apiKeyModel.AccessPolicy.IsUnknown() {
-		accessPolicy = apiKeyModel.AccessPolicy.ValueStringPointer()
-	}
-	return &apiKeys.CreateApiKeyRequest{
-		Name:  apiKeyModel.Name.ValueStringPointer(),
-		Owner: &owner,
-		KeyPermissions: &apiKeys.CreateApiKeyRequestKeyPermissions{
-			Presets:     presets,
-			Permissions: permissions,
-		},
-		Hashed:       &hashed, // this has to be false or the GetApiKey will fail (encrypted keys are not readable)
-		AccessPolicy: accessPolicy,
-	}, diags
-}
-
-func extractOwner(keyModel *ApiKeyModel) (apiKeys.Owner, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	if keyModel.Owner.UserId.ValueString() != "" {
-		userId := keyModel.Owner.UserId.ValueString()
-		return apiKeys.Owner{
-			UserId: &userId,
-		}, diags
-	} else {
-		if keyModel.Owner.OrganisationId.ValueString() != "" {
-			organisationId := keyModel.Owner.OrganisationId.ValueString()
-			return apiKeys.Owner{
-				OrganisationId: &organisationId,
-			}, diags
-		} else {
-			teamId, err := strconv.Atoi(keyModel.Owner.TeamId.ValueString())
-			if err != nil {
-				diags.AddError("Invalid team id", "Team id must be a int")
-			}
-			teamId64 := int64(teamId)
-			return apiKeys.Owner{
-				TeamId: &teamId64,
-			}, diags
-		}
-	}
-}
-
-func flattenOwner(owner *apiKeys.Owner) Owner {
-	if owner.OrganisationId != nil {
-		return Owner{
-			OrganisationId: types.StringPointerValue(owner.OrganisationId),
-		}
-	} else if owner.UserId != nil {
-		return Owner{
-			UserId: types.StringPointerValue(owner.UserId),
-		}
-	} else if owner.TeamId != nil {
-		return Owner{
-			TeamId: types.StringValue(strconv.Itoa(int(*owner.TeamId))),
-		}
-	} else {
-		return Owner{}
-	}
-}
-
-func (r *ApiKeyResource) UpgradeState(context.Context) map[int64]resource.StateUpgrader {
+// UpgradeState upgrades the state of schema version 0, which had roles instead of permissions and
+// presets, and no organisation owner.
+func (r *apiKeyResource) UpgradeState(context.Context) map[int64]resource.StateUpgrader {
 	schemaV0 := resourceSchemaV0()
 
 	return map[int64]resource.StateUpgrader{
@@ -675,29 +136,25 @@ func (r *ApiKeyResource) UpgradeState(context.Context) map[int64]resource.StateU
 			PriorSchema: &schemaV0,
 
 			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-				type OwnerV0 struct {
+				type ownerV0 struct {
 					UserId types.String `tfsdk:"user_id"`
 					TeamId types.String `tfsdk:"team_id"`
 				}
-
-				type ApiKeyModelV0 struct {
+				type modelV0 struct {
 					ID     types.String `tfsdk:"id"`
 					Name   types.String `tfsdk:"name"`
-					Owner  *OwnerV0     `tfsdk:"owner"`
+					Owner  *ownerV0     `tfsdk:"owner"`
 					Active types.Bool   `tfsdk:"active"`
 					Hashed types.Bool   `tfsdk:"hashed"`
 					Value  types.String `tfsdk:"value"`
 					Roles  types.Set    `tfsdk:"roles"`
 				}
-
-				var dataV0 ApiKeyModelV0
-
+				var dataV0 modelV0
 				resp.Diagnostics.Append(req.State.Get(ctx, &dataV0)...)
 				if resp.Diagnostics.HasError() {
 					return
 				}
 				permissions, diags := mapRolesToPermissions(dataV0.Roles)
-
 				if diags.HasError() {
 					resp.Diagnostics.Append(diags...)
 					return
@@ -706,29 +163,34 @@ func (r *ApiKeyResource) UpgradeState(context.Context) map[int64]resource.StateU
 					permissions = types.SetValueMust(types.StringType, []attr.Value{})
 				}
 
-				var owner *Owner
+				// The state starts with a null value for every attribute of the current schema, and the
+				// upgrade sets what version 0 had. An attribute that the API contract adds later is null,
+				// as it is for a key that no configuration has set, so the upgrade needs no edit for it.
+				current, ok := resp.State.Schema.Type().TerraformType(ctx).(tftypes.Object)
+				if !ok {
+					resp.Diagnostics.AddError("Unexpected schema", "The schema of coralogix_api_key is not an object.")
+					return
+				}
+				nulls := make(map[string]tftypes.Value, len(current.AttributeTypes))
+				for name, typ := range current.AttributeTypes {
+					nulls[name] = tftypes.NewValue(typ, nil)
+				}
+				resp.State.Raw = tftypes.NewValue(current, nulls)
+				carry := map[string]any{
+					"id":          dataV0.ID,
+					"name":        dataV0.Name,
+					"active":      dataV0.Active,
+					"hashed":      dataV0.Hashed,
+					"value":       dataV0.Value,
+					"permissions": permissions,
+				}
+				for name, value := range carry {
+					resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root(name), value)...)
+				}
 				if dataV0.Owner != nil {
-					owner = &Owner{
-						UserId:         dataV0.Owner.UserId,
-						TeamId:         dataV0.Owner.TeamId,
-						OrganisationId: types.StringNull(),
-					}
+					resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("owner").AtName("user_id"), dataV0.Owner.UserId)...)
+					resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("owner").AtName("team_id"), dataV0.Owner.TeamId)...)
 				}
-
-				dataV1 := ApiKeyModel{
-					ID:           dataV0.ID,
-					Name:         dataV0.Name,
-					Owner:        owner,
-					Active:       dataV0.Active,
-					Hashed:       dataV0.Hashed,
-					Value:        dataV0.Value,
-					Permissions:  permissions,
-					Presets:      types.SetNull(types.StringType),
-					AccessPolicy: types.StringNull(),
-				}
-
-				diags = resp.State.Set(ctx, dataV1)
-				resp.Diagnostics.Append(diags...)
 			},
 		},
 	}

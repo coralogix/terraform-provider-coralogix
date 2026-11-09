@@ -393,3 +393,11 @@ func isScopeNotFound(httpResponse *http.Response, err error) bool {
 	return isNotFoundResponse(httpResponse) && errors.As(err, &apiErr) &&
 		strings.Contains(string(apiErr.Body()), "No scopes found")
 }
+
+// isNotFoundResponse reports whether an HTTP response represents a confirmed 404 Not Found. It
+// guards against a nil *http.Response, which the OpenAPI client may return when the request never
+// reached the backend (transport error, cancelled context); in that case the error is not a
+// confirmed 404 and the resource must not be removed from state.
+func isNotFoundResponse(httpResponse *http.Response) bool {
+	return httpResponse != nil && httpResponse.StatusCode == http.StatusNotFound
+}

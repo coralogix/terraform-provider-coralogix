@@ -1,0 +1,24 @@
+# What the generated acceptance test needs for coralogix_api_key, besides the schema.
+#
+# The key belongs to the team of the CI key (TEST_TEAM_ID): the API creates keys only for the team
+# of the caller. The lists name a preset and a permission that exist.
+#
+# access_policy is not in the generated config: the API stores a policy as compact JSON in no stable
+# key order, so the imported text differs from the configured text, and the import step compares
+# them as they are. TestApiKeyResourceWithAccessPolicy covers the policy, with a check of the
+# imported text as JSON.
+resource: KeyInfo
+env: [TEST_TEAM_ID]
+
+values:
+  owner.team_id: '"@{env.TEST_TEAM_ID}"'
+  presets: '["APM"]'
+  permissions: '["livetail:Read"]'
+
+updatedValues:
+  presets: '["APM", "Alerts"]'
+  permissions: '["serverless:Read"]'
+
+skip: [access_policy, owner.organisation_id, owner.user_id]
+minimal: []
+upgradeFrom: "3.24.0"

@@ -17,6 +17,7 @@ package provider
 //go:generate make -C ../.. codegen RESOURCE=RuleGroup OUT=parsingrules
 //go:generate make -C ../.. codegen RESOURCE=OutRuleGroupSet OUT=recordingrulesgroupsset
 //go:generate make -C ../.. codegen RESOURCE=GetTeamResponse OUT=team
+//go:generate make -C ../.. codegen RESOURCE=KeyInfo OUT=apikey
 //go:generate make -C ../.. codegen RESOURCE=Slo OUT=slov2
 //go:generate make -C ../.. codegen RESOURCE=View OUT=view
 //go:generate make -C ../.. codegen RESOURCE=ViewFolder OUT=viewfolder

@@ -29,7 +29,6 @@
         "method": "POST",
         "path": "/mgmt/openapi/5/aaa/api-keys/v3",
         "body": {
-          "hashed": false,
           "keyPermissions": {
             "permissions": [],
             "presets": []
@@ -43,7 +42,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_api_key | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: preset_ids or permission_ids must be provided\"}\noperation - Create"
+      "error: Unable to create api_key | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: preset_ids or permission_ids must be provided\"}"
     ],
     "state": null
   }
