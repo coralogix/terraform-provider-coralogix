@@ -5,6 +5,7 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/archived_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/config_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/custom_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/default_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/echo_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/eval_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/filter_things_service"
@@ -54,6 +55,7 @@ type ClientSet struct {
 	Typed          *typed_things_service.TypedThingsServiceAPIService
 	GroupSet       *group_set_things_service.GroupSetThingsServiceAPIService
 	Retag          *retag_things_service.RetagThingsServiceAPIService
+	Default        *default_things_service.DefaultThingsServiceAPIService
 }
 
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
@@ -76,6 +78,10 @@ func (c *ClientSet) ConfigThings() *config_things_service.ConfigThingsServiceAPI
 
 func (c *ClientSet) WrapThings() *wrap_things_service.WrapThingsServiceAPIService {
 	return c.Wrap
+}
+
+func (c *ClientSet) DefaultThings() *default_things_service.DefaultThingsServiceAPIService {
+	return c.Default
 }
 
 func (c *ClientSet) CustomThings() *custom_things_service.CustomThingsServiceAPIService {

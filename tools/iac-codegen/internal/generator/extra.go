@@ -50,6 +50,11 @@ func attachExtraAttributes(out *tfResource, file *overrides.File) error {
 	if computedExtra {
 		updateExtraPaths(out, extraHasObject(file))
 	}
+	// A default that holds the types of the attributes below it is built now: the extra attributes
+	// are part of those types.
+	if err := resolveStructDefaults(out.Attributes, file); err != nil {
+		return err
+	}
 	// An Optional and Computed attribute or a default can need a package that no other attribute
 	// of the schema uses.
 	out.PlanModifierPkgs = planModifierPackages(out.Attributes)
@@ -144,7 +149,7 @@ func configureExtraAttribute(attribute *tfAttr, extra overrides.ExtraAttribute, 
 		if err != nil {
 			return fmt.Errorf("default: %w", err)
 		}
-		attribute.Default = expr
+		attribute.Default, attribute.DefaultRaw = expr, extra.Default
 	}
 	if extra.Equality != "" {
 		// First, as for the equality line of a field.

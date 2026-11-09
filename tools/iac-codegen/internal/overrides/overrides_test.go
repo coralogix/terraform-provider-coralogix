@@ -86,7 +86,7 @@ func TestParseIsStrict(t *testing.T) {
 		"no mode":                                    {"resource: Thing\n", `mode is ""`},
 		"no validators":                              {"resource: Thing\nmode: existing\n", "validators.inferred is required"},
 		"bad readEmptyAs":                            {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {readEmptyAs: zero}\n", "readEmptyAs"},
-		"bad default":                                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {default: {a: 1}}\n", "default is"},
+		"bad default":                                {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {default: {1: a}}\n", "default is"},
 		"non-empty list default":                     {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {default: [a]}\n", "must be empty"},
 		"send unknown as zero not computed":          {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {sendUnknownAsZero: true}\n", "needs computed: true"},
 		"send unknown as zero with default":          {"resource: Thing\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  T:\n    fields:\n      f: {sendUnknownAsZero: true, computed: true, default: 1}\n", "never unknown"},
@@ -207,6 +207,55 @@ func TestADefaultCanBeANumber(t *testing.T) {
 	}
 	if got := strings.Join(f.Policy().Defaults, ","); got != "R.count,R.ratio" {
 		t.Fatalf("policy defaults = %s, want R.count,R.ratio", got)
+	}
+}
+
+// A default can be null, an empty list, or an object. A YAML null decodes as a missing key, so Parse
+// finds it in the YAML tree. The line with it is a line with a default, as one with a value is.
+func TestADefaultCanBeNullOrAnObject(t *testing.T) {
+	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\ntypes:\n  R:\n    fields:\n"
+	f, err := Parse([]byte(head + "      a: {computed: true, default: null}\n      b: {computed: true, default: ~}\n      c: {computed: true, default: {}}\n      d: {computed: true, default: {x: 1, y: {z: [], w: null}}}\n      e: {computed: true, default: []}\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	fields := f.Types["R"].Fields
+	for _, name := range []string{"a", "b"} {
+		if !IsNullDefault(fields[name].Default) {
+			t.Errorf("%s default = %#v, want the null default", name, fields[name].Default)
+		}
+	}
+	if got, ok := fields["c"].Default.(map[string]any); !ok || len(got) != 0 {
+		t.Errorf("c default = %#v, want an empty object", fields["c"].Default)
+	}
+	if got, ok := fields["d"].Default.(map[string]any); !ok || got["x"] != 1 || got["y"].(map[string]any)["w"] != nil {
+		t.Errorf("d default = %#v, want the object", fields["d"].Default)
+	}
+	if IsNullDefault(fields["e"].Default) {
+		t.Errorf("e default = %#v, want an empty list", fields["e"].Default)
+	}
+	if got := strings.Join(f.Policy().Defaults, ","); got != "R.a,R.b,R.c,R.d,R.e" {
+		t.Errorf("policy defaults = %s, want the five lines", got)
+	}
+}
+
+// A null default changes nothing outside a field line, so the file is refused instead of ignoring it.
+func TestANullDefaultOutsideAFieldLineIsAnError(t *testing.T) {
+	const head = "resource: R\nmode: existing\nvalidators:\n  inferred: false\n"
+	tests := map[string]struct{ text, want string }{
+		"extra attribute":   {head + "types:\n  R:\n    extraAttributes:\n      a: {type: set, elementType: string, optional: true, computed: true, default: null, markdownDescription: x}\n", "types.R.extraAttributes.a.default: default: null changes nothing here"},
+		"list in an object": {head + "types:\n  R:\n    fields:\n      a: {computed: true, default: {x: 1}}\n      b: {computed: true, default: {x: 1, y: [a]}}\n", "a list default must be empty"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := Parse([]byte(test.text))
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want it to contain %q", err, test.want)
+			}
+		})
+	}
+	// A field that is named default is no key of a line.
+	if _, err := Parse([]byte(head + "types:\n  R:\n    fields:\n      default: {computed: true, default: null}\n")); err != nil {
+		t.Fatalf("a field named default: %v", err)
 	}
 }
 

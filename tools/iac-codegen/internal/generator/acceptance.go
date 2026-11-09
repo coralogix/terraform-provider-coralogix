@@ -720,7 +720,7 @@ func (s *accSynth) removed(attrs []*tfAttr, full []accCheck) (defaults, kept []a
 
 var (
 	// staticDefault matches a static default, such as booldefault.StaticBool(false).
-	staticDefault = regexp.MustCompile(`^\w+default\.Static\w+\((.*)\)$`)
+	staticDefault = regexp.MustCompile(`^(?:string|bool|int32|int64|float32|float64)default\.Static\w+\((.*)\)$`)
 	// serverDefaultCall matches the plan modifier of a declared server default.
 	serverDefaultCall = regexp.MustCompile(`^serverDefaultModifier\{value: types\.\w+Value\((.*)\)(?:, fromPlan: true)?\}$`)
 )

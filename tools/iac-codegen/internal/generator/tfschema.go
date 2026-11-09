@@ -121,6 +121,12 @@ type tfAttr struct {
 	PlainDescription   bool
 	DeprecationMessage string
 	Default            string // Go expression of a static default, or ""
+	// DefaultRaw is the value of the default of the line, or of the extra attribute, as the file
+	// states it. An object default compares it with the value that it gives the attribute.
+	DefaultRaw any
+	// StructDefault is a default that resolveStructDefaults builds after the field lines and the
+	// extra attributes, because its Go expression holds the types of the attributes below it.
+	StructDefault any
 	// WriteOnly: Terraform sends the value and does not store it. Only extraAttributes set this.
 	WriteOnly bool
 	// TrueOnly: a bool that shows an object without fields (asBool). Only true is a valid value.
@@ -337,7 +343,7 @@ func (r *tfResource) UsesAttr() bool {
 // default would let the user set a value that flatten replaces with the id of the server.
 func checkSingletonIDAttribute(attrs []*tfAttr) error {
 	for _, a := range attrs {
-		if a.Name == "id" && (!computedOnly(a) || a.Default != "") {
+		if a.Name == "id" && (!computedOnly(a) || hasDefault(a)) {
 			return errors.New("singletonID says that only the server sets the id: the id attribute must stay computed-only with no default, so its line cannot set required, optional, computed: false, or a default")
 		}
 	}
@@ -698,11 +704,16 @@ func applyDefault(a *tfAttr, l overrides.Field) error {
 	if l.Default == nil {
 		return nil
 	}
-	expr, err := defaultExpr(a, l.Default)
-	if err != nil {
-		return err
+	a.DefaultRaw = l.Default
+	if deferredDefault(a, l.Default) {
+		a.StructDefault = l.Default
+	} else {
+		expr, err := defaultExpr(a, l.Default)
+		if err != nil {
+			return err
+		}
+		a.Default = expr
 	}
-	a.Default = expr
 	if a.Required {
 		// A released default on a field that the contract requires means that the contract is
 		// wrong about the field. The line states the exception with optional: true.
@@ -727,7 +738,7 @@ func checkAttrMode(a *tfAttr) error {
 	switch {
 	case a.Required && a.Computed:
 		return errors.New("the line makes the attribute required and computed: required: true needs a field that the user sets")
-	case a.Default != "" && !a.Computed:
+	case hasDefault(a) && !a.Computed:
 		return errors.New("the line gives the attribute a default, but the attribute is not computed: add computed: true")
 	case !a.Required && !a.Optional && !a.Computed:
 		return errors.New("the line leaves the attribute without a mode: computed: false needs a field that the user can set, and the contract makes this field server-owned")
@@ -1827,12 +1838,12 @@ func checkOmittedMaskClears(r *model.Resource, attrs []*tfAttr, file *overrides.
 		if i < 0 {
 			return fmt.Errorf("%s: updateMask: omit found no attribute for the Update field", name)
 		}
-		if attrs[i].Default != "" && isZeroDefault(file.Types[r.Name].Fields[f.Name].Default) && !f.Update.Presence {
+		if hasDefault(attrs[i]) && isZeroDefault(file.Types[r.Name].Fields[f.Name].Default) && !f.Update.Presence {
 			// Removing the value plans the zero, but a field without presence does not send it,
 			// and with no mask the server keeps the old value.
 			return fmt.Errorf("%s: updateMask: omit cannot clear this attribute: its default is the zero value, which Update does not send without x-coralogix-presence", name)
 		}
-		if attrs[i].Required || attrs[i].Default != "" || keepsAnyState(attrs[i]) {
+		if attrs[i].Required || hasDefault(attrs[i]) || keepsAnyState(attrs[i]) {
 			continue
 		}
 		return fmt.Errorf("%s: updateMask: omit sends no mask, so removing this optional attribute would not clear it. Make it required or give it a default", name)
@@ -2430,6 +2441,9 @@ func (b *tfBuilder) splitAttributes(out *tfResource, root *tfModel, r *model.Res
 			a.Computed = *line.Computed
 		}
 		if line.Default != nil {
+			if overrides.IsNullDefault(line.Default) {
+				return errors.New("splitArms needs default: []: an arm without values reads as an empty collection, not null")
+			}
 			if a.Default, err = defaultExpr(a, line.Default); err != nil {
 				return err
 			}

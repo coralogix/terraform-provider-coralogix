@@ -538,8 +538,9 @@ type Field struct {
 	// UseNonNullStateForUnknown keeps a non-null value of the state when the config has none.
 	// A null state value stays unknown, so the server can fill it in.
 	UseNonNullStateForUnknown bool `yaml:"useNonNullStateForUnknown"`
-	// Default is a static default in the schema: a string, a bool, a number, or [] (an empty list
-	// or set).
+	// Default is a static default in the schema: a string, a bool, a number, [] (an empty list or
+	// set), null (NullDefault: a list, set, map, or object that plans null when omitted), or a map
+	// ({} or {child: value, ...}: an object whose attributes get these values, the others null).
 	Default any `yaml:"default"`
 	// ReadEmptyAs: "null" reads an empty list or object from the API as null.
 	ReadEmptyAs string `yaml:"readEmptyAs"`
@@ -851,6 +852,9 @@ func Parse(data []byte) (*File, error) {
 		if errors.Is(err, io.EOF) {
 			return nil, fmt.Errorf("%s is empty", FileName)
 		}
+		return nil, fmt.Errorf("%s: %w", FileName, err)
+	}
+	if err := markNullDefaults(data, &f); err != nil {
 		return nil, fmt.Errorf("%s: %w", FileName, err)
 	}
 	if err := f.check(); err != nil {
@@ -1383,17 +1387,93 @@ func (l Field) checkConflicts() error {
 	return nil
 }
 
-// checkDefault checks the type of a default: a string, a bool, a number, or an empty list.
+// checkDefault checks the type of a default: a string, a bool, a number, an empty list, null, or
+// an object whose values are of those types.
 func (l Field) checkDefault() error {
-	switch d := l.Default.(type) {
-	case nil, string, bool, int, float64:
+	return checkDefaultValue("default", l.Default)
+}
+
+func checkDefaultValue(where string, value any) error {
+	switch d := value.(type) {
+	case nil, nullDefaultValue, string, bool, int, float64:
 	case []any:
 		if len(d) != 0 {
-			return errors.New("a list default must be empty: []")
+			return fmt.Errorf("%s: a list default must be empty: []", where)
+		}
+	case map[string]any:
+		for _, name := range sortedKeys(d) {
+			if err := checkDefaultValue(where+"."+name, d[name]); err != nil {
+				return err
+			}
 		}
 	default:
-		return fmt.Errorf("default is %T, want a string, a bool, a number, or []", l.Default)
+		return fmt.Errorf("%s is %T, want a string, a bool, a number, [], null, or an object", where, value)
 	}
+	return nil
+}
+
+// nullDefaultValue is the type of NullDefault.
+type nullDefaultValue struct{}
+
+// NullDefault is the Default of a line that says default: null. A YAML null decodes as nil, the
+// same as a missing key, so Parse finds the key in the YAML tree and sets this value in its place.
+// It plans a null list, set, map, or object for an omitted Optional and Computed attribute, where
+// it would plan an unknown value without a default.
+var NullDefault any = nullDefaultValue{}
+
+// IsNullDefault reports whether a default is NullDefault.
+func IsNullDefault(value any) bool {
+	_, ok := value.(nullDefaultValue)
+	return ok
+}
+
+// markNullDefaults finds each `default: null` of a field line, which the struct decoder cannot tell
+// from a missing key, and sets NullDefault on the line. A `default: null` anywhere else is an
+// error: it would change nothing.
+func markNullDefaults(data []byte, f *File) error {
+	var root yaml.Node
+	if err := yaml.Unmarshal(data, &root); err != nil {
+		return err
+	}
+	if len(root.Content) == 0 {
+		return nil
+	}
+	return walkNullDefaults(root.Content[0], nil, f)
+}
+
+func walkNullDefaults(n *yaml.Node, path []string, f *File) error {
+	switch n.Kind {
+	case yaml.SequenceNode:
+		for i, child := range n.Content {
+			if err := walkNullDefaults(child, append(slices.Clone(path), strconv.Itoa(i)), f); err != nil {
+				return err
+			}
+		}
+	case yaml.MappingNode:
+		for i := 0; i+1 < len(n.Content); i += 2 {
+			if err := walkNullDefaultsOf(n.Content[i].Value, n.Content[i+1], path, f); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// walkNullDefaultsOf handles one key of a mapping: a null default, or a node to walk into.
+func walkNullDefaultsOf(key string, value *yaml.Node, path []string, f *File) error {
+	here := append(slices.Clone(path), key)
+	atFields := len(path) == 3 && path[0] == "types" && path[2] == "fields" // key names a field
+	atLine := len(path) == 4 && path[0] == "types" && path[2] == "fields"   // key is a key of a line
+	if key != "default" || value.Kind != yaml.ScalarNode || value.ShortTag() != "!!null" || atFields {
+		return walkNullDefaults(value, here, f)
+	}
+	if !atLine {
+		return fmt.Errorf("%s: default: null changes nothing here: only a field line (types.<Type>.fields.<field>) takes it", strings.Join(here, "."))
+	}
+	t := f.Types[path[1]]
+	line := t.Fields[path[3]]
+	line.Default = NullDefault
+	t.Fields[path[3]] = line
 	return nil
 }
 
@@ -1629,10 +1709,11 @@ func (f *File) Exceptions() iacoverrides.Exceptions {
 				e.Fields[name] = map[string]iacoverrides.Field{}
 			}
 			api := line.Field
-			if line.Default != nil {
+			if line.Default != nil && !IsNullDefault(line.Default) {
 				// optional with a static default is a Terraform exception: Terraform always sends
 				// the default, so the request still has the value that the contract requires,
-				// which the SDK holds as a value.
+				// which the SDK holds as a value. A null default sends nothing: the request
+				// keeps its optional line, which sends an empty list for a required one.
 				api.Optional = false
 			}
 			e.Fields[name][field] = api
