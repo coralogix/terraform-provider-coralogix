@@ -1,0 +1,360 @@
+[
+  {
+    "step": "create from content_json",
+    "config": {
+      "content_json": "{\n  \"name\": \"Content JSON transport compatibility\",\n  \"description\": \"Protobuf JSON spelling compatibility\",\n  \"relativeTimeFrame\": \"900s\",\n  \"layout\": {\n    \"sections\": [\n      {\n        \"id\": {\n          \"value\": \"<id-1>\"\n        },\n        \"rows\": [\n          {\n            \"id\": {\n              \"value\": \"<id-2>\"\n            },\n            \"appearance\": {\n              \"height\": 19\n            },\n            \"widgets\": [\n              {\n                \"id\": {\n                  \"value\": \"<id-3>\"\n                },\n                \"title\": \"Content JSON data table\",\n                \"layoutColumns\": 12,\n                \"definition\": {\n                  \"dataTable\": {\n                    \"resultsPerPage\": 10,\n                    \"rowStyle\": \"ROW_STYLE_ONE_LINE\",\n                    \"query\": {\n                      \"metrics\": {\n                        \"promqlQuery\": {\n                          \"value\": \"vector(1)\"\n                        },\n                        \"promqlQueryType\": \"PROM_QL_QUERY_TYPE_INSTANT\"\n                      }\n                    }\n                  }\n                }\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+    },
+    "plan": {
+      "access_policy": "(unknown)",
+      "annotations": null,
+      "auto_refresh": "(unknown)",
+      "content_json": "{\n  \"name\": \"Content JSON transport compatibility\",\n  \"description\": \"Protobuf JSON spelling compatibility\",\n  \"relativeTimeFrame\": \"900s\",\n  \"layout\": {\n    \"sections\": [\n      {\n        \"id\": {\n          \"value\": \"<id-1>\"\n        },\n        \"rows\": [\n          {\n            \"id\": {\n              \"value\": \"<id-2>\"\n            },\n            \"appearance\": {\n              \"height\": 19\n            },\n            \"widgets\": [\n              {\n                \"id\": {\n                  \"value\": \"<id-3>\"\n                },\n                \"title\": \"Content JSON data table\",\n                \"layoutColumns\": 12,\n                \"definition\": {\n                  \"dataTable\": {\n                    \"resultsPerPage\": 10,\n                    \"rowStyle\": \"ROW_STYLE_ONE_LINE\",\n                    \"query\": {\n                      \"metrics\": {\n                        \"promqlQuery\": {\n                          \"value\": \"vector(1)\"\n                        },\n                        \"promqlQueryType\": \"PROM_QL_QUERY_TYPE_INSTANT\"\n                      }\n                    }\n                  }\n                }\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}\n",
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "(unknown)",
+      "layout": null,
+      "name": null,
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1",
+        "body": {
+          "dashboard": {
+            "description": "Protobuf JSON spelling compatibility",
+            "layout": {
+              "sections": [
+                {
+                  "id": {
+                    "value": "<id-1>"
+                  },
+                  "rows": [
+                    {
+                      "appearance": {
+                        "height": 19
+                      },
+                      "id": {
+                        "value": "<id-2>"
+                      },
+                      "widgets": [
+                        {
+                          "definition": {
+                            "dataTable": {
+                              "query": {
+                                "metrics": {
+                                  "promqlQuery": {
+                                    "value": "vector(1)"
+                                  },
+                                  "promqlQueryType": "PROM_QL_QUERY_TYPE_INSTANT"
+                                }
+                              },
+                              "resultsPerPage": 10,
+                              "rowStyle": "ROW_STYLE_ONE_LINE"
+                            }
+                          },
+                          "id": {
+                            "value": "<id-3>"
+                          },
+                          "layoutColumns": 12,
+                          "title": "Content JSON data table"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "name": "Content JSON transport compatibility",
+            "relativeTimeFrame": "900s"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": "{\n  \"name\": \"Content JSON transport compatibility\",\n  \"description\": \"Protobuf JSON spelling compatibility\",\n  \"relativeTimeFrame\": \"900s\",\n  \"layout\": {\n    \"sections\": [\n      {\n        \"id\": {\n          \"value\": \"<id-1>\"\n        },\n        \"rows\": [\n          {\n            \"id\": {\n              \"value\": \"<id-2>\"\n            },\n            \"appearance\": {\n              \"height\": 19\n            },\n            \"widgets\": [\n              {\n                \"id\": {\n                  \"value\": \"<id-3>\"\n                },\n                \"title\": \"Content JSON data table\",\n                \"layoutColumns\": 12,\n                \"definition\": {\n                  \"dataTable\": {\n                    \"resultsPerPage\": 10,\n                    \"rowStyle\": \"ROW_STYLE_ONE_LINE\",\n                    \"query\": {\n                      \"metrics\": {\n                        \"promqlQuery\": {\n                          \"value\": \"vector(1)\"\n                        },\n                        \"promqlQueryType\": \"PROM_QL_QUERY_TYPE_INSTANT\"\n                      }\n                    }\n                  }\n                }\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}\n",
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": null,
+      "name": null,
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "switch to typed HCL",
+    "config": {
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "definition": {
+                      "markdown": {
+                        "markdown_text": "hello"
+                      }
+                    },
+                    "title": "note"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard"
+    },
+    "plan": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": "(unknown)",
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "(unknown)",
+            "options": null,
+            "rows": [
+              {
+                "height": 10,
+                "id": "(unknown)",
+                "widgets": [
+                  {
+                    "custom_actions": null,
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": {
+                        "markdown_text": "hello",
+                        "tooltip_text": null
+                      },
+                      "pie_chart": null
+                    },
+                    "description": null,
+                    "highlighted": "(unknown)",
+                    "id": "(unknown)",
+                    "reference": null,
+                    "title": "note",
+                    "width": "(unknown)"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1",
+        "body": {
+          "dashboard": {
+            "id": "fakeboard000000000001",
+            "layout": {
+              "sections": [
+                {
+                  "id": {
+                    "value": "<id-4>"
+                  },
+                  "rows": [
+                    {
+                      "appearance": {
+                        "height": 10
+                      },
+                      "id": {
+                        "value": "<id-5>"
+                      },
+                      "widgets": [
+                        {
+                          "appearance": {},
+                          "definition": {
+                            "markdown": {
+                              "markdownText": "hello"
+                            }
+                          },
+                          "id": {
+                            "value": "<id-6>"
+                          },
+                          "title": "note"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "name": "baseline dashboard"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-4>",
+            "options": null,
+            "rows": [
+              {
+                "height": 10,
+                "id": "<id-5>",
+                "widgets": [
+                  {
+                    "custom_actions": null,
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": {
+                        "markdown_text": "hello",
+                        "tooltip_text": null
+                      },
+                      "pie_chart": null
+                    },
+                    "description": null,
+                    "highlighted": null,
+                    "id": "<id-6>",
+                    "reference": null,
+                    "title": "note",
+                    "width": null
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and plan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-4>",
+            "options": null,
+            "rows": [
+              {
+                "height": 10,
+                "id": "<id-5>",
+                "widgets": [
+                  {
+                    "custom_actions": null,
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": {
+                        "markdown_text": "hello",
+                        "tooltip_text": null
+                      },
+                      "pie_chart": null
+                    },
+                    "description": null,
+                    "highlighted": null,
+                    "id": "<id-6>",
+                    "reference": null,
+                    "title": "note",
+                    "width": null
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

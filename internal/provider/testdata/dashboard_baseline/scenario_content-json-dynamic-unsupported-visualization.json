@@ -1,0 +1,187 @@
+[
+  {
+    "step": "create from content_json_dynamic_unsupported_visualization.json",
+    "config": {
+      "content_json": "{\n \"name\": \"dynamic widget with an unsupported visualization\",\n \"layout\": {\n  \"sections\": [\n   {\n    \"id\": {\n     \"value\": \"<id-1>\"\n    },\n    \"rows\": [\n     {\n      \"id\": {\n       \"value\": \"<id-2>\"\n      },\n      \"appearance\": {\n       \"height\": 19\n      },\n      \"widgets\": [\n       {\n        \"id\": {\n         \"value\": \"<id-3>\"\n        },\n        \"title\": \"Dynamic logs table\",\n        \"definition\": {\n         \"dynamic\": {\n          \"interpretation\": \"INTERPRETATION_UNSPECIFIED\",\n          \"visualization\": {},\n          \"queryDefinitions\": [\n           {\n            \"id\": \"<id-4>\",\n            \"query\": {\n             \"logs\": {\n              \"luceneQuery\": {\n               \"value\": \"\"\n              },\n              \"dataModeType\": \"DATA_MODE_TYPE_HIGH_UNSPECIFIED\",\n              \"filters\": [],\n              \"groupBy\": [],\n              \"aggregation\": []\n             }\n            },\n            \"name\": \"Query 1\"\n           }\n          ]\n         }\n        }\n       }\n      ]\n     }\n    ]\n   }\n  ]\n },\n \"variables\": [],\n \"variablesV2\": [],\n \"filters\": [],\n \"relativeTimeFrame\": \"900s\",\n \"annotations\": [],\n \"off\": {},\n \"actions\": []\n}\n"
+    },
+    "plan": {
+      "access_policy": "(unknown)",
+      "annotations": null,
+      "auto_refresh": "(unknown)",
+      "content_json": "{\n \"name\": \"dynamic widget with an unsupported visualization\",\n \"layout\": {\n  \"sections\": [\n   {\n    \"id\": {\n     \"value\": \"<id-1>\"\n    },\n    \"rows\": [\n     {\n      \"id\": {\n       \"value\": \"<id-2>\"\n      },\n      \"appearance\": {\n       \"height\": 19\n      },\n      \"widgets\": [\n       {\n        \"id\": {\n         \"value\": \"<id-3>\"\n        },\n        \"title\": \"Dynamic logs table\",\n        \"definition\": {\n         \"dynamic\": {\n          \"interpretation\": \"INTERPRETATION_UNSPECIFIED\",\n          \"visualization\": {},\n          \"queryDefinitions\": [\n           {\n            \"id\": \"<id-4>\",\n            \"query\": {\n             \"logs\": {\n              \"luceneQuery\": {\n               \"value\": \"\"\n              },\n              \"dataModeType\": \"DATA_MODE_TYPE_HIGH_UNSPECIFIED\",\n              \"filters\": [],\n              \"groupBy\": [],\n              \"aggregation\": []\n             }\n            },\n            \"name\": \"Query 1\"\n           }\n          ]\n         }\n        }\n       }\n      ]\n     }\n    ]\n   }\n  ]\n },\n \"variables\": [],\n \"variablesV2\": [],\n \"filters\": [],\n \"relativeTimeFrame\": \"900s\",\n \"annotations\": [],\n \"off\": {},\n \"actions\": []\n}\n",
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "(unknown)",
+      "layout": null,
+      "name": null,
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1",
+        "body": {
+          "dashboard": {
+            "actions": [],
+            "annotations": [],
+            "filters": [],
+            "layout": {
+              "sections": [
+                {
+                  "id": {
+                    "value": "<id-1>"
+                  },
+                  "rows": [
+                    {
+                      "appearance": {
+                        "height": 19
+                      },
+                      "id": {
+                        "value": "<id-2>"
+                      },
+                      "widgets": [
+                        {
+                          "definition": {
+                            "dynamic": {
+                              "interpretation": "INTERPRETATION_UNSPECIFIED",
+                              "queryDefinitions": [
+                                {
+                                  "id": "<id-4>",
+                                  "name": "Query 1",
+                                  "query": {
+                                    "logs": {
+                                      "aggregation": [],
+                                      "dataModeType": "DATA_MODE_TYPE_HIGH_UNSPECIFIED",
+                                      "filters": [],
+                                      "groupBy": [],
+                                      "luceneQuery": {
+                                        "value": ""
+                                      }
+                                    }
+                                  }
+                                }
+                              ],
+                              "visualization": {}
+                            }
+                          },
+                          "id": {
+                            "value": "<id-3>"
+                          },
+                          "title": "Dynamic logs table"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "name": "dynamic widget with an unsupported visualization",
+            "off": {},
+            "relativeTimeFrame": "900s",
+            "variables": [],
+            "variablesV2": []
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": "{\n \"name\": \"dynamic widget with an unsupported visualization\",\n \"layout\": {\n  \"sections\": [\n   {\n    \"id\": {\n     \"value\": \"<id-1>\"\n    },\n    \"rows\": [\n     {\n      \"id\": {\n       \"value\": \"<id-2>\"\n      },\n      \"appearance\": {\n       \"height\": 19\n      },\n      \"widgets\": [\n       {\n        \"id\": {\n         \"value\": \"<id-3>\"\n        },\n        \"title\": \"Dynamic logs table\",\n        \"definition\": {\n         \"dynamic\": {\n          \"interpretation\": \"INTERPRETATION_UNSPECIFIED\",\n          \"visualization\": {},\n          \"queryDefinitions\": [\n           {\n            \"id\": \"<id-4>\",\n            \"query\": {\n             \"logs\": {\n              \"luceneQuery\": {\n               \"value\": \"\"\n              },\n              \"dataModeType\": \"DATA_MODE_TYPE_HIGH_UNSPECIFIED\",\n              \"filters\": [],\n              \"groupBy\": [],\n              \"aggregation\": []\n             }\n            },\n            \"name\": \"Query 1\"\n           }\n          ]\n         }\n        }\n       }\n      ]\n     }\n    ]\n   }\n  ]\n },\n \"variables\": [],\n \"variablesV2\": [],\n \"filters\": [],\n \"relativeTimeFrame\": \"900s\",\n \"annotations\": [],\n \"off\": {},\n \"actions\": []\n}\n",
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": null,
+      "name": null,
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and plan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": "{\n \"name\": \"dynamic widget with an unsupported visualization\",\n \"layout\": {\n  \"sections\": [\n   {\n    \"id\": {\n     \"value\": \"<id-1>\"\n    },\n    \"rows\": [\n     {\n      \"id\": {\n       \"value\": \"<id-2>\"\n      },\n      \"appearance\": {\n       \"height\": 19\n      },\n      \"widgets\": [\n       {\n        \"id\": {\n         \"value\": \"<id-3>\"\n        },\n        \"title\": \"Dynamic logs table\",\n        \"definition\": {\n         \"dynamic\": {\n          \"interpretation\": \"INTERPRETATION_UNSPECIFIED\",\n          \"visualization\": {},\n          \"queryDefinitions\": [\n           {\n            \"id\": \"<id-4>\",\n            \"query\": {\n             \"logs\": {\n              \"luceneQuery\": {\n               \"value\": \"\"\n              },\n              \"dataModeType\": \"DATA_MODE_TYPE_HIGH_UNSPECIFIED\",\n              \"filters\": [],\n              \"groupBy\": [],\n              \"aggregation\": []\n             }\n            },\n            \"name\": \"Query 1\"\n           }\n          ]\n         }\n        }\n       }\n      ]\n     }\n    ]\n   }\n  ]\n },\n \"variables\": [],\n \"variablesV2\": [],\n \"filters\": [],\n \"relativeTimeFrame\": \"900s\",\n \"annotations\": [],\n \"off\": {},\n \"actions\": []\n}\n",
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": null,
+      "name": null,
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "apply the same content again",
+    "config": {
+      "content_json": "{\n \"name\": \"dynamic widget with an unsupported visualization\",\n \"layout\": {\n  \"sections\": [\n   {\n    \"id\": {\n     \"value\": \"<id-1>\"\n    },\n    \"rows\": [\n     {\n      \"id\": {\n       \"value\": \"<id-2>\"\n      },\n      \"appearance\": {\n       \"height\": 19\n      },\n      \"widgets\": [\n       {\n        \"id\": {\n         \"value\": \"<id-3>\"\n        },\n        \"title\": \"Dynamic logs table\",\n        \"definition\": {\n         \"dynamic\": {\n          \"interpretation\": \"INTERPRETATION_UNSPECIFIED\",\n          \"visualization\": {},\n          \"queryDefinitions\": [\n           {\n            \"id\": \"<id-4>\",\n            \"query\": {\n             \"logs\": {\n              \"luceneQuery\": {\n               \"value\": \"\"\n              },\n              \"dataModeType\": \"DATA_MODE_TYPE_HIGH_UNSPECIFIED\",\n              \"filters\": [],\n              \"groupBy\": [],\n              \"aggregation\": []\n             }\n            },\n            \"name\": \"Query 1\"\n           }\n          ]\n         }\n        }\n       }\n      ]\n     }\n    ]\n   }\n  ]\n },\n \"variables\": [],\n \"variablesV2\": [],\n \"filters\": [],\n \"relativeTimeFrame\": \"900s\",\n \"annotations\": [],\n \"off\": {},\n \"actions\": []\n}\n"
+    },
+    "plan": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": "{\n \"name\": \"dynamic widget with an unsupported visualization\",\n \"layout\": {\n  \"sections\": [\n   {\n    \"id\": {\n     \"value\": \"<id-1>\"\n    },\n    \"rows\": [\n     {\n      \"id\": {\n       \"value\": \"<id-2>\"\n      },\n      \"appearance\": {\n       \"height\": 19\n      },\n      \"widgets\": [\n       {\n        \"id\": {\n         \"value\": \"<id-3>\"\n        },\n        \"title\": \"Dynamic logs table\",\n        \"definition\": {\n         \"dynamic\": {\n          \"interpretation\": \"INTERPRETATION_UNSPECIFIED\",\n          \"visualization\": {},\n          \"queryDefinitions\": [\n           {\n            \"id\": \"<id-4>\",\n            \"query\": {\n             \"logs\": {\n              \"luceneQuery\": {\n               \"value\": \"\"\n              },\n              \"dataModeType\": \"DATA_MODE_TYPE_HIGH_UNSPECIFIED\",\n              \"filters\": [],\n              \"groupBy\": [],\n              \"aggregation\": []\n             }\n            },\n            \"name\": \"Query 1\"\n           }\n          ]\n         }\n        }\n       }\n      ]\n     }\n    ]\n   }\n  ]\n },\n \"variables\": [],\n \"variablesV2\": [],\n \"filters\": [],\n \"relativeTimeFrame\": \"900s\",\n \"annotations\": [],\n \"off\": {},\n \"actions\": []\n}\n",
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": null,
+      "name": null,
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "noChange": true,
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": "{\n \"name\": \"dynamic widget with an unsupported visualization\",\n \"layout\": {\n  \"sections\": [\n   {\n    \"id\": {\n     \"value\": \"<id-1>\"\n    },\n    \"rows\": [\n     {\n      \"id\": {\n       \"value\": \"<id-2>\"\n      },\n      \"appearance\": {\n       \"height\": 19\n      },\n      \"widgets\": [\n       {\n        \"id\": {\n         \"value\": \"<id-3>\"\n        },\n        \"title\": \"Dynamic logs table\",\n        \"definition\": {\n         \"dynamic\": {\n          \"interpretation\": \"INTERPRETATION_UNSPECIFIED\",\n          \"visualization\": {},\n          \"queryDefinitions\": [\n           {\n            \"id\": \"<id-4>\",\n            \"query\": {\n             \"logs\": {\n              \"luceneQuery\": {\n               \"value\": \"\"\n              },\n              \"dataModeType\": \"DATA_MODE_TYPE_HIGH_UNSPECIFIED\",\n              \"filters\": [],\n              \"groupBy\": [],\n              \"aggregation\": []\n             }\n            },\n            \"name\": \"Query 1\"\n           }\n          ]\n         }\n        }\n       }\n      ]\n     }\n    ]\n   }\n  ]\n },\n \"variables\": [],\n \"variablesV2\": [],\n \"filters\": [],\n \"relativeTimeFrame\": \"900s\",\n \"annotations\": [],\n \"off\": {},\n \"actions\": []\n}\n",
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": null,
+      "name": null,
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

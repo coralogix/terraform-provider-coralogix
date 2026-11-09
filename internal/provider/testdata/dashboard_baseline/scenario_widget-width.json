@@ -1,0 +1,720 @@
+[
+  {
+    "step": "create with the deprecated widget width",
+    "config": {
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "definition": {
+                      "markdown": {
+                        "markdown_text": "hello"
+                      }
+                    },
+                    "title": "note",
+                    "width": 6
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard"
+    },
+    "validateDiagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "plan": {
+      "access_policy": "(unknown)",
+      "annotations": null,
+      "auto_refresh": "(unknown)",
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "(unknown)",
+      "layout": {
+        "sections": [
+          {
+            "id": "(unknown)",
+            "options": null,
+            "rows": [
+              {
+                "height": 10,
+                "id": "(unknown)",
+                "widgets": [
+                  {
+                    "custom_actions": null,
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": {
+                        "markdown_text": "hello",
+                        "tooltip_text": null
+                      },
+                      "pie_chart": null
+                    },
+                    "description": null,
+                    "highlighted": "(unknown)",
+                    "id": "(unknown)",
+                    "reference": null,
+                    "title": "note",
+                    "width": 6
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1",
+        "body": {
+          "dashboard": {
+            "layout": {
+              "sections": [
+                {
+                  "id": {
+                    "value": "<id-1>"
+                  },
+                  "rows": [
+                    {
+                      "appearance": {
+                        "height": 10
+                      },
+                      "id": {
+                        "value": "<id-2>"
+                      },
+                      "widgets": [
+                        {
+                          "appearance": {
+                            "width": 6
+                          },
+                          "definition": {
+                            "markdown": {
+                              "markdownText": "hello"
+                            }
+                          },
+                          "id": {
+                            "value": "<id-3>"
+                          },
+                          "title": "note"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "name": "baseline dashboard"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": null,
+            "rows": [
+              {
+                "height": 10,
+                "id": "<id-2>",
+                "widgets": [
+                  {
+                    "custom_actions": null,
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": {
+                        "markdown_text": "hello",
+                        "tooltip_text": null
+                      },
+                      "pie_chart": null
+                    },
+                    "description": null,
+                    "highlighted": null,
+                    "id": "<id-3>",
+                    "reference": null,
+                    "title": "note",
+                    "width": 6
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and plan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": null,
+            "rows": [
+              {
+                "height": 10,
+                "id": "<id-2>",
+                "widgets": [
+                  {
+                    "custom_actions": null,
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": {
+                        "markdown_text": "hello",
+                        "tooltip_text": null
+                      },
+                      "pie_chart": null
+                    },
+                    "description": null,
+                    "highlighted": null,
+                    "id": "<id-3>",
+                    "reference": null,
+                    "title": "note",
+                    "width": 6
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "change the width",
+    "config": {
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "definition": {
+                      "markdown": {
+                        "markdown_text": "hello"
+                      }
+                    },
+                    "title": "note",
+                    "width": 8
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard"
+    },
+    "validateDiagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "plan": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": "(unknown)",
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": null,
+            "rows": [
+              {
+                "height": 10,
+                "id": "<id-2>",
+                "widgets": [
+                  {
+                    "custom_actions": null,
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": {
+                        "markdown_text": "hello",
+                        "tooltip_text": null
+                      },
+                      "pie_chart": null
+                    },
+                    "description": null,
+                    "highlighted": "(unknown)",
+                    "id": "<id-3>",
+                    "reference": null,
+                    "title": "note",
+                    "width": 8
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1",
+        "body": {
+          "dashboard": {
+            "id": "fakeboard000000000001",
+            "layout": {
+              "sections": [
+                {
+                  "id": {
+                    "value": "<id-1>"
+                  },
+                  "rows": [
+                    {
+                      "appearance": {
+                        "height": 10
+                      },
+                      "id": {
+                        "value": "<id-2>"
+                      },
+                      "widgets": [
+                        {
+                          "appearance": {
+                            "width": 8
+                          },
+                          "definition": {
+                            "markdown": {
+                              "markdownText": "hello"
+                            }
+                          },
+                          "id": {
+                            "value": "<id-3>"
+                          },
+                          "title": "note"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "name": "baseline dashboard"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": null,
+            "rows": [
+              {
+                "height": 10,
+                "id": "<id-2>",
+                "widgets": [
+                  {
+                    "custom_actions": null,
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": {
+                        "markdown_text": "hello",
+                        "tooltip_text": null
+                      },
+                      "pie_chart": null
+                    },
+                    "description": null,
+                    "highlighted": null,
+                    "id": "<id-3>",
+                    "reference": null,
+                    "title": "note",
+                    "width": 8
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and plan after the change",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": null,
+            "rows": [
+              {
+                "height": 10,
+                "id": "<id-2>",
+                "widgets": [
+                  {
+                    "custom_actions": null,
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": {
+                        "markdown_text": "hello",
+                        "tooltip_text": null
+                      },
+                      "pie_chart": null
+                    },
+                    "description": null,
+                    "highlighted": null,
+                    "id": "<id-3>",
+                    "reference": null,
+                    "title": "note",
+                    "width": 8
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "remove the width from the config",
+    "config": {
+      "layout": {
+        "sections": [
+          {
+            "rows": [
+              {
+                "height": 10,
+                "widgets": [
+                  {
+                    "definition": {
+                      "markdown": {
+                        "markdown_text": "hello"
+                      }
+                    },
+                    "title": "note"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard"
+    },
+    "plan": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": null,
+            "rows": [
+              {
+                "height": 10,
+                "id": "<id-2>",
+                "widgets": [
+                  {
+                    "custom_actions": null,
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": {
+                        "markdown_text": "hello",
+                        "tooltip_text": null
+                      },
+                      "pie_chart": null
+                    },
+                    "description": null,
+                    "highlighted": null,
+                    "id": "<id-3>",
+                    "reference": null,
+                    "title": "note",
+                    "width": 8
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "noChange": true,
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": null,
+            "rows": [
+              {
+                "height": 10,
+                "id": "<id-2>",
+                "widgets": [
+                  {
+                    "custom_actions": null,
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": {
+                        "markdown_text": "hello",
+                        "tooltip_text": null
+                      },
+                      "pie_chart": null
+                    },
+                    "description": null,
+                    "highlighted": null,
+                    "id": "<id-3>",
+                    "reference": null,
+                    "title": "note",
+                    "width": 8
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
+  },
+  {
+    "step": "refresh and plan after removing it",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": null,
+            "rows": [
+              {
+                "height": 10,
+                "id": "<id-2>",
+                "widgets": [
+                  {
+                    "custom_actions": null,
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": {
+                        "markdown_text": "hello",
+                        "tooltip_text": null
+                      },
+                      "pie_chart": null
+                    },
+                    "description": null,
+                    "highlighted": null,
+                    "id": "<id-3>",
+                    "reference": null,
+                    "title": "note",
+                    "width": 8
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "baseline dashboard",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

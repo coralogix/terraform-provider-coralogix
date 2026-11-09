@@ -1,0 +1,50 @@
+[
+  {
+    "step": "import a dashboard that has a policy",
+    "state": null
+  },
+  {
+    "step": "import a dashboard that has a policy (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": null
+      },
+      "name": "seeded",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "drift": [
+      "AttributeName(\"access_policy\")",
+      "AttributeName(\"layout\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\")",
+      "AttributeName(\"name\")"
+    ]
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

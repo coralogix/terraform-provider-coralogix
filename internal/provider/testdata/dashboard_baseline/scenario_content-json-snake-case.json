@@ -1,0 +1,174 @@
+[
+  {
+    "step": "create from content_json_snake_case.json",
+    "config": {
+      "content_json": "{\n  \"name\": \"Content JSON transport compatibility\",\n  \"description\": \"Protobuf JSON spelling compatibility\",\n  \"relative_time_frame\": \"900s\",\n  \"layout\": {\n    \"sections\": [\n      {\n        \"id\": {\n          \"value\": \"<id-1>\"\n        },\n        \"rows\": [\n          {\n            \"id\": {\n              \"value\": \"<id-2>\"\n            },\n            \"appearance\": {\n              \"height\": 19\n            },\n            \"widgets\": [\n              {\n                \"id\": {\n                  \"value\": \"<id-3>\"\n                },\n                \"title\": \"Content JSON data table\",\n                \"layout_columns\": 12,\n                \"definition\": {\n                  \"data_table\": {\n                    \"results_per_page\": 10,\n                    \"row_style\": \"ROW_STYLE_ONE_LINE\",\n                    \"query\": {\n                      \"metrics\": {\n                        \"promql_query\": {\n                          \"value\": \"vector(1)\"\n                        },\n                        \"promql_query_type\": \"PROM_QL_QUERY_TYPE_INSTANT\"\n                      }\n                    }\n                  }\n                }\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+    },
+    "plan": {
+      "access_policy": "(unknown)",
+      "annotations": null,
+      "auto_refresh": "(unknown)",
+      "content_json": "{\n  \"name\": \"Content JSON transport compatibility\",\n  \"description\": \"Protobuf JSON spelling compatibility\",\n  \"relative_time_frame\": \"900s\",\n  \"layout\": {\n    \"sections\": [\n      {\n        \"id\": {\n          \"value\": \"<id-1>\"\n        },\n        \"rows\": [\n          {\n            \"id\": {\n              \"value\": \"<id-2>\"\n            },\n            \"appearance\": {\n              \"height\": 19\n            },\n            \"widgets\": [\n              {\n                \"id\": {\n                  \"value\": \"<id-3>\"\n                },\n                \"title\": \"Content JSON data table\",\n                \"layout_columns\": 12,\n                \"definition\": {\n                  \"data_table\": {\n                    \"results_per_page\": 10,\n                    \"row_style\": \"ROW_STYLE_ONE_LINE\",\n                    \"query\": {\n                      \"metrics\": {\n                        \"promql_query\": {\n                          \"value\": \"vector(1)\"\n                        },\n                        \"promql_query_type\": \"PROM_QL_QUERY_TYPE_INSTANT\"\n                      }\n                    }\n                  }\n                }\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}\n",
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "(unknown)",
+      "layout": null,
+      "name": null,
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1",
+        "body": {
+          "dashboard": {
+            "description": "Protobuf JSON spelling compatibility",
+            "layout": {
+              "sections": [
+                {
+                  "id": {
+                    "value": "<id-1>"
+                  },
+                  "rows": [
+                    {
+                      "appearance": {
+                        "height": 19
+                      },
+                      "id": {
+                        "value": "<id-2>"
+                      },
+                      "widgets": [
+                        {
+                          "definition": {
+                            "dataTable": {
+                              "query": {
+                                "metrics": {
+                                  "promqlQuery": {
+                                    "value": "vector(1)"
+                                  },
+                                  "promqlQueryType": "PROM_QL_QUERY_TYPE_INSTANT"
+                                }
+                              },
+                              "resultsPerPage": 10,
+                              "rowStyle": "ROW_STYLE_ONE_LINE"
+                            }
+                          },
+                          "id": {
+                            "value": "<id-3>"
+                          },
+                          "layoutColumns": 12,
+                          "title": "Content JSON data table"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "name": "Content JSON transport compatibility",
+            "relativeTimeFrame": "900s"
+          }
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": "{\n  \"name\": \"Content JSON transport compatibility\",\n  \"description\": \"Protobuf JSON spelling compatibility\",\n  \"relative_time_frame\": \"900s\",\n  \"layout\": {\n    \"sections\": [\n      {\n        \"id\": {\n          \"value\": \"<id-1>\"\n        },\n        \"rows\": [\n          {\n            \"id\": {\n              \"value\": \"<id-2>\"\n            },\n            \"appearance\": {\n              \"height\": 19\n            },\n            \"widgets\": [\n              {\n                \"id\": {\n                  \"value\": \"<id-3>\"\n                },\n                \"title\": \"Content JSON data table\",\n                \"layout_columns\": 12,\n                \"definition\": {\n                  \"data_table\": {\n                    \"results_per_page\": 10,\n                    \"row_style\": \"ROW_STYLE_ONE_LINE\",\n                    \"query\": {\n                      \"metrics\": {\n                        \"promql_query\": {\n                          \"value\": \"vector(1)\"\n                        },\n                        \"promql_query_type\": \"PROM_QL_QUERY_TYPE_INSTANT\"\n                      }\n                    }\n                  }\n                }\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}\n",
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": null,
+      "name": null,
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and plan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": "{\n  \"name\": \"Content JSON transport compatibility\",\n  \"description\": \"Protobuf JSON spelling compatibility\",\n  \"relative_time_frame\": \"900s\",\n  \"layout\": {\n    \"sections\": [\n      {\n        \"id\": {\n          \"value\": \"<id-1>\"\n        },\n        \"rows\": [\n          {\n            \"id\": {\n              \"value\": \"<id-2>\"\n            },\n            \"appearance\": {\n              \"height\": 19\n            },\n            \"widgets\": [\n              {\n                \"id\": {\n                  \"value\": \"<id-3>\"\n                },\n                \"title\": \"Content JSON data table\",\n                \"layout_columns\": 12,\n                \"definition\": {\n                  \"data_table\": {\n                    \"results_per_page\": 10,\n                    \"row_style\": \"ROW_STYLE_ONE_LINE\",\n                    \"query\": {\n                      \"metrics\": {\n                        \"promql_query\": {\n                          \"value\": \"vector(1)\"\n                        },\n                        \"promql_query_type\": \"PROM_QL_QUERY_TYPE_INSTANT\"\n                      }\n                    }\n                  }\n                }\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}\n",
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": null,
+      "name": null,
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "apply the same content again",
+    "config": {
+      "content_json": "{\n  \"name\": \"Content JSON transport compatibility\",\n  \"description\": \"Protobuf JSON spelling compatibility\",\n  \"relative_time_frame\": \"900s\",\n  \"layout\": {\n    \"sections\": [\n      {\n        \"id\": {\n          \"value\": \"<id-1>\"\n        },\n        \"rows\": [\n          {\n            \"id\": {\n              \"value\": \"<id-2>\"\n            },\n            \"appearance\": {\n              \"height\": 19\n            },\n            \"widgets\": [\n              {\n                \"id\": {\n                  \"value\": \"<id-3>\"\n                },\n                \"title\": \"Content JSON data table\",\n                \"layout_columns\": 12,\n                \"definition\": {\n                  \"data_table\": {\n                    \"results_per_page\": 10,\n                    \"row_style\": \"ROW_STYLE_ONE_LINE\",\n                    \"query\": {\n                      \"metrics\": {\n                        \"promql_query\": {\n                          \"value\": \"vector(1)\"\n                        },\n                        \"promql_query_type\": \"PROM_QL_QUERY_TYPE_INSTANT\"\n                      }\n                    }\n                  }\n                }\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+    },
+    "plan": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": "{\n  \"name\": \"Content JSON transport compatibility\",\n  \"description\": \"Protobuf JSON spelling compatibility\",\n  \"relative_time_frame\": \"900s\",\n  \"layout\": {\n    \"sections\": [\n      {\n        \"id\": {\n          \"value\": \"<id-1>\"\n        },\n        \"rows\": [\n          {\n            \"id\": {\n              \"value\": \"<id-2>\"\n            },\n            \"appearance\": {\n              \"height\": 19\n            },\n            \"widgets\": [\n              {\n                \"id\": {\n                  \"value\": \"<id-3>\"\n                },\n                \"title\": \"Content JSON data table\",\n                \"layout_columns\": 12,\n                \"definition\": {\n                  \"data_table\": {\n                    \"results_per_page\": 10,\n                    \"row_style\": \"ROW_STYLE_ONE_LINE\",\n                    \"query\": {\n                      \"metrics\": {\n                        \"promql_query\": {\n                          \"value\": \"vector(1)\"\n                        },\n                        \"promql_query_type\": \"PROM_QL_QUERY_TYPE_INSTANT\"\n                      }\n                    }\n                  }\n                }\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}\n",
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": null,
+      "name": null,
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    },
+    "noChange": true,
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": "{\n  \"name\": \"Content JSON transport compatibility\",\n  \"description\": \"Protobuf JSON spelling compatibility\",\n  \"relative_time_frame\": \"900s\",\n  \"layout\": {\n    \"sections\": [\n      {\n        \"id\": {\n          \"value\": \"<id-1>\"\n        },\n        \"rows\": [\n          {\n            \"id\": {\n              \"value\": \"<id-2>\"\n            },\n            \"appearance\": {\n              \"height\": 19\n            },\n            \"widgets\": [\n              {\n                \"id\": {\n                  \"value\": \"<id-3>\"\n                },\n                \"title\": \"Content JSON data table\",\n                \"layout_columns\": 12,\n                \"definition\": {\n                  \"data_table\": {\n                    \"results_per_page\": 10,\n                    \"row_style\": \"ROW_STYLE_ONE_LINE\",\n                    \"query\": {\n                      \"metrics\": {\n                        \"promql_query\": {\n                          \"value\": \"vector(1)\"\n                        },\n                        \"promql_query_type\": \"PROM_QL_QUERY_TYPE_INSTANT\"\n                      }\n                    }\n                  }\n                }\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}\n",
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": null,
+      "name": null,
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]
