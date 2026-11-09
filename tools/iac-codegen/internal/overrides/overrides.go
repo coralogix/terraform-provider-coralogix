@@ -42,6 +42,11 @@ type File struct {
 	// values that sit next to the resource. The data source runs them too. A singleton has no
 	// such hooks.
 	GetHooks bool `yaml:"getHooks"`
+	// EnumValuesInDescription appends the accepted Terraform values of an enum attribute to its
+	// description: ` Valid values: ["A" "B"].`, as the released handwritten resources wrote them.
+	// The list is the one of the validator. A description that a field line states, or that
+	// already says "Valid values", stays as it is.
+	EnumValuesInDescription bool `yaml:"enumValuesInDescription"`
 	// Resource is the OpenAPI component of the resource. It must match the
 	// generator's --resource flag, so a file cannot be used for the wrong resource.
 	Resource string `yaml:"resource"`

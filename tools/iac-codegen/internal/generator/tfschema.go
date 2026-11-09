@@ -121,9 +121,11 @@ type tfAttr struct {
 	// empty object, whose children cannot name the component.
 	ObjectComponent string
 	// PlainDescription: the docs text is Description, not MarkdownDescription.
-	PlainDescription   bool
-	DeprecationMessage string
-	Default            string // Go expression of a static default, or ""
+	PlainDescription bool
+	// VerbatimDescription: a description or markdownDescription line of the field states the text.
+	VerbatimDescription bool
+	DeprecationMessage  string
+	Default             string // Go expression of a static default, or ""
 	// DefaultRaw is the value of the default of the line, or of the extra attribute, as the file
 	// states it. An object default compares it with the value that it gives the attribute.
 	DefaultRaw any
@@ -539,7 +541,92 @@ func applyOverrides(out *tfResource, file *overrides.File) error {
 	// modifiers back on a computed-only copy of a component. Configuration is
 	// always null there, so those checks never run.
 	stripComputedConfig(out.Attributes)
+	addEnumValues(out.Attributes, file.EnumValuesInDescription)
 	return applyConfigChecks(out, file)
+}
+
+// addEnumValues appends the accepted values of the enum validator of an attribute to its
+// description, in every attribute below attrs. The values are read from the validator itself, so
+// the list and the check cannot disagree: they are the Terraform spellings of the enums line, and
+// the zero value only when the validator accepts it. A description that a field line states, one
+// that already has "Valid values", and an attribute without an enum validator stay as they are.
+// Without enumValuesInDescription (enabled false) it changes nothing.
+func addEnumValues(attrs []*tfAttr, enabled bool) {
+	if !enabled {
+		return
+	}
+	for _, a := range attrs {
+		if values, ok := enumValidatorValues(a); ok && !a.VerbatimDescription && !strings.Contains(a.Description, "Valid values") {
+			list := fmt.Sprintf("Valid values: %q.", values)
+			if a.Description != "" {
+				list = " " + list
+			}
+			a.Description += list
+		}
+		addEnumValues(a.Attributes, true)
+	}
+}
+
+// enumValidatorValues returns the values of the OneOf or OneOfCaseInsensitive validator of an
+// attribute of an enum (or a list or set of one), in the order of the validator.
+func enumValidatorValues(a *tfAttr) ([]string, bool) {
+	if a.EnumSchema == "" && a.FoldEnum == "" {
+		return nil, false
+	}
+	prefix := ""
+	if a.ValueKind == "List" || a.ValueKind == "Set" {
+		prefix = strings.ToLower(a.ValueKind) + "validator.ValueStringsAre("
+	} else if a.ValueKind != "String" {
+		return nil, false
+	}
+	// Every validator must pass, so with more than one, such as an inferred one and an
+	// enumExceptZero line, the accepted values are the ones that all of them accept.
+	var values []string
+	found := false
+	for _, v := range a.Validators {
+		for _, call := range []string{"stringvalidator.OneOf(", "stringvalidator.OneOfCaseInsensitive("} {
+			rest, ok := strings.CutPrefix(v, prefix+call)
+			if !ok {
+				continue
+			}
+			list, ok := quotedList(rest, prefix != "")
+			switch {
+			case !ok:
+			case !found:
+				values, found = list, true
+			default:
+				values = slices.DeleteFunc(values, func(value string) bool { return !slices.Contains(list, value) })
+			}
+		}
+	}
+	return values, found && len(values) != 0
+}
+
+// quotedList reads the Go string literals of an argument list that ends the call: `"a", "b")`,
+// or `"a", "b"))` when the call is itself an argument.
+func quotedList(rest string, nested bool) ([]string, bool) {
+	var values []string
+	for {
+		quoted, err := strconv.QuotedPrefix(rest)
+		if err != nil {
+			return nil, false
+		}
+		value, err := strconv.Unquote(quoted)
+		if err != nil {
+			return nil, false
+		}
+		values = append(values, value)
+		rest = rest[len(quoted):]
+		if next, ok := strings.CutPrefix(rest, ", "); ok {
+			rest = next
+			continue
+		}
+		end := ")"
+		if nested {
+			end = "))"
+		}
+		return values, rest == end
+	}
 }
 
 // stripComputedConfig removes configuration checks from a computed-only attribute
@@ -587,10 +674,10 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 		return err
 	}
 	if l.Description != nil {
-		a.Description, a.PlainDescription = *l.Description, true
+		a.Description, a.PlainDescription, a.VerbatimDescription = *l.Description, true, true
 	}
 	if l.MarkdownDescription != nil {
-		a.Description, a.PlainDescription = *l.MarkdownDescription, false
+		a.Description, a.PlainDescription, a.VerbatimDescription = *l.MarkdownDescription, false, true
 	}
 	a.DeprecationMessage = l.Deprecation
 	if l.Computed != nil {
