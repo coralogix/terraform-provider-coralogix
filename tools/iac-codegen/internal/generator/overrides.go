@@ -103,11 +103,12 @@ func overrideIssues(doc *v3.Document, component string, file *overrides.File, id
 		requestOnly = nil // the model reports the operations that it cannot resolve
 	}
 	requested := requestComponents(doc, requestOperations(doc, component, ids, file))
+	createOptional := createOptionalFields(doc, component, ids, file)
 	for _, line := range file.Lines() {
 		if line.Kind == overrides.KindField && line.Component == component && slices.Equal(line.Keys, []string{"skip"}) && slices.Contains(requestOnly, line.Field) {
 			continue
 		}
-		if problem := lineProblem(doc, line, component, file, requested); problem != nil {
+		if problem := lineProblem(doc, line, component, file, requested, createOptional); problem != nil {
 			report = append(report, issue.Issue{
 				Code:        cmp.Or(problem.code, "OVERRIDE_UNUSED"),
 				Location:    overrides.FileName + ":" + line.String(),
@@ -154,7 +155,7 @@ func (i *lineIssue) remediation(line overrides.Line) string {
 
 // lineProblem checks one line. resource is the component of the resource response. requested are
 // the components that a request body reaches.
-func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *overrides.File, requested map[string]bool) *lineIssue {
+func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *overrides.File, requested map[string]bool, createOptional map[string]bool) *lineIssue {
 	if doc.Components == nil || doc.Components.Schemas == nil {
 		return wholeLine(errors.New("the API contract has no component schemas"))
 	}
@@ -179,11 +180,19 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 		return wholeLine(fmt.Errorf("component %q: a missing required list already means that no field is required, so no override is needed", line.Component))
 	case overrides.KindField:
 		nested := line.Component != resource
-		// A component that only a response reaches binds no request: the request holds its own
-		// component in that place, such as an input object next to its output object, or a
-		// Create body of its own next to the resource response. Its required list says nothing
-		// about the requests, so a required or optional line is not stale.
-		return fieldLineProblem(schema, line, nested, !requested[line.Component])
+		// A nested component that only a response reaches binds no request: the request holds its
+		// own component in that place, such as an input object next to its output object.
+		if nested {
+			return fieldLineProblem(schema, line, nested, !requested[line.Component], nil)
+		}
+		// The resource component can be one that only the response reaches too: Create has a body
+		// of its own. Then the required list of the response says nothing about a field that Create
+		// leaves optional without a default, and the line is what makes it required in Terraform.
+		var byCreate map[string]bool
+		if !requested[line.Component] {
+			byCreate = createOptional
+		}
+		return fieldLineProblem(schema, line, nested, false, byCreate)
 	case overrides.KindGroup:
 		for _, field := range line.GroupFields {
 			if schema.Properties == nil || schema.Properties.GetOrZero(field) == nil {
@@ -192,6 +201,97 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 		}
 	}
 	return nil
+}
+
+// createOperationID returns the operation that creates the resource: the file names it, or an
+// option does, or the model finds it. It returns "" when it cannot be resolved yet.
+func createOperationID(doc *v3.Document, component string, ids model.OperationIDs, file *overrides.File) string {
+	if o := file.API.Operations; o != nil && o.Create != "" {
+		return o.Create
+	}
+	if ids.Create != "" {
+		return ids.Create
+	}
+	resource, err := model.BuildWithPolicy(doc, component, ids, file.Policy())
+	if err != nil {
+		return ""
+	}
+	return resource.Create.OperationID
+}
+
+// createOptionalFields returns the fields of the resource component (the fields of its inlined
+// objects too) that the Create request body has, leaves optional, and gives no default. A field in
+// an inlined object is optional when the body or the object leaves it optional. It returns nil when
+// the Create body cannot be read.
+func createOptionalFields(doc *v3.Document, component string, ids model.OperationIDs, file *overrides.File) map[string]bool {
+	id := createOperationID(doc, component, ids, file)
+	if id == "" || doc.Paths == nil || doc.Paths.PathItems == nil || doc.Components == nil || doc.Components.Schemas == nil {
+		return nil
+	}
+	var body *base.Schema
+	for _, item := range doc.Paths.PathItems.FromOldest() {
+		for _, op := range item.GetOperations().FromOldest() {
+			if op.OperationId != id || op.RequestBody == nil || op.RequestBody.Content == nil {
+				continue
+			}
+			for _, media := range op.RequestBody.Content.FromOldest() {
+				if media.Schema != nil {
+					body, _ = media.Schema.BuildSchema()
+				}
+				break
+			}
+		}
+	}
+	proxy := doc.Components.Schemas.GetOrZero(component)
+	if body == nil || body.Properties == nil || proxy == nil {
+		return nil
+	}
+	resource, err := proxy.BuildSchema()
+	if err != nil {
+		return nil
+	}
+	if resource, err = withInlinedFields(resource, file, component); err != nil || resource.Properties == nil {
+		return nil
+	}
+	var inlined []string
+	for _, line := range file.Lines() {
+		if line.Kind == overrides.KindField && line.Component == component && line.Inline {
+			inlined = append(inlined, line.Field)
+		}
+	}
+	hasDefault := func(p *base.SchemaProxy) bool {
+		built, err := p.BuildSchema()
+		return err != nil || built.Default != nil
+	}
+	out := map[string]bool{}
+	for name := range resource.Properties.KeysFromOldest() {
+		if direct := body.Properties.GetOrZero(name); direct != nil {
+			out[name] = !slices.Contains(body.Required, name) && !hasDefault(direct)
+			continue
+		}
+		for _, parent := range inlined {
+			parentProxy := body.Properties.GetOrZero(parent)
+			if parentProxy == nil {
+				continue
+			}
+			object, err := parentProxy.BuildSchema()
+			if err != nil {
+				continue
+			}
+			if len(object.AllOf) == 1 {
+				if object, err = object.AllOf[0].BuildSchema(); err != nil {
+					continue
+				}
+			}
+			if object.Properties == nil {
+				continue
+			}
+			if child := object.Properties.GetOrZero(name); child != nil {
+				out[name] = !(slices.Contains(body.Required, parent) && slices.Contains(object.Required, name)) && !hasDefault(child)
+			}
+		}
+	}
+	return out
 }
 
 // withInlinedFields returns the component with the fields of its inlined objects: they are
@@ -374,7 +474,7 @@ func requestComponents(doc *v3.Document, ops map[string]bool) map[string]bool {
 // shared is true for a nested component, which the requests and the response usually share, so
 // its required list binds the requests too. responseOnly is true for a nested component that no
 // request reaches: its required list binds no request, so a required or optional line is not stale.
-func fieldLineProblem(schema *base.Schema, line overrides.Line, shared, responseOnly bool) *lineIssue {
+func fieldLineProblem(schema *base.Schema, line overrides.Line, shared, responseOnly bool, createOptional map[string]bool) *lineIssue {
 	if schema.Properties == nil || schema.Properties.GetOrZero(line.Field) == nil {
 		return wholeLine(fmt.Errorf("component %q has no field %q", line.Component, line.Field))
 	}
@@ -385,7 +485,13 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared, response
 	if line.ReadOnly && iacoverrides.ContractReadOnly(schema, line.Field) {
 		stale = append(stale, "readOnly")
 	}
-	if line.Required && !responseOnly && slices.Contains(schema.Required, line.Field) && !(shared && requiredLineStatesPresence(schema, line.Field)) {
+	requiredByContract := slices.Contains(schema.Required, line.Field)
+	if createOptional[line.Field] {
+		// The Create body has its own field, optional and without a default: the required list of
+		// the response, which no request reaches, does not state that Terraform requires it.
+		requiredByContract = false
+	}
+	if line.Required && !responseOnly && requiredByContract && !(shared && requiredLineStatesPresence(schema, line.Field)) {
 		stale = append(stale, "required")
 	}
 	if line.Optional && shared && !responseOnly && !slices.Contains(schema.Required, line.Field) {
