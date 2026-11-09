@@ -291,6 +291,47 @@ var apiKeyScenarios = map[string]func(h *grHarness){
 		h.Apply("update: back to the configuration", s, apiKeyConfig("policy", j{"access_policy": apiKeyPolicyComplete}))
 	},
 
+	// A key that schema version 0 created as hashed has its value only in the state. A refresh and an
+	// update keep it. The upgrade leaves the roles as permissions, so the config lists them.
+	"hashed-key-refresh-and-update": func(h *grHarness) {
+		h.apiKeys().seed(apiKeySeed{name: "hashed", hashed: true, presets: []string{"APM"}})
+		s := h.UpgradeV0("upgrade a hashed key", `{"id":"`+apiKeyFirstID+`","name":"hashed","owner":{"team_id":"`+strconv.Itoa(apiKeyFakeTeamID)+`","user_id":null},"active":true,"hashed":true,"value":"old-secret","roles":[]}`)
+		s = h.Refresh("refresh: the value stays in the state", s)
+		s = h.Apply("update: rename", s, j{"name": "hashed-renamed", "owner": apiKeyTeam(), "presets": []any{"APM"}, "permissions": []any{}})
+		h.RefreshPlan("refresh and replan", s)
+	},
+
+	// The recording shows that Get returns the value of a key that is not hashed. If it did not, the
+	// value of the Create answer would be the only copy, and the state would keep it.
+	"get-omits-value": func(h *grHarness) {
+		h.apiKeys().omitValue = true
+		s := h.Apply("create: Get leaves the value out", h.null(), apiKeyConfig("quiet", nil))
+		s = h.RefreshPlan("refresh and replan", s)
+		h.Apply("update: rename", s, apiKeyConfig("quiet-renamed", nil))
+	},
+	"import-get-omits-value": func(h *grHarness) {
+		h.apiKeys().omitValue = true
+		id := h.apiKeys().seed(apiKeySeed{name: "imported", presets: []string{"APM"}, permissions: []string{"livetail:Read"}})
+		h.Import("import: Get leaves the value out", id)
+	},
+
+	// The 404 of a gateway without the route is no answer of the key service: the key is not gone.
+	"read-route-missing": func(h *grHarness) {
+		s := h.Apply("create", h.null(), apiKeyConfig("keeps", nil))
+		h.apiKeys().routeMissing = true
+		h.Refresh("refresh: the gateway has no such route", s)
+	},
+	"update-route-missing": func(h *grHarness) {
+		s := h.Apply("create", h.null(), apiKeyConfig("keeps", nil))
+		h.apiKeys().routeMissing = true
+		h.Apply("update: the gateway has no such route", s, apiKeyConfig("keeps-renamed", nil))
+	},
+	"delete-route-missing": func(h *grHarness) {
+		s := h.Apply("create", h.null(), apiKeyConfig("keeps", nil))
+		h.apiKeys().routeMissing = true
+		h.Destroy("destroy: the gateway has no such route", s)
+	},
+
 	// errors
 	"create-api-error": func(h *grHarness) {
 		h.apiKeys().createStatus = 500

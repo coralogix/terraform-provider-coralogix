@@ -56,5 +56,16 @@ migration, and the golden diff of the switch shows it.
 * `scenario_update-read-fails.json`: a failed Get after Update returns no error and no state.
 * `scenario_create-read-fails.json`: a failed Get after Create keeps no state, so the key and its
   secret are lost.
+* `scenario_read-route-missing.json`, `scenario_update-route-missing.json`,
+  `scenario_delete-route-missing.json`: any 404 counts as "the key is gone", also the 404 of a
+  gateway that has no such route. Read removes the key from state, Update does the same and the
+  framework fails with "Missing Resource State After Update", and Delete succeeds without a delete.
+* `scenario_hashed-key-refresh-and-update.json`: a key that schema version 0 created as hashed keeps
+  its value in the state on refresh, but no update of it can succeed: `hashed` is computed, so the
+  plan holds an unknown value, which differs from `true`, and Update fails with "ApiKey hashing can
+  not be updated".
+* `scenario_get-omits-value.json`, `scenario_import-get-omits-value.json`: the value of the Create
+  answer is kept in the state when Get leaves it out. The recording shows that Get returns the value
+  of a key that is not hashed, so the case shows what the resource does if that were not so.
 * `scenario_create-inactive.json`, `scenario_preset-in-lower-case.json`,
   `scenario_policy-incomplete.json`: inconsistent result after apply.
