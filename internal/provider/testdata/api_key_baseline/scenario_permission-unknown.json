@@ -1,0 +1,62 @@
+[
+  {
+    "step": "create with an unknown permission",
+    "config": {
+      "name": "unknown",
+      "owner": {
+        "team_id": "4000001"
+      },
+      "permissions": [
+        "no:Such"
+      ],
+      "presets": [
+        "APM"
+      ]
+    },
+    "plan": {
+      "access_policy": "(unknown)",
+      "active": true,
+      "hashed": "(unknown)",
+      "id": "(unknown)",
+      "name": "unknown",
+      "owner": {
+        "organisation_id": null,
+        "team_id": "4000001",
+        "user_id": null
+      },
+      "permissions": [
+        "no:Such"
+      ],
+      "presets": [
+        "APM"
+      ],
+      "value": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3",
+        "body": {
+          "hashed": false,
+          "keyPermissions": {
+            "permissions": [
+              "no:Such"
+            ],
+            "presets": [
+              "APM"
+            ]
+          },
+          "name": "unknown",
+          "owner": {
+            "teamId": 4000001
+          }
+        },
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_api_key | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: BadRequest Permission no:Such not found\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

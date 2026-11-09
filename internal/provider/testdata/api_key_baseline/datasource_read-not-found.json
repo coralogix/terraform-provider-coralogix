@@ -1,0 +1,29 @@
+[
+  {
+    "step": "Get answers 404",
+    "config": {
+      "id": "00000000-0000-4000-8000-000000000009"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/api-keys/v3/00000000-0000-4000-8000-000000000009",
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error reading coralogix_api_key | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Key with id KeyId(00000000-0000-4000-8000-000000000009) does not exist\"}\noperation - Read"
+    ],
+    "state": {
+      "access_policy": null,
+      "active": null,
+      "hashed": null,
+      "id": "00000000-0000-4000-8000-000000000009",
+      "name": null,
+      "owner": null,
+      "permissions": null,
+      "presets": null,
+      "value": null
+    }
+  }
+]

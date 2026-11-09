@@ -47,6 +47,7 @@ var dataSourceBaselines = map[string]dataSourceBaseline{
 	"scope":               {scopeGoldenDir, newScopeHarness, scopeDataSourceScenarios},
 	"dashboard":           {dashboardGoldenDir, newDashboardHarness, dashboardDataSourceScenarios},
 	"team":                {teamGoldenDir, newTeamHarness, teamDataSourceScenarios},
+	"api_key":             {apiKeyGoldenDir, newAPIKeyHarness, apiKeyDataSourceScenarios},
 	"configuration_group": {cgGoldenDir, newCGHarness, cgDataSourceScenarios},
 	"alerts_scheduler": {asGoldenDir, func(t *testing.T) *grHarness {
 		return newProtocolHarness(t, asTypeName, newASFake(t))
