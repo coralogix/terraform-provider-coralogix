@@ -5,6 +5,7 @@
 - FIX: A 404 for a missing API route is an error. Before, a refresh removed the retentions from state.
 - FIX: Importing with any id stores the fixed id `archive-retention-settings`.
 - CHORE: API errors read `Unable to create archive_retentions`, `Unable to update archive_retentions`, and so on.
+- FEAT: The resource has a generated acceptance test, and an upgrade test from 3.24.0. CI runs it in the archive shard, one test at a time.
 
 #### data-source/coralogix_archive_retentions
 - CHORE: The data source is generated with the resource. Its `id` is `archive-retention-settings`, the id of the resource. Before, it was `""`.
