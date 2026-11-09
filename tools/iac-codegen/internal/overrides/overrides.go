@@ -464,7 +464,8 @@ type Field struct {
 	Default any `yaml:"default"`
 	// ReadEmptyAs: "null" reads an empty list or object from the API as null.
 	ReadEmptyAs string `yaml:"readEmptyAs"`
-	// ReadNullAs: "empty" reads a missing list or set as an empty collection.
+	// ReadNullAs: "empty" reads a missing string as "", and a missing list or set of objects as an
+	// empty collection.
 	ReadNullAs string `yaml:"readNullAs"`
 	// CarrySiblings, on an object field that holds a oneOf, shows the object as the arms of the
 	// oneOf: each arm attribute holds the other fields of the object (the siblings) next to the

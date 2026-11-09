@@ -354,7 +354,8 @@ type convField struct {
 	Projection *itemProjection
 	// refPath is the SDK ref path of the field, for the refs of the items of a projection.
 	refPath string
-	// ReadNullAsEmpty: flatten reads a missing list or set as an empty collection.
+	// ReadNullAsEmpty: flatten reads a missing string as "", and a missing list or set of objects
+	// as an empty collection.
 	ReadNullAsEmpty bool
 	// SendNullAsEmpty: expand sends "" for a null string, so the API clears the stored value.
 	SendNullAsEmpty bool
@@ -1722,8 +1723,8 @@ func checkReadAs(cf *convField) error {
 	if err := checkReadEmptyAs(cf); err != nil {
 		return err
 	}
-	if cf.ReadNullAsEmpty && cf.Conv != convObjects {
-		return fmt.Errorf("%s: readNullAs: empty needs a list or set of objects", cf.TFName)
+	if cf.ReadNullAsEmpty && cf.Conv != convObjects && cf.Conv != convString {
+		return fmt.Errorf("%s: readNullAs: empty needs a string, or a list or set of objects", cf.TFName)
 	}
 	return nil
 }
