@@ -34,6 +34,10 @@ func modifyAlertPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *
 		return
 	}
 	resp.Diagnostics.Append(planOverridePriority(ctx, req, resp)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(planWebhookRetriggering(req, resp)...)
 }
 
 // groupByArms are the arms of type_definition for which the API computes group_by.
@@ -305,4 +309,71 @@ func plannedFromConfig(config, plan tftypes.Value) bool {
 		return true
 	}
 	return config.Equal(plan)
+}
+
+// planWebhookRetriggering keeps the retriggering period of a webhook that the configuration leaves out.
+// The released resource kept the period of the state item at the same position in the set. The plan and
+// the state order a set apart, so this pairs a planned webhook with the state webhook that has the same
+// integration or the same recipients.
+func planWebhookRetriggering(req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) diag.Diagnostics {
+	var diags diag.Diagnostics
+	webhooks := []tftypes.AttributePathStep{tftypes.AttributeName("notification_group"), tftypes.AttributeName("webhooks_settings")}
+	stateWebhooks, ok := valueAtAttributes(req.State.Raw, webhooks)
+	var stateItems []tftypes.Value
+	if !ok || !stateWebhooks.IsKnown() || stateWebhooks.IsNull() || stateWebhooks.As(&stateItems) != nil || len(stateItems) == 0 {
+		return diags
+	}
+	planned, err := tftypes.Transform(resp.Plan.Raw, func(p *tftypes.AttributePath, v tftypes.Value) (tftypes.Value, error) {
+		steps := p.Steps()
+		if len(steps) != 3 || steps[0] != tftypes.AttributePathStep(webhooks[0]) || steps[1] != tftypes.AttributePathStep(webhooks[1]) {
+			return v, nil
+		}
+		if _, isItem := steps[2].(tftypes.ElementKeyValue); !isItem {
+			return v, nil
+		}
+		return withStateRetriggering(v, stateItems), nil
+	})
+	if err != nil {
+		diags.AddError("Unable to plan the retriggering period", err.Error())
+		return diags
+	}
+	resp.Plan.Raw = planned
+	return diags
+}
+
+// withStateRetriggering returns the planned webhook with the retriggering period of the state webhook that
+// it matches, when the plan leaves the period unknown and the state has one.
+func withStateRetriggering(webhook tftypes.Value, stateItems []tftypes.Value) tftypes.Value {
+	var attrs map[string]tftypes.Value
+	if !webhook.IsKnown() || webhook.IsNull() || webhook.As(&attrs) != nil {
+		return webhook
+	}
+	if period, found := attrs["retriggering_period"]; !found || period.IsKnown() {
+		return webhook
+	}
+	for _, item := range stateItems {
+		var stateAttrs map[string]tftypes.Value
+		if !item.IsKnown() || item.IsNull() || item.As(&stateAttrs) != nil || !sameWebhook(attrs, stateAttrs) {
+			continue
+		}
+		period := stateAttrs["retriggering_period"]
+		if !period.IsKnown() || period.IsNull() {
+			return webhook
+		}
+		kept := maps.Clone(attrs)
+		kept["retriggering_period"] = period
+		return tftypes.NewValue(webhook.Type(), kept)
+	}
+	return webhook
+}
+
+// sameWebhook reports whether two webhooks send to the same integration or the same recipients.
+func sameWebhook(a, b map[string]tftypes.Value) bool {
+	for _, key := range []string{"integration_id", "recipients"} {
+		x, y := a[key], b[key]
+		if x.IsKnown() && !x.IsNull() && y.IsKnown() && !y.IsNull() && x.Equal(y) {
+			return true
+		}
+	}
+	return false
 }

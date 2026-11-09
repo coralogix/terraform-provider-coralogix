@@ -74,6 +74,10 @@ func activeOnAttrTypes() map[string]attr.Type {
 // it in the offset that the model carries from the plan or the prior state, or +0000 when it has none.
 func afterFlattenAlert(_ context.Context, m *alert.AlertDefModel, v *alertapi.AlertDef) diag.Diagnostics {
 	m.GroupByKeys = emptyGroupByForm(m.GroupByKeys, v)
+	// The schema rejects an empty labels map, so the one that the API returns for an alert without labels is null.
+	if !m.EntityLabels.IsUnknown() && len(m.EntityLabels.Elements()) == 0 {
+		m.EntityLabels = types.MapNull(types.StringType)
+	}
 	var window *alertapi.ActivitySchedule
 	if v != nil && v.AlertDefProperties != nil {
 		window = v.AlertDefProperties.ActiveOn

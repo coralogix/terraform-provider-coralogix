@@ -63,7 +63,7 @@ types:
       priority: {computed: true, useStateForUnknown: true, validators: [{enum: true}], markdownDescription: "Alert priority. Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"]. This field will be removed in the future in favor of the 'override' property where possible."}
       groupByKeys: {name: group_by, computed: true}
       entityLabels: {name: labels, validators: [{sizeAtLeast: 1}], markdownDescription: "Key-value labels on the alert definition. Use them to categorize the alert and to match Notification Center routers and alert-scheduler mute rules. Omit the attribute to clear all labels. An empty map is rejected."}
-      dataSources: {validators: [{sizeAtLeast: 1}], markdownDescription: "Data sources to associate the alert with. The referenced data space and dataset must already exist. Omit the attribute instead of setting an empty list."}
+      dataSources: {readEmptyAs: "null", validators: [{sizeAtLeast: 1}], markdownDescription: "Data sources to associate the alert with. The referenced data space and dataset must already exist. Omit the attribute instead of setting an empty list."}
       incidentsSettings: {computed: true, useStateForUnknown: true}
       notificationGroup: {computed: true, default: {}}
       # The API type follows the arm that is set. The response type is ignored on read.

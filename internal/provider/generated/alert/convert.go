@@ -3974,7 +3974,7 @@ func flattenAlertDef(ctx context.Context, p path.Path, v *alert_definitions_serv
 	out.TypeDefinition = flattenAlertDefTypeDefinition(ctx, p.AtName("type_definition"), v, diags)
 	out.CaseSettings = flattenAlertDefCaseSettings(ctx, p.AtName("case_settings"), v.AlertDefProperties.CaseSettings, diags)
 	out.DataSources = types.ListNull(types.ObjectType{AttrTypes: alertDefDataSourceAttrTypes()})
-	if v.AlertDefProperties.DataSources != nil {
+	if len(v.AlertDefProperties.DataSources) != 0 {
 		items := make([]AlertDefDataSourceModel, 0, len(v.AlertDefProperties.DataSources))
 		for i := range v.AlertDefProperties.DataSources {
 			items = append(items, *flattenAlertDefDataSource(ctx, p.AtName("data_sources").AtListIndex(i), &v.AlertDefProperties.DataSources[i], diags))
