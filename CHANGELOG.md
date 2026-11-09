@@ -33,6 +33,8 @@
 - CHORE: Bump `coralogix-management-sdk/iac` to the version that reads a resource id inside a one-property wrapper (coralogix-management-sdk#736). Before, `tfgen check` panicked on such an id.
 - CHORE: Bump the generator to `v0.1.0-beta.74`. The generated files of every resource are the same.
 - FEAT: `inline` accepts an object that holds a `oneOf`. Its arms become top-level fields of the resource, and a `groups` line collects them as for any top-level `oneOf`. `required: true` on an `inline` line states that the API always has the object, for a contract that cannot write it (a message field of a request has no `required` list). Before, the generator stopped with `INLINE_UNSUPPORTED`.
+- FEAT: `modifyPlan: true` adds a `ModifyPlan` hook to an existing resource. It runs after the generated plan steps (enum aliases, plan equals state, equality), is skipped on destroy and when a generated step failed, and sees the final plan, so a rule that no attribute modifier expresses, such as a planned value inside a set of objects, can be set there.
+- FEAT: `extraAttributes` can be a `bool`, a `list`, or an `object` with nested `attributes`, and can be Optional+Computed (`optional: true` with `computed: true`) with a static `default`, `useStateForUnknown`, and, on a string, `equality: json` or `yaml`. They are Terraform-only: expand sends nothing, flatten starts them as a typed null, and a hook converts them. Before, an extra attribute was a plain optional string, set of strings, map, or dynamic value.
 
 # Release 3.24.0
 
