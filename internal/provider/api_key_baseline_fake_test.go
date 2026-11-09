@@ -78,6 +78,12 @@ type apiKeyFake struct {
 	requests []grRequest
 	// createStatus, getStatus, updateStatus, and deleteStatus force an answer of the next calls.
 	createStatus, getStatus, updateStatus, deleteStatus int
+	// omitValue makes Get and the list leave out the value of a key that is not hashed. The recording
+	// shows that the API returns it, so this is a case that the resource must survive, not one that
+	// the API is known to produce.
+	omitValue bool
+	// routeMissing makes every call of a key answer the 404 of a gateway that has no such route.
+	routeMissing bool
 }
 
 type apiKeyRecord struct {
@@ -206,6 +212,9 @@ func (f *apiKeyFake) handle(method, path string, body any) (int, any) {
 		return f.list()
 	case rest == "":
 		return apiKeyError(http.StatusNotFound, "Not Found")
+	}
+	if f.routeMissing {
+		return apiKeyError(http.StatusNotFound, "Not Found: Not Found")
 	}
 	if !apiKeyIDPattern.MatchString(rest) {
 		return apiKeyError(http.StatusBadRequest, fmt.Sprintf("Bad Request: key_id invalid length: expected length 32 for simple format, found %d", len(rest)))
@@ -425,7 +434,7 @@ func (f *apiKeyFake) info(rec *apiKeyRecord) map[string]any {
 			"permissions": permissions,
 		},
 	}
-	if !rec.hashed {
+	if !rec.hashed && !f.omitValue {
 		info["value"] = rec.value
 	}
 	if rec.accessPolicy != "" {
