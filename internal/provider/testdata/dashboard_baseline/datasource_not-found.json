@@ -12,7 +12,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading Dashboard | dashboard not found: error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: DashboardId(missing-dashboard-001)\"}\noperation - Get"
+      "error: Error reading Dashboard | dashboard not found: error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: dashboard with id missing-dashboard-001 does not exist\"}\noperation - Get"
     ],
     "state": {
       "access_policy": null,

@@ -61,6 +61,8 @@ func mustJSONObject(t testing.TB, text string) map[string]any {
 var dashboardMoreScenarios = map[string]func(*grHarness){
 	// --- top-level fields ---
 	"folder-id": func(h *grHarness) {
+		h.dashboards().addFolder("11111111-1111-4111-8111-111111111111", "first")
+		h.dashboards().addFolder("22222222-2222-4222-8222-222222222222", "second")
 		cfg := dashboardWith(dashboardConfig(), j{"folder": j{"id": "11111111-1111-4111-8111-111111111111"}})
 		s := h.Apply("create in a folder by id", h.null(), cfg)
 		s = h.RefreshPlan("refresh and plan", s)
@@ -72,6 +74,7 @@ var dashboardMoreScenarios = map[string]func(*grHarness){
 		h.Destroy("destroy", s)
 	},
 	"folder-path": func(h *grHarness) {
+		h.dashboards().addFolder("11111111-1111-4111-8111-111111111111", "first")
 		cfg := dashboardWith(dashboardConfig(), j{"folder": j{"path": "Team/Sub"}})
 		s := h.Apply("create in a folder by path", h.null(), cfg)
 		s = h.RefreshPlan("refresh and plan", s)
@@ -255,6 +258,7 @@ var dashboardMoreScenarios = map[string]func(*grHarness){
 		h.Destroy("destroy", imported)
 	},
 	"content-json-folder": func(h *grHarness) {
+		h.dashboards().addFolder("11111111-1111-4111-8111-111111111111", "first")
 		cfg := dashboardWith(contentJSONConfig(dashboardContentJSON(h.t, "content_json_canonical.json")), j{"folder": j{"id": "11111111-1111-4111-8111-111111111111"}})
 		s := h.Apply("create content_json next to a folder block", h.null(), cfg)
 		s = h.RefreshPlan("refresh and plan", s)

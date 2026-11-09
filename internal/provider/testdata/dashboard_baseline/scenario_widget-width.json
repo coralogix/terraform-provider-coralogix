@@ -135,7 +135,7 @@
       }
     ],
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -199,7 +199,7 @@
       }
     ],
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -284,7 +284,7 @@
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ],
     "plan": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": "(unknown)",
       "content_json": null,
@@ -391,7 +391,7 @@
       }
     ],
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -455,7 +455,7 @@
       }
     ],
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -536,7 +536,7 @@
       "name": "baseline dashboard"
     },
     "plan": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -590,7 +590,7 @@
     },
     "noChange": true,
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -653,7 +653,7 @@
       }
     ],
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,

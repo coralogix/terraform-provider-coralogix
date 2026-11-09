@@ -1,0 +1,1200 @@
+{
+  "cases": [
+    {
+      "name": "lifecycle: create, read, replace, read, delete, read, delete again",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "note",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "PUT",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboardId": "{{id}}",
+            "dashboard": {
+              "name": "{{name}}-updated",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "note",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "description": "described",
+              "id": "{{id}}"
+            }
+          },
+          "capture": ""
+        },
+        {
+          "method": "GET",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "DELETE",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "GET",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "DELETE",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        }
+      ]
+    },
+    {
+      "name": "omitted lists, enums and empty objects read back",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "line",
+                            "definition": {
+                              "lineChart": {
+                                "queryDefinitions": [
+                                  {
+                                    "id": "00000000-0000-4000-8000-000000000004",
+                                    "query": {
+                                      "dataprime": {
+                                        "dataprimeQuery": {}
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "DELETE",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        }
+      ]
+    },
+    {
+      "name": "create with a sent dashboard id",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "note",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "id": "fidelity{{rand}}abc"
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "DELETE",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        }
+      ]
+    },
+    {
+      "name": "replace with a dashboard id that differs from dashboardId",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "note",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "PUT",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboardId": "{{id}}",
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "note",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "id": "other-id-000000000001"
+            }
+          },
+          "capture": ""
+        },
+        {
+          "method": "PUT",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboardId": "{{id}}",
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "note",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "capture": ""
+        },
+        {
+          "method": "GET",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "DELETE",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        }
+      ]
+    },
+    {
+      "name": "missing dashboard: replace, delete, get, get with a bad id",
+      "steps": [
+        {
+          "method": "PUT",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboardId": "missing-fidelity-0001",
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "note",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "id": "missing-fidelity-0001"
+            }
+          },
+          "capture": ""
+        },
+        {
+          "method": "DELETE",
+          "path": "/dashboards/v1/missing-fidelity-0001",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "GET",
+          "path": "/dashboards/v1/missing-fidelity-0001",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "GET",
+          "path": "/dashboards/v1/not-a-valid-id",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "DELETE",
+          "path": "/dashboards/v1/not-a-valid-id",
+          "body": null,
+          "capture": ""
+        }
+      ]
+    },
+    {
+      "name": "access policy: create, keep on replace, change, blank",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "note",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "accessPolicy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\"}},\"rules\":[]}"
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "PUT",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboardId": "{{id}}",
+            "dashboard": {
+              "name": "{{name}}-b",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "note",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "id": "{{id}}"
+            }
+          },
+          "capture": ""
+        },
+        {
+          "method": "GET",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "PUT",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboardId": "{{id}}",
+            "dashboard": {
+              "name": "{{name}}-c",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "note",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "id": "{{id}}"
+            },
+            "accessPolicy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-dashboards:Read\":\"deny\"}},\"rules\":[]}"
+          },
+          "capture": ""
+        },
+        {
+          "method": "GET",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "PUT",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboardId": "{{id}}",
+            "dashboard": {
+              "name": "{{name}}-d",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "note",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "id": "{{id}}"
+            },
+            "accessPolicy": ""
+          },
+          "capture": ""
+        },
+        {
+          "method": "GET",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "DELETE",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        }
+      ]
+    },
+    {
+      "name": "no access policy",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "note",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "DELETE",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        }
+      ]
+    },
+    {
+      "name": "folder path creates or finds the folder and reads back a folder id",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "note",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "folderPath": {
+                "segments": [
+                  "{{name}}-folder"
+                ]
+              }
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "DELETE",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        }
+      ]
+    },
+    {
+      "name": "folder id of a folder that does not exist",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "note",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "folderId": {
+                "value": "00000000-0000-4000-8000-000000000009"
+              }
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "DELETE",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        }
+      ]
+    },
+    {
+      "name": "widget highlighted: unset, true, false",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "unset",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          },
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000005"
+                            },
+                            "title": "true",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            },
+                            "highlighted": true
+                          },
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000006"
+                            },
+                            "title": "false",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            },
+                            "highlighted": false
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "GET",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        },
+        {
+          "method": "DELETE",
+          "path": "/dashboards/v1/{{id}}",
+          "body": null,
+          "capture": ""
+        }
+      ]
+    },
+    {
+      "name": "create rejections",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "rows": []
+                  }
+                ]
+              }
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": []
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "title": "x",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "t"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "two",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "t"
+                              },
+                              "lineChart": {}
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "/dashboards/v1",
+          "body": {
+            "dashboard": {
+              "name": "{{name}}"
+            }
+          },
+          "capture": "id"
+        },
+        {
+          "method": "POST",
+          "path": "/dashboards/v1",
+          "body": {},
+          "capture": "id"
+        }
+      ]
+    },
+    {
+      "name": "check: valid dashboard and one with duplicate widget ids",
+      "steps": [
+        {
+          "method": "POST",
+          "path": "/check/v1",
+          "body": {
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "note",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "capture": ""
+        },
+        {
+          "method": "POST",
+          "path": "/check/v1",
+          "body": {
+            "dashboard": {
+              "name": "{{name}}",
+              "layout": {
+                "sections": [
+                  {
+                    "id": {
+                      "value": "00000000-0000-4000-8000-000000000001"
+                    },
+                    "rows": [
+                      {
+                        "id": {
+                          "value": "00000000-0000-4000-8000-000000000002"
+                        },
+                        "appearance": {
+                          "height": 10
+                        },
+                        "widgets": [
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "a",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          },
+                          {
+                            "id": {
+                              "value": "00000000-0000-4000-8000-000000000003"
+                            },
+                            "title": "b",
+                            "definition": {
+                              "markdown": {
+                                "markdownText": "hello"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "capture": ""
+        }
+      ]
+    }
+  ]
+}

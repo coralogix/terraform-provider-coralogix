@@ -138,7 +138,7 @@
       }
     },
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -426,7 +426,7 @@
       }
     },
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -665,7 +665,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].interval_resolution.use_advanced_limit: true → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].name: \"value-name\" → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.data_prime.filters[0].logs.field: \"value-field\" → null",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.data_prime.query: \"value-query\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.data_prime.query: \"value-query\" → \"\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].scale_type: \"linear\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].series_count_limit: 1 → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].series_name_template: \"value-series_name_template\" → null",
@@ -679,11 +679,13 @@
       "~ .layout.sections[0].rows[0].widgets[0].description: \"value-description\" → null"
     ],
     "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.line_chart.query_definitions[0].query.data_prime.query",
       "layout.sections[0].rows[0].widgets[0].definition.line_chart.tooltip.type"
     ],
     "replanEmpty": false,
     "replanDiff": [
       "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"data_prime\").AttributeName(\"query\")",
       "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"line_chart\").AttributeName(\"tooltip\").AttributeName(\"type\")"
     ]
   },

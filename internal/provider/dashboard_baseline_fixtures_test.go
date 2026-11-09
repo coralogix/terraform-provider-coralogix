@@ -529,6 +529,10 @@ func dashboardSchemaPaths() []string {
 	return out
 }
 
+// walkFolderID is the folder that the walk bases name. The API rejects a folder id that no folder has,
+// so the walk and the data source reads make the folder first.
+const walkFolderID = "33333333-3333-4333-8333-333333333333"
+
 // skipAttribute marks an attribute that the generator leaves out.
 const skipAttribute = "\x00skip"
 
@@ -537,7 +541,9 @@ func dashboardHint(path, name string) (any, bool) {
 	switch {
 	case path == "content_json", path == "id":
 		return skipAttribute, true
-	case name == "id" && path != "folder.id":
+	case path == "folder.id":
+		return walkFolderID, true
+	case name == "id":
 		return "22222222-2222-4222-8222-222222222222", true
 	case strings.HasSuffix(path, "stat_card.primary_value.mapped_values"):
 		return skipAttribute, true

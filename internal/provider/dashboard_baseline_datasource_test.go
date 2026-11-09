@@ -30,6 +30,7 @@ func init() {
 			if os.Getenv("DASHBOARD_WALK") != "all" && !slices.Contains(walkSmokeBases, b.name) {
 				h.t.Skip("set DASHBOARD_WALK=all to read every walk base")
 			}
+			h.dashboards().addFolder(walkFolderID, "walk folder")
 			cfg, _ := b.config(0, nil)
 			s := h.Apply("create the dashboard that the data source reads", h.null(), cfg)
 			if s.IsNull() {

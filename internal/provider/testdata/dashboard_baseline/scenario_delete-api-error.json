@@ -129,7 +129,7 @@
       }
     ],
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -196,7 +196,7 @@
       "error: Error Deleting Dashboard fakeboard000000000001 | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: dashboards service unavailable\"}\noperation - Delete"
     ],
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -259,7 +259,7 @@
       }
     ],
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,

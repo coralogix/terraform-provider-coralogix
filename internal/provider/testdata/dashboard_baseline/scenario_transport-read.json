@@ -129,7 +129,7 @@
       }
     ],
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -189,7 +189,7 @@
       "error: Error reading Dashboard | error - Get \"https://api.eu2.coralogix.com/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001\": dashboards transport unavailable\noperation - Get"
     ],
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -252,7 +252,7 @@
       }
     ],
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,

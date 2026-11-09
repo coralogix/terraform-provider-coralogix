@@ -126,7 +126,7 @@
       }
     },
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -388,7 +388,7 @@
       }
     },
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -595,7 +595,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.legend.columns: [\"avg\"] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.legend.group_by_query: true → false",
       "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.data_prime.filters[0].logs.field: \"value-field\" → null",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.data_prime.query: \"value-query\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.data_prime.query: \"value-query\" → \"\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.show_inner_arc: true → false",
       "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.show_min_max: true → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.threshold_by: \"background\" → \"unspecified\"",
@@ -605,7 +605,14 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.thresholds[0].label: \"value-label\" → null",
       "~ .layout.sections[0].rows[0].widgets[0].description: \"value-description\" → null"
     ],
-    "replanEmpty": true
+    "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.gauge.query.data_prime.query"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"query\").AttributeName(\"data_prime\").AttributeName(\"query\")"
+    ]
   },
   {
     "step": "remove optional objects (11)",

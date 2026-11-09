@@ -507,6 +507,7 @@ func runWalk(h *grHarness, b walkBase) []any {
 	cfg0 := variants[0].cfg
 	renamed := func(cfg j) j { return dashboardWith(cfg, j{"name": fmt.Sprint(cfg["name"]) + " updated"}) }
 
+	h.dashboards().addFolder(walkFolderID, "walk folder")
 	state := h.Apply("create variant 0", h.null(), cfg0)
 	if state.IsNull() {
 		return append(out, walkStep{Step: "create variant 0", Diagnostics: walkDiags(h.steps[len(h.steps)-1])})

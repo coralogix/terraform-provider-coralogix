@@ -129,8 +129,11 @@
         "status": 200
       }
     ],
+    "inconsistentResult": [
+      "access_policy"
+    ],
     "state": {
-      "access_policy": "",
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -182,7 +185,12 @@
       "variables": null,
       "variables_v2": null
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"access_policy\")",
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
+    ]
   },
   {
     "step": "refresh and plan",
@@ -194,7 +202,7 @@
       }
     ],
     "state": {
-      "access_policy": "",
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -246,7 +254,12 @@
       "variables": null,
       "variables_v2": null
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"access_policy\")",
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
+    ]
   },
   {
     "step": "set a policy on top of the blank one",
@@ -381,8 +394,11 @@
         "status": 200
       }
     ],
+    "inconsistentResult": [
+      "access_policy"
+    ],
     "state": {
-      "access_policy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\"}},\"rules\":[]}",
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"deny\",\"team-dashboards:Update\":\"deny\",\"team-dashboards:UpdateAccessPolicy\":\"deny\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -434,7 +450,12 @@
       "variables": null,
       "variables_v2": null
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"access_policy\")",
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
+    ]
   },
   {
     "step": "destroy",
@@ -830,8 +851,11 @@
         "status": 200
       }
     ],
+    "inconsistentResult": [
+      "access_policy"
+    ],
     "state": {
-      "access_policy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\"}},\"rules\":[]}",
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"deny\",\"team-dashboards:Update\":\"deny\",\"team-dashboards:UpdateAccessPolicy\":\"deny\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -883,7 +907,12 @@
       "variables": null,
       "variables_v2": null
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"access_policy\")",
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
+    ]
   },
   {
     "step": "destroy",

@@ -81,7 +81,7 @@
       }
     ],
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": "{\n  \"name\": \"Content JSON transport compatibility\",\n  \"description\": \"Protobuf JSON spelling compatibility\",\n  \"relativeTimeFrame\": \"900s\",\n  \"layout\": {\n    \"sections\": [\n      {\n        \"id\": {\n          \"value\": \"<id-1>\"\n        },\n        \"rows\": [\n          {\n            \"id\": {\n              \"value\": \"<id-2>\"\n            },\n            \"appearance\": {\n              \"height\": 19\n            },\n            \"widgets\": [\n              {\n                \"id\": {\n                  \"value\": \"<id-3>\"\n                },\n                \"title\": \"Content JSON data table\",\n                \"layoutColumns\": 12,\n                \"definition\": {\n                  \"dataTable\": {\n                    \"resultsPerPage\": 10,\n                    \"rowStyle\": \"ROW_STYLE_ONE_LINE\",\n                    \"query\": {\n                      \"metrics\": {\n                        \"promqlQuery\": {\n                          \"value\": \"vector(1)\"\n                        },\n                        \"promqlQueryType\": \"PROM_QL_QUERY_TYPE_INSTANT\"\n                      }\n                    }\n                  }\n                }\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}\n",
@@ -110,7 +110,7 @@
       }
     ],
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,

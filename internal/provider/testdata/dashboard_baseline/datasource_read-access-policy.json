@@ -12,7 +12,7 @@
       }
     ],
     "state": {
-      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"deny\",\"team-dashboards:Update\":\"deny\",\"team-dashboards:UpdateAccessPolicy\":\"deny\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,

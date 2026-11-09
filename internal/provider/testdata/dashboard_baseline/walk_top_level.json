@@ -406,13 +406,13 @@
           }
         ],
         "folderId": {
-          "value": "value-id"
+          "value": "<id-3>"
         },
         "layout": {
           "sections": [
             {
               "id": {
-                "value": "<id-3>"
+                "value": "<id-4>"
               },
               "rows": [
                 {
@@ -420,7 +420,7 @@
                     "height": 10
                   },
                   "id": {
-                    "value": "<id-4>"
+                    "value": "<id-5>"
                   },
                   "widgets": [
                     {
@@ -431,7 +431,7 @@
                         }
                       },
                       "id": {
-                        "value": "<id-5>"
+                        "value": "<id-6>"
                       },
                       "title": "note"
                     }
@@ -1249,19 +1249,19 @@
         }
       ],
       "folder": {
-        "id": "value-id",
+        "id": "<id-3>",
         "path": null
       },
       "id": "fakeboard000000000001",
       "layout": {
         "sections": [
           {
-            "id": "<id-3>",
+            "id": "<id-4>",
             "options": null,
             "rows": [
               {
                 "height": 10,
-                "id": "<id-4>",
+                "id": "<id-5>",
                 "widgets": [
                   {
                     "custom_actions": null,
@@ -1281,7 +1281,7 @@
                     },
                     "description": null,
                     "highlighted": false,
-                    "id": "<id-5>",
+                    "id": "<id-6>",
                     "reference": null,
                     "title": "note",
                     "width": null
@@ -2105,14 +2105,14 @@
           }
         ],
         "folderId": {
-          "value": "value-id"
+          "value": "<id-3>"
         },
         "id": "fakeboard000000000001",
         "layout": {
           "sections": [
             {
               "id": {
-                "value": "<id-3>"
+                "value": "<id-4>"
               },
               "rows": [
                 {
@@ -2120,7 +2120,7 @@
                     "height": 10
                   },
                   "id": {
-                    "value": "<id-4>"
+                    "value": "<id-5>"
                   },
                   "widgets": [
                     {
@@ -2132,7 +2132,7 @@
                       },
                       "highlighted": false,
                       "id": {
-                        "value": "<id-5>"
+                        "value": "<id-6>"
                       },
                       "title": "note"
                     }
@@ -2950,19 +2950,19 @@
         }
       ],
       "folder": {
-        "id": "value-id",
+        "id": "<id-3>",
         "path": null
       },
       "id": "fakeboard000000000001",
       "layout": {
         "sections": [
           {
-            "id": "<id-3>",
+            "id": "<id-4>",
             "options": null,
             "rows": [
               {
                 "height": 10,
-                "id": "<id-4>",
+                "id": "<id-5>",
                 "widgets": [
                   {
                     "custom_actions": null,
@@ -2982,7 +2982,7 @@
                     },
                     "description": null,
                     "highlighted": false,
-                    "id": "<id-5>",
+                    "id": "<id-6>",
                     "reference": null,
                     "title": "note",
                     "width": null
@@ -3825,7 +3825,7 @@
       "~ .annotations: [{\"color\":\"blue\",\"description\":\"value-description\",\"enabled\":true,\"id\":\"<id-1>\",\"name\":\"value-name\",\"scope\":{\"all_widgets\":{},\"spe… → null",
       "~ .auto_refresh: {\"type\":\"off\"} → null",
       "~ .filters: [{\"collapsed\":true,\"display_name\":\"value-display_name\",\"enabled\":true,\"id\":\"<id-1>\",\"scope\":{\"all_widgets\":{},\"specific_widgets\":n… → null",
-      "~ .folder: {\"id\":\"value-id\",\"path\":null} → null",
+      "~ .folder: {\"id\":\"<id-3>\",\"path\":null} → null",
       "~ .time_frame: {\"absolute\":{\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"},\"relative\":null} → null",
       "~ .variables: [{\"definition\":{\"constant_value\":null,\"multi_select\":{\"selected_values\":[\"value-selected_values\"],\"selection_type\":\"multi\",\"source\":{\"constant_list\":[\"value-con… → null",
       "~ .variables_v2: [{\"description\":\"value-description\",\"display_full_row\":false,\"display_name\":\"value-display_name\",\"display_type\":\"label_value\",\"id\":\"22222222-2222-4222-8222-2222… → null"
@@ -4216,8 +4216,7 @@
       "~ .dashboard.filters[5].source.spans.observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
       "- .dashboard.filters[5].source.spans.operator.equals",
       "+ .dashboard.filters[5].source.spans.operator.notEquals: {\"selection\":{\"list\":{\"values\":[\"value-selected_values\"]}}}",
-      "~ .dashboard.folderId.value: \"value-id\" → \"<id-6>\"",
-      "+ .dashboard.folderPath: {\"segments\":[\"value-path\"]}",
+      "~ .dashboard.folderId.value: \"<id-3>\" → \"<id-7>\"",
       "- .dashboard.off",
       "+ .dashboard.oneMinute: {}",
       "+ .dashboard.relativeTimeFrame: \"900s\"",
@@ -4319,7 +4318,7 @@
       "+ .filters[5].source.spans.operator.selected_values[0]: \"value-selected_values\"",
       "~ .filters[5].source.spans.operator.selection_type: \"all\" → \"list\"",
       "~ .filters[5].source.spans.operator.type: \"equals\" → \"not_equals\"",
-      "~ .folder.id: \"value-id\" → null",
+      "~ .folder.id: \"<id-3>\" → null",
       "~ .folder.path: null → \"value-path\"",
       "~ .time_frame.absolute: {\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"} → null",
       "~ .time_frame.relative: null → {\"duration\":\"seconds:900\"}",
@@ -4726,8 +4725,7 @@
       "- .dashboard.filters[5].source.spans.operator.equals",
       "+ .dashboard.filters[5].source.spans.operator.notEquals: {\"selection\":{\"list\":{\"values\":[\"value-selected_values\"]}}}",
       "+ .dashboard.fiveMinutes: {}",
-      "~ .dashboard.folderId.value: \"value-id\" → \"<id-6>\"",
-      "+ .dashboard.folderPath: {\"segments\":[\"value-path\"]}",
+      "~ .dashboard.folderId.value: \"<id-3>\" → \"<id-7>\"",
       "- .dashboard.off",
       "+ .dashboard.relativeTimeFrame: \"900s\"",
       "~ .dashboard.variables[0].definition.multiSelect.selectionOptions.selectionType: \"SELECTION_TYPE_MULTI\" → \"SELECTION_TYPE_SINGLE\"",
@@ -4799,7 +4797,7 @@
       "+ .filters[5].source.spans.operator.selected_values[0]: \"value-selected_values\"",
       "~ .filters[5].source.spans.operator.selection_type: \"all\" → \"list\"",
       "~ .filters[5].source.spans.operator.type: \"equals\" → \"not_equals\"",
-      "~ .folder.id: \"value-id\" → null",
+      "~ .folder.id: \"<id-3>\" → null",
       "~ .folder.path: null → \"value-path\"",
       "~ .time_frame.absolute: {\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"} → null",
       "~ .time_frame.relative: null → {\"duration\":\"seconds:900\"}",
@@ -5291,8 +5289,7 @@
       "~ .dashboard.filters[5].source.spans.observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
       "- .dashboard.filters[5].source.spans.operator.equals",
       "+ .dashboard.filters[5].source.spans.operator.notEquals: {\"selection\":{\"list\":{\"values\":[\"value-selected_values\"]}}}",
-      "~ .dashboard.folderId.value: \"value-id\" → \"<id-6>\"",
-      "+ .dashboard.folderPath: {\"segments\":[\"value-path\"]}",
+      "~ .dashboard.folderId.value: \"<id-3>\" → \"<id-7>\"",
       "+ .dashboard.relativeTimeFrame: \"900s\"",
       "~ .dashboard.variables[0].definition.multiSelect.selectionOptions.selectionType: \"SELECTION_TYPE_MULTI\" → \"SELECTION_TYPE_SINGLE\"",
       "~ .dashboard.variables[0].definition.multiSelect.valuesOrderDirection: \"ORDER_DIRECTION_ASC\" → \"ORDER_DIRECTION_DESC\"",
@@ -5379,7 +5376,7 @@
       "+ .filters[5].source.spans.operator.selected_values[0]: \"value-selected_values\"",
       "~ .filters[5].source.spans.operator.selection_type: \"all\" → \"list\"",
       "~ .filters[5].source.spans.operator.type: \"equals\" → \"not_equals\"",
-      "~ .folder.id: \"value-id\" → null",
+      "~ .folder.id: \"<id-3>\" → null",
       "~ .folder.path: null → \"value-path\"",
       "~ .time_frame.absolute: {\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"} → null",
       "~ .time_frame.relative: null → {\"duration\":\"seconds:900\"}",
@@ -5573,8 +5570,7 @@
       "~ .dashboard.filters[5].source.spans.observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_METADATA\"",
       "- .dashboard.filters[5].source.spans.operator.equals",
       "+ .dashboard.filters[5].source.spans.operator.notEquals: {\"selection\":{\"list\":{\"values\":[\"value-selected_values\"]}}}",
-      "~ .dashboard.folderId.value: \"value-id\" → \"<id-6>\"",
-      "+ .dashboard.folderPath: {\"segments\":[\"value-path\"]}",
+      "~ .dashboard.folderId.value: \"<id-3>\" → \"<id-7>\"",
       "- .dashboard.off",
       "+ .dashboard.relativeTimeFrame: \"900s\"",
       "+ .dashboard.twoMinutes: {}",
@@ -5675,7 +5671,7 @@
       "+ .filters[5].source.spans.operator.selected_values[0]: \"value-selected_values\"",
       "~ .filters[5].source.spans.operator.selection_type: \"all\" → \"list\"",
       "~ .filters[5].source.spans.operator.type: \"equals\" → \"not_equals\"",
-      "~ .folder.id: \"value-id\" → null",
+      "~ .folder.id: \"<id-3>\" → null",
       "~ .folder.path: null → \"value-path\"",
       "~ .time_frame.absolute: {\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"} → null",
       "~ .time_frame.relative: null → {\"duration\":\"seconds:900\"}",
@@ -5954,8 +5950,7 @@
       "+ .dashboard.filters[4].source.metrics.operator.notEquals: {\"selection\":{\"list\":{\"values\":[\"value-selected_values\"]}}}",
       "- .dashboard.filters[5].source.spans.operator.equals",
       "+ .dashboard.filters[5].source.spans.operator.notEquals: {\"selection\":{\"list\":{\"values\":[\"value-selected_values\"]}}}",
-      "~ .dashboard.folderId.value: \"value-id\" → \"<id-6>\"",
-      "+ .dashboard.folderPath: {\"segments\":[\"value-path\"]}",
+      "~ .dashboard.folderId.value: \"<id-3>\" → \"<id-7>\"",
       "- .dashboard.off",
       "+ .dashboard.relativeTimeFrame: \"900s\"",
       "~ .dashboard.variables[0].definition.multiSelect.selectionOptions.selectionType: \"SELECTION_TYPE_MULTI\" → \"SELECTION_TYPE_SINGLE\"",
@@ -6021,7 +6016,7 @@
       "+ .filters[5].source.spans.operator.selected_values[0]: \"value-selected_values\"",
       "~ .filters[5].source.spans.operator.selection_type: \"all\" → \"list\"",
       "~ .filters[5].source.spans.operator.type: \"equals\" → \"not_equals\"",
-      "~ .folder.id: \"value-id\" → null",
+      "~ .folder.id: \"<id-3>\" → null",
       "~ .folder.path: null → \"value-path\"",
       "~ .time_frame.absolute: {\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"} → null",
       "~ .time_frame.relative: null → {\"duration\":\"seconds:900\"}",
@@ -6245,8 +6240,7 @@
       "~ .dashboard.filters[5].source.spans.observationField.scope: \"DATASET_SCOPE_LABEL\" → \"DATASET_SCOPE_USER_DATA\"",
       "- .dashboard.filters[5].source.spans.operator.equals",
       "+ .dashboard.filters[5].source.spans.operator.notEquals: {\"selection\":{\"list\":{\"values\":[\"value-selected_values\"]}}}",
-      "~ .dashboard.folderId.value: \"value-id\" → \"<id-6>\"",
-      "+ .dashboard.folderPath: {\"segments\":[\"value-path\"]}",
+      "~ .dashboard.folderId.value: \"<id-3>\" → \"<id-7>\"",
       "- .dashboard.off",
       "+ .dashboard.oneMinute: {}",
       "+ .dashboard.relativeTimeFrame: \"900s\"",
@@ -6348,7 +6342,7 @@
       "+ .filters[5].source.spans.operator.selected_values[0]: \"value-selected_values\"",
       "~ .filters[5].source.spans.operator.selection_type: \"all\" → \"list\"",
       "~ .filters[5].source.spans.operator.type: \"equals\" → \"not_equals\"",
-      "~ .folder.id: \"value-id\" → null",
+      "~ .folder.id: \"<id-3>\" → null",
       "~ .folder.path: null → \"value-path\"",
       "~ .time_frame.absolute: {\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"} → null",
       "~ .time_frame.relative: null → {\"duration\":\"seconds:900\"}",

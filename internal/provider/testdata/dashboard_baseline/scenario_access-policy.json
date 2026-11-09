@@ -130,8 +130,11 @@
         "status": 200
       }
     ],
+    "inconsistentResult": [
+      "access_policy"
+    ],
     "state": {
-      "access_policy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\"}},\"rules\":[]}",
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"deny\",\"team-dashboards:Update\":\"deny\",\"team-dashboards:UpdateAccessPolicy\":\"deny\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -183,7 +186,12 @@
       "variables": null,
       "variables_v2": null
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"access_policy\")",
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
+    ]
   },
   {
     "step": "refresh and plan",
@@ -195,7 +203,7 @@
       }
     ],
     "state": {
-      "access_policy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\"}},\"rules\":[]}",
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"deny\",\"team-dashboards:Update\":\"deny\",\"team-dashboards:UpdateAccessPolicy\":\"deny\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -247,7 +255,12 @@
       "variables": null,
       "variables_v2": null
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"access_policy\")",
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
+    ]
   },
   {
     "step": "apply the same policy with other key order and spacing",
@@ -277,7 +290,7 @@
       "name": "baseline dashboard"
     },
     "plan": {
-      "access_policy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\"}},\"rules\":[]}",
+      "access_policy": "{ \"rules\": [], \"default\": {\"permissions\": {\"team-dashboards:Read\": \"grant\"}}, \"version\": \"2025-01-01\" }",
       "annotations": null,
       "auto_refresh": "(unknown)",
       "content_json": null,
@@ -334,7 +347,7 @@
         "method": "PUT",
         "path": "/mgmt/openapi/5/dashboards/dashboards/v1",
         "body": {
-          "accessPolicy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\"}},\"rules\":[]}",
+          "accessPolicy": "{ \"rules\": [], \"default\": {\"permissions\": {\"team-dashboards:Read\": \"grant\"}}, \"version\": \"2025-01-01\" }",
           "dashboard": {
             "id": "fakeboard000000000001",
             "layout": {
@@ -382,8 +395,11 @@
         "status": 200
       }
     ],
+    "inconsistentResult": [
+      "access_policy"
+    ],
     "state": {
-      "access_policy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\"}},\"rules\":[]}",
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"deny\",\"team-dashboards:Update\":\"deny\",\"team-dashboards:UpdateAccessPolicy\":\"deny\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -437,6 +453,7 @@
     },
     "replanEmpty": false,
     "replanDiff": [
+      "AttributeName(\"access_policy\")",
       "AttributeName(\"auto_refresh\")",
       "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
     ]
@@ -574,8 +591,11 @@
         "status": 200
       }
     ],
+    "inconsistentResult": [
+      "access_policy"
+    ],
     "state": {
-      "access_policy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-dashboards:Read\":\"deny\"}},\"rules\":[]}",
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"deny\",\"team-dashboards:ReadAccessPolicy\":\"deny\",\"team-dashboards:Update\":\"deny\",\"team-dashboards:UpdateAccessPolicy\":\"deny\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -627,7 +647,12 @@
       "variables": null,
       "variables_v2": null
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"access_policy\")",
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
+    ]
   },
   {
     "step": "refresh and plan after the change",
@@ -639,7 +664,7 @@
       }
     ],
     "state": {
-      "access_policy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-dashboards:Read\":\"deny\"}},\"rules\":[]}",
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"deny\",\"team-dashboards:ReadAccessPolicy\":\"deny\",\"team-dashboards:Update\":\"deny\",\"team-dashboards:UpdateAccessPolicy\":\"deny\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -691,7 +716,12 @@
       "variables": null,
       "variables_v2": null
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"access_policy\")",
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
+    ]
   },
   {
     "step": "remove the access policy from the config",
@@ -720,7 +750,7 @@
       "name": "baseline dashboard"
     },
     "plan": {
-      "access_policy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-dashboards:Read\":\"deny\"}},\"rules\":[]}",
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"deny\",\"team-dashboards:ReadAccessPolicy\":\"deny\",\"team-dashboards:Update\":\"deny\",\"team-dashboards:UpdateAccessPolicy\":\"deny\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -774,7 +804,7 @@
     },
     "noChange": true,
     "state": {
-      "access_policy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-dashboards:Read\":\"deny\"}},\"rules\":[]}",
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"deny\",\"team-dashboards:ReadAccessPolicy\":\"deny\",\"team-dashboards:Update\":\"deny\",\"team-dashboards:UpdateAccessPolicy\":\"deny\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -837,7 +867,7 @@
       }
     ],
     "state": {
-      "access_policy": "{\"version\":\"2025-01-01\",\"default\":{\"permissions\":{\"team-dashboards:Read\":\"deny\"}},\"rules\":[]}",
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"deny\",\"team-dashboards:ReadAccessPolicy\":\"deny\",\"team-dashboards:Update\":\"deny\",\"team-dashboards:UpdateAccessPolicy\":\"deny\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -889,7 +919,12 @@
       "variables": null,
       "variables_v2": null
     },
-    "replanEmpty": true
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"access_policy\")",
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
+    ]
   },
   {
     "step": "destroy",

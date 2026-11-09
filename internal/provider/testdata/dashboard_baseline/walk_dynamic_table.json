@@ -131,7 +131,7 @@
       }
     },
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -422,7 +422,7 @@
       }
     },
     "state": {
-      "access_policy": null,
+      "access_policy": "{\"default\":{\"permissions\":{\"team-dashboards:Read\":\"grant\",\"team-dashboards:ReadAccessPolicy\":\"grant\",\"team-dashboards:Update\":\"grant\",\"team-dashboards:UpdateAccessPolicy\":\"grant\"}},\"rules\":[],\"version\":\"2025-01-01\"}",
       "annotations": null,
       "auto_refresh": null,
       "content_json": null,
@@ -630,7 +630,7 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.interpretation: \"categorical_analysis_horizontal_bars\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].name: \"value-name\" → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.data_prime.data_mode_type: \"archive\" → \"unspecified\"",
-      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.data_prime.query: \"value-query\" → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.data_prime.query: \"value-query\" → \"\"",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.table.columns[0].field.keypath: [\"value-keypath\"] → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.table.rules[0].description: \"value-description\" → null",
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.table.rules[0].name: \"value-name\" → null",
@@ -640,7 +640,14 @@
       "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.table.settings.row_style: \"condensed\" → \"unspecified\"",
       "~ .layout.sections[0].rows[0].widgets[0].description: \"value-description\" → null"
     ],
-    "replanEmpty": true
+    "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.data_prime.query"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"data_prime\").AttributeName(\"query\")"
+    ]
   },
   {
     "step": "remove optional objects (15)",

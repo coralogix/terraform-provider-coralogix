@@ -441,19 +441,19 @@
         }
       ],
       "folder": {
-        "id": "value-id",
+        "id": "<id-3>",
         "path": null
       },
       "id": "fakeboard000000000001",
       "layout": {
         "sections": [
           {
-            "id": "<id-3>",
+            "id": "<id-4>",
             "options": null,
             "rows": [
               {
                 "height": 10,
-                "id": "<id-4>",
+                "id": "<id-5>",
                 "widgets": [
                   {
                     "custom_actions": null,
@@ -473,7 +473,7 @@
                     },
                     "description": null,
                     "highlighted": false,
-                    "id": "<id-5>",
+                    "id": "<id-6>",
                     "reference": null,
                     "title": "note",
                     "width": null
