@@ -4,7 +4,9 @@
 package alert
 
 import (
+	"context"
 	"regexp"
+	"slices"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
@@ -20,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
@@ -28,6 +31,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 )
 
 // Schema is the Terraform schema of the resource.
@@ -275,10 +279,10 @@ func Schema() schema.Schema {
 											},
 											MarkdownDescription: "The flow stages groups.",
 										},
-										"timeframe_ms": schema.StringAttribute{
+										"timeframe_ms": schema.Int64Attribute{
 											Optional:            true,
 											Computed:            true,
-											Default:             stringdefault.StaticString("0"),
+											Default:             int64default.StaticInt64(0),
 											MarkdownDescription: "The timeframe ms.",
 										},
 										"timeframe_type": schema.StringAttribute{
@@ -1431,7 +1435,7 @@ func Schema() schema.Schema {
 								},
 								MarkdownDescription: "The filter to match log entries for the alert.",
 							},
-							"max_unique_count_per_group_by_key": schema.StringAttribute{
+							"max_unique_count_per_group_by_key": schema.Int64Attribute{
 								Optional:            true,
 								MarkdownDescription: "The maximum unique count per group by key",
 							},
@@ -1450,7 +1454,7 @@ func Schema() schema.Schema {
 										"condition": schema.SingleNestedAttribute{
 											Required: true,
 											Attributes: map[string]schema.Attribute{
-												"max_unique_count": schema.StringAttribute{
+												"max_unique_count": schema.Int64Attribute{
 													Required:            true,
 													MarkdownDescription: "The maximum unique count",
 												},
@@ -1527,25 +1531,12 @@ func Schema() schema.Schema {
 													Required:            true,
 													MarkdownDescription: "The percentage of non-null values required to trigger the alert",
 												},
-												"of_the_last": schema.SingleNestedAttribute{
+												"of_the_last": schema.StringAttribute{
 													Required: true,
-													Attributes: map[string]schema.Attribute{
-														"metric_time_window_dynamic_duration": schema.StringAttribute{
-															Optional: true,
-															Validators: []validator.String{
-																stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metric_time_window_specific_value")),
-															},
-															MarkdownDescription: "The time window as a dynamic value",
-														},
-														"metric_time_window_specific_value": schema.StringAttribute{
-															Optional: true,
-															Validators: []validator.String{
-																stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metric_time_window_dynamic_duration")),
-															},
-															MarkdownDescription: "The time window as a specific value",
-														},
+													Validators: []validator.String{
+														stringvalidator.OneOf("10_MINUTES", "12_HOURS", "15_MINUTES", "1_HOUR", "1_MINUTE", "20_MINUTES", "24_HOURS", "2_HOURS", "30_MINUTES", "36_HOURS", "4_HOURS", "5_MINUTES", "6_HOURS"),
 													},
-													MarkdownDescription: "The time window for the alert condition.",
+													MarkdownDescription: "Time window to evaluate the threshold with. Valid values: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"1_MINUTE\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"].",
 												},
 												"threshold": schema.Float64Attribute{
 													Required:            true,
@@ -1650,25 +1641,12 @@ func Schema() schema.Schema {
 													Required:            true,
 													MarkdownDescription: "The percentage of values that must exceed the threshold to trigger the alert",
 												},
-												"of_the_last": schema.SingleNestedAttribute{
+												"of_the_last": schema.StringAttribute{
 													Required: true,
-													Attributes: map[string]schema.Attribute{
-														"metric_time_window_dynamic_duration": schema.StringAttribute{
-															Optional: true,
-															Validators: []validator.String{
-																stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metric_time_window_specific_value")),
-															},
-															MarkdownDescription: "The time window as a dynamic value",
-														},
-														"metric_time_window_specific_value": schema.StringAttribute{
-															Optional: true,
-															Validators: []validator.String{
-																stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("metric_time_window_dynamic_duration")),
-															},
-															MarkdownDescription: "The time window as a specific value",
-														},
+													Validators: []validator.String{
+														stringvalidator.Any(stringvalidator.OneOf("10_MINUTES", "12_HOURS", "15_MINUTES", "1_HOUR", "1_MINUTE", "20_MINUTES", "24_HOURS", "2_HOURS", "30_MINUTES", "36_HOURS", "4_HOURS", "5_MINUTES", "6_HOURS"), stringvalidator.RegexMatches(regexp.MustCompile(`^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$`), "")),
 													},
-													MarkdownDescription: "The time window for the alert condition",
+													MarkdownDescription: "Time window to evaluate the threshold with. Valid values: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"1_MINUTE\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"].\nOr having valid time duration - Supported units: y, w, d, h, m, s, ms.\nExamples: `30s`, `1m`, `1h20m15s`, `15d`",
 												},
 												"threshold": schema.Float64Attribute{
 													Required:            true,
@@ -2368,7 +2346,7 @@ func Schema() schema.Schema {
 			"notification_group": schema.SingleNestedAttribute{
 				Optional: true,
 				Computed: true,
-				Default:  objectdefault.StaticValue(types.ObjectValueMust(map[string]attr.Type{"destinations": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"connector_id": types.StringType, "notify_on": types.StringType, "preset_id": types.StringType, "resolved_routing_overrides": types.ObjectType{AttrTypes: map[string]attr.Type{"connector_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"field_name": types.StringType, "template": types.StringType}}}, "payload_type": types.StringType, "preset_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"field_name": types.StringType, "template": types.StringType}}}}}, "retriggering_period_minutes": types.Int64Type, "triggered_routing_overrides": types.ObjectType{AttrTypes: map[string]attr.Type{"connector_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"field_name": types.StringType, "template": types.StringType}}}, "payload_type": types.StringType, "preset_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"field_name": types.StringType, "template": types.StringType}}}}}}}}, "group_by_keys": types.ListType{ElemType: types.StringType}, "router": types.ObjectType{AttrTypes: map[string]attr.Type{"id": types.StringType, "notify_on": types.StringType}}, "webhooks_settings": types.SetType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"integration_id": types.Int64Type, "minutes": types.Int64Type, "notify_on": types.StringType, "recipients": types.ListType{ElemType: types.StringType}}}}}, map[string]attr.Value{"destinations": types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{"connector_id": types.StringType, "notify_on": types.StringType, "preset_id": types.StringType, "resolved_routing_overrides": types.ObjectType{AttrTypes: map[string]attr.Type{"connector_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"field_name": types.StringType, "template": types.StringType}}}, "payload_type": types.StringType, "preset_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"field_name": types.StringType, "template": types.StringType}}}}}, "retriggering_period_minutes": types.Int64Type, "triggered_routing_overrides": types.ObjectType{AttrTypes: map[string]attr.Type{"connector_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"field_name": types.StringType, "template": types.StringType}}}, "payload_type": types.StringType, "preset_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"field_name": types.StringType, "template": types.StringType}}}}}}}), "group_by_keys": types.ListNull(types.StringType), "router": types.ObjectNull(map[string]attr.Type{"id": types.StringType, "notify_on": types.StringType}), "webhooks_settings": types.SetNull(types.ObjectType{AttrTypes: map[string]attr.Type{"integration_id": types.Int64Type, "minutes": types.Int64Type, "notify_on": types.StringType, "recipients": types.ListType{ElemType: types.StringType}}})})),
+				Default:  objectdefault.StaticValue(types.ObjectValueMust(map[string]attr.Type{"destinations": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"connector_id": types.StringType, "notify_on": types.StringType, "preset_id": types.StringType, "resolved_routing_overrides": types.ObjectType{AttrTypes: map[string]attr.Type{"connector_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"field_name": types.StringType, "template": types.StringType}}}, "payload_type": types.StringType, "preset_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"field_name": types.StringType, "template": types.StringType}}}}}, "retriggering_period_minutes": types.Int64Type, "triggered_routing_overrides": types.ObjectType{AttrTypes: map[string]attr.Type{"connector_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"field_name": types.StringType, "template": types.StringType}}}, "payload_type": types.StringType, "preset_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"field_name": types.StringType, "template": types.StringType}}}}}}}}, "group_by_keys": types.ListType{ElemType: types.StringType}, "router": types.ObjectType{AttrTypes: map[string]attr.Type{"id": types.StringType, "notify_on": types.StringType}}, "webhooks_settings": types.SetType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"integration_id": types.Int64Type, "notify_on": types.StringType, "recipients": types.SetType{ElemType: types.StringType}, "retriggering_period": types.ObjectType{AttrTypes: map[string]attr.Type{"minutes": types.Int64Type}}}}}}, map[string]attr.Value{"destinations": types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{"connector_id": types.StringType, "notify_on": types.StringType, "preset_id": types.StringType, "resolved_routing_overrides": types.ObjectType{AttrTypes: map[string]attr.Type{"connector_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"field_name": types.StringType, "template": types.StringType}}}, "payload_type": types.StringType, "preset_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"field_name": types.StringType, "template": types.StringType}}}}}, "retriggering_period_minutes": types.Int64Type, "triggered_routing_overrides": types.ObjectType{AttrTypes: map[string]attr.Type{"connector_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"field_name": types.StringType, "template": types.StringType}}}, "payload_type": types.StringType, "preset_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{"field_name": types.StringType, "template": types.StringType}}}}}}}), "group_by_keys": types.ListNull(types.StringType), "router": types.ObjectNull(map[string]attr.Type{"id": types.StringType, "notify_on": types.StringType}), "webhooks_settings": types.SetNull(types.ObjectType{AttrTypes: map[string]attr.Type{"integration_id": types.Int64Type, "notify_on": types.StringType, "recipients": types.SetType{ElemType: types.StringType}, "retriggering_period": types.ObjectType{AttrTypes: map[string]attr.Type{"minutes": types.Int64Type}}}})})),
 				Attributes: map[string]schema.Attribute{
 					"destinations": schema.ListNestedAttribute{
 						Optional: true,
@@ -2534,17 +2512,27 @@ func Schema() schema.Schema {
 									},
 									MarkdownDescription: "The integration ID for the notification",
 								},
-								"recipients": schema.ListAttribute{
+								"recipients": schema.SetAttribute{
 									Optional:    true,
 									ElementType: types.StringType,
-									Validators: []validator.List{
-										listvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("integration_id")),
+									Validators: []validator.Set{
+										setvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("integration_id")),
 									},
 									MarkdownDescription: "The recipients for the notification.",
 								},
-								"minutes": schema.Int64Attribute{
-									Optional:            true,
-									MarkdownDescription: "The time in minutes before the alert can be retriggered",
+								"retriggering_period": schema.SingleNestedAttribute{
+									Optional: true,
+									Computed: true,
+									PlanModifiers: []planmodifier.Object{
+										setItemStateModifier{},
+									},
+									Attributes: map[string]schema.Attribute{
+										"minutes": schema.Int64Attribute{
+											Required:            true,
+											MarkdownDescription: "The time in minutes before the alert can be retriggered",
+										},
+									},
+									MarkdownDescription: "Retriggering period in minutes. When omitted (along with notify_on), Advanced Notification is disabled and the webhook inherits the global incident cadence.",
 								},
 								"notify_on": schema.StringAttribute{
 									Optional: true,
@@ -2554,6 +2542,9 @@ func Schema() schema.Schema {
 									},
 									MarkdownDescription: "Notify on. Valid values: [\"Triggered Only\" \"Triggered and Resolved\"]. When omitted (along with retriggering_period), Advanced Notification is disabled.",
 								},
+							},
+							PlanModifiers: []planmodifier.Object{
+								objectplanmodifier.UseStateForUnknown(),
 							},
 						},
 						MarkdownDescription: "The settings for webhooks associated with the alert definition",
@@ -2645,4 +2636,149 @@ func Schema() schema.Schema {
 // ConfigValidators are the resource validators.
 func ConfigValidators() []resource.ConfigValidator {
 	return []resource.ConfigValidator{}
+}
+
+// setItemConfig returns the configuration value of the attribute on the path p, which is inside a
+// set item. The framework gives the modifier the configuration of the item at the same index, which
+// can be another item: the configuration and the plan sort their items apart. The set step of p
+// holds the planned item, so the walk takes a configured item that the planned item matches. ok is
+// false when the configuration leaves out the set, directly or with an object that holds it: the
+// set comes from the API or another attribute, so a null value of one of its items is no removal.
+// It is also false when no configured item matches.
+func setItemConfig(ctx context.Context, config tftypes.Value, p path.Path) (value tftypes.Value, ok bool) {
+	return configAt(ctx, config, p.Steps(), false)
+}
+
+func configAt(ctx context.Context, v tftypes.Value, steps path.PathSteps, inSet bool) (tftypes.Value, bool) {
+	if len(steps) == 0 || !v.IsKnown() || v.IsNull() {
+		return v, inSet || len(steps) == 0
+	}
+	switch step := steps[0].(type) {
+	case path.PathStepAttributeName:
+		var attrs map[string]tftypes.Value
+		if v.As(&attrs) != nil {
+			return v, false
+		}
+		next, found := attrs[string(step)]
+		return configAt(ctx, next, steps[1:], inSet && found)
+	case path.PathStepElementKeyString:
+		var elems map[string]tftypes.Value
+		if v.As(&elems) != nil {
+			return v, false
+		}
+		next, found := elems[string(step)]
+		if !found {
+			return tftypes.NewValue(v.Type().(tftypes.Map).ElementType, nil), inSet
+		}
+		return configAt(ctx, next, steps[1:], inSet)
+	case path.PathStepElementKeyInt:
+		var elems []tftypes.Value
+		if v.As(&elems) != nil || int(step) < 0 || int(step) >= len(elems) {
+			return v, false
+		}
+		return configAt(ctx, elems[step], steps[1:], inSet)
+	case path.PathStepElementKeyValue:
+		planned, err := step.Value.ToTerraformValue(ctx)
+		var elems []tftypes.Value
+		if err != nil || v.As(&elems) != nil {
+			return v, false
+		}
+		// A planned value that equals a configured value comes from that item, so a match that
+		// configures the attribute wins over one that leaves it out.
+		var value tftypes.Value
+		ok := false
+		for _, elem := range elems {
+			if !configMatches(elem, planned) {
+				continue
+			}
+			if next, found := configAt(ctx, elem, steps[1:], true); found && (!ok || value.IsNull()) {
+				value, ok = next, true
+			}
+		}
+		return value, ok
+	}
+	return v, false
+}
+
+// configMatches reports whether the planned value can come from the configured one: every value
+// that the configuration sets is the planned one. A null or unknown configured value matches any
+// plan, because a computed attribute fills it in.
+func configMatches(config, plan tftypes.Value) bool {
+	if !config.IsKnown() || config.IsNull() || !plan.IsKnown() {
+		return true
+	}
+	if plan.IsNull() {
+		return false
+	}
+	switch config.Type().(type) {
+	case tftypes.Object, tftypes.Map:
+		var c, p map[string]tftypes.Value
+		if config.As(&c) != nil || plan.As(&p) != nil {
+			return false
+		}
+		for k, cv := range c {
+			pv, found := p[k]
+			if !found || !configMatches(cv, pv) {
+				return false
+			}
+		}
+		return true
+	case tftypes.List, tftypes.Tuple:
+		var c, p []tftypes.Value
+		if config.As(&c) != nil || plan.As(&p) != nil || len(c) != len(p) {
+			return false
+		}
+		for i := range c {
+			if !configMatches(c[i], p[i]) {
+				return false
+			}
+		}
+		return true
+	case tftypes.Set:
+		var c, p []tftypes.Value
+		if config.As(&c) != nil || plan.As(&p) != nil || len(c) != len(p) {
+			return false
+		}
+		for _, cv := range c {
+			if !slices.ContainsFunc(p, func(pv tftypes.Value) bool { return configMatches(cv, pv) }) {
+				return false
+			}
+		}
+		return true
+	}
+	return config.Equal(plan)
+}
+
+// setItemStateModifier keeps the state value of an object inside a set item when the plan leaves it
+// unknown. The framework gives a modifier the state of the item at the same index, which can be
+// another item: the plan and the state sort their items apart. The set step of the path holds the
+// planned item, so the modifier takes the state item that the planned item matches: every value
+// that the state item has is the planned one, or the plan leaves it unknown. A planned item that
+// matches no state item, such as one that changes, keeps its unknown value.
+type setItemStateModifier struct{}
+
+func (setItemStateModifier) Description(context.Context) string {
+	return "Once set, the value of this attribute in state will not change."
+}
+
+func (m setItemStateModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (setItemStateModifier) PlanModifyObject(ctx context.Context, req planmodifier.ObjectRequest, resp *planmodifier.ObjectResponse) {
+	if req.State.Raw.IsNull() || !req.PlanValue.IsUnknown() {
+		return
+	}
+	value, ok := setItemConfig(ctx, req.State.Raw, req.Path)
+	if !ok || value.IsNull() || !value.IsFullyKnown() {
+		return
+	}
+	kept, err := req.PlanValue.Type(ctx).ValueFromTerraform(ctx, value)
+	if err != nil {
+		resp.Diagnostics.AddAttributeError(req.Path, "Invalid state value", err.Error())
+		return
+	}
+	if object, ok := kept.(types.Object); ok {
+		resp.PlanValue = object
+	}
 }

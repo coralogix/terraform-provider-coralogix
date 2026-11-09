@@ -3,17 +3,12 @@
 #
 # Not expressible with the keys of the generator, so the generated schema differs from the released one
 # (each needs a generator key or a hook):
-#   - type: skipped. The request needs the arm that is set as the API `type`; requestValueBy cannot read
-#     the allOf-wrapped enum. A BeforeWrite hook sets it until then.
-#   - notification_group.webhooks_settings[].retriggering_period {minutes}: Optional+Computed object in the
-#     released schema; the API has `minutes` on the webhook. The schema shows `minutes` instead.
-#   - metric_threshold and metric_anomaly rules[].condition.of_the_last: one string in the released schema
-#     (enum name or duration); the API has a oneOf of two strings, shown as two attributes.
-#   - webhooks_settings[].integration_id (String in the released schema, Int64 here) and
-#     webhooks_settings[].recipients (a set in the released schema, a list here).
-#   - flow.stages[].timeframe_ms, logs_unique_count.max_unique_count and
-#     max_unique_count_per_group_by_key are Int64 in the released schema, a String here (signed digit
-#     string); tracing_*.tracing_filter.latency_threshold_ms is a Number in the released schema (Int64 here);
+#   - webhooks_settings[].integration_id is a String in the released schema, an Int64 here (the API id is an
+#     int64); webhooks_settings[].recipients also has a ConflictsWith with integration_id, which the released
+#     schema leaves to the ExactlyOneOf on integration_id.
+#   - webhooks_settings[].retriggering_period keeps its state with the set-safe modifier of the generator
+#     (setItemStateModifier), not the built-in one, which gave a group the period of its neighbour.
+#   - tracing_*.tracing_filter.latency_threshold_ms is a Number in the released schema (Int64 here);
 #     logs_anomaly and metric_anomaly percentage_of_deviation are Float64 (Float32 here).
 #   - Hooks: ModifyPlan (group_by, override.priority fallback), ValidateConfig (priority deprecation,
 #     no-data-policy warnings, analytics no_data_policy not empty, group_by checks, group_by_for needs
@@ -68,7 +63,8 @@ types:
       dataSources: {validators: [{sizeAtLeast: 1}], markdownDescription: "Data sources to associate the alert with. The referenced data space and dataset must already exist. Omit the attribute instead of setting an empty list."}
       incidentsSettings: {computed: true, useStateForUnknown: true}
       notificationGroup: {computed: true, default: {}}
-      type: {skip: true}
+      # The API type follows the arm that is set. The response type is ignored on read.
+      type: {requestValueBy: {logsImmediate: ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED, logsThreshold: ALERT_DEF_TYPE_LOGS_THRESHOLD, logsAnomaly: ALERT_DEF_TYPE_LOGS_ANOMALY, logsRatioThreshold: ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD, logsNewValue: ALERT_DEF_TYPE_LOGS_NEW_VALUE, logsUniqueCount: ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT, logsTimeRelativeThreshold: ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD, metricThreshold: ALERT_DEF_TYPE_METRIC_THRESHOLD, metricAnomaly: ALERT_DEF_TYPE_METRIC_ANOMALY, tracingImmediate: ALERT_DEF_TYPE_TRACING_IMMEDIATE, tracingThreshold: ALERT_DEF_TYPE_TRACING_THRESHOLD, flow: ALERT_DEF_TYPE_FLOW, sloThreshold: ALERT_DEF_TYPE_SLO_THRESHOLD, analyticsImmediate: ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE, analyticsThreshold: ALERT_DEF_TYPE_ANALYTICS_THRESHOLD}}
       sloThreshold: {requireOne: true}
       analyticsThreshold: {markdownDescription: "Analytics threshold alert type definition (preview) — fires when a numeric column in the DataPrime result violates a per-priority threshold. Per-row fan-out is expressed with `use_rows_as_permutations`."}
       analyticsImmediate: {markdownDescription: "Analytics immediate alert type definition (preview) — fires as soon as the DataPrime query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`."}
@@ -166,8 +162,21 @@ types:
     fields:
       id: {computed: true, default: "", markdownDescription: "ID of the notification router. The default `\"\"` uses label-based Global Router matching. Set `\"router_default\"` or another router ID to send notifications to that router. Removing this attribute sets it back to `\"\"`."}
       notifyOn: {computed: true, default: Triggered Only, validators: [{enum: true}]}
-  AlertDefWebhooksSettings:
+  Recipients:
     fields:
+      emails: {collection: set}
+  AlertDefWebhooksSettings:
+    # The released schema has the modifier on the object of each item.
+    useStateForUnknown: true
+    groups:
+      retriggering_period:
+        fields: [minutes]
+        optional: true
+        computed: true
+        useStateForUnknown: true
+        markdownDescription: "Retriggering period in minutes. When omitted (along with notify_on), Advanced Notification is disabled and the webhook inherits the global incident cadence."
+    fields:
+      minutes: {required: true}
       notifyOn: {computed: true, validators: [{enum: true}], markdownDescription: "Notify on. Valid values: [\"Triggered Only\" \"Triggered and Resolved\"]. When omitted (along with retriggering_period), Advanced Notification is disabled."}
       integration: {inline: true, required: true}
   LogsSimpleFilter:
@@ -229,7 +238,7 @@ types:
   FlowStages:
     fields:
       flowStagesGroups: {required: true}
-      timeframeMs: {computed: true, default: "0"}
+      timeframeMs: {computed: true, default: 0, terraformType: Int64}
       timeframeType: {required: true, validators: [{enum: true}]}
   FlowStagesGroup:
     fields:
@@ -311,6 +320,7 @@ types:
       timeWindow: {required: true, validators: [{enum: true}]}
   LogsUniqueCountType:
     fields:
+      maxUniqueCountPerGroupByKey: {terraformType: Int64}
       logsFilter: {computed: true, useNonNullStateForUnknown: true}
       notificationPayloadFilter: {collection: set}
       rules: {required: true, collection: set, validators: [{sizeAtLeast: 1}]}
@@ -320,7 +330,7 @@ types:
       condition: {required: true}
   LogsUniqueCountCondition:
     fields:
-      maxUniqueCount: {required: true}
+      maxUniqueCount: {required: true, terraformType: Int64}
       timeWindow: {required: true, validators: [{enum: true}]}
   LogsTimeRelativeThresholdType:
     fields:
@@ -356,7 +366,7 @@ types:
       conditionType: {required: true, validators: [{enum: true}]}
       forOverPct: {required: true}
       minNonNullValuesPct: {required: true}
-      ofTheLast: {required: true}
+      ofTheLast: {required: true, asString: true, validators: [{enum: true}], markdownDescription: "Time window to evaluate the threshold with. Valid values: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"1_MINUTE\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"]."}
       threshold: {required: true}
   MetricThresholdType:
     fields:
@@ -374,7 +384,7 @@ types:
     fields:
       conditionType: {required: true, validators: [{enum: true}]}
       forOverPct: {required: true}
-      ofTheLast: {required: true}
+      ofTheLast: {required: true, asString: true, validators: [{regexMatches: {pattern: "^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$", message: ""}}], markdownDescription: "Time window to evaluate the threshold with. Valid values: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"1_MINUTE\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"].\nOr having valid time duration - Supported units: y, w, d, h, m, s, ms.\nExamples: `30s`, `1m`, `1h20m15s`, `15d`"}
       threshold: {required: true}
   SloThresholdType:
     fields:

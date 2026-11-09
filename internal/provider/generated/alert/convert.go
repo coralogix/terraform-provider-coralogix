@@ -704,33 +704,29 @@ func flatten(ctx context.Context, v *alert_definitions_service.AlertDef) (*Alert
 // out. An empty arm selects that arm, so it is not the same as a missing arm
 // (contract 2.8).
 var oneOfArms = map[string]bool{
-	"type_definition.logs_immediate":               true,
-	"type_definition.tracing_immediate":            true,
-	"type_definition.logs_threshold":               true,
-	"type_definition.logs_ratio_threshold":         true,
-	"type_definition.logs_time_relative_threshold": true,
-	"type_definition.metric_threshold":             true,
-	"type_definition.tracing_threshold":            true,
-	"type_definition.flow":                         true,
-	"type_definition.logs_anomaly":                 true,
-	"type_definition.metric_anomaly":               true,
-	"type_definition.logs_new_value":               true,
-	"type_definition.logs_unique_count":            true,
-	"type_definition.slo_threshold":                true,
-	"type_definition.analytics_immediate":          true,
-	"type_definition.analytics_threshold":          true,
-	"type_definition.metric_anomaly.rules.condition.of_the_last.metric_time_window_dynamic_duration":   true,
-	"type_definition.metric_anomaly.rules.condition.of_the_last.metric_time_window_specific_value":     true,
-	"type_definition.metric_threshold.missing_values.min_non_null_values_pct":                          true,
-	"type_definition.metric_threshold.missing_values.replace_with_zero":                                true,
-	"type_definition.metric_threshold.rules.condition.of_the_last.metric_time_window_dynamic_duration": true,
-	"type_definition.metric_threshold.rules.condition.of_the_last.metric_time_window_specific_value":   true,
-	"notification_group.webhooks_settings.integration_id":                                              true,
-	"notification_group.webhooks_settings.recipients":                                                  true,
-	"type_definition.slo_threshold.burn_rate":                                                          true,
-	"type_definition.slo_threshold.burn_rate.dual":                                                     true,
-	"type_definition.slo_threshold.burn_rate.single":                                                   true,
-	"type_definition.slo_threshold.error_budget":                                                       true,
+	"type_definition.logs_immediate":                                          true,
+	"type_definition.tracing_immediate":                                       true,
+	"type_definition.logs_threshold":                                          true,
+	"type_definition.logs_ratio_threshold":                                    true,
+	"type_definition.logs_time_relative_threshold":                            true,
+	"type_definition.metric_threshold":                                        true,
+	"type_definition.tracing_threshold":                                       true,
+	"type_definition.flow":                                                    true,
+	"type_definition.logs_anomaly":                                            true,
+	"type_definition.metric_anomaly":                                          true,
+	"type_definition.logs_new_value":                                          true,
+	"type_definition.logs_unique_count":                                       true,
+	"type_definition.slo_threshold":                                           true,
+	"type_definition.analytics_immediate":                                     true,
+	"type_definition.analytics_threshold":                                     true,
+	"type_definition.metric_threshold.missing_values.min_non_null_values_pct": true,
+	"type_definition.metric_threshold.missing_values.replace_with_zero":       true,
+	"notification_group.webhooks_settings.integration_id":                     true,
+	"notification_group.webhooks_settings.recipients":                         true,
+	"type_definition.slo_threshold.burn_rate":                                 true,
+	"type_definition.slo_threshold.burn_rate.dual":                            true,
+	"type_definition.slo_threshold.burn_rate.single":                          true,
+	"type_definition.slo_threshold.error_budget":                              true,
 }
 
 // computedAttrs are the paths of the computed attributes, with list and map
@@ -845,6 +841,7 @@ var computedAttrs = map[string]bool{
 	"notification_group.destinations.triggered_routing_overrides.preset_overrides":                                    true,
 	"notification_group.router.id":                                                                                    true,
 	"notification_group.router.notify_on":                                                                             true,
+	"notification_group.webhooks_settings.retriggering_period":                                                        true,
 	"notification_group.webhooks_settings.notify_on":                                                                  true,
 	"phantom_mode":                  true,
 	"priority":                      true,
@@ -1002,6 +999,7 @@ var requiredAttrs = map[string]bool{
 	"notification_group.destinations.triggered_routing_overrides.preset_overrides.field_name":                     true,
 	"notification_group.destinations.triggered_routing_overrides.preset_overrides.template":                       true,
 	"notification_group.destinations.triggered_routing_overrides.payload_type":                                    true,
+	"notification_group.webhooks_settings.retriggering_period.minutes":                                            true,
 	"schedule.active_on":              true,
 	"schedule.active_on.days_of_week": true,
 	"schedule.active_on.end_time":     true,
@@ -1178,6 +1176,53 @@ func expandCreateAlertDefinitionRequest(ctx context.Context, p path.Path, m *Ale
 	}
 	out.AlertDefProperties.PhantomMode = expandBool(m.PhantomMode)
 	out.AlertDefProperties.Priority = expandEnumMapped(p.AtName("priority"), m.Priority, alertDefPriorityToAPI, diags)
+	switch {
+	case m.TypeDefinition != nil && m.TypeDefinition.AnalyticsImmediate != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.AnalyticsThreshold != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_ANALYTICS_THRESHOLD")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.Flow != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_FLOW")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.LogsAnomaly != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_LOGS_ANOMALY")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.LogsImmediate != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.LogsNewValue != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_LOGS_NEW_VALUE")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.LogsRatioThreshold != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.LogsThreshold != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_LOGS_THRESHOLD")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.LogsTimeRelativeThreshold != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.LogsUniqueCount != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.MetricAnomaly != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_METRIC_ANOMALY")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.MetricThreshold != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_METRIC_THRESHOLD")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.SloThreshold != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_SLO_THRESHOLD")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.TracingImmediate != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_TRACING_IMMEDIATE")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.TracingThreshold != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_TRACING_THRESHOLD")
+		out.AlertDefProperties.Type = &fixed
+	}
 	return out
 }
 
@@ -1588,7 +1633,7 @@ func expandFlowStages(ctx context.Context, p path.Path, m *FlowStagesModel, diag
 		}
 		out.FlowStagesGroups = wrapFlowStagesGroups(inner)
 	}
-	out.TimeframeMs = expandString(m.TimeframeMs)
+	out.TimeframeMs = expandInt64Wire(m.TimeframeMs)
 	out.TimeframeType = expandEnumMapped(p.AtName("timeframe_type"), m.TimeframeType, timeframeTypeToAPI, diags)
 	return out
 }
@@ -1609,7 +1654,7 @@ func flattenFlowStages(ctx context.Context, p path.Path, v *alert_definitions_se
 			out.FlowStagesGroups = flattenList(ctx, types.ObjectType{AttrTypes: flowStagesGroupAttrTypes()}, items, diags)
 		}
 	}
-	out.TimeframeMs = types.StringPointerValue(v.TimeframeMs)
+	out.TimeframeMs = flattenInt64Wire(p.AtName("timeframe_ms"), v.TimeframeMs, diags)
 	out.TimeframeType = flattenEnumMapped(p.AtName("timeframe_type"), v.TimeframeType, timeframeTypeFromAPI, diags)
 	return out
 }
@@ -1617,7 +1662,7 @@ func flattenFlowStages(ctx context.Context, p path.Path, v *alert_definitions_se
 func flowStagesAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"flow_stages_groups": types.ListType{ElemType: types.ObjectType{AttrTypes: flowStagesGroupAttrTypes()}},
-		"timeframe_ms":       types.StringType,
+		"timeframe_ms":       types.Int64Type,
 		"timeframe_type":     types.StringType,
 	}
 }
@@ -2561,7 +2606,7 @@ func expandLogsUniqueCountType(ctx context.Context, p path.Path, m *LogsUniqueCo
 		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
 		out.LogsFilter = expandV3LogsFilter(ctx, p.AtName("logs_filter"), &nested, diags)
 	}
-	out.MaxUniqueCountPerGroupByKey = expandString(m.MaxUniqueCountPerGroupByKey)
+	out.MaxUniqueCountPerGroupByKey = expandInt64Wire(m.MaxUniqueCountPerGroupByKey)
 	out.NotificationPayloadFilter = expandStringsSet[string](ctx, p.AtName("notification_payload_filter"), m.NotificationPayloadFilter, diags)
 	if items := expandElements[LogsUniqueCountRuleModel](ctx, p.AtName("rules"), m.Rules, diags); items != nil {
 		out.Rules = make([]alert_definitions_service.LogsUniqueCountRule, 0, len(items))
@@ -2584,7 +2629,7 @@ func flattenLogsUniqueCountType(ctx context.Context, p path.Path, v *alert_defin
 		diags.Append(valueDiags...)
 		out.LogsFilter = value
 	}
-	out.MaxUniqueCountPerGroupByKey = types.StringPointerValue(v.MaxUniqueCountPerGroupByKey)
+	out.MaxUniqueCountPerGroupByKey = flattenInt64Wire(p.AtName("max_unique_count_per_group_by_key"), v.MaxUniqueCountPerGroupByKey, diags)
 	out.NotificationPayloadFilter = flattenStringsSet(ctx, v.NotificationPayloadFilter, diags)
 	out.Rules = types.SetNull(types.ObjectType{AttrTypes: logsUniqueCountRuleAttrTypes()})
 	if v.Rules != nil {
@@ -2627,7 +2672,7 @@ func expandLogsUniqueCountCondition(ctx context.Context, p path.Path, m *LogsUni
 		return nil
 	}
 	out := &alert_definitions_service.LogsUniqueCountCondition{}
-	out.MaxUniqueCount = expandString(m.MaxUniqueCount)
+	out.MaxUniqueCount = expandInt64Wire(m.MaxUniqueCount)
 	{
 		var inner *alert_definitions_service.LogsUniqueValueTimeWindowValue
 		inner = expandEnumMapped(p.AtName("time_window"), m.TimeWindow, logsUniqueValueTimeWindowValueToAPI, diags)
@@ -2641,7 +2686,7 @@ func flattenLogsUniqueCountCondition(ctx context.Context, p path.Path, v *alert_
 		return nil
 	}
 	out := &LogsUniqueCountConditionModel{}
-	out.MaxUniqueCount = types.StringPointerValue(v.MaxUniqueCount)
+	out.MaxUniqueCount = flattenInt64Wire(p.AtName("max_unique_count"), v.MaxUniqueCount, diags)
 	{
 		inner := unwrapLogsUniqueValueTimeWindow(v.TimeWindow)
 		out.TimeWindow = flattenEnumMapped(p.AtName("time_window"), inner, logsUniqueValueTimeWindowValueFromAPI, diags)
@@ -2651,7 +2696,7 @@ func flattenLogsUniqueCountCondition(ctx context.Context, p path.Path, v *alert_
 
 func logsUniqueCountConditionAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"max_unique_count": types.StringType,
+		"max_unique_count": types.Int64Type,
 		"time_window":      types.StringType,
 	}
 }
@@ -2749,7 +2794,17 @@ func expandMetricAnomalyCondition(ctx context.Context, p path.Path, m *MetricAno
 	out.ConditionType = expandEnumMapped(p.AtName("condition_type"), m.ConditionType, metricAnomalyConditionTypeToAPI, diags)
 	out.ForOverPct = expandInt64(m.ForOverPct)
 	out.MinNonNullValuesPct = expandInt64(m.MinNonNullValuesPct)
-	out.OfTheLast = expandMetricTimeWindow(ctx, p.AtName("of_the_last"), m.OfTheLast, diags)
+	if v := m.OfTheLast; !v.IsNull() && !v.IsUnknown() {
+		// A spelling of the enum is the enum arm. Any other text is the string arm.
+		fold := &alert_definitions_service.MetricTimeWindow{}
+		if api, ok := metricTimeWindowValueToAPI[v.ValueString()]; ok {
+			fold.MetricTimeWindowSpecificValue = &api
+		} else {
+			text := v.ValueString()
+			fold.MetricTimeWindowDynamicDuration = &text
+		}
+		out.OfTheLast = fold
+	}
 	out.Threshold = expandFloat64(m.Threshold)
 	return out
 }
@@ -2762,7 +2817,17 @@ func flattenMetricAnomalyCondition(ctx context.Context, p path.Path, v *alert_de
 	out.ConditionType = flattenEnumMapped(p.AtName("condition_type"), v.ConditionType, metricAnomalyConditionTypeFromAPI, diags)
 	out.ForOverPct = types.Int64PointerValue(v.ForOverPct)
 	out.MinNonNullValuesPct = types.Int64PointerValue(v.MinNonNullValuesPct)
-	out.OfTheLast = flattenMetricTimeWindow(ctx, p.AtName("of_the_last"), v.OfTheLast, diags)
+	out.OfTheLast = types.StringNull()
+	if fold := v.OfTheLast; fold != nil {
+		switch {
+		case fold.MetricTimeWindowSpecificValue != nil && fold.MetricTimeWindowDynamicDuration != nil:
+			diags.AddAttributeError(p.AtName("of_the_last"), "Invalid response from server", "The response has both a value of the enum and a text; it must have one.")
+		case fold.MetricTimeWindowSpecificValue != nil:
+			out.OfTheLast = flattenEnumMapped(p.AtName("of_the_last"), fold.MetricTimeWindowSpecificValue, metricTimeWindowValueFromAPI, diags)
+		case fold.MetricTimeWindowDynamicDuration != nil:
+			out.OfTheLast = types.StringValue(*fold.MetricTimeWindowDynamicDuration)
+		}
+	}
 	out.Threshold = types.Float64PointerValue(v.Threshold)
 	return out
 }
@@ -2772,35 +2837,8 @@ func metricAnomalyConditionAttrTypes() map[string]attr.Type {
 		"condition_type":          types.StringType,
 		"for_over_pct":            types.Int64Type,
 		"min_non_null_values_pct": types.Int64Type,
-		"of_the_last":             types.ObjectType{AttrTypes: metricTimeWindowAttrTypes()},
+		"of_the_last":             types.StringType,
 		"threshold":               types.Float64Type,
-	}
-}
-
-func expandMetricTimeWindow(ctx context.Context, p path.Path, m *MetricTimeWindowModel, diags *diag.Diagnostics) *alert_definitions_service.MetricTimeWindow {
-	if m == nil {
-		return nil
-	}
-	out := &alert_definitions_service.MetricTimeWindow{}
-	out.MetricTimeWindowDynamicDuration = expandString(m.MetricTimeWindowDynamicDuration)
-	out.MetricTimeWindowSpecificValue = expandEnumMapped(p.AtName("metric_time_window_specific_value"), m.MetricTimeWindowSpecificValue, metricTimeWindowValueToAPI, diags)
-	return out
-}
-
-func flattenMetricTimeWindow(ctx context.Context, p path.Path, v *alert_definitions_service.MetricTimeWindow, diags *diag.Diagnostics) *MetricTimeWindowModel {
-	if v == nil {
-		return nil
-	}
-	out := &MetricTimeWindowModel{}
-	out.MetricTimeWindowDynamicDuration = types.StringPointerValue(v.MetricTimeWindowDynamicDuration)
-	out.MetricTimeWindowSpecificValue = flattenEnumMapped(p.AtName("metric_time_window_specific_value"), v.MetricTimeWindowSpecificValue, metricTimeWindowValueFromAPI, diags)
-	return out
-}
-
-func metricTimeWindowAttrTypes() map[string]attr.Type {
-	return map[string]attr.Type{
-		"metric_time_window_dynamic_duration": types.StringType,
-		"metric_time_window_specific_value":   types.StringType,
 	}
 }
 
@@ -2916,7 +2954,17 @@ func expandMetricThresholdCondition(ctx context.Context, p path.Path, m *MetricT
 	out := &alert_definitions_service.MetricThresholdCondition{}
 	out.ConditionType = expandEnumMapped(p.AtName("condition_type"), m.ConditionType, metricThresholdConditionTypeToAPI, diags)
 	out.ForOverPct = expandInt64(m.ForOverPct)
-	out.OfTheLast = expandMetricTimeWindow(ctx, p.AtName("of_the_last"), m.OfTheLast, diags)
+	if v := m.OfTheLast; !v.IsNull() && !v.IsUnknown() {
+		// A spelling of the enum is the enum arm. Any other text is the string arm.
+		fold := &alert_definitions_service.MetricTimeWindow{}
+		if api, ok := metricTimeWindowValueToAPI[v.ValueString()]; ok {
+			fold.MetricTimeWindowSpecificValue = &api
+		} else {
+			text := v.ValueString()
+			fold.MetricTimeWindowDynamicDuration = &text
+		}
+		out.OfTheLast = fold
+	}
 	out.Threshold = expandFloat64(m.Threshold)
 	return out
 }
@@ -2928,7 +2976,17 @@ func flattenMetricThresholdCondition(ctx context.Context, p path.Path, v *alert_
 	out := &MetricThresholdConditionModel{}
 	out.ConditionType = flattenEnumMapped(p.AtName("condition_type"), v.ConditionType, metricThresholdConditionTypeFromAPI, diags)
 	out.ForOverPct = types.Int64PointerValue(v.ForOverPct)
-	out.OfTheLast = flattenMetricTimeWindow(ctx, p.AtName("of_the_last"), v.OfTheLast, diags)
+	out.OfTheLast = types.StringNull()
+	if fold := v.OfTheLast; fold != nil {
+		switch {
+		case fold.MetricTimeWindowSpecificValue != nil && fold.MetricTimeWindowDynamicDuration != nil:
+			diags.AddAttributeError(p.AtName("of_the_last"), "Invalid response from server", "The response has both a value of the enum and a text; it must have one.")
+		case fold.MetricTimeWindowSpecificValue != nil:
+			out.OfTheLast = flattenEnumMapped(p.AtName("of_the_last"), fold.MetricTimeWindowSpecificValue, metricTimeWindowValueFromAPI, diags)
+		case fold.MetricTimeWindowDynamicDuration != nil:
+			out.OfTheLast = types.StringValue(*fold.MetricTimeWindowDynamicDuration)
+		}
+	}
 	out.Threshold = types.Float64PointerValue(v.Threshold)
 	return out
 }
@@ -2937,7 +2995,7 @@ func metricThresholdConditionAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"condition_type": types.StringType,
 		"for_over_pct":   types.Int64Type,
-		"of_the_last":    types.ObjectType{AttrTypes: metricTimeWindowAttrTypes()},
+		"of_the_last":    types.StringType,
 		"threshold":      types.Float64Type,
 	}
 }
@@ -3200,10 +3258,14 @@ func expandAlertDefWebhooksSettings(ctx context.Context, p path.Path, m *AlertDe
 	out.Integration.IntegrationId = expandInt64(m.IntegrationId)
 	{
 		var inner []string
-		inner = expandStrings[string](ctx, p.AtName("recipients"), m.Recipients, diags)
+		inner = expandStringsSet[string](ctx, p.AtName("recipients"), m.Recipients, diags)
 		out.Integration.Recipients = wrapRecipients(inner)
 	}
-	out.Minutes = expandInt64(m.Minutes)
+	if v := m.RetriggeringPeriod; !v.IsNull() && !v.IsUnknown() {
+		var nested AlertDefWebhooksSettingsRetriggeringPeriodModel
+		diags.Append(v.As(ctx, &nested, basetypes.ObjectAsOptions{})...)
+		expandAlertDefWebhooksSettingsRetriggeringPeriod(ctx, p.AtName("retriggering_period"), &nested, out, diags)
+	}
 	out.NotifyOn = expandEnumMapped(p.AtName("notify_on"), m.NotifyOn, notifyOnToAPI, diags)
 	if out.Integration != nil && modelNull(m.IntegrationId) && modelNull(m.Recipients) {
 		out.Integration = nil // an optional object that the configuration sets no attribute of is left out
@@ -3219,19 +3281,50 @@ func flattenAlertDefWebhooksSettings(ctx context.Context, p path.Path, v *alert_
 	out.IntegrationId = types.Int64PointerValue(v.Integration.IntegrationId)
 	{
 		inner := unwrapRecipients(v.Integration.Recipients)
-		out.Recipients = flattenStringsList(ctx, inner, diags)
+		out.Recipients = flattenStringsSet(ctx, inner, diags)
 	}
-	out.Minutes = types.Int64PointerValue(v.Minutes)
+	out.RetriggeringPeriod = types.ObjectNull(alertDefWebhooksSettingsRetriggeringPeriodAttrTypes())
+	if nested := flattenAlertDefWebhooksSettingsRetriggeringPeriod(ctx, p.AtName("retriggering_period"), v, diags); nested != nil {
+		value, valueDiags := types.ObjectValueFrom(ctx, alertDefWebhooksSettingsRetriggeringPeriodAttrTypes(), *nested)
+		diags.Append(valueDiags...)
+		out.RetriggeringPeriod = value
+	}
 	out.NotifyOn = flattenEnumMapped(p.AtName("notify_on"), v.NotifyOn, notifyOnFromAPI, diags)
 	return out
 }
 
 func alertDefWebhooksSettingsAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"integration_id": types.Int64Type,
-		"recipients":     types.ListType{ElemType: types.StringType},
-		"minutes":        types.Int64Type,
-		"notify_on":      types.StringType,
+		"integration_id":      types.Int64Type,
+		"recipients":          types.SetType{ElemType: types.StringType},
+		"retriggering_period": types.ObjectType{AttrTypes: alertDefWebhooksSettingsRetriggeringPeriodAttrTypes()},
+		"notify_on":           types.StringType,
+	}
+}
+
+// expandAlertDefWebhooksSettingsRetriggeringPeriod writes the fields of a group, which the API holds in the parent object, to out.
+func expandAlertDefWebhooksSettingsRetriggeringPeriod(ctx context.Context, p path.Path, m *AlertDefWebhooksSettingsRetriggeringPeriodModel, out *alert_definitions_service.AlertDefWebhooksSettings, diags *diag.Diagnostics) {
+	if m == nil {
+		return
+	}
+	out.Minutes = expandInt64(m.Minutes)
+}
+
+func flattenAlertDefWebhooksSettingsRetriggeringPeriod(ctx context.Context, p path.Path, v *alert_definitions_service.AlertDefWebhooksSettings, diags *diag.Diagnostics) *AlertDefWebhooksSettingsRetriggeringPeriodModel {
+	if v == nil {
+		return nil
+	}
+	if v.Minutes == nil {
+		return nil // the response has none of the fields: the group is null
+	}
+	out := &AlertDefWebhooksSettingsRetriggeringPeriodModel{}
+	out.Minutes = types.Int64PointerValue(v.Minutes)
+	return out
+}
+
+func alertDefWebhooksSettingsRetriggeringPeriodAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"minutes": types.Int64Type,
 	}
 }
 
@@ -3765,6 +3858,53 @@ func expandReplaceAlertDefinitionRequest(ctx context.Context, p path.Path, m *Al
 	}
 	out.AlertDefProperties.PhantomMode = expandBool(m.PhantomMode)
 	out.AlertDefProperties.Priority = expandEnumMapped(p.AtName("priority"), m.Priority, alertDefPriorityToAPI, diags)
+	switch {
+	case m.TypeDefinition != nil && m.TypeDefinition.AnalyticsImmediate != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.AnalyticsThreshold != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_ANALYTICS_THRESHOLD")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.Flow != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_FLOW")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.LogsAnomaly != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_LOGS_ANOMALY")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.LogsImmediate != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.LogsNewValue != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_LOGS_NEW_VALUE")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.LogsRatioThreshold != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.LogsThreshold != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_LOGS_THRESHOLD")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.LogsTimeRelativeThreshold != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.LogsUniqueCount != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.MetricAnomaly != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_METRIC_ANOMALY")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.MetricThreshold != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_METRIC_THRESHOLD")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.SloThreshold != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_SLO_THRESHOLD")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.TracingImmediate != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_TRACING_IMMEDIATE")
+		out.AlertDefProperties.Type = &fixed
+	case m.TypeDefinition != nil && m.TypeDefinition.TracingThreshold != nil:
+		fixed := alert_definitions_service.AlertDefType("ALERT_DEF_TYPE_TRACING_THRESHOLD")
+		out.AlertDefProperties.Type = &fixed
+	}
 	return out
 }
 
@@ -4479,6 +4619,29 @@ func flattenFloat32(v *float32) types.Float32 {
 		return types.Float32Value(*v)
 	}
 	return value.(types.Float32)
+}
+
+// expandInt64Wire returns the decimal string of v. The API sends 64-bit numbers as strings.
+func expandInt64Wire(v types.Int64) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	s := strconv.FormatInt(v.ValueInt64(), 10)
+	return &s
+}
+
+// flattenInt64Wire parses the decimal string of a signed 64-bit number. A text that is not a
+// number of that range is an error.
+func flattenInt64Wire(p path.Path, v *string, diags *diag.Diagnostics) types.Int64 {
+	if v == nil {
+		return types.Int64Null()
+	}
+	n, err := strconv.ParseInt(*v, 10, 64)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid API value", fmt.Sprintf("The API returned %q, which is not a 64-bit number: %s", *v, err))
+		return types.Int64Null()
+	}
+	return types.Int64Value(n)
 }
 
 // widenFloat32 returns the float64 of the shortest decimal that reads back as v. A plain

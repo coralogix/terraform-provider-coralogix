@@ -120,7 +120,7 @@ type FlowStagesGroupModel struct {
 
 type FlowStagesModel struct {
 	FlowStagesGroups types.List   `tfsdk:"flow_stages_groups"`
-	TimeframeMs      types.String `tfsdk:"timeframe_ms"`
+	TimeframeMs      types.Int64  `tfsdk:"timeframe_ms"`
 	TimeframeType    types.String `tfsdk:"timeframe_type"`
 }
 
@@ -266,7 +266,7 @@ type LogsTimeRelativeThresholdTypeModel struct {
 }
 
 type LogsUniqueCountConditionModel struct {
-	MaxUniqueCount types.String `tfsdk:"max_unique_count"`
+	MaxUniqueCount types.Int64  `tfsdk:"max_unique_count"`
 	TimeWindow     types.String `tfsdk:"time_window"`
 }
 
@@ -276,7 +276,7 @@ type LogsUniqueCountRuleModel struct {
 
 type LogsUniqueCountTypeModel struct {
 	LogsFilter                  types.Object `tfsdk:"logs_filter"`
-	MaxUniqueCountPerGroupByKey types.String `tfsdk:"max_unique_count_per_group_by_key"`
+	MaxUniqueCountPerGroupByKey types.Int64  `tfsdk:"max_unique_count_per_group_by_key"`
 	NotificationPayloadFilter   types.Set    `tfsdk:"notification_payload_filter"`
 	Rules                       types.Set    `tfsdk:"rules"`
 	UniqueCountKeypath          types.String `tfsdk:"unique_count_keypath"`
@@ -286,17 +286,12 @@ type MetricFilterModel struct {
 	Promql types.String `tfsdk:"promql"`
 }
 
-type MetricTimeWindowModel struct {
-	MetricTimeWindowDynamicDuration types.String `tfsdk:"metric_time_window_dynamic_duration"`
-	MetricTimeWindowSpecificValue   types.String `tfsdk:"metric_time_window_specific_value"`
-}
-
 type MetricAnomalyConditionModel struct {
-	ConditionType       types.String           `tfsdk:"condition_type"`
-	ForOverPct          types.Int64            `tfsdk:"for_over_pct"`
-	MinNonNullValuesPct types.Int64            `tfsdk:"min_non_null_values_pct"`
-	OfTheLast           *MetricTimeWindowModel `tfsdk:"of_the_last"`
-	Threshold           types.Float64          `tfsdk:"threshold"`
+	ConditionType       types.String  `tfsdk:"condition_type"`
+	ForOverPct          types.Int64   `tfsdk:"for_over_pct"`
+	MinNonNullValuesPct types.Int64   `tfsdk:"min_non_null_values_pct"`
+	OfTheLast           types.String  `tfsdk:"of_the_last"`
+	Threshold           types.Float64 `tfsdk:"threshold"`
 }
 
 type MetricAnomalyRuleModel struct {
@@ -316,10 +311,10 @@ type MetricMissingValuesModel struct {
 }
 
 type MetricThresholdConditionModel struct {
-	ConditionType types.String           `tfsdk:"condition_type"`
-	ForOverPct    types.Int64            `tfsdk:"for_over_pct"`
-	OfTheLast     *MetricTimeWindowModel `tfsdk:"of_the_last"`
-	Threshold     types.Float64          `tfsdk:"threshold"`
+	ConditionType types.String  `tfsdk:"condition_type"`
+	ForOverPct    types.Int64   `tfsdk:"for_over_pct"`
+	OfTheLast     types.String  `tfsdk:"of_the_last"`
+	Threshold     types.Float64 `tfsdk:"threshold"`
 }
 
 type MetricThresholdRuleModel struct {
@@ -366,11 +361,15 @@ type NotificationRouterModel struct {
 	NotifyOn types.String `tfsdk:"notify_on"`
 }
 
+type AlertDefWebhooksSettingsRetriggeringPeriodModel struct {
+	Minutes types.Int64 `tfsdk:"minutes"`
+}
+
 type AlertDefWebhooksSettingsModel struct {
-	IntegrationId types.Int64  `tfsdk:"integration_id"`
-	Recipients    types.List   `tfsdk:"recipients"`
-	Minutes       types.Int64  `tfsdk:"minutes"`
-	NotifyOn      types.String `tfsdk:"notify_on"`
+	IntegrationId      types.Int64  `tfsdk:"integration_id"`
+	Recipients         types.Set    `tfsdk:"recipients"`
+	RetriggeringPeriod types.Object `tfsdk:"retriggering_period"`
+	NotifyOn           types.String `tfsdk:"notify_on"`
 }
 
 type AlertDefNotificationGroupModel struct {
