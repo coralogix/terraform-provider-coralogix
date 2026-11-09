@@ -8,11 +8,18 @@ import (
 )
 
 type KeyThingModel struct {
-	Id          types.String `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
-	Enabled     types.Bool   `tfsdk:"enabled"`
-	Hashed      types.Bool   `tfsdk:"hashed"`
-	Value       types.String `tfsdk:"value"`
-	Presets     types.Set    `tfsdk:"presets"`
-	Permissions types.Set    `tfsdk:"permissions"`
+	Id          types.String   `tfsdk:"id"`
+	Name        types.String   `tfsdk:"name"`
+	Owner       *KeyOwnerModel `tfsdk:"owner"`
+	Enabled     types.Bool     `tfsdk:"enabled"`
+	Hashed      types.Bool     `tfsdk:"hashed"`
+	Value       types.String   `tfsdk:"value"`
+	Presets     types.Set      `tfsdk:"presets"`
+	Permissions types.Set      `tfsdk:"permissions"`
+}
+
+type KeyOwnerModel struct {
+	OrganisationId types.String `tfsdk:"organisation_id"`
+	TeamId         types.String `tfsdk:"team_id"`
+	UserId         types.String `tfsdk:"user_id"`
 }

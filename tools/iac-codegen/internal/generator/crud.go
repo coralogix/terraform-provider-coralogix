@@ -313,7 +313,8 @@ func resourceIDData(r *model.Resource, ix *refIndex, file *overrides.File, out *
 	return nil
 }
 
-// idAsString applies a terraformType String line, which only the integer resource id can have.
+// idAsString applies a terraformType String line of the integer resource id. The same line on another
+// int64 field changes only the type of that attribute.
 func idAsString(r *model.Resource, file *overrides.File, out *crudData) error {
 	if file == nil {
 		return nil
@@ -324,7 +325,7 @@ func idAsString(r *model.Resource, file *overrides.File, out *crudData) error {
 				continue
 			}
 			if component != r.Name || field != r.ID() {
-				return fmt.Errorf("%s.%s: terraformType String is for the resource id %s.%s only", component, field, r.Name, r.ID())
+				continue // another int64 field: the conversion of the field handles it
 			}
 			if out.IDGoType != "int64" {
 				return fmt.Errorf("%s.%s: terraformType String needs an int64 id, not %s", component, field, out.IDGoType)

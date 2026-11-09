@@ -17,9 +17,10 @@ paths:
             schema:
               title: Create Key Thing Request
               type: object
-              required: [name, keyPermissions]
+              required: [name, owner, keyPermissions]
               properties:
                 name: {type: string, minLength: 1}
+                owner: {$ref: '#/components/schemas/KeyOwner'}
                 hashed: {type: boolean, default: false}
                 keyPermissions: {$ref: '#/components/schemas/CreateKeyThingRequest.KeyPermissions'}
       responses:
@@ -93,14 +94,37 @@ components:
         keyInfo: {$ref: '#/components/schemas/KeyThing'}
     KeyThing:
       type: object
-      required: [id, name, enabled, hashed, keyPermissions]
+      required: [id, name, owner, enabled, hashed, keyPermissions]
       properties:
         id: {type: string, minLength: 1}
         name: {type: string, minLength: 1}
+        owner: {$ref: '#/components/schemas/KeyOwner'}
         enabled: {type: boolean}
         hashed: {type: boolean}
         value: {type: string, x-coralogix-presence: true}
         keyPermissions: {$ref: '#/components/schemas/KeyThing.KeyPermissions'}
+    KeyOwner:
+      type: object
+      oneOf:
+        - required: [userId]
+          type: object
+        - required: [teamId]
+          type: object
+        - required: [organisationId]
+          type: object
+        - type: object
+          not:
+            anyOf:
+              - required: [userId]
+                type: object
+              - required: [teamId]
+                type: object
+              - required: [organisationId]
+                type: object
+      properties:
+        organisationId: {type: string, minLength: 0}
+        teamId: {type: integer, minimum: 0, format: int64}
+        userId: {type: string, minLength: 0}
     KeyThing.KeyPermissions:
       type: object
       required: [presets, permissions]

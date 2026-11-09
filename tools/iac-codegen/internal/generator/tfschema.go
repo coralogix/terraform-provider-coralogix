@@ -1239,10 +1239,12 @@ func applyTerraformType(a *tfAttr, l overrides.Field) error {
 		return nil
 	}
 	if l.TerraformType == "String" {
-		// The released id is the decimal text of an integer id. resourceIDData checks that the
-		// line is on the id.
+		// The released attribute is the decimal text of an integer, such as the id or a team id.
 		if a.Kind != "Int64" {
-			return fmt.Errorf("terraformType String needs an int64 resource id, not a %s", a.Kind)
+			return fmt.Errorf("terraformType String needs an int64 field, not a %s", a.Kind)
+		}
+		for i, v := range a.Validators {
+			a.Validators[i] = strings.Replace(v, "int64validator.", "stringvalidator.", 1)
 		}
 		prefix := strings.ToLower(a.Kind) + "planmodifier."
 		for i, m := range a.Modifiers {

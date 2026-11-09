@@ -22,6 +22,9 @@ api:
 unwrap: [KeyThingPresets, KeyThingPermissions]
 
 types:
+  KeyOwner:
+    fields:
+      teamId: {terraformType: String}
   KeyThing:
     fields:
       name: {updateAs: newName}
@@ -30,6 +33,8 @@ types:
       # The secret that Get returns for a key that is not hashed.
       value: {sensitive: true}
       keyPermissions: {inline: true}
+      # The owner is one of three ids. The released team id is the decimal text of the number.
+      owner: {requireOne: true}
       # The lists are required in the released schema, but Create takes either one: the Get response
       # requires both, and Create has a body of its own, so only the line makes them required.
       presets: {itemName: name, required: true, collection: set}
