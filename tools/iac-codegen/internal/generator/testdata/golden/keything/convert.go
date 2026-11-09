@@ -29,6 +29,7 @@ var createFields = []struct {
 	serverDefault bool
 }{
 	{attr: "name", serverDefault: false},
+	{attr: "owner", serverDefault: false},
 	{attr: "presets", serverDefault: false},
 	{attr: "permissions", serverDefault: false},
 }
@@ -79,7 +80,11 @@ func flatten(ctx context.Context, v *key_things_service.KeyThing) (*KeyThingMode
 // oneOfArms are the paths of the oneOf arms, with list and map steps left
 // out. An empty arm selects that arm, so it is not the same as a missing arm
 // (contract 2.8).
-var oneOfArms = map[string]bool{}
+var oneOfArms = map[string]bool{
+	"owner.organisation_id": true,
+	"owner.team_id":         true,
+	"owner.user_id":         true,
+}
 
 // computedAttrs are the paths of the computed attributes, with list and map
 // steps left out.
@@ -93,6 +98,7 @@ var computedAttrs = map[string]bool{
 // requiredAttrs are the paths of the required attributes, in the form of computedAttrs.
 var requiredAttrs = map[string]bool{
 	"name":        true,
+	"owner":       true,
 	"presets":     true,
 	"permissions": true,
 }
@@ -242,8 +248,31 @@ func expandCreateKeyThingRequest(ctx context.Context, p path.Path, m *KeyThingMo
 	}
 	out := &key_things_service.CreateKeyThingRequest{}
 	out.Name = valueOf(expandString(m.Name))
+	out.Owner = valueOf(expandKeyOwner(ctx, p.AtName("owner"), m.Owner, diags))
 	out.KeyPermissions.Presets = expandStringsSet[string](ctx, p.AtName("presets"), m.Presets, diags)
 	out.KeyPermissions.Permissions = expandStringsSet[string](ctx, p.AtName("permissions"), m.Permissions, diags)
+	return out
+}
+
+func expandKeyOwner(ctx context.Context, p path.Path, m *KeyOwnerModel, diags *diag.Diagnostics) *key_things_service.KeyOwner {
+	if m == nil {
+		return nil
+	}
+	out := &key_things_service.KeyOwner{}
+	out.OrganisationId = expandString(m.OrganisationId)
+	out.TeamId = expandStringAsInt64(p.AtName("team_id"), m.TeamId, diags)
+	out.UserId = expandString(m.UserId)
+	return out
+}
+
+func flattenKeyOwner(ctx context.Context, p path.Path, v *key_things_service.KeyOwner, diags *diag.Diagnostics) *KeyOwnerModel {
+	if v == nil {
+		return nil
+	}
+	out := &KeyOwnerModel{}
+	out.OrganisationId = types.StringPointerValue(v.OrganisationId)
+	out.TeamId = types.StringPointerValue(int64AsString(v.TeamId))
+	out.UserId = types.StringPointerValue(v.UserId)
 	return out
 }
 
@@ -274,6 +303,7 @@ func flattenKeyThing(ctx context.Context, p path.Path, v *key_things_service.Key
 	out := &KeyThingModel{}
 	out.Id = types.StringPointerValue(&v.Id)
 	out.Name = types.StringPointerValue(&v.Name)
+	out.Owner = flattenKeyOwner(ctx, p.AtName("owner"), &v.Owner, diags)
 	out.Enabled = types.BoolPointerValue(&v.Enabled)
 	out.Hashed = types.BoolPointerValue(&v.Hashed)
 	out.Value = types.StringPointerValue(v.Value)
@@ -544,4 +574,26 @@ func flattenList[T any](ctx context.Context, elem attr.Type, items []T, diags *d
 	l, d := types.ListValueFrom(ctx, elem, items)
 	diags.Append(d...)
 	return l
+}
+
+// expandStringAsInt64 returns the int64 id that a String attribute holds as decimal text.
+func expandStringAsInt64(p path.Path, v types.String, diags *diag.Diagnostics) *int64 {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	n, err := strconv.ParseInt(v.ValueString(), 10, 64)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid id", fmt.Sprintf("%q is not an integer id.", v.ValueString()))
+		return nil
+	}
+	return &n
+}
+
+// int64AsString returns the decimal text of an int64 id.
+func int64AsString(v *int64) *string {
+	if v == nil {
+		return nil
+	}
+	s := strconv.FormatInt(*v, 10)
+	return &s
 }

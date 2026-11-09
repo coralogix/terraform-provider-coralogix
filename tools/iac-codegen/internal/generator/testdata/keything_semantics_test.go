@@ -39,6 +39,13 @@ func keyValue(root tftypes.Type, id tftypes.Value, name string, enabled bool, pe
 		values[attrName] = tftypes.NewValue(attrType, nil)
 	}
 	values["id"], values["name"] = id, tftypes.NewValue(tftypes.String, name)
+	ownerType := root.(tftypes.Object).AttributeTypes["owner"]
+	owner := map[string]tftypes.Value{}
+	for attrName, attrType := range ownerType.(tftypes.Object).AttributeTypes {
+		owner[attrName] = tftypes.NewValue(attrType, nil)
+	}
+	owner["team_id"] = tftypes.NewValue(tftypes.String, "42")
+	values["owner"] = tftypes.NewValue(ownerType, owner)
 	values["enabled"] = tftypes.NewValue(tftypes.Bool, enabled)
 	values["hashed"] = tftypes.NewValue(tftypes.Bool, false)
 	values["presets"] = stringSet("APM")
@@ -47,8 +54,9 @@ func keyValue(root tftypes.Type, id tftypes.Value, name string, enabled bool, pe
 }
 
 func stored(id, name string, enabled bool, permissions ...string) key_things_service.KeyThing {
+	team := int64(42)
 	return key_things_service.KeyThing{
-		Id: id, Name: name, Enabled: enabled,
+		Id: id, Name: name, Enabled: enabled, Owner: key_things_service.KeyOwner{TeamId: &team},
 		KeyPermissions: key_things_service.KeyThingKeyPermissions{
 			Presets:     []key_things_service.PresetThing{{Name: "APM", Permissions: []string{"serverless:Read"}}},
 			Permissions: permissions,
@@ -92,6 +100,16 @@ func TestCreateSendsNamesAndReadsPresetNames(t *testing.T) {
 	body := key_things_service.Created[0]
 	if body.Name != "k" || !slices.Equal(body.KeyPermissions.Presets, []string{"APM"}) || !slices.Equal(body.KeyPermissions.Permissions, []string{"livetail:Read"}) {
 		t.Fatalf("create body = %+v, want the name and the lists in the key permissions", body)
+	}
+	if body.Owner.TeamId == nil || *body.Owner.TeamId != 42 || body.Owner.UserId != nil {
+		t.Errorf("create owner = %+v, want the team id 42 as a number", body.Owner)
+	}
+	var owner types.Object
+	if diags := resp.State.GetAttribute(ctx, path.Root("owner"), &owner); diags.HasError() {
+		t.Fatal(diags)
+	}
+	if teamID := owner.Attributes()["team_id"].(types.String); teamID.ValueString() != "42" {
+		t.Errorf("state owner.team_id = %v, want the text 42", teamID)
 	}
 	if body.Hashed != nil {
 		t.Errorf("create sent hashed = %v: the attribute is read-only", *body.Hashed)
