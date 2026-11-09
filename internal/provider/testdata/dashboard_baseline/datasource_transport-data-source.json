@@ -1,0 +1,56 @@
+[
+  {
+    "step": "data source transport failure",
+    "config": {
+      "id": "fakeboard000000000001"
+    },
+    "applyDiagnostics": [
+      "error: Error reading Dashboard | error - Get \"https://api.eu2.coralogix.com/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001\": dashboards transport unavailable\noperation - Get"
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": null,
+      "name": null,
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
+  },
+  {
+    "step": "retry the data source read",
+    "config": {
+      "id": "fakeboard000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": null
+      },
+      "name": "seeded",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
+  }
+]

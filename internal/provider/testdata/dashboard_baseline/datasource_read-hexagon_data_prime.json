@@ -1,0 +1,140 @@
+[
+  {
+    "step": "read by id",
+    "config": {
+      "id": "fakeboard000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": {
+              "collapsed": null,
+              "color": null,
+              "description": null,
+              "internal": {},
+              "name": null,
+              "repetitive_var": null
+            },
+            "rows": [
+              {
+                "height": 1,
+                "id": "<id-1>",
+                "widgets": [
+                  {
+                    "custom_actions": [
+                      {
+                        "data_source": "dataprime",
+                        "id": "<id-1>",
+                        "name": "value-name",
+                        "should_open_in_new_window": true,
+                        "url": "value-url"
+                      }
+                    ],
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": {
+                        "custom_unit": "value-custom_unit",
+                        "data_mode_type": "archive",
+                        "decimal": 1,
+                        "decimal_precision": true,
+                        "legend": {
+                          "columns": [
+                            "avg"
+                          ],
+                          "group_by_query": true,
+                          "is_visible": true,
+                          "placement": "auto"
+                        },
+                        "legend_by": "groups",
+                        "max": 1,
+                        "min": 1,
+                        "query": {
+                          "data_prime": {
+                            "filters": [
+                              {
+                                "logs": {
+                                  "field": "value-field",
+                                  "observation_field": {
+                                    "keypath": [
+                                      "value-keypath"
+                                    ],
+                                    "scope": "label"
+                                  },
+                                  "operator": {
+                                    "selected_values": [],
+                                    "selection_type": "all",
+                                    "type": "equals"
+                                  }
+                                },
+                                "metrics": null,
+                                "spans": null
+                              }
+                            ],
+                            "query": "value-query",
+                            "time_frame": {
+                              "absolute": {
+                                "end": "2024-01-01T00:00:00Z",
+                                "start": "2024-01-01T00:00:00Z"
+                              },
+                              "relative": null
+                            }
+                          },
+                          "logs": null,
+                          "metrics": null,
+                          "spans": null
+                        },
+                        "threshold_type": "absolute",
+                        "thresholds": [
+                          {
+                            "color": "value-color",
+                            "from": 1,
+                            "label": "value-label"
+                          }
+                        ],
+                        "unit": "bytes"
+                      },
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": null,
+                      "pie_chart": null
+                    },
+                    "description": "value-description",
+                    "highlighted": true,
+                    "id": "<id-1>",
+                    "reference": null,
+                    "title": "value-title",
+                    "width": 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "walk hexagon_data_prime",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
+  }
+]

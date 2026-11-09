@@ -1,0 +1,156 @@
+[
+  {
+    "step": "read by id",
+    "config": {
+      "id": "fakeboard000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": {
+              "collapsed": null,
+              "color": null,
+              "description": null,
+              "internal": {},
+              "name": null,
+              "repetitive_var": null
+            },
+            "rows": [
+              {
+                "height": 1,
+                "id": "<id-1>",
+                "widgets": [
+                  {
+                    "custom_actions": [
+                      {
+                        "data_source": "dataprime",
+                        "id": "<id-1>",
+                        "name": "value-name",
+                        "should_open_in_new_window": true,
+                        "url": "value-url"
+                      }
+                    ],
+                    "definition": {
+                      "bar_chart": {
+                        "bar_value_display": "both",
+                        "color_scheme": "classic",
+                        "colors_by": "stack",
+                        "custom_unit": "value-custom_unit",
+                        "data_mode_type": "archive",
+                        "decimal": 1,
+                        "decimal_precision": true,
+                        "group_name_template": "value-group_name_template",
+                        "hash_colors": true,
+                        "legend": {
+                          "columns": [
+                            "avg"
+                          ],
+                          "group_by_query": true,
+                          "is_visible": true,
+                          "placement": "auto"
+                        },
+                        "max_bars_per_chart": 1,
+                        "query": {
+                          "data_prime": {
+                            "filters": [
+                              {
+                                "logs": {
+                                  "field": "value-field",
+                                  "observation_field": {
+                                    "keypath": [
+                                      "value-keypath"
+                                    ],
+                                    "scope": "label"
+                                  },
+                                  "operator": {
+                                    "selected_values": [],
+                                    "selection_type": "all",
+                                    "type": "equals"
+                                  }
+                                },
+                                "metrics": null,
+                                "spans": null
+                              }
+                            ],
+                            "group_names": [
+                              "value-group_names"
+                            ],
+                            "query": "value-query",
+                            "stacked_group_name": "value-stacked_group_name",
+                            "time_frame": {
+                              "absolute": {
+                                "end": "2024-01-01T00:00:00Z",
+                                "start": "2024-01-01T00:00:00Z"
+                              },
+                              "relative": null
+                            }
+                          },
+                          "logs": null,
+                          "metrics": null,
+                          "spans": null
+                        },
+                        "scale_type": "unspecified",
+                        "sort_by": "name",
+                        "stack_definition": {
+                          "max_slices_per_bar": 1,
+                          "stack_name_template": "value-stack_name_template"
+                        },
+                        "unit": "bytes",
+                        "x_axis_time_format": "auto",
+                        "xaxis": {
+                          "time": {
+                            "buckets_presented": 1,
+                            "interval": "1m0s"
+                          },
+                          "time_buckets": null,
+                          "value": null
+                        },
+                        "y_axis_max": 1,
+                        "y_axis_min": 1
+                      },
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": null,
+                      "pie_chart": null
+                    },
+                    "description": "value-description",
+                    "highlighted": true,
+                    "id": "<id-1>",
+                    "reference": null,
+                    "title": "value-title",
+                    "width": 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "walk bar_chart_data_prime",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
+  }
+]

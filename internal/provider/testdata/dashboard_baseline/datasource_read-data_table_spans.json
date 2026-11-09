@@ -1,0 +1,149 @@
+[
+  {
+    "step": "read by id",
+    "config": {
+      "id": "fakeboard000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "annotations": null,
+      "auto_refresh": null,
+      "content_json": null,
+      "description": null,
+      "filters": null,
+      "folder": null,
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-1>",
+            "options": {
+              "collapsed": null,
+              "color": null,
+              "description": null,
+              "internal": {},
+              "name": null,
+              "repetitive_var": null
+            },
+            "rows": [
+              {
+                "height": 1,
+                "id": "<id-1>",
+                "widgets": [
+                  {
+                    "custom_actions": [
+                      {
+                        "data_source": "dataprime",
+                        "id": "<id-1>",
+                        "name": "value-name",
+                        "should_open_in_new_window": true,
+                        "url": "value-url"
+                      }
+                    ],
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": {
+                        "columns": [
+                          {
+                            "field": "value-field",
+                            "width": 1
+                          }
+                        ],
+                        "data_mode_type": "archive",
+                        "order_by": {
+                          "field": "value-field",
+                          "order_direction": "asc"
+                        },
+                        "query": {
+                          "data_prime": null,
+                          "logs": null,
+                          "metrics": null,
+                          "spans": {
+                            "filters": [
+                              {
+                                "field": {
+                                  "type": "metadata",
+                                  "value": "service_name"
+                                },
+                                "observation_field": {
+                                  "keypath": [
+                                    "value-keypath"
+                                  ],
+                                  "relation_type": "other",
+                                  "scope": "label"
+                                },
+                                "operator": {
+                                  "selected_values": [],
+                                  "selection_type": "all",
+                                  "type": "equals"
+                                }
+                              }
+                            ],
+                            "grouping": {
+                              "aggregations": [
+                                {
+                                  "aggregation": {
+                                    "aggregation_type": "unspecified",
+                                    "field": "unspecified",
+                                    "type": "metric"
+                                  },
+                                  "id": null,
+                                  "is_visible": true,
+                                  "name": "value-name"
+                                }
+                              ],
+                              "group_by": [
+                                {
+                                  "type": "metadata",
+                                  "value": "service_name"
+                                }
+                              ]
+                            },
+                            "lucene_query": "value-lucene_query",
+                            "time_frame": {
+                              "absolute": {
+                                "end": "2024-01-01T00:00:00Z",
+                                "start": "2024-01-01T00:00:00Z"
+                              },
+                              "relative": null
+                            }
+                          }
+                        },
+                        "results_per_page": 1,
+                        "row_style": "condensed"
+                      },
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": null,
+                      "pie_chart": null
+                    },
+                    "description": "value-description",
+                    "highlighted": true,
+                    "id": "<id-1>",
+                    "reference": null,
+                    "title": "value-title",
+                    "width": 1
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "walk data_table_spans",
+      "time_frame": null,
+      "variables": null,
+      "variables_v2": null
+    }
+  }
+]

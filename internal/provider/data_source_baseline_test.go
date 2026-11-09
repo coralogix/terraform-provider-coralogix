@@ -45,6 +45,7 @@ type dataSourceBaseline struct {
 
 var dataSourceBaselines = map[string]dataSourceBaseline{
 	"scope":               {scopeGoldenDir, newScopeHarness, scopeDataSourceScenarios},
+	"dashboard":           {dashboardGoldenDir, newDashboardHarness, dashboardDataSourceScenarios},
 	"team":                {teamGoldenDir, newTeamHarness, teamDataSourceScenarios},
 	"configuration_group": {cgGoldenDir, newCGHarness, cgDataSourceScenarios},
 	"alerts_scheduler": {asGoldenDir, func(t *testing.T) *grHarness {
@@ -100,7 +101,7 @@ func TestDataSourceBaselineScenarios(t *testing.T) {
 			t.Run(name+"/"+scenario, func(t *testing.T) {
 				h := baseline.harness(t)
 				run(h)
-				checkGoldenAt(t, baseline.dir, "datasource_"+scenario+".json", marshalGolden(t, h.steps))
+				checkGoldenAt(t, baseline.dir, "datasource_"+scenario+".json", marshalDataSourceGolden(t, name, h.steps))
 			})
 		}
 	}

@@ -1,0 +1,893 @@
+[
+  {
+    "step": "read by id",
+    "config": {
+      "id": "fakeboard000000000001"
+    },
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dashboards/dashboards/v1/fakeboard000000000001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": "value-access_policy",
+      "annotations": [
+        {
+          "color": "blue",
+          "description": "value-description",
+          "enabled": true,
+          "id": "<id-1>",
+          "name": "value-name",
+          "scope": {
+            "all_widgets": {},
+            "specific_widgets": null
+          },
+          "source": {
+            "dataprime": {
+              "data_mode_type": "archive",
+              "label_fields": [
+                {
+                  "keypath": [
+                    "value-keypath"
+                  ],
+                  "scope": "label"
+                }
+              ],
+              "message_template": "value-message_template",
+              "orientation": "vertical",
+              "query": "value-query",
+              "strategy": {
+                "duration": {
+                  "duration_field": {
+                    "keypath": [
+                      "value-keypath"
+                    ],
+                    "scope": "label"
+                  },
+                  "start_timestamp_field": {
+                    "keypath": [
+                      "value-keypath"
+                    ],
+                    "scope": "label"
+                  }
+                },
+                "instant": null,
+                "range": null
+              }
+            },
+            "event_recurrence": null,
+            "logs": null,
+            "manual": null,
+            "metrics": null,
+            "spans": null
+          }
+        },
+        {
+          "color": "blue",
+          "description": "value-description",
+          "enabled": true,
+          "id": "<id-1>",
+          "name": "value-name",
+          "scope": {
+            "all_widgets": null,
+            "specific_widgets": {
+              "widget_ids": [
+                "<id-2>"
+              ]
+            }
+          },
+          "source": {
+            "dataprime": null,
+            "event_recurrence": {
+              "message_template": "value-message_template",
+              "recurrence": {
+                "weekly": {
+                  "days_of_week": [
+                    "friday"
+                  ]
+                }
+              },
+              "strategy": {
+                "duration": {
+                  "duration": "value-duration",
+                  "start_time_hour": 1
+                },
+                "instant": null
+              }
+            },
+            "logs": null,
+            "manual": null,
+            "metrics": null,
+            "spans": null
+          }
+        },
+        {
+          "color": "blue",
+          "description": "value-description",
+          "enabled": true,
+          "id": "<id-1>",
+          "name": "value-name",
+          "scope": {
+            "all_widgets": {},
+            "specific_widgets": null
+          },
+          "source": {
+            "dataprime": null,
+            "event_recurrence": null,
+            "logs": {
+              "label_fields": [
+                {
+                  "keypath": [
+                    "value-keypath"
+                  ],
+                  "scope": "label"
+                }
+              ],
+              "lucene_query": "value-lucene_query",
+              "message_template": "value-message_template",
+              "strategy": {
+                "duration": null,
+                "instant": {
+                  "timestamp_field": {
+                    "keypath": [
+                      "value-keypath"
+                    ],
+                    "scope": "label"
+                  }
+                },
+                "range": null
+              }
+            },
+            "manual": null,
+            "metrics": null,
+            "spans": null
+          }
+        },
+        {
+          "color": "blue",
+          "description": "value-description",
+          "enabled": true,
+          "id": "<id-1>",
+          "name": "value-name",
+          "scope": {
+            "all_widgets": null,
+            "specific_widgets": {
+              "widget_ids": [
+                "<id-2>"
+              ]
+            }
+          },
+          "source": {
+            "dataprime": null,
+            "event_recurrence": null,
+            "logs": null,
+            "manual": {
+              "message_template": "value-message_template",
+              "orientation": "vertical",
+              "strategy": {
+                "instant": {
+                  "custom_unit": "value-custom_unit",
+                  "unit": "bytes",
+                  "value": 1
+                },
+                "range": null
+              }
+            },
+            "metrics": null,
+            "spans": null
+          }
+        },
+        {
+          "color": "blue",
+          "description": "value-description",
+          "enabled": true,
+          "id": "<id-1>",
+          "name": "value-name",
+          "scope": {
+            "all_widgets": {},
+            "specific_widgets": null
+          },
+          "source": {
+            "dataprime": null,
+            "event_recurrence": null,
+            "logs": null,
+            "manual": null,
+            "metrics": {
+              "labels": [
+                "value-labels"
+              ],
+              "message_template": "value-message_template",
+              "orientation": "vertical",
+              "promql_query": "value-promql_query",
+              "strategy": {
+                "start_time": {}
+              }
+            },
+            "spans": null
+          }
+        },
+        {
+          "color": "blue",
+          "description": "value-description",
+          "enabled": true,
+          "id": "<id-1>",
+          "name": "value-name",
+          "scope": {
+            "all_widgets": null,
+            "specific_widgets": {
+              "widget_ids": [
+                "<id-2>"
+              ]
+            }
+          },
+          "source": {
+            "dataprime": null,
+            "event_recurrence": null,
+            "logs": null,
+            "manual": null,
+            "metrics": null,
+            "spans": {
+              "label_fields": [
+                {
+                  "keypath": [
+                    "value-keypath"
+                  ],
+                  "scope": "label"
+                }
+              ],
+              "lucene_query": "value-lucene_query",
+              "message_template": "value-message_template",
+              "strategy": {
+                "duration": null,
+                "instant": {
+                  "timestamp_field": {
+                    "keypath": [
+                      "value-keypath"
+                    ],
+                    "scope": "label"
+                  }
+                },
+                "range": null
+              }
+            }
+          }
+        }
+      ],
+      "auto_refresh": {
+        "type": "off"
+      },
+      "content_json": null,
+      "description": "value-description",
+      "filters": [
+        {
+          "collapsed": true,
+          "display_name": "value-display_name",
+          "enabled": true,
+          "id": "<id-1>",
+          "scope": {
+            "all_widgets": {},
+            "specific_widgets": null
+          },
+          "source": {
+            "logs": {
+              "field": "value-field",
+              "observation_field": {
+                "keypath": [
+                  "value-keypath"
+                ],
+                "scope": "label"
+              },
+              "operator": {
+                "selected_values": [],
+                "selection_type": "all",
+                "type": "equals"
+              }
+            },
+            "metrics": null,
+            "spans": null
+          }
+        },
+        {
+          "collapsed": true,
+          "display_name": "value-display_name",
+          "enabled": true,
+          "id": "<id-1>",
+          "scope": {
+            "all_widgets": null,
+            "specific_widgets": {
+              "widget_ids": [
+                "<id-2>"
+              ]
+            }
+          },
+          "source": {
+            "logs": null,
+            "metrics": {
+              "label": "value-label",
+              "metric_name": "value-metric_name",
+              "operator": {
+                "selected_values": [],
+                "selection_type": "all",
+                "type": "equals"
+              }
+            },
+            "spans": null
+          }
+        },
+        {
+          "collapsed": true,
+          "display_name": "value-display_name",
+          "enabled": true,
+          "id": "<id-1>",
+          "scope": {
+            "all_widgets": {},
+            "specific_widgets": null
+          },
+          "source": {
+            "logs": null,
+            "metrics": null,
+            "spans": {
+              "field": {
+                "type": "metadata",
+                "value": "service_name"
+              },
+              "observation_field": {
+                "keypath": [
+                  "value-keypath"
+                ],
+                "relation_type": "other",
+                "scope": "label"
+              },
+              "operator": {
+                "selected_values": [],
+                "selection_type": "all",
+                "type": "equals"
+              }
+            }
+          }
+        },
+        {
+          "collapsed": true,
+          "display_name": "value-display_name",
+          "enabled": true,
+          "id": "<id-1>",
+          "scope": {
+            "all_widgets": null,
+            "specific_widgets": {
+              "widget_ids": [
+                "<id-2>"
+              ]
+            }
+          },
+          "source": {
+            "logs": {
+              "field": "value-field",
+              "observation_field": {
+                "keypath": [
+                  "value-keypath"
+                ],
+                "scope": "label"
+              },
+              "operator": {
+                "selected_values": [],
+                "selection_type": "all",
+                "type": "equals"
+              }
+            },
+            "metrics": null,
+            "spans": null
+          }
+        },
+        {
+          "collapsed": true,
+          "display_name": "value-display_name",
+          "enabled": true,
+          "id": "<id-1>",
+          "scope": {
+            "all_widgets": {},
+            "specific_widgets": null
+          },
+          "source": {
+            "logs": null,
+            "metrics": {
+              "label": "value-label",
+              "metric_name": "value-metric_name",
+              "operator": {
+                "selected_values": [],
+                "selection_type": "all",
+                "type": "equals"
+              }
+            },
+            "spans": null
+          }
+        },
+        {
+          "collapsed": true,
+          "display_name": "value-display_name",
+          "enabled": true,
+          "id": "<id-1>",
+          "scope": {
+            "all_widgets": null,
+            "specific_widgets": {
+              "widget_ids": [
+                "<id-2>"
+              ]
+            }
+          },
+          "source": {
+            "logs": null,
+            "metrics": null,
+            "spans": {
+              "field": {
+                "type": "metadata",
+                "value": "service_name"
+              },
+              "observation_field": {
+                "keypath": [
+                  "value-keypath"
+                ],
+                "relation_type": "other",
+                "scope": "label"
+              },
+              "operator": {
+                "selected_values": [],
+                "selection_type": "all",
+                "type": "equals"
+              }
+            }
+          }
+        }
+      ],
+      "folder": {
+        "id": "value-id",
+        "path": null
+      },
+      "id": "fakeboard000000000001",
+      "layout": {
+        "sections": [
+          {
+            "id": "<id-3>",
+            "options": null,
+            "rows": [
+              {
+                "height": 10,
+                "id": "<id-4>",
+                "widgets": [
+                  {
+                    "custom_actions": null,
+                    "definition": {
+                      "bar_chart": null,
+                      "data_table": null,
+                      "dynamic": null,
+                      "gauge": null,
+                      "hexagon": null,
+                      "horizontal_bar_chart": null,
+                      "line_chart": null,
+                      "markdown": {
+                        "markdown_text": "hello",
+                        "tooltip_text": null
+                      },
+                      "pie_chart": null
+                    },
+                    "description": null,
+                    "highlighted": false,
+                    "id": "<id-5>",
+                    "reference": null,
+                    "title": "note",
+                    "width": null
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "name": "value-name",
+      "time_frame": {
+        "absolute": {
+          "end": "2024-01-01T00:00:00Z",
+          "start": "2024-01-01T00:00:00Z"
+        },
+        "relative": null
+      },
+      "variables": [
+        {
+          "definition": {
+            "constant_value": null,
+            "multi_select": {
+              "selected_values": [
+                "value-selected_values"
+              ],
+              "selection_type": "multi",
+              "source": {
+                "constant_list": [
+                  "value-constant_list"
+                ],
+                "logs_path": null,
+                "metric_label": null,
+                "query": null,
+                "span_field": null
+              },
+              "values_order_direction": "asc"
+            }
+          },
+          "display_name": "value-display_name",
+          "name": "value-name"
+        },
+        {
+          "definition": {
+            "constant_value": null,
+            "multi_select": {
+              "selected_values": [
+                "value-selected_values"
+              ],
+              "selection_type": "multi",
+              "source": {
+                "constant_list": null,
+                "logs_path": "value-logs_path",
+                "metric_label": null,
+                "query": null,
+                "span_field": null
+              },
+              "values_order_direction": "asc"
+            }
+          },
+          "display_name": "value-display_name",
+          "name": "value-name"
+        },
+        {
+          "definition": {
+            "constant_value": null,
+            "multi_select": {
+              "selected_values": [
+                "value-selected_values"
+              ],
+              "selection_type": "multi",
+              "source": {
+                "constant_list": null,
+                "logs_path": null,
+                "metric_label": {
+                  "label": "value-label",
+                  "metric_name": "value-metric_name"
+                },
+                "query": null,
+                "span_field": null
+              },
+              "values_order_direction": "asc"
+            }
+          },
+          "display_name": "value-display_name",
+          "name": "value-name"
+        },
+        {
+          "definition": {
+            "constant_value": null,
+            "multi_select": {
+              "selected_values": [
+                "value-selected_values"
+              ],
+              "selection_type": "multi",
+              "source": {
+                "constant_list": null,
+                "logs_path": null,
+                "metric_label": null,
+                "query": {
+                  "query": {
+                    "logs": {
+                      "field_name": {
+                        "log_regex": "value-log_regex"
+                      },
+                      "field_value": null
+                    },
+                    "metrics": null,
+                    "spans": null
+                  },
+                  "refresh_strategy": "on_dashboard_load",
+                  "value_display_options": {
+                    "label_regex": "value-label_regex",
+                    "value_regex": "value-value_regex"
+                  }
+                },
+                "span_field": null
+              },
+              "values_order_direction": "asc"
+            }
+          },
+          "display_name": "value-display_name",
+          "name": "value-name"
+        },
+        {
+          "definition": {
+            "constant_value": null,
+            "multi_select": {
+              "selected_values": [
+                "value-selected_values"
+              ],
+              "selection_type": "multi",
+              "source": {
+                "constant_list": null,
+                "logs_path": null,
+                "metric_label": null,
+                "query": null,
+                "span_field": {
+                  "type": "metadata",
+                  "value": "service_name"
+                }
+              },
+              "values_order_direction": "asc"
+            }
+          },
+          "display_name": "value-display_name",
+          "name": "value-name"
+        },
+        {
+          "definition": {
+            "constant_value": null,
+            "multi_select": {
+              "selected_values": [
+                "value-selected_values"
+              ],
+              "selection_type": "multi",
+              "source": {
+                "constant_list": [
+                  "value-constant_list"
+                ],
+                "logs_path": null,
+                "metric_label": null,
+                "query": null,
+                "span_field": null
+              },
+              "values_order_direction": "asc"
+            }
+          },
+          "display_name": "value-display_name",
+          "name": "value-name"
+        }
+      ],
+      "variables_v2": [
+        {
+          "description": "value-description",
+          "display_full_row": false,
+          "display_name": "value-display_name",
+          "display_type": "label_value",
+          "id": "<id-1>",
+          "name": "value-name",
+          "source": {
+            "query": {
+              "all_option": {
+                "include_all": true,
+                "label": "value-label"
+              },
+              "dataprime_query": {
+                "type": {
+                  "query_text": {
+                    "data_mode_type": "archive",
+                    "query": "value-query"
+                  }
+                }
+              },
+              "logs_query": null,
+              "metrics_query": null,
+              "refresh_strategy": "on_dashboard_load",
+              "spans_query": null,
+              "value_display_options": {
+                "label_regex": "value-label_regex",
+                "value_regex": "value-value_regex"
+              },
+              "values_order_direction": "asc"
+            },
+            "static": null,
+            "textbox": null
+          },
+          "value": {
+            "interval": {
+              "label": "value-label",
+              "value": "value-value"
+            },
+            "lucene": null,
+            "multi_string": null,
+            "regex": null,
+            "single_numeric": null,
+            "single_string": null
+          }
+        },
+        {
+          "description": "value-description",
+          "display_full_row": false,
+          "display_name": "value-display_name",
+          "display_type": "label_value",
+          "id": "<id-1>",
+          "name": "value-name",
+          "source": {
+            "query": null,
+            "static": {
+              "all_option": {
+                "include_all": true,
+                "label": "value-label"
+              },
+              "values": [
+                {
+                  "is_default": true,
+                  "label": "value-label",
+                  "value": "value-value"
+                }
+              ],
+              "values_order_direction": "asc"
+            },
+            "textbox": null
+          },
+          "value": {
+            "interval": null,
+            "lucene": {
+              "label": "value-label",
+              "value": "value-value"
+            },
+            "multi_string": null,
+            "regex": null,
+            "single_numeric": null,
+            "single_string": null
+          }
+        },
+        {
+          "description": "value-description",
+          "display_full_row": true,
+          "display_name": "value-display_name",
+          "display_type": "label_value",
+          "id": "<id-1>",
+          "name": "value-name",
+          "source": {
+            "query": null,
+            "static": null,
+            "textbox": {
+              "default_value": {
+                "default_interval_value": {
+                  "value": "value-value"
+                },
+                "default_lucene_value": null,
+                "default_numeric_value": null,
+                "default_regex_value": null,
+                "default_string_value": null
+              }
+            }
+          },
+          "value": {
+            "interval": null,
+            "lucene": null,
+            "multi_string": {
+              "all": {},
+              "list": null,
+              "selected_all": null
+            },
+            "regex": null,
+            "single_numeric": null,
+            "single_string": null
+          }
+        },
+        {
+          "description": "value-description",
+          "display_full_row": false,
+          "display_name": "value-display_name",
+          "display_type": "label_value",
+          "id": "<id-1>",
+          "name": "value-name",
+          "source": {
+            "query": {
+              "all_option": {
+                "include_all": true,
+                "label": "value-label"
+              },
+              "dataprime_query": null,
+              "logs_query": {
+                "type": {
+                  "field_value": {
+                    "observation_field": {
+                      "keypath": [
+                        "value-keypath"
+                      ],
+                      "scope": "label"
+                    }
+                  }
+                }
+              },
+              "metrics_query": null,
+              "refresh_strategy": "on_dashboard_load",
+              "spans_query": null,
+              "value_display_options": {
+                "label_regex": "value-label_regex",
+                "value_regex": "value-value_regex"
+              },
+              "values_order_direction": "asc"
+            },
+            "static": null,
+            "textbox": null
+          },
+          "value": {
+            "interval": null,
+            "lucene": null,
+            "multi_string": null,
+            "regex": {
+              "label": "value-label",
+              "value": "value-value"
+            },
+            "single_numeric": null,
+            "single_string": null
+          }
+        },
+        {
+          "description": "value-description",
+          "display_full_row": false,
+          "display_name": "value-display_name",
+          "display_type": "label_value",
+          "id": "<id-1>",
+          "name": "value-name",
+          "source": {
+            "query": null,
+            "static": {
+              "all_option": {
+                "include_all": true,
+                "label": "value-label"
+              },
+              "values": [
+                {
+                  "is_default": true,
+                  "label": "value-label",
+                  "value": "value-value"
+                }
+              ],
+              "values_order_direction": "asc"
+            },
+            "textbox": null
+          },
+          "value": {
+            "interval": null,
+            "lucene": null,
+            "multi_string": null,
+            "regex": null,
+            "single_numeric": {
+              "label": "value-label",
+              "value": 1
+            },
+            "single_string": null
+          }
+        },
+        {
+          "description": "value-description",
+          "display_full_row": true,
+          "display_name": "value-display_name",
+          "display_type": "label_value",
+          "id": "<id-1>",
+          "name": "value-name",
+          "source": {
+            "query": null,
+            "static": null,
+            "textbox": {
+              "default_value": {
+                "default_interval_value": null,
+                "default_lucene_value": {
+                  "data_mode_type": "archive",
+                  "value": "value-value"
+                },
+                "default_numeric_value": null,
+                "default_regex_value": null,
+                "default_string_value": null
+              }
+            }
+          },
+          "value": {
+            "interval": null,
+            "lucene": null,
+            "multi_string": null,
+            "regex": null,
+            "single_numeric": null,
+            "single_string": {
+              "label": "value-label",
+              "value": "value-value"
+            }
+          }
+        }
+      ]
+    }
+  }
+]
