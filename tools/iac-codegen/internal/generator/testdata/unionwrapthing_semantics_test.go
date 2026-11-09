@@ -66,3 +66,45 @@ func TestResponseWithoutTheInlinedObjectIsAnError(t *testing.T) {
 		t.Fatalf("diagnostics = %v, want an error about the missing thing", diags)
 	}
 }
+
+// The variant of the API follows the arm that is set, in both requests: the arms are in a group of the
+// resource, so the line reaches them through it. The response variant is ignored on read.
+func TestVariantFollowsTheArmThatIsSet(t *testing.T) {
+	ctx := context.Background()
+	for name, test := range map[string]struct {
+		kind *UnionWrapThingKindModel
+		want union_wrap_things_service.ThingVariant
+	}{
+		"arm a": {&UnionWrapThingKindModel{ArmA: &ArmAModel{Value: types.StringValue("v")}}, union_wrap_things_service.THINGVARIANT_THING_VARIANT_A_OR_UNSPECIFIED},
+		"arm b": {&UnionWrapThingKindModel{ArmB: &ArmBModel{Count: types.Int32Value(1)}}, union_wrap_things_service.THINGVARIANT_THING_VARIANT_B},
+		"arm c": {&UnionWrapThingKindModel{ArmC: &ArmCModel{Label: types.StringValue("l")}}, union_wrap_things_service.THINGVARIANT_THING_VARIANT_C},
+	} {
+		t.Run(name, func(t *testing.T) {
+			m := &UnionWrapThingModel{Name: types.StringValue("n"), Description: types.StringNull(), Kind: test.kind}
+			create, diags := expandCreate(ctx, m)
+			if diags.HasError() {
+				t.Fatal(diags)
+			}
+			update, diags := expandUpdate(ctx, m)
+			if diags.HasError() {
+				t.Fatal(diags)
+			}
+			for request, thing := range map[string]*union_wrap_things_service.Thing{"create": create.Thing, "update": update.Thing} {
+				if thing.Variant == nil || *thing.Variant != test.want {
+					t.Errorf("%s variant = %v, want %s", request, thing.Variant, test.want)
+				}
+			}
+		})
+	}
+	// No arm sends no variant, and a response with another variant reads the same.
+	none, diags := expandCreate(ctx, &UnionWrapThingModel{Name: types.StringValue("n"), Description: types.StringNull(), Kind: &UnionWrapThingKindModel{}})
+	if diags.HasError() || none.Thing.Variant != nil {
+		t.Fatalf("variant without an arm = %v (%v), want none", none.Thing.Variant, diags)
+	}
+	variant := union_wrap_things_service.THINGVARIANT_THING_VARIANT_C
+	id := "thing-1"
+	got, diags := flatten(ctx, &union_wrap_things_service.UnionWrapThing{Id: &id, Thing: &union_wrap_things_service.Thing{Name: "n", Variant: &variant, ArmA: &union_wrap_things_service.ArmA{Value: "v"}}})
+	if diags.HasError() || got.Kind == nil || got.Kind.ArmA == nil {
+		t.Fatalf("flatten = %+v (%v), want the arm of the response, not the variant", got, diags)
+	}
+}

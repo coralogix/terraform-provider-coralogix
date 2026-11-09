@@ -5,6 +5,14 @@ import (
 	"net/http"
 )
 
+type ThingVariant string
+
+const (
+	THINGVARIANT_THING_VARIANT_A_OR_UNSPECIFIED ThingVariant = "THING_VARIANT_A_OR_UNSPECIFIED"
+	THINGVARIANT_THING_VARIANT_B                ThingVariant = "THING_VARIANT_B"
+	THINGVARIANT_THING_VARIANT_C                ThingVariant = "THING_VARIANT_C"
+)
+
 type ArmA struct {
 	Value string
 }
@@ -22,6 +30,7 @@ type ArmC struct {
 type Thing struct {
 	Name        string
 	Description *string
+	Variant     *ThingVariant
 	ArmA        *ArmA
 	ArmB        *ArmB
 	ArmC        *ArmC

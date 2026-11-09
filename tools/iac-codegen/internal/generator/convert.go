@@ -1439,6 +1439,11 @@ type fixedBy struct {
 	Model, Value string
 	// ObjectValue is true when the model holds the object as a types.Object.
 	ObjectValue bool
+	// Group is the Go field of the top-level group that holds the object, "" for an object outside
+	// a group. NestedGroup: a group of types.<Type>.groups holds it, which the model reaches
+	// through the object of the component, not through m.
+	Group       string
+	NestedGroup bool
 }
 
 func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
@@ -1457,8 +1462,15 @@ func (b *convBuilder) applyFieldLine(cf *convField, component, name string) {
 	cf.RequestValue = line.RequestValue
 	cf.RequestValueBy = nil
 	for _, field := range slices.Sorted(maps.Keys(line.RequestValueBy)) {
-		cf.RequestValueBy = append(cf.RequestValueBy, fixedBy{Model: camelize(field), Value: line.RequestValueBy[field],
-			ObjectValue: b.resource.Policy.ComputedLine(component, field)})
+		by := fixedBy{Model: camelize(field), Value: line.RequestValueBy[field], ObjectValue: b.resource.Policy.ComputedLine(component, field)}
+		if component == b.resource.Name {
+			if group := b.file.GroupOf(field); group != "" {
+				by.Group = camelize(group)
+			}
+		} else {
+			by.NestedGroup = nestedGroupOf(b.file, component, field) != ""
+		}
+		cf.RequestValueBy = append(cf.RequestValueBy, by)
 	}
 }
 
@@ -1516,6 +1528,9 @@ func (b *convBuilder) applyValueNames(cf *convField, component, name string) err
 func (b *convBuilder) applyFixedRequest(cf *convField) error {
 	if cf.RequestValue == "" && len(cf.RequestValueBy) == 0 {
 		return nil
+	}
+	if i := slices.IndexFunc(cf.RequestValueBy, func(by fixedBy) bool { return by.NestedGroup }); i >= 0 {
+		return fmt.Errorf("%s: requestValueBy names %s, which is in a group of types.<Type>.groups: only an object outside a group, or in a group of the resource, is supported", cf.TFName, cf.RequestValueBy[i].Model)
 	}
 	switch {
 	case cf.RequestValue == "":

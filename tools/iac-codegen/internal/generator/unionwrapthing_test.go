@@ -148,3 +148,14 @@ func TestInlineOfAnObjectWithAOneOf(t *testing.T) {
 		})
 	}
 }
+
+// requestValueBy reaches an object of a group of the resource through the group. An object of a group
+// of types.<Type>.groups is in the object of its component, not in the model of the request, so the
+// line is refused there.
+func TestRequestValueByIsRefusedForAnObjectInANestedGroup(t *testing.T) {
+	cf := &convField{TFName: "variant", RequestValueBy: []fixedBy{{Model: "ArmA", Value: "X", NestedGroup: true}}}
+	err := (&convBuilder{}).applyFixedRequest(cf)
+	if err == nil || !strings.Contains(err.Error(), "which is in a group of types.<Type>.groups") {
+		t.Fatalf("err = %v, want requestValueBy refused for a field in a nested group", err)
+	}
+}

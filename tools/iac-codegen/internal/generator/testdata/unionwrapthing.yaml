@@ -97,6 +97,9 @@ components:
       properties:
         name: {type: string, minLength: 1}
         description: {type: string, x-coralogix-presence: true}
+        variant:
+          allOf: [{$ref: '#/components/schemas/ThingVariant'}]
+          description: The variant, which follows the arm that is set
         armA: {$ref: '#/components/schemas/ArmA'}
         armB: {$ref: '#/components/schemas/ArmB'}
         armC: {$ref: '#/components/schemas/ArmC'}
@@ -109,6 +112,9 @@ components:
               - required: [armA]
               - required: [armB]
               - required: [armC]
+    ThingVariant:
+      type: string
+      enum: [THING_VARIANT_A_OR_UNSPECIFIED, THING_VARIANT_B, THING_VARIANT_C]
     ArmA:
       type: object
       required: [value]

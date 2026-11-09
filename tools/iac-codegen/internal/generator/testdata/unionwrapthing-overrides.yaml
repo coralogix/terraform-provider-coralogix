@@ -26,4 +26,11 @@ types:
   UnionWrapThing:
     fields:
       thing: {inline: true, required: true}
+      # The API variant follows the arm that is set. The arms are in the group kind.
+      variant: {requestValueBy: {armA: THING_VARIANT_A_OR_UNSPECIFIED, armB: THING_VARIANT_B, armC: THING_VARIANT_C}}
       id: {readOnly: true}
+
+enums:
+  ThingVariant:
+    zero: a
+    values: [THING_VARIANT_B, THING_VARIANT_C]

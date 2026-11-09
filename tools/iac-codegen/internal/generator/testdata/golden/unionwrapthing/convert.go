@@ -253,6 +253,17 @@ func expandCreateUnionWrapThingRequest(ctx context.Context, p path.Path, m *Unio
 	out.Thing = &union_wrap_things_service.Thing{} // an inlined object: its fields are top-level attributes
 	out.Thing.Name = valueOf(expandString(m.Name))
 	out.Thing.Description = expandString(m.Description)
+	switch {
+	case m.Kind != nil && m.Kind.ArmA != nil:
+		fixed := union_wrap_things_service.ThingVariant("THING_VARIANT_A_OR_UNSPECIFIED")
+		out.Thing.Variant = &fixed
+	case m.Kind != nil && m.Kind.ArmB != nil:
+		fixed := union_wrap_things_service.ThingVariant("THING_VARIANT_B")
+		out.Thing.Variant = &fixed
+	case m.Kind != nil && m.Kind.ArmC != nil:
+		fixed := union_wrap_things_service.ThingVariant("THING_VARIANT_C")
+		out.Thing.Variant = &fixed
+	}
 	expandCreateUnionWrapThingRequestKind(ctx, p.AtName("kind"), m.Kind, out, diags)
 	return out
 }
@@ -329,6 +340,17 @@ func expandReplaceUnionWrapThingRequest(ctx context.Context, p path.Path, m *Uni
 	out.Thing = &union_wrap_things_service.Thing{} // an inlined object: its fields are top-level attributes
 	out.Thing.Name = valueOf(expandString(m.Name))
 	out.Thing.Description = expandString(m.Description)
+	switch {
+	case m.Kind != nil && m.Kind.ArmA != nil:
+		fixed := union_wrap_things_service.ThingVariant("THING_VARIANT_A_OR_UNSPECIFIED")
+		out.Thing.Variant = &fixed
+	case m.Kind != nil && m.Kind.ArmB != nil:
+		fixed := union_wrap_things_service.ThingVariant("THING_VARIANT_B")
+		out.Thing.Variant = &fixed
+	case m.Kind != nil && m.Kind.ArmC != nil:
+		fixed := union_wrap_things_service.ThingVariant("THING_VARIANT_C")
+		out.Thing.Variant = &fixed
+	}
 	expandReplaceUnionWrapThingRequestKind(ctx, p.AtName("kind"), m.Kind, out, diags)
 	return out
 }

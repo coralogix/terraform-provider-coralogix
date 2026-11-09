@@ -1838,7 +1838,7 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{- $f := .}}
 	switch {
 {{- range .RequestValueBy}}
-	case {{if .ObjectValue}}!m.{{.Model}}.IsNull() && !m.{{.Model}}.IsUnknown(){{else}}m.{{.Model}} != nil{{end}}:
+	case {{if .Group}}m.{{.Group}} != nil && {{end}}{{if .ObjectValue}}!m.{{.Group}}{{if .Group}}.{{end}}{{.Model}}.IsNull() && !m.{{.Group}}{{if .Group}}.{{end}}{{.Model}}.IsUnknown(){{else}}m.{{.Group}}{{if .Group}}.{{end}}{{.Model}} != nil{{end}}:
 		fixed := {{$f.SDKType}}({{printf "%q" .Value}})
 		{{$f.Dst}} = {{if $f.Value}}fixed{{else}}&fixed{{end}}
 {{- end}}
