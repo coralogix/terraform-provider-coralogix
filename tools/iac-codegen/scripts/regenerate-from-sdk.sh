@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Pin the Management SDK at a ref, regenerate the resources of tools/iac-codegen/auto-regenerate.txt
-# and the docs, and add a changelog entry for each resource whose generated code changed.
+# and the docs, and add a changelog entry for each resource whose generated files changed: its
+# package under internal/provider/generated or its examples, the paths that
+# check-generated-resources.sh compares.
 # Usage: regenerate-from-sdk.sh <SDK ref: commit SHA, tag, or branch>
 # Prints the Terraform name of each changed resource, one per line, and nothing when the
 # generated code is unchanged. TFGEN can name a prebuilt generator.
@@ -42,44 +44,75 @@ while read -r resource out _; do
 done <"$work/resources"
 make generate >&2
 
-# attribute_names reads a docs diff and prints the attribute names of its lines that start with
-# the given sign. A description change removes and adds the same name, so callers compare both.
-attribute_names() {
-  sed -nE "s/^[$1]- \`([^\`]+)\`.*/\\1/p" | sort -u
-}
-
-changed=()
-while read -r out; do
-  type_name=$(sed -nE 's/^const TypeName = "([^"]+)"$/\1/p' "internal/provider/generated/$out/resource.go")
-  if [[ -z "$type_name" ]]; then
-    printf 'internal/provider/generated/%s/resource.go has no TypeName constant.\n' "$out" >&2
-    exit 1
+# changelog_entries adds the entries of one doc kind (resources or data-sources) of a resource and
+# prints how many it added.
+changelog_entries() {
+  local kind=$1 type_name=$2 version=$3 heading added removed breaking relaxed
+  if [[ $kind == resources ]]; then
+    heading="#### resource/coralogix_$type_name"
+  else
+    heading="#### data-source/coralogix_$type_name"
   fi
-  name=coralogix_$type_name
-  changed+=("$name")
+  git show "HEAD:docs/$kind/$type_name.md" >"$work/old.md" 2>/dev/null || : >"$work/old.md"
+  "$scripts/schema-changes.sh" "$work/old.md" "docs/$kind/$type_name.md" >"$work/changes"
 
-  git diff -U0 -- "docs/resources/$type_name.md" >"$work/docs.diff"
-  attribute_names + <"$work/docs.diff" >"$work/plus"
-  attribute_names - <"$work/docs.diff" >"$work/minus"
-  added=$(comm -23 "$work/plus" "$work/minus" | sed 's/.*/`&`/' | paste -sd, - | sed 's/,/, /g')
-  removed=$(comm -13 "$work/plus" "$work/minus" | sed 's/.*/`&`/' | paste -sd, - | sed 's/,/, /g')
+  # names prints the attributes of one kind of change as "`a`, `b`".
+  names() { awk -F '\t' -v kind="$1" '$1 == kind { out = out sep "`" $2 "`"; sep = ", " } END { print out }' "$work/changes"; }
+  # moves prints the changes of one kind as "`a` (Optional String to Required String), ...".
+  moves() { awk -F '\t' -v kind="$1" '$1 == kind { out = out sep "`" $2 "` (" $3 " to " $4 ")"; sep = ", " } END { print out }' "$work/changes"; }
+  added=$(names added) removed=$(names removed) breaking=$(moves breaking) relaxed=$(moves relaxed)
 
-  heading="#### resource/$name"
-  if [[ -n "$added" ]]; then
+  local count=0
+  if [[ -n $added ]]; then
     "$scripts/add-changelog-entry.sh" CHANGELOG.md "$heading" \
       "- FEAT: Add $added from the API contract of Management SDK \`$version\`."
+    count=$((count + 1))
   fi
-  if [[ -n "$removed" ]]; then
+  if [[ -n $relaxed ]]; then
+    "$scripts/add-changelog-entry.sh" CHANGELOG.md "$heading" \
+      "- FEAT: Change $relaxed from the API contract of Management SDK \`$version\`."
+    count=$((count + 1))
+  fi
+  if [[ -n $breaking ]]; then
+    "$scripts/add-changelog-entry.sh" CHANGELOG.md "$heading" \
+      "- BREAKING: Change $breaking from the API contract of Management SDK \`$version\`."
+    count=$((count + 1))
+  fi
+  if [[ -n $removed ]]; then
     "$scripts/add-changelog-entry.sh" CHANGELOG.md "$heading" \
       "- BREAKING: Remove $removed, which the API contract of Management SDK \`$version\` no longer has."
+    count=$((count + 1))
   fi
-  if [[ -z "$added" && -z "$removed" ]]; then
-    "$scripts/add-changelog-entry.sh" CHANGELOG.md "$heading" \
+  printf '%s\n' "$count"
+}
+
+# A resource changed when its generated package or one of its examples did. The examples of a
+# resource are under examples/resources/coralogix_<type> and examples/data-sources/coralogix_<type>.
+awk '{ print $2, $3 }' "$work/resources" >"$work/names"
+git status --porcelain --untracked-files=all -- internal/provider/generated examples |
+  sed -nE 's#^.{3}(.*)$#\1#p' |
+  while read -r path; do
+    case $path in
+      internal/provider/generated/*/*)
+        out=${path#internal/provider/generated/}
+        awk -v out="${out%%/*}" '$1 == out { print $2 }' "$work/names"
+        ;;
+      examples/resources/coralogix_*/* | examples/data-sources/coralogix_*/*)
+        name=${path#examples/*/}
+        name=${name%%/*}
+        awk -v name="$name" '$2 == name { print $2 }' "$work/names"
+        ;;
+    esac
+  done | sort -u >"$work/changed"
+
+while read -r name; do
+  type_name=${name#coralogix_}
+  entries=$(changelog_entries resources "$type_name" "$version")
+  entries=$((entries + $(changelog_entries data-sources "$type_name" "$version")))
+  if [[ $entries -eq 0 ]]; then
+    "$scripts/add-changelog-entry.sh" CHANGELOG.md "#### resource/$name" \
       "- CHORE: Regenerate from the API contract of Management SDK \`$version\`."
   fi
-done < <(git status --porcelain -- internal/provider/generated |
-  sed -nE 's#^.{3}internal/provider/generated/([^/]+)/.*#\1#p' | sort -u)
+done <"$work/changed"
 
-if [[ ${#changed[@]} -gt 0 ]]; then
-  printf '%s\n' "${changed[@]}"
-fi
+cat "$work/changed"

@@ -8,7 +8,7 @@ trap 'rm -rf "$work"' EXIT
 repo=$work/repo
 mkdir -p "$repo/tools/iac-codegen/scripts" "$repo/internal/provider/generated/thing" "$repo/internal/provider/generated/other"
 git -C "$repo" init -q
-cp "$source_script" "$repo/tools/iac-codegen/scripts/"
+cp "$source_script" "$(dirname "$source_script")/codegen-list.sh" "$repo/tools/iac-codegen/scripts/"
 checker=$repo/tools/iac-codegen/scripts/check-auto-regenerate-list.sh
 printf '//go:generate make -C ../.. codegen RESOURCE=Thing OUT=thing\n//go:generate make -C ../.. codegen RESOURCE=v2.Other OUT=other\n' \
   >"$repo/internal/provider/codegen.go"

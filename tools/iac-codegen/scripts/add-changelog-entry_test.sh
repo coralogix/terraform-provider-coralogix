@@ -78,4 +78,28 @@ if "$script" "$work/CHANGELOG.md" '#### resource/coralogix_view' '- CHORE: new.'
   exit 1
 fi
 
+spaced='# Unreleased
+
+#### resource/coralogix_alert
+- FIX: one.
+
+- FIX: two.
+
+#### resource/coralogix_view
+- FEAT: three.
+'
+printf '%s' "$spaced" >"$work/CHANGELOG.md"
+"$script" "$work/CHANGELOG.md" '#### resource/coralogix_alert' '- CHORE: new with `a\\b`.'
+expect 'a blank line inside a section, and a backslash' '# Unreleased
+
+#### resource/coralogix_alert
+- FIX: one.
+
+- FIX: two.
+- CHORE: new with `a\\b`.
+
+#### resource/coralogix_view
+- FEAT: three.
+'
+
 printf '%s\n' 'add-changelog-entry tests passed'

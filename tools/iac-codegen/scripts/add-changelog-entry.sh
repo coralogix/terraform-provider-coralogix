@@ -19,7 +19,11 @@ fi
 out=$(mktemp)
 trap 'rm -f "$out"' EXIT
 # The first pass finds whether the Unreleased part has the section, the second writes the file.
-awk -v heading="$heading" -v bullet="$bullet" '
+# The heading and the bullet come from the environment: awk -v would turn "\\" into "\".
+# Inside the section, blank lines wait until the next line: the bullet goes after the last
+# non-blank line of the section, before the blank lines that end it.
+HEADING=$heading BULLET=$bullet awk '
+  BEGIN { heading = ENVIRON["HEADING"]; bullet = ENVIRON["BULLET"] }
   FNR == NR {
     if ($0 == "# Unreleased") { unreleased = 1; next }
     if (unreleased && /^# /) unreleased = 0
@@ -34,8 +38,13 @@ awk -v heading="$heading" -v bullet="$bullet" '
   }
   unreleased && /^# / { unreleased = 0 }
   unreleased && !done && $0 == heading { print; insection = 1; next }
-  insection && ($0 == "" || /^#/) { print bullet; done = 1; insection = 0 }
+  insection && $0 == "" { blanks++; next }
+  insection && /^#/ { print bullet; done = 1; insection = 0 }
+  { for (; blanks > 0; blanks--) print "" }
   { print }
-  END { if (insection) print bullet }
+  END {
+    if (insection) print bullet
+    for (; blanks > 0; blanks--) print ""
+  }
 ' "$changelog" "$changelog" >"$out"
 cat "$out" >"$changelog"

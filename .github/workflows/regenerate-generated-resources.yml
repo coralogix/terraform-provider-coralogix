@@ -54,20 +54,7 @@ jobs:
           INPUT_REF: ${{ github.event.inputs.sdk_ref }}
         run: |
           set -euo pipefail
-          ref=${DISPATCH_SHA:-${INPUT_REF:-master}}
-          if [[ ! $ref =~ ^[A-Za-z0-9._/-]+$ ]]; then
-            echo "::error::Invalid SDK ref: $ref"
-            exit 1
-          fi
-          if [[ $ref =~ ^[0-9a-f]{40}$ ]]; then
-            sha=$ref
-          else
-            sha=$(git ls-remote "https://github.com/${SDK_REPO}" "$ref" "refs/heads/$ref" "refs/tags/$ref" | awk 'NR == 1 { print $1 }')
-          fi
-          if [[ -z "$sha" ]]; then
-            echo "::error::Could not resolve SDK ref $ref"
-            exit 1
-          fi
+          sha=$(tools/iac-codegen/scripts/resolve-sdk-ref.sh "https://github.com/${SDK_REPO}" "${DISPATCH_SHA:-${INPUT_REF:-master}}")
           echo "Using ${SDK_REPO} commit $sha"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "short_sha=${sha:0:7}" >> "$GITHUB_OUTPUT"
@@ -104,6 +91,7 @@ jobs:
         if: steps.regenerate.outputs.resources != ''
         env:
           SDK_SHA: ${{ steps.sdk.outputs.sha }}
+          RESOURCES: ${{ steps.regenerate.outputs.resources }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
@@ -112,11 +100,7 @@ jobs:
             echo "Regenerates the generated resources from the API contract of [\`${SDK_REPO}@${SDK_SHA:0:7}\`](https://github.com/${SDK_REPO}/commit/${SDK_SHA})."
             echo
             echo "Regenerated resources:"
-            git status --porcelain -- internal/provider/generated |
-              sed -nE 's#^.{3}internal/provider/generated/([^/]+)/.*#\1#p' | sort -u |
-              while read -r out; do
-                sed -nE 's/^const TypeName = "([^"]+)"$/- `coralogix_\1`/p' "internal/provider/generated/$out/resource.go"
-              done
+            tr , '\n' <<<"$RESOURCES" | sed 's/.*/- `&`/'
             echo
             echo "Changelog:"
             echo
@@ -124,7 +108,7 @@ jobs:
             git diff -U0 -- CHANGELOG.md | sed -nE 's/^\+([^+].*)$/\1/p'
             echo '```'
             echo
-            echo "Review the schema change in \`docs/resources/\` and the generated acceptance tests before merging."
+            echo "Review the schema change in \`docs/resources/\` and \`docs/data-sources/\`, and the generated acceptance tests, before merging."
             echo
             echo "Opened by [Regenerate generated resources](${RUN_URL})."
           } > "$RUNNER_TEMP/regenerated/pr-body.md"
