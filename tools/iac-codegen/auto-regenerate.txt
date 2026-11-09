@@ -11,6 +11,7 @@ coralogix_ai_evaluation
 coralogix_alerts_scheduler
 coralogix_archive_logs
 coralogix_archive_metrics
+coralogix_archive_retentions
 coralogix_configuration_group
 coralogix_connector
 coralogix_dashboards_folder
@@ -31,5 +32,4 @@ coralogix_view_folder
 coralogix_webhook
 
 # In review.
-coralogix_archive_retentions
 coralogix_ip_access
