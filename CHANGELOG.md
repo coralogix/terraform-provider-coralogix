@@ -12,7 +12,7 @@
 - FEAT: Add the `coralogix_team` data source, generated with the resource. It reads a team by `id`.
 
 #### resource/coralogix_scope
-- CHORE: Bump `coralogix-management-sdk` to the sync that carries the scopes annotation fixes (coralogix-management-sdk#740, CX-65740). The SDK types changed requiredness (`displayName` optional, `defaultExpression` and the filter fields values), so the requests are equivalent: `filters` is omitted instead of sent as `null` when the resource has no filters, and `display_name` still sends the configured name. Requests and state are otherwise unchanged.
+- CHORE: Bump `coralogix-management-sdk` to the sync that carries the scopes annotation fixes (coralogix-management-sdk#740). The SDK types changed requiredness (`displayName` optional, `defaultExpression` and the filter fields values), so the requests are equivalent: `filters` is omitted instead of sent as `null` when the resource has no filters, and `display_name` still sends the configured name. Requests and state are otherwise unchanged.
 
 #### resource/coralogix_dashboards
 - FIX: A dashboard variable without an `id` in the API response (legacy dashboards can omit it) no longer fails the plan: the `id` attribute reads as null. Requests are unchanged — the API assigns the id.
