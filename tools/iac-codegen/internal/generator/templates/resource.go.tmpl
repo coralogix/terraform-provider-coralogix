@@ -601,7 +601,19 @@ func (r *Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp 
 // The API calls. Each returns the error with its HTTP status and body.
 
 func (r *Resource) create(ctx context.Context, body *{{$sdk}}.{{$.Conv.CreateBody}}) (*{{$sdk}}.{{.Resource}}, error) {
-{{- if or .Create.Empty .Overwrite}}
+{{- if .Create.Copy}}
+	out, httpResp, err := r.client.{{.Create.Method}}(ctx).{{.Create.Body}}(*body).Execute()
+	if err != nil {
+		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
+	}
+	if out == nil {
+		// Return a value with the error, so Create keeps the id in the state.
+		return &{{$sdk}}.{{.Resource}}{}, fmt.Errorf("set %s, but the API returned no resource", TypeName)
+	}
+	// The write returns the list that it replaced.
+	return &{{$sdk}}.{{.Resource}}{ {{- range $i, $f := .Create.Copy}}{{if $i}}, {{end}}{{$f}}: out.{{$f}}{{end -}} }, nil
+}
+{{- else if or .Create.Empty .Overwrite}}
 	_, httpResp, err := r.client.{{.Create.Method}}(ctx).{{.Create.Body}}(*body).Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
@@ -696,7 +708,17 @@ func (r *Resource) getWithQueryID(ctx context.Context, id *string) (*{{$sdk}}.{{
 {{end}}
 
 func (r *Resource) update(ctx context.Context{{if or (not .UpdateIDInBody) .Update.Empty}}, id {{.IDGoType}}{{end}}, body *{{$sdk}}.{{$.Conv.UpdateBody}}{{if and (not .Replace) (not .MaskInBody)}}, mask string{{end}}) (*{{$sdk}}.{{.Resource}}, error) {
-{{- if .Update.Empty}}
+{{- if .Update.Copy}}
+	out, httpResp, err := r.client.{{.Update.Method}}(ctx).{{.Update.Body}}(*body).Execute()
+	if err != nil {
+		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)
+	}
+	if out == nil {
+		return nil, nil
+	}
+	// The write returns the list that it replaced.
+	return &{{$sdk}}.{{.Resource}}{ {{- range $i, $f := .Update.Copy}}{{if $i}}, {{end}}{{$f}}: out.{{$f}}{{end -}} }, nil
+{{- else if .Update.Empty}}
 	_, httpResp, err := r.client.{{.Update.Method}}(ctx{{if and (not .Singleton) (not .UpdateIDInBody)}}, id{{end}}).{{.Update.Body}}(*body){{if and (not .Replace) (not .MaskInBody)}}.{{.UpdateMask}}(mask){{end}}.Execute()
 	if err != nil {
 		return nil, {{$cx}}.{{.NewAPIError}}(httpResp, err)

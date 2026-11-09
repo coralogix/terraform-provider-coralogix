@@ -13,6 +13,7 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/overwrite_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/parse_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/rename_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/retag_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/rulebook_service"
 	"example.com/iac-test-sdk/go/openapi/gen/settings_service"
 	"example.com/iac-test-sdk/go/openapi/gen/shared_things_service"
@@ -46,6 +47,7 @@ type ClientSet struct {
 	Rename         *rename_things_service.RenameThingsServiceAPIService
 	Parse          *parse_things_service.ParseThingsServiceAPIService
 	GroupSet       *group_set_things_service.GroupSetThingsServiceAPIService
+	Retag          *retag_things_service.RetagThingsServiceAPIService
 }
 
 func (c *ClientSet) Things() *things_service.ThingsServiceAPIService { return c.Client }
@@ -120,4 +122,8 @@ func (c *ClientSet) GroupSetThings() *group_set_things_service.GroupSetThingsSer
 
 func (c *ClientSet) OverwriteThings() *overwrite_things_service.OverwriteThingsServiceAPIService {
 	return c.Overwrite
+}
+
+func (c *ClientSet) RetagThings() *retag_things_service.RetagThingsServiceAPIService {
+	return c.Retag
 }

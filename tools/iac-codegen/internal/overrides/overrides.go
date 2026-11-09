@@ -1158,8 +1158,10 @@ func (l Field) check() error {
 	if l.Required && l.Optional {
 		return errors.New("set required or optional, not both")
 	}
-	if l.SchemaOptional && (l.Required || l.Optional || l.Computed != nil) {
-		return errors.New("schemaOptional cannot be combined with required, optional, or computed")
+	// With computed: true, a schemaOptional attribute is Optional+Computed and can retain values
+	// returned by the API. The request field remains required.
+	if l.SchemaOptional && (l.Required || l.Optional || l.Computed != nil && !*l.Computed) {
+		return errors.New("schemaOptional cannot be combined with required, optional, or computed: false")
 	}
 	if l.RequiresReplace && l.Computed != nil && *l.Computed {
 		// Optional+Computed with RequiresReplace: when the field is omitted, any other change
