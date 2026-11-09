@@ -10,7 +10,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_archive_retentions | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}\noperation - Read"
+      "error: Unable to read coralogix_archive_retentions | id archive-retention-settings: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}"
     ],
     "state": {
       "id": null,

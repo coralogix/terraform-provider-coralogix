@@ -5,6 +5,7 @@ aievaluation: v0.1.0-beta.72
 alertsscheduler: v0.1.0-beta.72
 archivelogs: v0.1.0-beta.72
 archivemetrics: v0.1.0-beta.72
+archiveretentions: v0.1.0-beta.72
 configurationgroup: v0.1.0-beta.72
 connector: v0.1.0-beta.72
 dashboardsfolder: v0.1.0-beta.72

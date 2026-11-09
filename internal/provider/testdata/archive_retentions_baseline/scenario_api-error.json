@@ -16,7 +16,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "archive-retention-settings",
       "retentions": [
         {
           "editable": "(unknown)",
@@ -117,7 +117,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error reading coralogix_archive_retentions | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: failed to get retentions for company\"}\noperation - Read"
+      "error: Unable to read archive_retentions | id archive-retention-settings: 500 Internal Server Error — {\"code\":500,\"message\":\"Internal: failed to get retentions for company\"}"
     ],
     "state": {
       "id": "archive-retention-settings",

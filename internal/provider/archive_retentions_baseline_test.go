@@ -142,6 +142,7 @@ var arScenarios = map[string]func(h *grHarness, f *arFake){
 		h.Validate("a name with a space", arNamed("short term", "b", "c"))
 		h.Validate("the first name is unknown", arConfig(unknownJSON{}, "a", "b", "c"))
 		h.Validate("a name is unknown", arConfig(nil, unknownJSON{}, "b", "c"))
+		h.Validate("an empty name", arNamed("", "b", "c"))
 	},
 
 	// The provider has no name validator; the API rejects these.

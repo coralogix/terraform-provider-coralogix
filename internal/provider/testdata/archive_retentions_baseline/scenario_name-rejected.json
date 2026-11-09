@@ -16,7 +16,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "archive-retention-settings",
       "retentions": [
         {
           "editable": "(unknown)",
@@ -77,7 +77,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_archive_retentions | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: \\\"[1].name\\\" with value \\\"short term\\\" fails to match the required pattern: /^[a-zA-Z0-9_-]+$/\"}\noperation - Create"
+      "error: Unable to create archive_retentions | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: \\\"[1].name\\\" with value \\\"short term\\\" fails to match the required pattern: /^[a-zA-Z0-9_-]+$/\"}"
     ],
     "state": null
   },
@@ -98,7 +98,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "archive-retention-settings",
       "retentions": [
         {
           "editable": "(unknown)",
@@ -159,7 +159,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_archive_retentions | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: \\\"[1].name\\\" length must be less than or equal to 255 characters long\"}\noperation - Create"
+      "error: Unable to create archive_retentions | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: \\\"[1].name\\\" length must be less than or equal to 255 characters long\"}"
     ],
     "state": null
   },
@@ -180,7 +180,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "archive-retention-settings",
       "retentions": [
         {
           "editable": "(unknown)",
@@ -241,7 +241,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_archive_retentions | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: \\\"[2]\\\" contains a duplicate value\"}\noperation - Create"
+      "error: Unable to create archive_retentions | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: \\\"[2]\\\" contains a duplicate value\"}"
     ],
     "state": null
   }

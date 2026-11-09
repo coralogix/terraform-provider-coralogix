@@ -13,8 +13,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value [AttributeName(\"retentions\")] | Attribute retentions list must contain at least 4 elements and at most 4 elements, got: 3",
-      "error: error on validating retentions | retentions list must have 4 elements but got 3"
+      "error: error on validating retentions [AttributeName(\"retentions\")] | retentions list must have 4 elements but got 3"
     ],
     "state": null
   },
@@ -38,8 +37,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value [AttributeName(\"retentions\")] | Attribute retentions list must contain at least 4 elements and at most 4 elements, got: 5",
-      "error: error on validating retentions | retentions list must have 4 elements but got 5"
+      "error: error on validating retentions [AttributeName(\"retentions\")] | retentions list must have 4 elements but got 5"
     ],
     "state": null
   },
@@ -49,8 +47,7 @@
       "retentions": []
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value [AttributeName(\"retentions\")] | Attribute retentions list must contain at least 4 elements and at most 4 elements, got: 0",
-      "error: error on validating retentions | retentions list must have 4 elements but got 0"
+      "error: error on validating retentions [AttributeName(\"retentions\")] | retentions list must have 4 elements but got 0"
     ],
     "state": null
   },
@@ -73,7 +70,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: error on validating retentions | first retention's name can't be set"
+      "error: error on validating retentions [AttributeName(\"retentions\").ElementKeyInt(0).AttributeName(\"name\")] | first retention's name can't be set"
     ],
     "state": null
   },
@@ -179,9 +176,6 @@
         }
       ]
     },
-    "validateDiagnostics": [
-      "error: error on validating retentions | first retention's name can't be set"
-    ],
     "state": null
   },
   {
@@ -200,6 +194,27 @@
         }
       ]
     },
+    "state": null
+  },
+  {
+    "step": "an empty name",
+    "config": {
+      "retentions": [
+        {},
+        {
+          "name": ""
+        },
+        {
+          "name": "b"
+        },
+        {
+          "name": "c"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: error on validating retentions [AttributeName(\"retentions\").ElementKeyInt(1).AttributeName(\"name\")] | a retention name can't be empty"
+    ],
     "state": null
   }
 ]
