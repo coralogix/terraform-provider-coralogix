@@ -23,8 +23,10 @@ import (
 func alertHooks() alert.Hooks {
 	return alert.Hooks{
 		BeforeWrite:    beforeWriteAlert,
+		Get:            getAlert,
 		BeforeFlatten:  beforeFlattenAlert,
 		AfterFlatten:   afterFlattenAlert,
+		AfterGet:       afterGetAlert,
 		AfterRead:      afterReadAlert,
 		ValidateConfig: validateAlertConfig,
 		ModifyPlan:     modifyAlertPlan,

@@ -29,7 +29,7 @@ type DataSource struct {
 }
 
 // NewDataSource returns the data source. Use it in provider.DataSources. Pass the hooks of the
-// resource: the data source runs BeforeFlatten and AfterFlatten.
+// resource: the data source runs BeforeFlatten, AfterFlatten, Get, and AfterGet.
 // It has no prior plan or state, so it does not run AfterRead.
 func NewDataSource(hooks Hooks) datasource.DataSource {
 	return &DataSource{resource: Resource{hooks: hooks}}
@@ -61,6 +61,7 @@ func (d *DataSource) Configure(_ context.Context, req datasource.ConfigureReques
 // Read reads the resource with the configured id. An id that the API does not find is an error.
 // A 404 of a route that does not exist is an error too.
 func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	ctx, got := withGetResult(ctx)
 	var configured types.String
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("id"), &configured)...)
 	if resp.Diagnostics.HasError() {
@@ -94,4 +95,8 @@ func (d *DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp 
 		}
 	}
 	resp.Diagnostics.Append(resp.State.Set(ctx, m)...)
+	// The state is complete: AfterGet sees the whole Get response next to the resource.
+	if d.resource.hooks.AfterGet != nil && got.response != nil && !resp.Diagnostics.HasError() {
+		resp.Diagnostics.Append(d.resource.hooks.AfterGet(ctx, &resp.State, got.response)...)
+	}
 }

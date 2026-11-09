@@ -18,6 +18,7 @@ mode: existing
 markdownDescription: "Coralogix Alert. For more info check - https://coralogix.com/docs/getting-started-with-coralogix-alerts/."
 modifyPlan: true
 afterFlatten: true
+getHooks: true
 dataSource: {}
 typeName: alert
 schema:
