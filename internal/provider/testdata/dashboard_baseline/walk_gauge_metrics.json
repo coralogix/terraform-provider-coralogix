@@ -590,19 +590,7 @@
     "replanEmpty": true
   },
   {
-    "step": "remove optional objects (10)",
-    "changes": [
-      "remove layout.sections",
-      "remove layout.sections[].options",
-      "remove layout.sections[].rows",
-      "remove layout.sections[].rows[].widgets",
-      "remove layout.sections[].rows[].widgets[].custom_actions",
-      "remove layout.sections[].rows[].widgets[].definition.gauge.arc_display",
-      "remove layout.sections[].rows[].widgets[].definition.gauge.legend",
-      "remove layout.sections[].rows[].widgets[].definition.gauge.query.metrics.filters",
-      "remove layout.sections[].rows[].widgets[].definition.gauge.query.metrics.time_frame",
-      "remove layout.sections[].rows[].widgets[].definition.gauge.thresholds"
-    ],
+    "step": "remove layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
       "- .dashboard.layout.sections"
@@ -613,16 +601,66 @@
     "replanEmpty": true
   },
   {
-    "step": "empty optional lists (7)",
+    "step": "remove optional objects, round 2 (2)",
     "changes": [
-      "empty layout.sections",
-      "empty layout.sections[].rows",
-      "empty layout.sections[].rows[].widgets",
-      "empty layout.sections[].rows[].widgets[].custom_actions",
-      "empty layout.sections[].rows[].widgets[].definition.gauge.legend.columns",
-      "empty layout.sections[].rows[].widgets[].definition.gauge.query.metrics.filters",
-      "empty layout.sections[].rows[].widgets[].definition.gauge.thresholds"
+      "remove layout.sections[].options",
+      "remove layout.sections[].rows"
     ],
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].options",
+      "- .dashboard.layout.sections[0].rows"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].options: {\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null} → null",
+      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:5beb939f] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets",
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].rows[0].widgets"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url…[sha256:36639bdd] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove optional objects, round 4 (6)",
+    "changes": [
+      "remove layout.sections[].rows[].widgets[].custom_actions",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.arc_display",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.legend",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.query.metrics.filters",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.query.metrics.time_frame",
+      "remove layout.sections[].rows[].widgets[].definition.gauge.thresholds"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.arcDisplay",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.legend",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.metrics.filters",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.query.metrics.timeFrame",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.thresholds"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.arc_display: {\"threshold_arc\":true,\"value_arc\":true} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.legend: {\"columns\":[\"avg\"],\"group_by_query\":true,\"is_visible\":true,\"placement\":\"auto\"} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.metrics.filters: [{\"label\":\"value-label\",\"metric\":\"value-metric\",\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals\"}}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.query.metrics.time_frame: {\"absolute\":{\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"},\"relative\":null} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.thresholds: [{\"color\":\"value-color\",\"from\":1,\"label\":\"value-label\"}] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "empty layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
       "- .dashboard.layout.sections"
@@ -637,6 +675,97 @@
     "replanDiff": [
       "AttributeName(\"auto_refresh\")",
       "AttributeName(\"layout\").AttributeName(\"sections\")"
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\")] | Attribute layout.sections[0].rows list must contain at least 1 elements, got: 0"
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\")] | Attribute layout.sections[0].rows[0].widgets list must contain at least 1 elements, got: 0"
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (4)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].custom_actions",
+      "empty layout.sections[].rows[].widgets[].definition.gauge.legend.columns",
+      "empty layout.sections[].rows[].widgets[].definition.gauge.query.metrics.filters",
+      "empty layout.sections[].rows[].widgets[].definition.gauge.thresholds"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"legend\").AttributeName(\"columns\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.gauge.legend.columns list must contain at least 1 elements",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"query\").AttributeName(\"metrics\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.gauge.query.metrics.filters list m",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (2)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].custom_actions",
+      "empty layout.sections[].rows[].widgets[].definition.gauge.legend.columns"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"legend\").AttributeName(\"columns\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.gauge.legend.columns list must contain at least 1 elements",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].custom_actions",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.gauge.legend.columns",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"legend\").AttributeName(\"columns\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.gauge.legend.columns list must contain at least 1 elements",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (2)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].definition.gauge.query.metrics.filters",
+      "empty layout.sections[].rows[].widgets[].definition.gauge.thresholds"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"query\").AttributeName(\"metrics\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.gauge.query.metrics.filters list m",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.gauge.query.metrics.filters",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"query\").AttributeName(\"metrics\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.gauge.query.metrics.filters list m",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.gauge.thresholds",
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.gauge.thresholds"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.gauge.thresholds: [{\"color\":\"value-color\",\"from\":1,\"label\":\"value-label\"}] → null"
+    ],
+    "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.gauge.thresholds"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"gauge\").AttributeName(\"thresholds\")"
     ]
   },
   {

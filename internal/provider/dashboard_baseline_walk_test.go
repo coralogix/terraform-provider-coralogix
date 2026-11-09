@@ -284,12 +284,20 @@ func walkBatches(v walkVariant, done map[string]bool) []walkBatch {
 			arms[strings.SplitN(key, ".{", 2)[0]+"."+m] = true
 		}
 	}
+	// A change inside a removed or emptied object has no effect. So a batch never holds a path next to
+	// its ancestor or descendant. Such a change goes to a later round of the same kind.
 	batches := map[string]*walkBatch{}
 	add := func(kind string, m walkMutation) {
-		if batches[kind] == nil {
-			batches[kind] = &walkBatch{kind: kind}
+		for round := 1; ; round++ {
+			key := walkBatchKey(kind, round)
+			if batches[key] == nil {
+				batches[key] = &walkBatch{kind: key}
+			}
+			if !slices.ContainsFunc(batches[key].mutations, func(other walkMutation) bool { return pathsNest(other.path, m.path) }) {
+				batches[key].mutations = append(batches[key].mutations, m)
+				return
+			}
 		}
-		batches[kind].mutations = append(batches[kind].mutations, m)
 	}
 	for _, path := range paths {
 		a := walkIndex[path]
@@ -309,11 +317,26 @@ func walkBatches(v walkVariant, done map[string]bool) []walkBatch {
 	}
 	var out []walkBatch
 	for _, kind := range []string{"remove optional values", "remove optional objects", "empty optional lists", "set enums to unspecified", "set enums to their last value"} {
-		if batches[kind] != nil {
-			out = append(out, *batches[kind])
+		for round := 1; batches[walkBatchKey(kind, round)] != nil; round++ {
+			out = append(out, *batches[walkBatchKey(kind, round)])
 		}
 	}
 	return out
+}
+
+func walkBatchKey(kind string, round int) string {
+	if round == 1 {
+		return kind
+	}
+	return fmt.Sprintf("%s, round %d", kind, round)
+}
+
+// pathsNest reports whether one path is the other, or lies inside it.
+func pathsNest(a, b string) bool {
+	inside := func(outer, inner string) bool {
+		return strings.HasPrefix(inner, outer+".") || strings.HasPrefix(inner, outer+"[].")
+	}
+	return a == b || inside(a, b) || inside(b, a)
 }
 
 func isNestedAttribute(a schema.Attribute) bool {
@@ -646,6 +669,32 @@ func TestDashboardWalkReachesEverySchemaPath(t *testing.T) {
 	if len(missing) > 0 {
 		t.Fatalf("%d schema paths are not reached by any base config:\n%s", len(missing), strings.Join(missing, "\n"))
 	}
+}
+
+// A change inside a removed or emptied object has no effect, and the walk would still list it as
+// tested. So no batch may hold a path together with its ancestor or descendant.
+func TestDashboardWalkBatchesNeverNestPaths(t *testing.T) {
+	batches, nested := 0, 0
+	for _, b := range walkBases() {
+		done := map[string]bool{}
+		for _, v := range b.variants() {
+			for _, batch := range walkBatches(v, done) {
+				batches++
+				for i, m := range batch.mutations {
+					for _, other := range batch.mutations[:i] {
+						if m.path != other.path && pathsNest(m.path, other.path) {
+							nested++
+							t.Errorf("%s: batch %q holds %s and %s", b.name, batch.kind, other.path, m.path)
+						}
+					}
+				}
+			}
+		}
+	}
+	if batches == 0 {
+		t.Fatal("no batches were built")
+	}
+	t.Logf("%d batches, %d nested pairs", batches, nested)
 }
 
 // Every variant of every base has to pass the config validators, or the walk records the failure

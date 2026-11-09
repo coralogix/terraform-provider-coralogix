@@ -3796,21 +3796,15 @@
     ]
   },
   {
-    "step": "remove optional objects (13)",
+    "step": "remove optional objects (7)",
     "changes": [
       "remove annotations",
-      "remove annotations[].scope",
-      "remove annotations[].source.dataprime.label_fields",
       "remove auto_refresh",
       "remove filters",
-      "remove filters[].scope",
-      "remove filters[].source.logs.observation_field",
       "remove folder",
       "remove time_frame",
       "remove variables",
-      "remove variables[].definition.multi_select.source",
-      "remove variables_v2",
-      "remove variables_v2[].source.query.value_display_options"
+      "remove variables_v2"
     ],
     "requestDiff": [
       "- .dashboard.absoluteTimeFrame",
@@ -3822,25 +3816,74 @@
       "- .dashboard.variablesV2"
     ],
     "stateDiff": [
-      "~ .annotations: [{\"color\":\"blue\",\"description\":\"value-description\",\"enabled\":true,\"id\":\"<id-1>\",\"name\":\"value-name\",\"scope\":{\"all_widgets\":{},\"spe…[sha256:9d0ab8a2] → null",
+      "~ .annotations: [{\"color\":\"blue\",\"description\":\"value-description\",\"enabled\":true,\"id\":\"<id-1>\",\"name\":\"value-name\",\"scope\":{\"all_widgets\":{},\"spe…[sha256:47d7c856] → null",
       "~ .auto_refresh: {\"type\":\"off\"} → null",
-      "~ .filters: [{\"collapsed\":true,\"display_name\":\"value-display_name\",\"enabled\":true,\"id\":\"<id-1>\",\"scope\":{\"all_widgets\":{},\"specific_widgets\":n…[sha256:598d649d] → null",
+      "~ .filters: [{\"collapsed\":true,\"display_name\":\"value-display_name\",\"enabled\":true,\"id\":\"<id-1>\",\"scope\":{\"all_widgets\":{},\"specific_widgets\":n…[sha256:dda802d9] → null",
       "~ .folder: {\"id\":\"<id-3>\",\"path\":null} → null",
       "~ .time_frame: {\"absolute\":{\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"},\"relative\":null} → null",
       "~ .variables: [{\"definition\":{\"constant_value\":null,\"multi_select\":{\"selected_values\":[\"value-selected_values\"],\"selection_type\":\"multi\",\"source\":{\"constant_list\":[\"value-con…[sha256:d94188c0] → null",
-      "~ .variables_v2: [{\"description\":\"value-description\",\"display_full_row\":false,\"display_name\":\"value-display_name\",\"display_type\":\"label_value\",\"id\":\"22222222-2222-4222-8222-2222…[sha256:5dc011ae] → null"
+      "~ .variables_v2: [{\"description\":\"value-description\",\"display_full_row\":false,\"display_name\":\"value-display_name\",\"display_type\":\"label_value\",\"id\":\"22222222-2222-4222-8222-2222…[sha256:7230977d] → null"
     ],
     "replanEmpty": true
   },
   {
-    "step": "empty optional lists (7)",
+    "step": "remove optional objects, round 2 (6)",
+    "changes": [
+      "remove annotations[].scope",
+      "remove annotations[].source.dataprime.label_fields",
+      "remove filters[].scope",
+      "remove filters[].source.logs.observation_field",
+      "remove variables[].definition.multi_select.source",
+      "remove variables_v2[].source.query.value_display_options"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
+    ],
+    "requestDiff": [
+      "- .dashboard.annotations[0].scope",
+      "- .dashboard.annotations[0].source.dataprime.labelFields",
+      "- .dashboard.filters[0].scope",
+      "- .dashboard.filters[0].source.logs.observationField",
+      "- .dashboard.variables[0].definition.multiSelect.source",
+      "- .dashboard.variablesV2[0].source.query.valueDisplayOptions"
+    ],
+    "stateDiff": [
+      "~ .annotations[0].scope: {\"all_widgets\":{},\"specific_widgets\":null} → null",
+      "~ .annotations[0].source.dataprime.label_fields: [{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}] → null",
+      "~ .filters[0].scope: {\"all_widgets\":{},\"specific_widgets\":null} → null",
+      "~ .filters[0].source.logs.observation_field: {\"keypath\":[\"value-keypath\"],\"scope\":\"label\"} → null",
+      "~ .variables[0].definition.multi_select.source: {\"constant_list\":[\"value-constant_list\"],\"logs_path\":null,\"metric_label\":null,\"query\":null,\"span_field\":null} → null",
+      "~ .variables_v2[0].source.query.value_display_options: {\"label_regex\":\"value-label_regex\",\"value_regex\":\"value-value_regex\"} → null"
+    ],
+    "inconsistentResult": [
+      "annotations[2].source.logs.strategy.duration",
+      "annotations[2].source.logs.strategy.range",
+      "annotations[5].source.spans.strategy.duration",
+      "annotations[5].source.spans.strategy.range"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
+    ]
+  },
+  {
+    "step": "empty optional lists (4)",
     "changes": [
       "empty annotations",
-      "empty annotations[].source.dataprime.label_fields",
       "empty filters",
       "empty variables",
-      "empty variables[].definition.multi_select.selected_values",
-      "empty variables[].definition.multi_select.source.constant_list",
       "empty variables_v2"
     ],
     "diagnostics": [
@@ -3852,10 +3895,9 @@
     ]
   },
   {
-    "step": "empty optional lists (3)",
+    "step": "empty optional lists (2)",
     "changes": [
       "empty annotations",
-      "empty annotations[].source.dataprime.label_fields",
       "empty filters"
     ],
     "diagnostics": [
@@ -3872,33 +3914,66 @@
     ]
   },
   {
-    "step": "empty optional lists (2)",
-    "changes": [
-      "empty annotations[].source.dataprime.label_fields",
-      "empty filters"
-    ],
+    "step": "empty filters",
     "diagnostics": [
       "error: Invalid Attribute Value [AttributeName(\"filters\")] | Attribute filters list must contain at least 1 elements, got: 0",
       "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
     ]
   },
   {
-    "step": "empty annotations[].source.dataprime.label_fields",
+    "step": "empty optional lists (2)",
+    "changes": [
+      "empty variables",
+      "empty variables_v2"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"variables\")] | Attribute variables list must contain at least 1 elements, got: 0",
+      "error: Invalid Attribute Value [AttributeName(\"variables_v2\")] | Attribute variables_v2 list must contain at least 1 elements, got: 0",
+      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
+    ]
+  },
+  {
+    "step": "empty variables",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"variables\")] | Attribute variables list must contain at least 1 elements, got: 0",
+      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
+    ]
+  },
+  {
+    "step": "empty variables_v2",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"variables_v2\")] | Attribute variables_v2 list must contain at least 1 elements, got: 0",
+      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
+    ]
+  },
+  {
+    "step": "empty optional lists, round 2 (3)",
+    "changes": [
+      "empty annotations[].source.dataprime.label_fields",
+      "empty variables[].definition.multi_select.selected_values",
+      "empty variables[].definition.multi_select.source.constant_list"
+    ],
     "diagnostics": [
       "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
     ],
     "requestDiff": [
-      "- .dashboard.annotations[0].source.dataprime.labelFields"
+      "- .dashboard.annotations[0].source.dataprime.labelFields",
+      "+ .dashboard.variables[0].definition.multiSelect.selection.all: {}",
+      "- .dashboard.variables[0].definition.multiSelect.selection.list",
+      "- .dashboard.variables[0].definition.multiSelect.source.constantList.values[0]"
     ],
     "stateDiff": [
-      "~ .annotations[0].source.dataprime.label_fields: [{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}] → null"
+      "~ .annotations[0].source.dataprime.label_fields: [{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}] → null",
+      "- .variables[0].definition.multi_select.selected_values[0]",
+      "~ .variables[0].definition.multi_select.source.constant_list: [\"value-constant_list\"] → null"
     ],
     "inconsistentResult": [
       "annotations[0].source.dataprime.label_fields",
       "annotations[2].source.logs.strategy.duration",
       "annotations[2].source.logs.strategy.range",
       "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
+      "annotations[5].source.spans.strategy.range",
+      "variables[0].definition.multi_select.source.constant_list"
     ],
     "replanEmpty": false,
     "replanDiff": [
@@ -3915,135 +3990,8 @@
       "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
       "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
       "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
-  },
-  {
-    "step": "empty filters",
-    "diagnostics": [
-      "error: Invalid Attribute Value [AttributeName(\"filters\")] | Attribute filters list must contain at least 1 elements, got: 0",
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ]
-  },
-  {
-    "step": "empty optional lists (4)",
-    "changes": [
-      "empty variables",
-      "empty variables[].definition.multi_select.selected_values",
-      "empty variables[].definition.multi_select.source.constant_list",
-      "empty variables_v2"
-    ],
-    "diagnostics": [
-      "error: Invalid Attribute Value [AttributeName(\"variables\")] | Attribute variables list must contain at least 1 elements, got: 0",
-      "error: Invalid Attribute Value [AttributeName(\"variables_v2\")] | Attribute variables_v2 list must contain at least 1 elements, got: 0",
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ]
-  },
-  {
-    "step": "empty optional lists (2)",
-    "changes": [
-      "empty variables",
-      "empty variables[].definition.multi_select.selected_values"
-    ],
-    "diagnostics": [
-      "error: Invalid Attribute Value [AttributeName(\"variables\")] | Attribute variables list must contain at least 1 elements, got: 0",
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ]
-  },
-  {
-    "step": "empty variables",
-    "diagnostics": [
-      "error: Invalid Attribute Value [AttributeName(\"variables\")] | Attribute variables list must contain at least 1 elements, got: 0",
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ]
-  },
-  {
-    "step": "empty variables[].definition.multi_select.selected_values",
-    "diagnostics": [
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ],
-    "requestDiff": [
-      "+ .dashboard.variables[0].definition.multiSelect.selection.all: {}",
-      "- .dashboard.variables[0].definition.multiSelect.selection.list"
-    ],
-    "stateDiff": [
-      "- .variables[0].definition.multi_select.selected_values[0]"
-    ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
-    ]
-  },
-  {
-    "step": "empty optional lists (2)",
-    "changes": [
-      "empty variables[].definition.multi_select.source.constant_list",
-      "empty variables_v2"
-    ],
-    "diagnostics": [
-      "error: Invalid Attribute Value [AttributeName(\"variables_v2\")] | Attribute variables_v2 list must contain at least 1 elements, got: 0",
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ]
-  },
-  {
-    "step": "empty variables[].definition.multi_select.source.constant_list",
-    "diagnostics": [
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
-    ],
-    "requestDiff": [
-      "- .dashboard.variables[0].definition.multiSelect.source.constantList.values[0]"
-    ],
-    "stateDiff": [
-      "~ .variables[0].definition.multi_select.source.constant_list: [\"value-constant_list\"] → null"
-    ],
-    "inconsistentResult": [
-      "annotations[2].source.logs.strategy.duration",
-      "annotations[2].source.logs.strategy.range",
-      "annotations[5].source.spans.strategy.duration",
-      "annotations[5].source.spans.strategy.range",
-      "variables[0].definition.multi_select.source.constant_list"
-    ],
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
-      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
       "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")",
       "AttributeName(\"variables\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"multi_select\").AttributeName(\"source\").AttributeName(\"constant_list\")"
-    ]
-  },
-  {
-    "step": "empty variables_v2",
-    "diagnostics": [
-      "error: Invalid Attribute Value [AttributeName(\"variables_v2\")] | Attribute variables_v2 list must contain at least 1 elements, got: 0",
-      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
     ]
   },
   {
@@ -4903,14 +4851,10 @@
     ]
   },
   {
-    "step": "remove optional objects (7)",
+    "step": "remove optional objects (3)",
     "changes": [
       "remove variables[].definition.multi_select.source.query.value_display_options",
       "remove variables_v2[].source.query.metrics_query.type.label_value.label_filters",
-      "remove variables_v2[].source.query.metrics_query.type.label_value.label_filters[].label",
-      "remove variables_v2[].source.query.metrics_query.type.label_value.label_filters[].metric",
-      "remove variables_v2[].source.query.metrics_query.type.label_value.label_filters[].operator",
-      "remove variables_v2[].source.query.metrics_query.type.label_value.label_filters[].operator.selected_values",
       "remove variables_v2[].source.query.metrics_query.type.label_value.metric_name"
     ],
     "diagnostics": [
@@ -4950,11 +4894,84 @@
     ]
   },
   {
-    "step": "empty optional lists (2)",
+    "step": "remove optional objects, round 2 (3)",
     "changes": [
-      "empty variables_v2[].source.query.metrics_query.type.label_value.label_filters",
-      "empty variables_v2[].source.query.metrics_query.type.label_value.label_filters[].operator.selected_values"
+      "remove variables_v2[].source.query.metrics_query.type.label_value.label_filters[].label",
+      "remove variables_v2[].source.query.metrics_query.type.label_value.label_filters[].metric",
+      "remove variables_v2[].source.query.metrics_query.type.label_value.label_filters[].operator"
     ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
+    ],
+    "requestDiff": [
+      "- .dashboard.variablesV2[0].source.query.metricsQuery.type.labelValue.labelFilters[0].label",
+      "- .dashboard.variablesV2[0].source.query.metricsQuery.type.labelValue.labelFilters[0].metric",
+      "- .dashboard.variablesV2[0].source.query.metricsQuery.type.labelValue.labelFilters[0].operator"
+    ],
+    "stateDiff": [
+      "~ .variables_v2[0].source.query.metrics_query.type.label_value.label_filters[0].label: {\"string_value\":\"value-string_value\",\"variable_name\":null} → null",
+      "~ .variables_v2[0].source.query.metrics_query.type.label_value.label_filters[0].metric: {\"string_value\":\"value-string_value\",\"variable_name\":null} → null",
+      "~ .variables_v2[0].source.query.metrics_query.type.label_value.label_filters[0].operator: {\"selected_values\":[{\"string_value\":\"value-string_value\",\"variable_name\":null}],\"type\":\"not_equals\"} → null"
+    ],
+    "inconsistentResult": [
+      "annotations[2].source.logs.strategy.duration",
+      "annotations[2].source.logs.strategy.range",
+      "annotations[5].source.spans.strategy.duration",
+      "annotations[5].source.spans.strategy.range"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
+    ]
+  },
+  {
+    "step": "remove variables_v2[].source.query.metrics_query.type.label_value.label_filters[].operator.selected_values",
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
+    ],
+    "requestDiff": [
+      "- .dashboard.variablesV2[0].source.query.metricsQuery.type.labelValue.labelFilters[0].operator.notEquals.selection.list.values"
+    ],
+    "stateDiff": [
+      "~ .variables_v2[0].source.query.metrics_query.type.label_value.label_filters[0].operator.selected_values: [{\"string_value\":\"value-string_value\",\"variable_name\":null}] → null"
+    ],
+    "inconsistentResult": [
+      "annotations[2].source.logs.strategy.duration",
+      "annotations[2].source.logs.strategy.range",
+      "annotations[5].source.spans.strategy.duration",
+      "annotations[5].source.spans.strategy.range"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
+    ]
+  },
+  {
+    "step": "empty variables_v2[].source.query.metrics_query.type.label_value.label_filters",
     "diagnostics": [
       "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
     ],
@@ -4963,6 +4980,40 @@
     ],
     "stateDiff": [
       "~ .variables_v2[0].source.query.metrics_query.type.label_value.label_filters: [{\"label\":{\"string_value\":\"value-string_value\",\"variable_name\":null},\"metric\":{\"string_value\":\"value-string_value\",\"variable_name\":null},\"operator\":{\"selected_v…[sha256:d7c23adf] → null"
+    ],
+    "inconsistentResult": [
+      "annotations[2].source.logs.strategy.duration",
+      "annotations[2].source.logs.strategy.range",
+      "annotations[5].source.spans.strategy.duration",
+      "annotations[5].source.spans.strategy.range"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(2).AttributeName(\"source\").AttributeName(\"logs\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"duration_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"duration\").AttributeName(\"start_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"end_timestamp_field\")",
+      "AttributeName(\"annotations\").ElementKeyInt(5).AttributeName(\"source\").AttributeName(\"spans\").AttributeName(\"strategy\").AttributeName(\"range\").AttributeName(\"start_timestamp_field\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")"
+    ]
+  },
+  {
+    "step": "empty variables_v2[].source.query.metrics_query.type.label_value.label_filters[].operator.selected_values",
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"variables\")] | Use `variables_v2` for new dashboard variables. This legacy attribute remains available during migration."
+    ],
+    "requestDiff": [
+      "- .dashboard.variablesV2[0].source.query.metricsQuery.type.labelValue.labelFilters[0].operator.notEquals.selection.list.values"
+    ],
+    "stateDiff": [
+      "~ .variables_v2[0].source.query.metrics_query.type.label_value.label_filters[0].operator.selected_values: [{\"string_value\":\"value-string_value\",\"variable_name\":null}] → null"
     ],
     "inconsistentResult": [
       "annotations[2].source.logs.strategy.duration",

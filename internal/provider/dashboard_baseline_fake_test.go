@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"runtime/debug"
 	"sort"
 	"strings"
 	"sync"
@@ -172,7 +173,12 @@ func installDashboardRouter(t *testing.T) *routedDashboardFakes {
 	t.Helper()
 	router := &routedDashboardFakes{original: http.DefaultTransport}
 	http.DefaultTransport = router
-	t.Cleanup(func() { http.DefaultTransport = router.original })
+	// A plan of this schema allocates a lot, and the garbage collector took about 40% of the CPU time.
+	previousGC := debug.SetGCPercent(800)
+	t.Cleanup(func() {
+		debug.SetGCPercent(previousGC)
+		http.DefaultTransport = router.original
+	})
 	return router
 }
 

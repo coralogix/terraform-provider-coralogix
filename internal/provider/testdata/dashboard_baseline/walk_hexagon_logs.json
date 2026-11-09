@@ -599,46 +599,96 @@
     "replanEmpty": true
   },
   {
-    "step": "remove optional objects (11)",
-    "changes": [
-      "remove layout.sections",
-      "remove layout.sections[].options",
-      "remove layout.sections[].rows",
-      "remove layout.sections[].rows[].widgets",
-      "remove layout.sections[].rows[].widgets[].custom_actions",
-      "remove layout.sections[].rows[].widgets[].definition.hexagon.legend",
-      "remove layout.sections[].rows[].widgets[].definition.hexagon.query.logs.filters",
-      "remove layout.sections[].rows[].widgets[].definition.hexagon.query.logs.filters[].observation_field",
-      "remove layout.sections[].rows[].widgets[].definition.hexagon.query.logs.group_by",
-      "remove layout.sections[].rows[].widgets[].definition.hexagon.query.logs.time_frame",
-      "remove layout.sections[].rows[].widgets[].definition.hexagon.thresholds"
-    ],
+    "step": "remove layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:c724e99f] → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:7e34def3] → null"
     ],
     "replanEmpty": true
   },
   {
-    "step": "empty optional lists (7)",
+    "step": "remove optional objects, round 2 (2)",
     "changes": [
-      "empty layout.sections",
-      "empty layout.sections[].rows",
-      "empty layout.sections[].rows[].widgets",
-      "empty layout.sections[].rows[].widgets[].custom_actions",
-      "empty layout.sections[].rows[].widgets[].definition.hexagon.legend.columns",
-      "empty layout.sections[].rows[].widgets[].definition.hexagon.query.logs.filters",
-      "empty layout.sections[].rows[].widgets[].definition.hexagon.query.logs.group_by"
+      "remove layout.sections[].options",
+      "remove layout.sections[].rows"
     ],
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].options",
+      "- .dashboard.layout.sections[0].rows"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].options: {\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null} → null",
+      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:f3c695e9] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets",
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].rows[0].widgets"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url…[sha256:6f3a3e0d] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove optional objects, round 4 (6)",
+    "changes": [
+      "remove layout.sections[].rows[].widgets[].custom_actions",
+      "remove layout.sections[].rows[].widgets[].definition.hexagon.legend",
+      "remove layout.sections[].rows[].widgets[].definition.hexagon.query.logs.filters",
+      "remove layout.sections[].rows[].widgets[].definition.hexagon.query.logs.group_by",
+      "remove layout.sections[].rows[].widgets[].definition.hexagon.query.logs.time_frame",
+      "remove layout.sections[].rows[].widgets[].definition.hexagon.thresholds"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.legend",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.filters",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.groupBy",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.timeFrame",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.thresholds[0]"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.legend: {\"columns\":[\"avg\"],\"group_by_query\":true,\"is_visible\":true,\"placement\":\"auto\"} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.filters: [{\"field\":\"value-field\",\"observation_field\":{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"},\"operator\":{\"selected_values\":[],\"selection_type\":\"all\",\"type\":\"equals…[sha256:5c322404] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.group_by: [{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.time_frame: {\"absolute\":{\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"},\"relative\":null} → null",
+      "- .layout.sections[0].rows[0].widgets[0].definition.hexagon.thresholds[0]"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets[].definition.hexagon.query.logs.filters[].observation_field",
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.filters[0].observationField"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.filters[0].observation_field: {\"keypath\":[\"value-keypath\"],\"scope\":\"label\"} → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "empty layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:c724e99f] → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:7e34def3] → null"
     ],
     "inconsistentResult": [
       "layout.sections"
@@ -647,6 +697,97 @@
     "replanDiff": [
       "AttributeName(\"auto_refresh\")",
       "AttributeName(\"layout\").AttributeName(\"sections\")"
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\")] | Attribute layout.sections[0].rows list must contain at least 1 elements, got: 0"
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\")] | Attribute layout.sections[0].rows[0].widgets list must contain at least 1 elements, got: 0"
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (4)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].custom_actions",
+      "empty layout.sections[].rows[].widgets[].definition.hexagon.legend.columns",
+      "empty layout.sections[].rows[].widgets[].definition.hexagon.query.logs.filters",
+      "empty layout.sections[].rows[].widgets[].definition.hexagon.query.logs.group_by"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"legend\").AttributeName(\"columns\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.hexagon.legend.columns list must contain at least 1 elem",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.filters list mus",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (2)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].custom_actions",
+      "empty layout.sections[].rows[].widgets[].definition.hexagon.legend.columns"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"legend\").AttributeName(\"columns\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.hexagon.legend.columns list must contain at least 1 elem",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].custom_actions",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.hexagon.legend.columns",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"legend\").AttributeName(\"columns\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.hexagon.legend.columns list must contain at least 1 elem",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (2)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].definition.hexagon.query.logs.filters",
+      "empty layout.sections[].rows[].widgets[].definition.hexagon.query.logs.group_by"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.filters list mus",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.hexagon.query.logs.filters",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.filters list mus",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.hexagon.query.logs.group_by",
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.groupBy"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.group_by: [{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}] → null"
+    ],
+    "inconsistentResult": [
+      "layout.sections[0].rows[0].widgets[0].definition.hexagon.query.logs.group_by"
+    ],
+    "replanEmpty": false,
+    "replanDiff": [
+      "AttributeName(\"auto_refresh\")",
+      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"hexagon\").AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"group_by\")"
     ]
   },
   {

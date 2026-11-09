@@ -295,14 +295,7 @@
     "replanEmpty": true
   },
   {
-    "step": "remove optional objects (5)",
-    "changes": [
-      "remove layout.sections",
-      "remove layout.sections[].options",
-      "remove layout.sections[].rows",
-      "remove layout.sections[].rows[].widgets",
-      "remove layout.sections[].rows[].widgets[].custom_actions"
-    ],
+    "step": "remove layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
       "- .dashboard.layout.sections"
@@ -313,13 +306,48 @@
     "replanEmpty": true
   },
   {
-    "step": "empty optional lists (4)",
+    "step": "remove optional objects, round 2 (2)",
     "changes": [
-      "empty layout.sections",
-      "empty layout.sections[].rows",
-      "empty layout.sections[].rows[].widgets",
-      "empty layout.sections[].rows[].widgets[].custom_actions"
+      "remove layout.sections[].options",
+      "remove layout.sections[].rows"
     ],
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].options",
+      "- .dashboard.layout.sections[0].rows"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].options: {\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null} → null",
+      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:8619e844] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets",
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].rows[0].widgets"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url…[sha256:10a379f6] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets[].custom_actions",
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.actions"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "empty layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
       "- .dashboard.layout.sections"
@@ -334,6 +362,25 @@
     "replanDiff": [
       "AttributeName(\"auto_refresh\")",
       "AttributeName(\"layout\").AttributeName(\"sections\")"
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\")] | Attribute layout.sections[0].rows list must contain at least 1 elements, got: 0"
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\")] | Attribute layout.sections[0].rows[0].widgets list must contain at least 1 elements, got: 0"
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].custom_actions",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {

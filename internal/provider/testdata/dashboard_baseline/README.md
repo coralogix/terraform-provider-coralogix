@@ -71,7 +71,7 @@ The recording covers one widget in detail. Read-back rules for other widgets com
 A generator fills every configurable schema path with a valid value. It reads enum values, ranges and one-of groups from the validators.
 There are 46 bases: 7 widget kinds with each query arm, each dynamic visualization, a widget reference, the markdown widget and the top level.
 Each base is applied, then changed in batches: remove optional values, remove optional objects, empty lists, set enums.
-A failing batch is split until one change is named.
+A batch never holds a path together with its parent or child, because a change inside a removed object does nothing. Such a change goes to a later batch of the same kind (`round 2`, `round 3`). A failing batch is split until one change is named.
 A walk file holds the base request and state once. After that, a step holds only what changed.
 
 Two paths no base reaches: `variables[].definition.constant_value` (the API rejects it; see `variables-legacy-constant-value`) and `stat_card.primary_value.mapped_values` (a config validator rejects it).

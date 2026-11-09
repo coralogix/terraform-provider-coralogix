@@ -644,47 +644,115 @@
     ]
   },
   {
-    "step": "remove optional objects (12)",
-    "changes": [
-      "remove layout.sections",
-      "remove layout.sections[].options",
-      "remove layout.sections[].rows",
-      "remove layout.sections[].rows[].widgets",
-      "remove layout.sections[].rows[].widgets[].custom_actions",
-      "remove layout.sections[].rows[].widgets[].definition.dynamic.time_frame",
-      "remove layout.sections[].rows[].widgets[].definition.dynamic.visualization",
-      "remove layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.tooltip",
-      "remove layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.tooltip.labels",
-      "remove layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.value_field",
-      "remove layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.x_axis_fields",
-      "remove layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.y_axis_fields"
-    ],
+    "step": "remove layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:76c7e485] → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:ead71307] → null"
     ],
     "replanEmpty": true
   },
   {
-    "step": "empty optional lists (7)",
+    "step": "remove optional objects, round 2 (2)",
     "changes": [
-      "empty layout.sections",
-      "empty layout.sections[].rows",
-      "empty layout.sections[].rows[].widgets",
-      "empty layout.sections[].rows[].widgets[].custom_actions",
-      "empty layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.tooltip.labels",
-      "empty layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.x_axis_fields",
-      "empty layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.y_axis_fields"
+      "remove layout.sections[].options",
+      "remove layout.sections[].rows"
     ],
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].options",
+      "- .dashboard.layout.sections[0].rows"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].options: {\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null} → null",
+      "~ .layout.sections[0].rows: [{\"height\":1,\"id\":\"<id-1>\",\"widgets\":[{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"n…[sha256:30a73cf6] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets",
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].rows[0].widgets"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets: [{\"custom_actions\":[{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url…[sha256:fe4000fc] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove optional objects, round 4 (3)",
+    "changes": [
+      "remove layout.sections[].rows[].widgets[].custom_actions",
+      "remove layout.sections[].rows[].widgets[].definition.dynamic.time_frame",
+      "remove layout.sections[].rows[].widgets[].definition.dynamic.visualization"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.actions",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.timeFrame",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].custom_actions: [{\"data_source\":\"dataprime\",\"id\":\"<id-1>\",\"name\":\"value-name\",\"should_open_in_new_window\":true,\"url\":\"value-url\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.time_frame: {\"absolute\":{\"end\":\"2024-01-01T00:00:00Z\",\"start\":\"2024-01-01T00:00:00Z\"},\"relative\":null} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization: {\"gauge\":null,\"geomap\":null,\"heatmap\":{\"allow_abbreviation\":true,\"color_axis_max\":1,\"color_axis_min\":1,\"color_range\":\"blue\",\"custom_unit\":\"value-custom_unit\",\"d…[sha256:7276a3f8] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove optional objects, round 5 (4)",
+    "changes": [
+      "remove layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.tooltip",
+      "remove layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.value_field",
+      "remove layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.x_axis_fields",
+      "remove layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.y_axis_fields"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.heatmap.tooltip",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.heatmap.valueField",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.heatmap.xAxisFields",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.heatmap.yAxisFields"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.heatmap.tooltip: {\"labels\":[{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}],\"message_template\":\"value-message_template\"} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.heatmap.value_field: {\"keypath\":[\"value-keypath\"],\"scope\":\"label\"} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.heatmap.x_axis_fields: [{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}] → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.heatmap.y_axis_fields: [{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.tooltip.labels",
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.heatmap.tooltip.labels"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.visualization.heatmap.tooltip.labels: [{\"keypath\":[\"value-keypath\"],\"scope\":\"label\"}] → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "empty layout.sections",
     "requestDiff": [
       "- .dashboard.actions",
       "- .dashboard.layout.sections"
     ],
     "stateDiff": [
-      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:76c7e485] → null"
+      "~ .layout.sections: [{\"id\":\"<id-1>\",\"options\":{\"collapsed\":null,\"color\":null,\"description\":null,\"internal\":{},\"name\":null,\"repetitive_var\":null},\"rows…[sha256:ead71307] → null"
     ],
     "inconsistentResult": [
       "layout.sections"
@@ -693,6 +761,93 @@
     "replanDiff": [
       "AttributeName(\"auto_refresh\")",
       "AttributeName(\"layout\").AttributeName(\"sections\")"
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\")] | Attribute layout.sections[0].rows list must contain at least 1 elements, got: 0"
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\")] | Attribute layout.sections[0].rows[0].widgets list must contain at least 1 elements, got: 0"
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (4)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].custom_actions",
+      "empty layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.tooltip.labels",
+      "empty layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.x_axis_fields",
+      "empty layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.y_axis_fields"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"visualization\").AttributeName(\"heatmap\").AttributeName(\"tooltip\").AttributeName(\"labels\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"visualization\").AttributeName(\"heatmap\").AttributeName(\"x_axis_fields\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.dynamic.visualizat",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"visualization\").AttributeName(\"heatmap\").AttributeName(\"y_axis_fields\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.dynamic.visualizat",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (2)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].custom_actions",
+      "empty layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.tooltip.labels"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"visualization\").AttributeName(\"heatmap\").AttributeName(\"tooltip\").AttributeName(\"labels\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].custom_actions",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"custom_actions\")] | Attribute layout.sections[0].rows[0].widgets[0].custom_actions list must contain at least 1 elements, got: 0",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.tooltip.labels",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"visualization\").AttributeName(\"heatmap\").AttributeName(\"tooltip\").AttributeName(\"labels\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty optional lists, round 4 (2)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.x_axis_fields",
+      "empty layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.y_axis_fields"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"visualization\").AttributeName(\"heatmap\").AttributeName(\"x_axis_fields\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.dynamic.visualizat",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"visualization\").AttributeName(\"heatmap\").AttributeName(\"y_axis_fields\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.dynamic.visualizat",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.x_axis_fields",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"visualization\").AttributeName(\"heatmap\").AttributeName(\"x_axis_fields\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.dynamic.visualizat",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "empty layout.sections[].rows[].widgets[].definition.dynamic.visualization.heatmap.y_axis_fields",
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"visualization\").AttributeName(\"heatmap\").AttributeName(\"y_axis_fields\")] | Attribute layout.sections[0].rows[0].widgets[0].definition.dynamic.visualizat",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
   },
   {
@@ -901,12 +1056,10 @@
     "replanEmpty": true
   },
   {
-    "step": "remove optional objects (5)",
+    "step": "remove optional objects (3)",
     "changes": [
       "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.aggregations",
-      "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.aggregations[].observation_field",
       "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.filters",
-      "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.filters[].observation_field",
       "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.group_by"
     ],
     "diagnostics": [
@@ -926,30 +1079,50 @@
     "replanEmpty": true
   },
   {
-    "step": "empty optional lists (4)",
+    "step": "remove optional objects, round 2 (2)",
+    "changes": [
+      "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.aggregations[].observation_field",
+      "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.filters[].observation_field"
+    ],
+    "diagnostics": [
+      "error: logs aggregation validation failed | when type is `count_distinct`, either `field` or `observation_field` must be set",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.aggregations[].observation_field",
+    "diagnostics": [
+      "error: logs aggregation validation failed | when type is `count_distinct`, either `field` or `observation_field` must be set",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.filters[].observation_field",
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.queryDefinitions[0].query.logs.filters[0].observationField"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.logs.filters[0].observation_field: {\"keypath\":[\"value-keypath\"],\"scope\":\"metadata\"} → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "empty optional lists (3)",
     "changes": [
       "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.aggregations",
       "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.filters",
-      "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.filters[].operator.selected_values",
       "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.group_by"
     ],
     "diagnostics": [
       "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"aggregations\")] | Attribute layout.sections[0].rows[0].",
       "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widge",
       "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"group_by\")] | Attribute layout.sections[0].rows[0].widg",
-      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
-      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
-  },
-  {
-    "step": "empty optional lists (2)",
-    "changes": [
-      "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.aggregations",
-      "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.filters"
-    ],
-    "diagnostics": [
-      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"aggregations\")] | Attribute layout.sections[0].rows[0].",
-      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widge",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
@@ -963,6 +1136,19 @@
     ]
   },
   {
+    "step": "empty optional lists (2)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.filters",
+      "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.group_by"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widge",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"group_by\")] | Attribute layout.sections[0].rows[0].widg",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
     "step": "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.filters",
     "diagnostics": [
       "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widge",
@@ -971,14 +1157,9 @@
     ]
   },
   {
-    "step": "empty optional lists (2)",
-    "changes": [
-      "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.filters[].operator.selected_values",
-      "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.group_by"
-    ],
+    "step": "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.group_by",
     "diagnostics": [
       "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"group_by\")] | Attribute layout.sections[0].rows[0].widg",
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
@@ -987,14 +1168,6 @@
     "step": "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.filters[].operator.selected_values",
     "diagnostics": [
       "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
-      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
-      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
-  },
-  {
-    "step": "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.logs.group_by",
-    "diagnostics": [
-      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"logs\").AttributeName(\"group_by\")] | Attribute layout.sections[0].rows[0].widg",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
@@ -1279,13 +1452,10 @@
     "replanEmpty": true
   },
   {
-    "step": "remove optional objects (6)",
+    "step": "remove optional objects (3)",
     "changes": [
       "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.aggregations",
-      "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.aggregations[].observation_field",
       "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.filters",
-      "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.filters[].field",
-      "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.filters[].observation_field",
       "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.group_by"
     ],
     "diagnostics": [
@@ -1305,30 +1475,57 @@
     "replanEmpty": true
   },
   {
-    "step": "empty optional lists (4)",
+    "step": "remove optional objects, round 2 (3)",
+    "changes": [
+      "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.aggregations[].observation_field",
+      "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.filters[].field",
+      "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.filters[].observation_field"
+    ],
+    "diagnostics": [
+      "error: logs aggregation validation failed | when type is `avg`, either `field` or `observation_field` must be set",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.aggregations[].observation_field",
+    "diagnostics": [
+      "error: logs aggregation validation failed | when type is `avg`, either `field` or `observation_field` must be set",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
+    "step": "remove optional objects, round 2 (2)",
+    "changes": [
+      "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.filters[].field",
+      "remove layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.filters[].observation_field"
+    ],
+    "diagnostics": [
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ],
+    "requestDiff": [
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.queryDefinitions[0].query.spans.filters[0].field",
+      "- .dashboard.layout.sections[0].rows[0].widgets[0].definition.dynamic.queryDefinitions[0].query.spans.filters[0].observationField"
+    ],
+    "stateDiff": [
+      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.spans.filters[0].field: {\"type\":\"metadata\",\"value\":\"service_name\"} → null",
+      "~ .layout.sections[0].rows[0].widgets[0].definition.dynamic.query_definitions[0].query.spans.filters[0].observation_field: {\"keypath\":[\"value-keypath\"],\"relation_type\":\"other\",\"scope\":\"label\"} → null"
+    ],
+    "replanEmpty": true
+  },
+  {
+    "step": "empty optional lists (3)",
     "changes": [
       "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.aggregations",
       "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.filters",
-      "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.filters[].operator.selected_values",
       "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.group_by"
     ],
     "diagnostics": [
       "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\")] | Attribute layout.sections[0].rows[0]",
       "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widg",
       "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"group_by\")] | Attribute layout.sections[0].rows[0].wid",
-      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
-      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
-  },
-  {
-    "step": "empty optional lists (2)",
-    "changes": [
-      "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.aggregations",
-      "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.filters"
-    ],
-    "diagnostics": [
-      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"aggregations\")] | Attribute layout.sections[0].rows[0]",
-      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widg",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
@@ -1342,6 +1539,19 @@
     ]
   },
   {
+    "step": "empty optional lists (2)",
+    "changes": [
+      "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.filters",
+      "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.group_by"
+    ],
+    "diagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widg",
+      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"group_by\")] | Attribute layout.sections[0].rows[0].wid",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
+      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
+    ]
+  },
+  {
     "step": "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.filters",
     "diagnostics": [
       "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"filters\")] | Attribute layout.sections[0].rows[0].widg",
@@ -1350,14 +1560,9 @@
     ]
   },
   {
-    "step": "empty optional lists (2)",
-    "changes": [
-      "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.filters[].operator.selected_values",
-      "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.group_by"
-    ],
+    "step": "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.group_by",
     "diagnostics": [
       "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"group_by\")] | Attribute layout.sections[0].rows[0].wid",
-      "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
@@ -1366,14 +1571,6 @@
     "step": "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.filters[].operator.selected_values",
     "diagnostics": [
       "error: filter operator validation failed | when type is `not_equals`, `selected_values` must contain at least one value",
-      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
-      "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
-    ]
-  },
-  {
-    "step": "empty layout.sections[].rows[].widgets[].definition.dynamic.query_definitions[].query.spans.group_by",
-    "diagnostics": [
-      "error: Invalid Attribute Value [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"query_definitions\").ElementKeyInt(0).AttributeName(\"query\").AttributeName(\"spans\").AttributeName(\"group_by\")] | Attribute layout.sections[0].rows[0].wid",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"definition\").AttributeName(\"dynamic\").AttributeName(\"interpretation\")] | Deprecated: superseded by the visualization block.",
       "warning: Attribute Deprecated [AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")] | Widget appearance.width is ignored by the API and has no effect."
     ]
