@@ -27,6 +27,8 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 )
 
+var accessPolicyPath = path.Root("access_policy")
+
 // getAlert reads the alert with include_access_permissions, so the response carries the access policy.
 // A key without alerts:ReadAccessPolicy can get a 403 for the flag instead of a response without the
 // policy, so the call is repeated without it: the policy is then not readable.
@@ -42,12 +44,12 @@ func getAlert(ctx context.Context, client *alertapi.AlertDefinitionsServiceAPISe
 // plan or the prior state value, or null on import and in the data source.
 func afterGetAlert(ctx context.Context, state *tfsdk.State, response *alertapi.GetAlertDefResponse) diag.Diagnostics {
 	var current types.String
-	diags := state.GetAttribute(ctx, path.Root("access_policy"), &current)
+	diags := state.GetAttribute(ctx, accessPolicyPath, &current)
 	if diags.HasError() {
 		return diags
 	}
 	policy, readable := accessPolicyFromGetResponse(response)
-	diags.Append(state.SetAttribute(ctx, path.Root("access_policy"), foldAccessPolicy(current, policy, readable))...)
+	diags.Append(state.SetAttribute(ctx, accessPolicyPath, foldAccessPolicy(current, policy, readable))...)
 	return diags
 }
 
