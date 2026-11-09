@@ -35,6 +35,7 @@ var updateFields = []struct {
 	{attr: "selection", serverDefault: false},
 	{attr: "main_label", serverDefault: false},
 	{attr: "extra_label", serverDefault: false},
+	{attr: "offset", serverDefault: false},
 }
 
 // updateChanged reports whether an Update field has a different value in the

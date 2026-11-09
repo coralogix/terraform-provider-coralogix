@@ -38,6 +38,7 @@ var createFields = []struct {
 	{attr: "selection", serverDefault: false},
 	{attr: "main_label", serverDefault: false},
 	{attr: "extra_label", serverDefault: false},
+	{attr: "offset", serverDefault: false},
 }
 
 func validateCreate(ctx context.Context, config, plan tfData) diag.Diagnostics {
@@ -281,6 +282,7 @@ func expandCreateWrapThingRequest(ctx context.Context, p path.Path, m *WrapThing
 		out.MainLabel = wrapLabel(inner)
 	}
 	out.ExtraLabel = expandLabel(ctx, p.AtName("extra_label"), m.ExtraLabel, diags)
+	out.Offset = expandInt64Wire(m.Offset)
 	return out
 }
 
@@ -309,6 +311,7 @@ func expandSimpleFilter(ctx context.Context, p path.Path, m *SimpleFilterModel, 
 	out := &wrap_things_service.SimpleFilter{}
 	out.Text = expandString(m.Text)
 	out.Limit = expandInt32(m.Limit)
+	out.Span = expandInt64Wire(m.Span)
 	return out
 }
 
@@ -319,6 +322,7 @@ func flattenSimpleFilter(ctx context.Context, p path.Path, v *wrap_things_servic
 	out := &SimpleFilterModel{}
 	out.Text = types.StringPointerValue(v.Text)
 	out.Limit = types.Int32PointerValue(v.Limit)
+	out.Span = flattenInt64Wire(p.AtName("span"), v.Span, diags)
 	return out
 }
 
@@ -383,6 +387,7 @@ func expandReplaceWrapThingRequest(ctx context.Context, p path.Path, m *WrapThin
 		out.MainLabel = wrapLabel(inner)
 	}
 	out.ExtraLabel = expandLabel(ctx, p.AtName("extra_label"), m.ExtraLabel, diags)
+	out.Offset = expandInt64Wire(m.Offset)
 	return out
 }
 
@@ -423,6 +428,7 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 		out.MainLabel = types.StringPointerValue(inner)
 	}
 	out.ExtraLabel = flattenLabel(ctx, p.AtName("extra_label"), v.ExtraLabel, diags)
+	out.Offset = flattenInt64Wire(p.AtName("offset"), v.Offset, diags)
 	return out
 }
 
@@ -796,4 +802,27 @@ func expandInt32(v types.Int32) *int32 {
 	}
 	n := v.ValueInt32()
 	return &n
+}
+
+// expandInt64Wire returns the decimal string of v. The API sends 64-bit numbers as strings.
+func expandInt64Wire(v types.Int64) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	s := strconv.FormatInt(v.ValueInt64(), 10)
+	return &s
+}
+
+// flattenInt64Wire parses the decimal string of a signed 64-bit number. A text that is not a
+// number of that range is an error.
+func flattenInt64Wire(p path.Path, v *string, diags *diag.Diagnostics) types.Int64 {
+	if v == nil {
+		return types.Int64Null()
+	}
+	n, err := strconv.ParseInt(*v, 10, 64)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid API value", fmt.Sprintf("The API returned %q, which is not a 64-bit number: %s", *v, err))
+		return types.Int64Null()
+	}
+	return types.Int64Value(n)
 }

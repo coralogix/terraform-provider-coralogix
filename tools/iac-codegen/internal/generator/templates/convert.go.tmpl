@@ -1532,6 +1532,31 @@ func keepPriorFloat32(prior, v types.Float64) types.Float64 {
 	return prior
 }
 {{- end}}
+{{- if .Conv.Uses "int64wire"}}
+
+// expandInt64Wire returns the decimal string of v. The API sends 64-bit numbers as strings.
+func expandInt64Wire(v types.Int64) *string {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	s := strconv.FormatInt(v.ValueInt64(), 10)
+	return &s
+}
+
+// flattenInt64Wire parses the decimal string of a signed 64-bit number. A text that is not a
+// number of that range is an error.
+func flattenInt64Wire(p path.Path, v *string, diags *diag.Diagnostics) types.Int64 {
+	if v == nil {
+		return types.Int64Null()
+	}
+	n, err := strconv.ParseInt(*v, 10, 64)
+	if err != nil {
+		diags.AddAttributeError(p, "Invalid API value", fmt.Sprintf("The API returned %q, which is not a 64-bit number: %s", *v, err))
+		return types.Int64Null()
+	}
+	return types.Int64Value(n)
+}
+{{- end}}
 {{- if .Conv.Uses "int64asstring"}}
 
 // expandStringAsInt64 returns the int64 id that a String attribute holds as decimal text.
@@ -1796,6 +1821,8 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	{{.Dst}} = expandMap[{{.SDKType}}](ctx, {{$p}}, m.{{.Model}}, diags)
 {{- else if eq .Conv "uint64"}}
 	{{.Dst}} = {{$l}}expandUint64({{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "int64wire"}}
+	{{.Dst}} = {{$l}}expandInt64Wire(m.{{.Model}}){{$r}}
 {{- else if and (eq .Conv "enum") .EnumMap .CaseInsensitive}}
 	{{.Dst}} = {{$l}}expandEnumMappedFold({{$p}}, m.{{.Model}}, {{.EnumMap.Name}}ToAPI, diags){{$r}}
 {{- else if and (eq .Conv "enum") .EnumMap}}
@@ -2017,6 +2044,9 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.Model}} = flattenScalarMap(ctx, {{.ElemType}}, {{if eq .SDKType "float32"}}widenFloat32Map({{.Src}}){{else}}{{.Src}}{{end}}, diags)
 {{- else if eq .Conv "uint64"}}
 	out.{{.Model}} = flattenUint64({{$p}}, {{$v}}, diags)
+	{{- template "readZeroAsNull" .}}
+{{- else if eq .Conv "int64wire"}}
+	out.{{.Model}} = flattenInt64Wire({{$p}}, {{$v}}, diags)
 	{{- template "readZeroAsNull" .}}
 {{- else if eq .Conv "time"}}
 	out.{{.Model}} = flattenTime({{$v}})

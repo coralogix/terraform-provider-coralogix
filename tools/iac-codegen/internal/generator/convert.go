@@ -267,12 +267,15 @@ const (
 	convBool    = "bool"    // types.Bool ↔ *bool
 	convFloat64 = "float64" // types.Float64 ↔ *float64
 	convUint64  = "uint64"  // types.Int64 ↔ *string (D7)
-	convTime    = "time"    // types.String ← *time.Time: a time that only the response has
-	convRFC3339 = "rfc3339" // timetypes.RFC3339 ↔ *time.Time: a time that a request sends
-	convTimes   = "times"   // types.Set/List of timetypes.RFC3339 ↔ []time.Time
-	convEnum    = "enum"    // types.String ↔ *<enum type> (D12)
-	convObj     = "object"  // *<Model> ↔ *<SDK type>
-	convEmpty   = "empty"   // *<Model> ↔ map[string]interface{} (F16)
+	// convInt64Wire is a signed 64-bit number that the API sends as a string, shown as an Int64
+	// (terraformType: Int64 on a string whose pattern is ^-?[0-9]+$).
+	convInt64Wire = "int64wire" // types.Int64 ↔ *string
+	convTime      = "time"      // types.String ← *time.Time: a time that only the response has
+	convRFC3339   = "rfc3339"   // timetypes.RFC3339 ↔ *time.Time: a time that a request sends
+	convTimes     = "times"     // types.Set/List of timetypes.RFC3339 ↔ []time.Time
+	convEnum      = "enum"      // types.String ↔ *<enum type> (D12)
+	convObj       = "object"    // *<Model> ↔ *<SDK type>
+	convEmpty     = "empty"     // *<Model> ↔ map[string]interface{} (F16)
 	// convEmptyBool shows an object without fields as a bool (asBool): true ↔ a non-nil empty map.
 	convEmptyBool = "emptybool"
 	convStrings   = "strings" // types.Set/List ↔ []string or []<enum type>
@@ -1089,7 +1092,7 @@ func (f *convField) ValueKind() string {
 	case convInt64AsString:
 		return "String"
 	}
-	return "Int64" // int64, uint64
+	return "Int64" // int64, uint64, int64wire
 }
 
 // markComputedObjectValue makes a directly nested computed field capable of
@@ -1459,13 +1462,13 @@ func (b *convBuilder) applyTerraformType(cf *convField, component, name string) 
 		return nil
 	}
 	switch {
-	case cf.Conv == convUint64:
+	case cf.Conv == convUint64, cf.Conv == convInt64Wire:
 	case cf.Conv == convInt32:
 		cf.Conv = convInt32AsInt64
 	case cf.Conv == convScalars && cf.SDKType == "int32":
 		cf.Conv, cf.ElemType = convInts32AsInt64, "types.Int64Type"
 	default:
-		return fmt.Errorf("%s: terraformType Int64 needs an int32 or uint64 field, or a list or set of int32", cf.TFName)
+		return fmt.Errorf("%s: terraformType Int64 needs an int32 field, a 64-bit number that the API sends as a string, or a list or set of int32", cf.TFName)
 	}
 	return nil
 }
@@ -1858,6 +1861,9 @@ func scalarConv(cf *convField, t *model.Type, computed bool) (string, error) {
 		return "*float32", nil
 	case t.WireString && t.Format == "uint64":
 		cf.Conv = convUint64
+		return "*string", nil
+	case t.WireString && t.Format == "int64":
+		cf.Conv = convInt64Wire
 		return "*string", nil
 	case !t.WireString && t.Format == "int64":
 		cf.Conv = convInt64
@@ -2371,7 +2377,7 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 var scalarAttrTypes = map[string]string{
 	convString: "types.StringType", convSplit: "types.SetType{ElemType: types.StringType}", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
 	convBool: "types.BoolType", convNotBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
-	convUint64: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
+	convUint64: "types.Int64Type", convInt64Wire: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
 	convInt64AsString: "types.StringType", convFloat64AsFloat32: "types.Float64Type",
 	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
 }
@@ -2758,7 +2764,7 @@ func sameCheck(f *convField) (string, error) {
 			break
 		}
 		return "slices.EqualFunc(" + a + ", " + b + ", time.Time.Equal)", nil
-	case convString, convBool, convNotBool, convFloat64, convFloat32, convFloat64AsFloat32, convInt32, convInt32AsInt64, convInt64, convInt64AsString, convUint64, convEnum, convTime:
+	case convString, convBool, convNotBool, convFloat64, convFloat32, convFloat64AsFloat32, convInt32, convInt32AsInt64, convInt64, convInt64AsString, convUint64, convInt64Wire, convEnum, convTime:
 		if !value {
 			a, b = "pointerValue("+a+")", "pointerValue("+b+")"
 		}

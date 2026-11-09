@@ -64,6 +64,10 @@ func Schema() schema.Schema {
 						Optional:            true,
 						MarkdownDescription: "",
 					},
+					"span": schema.Int64Attribute{
+						Optional:            true,
+						MarkdownDescription: "",
+					},
 				},
 				MarkdownDescription: "",
 			},
@@ -84,6 +88,10 @@ func Schema() schema.Schema {
 						MarkdownDescription: "",
 					},
 				},
+				MarkdownDescription: "",
+			},
+			"offset": schema.Int64Attribute{
+				Optional:            true,
 				MarkdownDescription: "",
 			},
 		},

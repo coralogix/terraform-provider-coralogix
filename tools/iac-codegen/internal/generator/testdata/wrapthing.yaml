@@ -2,7 +2,9 @@
 # object with one property, such as {"query": {"value": "error"}}. The released Terraform
 # resource shows only the value. Most wrapper properties do not state presence: a wrapper that
 # collapses states it. Label collapses in one place and stays an object in another, and
-# LuceneQuery stays an object in rawQuery, so their properties state presence.
+# LuceneQuery stays an object in rawQuery, so their properties state presence. The offset and the
+# span of the filter are signed 64-bit numbers that the API sends as strings (^-?[0-9]+$); the
+# released resource shows them as Int64.
 openapi: 3.1.0
 info: {title: wrap, version: 1.0.0}
 paths:
@@ -31,6 +33,7 @@ paths:
                 selection: {$ref: '#/components/schemas/Selection'}
                 mainLabel: {$ref: '#/components/schemas/Label'}
                 extraLabel: {$ref: '#/components/schemas/Label'}
+                offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
       responses:
         '200':
           description: ok
@@ -73,6 +76,7 @@ paths:
                 selection: {$ref: '#/components/schemas/Selection'}
                 mainLabel: {$ref: '#/components/schemas/Label'}
                 extraLabel: {$ref: '#/components/schemas/Label'}
+                offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
       responses:
         '200':
           description: ok
@@ -115,6 +119,7 @@ components:
         selection: {$ref: '#/components/schemas/Selection'}
         mainLabel: {$ref: '#/components/schemas/Label'}
         extraLabel: {$ref: '#/components/schemas/Label'}
+        offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
     LuceneQuery:
       type: object
       required: []
@@ -149,6 +154,7 @@ components:
       properties:
         text: {type: string, x-coralogix-presence: true}
         limit: {type: integer, format: int32, x-coralogix-presence: true}
+        span: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
     Selection:
       type: object
       required: []

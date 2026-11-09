@@ -1580,6 +1580,50 @@ func TestWrappedValuesRuntimeSemantics(t *testing.T) {
 	compileGenerated(t, out, input)
 }
 
+// terraformType Int64 reads a signed digit string as an Int64 only when the pattern is the one that
+// the OpenAPI generator writes for a 64-bit number. Another pattern, or a plain string, is an error.
+func TestSignedDigitStringKeyIsChecked(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "wrapthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err := os.ReadFile(filepath.Join("testdata", "wrapthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	signed := `pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true`
+	tests := map[string]struct{ spec, overrides, want string }{
+		"a plain string": {
+			overrides: "      name: {terraformType: Int64}\n", want: "terraformType Int64 needs",
+		},
+		"a string that only accepts digits and letters": {
+			spec:      strings.Replace(string(spec), `span: {type: string, `+signed+`}`, `span: {type: string, pattern: "^[A-Z0-9]+$", x-coralogix-presence: true}`, 1),
+			overrides: "", want: "terraformType Int64 needs",
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			changed := string(base)
+			if test.overrides != "" {
+				changed = strings.Replace(changed, "      offset:\n", test.overrides+"      offset:\n", 1)
+			}
+			path := filepath.Join(t.TempDir(), "overrides.yaml")
+			if err := os.WriteFile(path, []byte(changed), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			input, loadDir := syntheticInput(t)
+			input.OpenAPI = spec
+			if test.spec != "" {
+				input.OpenAPI = []byte(test.spec)
+			}
+			options := Options{Resource: "WrapThing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: path}
+			if err := generateFromInput(options, input, loadDir); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
 // requestValue on a field the request schema does not mark read-only is not a
 // Terraform attribute. Create and Update must not read it. Reading a missing
 // attribute fails every Create and every Update.

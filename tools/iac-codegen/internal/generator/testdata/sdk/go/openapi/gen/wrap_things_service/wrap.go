@@ -37,6 +37,7 @@ type FilterHolder struct {
 type SimpleFilter struct {
 	Text  *string
 	Limit *int32
+	Span  *string
 }
 
 type Selection struct {
@@ -64,6 +65,7 @@ type WrapThing struct {
 	Selection  *Selection
 	MainLabel  *Label
 	ExtraLabel *Label
+	Offset     *string
 }
 
 type CreateWrapThingRequest struct {
@@ -77,6 +79,7 @@ type CreateWrapThingRequest struct {
 	Selection  *Selection
 	MainLabel  *Label
 	ExtraLabel *Label
+	Offset     *string
 }
 
 type ReplaceWrapThingRequest struct {
@@ -90,6 +93,7 @@ type ReplaceWrapThingRequest struct {
 	Selection  *Selection
 	MainLabel  *Label
 	ExtraLabel *Label
+	Offset     *string
 }
 
 type WrapThingsServiceAPIService struct{}

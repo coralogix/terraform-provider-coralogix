@@ -31,10 +31,11 @@ func fullModel() *WrapThingModel {
 		Priority:   types.StringValue("WRAP_PRIORITY_P1"),
 		Threshold:  types.Float64Value(0.5),
 		WidgetIds:  strings("a", "b"),
-		Filter:     &SimpleFilterModel{Text: types.StringValue("text"), Limit: types.Int32Value(3)},
+		Filter:     &SimpleFilterModel{Text: types.StringValue("text"), Limit: types.Int32Value(3), Span: types.Int64Value(-3)},
 		Selection:  strings("x", "y"),
 		MainLabel:  types.StringValue("main"),
 		ExtraLabel: &LabelModel{Value: types.StringValue("extra")},
+		Offset:     types.Int64Value(-9007199254740993),
 	}
 }
 
@@ -48,10 +49,11 @@ func fullResponse() *wrap_things_service.WrapThing {
 		Priority:   &wrap_things_service.PriorityValue{Value: ptr(wrap_things_service.WRAPPRIORITY_WRAP_PRIORITY_P1)},
 		Threshold:  &wrap_things_service.Threshold{Value: 0.5},
 		WidgetIds:  []wrap_things_service.UUID{{Value: ptr("a")}, {Value: ptr("b")}},
-		Filter:     &wrap_things_service.FilterHolder{Filter: &wrap_things_service.SimpleFilter{Text: ptr("text"), Limit: ptr(int32(3))}},
+		Filter:     &wrap_things_service.FilterHolder{Filter: &wrap_things_service.SimpleFilter{Text: ptr("text"), Limit: ptr(int32(3)), Span: ptr("-3")}},
 		Selection:  &wrap_things_service.Selection{List: &wrap_things_service.ListSelection{Values: []string{"x", "y"}}},
 		MainLabel:  &wrap_things_service.Label{Value: ptr("main")},
 		ExtraLabel: &wrap_things_service.Label{Value: ptr("extra")},
+		Offset:     ptr("-9007199254740993"),
 	}
 }
 
@@ -64,7 +66,7 @@ func TestExpandPutsValuesInTheirWrappers(t *testing.T) {
 	got := wrap_things_service.WrapThing{
 		Id: want.Id, Name: body.Name, Query: body.Query, RawQuery: body.RawQuery, Priority: body.Priority,
 		Threshold: body.Threshold, WidgetIds: body.WidgetIds, Filter: body.Filter, Selection: body.Selection,
-		MainLabel: body.MainLabel, ExtraLabel: body.ExtraLabel,
+		MainLabel: body.MainLabel, ExtraLabel: body.ExtraLabel, Offset: body.Offset,
 	}
 	if !reflect.DeepEqual(&got, want) {
 		t.Fatalf("expandCreate:\n got %+v\nwant %+v", got, *want)
@@ -156,5 +158,50 @@ func TestFlattenKeepsAnItemWithoutValue(t *testing.T) {
 	}
 	if want := strings("a", ""); !got.WidgetIds.Equal(want) {
 		t.Fatalf("widget ids = %s, want %s", got.WidgetIds, want)
+	}
+}
+
+// A signed 64-bit number that the API sends as a string is an Int64 in Terraform: expand writes its
+// decimal text, a negative value and one past 2^53 included, and a null value sends nothing.
+func TestSignedDigitStringIsSentAsDecimalText(t *testing.T) {
+	for name, test := range map[string]struct {
+		value types.Int64
+		want  *string
+	}{
+		"negative":      {types.Int64Value(-5), ptr("-5")},
+		"zero":          {types.Int64Value(0), ptr("0")},
+		"int64 minimum": {types.Int64Value(-1 << 63), ptr("-9223372036854775808")},
+		"int64 maximum": {types.Int64Value(1<<63 - 1), ptr("9223372036854775807")},
+		"null":          {types.Int64Null(), nil},
+		"unknown":       {types.Int64Unknown(), nil},
+	} {
+		t.Run(name, func(t *testing.T) {
+			body, diags := expandCreate(context.Background(), &WrapThingModel{Offset: test.value})
+			if diags.HasError() {
+				t.Fatal(diags)
+			}
+			if !reflect.DeepEqual(body.Offset, test.want) {
+				t.Fatalf("offset = %v, want %v", body.Offset, test.want)
+			}
+		})
+	}
+}
+
+// Flatten parses the text of the API. A text that is no 64-bit number is an error, not a null.
+func TestSignedDigitStringIsReadAsAnInteger(t *testing.T) {
+	for text, want := range map[string]int64{"-5": -5, "0": 0, "42": 42, "-9223372036854775808": -1 << 63} {
+		got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Offset: ptr(text)})
+		if diags.HasError() || got.Offset.ValueInt64() != want {
+			t.Fatalf("offset of %q = %v (%v), want %d", text, got.Offset, diags, want)
+		}
+	}
+	got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1"})
+	if diags.HasError() || !got.Offset.IsNull() {
+		t.Fatalf("a missing offset = %v (%v), want null", got.Offset, diags)
+	}
+	for _, text := range []string{"", "abc", "1.5", "9223372036854775808", "-9223372036854775809"} {
+		if _, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Offset: ptr(text)}); !diags.HasError() {
+			t.Errorf("offset %q: want an error", text)
+		}
 	}
 }

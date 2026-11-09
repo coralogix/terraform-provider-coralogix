@@ -14,3 +14,9 @@ types:
         unwrap: false
       mainLabel:
         unwrap: true
+      offset:
+        terraformType: Int64
+  SimpleFilter:
+    fields:
+      span:
+        terraformType: Int64

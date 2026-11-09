@@ -502,7 +502,8 @@ type Field struct {
 	// as true; one without it reads as null.
 	AsBool bool `yaml:"asBool"`
 	// TerraformType keeps the released Terraform type of an int32 field, or of a list or set of
-	// int32: Int64. Expand converts the value and reports one outside the int32 range. String on
+	// int32: Int64. Expand converts the value and reports one outside the int32 range. On a
+	// digit string (^[0-9]+$ or ^-?[0-9]+$) it reads the 64-bit number as an Int64. String on
 	// the int64 resource id keeps a released String id: the state holds the decimal text,
 	// and the calls parse it.
 	TerraformType string `yaml:"terraformType"`

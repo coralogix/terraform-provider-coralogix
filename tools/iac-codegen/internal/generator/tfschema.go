@@ -131,7 +131,8 @@ type tfAttr struct {
 	WriteOnly bool
 	// TrueOnly: a bool that shows an object without fields (asBool). Only true is a valid value.
 	TrueOnly bool
-	// Uint64: the attribute is a uint64 that the API sends as a string, shown as Int64.
+	// Uint64: the attribute is a 64-bit number that the API sends as a string, signed or not,
+	// shown as Int64.
 	Uint64 bool
 	// Extra: the attribute is from types.<Type>.extraAttributes, not the API. The generated
 	// acceptance test leaves it out unless values or an upgrade case supplies the map: a made-up
@@ -1197,7 +1198,7 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type, computed bool)
 			return err
 		}
 		a.Kind, a.ValueKind, a.Validators = kind, kind, vals
-		a.Uint64 = t.Kind == model.Integer && t.WireString && t.Format == "uint64"
+		a.Uint64 = t.Kind == model.Integer && t.WireString && (t.Format == "uint64" || t.Format == "int64")
 		if t.Kind == model.Enum {
 			a.EnumSchema = t.Schema
 		}
@@ -1301,7 +1302,7 @@ func applyTerraformType(a *tfAttr, l overrides.Field) error {
 		a.ElementType = "types.Int64Type"
 		a.ElemValidators = retype(a.ElemValidators)
 	default:
-		return fmt.Errorf("terraformType Int64 needs an int32 or uint64 attribute, or a list or set of int32, not a %s", a.Kind)
+		return fmt.Errorf("terraformType Int64 needs an int32 attribute, a 64-bit number that the API sends as a string, or a list or set of int32, not a %s", a.Kind)
 	}
 	a.Validators, a.GroupValidators = retype(a.Validators), retype(a.GroupValidators)
 	return nil
@@ -2020,6 +2021,7 @@ func scalar(t *model.Type) (string, []string, error) {
 			// it is not a range. Only the sign is known (F19).
 			return "Int64", []string{"int64validator.AtLeast(0)"}, nil
 		case "int64":
+			// A signed number that the API sends as a string has no range known here.
 			return "Int64", rangeValidator("int64validator", t.Minimum, t.Maximum, formatInt), nil
 		case "int32":
 			return "Int32", rangeValidator("int32validator", t.Minimum, t.Maximum, formatInt), nil
