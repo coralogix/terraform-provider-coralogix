@@ -31,6 +31,8 @@
 - FEAT: `terraformType: String` on an int64 resource id keeps a released String id: the state holds the decimal text, the calls parse it, and a non-integer import id is an error at the import. A data source lookup by name does not parse the id that it leaves null.
 - FEAT: `storedAs: float32` on a double field reads a value that the API stores as a float32 as its shortest decimal, so `0.3` reads back as `0.3` instead of `0.30000001192092896`. A plan or state value of the same float32 stays, so a configured `0.123456789` does not make the apply inconsistent.
 - CHORE: Bump `coralogix-management-sdk/iac` to the version that reads a resource id inside a one-property wrapper (coralogix-management-sdk#736). Before, `tfgen check` panicked on such an id.
+- CHORE: Bump the generator to `v0.1.0-beta.74`. The generated files of every resource are the same.
+- FEAT: `inline` accepts an object that holds a `oneOf`. Its arms become top-level fields of the resource, and a `groups` line collects them as for any top-level `oneOf`. `required: true` on an `inline` line states that the API always has the object, for a contract that cannot write it (a message field of a request has no `required` list). Before, the generator stopped with `INLINE_UNSUPPORTED`.
 
 # Release 3.24.0
 

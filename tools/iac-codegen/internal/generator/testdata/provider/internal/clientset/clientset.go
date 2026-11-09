@@ -22,6 +22,7 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/suppressed_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/typed_things_service"
+	"example.com/iac-test-sdk/go/openapi/gen/union_wrap_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/upsert_service"
 	"example.com/iac-test-sdk/go/openapi/gen/wrap_things_service"
 	"example.com/iac-test-sdk/go/openapi/gen/wrapped_things_service"
@@ -38,6 +39,7 @@ type ClientSet struct {
 	Archived       *archived_things_service.ArchivedThingsServiceAPIService
 	Config         *config_things_service.ConfigThingsServiceAPIService
 	Wrap           *wrap_things_service.WrapThingsServiceAPIService
+	UnionWrap      *union_wrap_things_service.UnionWrapThingsServiceAPIService
 	Custom         *custom_things_service.CustomThingsServiceAPIService
 	Shared         *shared_things_service.SharedThingsServiceAPIService
 	Echo           *echo_things_service.EchoThingsServiceAPIService
@@ -138,4 +140,8 @@ func (c *ClientSet) OverwriteThings() *overwrite_things_service.OverwriteThingsS
 
 func (c *ClientSet) RetagThings() *retag_things_service.RetagThingsServiceAPIService {
 	return c.Retag
+}
+
+func (c *ClientSet) UnionWrapThings() *union_wrap_things_service.UnionWrapThingsServiceAPIService {
+	return c.UnionWrap
 }

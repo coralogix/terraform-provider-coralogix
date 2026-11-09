@@ -475,7 +475,9 @@ type Field struct {
 	ValueNames map[int64]string `yaml:"valueNames"`
 	// Inline: true shows the fields of this object field of the resource as top-level
 	// attributes, as the released resource did. The API sends and returns them inside the object.
-	// The lines of those fields are lines of the resource component.
+	// The lines of those fields are lines of the resource component. With required: true, the
+	// line says that the API always sends and returns the object, when the contract has no
+	// required list that can say so; the line then has no attribute to make required.
 	Inline bool `yaml:"inline"`
 	// AsBool shows an object without fields as a bool, for example a oneOf arm alwaysActive: {}.
 	// true sends the empty object, false is an error, and a response that has the object reads
@@ -1259,8 +1261,8 @@ func (l Field) check() error {
 	if err := checkValueNames(l.ValueNames); err != nil {
 		return err
 	}
-	if l.Inline && len(l.keys()) != 1 {
-		return errors.New("an inlined field has no attribute of its own, so the line sets only inline: put the other keys on the lines of its fields")
+	if l.Inline && !slices.Equal(l.keys(), []string{"required", "inline"}) && len(l.keys()) != 1 {
+		return errors.New("an inlined field has no attribute of its own, so the line sets only inline, and required when the API always has the object: put the other keys on the lines of its fields")
 	}
 	return checkValidators(l.Validators)
 }

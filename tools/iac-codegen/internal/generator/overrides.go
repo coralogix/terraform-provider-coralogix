@@ -166,7 +166,7 @@ func lineProblem(doc *v3.Document, line overrides.Line, resource string, file *o
 	if err != nil {
 		return wholeLine(fmt.Errorf("component %q: %w", line.Component, err))
 	}
-	if line.Kind == overrides.KindField {
+	if line.Kind == overrides.KindField || line.Kind == overrides.KindGroup {
 		if schema, err = withInlinedFields(schema, file, line.Component); err != nil {
 			return wholeLine(err)
 		}
@@ -383,7 +383,8 @@ func fieldLineProblem(schema *base.Schema, line overrides.Line, shared, response
 	if line.ReadOnly && iacoverrides.ContractReadOnly(schema, line.Field) {
 		stale = append(stale, "readOnly")
 	}
-	if line.Required && !responseOnly && slices.Contains(schema.Required, line.Field) && !(shared && requiredLineStatesPresence(schema, line.Field)) {
+	// An inline line with required: true is checked against every schema that it inlines (reshape.go).
+	if line.Required && !line.Inline && !responseOnly && slices.Contains(schema.Required, line.Field) && !(shared && requiredLineStatesPresence(schema, line.Field)) {
 		stale = append(stale, "required")
 	}
 	if line.Optional && shared && !responseOnly && !slices.Contains(schema.Required, line.Field) {
