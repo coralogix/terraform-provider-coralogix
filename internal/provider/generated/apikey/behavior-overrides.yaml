@@ -34,7 +34,7 @@ types:
       # Update takes the name as newName.
       name: {updateAs: newName, markdownDescription: "Api Key name."}
       # Create cannot set active: a new key is active, and Update sets it.
-      active: {updateAs: isActive, computed: true, default: true, markdownDescription: "Api Key Is Active."}
+      active: {updateAs: isActive, updateDefault: true, computed: true, default: true, markdownDescription: "Api Key Is Active."}
       # The released attribute is computed: Create sends no hashed, which the API reads as false.
       hashed: {readOnly: true, markdownDescription: "Api Key Is Hashed."}
       # The lists are in keyPermissions, and the resource shows them as attributes.
