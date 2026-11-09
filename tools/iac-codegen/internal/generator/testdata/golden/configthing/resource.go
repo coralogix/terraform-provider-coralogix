@@ -50,6 +50,11 @@ type Hooks struct {
 	// ValidateConfig adds checks that no attribute validator expresses, such as a rule over
 	// the items of a set.
 	ValidateConfig func(context.Context, tfsdk.Config) diag.Diagnostics
+	// ModifyPlan runs last in the generated ModifyPlan, never on destroy, after the generated
+	// plan steps. req.Plan is the plan before the hook; resp.Plan starts as the plan after the
+	// generated steps, so the hook sets a planned value there. It must tolerate null and unknown
+	// values.
+	ModifyPlan func(context.Context, resource.ModifyPlanRequest, *resource.ModifyPlanResponse)
 }
 
 // NewResource returns the resource. Use it in provider.Resources.

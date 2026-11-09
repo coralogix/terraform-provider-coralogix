@@ -60,7 +60,8 @@ func renderAll(r *model.Resource, refs []sdkcheck.Ref, pkg string, file *overrid
 		return nil, err
 	}
 	files := maps.Clone(generatedFiles)
-	if data.Conv.UsesEquality() || len(data.EnumAliases) != 0 {
+	data.EqualityFile = data.Conv.UsesEquality() || len(data.EnumAliases) != 0
+	if data.EqualityFile {
 		if data.HasServerDefaults {
 			// ModifyPlan keeps the state in place of every unknown that the configuration does
 			// not set. A server default plans unknown on purpose, and would be lost.

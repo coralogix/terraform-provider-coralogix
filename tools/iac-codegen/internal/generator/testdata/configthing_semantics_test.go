@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
@@ -571,5 +573,98 @@ func TestUnknownConfigValueStaysAChange(t *testing.T) {
 	}
 	if !at(t, planned, "settings").Equal(str(compactJSON)) || !at(t, planned, "remotes", 0, "raw_configuration").Equal(str(inlineYAML)) {
 		t.Fatalf("planned documents = %v, want the state text", planned)
+	}
+}
+
+// planFixture is the state of a thing with compact settings, the configuration that spells the same
+// settings with another format, and the plan that Terraform proposes after the plan modifiers: the
+// settings of the state, and the version that the server sets, unknown.
+func planFixture(t *testing.T) (schemaResp frameworkresource.SchemaResponse, state, config, plan tftypes.Value) {
+	t.Helper()
+	ctx := context.Background()
+	NewResource(Hooks{}).Schema(ctx, frameworkresource.SchemaRequest{}, &schemaResp)
+	objectType := schemaResp.Schema.Type().TerraformType(ctx).(tftypes.Object)
+	values := func(settings string, version tftypes.Value) tftypes.Value {
+		out := map[string]tftypes.Value{}
+		for name, typ := range objectType.AttributeTypes {
+			out[name] = tftypes.NewValue(typ, nil)
+		}
+		out["id"], out["settings"], out["version"] = str("thing-1"), str(settings), version
+		return tftypes.NewValue(objectType, out)
+	}
+	version := tftypes.NewValue(tftypes.String, "v1")
+	return schemaResp, values(compactJSON, version), values(spacedJSON, tftypes.NewValue(tftypes.String, nil)), values(compactJSON, tftypes.NewValue(tftypes.String, tftypes.UnknownValue))
+}
+
+// The ModifyPlan hook runs after the equality steps: it sees the plan that they leave, which is the
+// state for a change of format alone, and what it sets stays in the plan. It never runs on destroy,
+// and a resource without the hook plans as before.
+func TestModifyPlanHookRunsAfterTheEqualitySteps(t *testing.T) {
+	ctx := context.Background()
+	schemaResp, state, config, plan := planFixture(t)
+	var sawPlan tftypes.Value
+	calls := 0
+	hook := func(ctx context.Context, req frameworkresource.ModifyPlanRequest, resp *frameworkresource.ModifyPlanResponse) {
+		calls++
+		sawPlan = resp.Plan.Raw
+		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("name"), "from-hook")...)
+	}
+	r := NewResource(Hooks{ModifyPlan: hook}).(frameworkresource.ResourceWithModifyPlan)
+	req := frameworkresource.ModifyPlanRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: config},
+		State:  tfsdk.State{Schema: schemaResp.Schema, Raw: state},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan},
+	}
+	resp := &frameworkresource.ModifyPlanResponse{Plan: tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan}}
+	r.ModifyPlan(ctx, req, resp)
+	if resp.Diagnostics.HasError() || calls != 1 {
+		t.Fatalf("calls = %d, diagnostics = %v, want one call and no error", calls, resp.Diagnostics)
+	}
+	if !sawPlan.Equal(state) {
+		t.Fatalf("the hook saw %v, want the state that the equality steps leave", sawPlan)
+	}
+	var name types.String
+	resp.Diagnostics.Append(resp.Plan.GetAttribute(ctx, path.Root("name"), &name)...)
+	var settings types.String
+	resp.Diagnostics.Append(resp.Plan.GetAttribute(ctx, path.Root("settings"), &settings)...)
+	if name.ValueString() != "from-hook" || settings.ValueString() != compactJSON {
+		t.Fatalf("planned name %q and settings %q, want the value of the hook and the state's settings", name, settings)
+	}
+
+	// Destroy: the plan is null, and the hook does not run.
+	destroy := frameworkresource.ModifyPlanRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: tftypes.NewValue(config.Type(), nil)},
+		State:  tfsdk.State{Schema: schemaResp.Schema, Raw: state},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: tftypes.NewValue(config.Type(), nil)},
+	}
+	r.ModifyPlan(ctx, destroy, &frameworkresource.ModifyPlanResponse{Plan: destroy.Plan})
+	if calls != 1 {
+		t.Fatalf("the hook ran on destroy")
+	}
+
+	// No hook: the equality steps alone plan no change.
+	plain := NewResource(Hooks{}).(frameworkresource.ResourceWithModifyPlan)
+	plainResp := &frameworkresource.ModifyPlanResponse{Plan: tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan}}
+	plain.ModifyPlan(ctx, req, plainResp)
+	if plainResp.Diagnostics.HasError() || !plainResp.Plan.Raw.Equal(state) {
+		t.Fatalf("without a hook the plan is %v, want the state", plainResp.Plan.Raw)
+	}
+}
+
+// An error of the hook stays in the response.
+func TestModifyPlanHookErrorIsReported(t *testing.T) {
+	ctx := context.Background()
+	schemaResp, state, config, plan := planFixture(t)
+	r := NewResource(Hooks{ModifyPlan: func(_ context.Context, _ frameworkresource.ModifyPlanRequest, resp *frameworkresource.ModifyPlanResponse) {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("rejected", "no"))
+	}}).(frameworkresource.ResourceWithModifyPlan)
+	resp := &frameworkresource.ModifyPlanResponse{Plan: tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan}}
+	r.ModifyPlan(ctx, frameworkresource.ModifyPlanRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: config},
+		State:  tfsdk.State{Schema: schemaResp.Schema, Raw: state},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan},
+	}, resp)
+	if !resp.Diagnostics.HasError() {
+		t.Fatal("the error of the hook is lost")
 	}
 }

@@ -33,6 +33,10 @@ type File struct {
 	// AfterFlatten gives a released resource a hook that can project API fields into
 	// Terraform attributes after the generated conversion. The data source runs it too.
 	AfterFlatten bool `yaml:"afterFlatten"`
+	// ModifyPlan gives a released resource a hook that runs at the end of the plan, for a planned
+	// value that no plan modifier of one attribute can state: one that reads another attribute, or
+	// that changes values inside the items of a set.
+	ModifyPlan bool `yaml:"modifyPlan"`
 	// Resource is the OpenAPI component of the resource. It must match the
 	// generator's --resource flag, so a file cannot be used for the wrong resource.
 	Resource string `yaml:"resource"`

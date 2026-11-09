@@ -425,3 +425,84 @@ func TestServerDefaultsInASetWithRealTerraform(t *testing.T) {
 		}
 	}
 }
+
+// planGroupIntervals is a ModifyPlan hook that plans a value inside the items of the set of groups.
+// The items of the plan, the configuration, and the state are sorted apart, so it does not read the
+// configuration or the state at the position of an item. It rebuilds the plan with tftypes.Transform,
+// which hands it each item as a whole, and sets the interval of the items that leave it unknown.
+func planGroupIntervals(interval int64) func(context.Context, frameworkresource.ModifyPlanRequest, *frameworkresource.ModifyPlanResponse) {
+	return func(_ context.Context, _ frameworkresource.ModifyPlanRequest, resp *frameworkresource.ModifyPlanResponse) {
+		planned, err := tftypes.Transform(resp.Plan.Raw, func(p *tftypes.AttributePath, v tftypes.Value) (tftypes.Value, error) {
+			object, ok := v.Type().(tftypes.Object)
+			steps := p.Steps()
+			if !ok || !v.IsKnown() || v.IsNull() || len(steps) != 2 || steps[0] != tftypes.AttributeName("groups") {
+				return v, nil
+			}
+			if _, isItem := steps[1].(tftypes.ElementKeyValue); !isItem {
+				return v, nil
+			}
+			var fields map[string]tftypes.Value
+			if err := v.As(&fields); err != nil {
+				return v, err
+			}
+			if fields["interval"].IsKnown() {
+				return v, nil
+			}
+			fields["interval"] = num(interval)
+			return tftypes.NewValue(object, fields), nil
+		})
+		if err != nil {
+			resp.Diagnostics.AddError("plan", err.Error())
+			return
+		}
+		resp.Plan.Raw = planned
+	}
+}
+
+// The hook of a resource without an equality line is called by the generated ModifyPlan, and it
+// plans a value inside a set item. A destroy plan and a resource without the hook plan nothing.
+func TestModifyPlanHookPlansAValueInASetItem(t *testing.T) {
+	ctx := context.Background()
+	r, schemaResp, root := setSchema(t)
+	r.hooks.ModifyPlan = planGroupIntervals(90)
+	plan := plannedSet(root)
+	state := tftypes.NewValue(root, nil)
+	req := frameworkresource.ModifyPlanRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: plan},
+		State:  tfsdk.State{Schema: schemaResp.Schema, Raw: state},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: plan},
+	}
+	resp := &frameworkresource.ModifyPlanResponse{Plan: req.Plan}
+	r.ModifyPlan(ctx, req, resp)
+	if resp.Diagnostics.HasError() {
+		t.Fatal(resp.Diagnostics)
+	}
+	var groups []struct {
+		Name     string     `tfsdk:"name"`
+		Interval int64      `tfsdk:"interval"`
+		Limit    int64      `tfsdk:"limit"`
+		Items    types.List `tfsdk:"items"`
+	}
+	if d := resp.Plan.GetAttribute(ctx, pathRoot("groups"), &groups); d.HasError() {
+		t.Fatal(d)
+	}
+	if len(groups) != 1 || groups[0].Interval != 90 || groups[0].Limit != 5 {
+		t.Fatalf("planned groups = %+v, want the interval of the hook and the limit of the plan", groups)
+	}
+
+	destroy := frameworkresource.ModifyPlanRequest{
+		Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: state},
+		State:  tfsdk.State{Schema: schemaResp.Schema, Raw: plan},
+		Plan:   tfsdk.Plan{Schema: schemaResp.Schema, Raw: state},
+	}
+	called := false
+	r.hooks.ModifyPlan = func(context.Context, frameworkresource.ModifyPlanRequest, *frameworkresource.ModifyPlanResponse) {
+		called = true
+	}
+	r.ModifyPlan(ctx, destroy, &frameworkresource.ModifyPlanResponse{Plan: destroy.Plan})
+	r.hooks.ModifyPlan = nil
+	r.ModifyPlan(ctx, req, &frameworkresource.ModifyPlanResponse{Plan: req.Plan})
+	if called {
+		t.Fatal("the hook ran on destroy")
+	}
+}

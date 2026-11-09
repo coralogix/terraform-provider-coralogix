@@ -6,6 +6,8 @@ resource: GroupSetThing
 mode: existing
 typeName: group_set_thing
 afterFlatten: true
+# A plan hook, with no equality line in the resource: the generated ModifyPlan only calls it.
+modifyPlan: true
 schema:
   version: 1
   upgrade:

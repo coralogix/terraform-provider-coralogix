@@ -18,8 +18,12 @@ import (
 
 // tfResource is the template data for the Terraform schema and model files.
 type tfResource struct {
-	Package           string
-	AfterFlatten      bool
+	Package      string
+	AfterFlatten bool
+	// ModifyPlanHook: the Hooks have a ModifyPlan, that the generated ModifyPlan calls last.
+	ModifyPlanHook bool
+	// EqualityFile: the package has equality.go, which defines ModifyPlan for its checks.
+	EqualityFile      bool
 	VersionHeader     string
 	Model             string // Go type of the resource model, for example "WidgetModel"
 	Attributes        []*tfAttr
@@ -159,6 +163,7 @@ func buildTFResourceWith(r *model.Resource, pkg string, file *overrides.File) (*
 	out := &tfResource{Package: pkg, VersionHeader: version.Header, Model: modelTypeName(r.Name)}
 	if file != nil {
 		out.AfterFlatten = file.AfterFlatten
+		out.ModifyPlanHook = file.ModifyPlan
 	}
 	root := &tfModel{Name: out.Model}
 	if err := b.claimModel(root.Name, "the resource "+r.Name); err != nil {

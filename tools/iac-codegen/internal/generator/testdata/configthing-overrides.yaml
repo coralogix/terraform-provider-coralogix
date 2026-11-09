@@ -1,6 +1,8 @@
 # The behavior-overrides file of the synthetic resource whose string fields hold documents.
 resource: ConfigThing
 mode: existing
+# A hook that runs after the equality steps of the plan.
+modifyPlan: true
 
 validators:
   inferred: false
