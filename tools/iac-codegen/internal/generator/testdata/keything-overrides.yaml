@@ -28,7 +28,7 @@ types:
   KeyThing:
     fields:
       name: {updateAs: newName}
-      enabled: {updateAs: isEnabled}
+      enabled: {updateAs: isEnabled, updateDefault: true}
       hashed: {readOnly: true}
       # The secret that Get returns for a key that is not hashed.
       # A key whose value the API leaves out reads as "".
