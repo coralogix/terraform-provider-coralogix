@@ -83,21 +83,16 @@ func errorSummaries(diags diag.Diagnostics) []string {
 	return out
 }
 
-func TestArmsWithOverrideMatchSchema(t *testing.T) {
-	// An arm whose rules have an override block has a deprecated top-level priority. A new arm of
-	// that kind needs a line in armsWithOverride.
+func TestOverrideArmsDerivedFromTheTypeMatchTheSchema(t *testing.T) {
+	// An arm whose rules have an override block has a deprecated top-level priority. The validator derives
+	// that from the attribute types of the configuration, and this derives it from the schema.
 	typeDefinition, ok := alert.Schema().Attributes["type_definition"].(schema.SingleNestedAttribute)
 	if !ok {
 		t.Fatal("type_definition is not a SingleNestedAttribute")
 	}
 	for arm, attribute := range typeDefinition.Attributes {
-		want := hasOverrideRule(attribute)
-		got := false
-		for _, name := range armsWithOverride {
-			got = got || name == arm
-		}
-		if got != want {
-			t.Errorf("%s: in armsWithOverride = %v, rules with an override block = %v", arm, got, want)
+		if got, want := typeHasOverrideRules(attribute.GetType()), hasOverrideRule(attribute); got != want {
+			t.Errorf("%s: the validator derives override rules = %v, the schema has them = %v", arm, got, want)
 		}
 	}
 }

@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -98,19 +99,39 @@ func afterFlattenAlert(_ context.Context, m *alert.AlertDefModel, v *alertapi.Al
 	return diags
 }
 
-// emptyGroupByForm gives an empty group_by the form that the plan has. A slo_threshold, tracing_threshold,
-// and flow alert plan it as the empty list (the state value or the API value), any other alert as null.
+// emptyGroupByForm gives an empty group_by the form that the plan has. An arm of armsWithReturnedGroupBy
+// (slo_threshold, tracing_threshold, flow) plans it as the empty list (the state value or the API value),
+// any other alert as null.
 func emptyGroupByForm(groupBy types.List, v *alertapi.AlertDef) types.List {
 	if len(groupBy.Elements()) > 0 || groupBy.IsUnknown() {
 		return groupBy
 	}
 	if v != nil && v.AlertDefProperties != nil {
-		p := v.AlertDefProperties
-		if p.SloThreshold != nil || p.TracingThreshold != nil || p.Flow != nil {
-			return types.ListValueMust(types.StringType, []attr.Value{})
+		for _, arm := range armsWithReturnedGroupBy() {
+			if apiArmIsSet(v.AlertDefProperties, arm) {
+				return types.ListValueMust(types.StringType, []attr.Value{})
+			}
 		}
 	}
 	return types.ListNull(types.StringType)
+}
+
+// apiArmIsSet reports whether the API alert sets the arm of type_definition. The field of the API alert
+// has the name of the arm in Go case; an arm without one is not set.
+func apiArmIsSet(p *alertapi.AlertDefProperties, arm string) bool {
+	field := reflect.ValueOf(p).Elem().FieldByName(goFieldName(arm))
+	return field.IsValid() && field.Kind() == reflect.Pointer && !field.IsNil()
+}
+
+// goFieldName returns the Go name of an arm: slo_threshold is SloThreshold.
+func goFieldName(arm string) string {
+	parts := strings.Split(arm, "_")
+	for i, part := range parts {
+		if part != "" {
+			parts[i] = strings.ToUpper(part[:1]) + part[1:]
+		}
+	}
+	return strings.Join(parts, "")
 }
 
 // flattenActiveOn converts the UTC window of the API to the offset of the schedule.

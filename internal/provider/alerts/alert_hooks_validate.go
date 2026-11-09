@@ -35,14 +35,14 @@ const noDataPolicyUnspecifiedDeprecationMessage = "`UNSPECIFIED` is a protobuf s
 	"Omit `no_data_policy` entirely for the same legacy no-data handling, or set `state` to one of " +
 	"`OK`, `ALERTING`, `KEEP_LAST`, or `NO_DATA`. `UNSPECIFIED` will be rejected in a future provider release."
 
-// arms of type_definition that have an override block in each rule, so the top level priority is
-// deprecated for them.
-var armsWithOverride = []string{"logs_threshold", "logs_ratio_threshold", "logs_time_relative_threshold", "metric_threshold", "slo_threshold", "analytics_threshold"}
-
-// arms of type_definition that take no group_by.
+// arms of type_definition that take no group_by. logs_new_value is also in groupByArms: the API derives its
+// group_by from the rules, the configuration cannot set it. TestGroupByTablesCoverTheSchemaArms checks that
+// each one exists.
 var armsWithoutGroupBy = []string{"logs_immediate", "logs_new_value", "tracing_immediate"}
 
-// analytics arms of type_definition, whose no_data_policy must not be empty.
+// analytics arms of type_definition, whose no_data_policy must not be empty: the API returns a missing one
+// as null. The other arms that have a no_data_policy are in noDataPolicyReadAsEmpty (alert_hooks_defaults.go),
+// and TestNoDataPolicyArmsAreClassified fails for a new arm with a no_data_policy that is in neither.
 var analyticsArms = []string{"analytics_immediate", "analytics_threshold"}
 
 // validateAlertConfig checks what no attribute validator of the generated schema states.
@@ -72,6 +72,54 @@ func armIsSet(typeDefinition types.Object, arm string) bool {
 	return ok && !value.IsNull() && !value.IsUnknown()
 }
 
+// anyArmHasOverrideRules reports whether type_definition sets an arm whose rules have an override block,
+// so that the top level priority is deprecated for it. The schema states it: no table is needed, and a
+// new alert type with such rules is covered.
+func anyArmHasOverrideRules(ctx context.Context, typeDefinition types.Object) bool {
+	if typeDefinition.IsNull() || typeDefinition.IsUnknown() {
+		return false
+	}
+	for arm, value := range typeDefinition.Attributes() {
+		if armIsSet(typeDefinition, arm) && typeHasOverrideRules(value.Type(ctx)) {
+			return true
+		}
+	}
+	return false
+}
+
+// typeHasOverrideRules reports whether an arm has a rules collection whose items have an override block,
+// directly or in a nested object (the slo_threshold rules sit in error_budget and burn_rate).
+func typeHasOverrideRules(t attr.Type) bool {
+	object, ok := t.(types.ObjectType)
+	if !ok {
+		return false
+	}
+	for name, child := range object.AttrTypes {
+		if name == "rules" && rulesTypeHasOverride(child) || typeHasOverrideRules(child) {
+			return true
+		}
+	}
+	return false
+}
+
+func rulesTypeHasOverride(rules attr.Type) bool {
+	var element attr.Type
+	switch r := rules.(type) {
+	case types.ListType:
+		element = r.ElemType
+	case types.SetType:
+		element = r.ElemType
+	default:
+		return false
+	}
+	object, ok := element.(types.ObjectType)
+	if !ok {
+		return false
+	}
+	_, ok = object.AttrTypes["override"]
+	return ok
+}
+
 func anyArmIsSet(typeDefinition types.Object, arms []string) bool {
 	for _, arm := range arms {
 		if armIsSet(typeDefinition, arm) {
@@ -88,7 +136,7 @@ func warnPriorityDeprecated(ctx context.Context, config tfsdk.Config, typeDefini
 	if diags.HasError() || priority.IsNull() || priority.IsUnknown() {
 		return diags
 	}
-	if anyArmIsSet(typeDefinition, armsWithOverride) {
+	if anyArmHasOverrideRules(ctx, typeDefinition) {
 		diags.AddAttributeWarning(path.Root("priority"), "Deprecated Attribute", priorityDeprecationMessage)
 	}
 	return diags

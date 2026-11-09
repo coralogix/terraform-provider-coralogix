@@ -40,14 +40,45 @@ func modifyAlertPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *
 	resp.Diagnostics.Append(planWebhookRetriggering(req, resp)...)
 }
 
+// How the hooks treat group_by is decided per arm of type_definition, and the schema cannot state it, so
+// each arm is in one of two tables. TestGroupByTablesCoverTheSchemaArms fails for an arm that is in neither,
+// so a new alert type needs a decision here:
+//   - groupByArms: the API computes group_by for the arm, so the plan keeps or recomputes it (planGroupBy)
+//     and an empty one reads back in the form of the plan (emptyGroupByForm);
+//   - armsWithConfiguredGroupBy: group_by is what the configuration says (null when it says nothing), or
+//     the arm takes none (armsWithoutGroupBy, alert_hooks_validate.go).
+//
+// An arm that no table lists (the guard test prevents it in a release) plans group_by as configured and
+// reads an empty one as null: the hooks never panic on it.
+
 // groupByArms are the arms of type_definition for which the API computes group_by.
 var groupByArms = []string{"metric_threshold", "metric_anomaly", "logs_new_value", "slo_threshold", "tracing_threshold", "flow"}
 
-// groupByInput is the attribute of the arm whose change makes the API compute group_by again.
+// armsWithConfiguredGroupBy are the arms of type_definition for which the API does not compute group_by.
+var armsWithConfiguredGroupBy = []string{
+	"logs_immediate", "logs_threshold", "logs_ratio_threshold", "logs_time_relative_threshold", "logs_anomaly",
+	"logs_unique_count", "analytics_immediate", "analytics_threshold", "tracing_immediate",
+}
+
+// groupByInput is the attribute of the arm whose change makes the API compute group_by again. An arm of
+// groupByArms without a line here (slo_threshold, tracing_threshold, flow) returns group_by independently of the
+// configuration, so the plan keeps the state value and leaves it unknown until the state holds one.
 var groupByInput = map[string][]string{
 	"metric_threshold": {"type_definition", "metric_threshold", "metric_filter", "promql"},
 	"metric_anomaly":   {"type_definition", "metric_anomaly", "metric_filter", "promql"},
 	"logs_new_value":   {"type_definition", "logs_new_value", "rules"},
+}
+
+// armsWithReturnedGroupBy are the arms of groupByArms that have no groupByInput: the API may return a
+// group_by for them that the configuration does not have.
+func armsWithReturnedGroupBy() []string {
+	var arms []string
+	for _, arm := range groupByArms {
+		if _, ok := groupByInput[arm]; !ok {
+			arms = append(arms, arm)
+		}
+	}
+	return arms
 }
 
 // planGroupBy plans group_by when the configuration leaves it out:
