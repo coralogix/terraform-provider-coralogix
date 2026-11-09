@@ -17,6 +17,7 @@ package alerts
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -72,7 +73,8 @@ func beforeUpdateAlert(ctx context.Context, config tfsdk.Config, body *alertapi.
 	return diags
 }
 
-// setActiveOn sends the configured schedule. A configuration without a schedule sends none.
+// setActiveOn sends the configured schedule, and drops what the released request did not hold. A configuration
+// without a schedule sends none.
 func setActiveOn(ctx context.Context, config tfsdk.Config, properties *alertapi.AlertDefProperties) diag.Diagnostics {
 	if properties == nil {
 		return nil
@@ -88,6 +90,7 @@ func setActiveOn(ctx context.Context, config tfsdk.Config, properties *alertapi.
 		return diags
 	}
 	properties.ActiveOn = activeOn
+	dropEmptyNoDataPolicies(reflect.ValueOf(properties))
 	return diags
 }
 

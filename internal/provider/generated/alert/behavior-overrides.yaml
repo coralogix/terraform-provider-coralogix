@@ -255,13 +255,13 @@ types:
   LogsImmediateType:
     fields:
       logsFilter: {computed: true, useNonNullStateForUnknown: true}
-      notificationPayloadFilter: {collection: set}
+      notificationPayloadFilter: {collection: set, readEmptyAs: "null"}
   LogsThresholdType:
     fields:
       evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}
       logsFilter: {computed: true, useNonNullStateForUnknown: true}
       noDataPolicy: {computed: true, useNonNullStateForUnknown: true, markdownDescription: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed."}
-      notificationPayloadFilter: {collection: set}
+      notificationPayloadFilter: {collection: set, readEmptyAs: "null"}
       rules: {required: true, collection: set, validators: [{sizeAtLeast: 1}]}
       undetectedValuesManagement: {computed: true, useStateForUnknown: true, default: {auto_retire_timeframe: NEVER, trigger_undetected_values: false}, markdownDescription: "Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type."}
   LogsThresholdRule:
@@ -278,7 +278,7 @@ types:
       anomalyAlertSettings: {unwrap: true, name: percentage_of_deviation}
       evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}
       logsFilter: {computed: true, useNonNullStateForUnknown: true}
-      notificationPayloadFilter: {collection: set}
+      notificationPayloadFilter: {collection: set, readEmptyAs: "null"}
       rules: {required: true, collection: set, validators: [{sizeAtLeast: 1}]}
   LogsAnomalyRule:
     fields:
@@ -295,7 +295,7 @@ types:
       evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}
       groupByFor: {computed: true, default: Both, validators: [{enum: true}]}
       ignoreInfinity: {computed: true, default: false, markdownDescription: "Whether to ignore infinite ratios when the denominator is zero. False by default."}
-      notificationPayloadFilter: {collection: set}
+      notificationPayloadFilter: {collection: set, readEmptyAs: "null"}
       numerator: {computed: true, useNonNullStateForUnknown: true}
       numeratorAlias: {required: true}
       rules: {required: true, collection: set, validators: [{sizeAtLeast: 1}]}
@@ -312,7 +312,7 @@ types:
   LogsNewValueType:
     fields:
       logsFilter: {computed: true, useNonNullStateForUnknown: true}
-      notificationPayloadFilter: {collection: set}
+      notificationPayloadFilter: {collection: set, readEmptyAs: "null"}
       rules: {required: true, collection: set, validators: [{sizeAtLeast: 1}]}
   LogsNewValueRule:
     fields:
@@ -325,7 +325,7 @@ types:
     fields:
       maxUniqueCountPerGroupByKey: {terraformType: Int64}
       logsFilter: {computed: true, useNonNullStateForUnknown: true}
-      notificationPayloadFilter: {collection: set}
+      notificationPayloadFilter: {collection: set, readEmptyAs: "null"}
       rules: {required: true, collection: set, validators: [{sizeAtLeast: 1}]}
       uniqueCountKeypath: {required: true}
   LogsUniqueCountRule:
@@ -340,7 +340,7 @@ types:
       evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}
       ignoreInfinity: {computed: true, default: false, markdownDescription: "Whether to ignore infinite ratios when the denominator is zero. False by default."}
       logsFilter: {computed: true, useNonNullStateForUnknown: true}
-      notificationPayloadFilter: {collection: set}
+      notificationPayloadFilter: {collection: set, readEmptyAs: "null"}
       rules: {required: true, collection: set, validators: [{sizeAtLeast: 1}]}
       undetectedValuesManagement: {computed: true, useStateForUnknown: true, default: {auto_retire_timeframe: NEVER, trigger_undetected_values: false}, markdownDescription: "Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type."}
   LogsTimeRelativeRule:
@@ -421,11 +421,11 @@ types:
       unit: {required: true, validators: [{enum: true}]}
   TracingImmediateType:
     fields:
-      notificationPayloadFilter: {collection: set}
+      notificationPayloadFilter: {collection: set, readEmptyAs: "null"}
       tracingFilter: {required: true}
   TracingThresholdType:
     fields:
-      notificationPayloadFilter: {collection: set}
+      notificationPayloadFilter: {collection: set, readEmptyAs: "null"}
       rules: {required: true, collection: set, validators: [{sizeAtLeast: 1}]}
       tracingFilter: {required: true}
   TracingSimpleFilter:
@@ -434,11 +434,11 @@ types:
       tracingLabelFilters: {required: true}
   TracingLabelFilters:
     fields:
-      applicationName: {collection: set}
-      operationName: {collection: set}
-      serviceName: {collection: set}
-      spanFields: {collection: set}
-      subsystemName: {collection: set}
+      applicationName: {collection: set, readEmptyAs: "null"}
+      operationName: {collection: set, readEmptyAs: "null"}
+      serviceName: {collection: set, readEmptyAs: "null"}
+      spanFields: {collection: set, readEmptyAs: "null"}
+      subsystemName: {collection: set, readEmptyAs: "null"}
   TracingFilterType:
     fields:
       operation: {computed: true, default: IS, validators: [{enum: true}], markdownDescription: "Operation. Valid values: [\"ENDS_WITH\" \"INCLUDES\" \"IS\" \"IS_NOT\" \"STARTS_WITH\"]. 'IS' by default."}

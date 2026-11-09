@@ -1829,6 +1829,10 @@ func flattenLogsAnomalyType(ctx context.Context, p path.Path, v *alert_definitio
 		out.LogsFilter = value
 	}
 	out.NotificationPayloadFilter = flattenStringsSet(ctx, v.NotificationPayloadFilter, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.NotificationPayloadFilter) == 0 {
+		out.NotificationPayloadFilter = types.SetNull(types.StringType)
+	}
 	out.Rules = types.SetNull(types.ObjectType{AttrTypes: logsAnomalyRuleAttrTypes()})
 	if v.Rules != nil {
 		items := make([]LogsAnomalyRuleModel, 0, len(v.Rules))
@@ -2080,6 +2084,10 @@ func flattenLogsImmediateType(ctx context.Context, p path.Path, v *alert_definit
 		out.LogsFilter = value
 	}
 	out.NotificationPayloadFilter = flattenStringsSet(ctx, v.NotificationPayloadFilter, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.NotificationPayloadFilter) == 0 {
+		out.NotificationPayloadFilter = types.SetNull(types.StringType)
+	}
 	return out
 }
 
@@ -2115,6 +2123,10 @@ func flattenLogsNewValueType(ctx context.Context, p path.Path, v *alert_definiti
 		out.LogsFilter = value
 	}
 	out.NotificationPayloadFilter = flattenStringsSet(ctx, v.NotificationPayloadFilter, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.NotificationPayloadFilter) == 0 {
+		out.NotificationPayloadFilter = types.SetNull(types.StringType)
+	}
 	out.Rules = types.SetNull(types.ObjectType{AttrTypes: logsNewValueRuleAttrTypes()})
 	if v.Rules != nil {
 		items := make([]LogsNewValueRuleModel, 0, len(v.Rules))
@@ -2235,6 +2247,10 @@ func flattenLogsRatioThresholdType(ctx context.Context, p path.Path, v *alert_de
 	out.GroupByFor = flattenEnumMapped(p.AtName("group_by_for"), v.GroupByFor, logsRatioGroupByForFromAPI, diags)
 	out.IgnoreInfinity = types.BoolPointerValue(v.IgnoreInfinity)
 	out.NotificationPayloadFilter = flattenStringsSet(ctx, v.NotificationPayloadFilter, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.NotificationPayloadFilter) == 0 {
+		out.NotificationPayloadFilter = types.SetNull(types.StringType)
+	}
 	out.Numerator = types.ObjectNull(v3LogsFilterAttrTypes())
 	if nested := flattenV3LogsFilter(ctx, p.AtName("numerator"), v.Numerator, diags); nested != nil {
 		value, valueDiags := types.ObjectValueFrom(ctx, v3LogsFilterAttrTypes(), *nested)
@@ -2400,6 +2416,10 @@ func flattenLogsThresholdType(ctx context.Context, p path.Path, v *alert_definit
 		out.NoDataPolicy = value
 	}
 	out.NotificationPayloadFilter = flattenStringsSet(ctx, v.NotificationPayloadFilter, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.NotificationPayloadFilter) == 0 {
+		out.NotificationPayloadFilter = types.SetNull(types.StringType)
+	}
 	out.Rules = types.SetNull(types.ObjectType{AttrTypes: logsThresholdRuleAttrTypes()})
 	if v.Rules != nil {
 		items := make([]LogsThresholdRuleModel, 0, len(v.Rules))
@@ -2522,6 +2542,10 @@ func flattenLogsTimeRelativeThresholdType(ctx context.Context, p path.Path, v *a
 		out.LogsFilter = value
 	}
 	out.NotificationPayloadFilter = flattenStringsSet(ctx, v.NotificationPayloadFilter, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.NotificationPayloadFilter) == 0 {
+		out.NotificationPayloadFilter = types.SetNull(types.StringType)
+	}
 	out.Rules = types.SetNull(types.ObjectType{AttrTypes: logsTimeRelativeRuleAttrTypes()})
 	if v.Rules != nil {
 		items := make([]LogsTimeRelativeRuleModel, 0, len(v.Rules))
@@ -2631,6 +2655,10 @@ func flattenLogsUniqueCountType(ctx context.Context, p path.Path, v *alert_defin
 	}
 	out.MaxUniqueCountPerGroupByKey = flattenInt64Wire(p.AtName("max_unique_count_per_group_by_key"), v.MaxUniqueCountPerGroupByKey, diags)
 	out.NotificationPayloadFilter = flattenStringsSet(ctx, v.NotificationPayloadFilter, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.NotificationPayloadFilter) == 0 {
+		out.NotificationPayloadFilter = types.SetNull(types.StringType)
+	}
 	out.Rules = types.SetNull(types.ObjectType{AttrTypes: logsUniqueCountRuleAttrTypes()})
 	if v.Rules != nil {
 		items := make([]LogsUniqueCountRuleModel, 0, len(v.Rules))
@@ -3559,6 +3587,10 @@ func flattenTracingImmediateType(ctx context.Context, p path.Path, v *alert_defi
 	}
 	out := &TracingImmediateTypeModel{}
 	out.NotificationPayloadFilter = flattenStringsSet(ctx, v.NotificationPayloadFilter, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.NotificationPayloadFilter) == 0 {
+		out.NotificationPayloadFilter = types.SetNull(types.StringType)
+	}
 	{
 		inner := unwrapTracingFilter(v.TracingFilter)
 		out.TracingFilter = flattenTracingSimpleFilter(ctx, p.AtName("tracing_filter"), inner, diags)
@@ -3630,7 +3662,7 @@ func flattenTracingLabelFilters(ctx context.Context, p path.Path, v *alert_defin
 	}
 	out := &TracingLabelFiltersModel{}
 	out.ApplicationName = types.SetNull(types.ObjectType{AttrTypes: tracingFilterTypeAttrTypes()})
-	if v.ApplicationName != nil {
+	if len(v.ApplicationName) != 0 {
 		items := make([]TracingFilterTypeModel, 0, len(v.ApplicationName))
 		for i := range v.ApplicationName {
 			items = append(items, *flattenTracingFilterType(ctx, p.AtName("application_name"), &v.ApplicationName[i], diags))
@@ -3638,7 +3670,7 @@ func flattenTracingLabelFilters(ctx context.Context, p path.Path, v *alert_defin
 		out.ApplicationName = flattenSet(ctx, types.ObjectType{AttrTypes: tracingFilterTypeAttrTypes()}, items, diags)
 	}
 	out.OperationName = types.SetNull(types.ObjectType{AttrTypes: tracingFilterTypeAttrTypes()})
-	if v.OperationName != nil {
+	if len(v.OperationName) != 0 {
 		items := make([]TracingFilterTypeModel, 0, len(v.OperationName))
 		for i := range v.OperationName {
 			items = append(items, *flattenTracingFilterType(ctx, p.AtName("operation_name"), &v.OperationName[i], diags))
@@ -3646,7 +3678,7 @@ func flattenTracingLabelFilters(ctx context.Context, p path.Path, v *alert_defin
 		out.OperationName = flattenSet(ctx, types.ObjectType{AttrTypes: tracingFilterTypeAttrTypes()}, items, diags)
 	}
 	out.ServiceName = types.SetNull(types.ObjectType{AttrTypes: tracingFilterTypeAttrTypes()})
-	if v.ServiceName != nil {
+	if len(v.ServiceName) != 0 {
 		items := make([]TracingFilterTypeModel, 0, len(v.ServiceName))
 		for i := range v.ServiceName {
 			items = append(items, *flattenTracingFilterType(ctx, p.AtName("service_name"), &v.ServiceName[i], diags))
@@ -3654,7 +3686,7 @@ func flattenTracingLabelFilters(ctx context.Context, p path.Path, v *alert_defin
 		out.ServiceName = flattenSet(ctx, types.ObjectType{AttrTypes: tracingFilterTypeAttrTypes()}, items, diags)
 	}
 	out.SpanFields = types.SetNull(types.ObjectType{AttrTypes: tracingSpanFieldsFilterTypeAttrTypes()})
-	if v.SpanFields != nil {
+	if len(v.SpanFields) != 0 {
 		items := make([]TracingSpanFieldsFilterTypeModel, 0, len(v.SpanFields))
 		for i := range v.SpanFields {
 			items = append(items, *flattenTracingSpanFieldsFilterType(ctx, p.AtName("span_fields"), &v.SpanFields[i], diags))
@@ -3662,7 +3694,7 @@ func flattenTracingLabelFilters(ctx context.Context, p path.Path, v *alert_defin
 		out.SpanFields = flattenSet(ctx, types.ObjectType{AttrTypes: tracingSpanFieldsFilterTypeAttrTypes()}, items, diags)
 	}
 	out.SubsystemName = types.SetNull(types.ObjectType{AttrTypes: tracingFilterTypeAttrTypes()})
-	if v.SubsystemName != nil {
+	if len(v.SubsystemName) != 0 {
 		items := make([]TracingFilterTypeModel, 0, len(v.SubsystemName))
 		for i := range v.SubsystemName {
 			items = append(items, *flattenTracingFilterType(ctx, p.AtName("subsystem_name"), &v.SubsystemName[i], diags))
@@ -3752,6 +3784,10 @@ func flattenTracingThresholdType(ctx context.Context, p path.Path, v *alert_defi
 	}
 	out := &TracingThresholdTypeModel{}
 	out.NotificationPayloadFilter = flattenStringsSet(ctx, v.NotificationPayloadFilter, diags)
+	// The API returns an empty list for a list that the request did not send.
+	if len(v.NotificationPayloadFilter) == 0 {
+		out.NotificationPayloadFilter = types.SetNull(types.StringType)
+	}
 	out.Rules = types.SetNull(types.ObjectType{AttrTypes: tracingThresholdRuleAttrTypes()})
 	if v.Rules != nil {
 		items := make([]TracingThresholdRuleModel, 0, len(v.Rules))

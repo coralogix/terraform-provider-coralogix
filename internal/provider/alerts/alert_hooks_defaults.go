@@ -29,23 +29,33 @@ var (
 	noDataPolicyReadAsEmpty = []reflect.Type{reflect.TypeOf(alertapi.LogsThresholdType{}), reflect.TypeOf(alertapi.MetricThresholdType{})}
 )
 
+// walkStructs calls visit with every struct below v, children first, so a visit can set a pointer field.
+func walkStructs(v reflect.Value, visit func(reflect.Value)) {
+	switch v.Kind() {
+	case reflect.Pointer, reflect.Interface:
+		if !v.IsNil() {
+			walkStructs(v.Elem(), visit)
+		}
+	case reflect.Slice:
+		for i := 0; i < v.Len(); i++ {
+			walkStructs(v.Index(i), visit)
+		}
+	case reflect.Struct:
+		for i := 0; i < v.NumField(); i++ {
+			if v.Field(i).CanSet() {
+				walkStructs(v.Field(i), visit)
+			}
+		}
+		visit(v)
+	}
+}
+
 // fillReleasedReads gives the values that the API leaves out the form that the released resource read them
 // in: a missing Lucene query is "", missing undetected values settings are the defaults, and a missing
 // no-data policy of a logs or metric threshold alert is an object without values. It walks the whole API
 // value, so a type that has such a field is covered.
 func fillReleasedReads(v reflect.Value) {
-	switch v.Kind() {
-	case reflect.Pointer, reflect.Interface:
-		if !v.IsNil() {
-			fillReleasedReads(v.Elem())
-		}
-	case reflect.Slice:
-		for i := 0; i < v.Len(); i++ {
-			fillReleasedReads(v.Index(i))
-		}
-	case reflect.Struct:
-		fillStruct(v)
-	}
+	walkStructs(v, fillStruct)
 }
 
 func fillStruct(v reflect.Value) {
@@ -57,18 +67,32 @@ func fillStruct(v reflect.Value) {
 	}
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Field(i)
-		if !field.CanSet() {
+		if !field.CanSet() || field.Kind() != reflect.Pointer || !field.IsNil() {
 			continue
 		}
 		switch {
-		case field.Type() == undetectedValuesType && field.IsNil():
+		case field.Type() == undetectedValuesType:
 			field.Set(reflect.ValueOf(defaultUndetectedValues()))
-		case field.Type() == noDataPolicyType && field.IsNil() && isNoDataPolicyReadAsEmpty(v.Type()):
+		case field.Type() == noDataPolicyType && isNoDataPolicyReadAsEmpty(v.Type()):
 			field.Set(reflect.ValueOf(&alertapi.NoDataPolicy{}))
-		default:
-			fillReleasedReads(field)
 		}
 	}
+}
+
+// dropEmptyNoDataPolicies removes the no-data policy that sets nothing from a request: the released
+// resource sent none for it, and the API answers a policy without values with the UNSPECIFIED state.
+func dropEmptyNoDataPolicies(v reflect.Value) {
+	walkStructs(v, func(s reflect.Value) {
+		for i := 0; i < s.NumField(); i++ {
+			field := s.Field(i)
+			if !field.CanSet() || field.Type() != noDataPolicyType || field.IsNil() {
+				continue
+			}
+			if policy := field.Interface().(*alertapi.NoDataPolicy); policy.State == nil && policy.AutoRetireSeconds == nil {
+				field.Set(reflect.Zero(noDataPolicyType))
+			}
+		}
+	})
 }
 
 func isNoDataPolicyReadAsEmpty(t reflect.Type) bool {
