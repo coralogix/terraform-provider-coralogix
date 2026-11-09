@@ -285,7 +285,7 @@ types:
       condition: {required: true}
   LogsAnomalyCondition:
     fields:
-      conditionType: {readOnly: true, useStateForUnknown: true}
+      conditionType: {readOnly: true, useStateForUnknown: true, default: MORE_THAN_USUAL}
       minimumThreshold: {required: true}
       timeWindow: {required: true, validators: [{enum: true}]}
   LogsRatioThresholdType:
@@ -451,7 +451,7 @@ types:
       condition: {required: true}
   TracingThresholdCondition:
     fields:
-      conditionType: {readOnly: true, useStateForUnknown: true}
+      conditionType: {readOnly: true, useStateForUnknown: true, default: MORE_THAN}
       spanAmount: {required: true}
       timeWindow: {required: true, validators: [{enum: true}]}
 enums:

@@ -417,6 +417,7 @@ func Schema() schema.Schema {
 											Attributes: map[string]schema.Attribute{
 												"condition_type": schema.StringAttribute{
 													Computed: true,
+													Default:  stringdefault.StaticString("MORE_THAN_USUAL"),
 													PlanModifiers: []planmodifier.String{
 														stringplanmodifier.UseStateForUnknown(),
 													},
@@ -2028,6 +2029,7 @@ func Schema() schema.Schema {
 											Attributes: map[string]schema.Attribute{
 												"condition_type": schema.StringAttribute{
 													Computed: true,
+													Default:  stringdefault.StaticString("MORE_THAN"),
 													PlanModifiers: []planmodifier.String{
 														stringplanmodifier.UseStateForUnknown(),
 													},

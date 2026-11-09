@@ -17,6 +17,7 @@ package alerts
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -30,10 +31,14 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/generated/alert"
 )
 
-// beforeFlattenAlert reads a case setting that the API leaves out, or returns as UNSPECIFIED, as the
+// beforeFlattenAlert gives the values that the API leaves out the released form, and reads a case setting that the API leaves out, or returns as UNSPECIFIED, as the
 // value that the schema defaults to: auto resolve is enabled, and an enrichment query is DataPrime.
 func beforeFlattenAlert(_ context.Context, v *alertapi.AlertDef) diag.Diagnostics {
-	if v == nil || v.AlertDefProperties == nil || v.AlertDefProperties.CaseSettings == nil {
+	if v == nil || v.AlertDefProperties == nil {
+		return nil
+	}
+	fillReleasedReads(reflect.ValueOf(v.AlertDefProperties))
+	if v.AlertDefProperties.CaseSettings == nil {
 		return nil
 	}
 	settings := v.AlertDefProperties.CaseSettings
@@ -68,6 +73,7 @@ func activeOnAttrTypes() map[string]attr.Type {
 // afterFlattenAlert sets the schedule from the API window. The API holds it in UTC, so the state shows
 // it in the offset that the model carries from the plan or the prior state, or +0000 when it has none.
 func afterFlattenAlert(_ context.Context, m *alert.AlertDefModel, v *alertapi.AlertDef) diag.Diagnostics {
+	m.GroupByKeys = emptyGroupByForm(m.GroupByKeys, v)
 	var window *alertapi.ActivitySchedule
 	if v != nil && v.AlertDefProperties != nil {
 		window = v.AlertDefProperties.ActiveOn
@@ -86,6 +92,21 @@ func afterFlattenAlert(_ context.Context, m *alert.AlertDefModel, v *alertapi.Al
 	}
 	m.Schedule = schedule
 	return diags
+}
+
+// emptyGroupByForm gives an empty group_by the form that the plan has. A slo_threshold, tracing_threshold,
+// and flow alert plan it as the empty list (the state value or the API value), any other alert as null.
+func emptyGroupByForm(groupBy types.List, v *alertapi.AlertDef) types.List {
+	if len(groupBy.Elements()) > 0 || groupBy.IsUnknown() {
+		return groupBy
+	}
+	if v != nil && v.AlertDefProperties != nil {
+		p := v.AlertDefProperties
+		if p.SloThreshold != nil || p.TracingThreshold != nil || p.Flow != nil {
+			return types.ListValueMust(types.StringType, []attr.Value{})
+		}
+	}
+	return types.ListNull(types.StringType)
 }
 
 // flattenActiveOn converts the UTC window of the API to the offset of the schedule.

@@ -589,6 +589,14 @@ func fromJSON(t *testing.T, typ tftypes.Type, v any) tftypes.Value {
 	case typ.Is(tftypes.Bool):
 		return tftypes.NewValue(typ, v.(bool))
 	case typ.Is(tftypes.Number):
+		if text, ok := v.(string); ok {
+			// A scenario written for a string attribute (an id) can run against a number attribute.
+			number, _, err := big.ParseFloat(text, 10, 512, big.ToNearestEven)
+			if err != nil {
+				t.Fatalf("%q is not a number: %v", text, err)
+			}
+			return tftypes.NewValue(typ, number)
+		}
 		return tftypes.NewValue(typ, big.NewFloat(v.(float64)))
 	case typ.Is(tftypes.Object{}):
 		m := v.(map[string]any)
