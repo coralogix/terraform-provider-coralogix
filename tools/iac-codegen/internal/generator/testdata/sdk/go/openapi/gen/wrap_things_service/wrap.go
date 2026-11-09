@@ -52,6 +52,20 @@ type Tags struct {
 	Values []string
 }
 
+type WindowValue string
+
+const (
+	WINDOWVALUE_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED WindowValue = "WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED"
+	WINDOWVALUE_WINDOW_VALUE_MINUTES_5                WindowValue = "WINDOW_VALUE_MINUTES_5"
+	WINDOWVALUE_WINDOW_VALUE_HOURS_2                  WindowValue = "WINDOW_VALUE_HOURS_2"
+)
+
+// Window is a oneOf: the window is a value of the enum, or a free duration.
+type Window struct {
+	FixedValue  *WindowValue
+	CustomValue *string
+}
+
 type Label struct {
 	Value *string
 }
@@ -68,6 +82,7 @@ type WrapThing struct {
 	Filter     *FilterHolder
 	Selection  *Selection
 	Tags       *Tags
+	Window     *Window
 	MainLabel  *Label
 	ExtraLabel *Label
 	Offset     *string
@@ -83,6 +98,7 @@ type CreateWrapThingRequest struct {
 	Filter     *FilterHolder
 	Selection  *Selection
 	Tags       *Tags
+	Window     *Window
 	MainLabel  *Label
 	ExtraLabel *Label
 	Offset     *string
@@ -98,6 +114,7 @@ type ReplaceWrapThingRequest struct {
 	Filter     *FilterHolder
 	Selection  *Selection
 	Tags       *Tags
+	Window     *Window
 	MainLabel  *Label
 	ExtraLabel *Label
 	Offset     *string

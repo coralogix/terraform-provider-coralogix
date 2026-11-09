@@ -4,10 +4,14 @@
 package wrapthing
 
 import (
+	"regexp"
+
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -79,6 +83,13 @@ func Schema() schema.Schema {
 			"tags": schema.SetAttribute{
 				Optional:            true,
 				ElementType:         types.StringType,
+				MarkdownDescription: "",
+			},
+			"window": schema.StringAttribute{
+				Optional: true,
+				Validators: []validator.String{
+					stringvalidator.Any(stringvalidator.OneOf("1_MINUTE", "2_HOURS", "5_MINUTES"), stringvalidator.RegexMatches(regexp.MustCompile(`^[0-9]+(s|m|h)$`), "Use a duration such as 90m")),
+				},
 				MarkdownDescription: "",
 			},
 			"main_label": schema.StringAttribute{

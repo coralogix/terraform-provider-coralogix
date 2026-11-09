@@ -4,7 +4,8 @@
 # collapses states it. Label collapses in one place and stays an object in another, and
 # LuceneQuery stays an object in rawQuery, so their properties state presence. The offset and the
 # span of the filter are signed 64-bit numbers that the API sends as strings (^-?[0-9]+$); the
-# released resource shows them as Int64. The tags are one list inside one wrapper, shown as a set.
+# released resource shows them as Int64. The tags are one list inside one wrapper, shown as a set. The window is a oneOf of an enum and a free
+# duration, shown as one string.
 openapi: 3.1.0
 info: {title: wrap, version: 1.0.0}
 paths:
@@ -32,6 +33,7 @@ paths:
                 filter: {$ref: '#/components/schemas/FilterHolder'}
                 selection: {$ref: '#/components/schemas/Selection'}
                 tags: {$ref: '#/components/schemas/Tags'}
+                window: {$ref: '#/components/schemas/Window'}
                 mainLabel: {$ref: '#/components/schemas/Label'}
                 extraLabel: {$ref: '#/components/schemas/Label'}
                 offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
@@ -76,6 +78,7 @@ paths:
                 filter: {$ref: '#/components/schemas/FilterHolder'}
                 selection: {$ref: '#/components/schemas/Selection'}
                 tags: {$ref: '#/components/schemas/Tags'}
+                window: {$ref: '#/components/schemas/Window'}
                 mainLabel: {$ref: '#/components/schemas/Label'}
                 extraLabel: {$ref: '#/components/schemas/Label'}
                 offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
@@ -120,6 +123,7 @@ components:
         filter: {$ref: '#/components/schemas/FilterHolder'}
         selection: {$ref: '#/components/schemas/Selection'}
         tags: {$ref: '#/components/schemas/Tags'}
+        window: {$ref: '#/components/schemas/Window'}
         mainLabel: {$ref: '#/components/schemas/Label'}
         extraLabel: {$ref: '#/components/schemas/Label'}
         offset: {type: string, pattern: "^-?[0-9]+$", minLength: 1, maxLength: 20, x-coralogix-presence: true}
@@ -170,6 +174,24 @@ components:
         values:
           type: array
           items: {type: string}
+    Window:
+      type: object
+      oneOf:
+        - {required: [fixedValue], type: object}
+        - {required: [customValue], type: object}
+        - type: object
+          not:
+            anyOf:
+              - {required: [fixedValue], type: object}
+              - {required: [customValue], type: object}
+      properties:
+        fixedValue:
+          description: The window as a value of the enum.
+          allOf: [{$ref: '#/components/schemas/WindowValue'}]
+        customValue: {type: string}
+    WindowValue:
+      type: string
+      enum: [WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED, WINDOW_VALUE_MINUTES_5, WINDOW_VALUE_HOURS_2]
     Tags:
       type: object
       required: []

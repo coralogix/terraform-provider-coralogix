@@ -501,6 +501,14 @@ type Field struct {
 	// true sends the empty object, false is an error, and a response that has the object reads
 	// as true; one without it reads as null.
 	AsBool bool `yaml:"asBool"`
+	// AsString, on a field that holds a oneOf of an enum and a string, shows the oneOf as one
+	// string: a Terraform spelling of the enum selects the enum arm, and any other value is the
+	// string arm. Flatten reads the arm that the response has, so a released resource that took
+	// "5_MINUTES" or "1h30m" in one attribute keeps it. A regexMatches validator of the line is
+	// the check of the string arm: the validator of the attribute accepts a spelling of the enum
+	// or a match of the pattern. enum: true alone accepts only the spellings of the enum, and a
+	// line with neither accepts any string.
+	AsString bool `yaml:"asString"`
 	// TerraformType keeps the released Terraform type of an int32 field, or of a list or set of
 	// int32: Int64. Expand converts the value and reports one outside the int32 range. On a
 	// digit string (^[0-9]+$ or ^-?[0-9]+$) it reads the 64-bit number as an Int64. String on
@@ -1059,6 +1067,7 @@ func (l Field) keys() []string {
 	add(l.Skip, "skip")
 	add(len(l.ValueNames) != 0, "valueNames")
 	add(l.AsBool, "asBool")
+	add(l.AsString, "asString")
 	add(l.TerraformType != "", "terraformType")
 	add(l.StoredAs != "", "storedAs")
 	add(l.DefaultArm, "defaultArm")
@@ -1269,12 +1278,18 @@ func (e ExtraAttribute) checkObject() error {
 	return nil
 }
 
+// hasTypeKey reports whether the line changes the Terraform type of the field: asBool, asString,
+// terraformType, or storedAs.
+func (l Field) hasTypeKey() bool {
+	return l.AsBool || l.AsString || l.TerraformType != "" || l.StoredAs != ""
+}
+
 func (l Field) empty() bool {
 	return l.emptyMode() && l.emptyValue()
 }
 
 func (l Field) emptyMode() bool {
-	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && !l.SchemaOptional && l.Name == "" && len(l.ValueNames) == 0 && !l.AsBool && l.TerraformType == "" && l.StoredAs == "" && !l.DefaultArm && l.Deprecation == "" &&
+	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && !l.SchemaOptional && l.Name == "" && len(l.ValueNames) == 0 && !l.hasTypeKey() && !l.DefaultArm && l.Deprecation == "" &&
 		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown && !l.RequiresReplace && !l.Inline && !l.RequestPosition
 }
 
@@ -1377,6 +1392,7 @@ func (l Field) checkConflicts() error {
 	if l.RequestValue != "" && len(l.RequestValueBy) != 0 {
 		return errors.New("requestValue and requestValueBy cannot both be set")
 	}
+
 	for _, field := range sortedKeys(l.RequestValueBy) {
 		if field == "" || l.RequestValueBy[field] == "" {
 			return errors.New("requestValueBy maps a field name to an API value")
@@ -1384,6 +1400,26 @@ func (l Field) checkConflicts() error {
 	}
 	if l.Equality != "" && l.Equality != EqualityYAML && l.Equality != EqualityJSON {
 		return fmt.Errorf("equality is %q, want %q or %q", l.Equality, EqualityYAML, EqualityJSON)
+	}
+	return nil
+}
+
+// checkAsString rejects a key that cannot work on a oneOf that Terraform shows as one string.
+func (l Field) checkAsString() error {
+	if !l.AsString {
+		return nil
+	}
+	if l.AsBool {
+		return errors.New("asString and asBool cannot both be set")
+	}
+	if l.CarrySiblings != nil || l.SplitArms || l.Inline || l.KeyedBy != nil || l.Collection != "" || l.Unwrap != nil {
+		return errors.New("asString shows the oneOf as one string, so carrySiblings, splitArms, inline, keyedBy, collection, and unwrap cannot be set")
+	}
+	if l.RequireOne || l.Fixed() || l.TerraformType != "" || len(l.ValueNames) != 0 || l.Equality != "" || l.KeepPriorOrder {
+		return errors.New("asString cannot be combined with requireOne, requestValue, requestValueBy, terraformType, valueNames, equality, or keepPriorOrder")
+	}
+	if slices.ContainsFunc(l.Validators, func(v Validator) bool { return v.EnumExceptZero }) {
+		return errors.New("asString shows the zero value of the enum as a value of the string, so enumExceptZero cannot be set")
 	}
 	return nil
 }
@@ -1506,6 +1542,9 @@ func (l Field) checkReleasedKeys() error {
 	if l.ShowInverted && l.Fixed() {
 		return errors.New("a requestValue field is no Terraform attribute, so showInverted changes nothing: send the API value")
 	}
+	if err := l.checkAsString(); err != nil {
+		return err
+	}
 	return l.checkCarry()
 }
 
@@ -1569,7 +1608,7 @@ func sortedIntKeys[V any](m map[int64]V) []int64 {
 func (l Field) hasBehavior() bool {
 	return l.ReadOnly || l.Computed != nil || l.Required || l.Optional || l.SchemaOptional || len(l.CreateAs) != 0 || l.Collection != "" || l.Name != "" || l.KeyedBy != nil || l.Default != nil || l.KeepPriorOrder ||
 		l.ReadEmptyAs != "" || l.ReadNullAs != "" || l.RequireOne || l.Fixed() ||
-		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.AsBool || l.TerraformType != "" || l.StoredAs != "" || l.DefaultArm ||
+		len(l.Validators) != 0 || l.Equality != "" || l.Unwrap != nil || len(l.ValueNames) != 0 || l.hasTypeKey() || l.DefaultArm ||
 		l.RequiresReplace || l.UniqueBy != "" || l.Negate || l.Split != ""
 }
 

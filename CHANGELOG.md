@@ -39,6 +39,7 @@
 - FEAT: `requestValueBy` accepts an enum that the contract writes as `allOf` of one `$ref` with a description, as `requestValue` already did, so the value that Create and Update send can follow the object that is set without a handwritten table. Before, the generator stopped with `requestValueBy needs a string or a string enum`.
 - FEAT: `terraformType: Int64` accepts a signed 64-bit number that the API sends as a string (the digit pattern `^-?[0-9]+$`), as it did for the unsigned one. The attribute is an Int64, expand sends its decimal text, and a read of a text that is no 64-bit number is an error. Before, the generator stopped with `integer format "int64" is not supported`.
 - FEAT: `collection: set` on the list inside a wrapper that `unwrap` collapses makes the attribute a set (`{"recipients": {"emails": [..]}}` as a set of strings). Before, the line was reported as unused (`OVERRIDE_UNUSED`).
+- FEAT: `asString: true` shows a oneOf of an enum and a string as one string attribute: a spelling of the enum selects the enum arm and any other text the string arm, and a read gives back whichever arm the API has. The validator is the union of the enum spellings and the `regexMatches` pattern of the line, and the generator refuses a pattern that matches a spelling. Before, the oneOf was a nested object with one attribute per arm.
 
 # Release 3.24.0
 

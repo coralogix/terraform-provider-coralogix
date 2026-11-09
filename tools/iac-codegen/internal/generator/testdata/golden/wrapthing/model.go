@@ -18,6 +18,7 @@ type WrapThingModel struct {
 	Filter     *SimpleFilterModel `tfsdk:"filter"`
 	Selection  types.List         `tfsdk:"selection"`
 	Tags       types.Set          `tfsdk:"tags"`
+	Window     types.String       `tfsdk:"window"`
 	MainLabel  types.String       `tfsdk:"main_label"`
 	ExtraLabel *LabelModel        `tfsdk:"extra_label"`
 	Offset     types.Int64        `tfsdk:"offset"`

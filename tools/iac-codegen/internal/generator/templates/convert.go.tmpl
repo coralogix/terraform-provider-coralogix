@@ -1851,6 +1851,18 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	}
 {{- else if eq .Conv "object"}}
 	{{.Dst}} = {{$l}}expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, diags){{$r}}
+{{- else if eq .Conv "foldstring"}}
+	if v := m.{{.Model}}; !v.IsNull() && !v.IsUnknown() {
+		// A spelling of the enum is the enum arm. Any other text is the string arm.
+		fold := &{{.SDKType}}{}
+		if api, ok := {{.StringFold.Enum.EnumMap.Name}}ToAPI[v.ValueString()]; ok {
+			fold.{{.StringFold.Enum.SDK}} = &api
+		} else {
+			text := v.ValueString()
+			fold.{{.StringFold.Str.SDK}} = &text
+		}
+		{{.Dst}} = {{$l}}fold{{$r}}
+	}
 {{- else if eq .Conv "group"}}
 	expand{{.Object.Func}}(ctx, {{$p}}, m.{{.Model}}, out, diags)
 {{- else if eq .Conv "empty"}}
@@ -2141,6 +2153,18 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 		{{- end}}
 	}
 	{{- end}}
+{{- else if eq .Conv "foldstring"}}
+	out.{{.Model}} = types.StringNull()
+	if fold := {{$v}}; fold != nil {
+		switch {
+		case fold.{{.StringFold.Enum.SDK}} != nil && fold.{{.StringFold.Str.SDK}} != nil:
+			diags.AddAttributeError({{$p}}, "Invalid response from server", "The response has both a value of the enum and a text; it must have one.")
+		case fold.{{.StringFold.Enum.SDK}} != nil:
+			out.{{.Model}} = flattenEnumMapped({{$p}}, fold.{{.StringFold.Enum.SDK}}, {{.StringFold.Enum.EnumMap.Name}}FromAPI, diags)
+		case fold.{{.StringFold.Str.SDK}} != nil:
+			out.{{.Model}} = types.StringValue(*fold.{{.StringFold.Str.SDK}})
+		}
+	}
 {{- else if eq .Conv "emptybool"}}
 	out.{{.Model}} = types.BoolNull()
 	if {{.Src}} != nil {

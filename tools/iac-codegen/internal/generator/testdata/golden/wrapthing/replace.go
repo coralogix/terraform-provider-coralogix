@@ -34,6 +34,7 @@ var updateFields = []struct {
 	{attr: "filter", serverDefault: false},
 	{attr: "selection", serverDefault: false},
 	{attr: "tags", serverDefault: false},
+	{attr: "window", serverDefault: false},
 	{attr: "main_label", serverDefault: false},
 	{attr: "extra_label", serverDefault: false},
 	{attr: "offset", serverDefault: false},

@@ -1624,6 +1624,93 @@ func TestSignedDigitStringKeyIsChecked(t *testing.T) {
 	}
 }
 
+// asString needs a oneOf of an enum and a string, and a pattern that no spelling of the enum
+// matches: a text that is both would be ambiguous.
+func TestFoldedOneOfKeyIsChecked(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "wrapthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err := os.ReadFile(filepath.Join("testdata", "wrapthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := map[string]struct{ old, new, want string }{
+		"a pattern that matches a spelling of the enum": {`'^[0-9]+(s|m|h)$'`, `'^[0-9A-Z_]+$'`, "asString is ambiguous"},
+		"a field that is no oneOf":                      {"      window:\n        asString: true", "      name:\n        asString: true\n      window:\n        asString: true", "asString needs a oneOf"},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if !strings.Contains(string(base), test.old) {
+				t.Fatalf("the overrides file has no %q", test.old)
+			}
+			path := filepath.Join(t.TempDir(), "overrides.yaml")
+			if err := os.WriteFile(path, []byte(strings.Replace(string(base), test.old, test.new, 1)), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			input, loadDir := syntheticInput(t)
+			input.OpenAPI = spec
+			options := Options{Resource: "WrapThing", OutputDir: filepath.Join(t.TempDir(), "out"), OverridesPath: path}
+			if err := generateFromInput(options, input, loadDir); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("err = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
+// The validator of a oneOf that shows as one string follows the line: the spellings of the enum or
+// the pattern, only the spellings with enum: true, and any string with neither.
+func TestFoldedOneOfValidatorFollowsTheLine(t *testing.T) {
+	spec, err := os.ReadFile(filepath.Join("testdata", "wrapthing.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err := os.ReadFile(filepath.Join("testdata", "wrapthing-overrides.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pattern := "        validators:\n          - regexMatches: {pattern: '^[0-9]+(s|m|h)$', message: Use a duration such as 90m}\n"
+	oneOf := `stringvalidator.OneOf("1_MINUTE", "2_HOURS", "5_MINUTES")`
+	tests := map[string]struct {
+		validators string
+		want       string
+		notWant    string
+	}{
+		"the pattern":              {pattern, "stringvalidator.Any(" + oneOf + ", stringvalidator.RegexMatches(", ""},
+		"the pattern and the enum": {pattern + "          - enum: true\n", "stringvalidator.Any(" + oneOf + ", stringvalidator.RegexMatches(", ""},
+		"only the spellings":       {"        validators: [{enum: true}]\n", oneOf, "stringvalidator.Any("},
+		"no validator":             {"", `"window": schema.StringAttribute{`, "stringvalidator.OneOf(\"1_MINUTE\""},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			if !strings.Contains(string(base), pattern) {
+				t.Fatal("the overrides file has no pattern line")
+			}
+			path := filepath.Join(t.TempDir(), "overrides.yaml")
+			if err := os.WriteFile(path, []byte(strings.Replace(string(base), pattern, test.validators, 1)), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			input, loadDir := syntheticInput(t)
+			input.OpenAPI = spec
+			out := filepath.Join(t.TempDir(), "out")
+			options := Options{Resource: "WrapThing", OutputDir: out, OverridesPath: path}
+			if err := generateFromInput(options, input, loadDir); err != nil {
+				t.Fatal(err)
+			}
+			schemaFile, err := os.ReadFile(filepath.Join(out, "schema.go"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(string(schemaFile), test.want) {
+				t.Errorf("schema.go lacks %q", test.want)
+			}
+			if test.notWant != "" && strings.Contains(string(schemaFile), test.notWant) {
+				t.Errorf("schema.go has %q", test.notWant)
+			}
+		})
+	}
+}
+
 // requestValue on a field the request schema does not mark read-only is not a
 // Terraform attribute. Create and Update must not read it. Reading a missing
 // attribute fails every Create and every Update.

@@ -131,6 +131,9 @@ type tfAttr struct {
 	WriteOnly bool
 	// TrueOnly: a bool that shows an object without fields (asBool). Only true is a valid value.
 	TrueOnly bool
+	// FoldEnum is the enum component of the oneOf that the attribute shows as one string
+	// (asString), "" for any other attribute.
+	FoldEnum string
 	// Uint64: the attribute is a 64-bit number that the API sends as a string, signed or not,
 	// shown as Int64.
 	Uint64 bool
@@ -595,7 +598,22 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 	if err := applyDefault(a, l); err != nil {
 		return err
 	}
+	return applyValidators(a, l, file)
+}
+
+// applyValidators adds the validators of a line to the attribute. A oneOf that shows as one string
+// (asString) gets one validator made from the enum and the pattern of the line.
+func applyValidators(a *tfAttr, l overrides.Field, file *overrides.File) error {
+	if l.AsString && a.FoldEnum == "" {
+		return errors.New("asString needs a field that holds a oneOf")
+	}
+	enumOnly := false
 	for _, v := range l.Validators {
+		if l.AsString && v.Enum {
+			// The validator of a oneOf that shows as one string is made below.
+			enumOnly = true
+			continue
+		}
 		expr, err := validatorExpr(a, v, file)
 		if err != nil {
 			return err
@@ -610,6 +628,9 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 			}
 			a.ElemValidators = append(slices.DeleteFunc(a.ElemValidators, func(e string) bool { return strings.HasPrefix(e, "stringvalidator.OneOf") }), oneOf)
 		}
+	}
+	if l.AsString {
+		return foldStringValidators(a, file, enumOnly)
 	}
 	return nil
 }
@@ -1209,6 +1230,14 @@ func (b *tfBuilder) setType(a *tfAttr, p attrPath, t *model.Type, computed bool)
 	case model.Set, model.List, model.Map:
 		return b.collection(a, p, t)
 	case model.Object, model.OneOf:
+		if asString(b.file, a.Component, a.Property) {
+			enum, _, err := stringArms(t)
+			if err != nil {
+				return fmt.Errorf("%s.%s: %w", a.Component, a.Property, err)
+			}
+			a.Kind, a.ValueKind, a.FoldEnum = "String", "String", enum.Type.Schema
+			return nil
+		}
 		a.Kind, a.ValueKind = "SingleNested", "Object"
 		a.ObjectComponent = t.Schema
 		a.KeyedObject = t.Keyed != nil && t.Keyed.Object
@@ -1961,8 +1990,8 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 	case model.Map:
 		goType = "types.Map"
 	case model.Object, model.OneOf:
-		if b.policy.AsBool(component, name) {
-			goType = "types.Bool"
+		if shown := b.scalarOneOf(component, name); shown != "" {
+			goType = shown
 		} else if behavior == model.Computed || computed {
 			goType = "types.Object"
 		} else {
@@ -2385,6 +2414,69 @@ func checkSplitNames(out *tfResource, root *tfModel, r *model.Resource, file *ov
 			return fmt.Errorf("the split arm %s has the Go name of another top-level field", f.Name)
 		}
 		fields[f.Name] = true
+	}
+	return nil
+}
+
+// scalarOneOf is the model type of an object field that Terraform shows as one scalar (asBool,
+// asString), or "".
+func (b *tfBuilder) scalarOneOf(component, name string) string {
+	switch {
+	case b.policy.AsBool(component, name):
+		return "types.Bool"
+	case asString(b.file, component, name):
+		return "types.String"
+	}
+	return ""
+}
+
+// asString reports whether the field has an asString line.
+func asString(file *overrides.File, component, field string) bool {
+	return file != nil && file.Types[component].Fields[field].AsString
+}
+
+// stringArms returns the enum arm and the string arm of a oneOf that asString shows as one
+// string. The oneOf has exactly these two arms, and the string arm is a plain string.
+func stringArms(t *model.Type) (enum, str *model.Field, err error) {
+	if t.Kind != model.OneOf || len(t.Fields) != 2 || len(t.Wrappers) != 0 {
+		return nil, nil, errors.New("asString needs a oneOf with two arms: an enum and a string")
+	}
+	for _, arm := range t.Fields {
+		switch {
+		case arm.Type.Kind == model.Enum && enum == nil:
+			enum = arm
+		case arm.Type.Kind == model.String && arm.Type.Format == "" && str == nil:
+			str = arm
+		}
+	}
+	if enum == nil || str == nil {
+		return nil, nil, errors.New("asString needs a oneOf with two arms: an enum and a string")
+	}
+	return enum, str, nil
+}
+
+// foldStringValidators makes the validator of an attribute that shows a oneOf of an enum and a
+// string as one string. A regexMatches validator of the line checks the string arm: the value is a
+// Terraform spelling of the enum, or matches one of them. With enum: true and no pattern, only the
+// spellings are valid. With neither, the attribute takes any string.
+func foldStringValidators(a *tfAttr, file *overrides.File, enumOnly bool) error {
+	oneOf, err := enumOneOf(&tfAttr{EnumSchema: a.FoldEnum, ValueKind: "String"}, file, false)
+	if err != nil {
+		return err
+	}
+	var regexes []string
+	a.Validators = slices.DeleteFunc(a.Validators, func(v string) bool {
+		if strings.HasPrefix(v, "stringvalidator.RegexMatches(") {
+			regexes = append(regexes, v)
+			return true
+		}
+		return false
+	})
+	switch {
+	case len(regexes) != 0:
+		a.Validators = append(a.Validators, "stringvalidator.Any("+strings.Join(append([]string{oneOf}, regexes...), ", ")+")")
+	case enumOnly:
+		a.Validators = append(a.Validators, oneOf)
 	}
 	return nil
 }

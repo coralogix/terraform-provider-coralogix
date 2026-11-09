@@ -20,6 +20,20 @@ import (
 	"example.com/iac-test-sdk/go/openapi/gen/wrap_things_service"
 )
 
+// windowValueToAPI maps the Terraform values of the enum to its API values.
+var windowValueToAPI = map[string]wrap_things_service.WindowValue{
+	"1_MINUTE":  wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED"),
+	"5_MINUTES": wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_5"),
+	"2_HOURS":   wrap_things_service.WindowValue("WINDOW_VALUE_HOURS_2"),
+}
+
+// windowValueFromAPI maps the API values of the enum to its Terraform values.
+var windowValueFromAPI = map[wrap_things_service.WindowValue]string{
+	wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED"): "1_MINUTE",
+	wrap_things_service.WindowValue("WINDOW_VALUE_MINUTES_5"):                "5_MINUTES",
+	wrap_things_service.WindowValue("WINDOW_VALUE_HOURS_2"):                  "2_HOURS",
+}
+
 // validateRequestValue accepts every planned value. An unknown value of a computed attribute is
 // left out of the request, and the server supplies it, as the released resource did.
 func validateRequestValue(_ path.Path, _, _ attr.Value, _ bool, _ *diag.Diagnostics) {}
@@ -37,6 +51,7 @@ var createFields = []struct {
 	{attr: "filter", serverDefault: false},
 	{attr: "selection", serverDefault: false},
 	{attr: "tags", serverDefault: false},
+	{attr: "window", serverDefault: false},
 	{attr: "main_label", serverDefault: false},
 	{attr: "extra_label", serverDefault: false},
 	{attr: "offset", serverDefault: false},
@@ -282,6 +297,17 @@ func expandCreateWrapThingRequest(ctx context.Context, p path.Path, m *WrapThing
 		inner = expandStringsSet[string](ctx, p.AtName("tags"), m.Tags, diags)
 		out.Tags = wrapTags(inner)
 	}
+	if v := m.Window; !v.IsNull() && !v.IsUnknown() {
+		// A spelling of the enum is the enum arm. Any other text is the string arm.
+		fold := &wrap_things_service.Window{}
+		if api, ok := windowValueToAPI[v.ValueString()]; ok {
+			fold.FixedValue = &api
+		} else {
+			text := v.ValueString()
+			fold.CustomValue = &text
+		}
+		out.Window = fold
+	}
 	{
 		var inner *string
 		inner = expandString(m.MainLabel)
@@ -392,6 +418,17 @@ func expandReplaceWrapThingRequest(ctx context.Context, p path.Path, m *WrapThin
 		inner = expandStringsSet[string](ctx, p.AtName("tags"), m.Tags, diags)
 		out.Tags = wrapTags(inner)
 	}
+	if v := m.Window; !v.IsNull() && !v.IsUnknown() {
+		// A spelling of the enum is the enum arm. Any other text is the string arm.
+		fold := &wrap_things_service.Window{}
+		if api, ok := windowValueToAPI[v.ValueString()]; ok {
+			fold.FixedValue = &api
+		} else {
+			text := v.ValueString()
+			fold.CustomValue = &text
+		}
+		out.Window = fold
+	}
 	{
 		var inner *string
 		inner = expandString(m.MainLabel)
@@ -437,6 +474,17 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 	{
 		inner := unwrapTags(v.Tags)
 		out.Tags = flattenStringsSet(ctx, inner, diags)
+	}
+	out.Window = types.StringNull()
+	if fold := v.Window; fold != nil {
+		switch {
+		case fold.FixedValue != nil && fold.CustomValue != nil:
+			diags.AddAttributeError(p.AtName("window"), "Invalid response from server", "The response has both a value of the enum and a text; it must have one.")
+		case fold.FixedValue != nil:
+			out.Window = flattenEnumMapped(p.AtName("window"), fold.FixedValue, windowValueFromAPI, diags)
+		case fold.CustomValue != nil:
+			out.Window = types.StringValue(*fold.CustomValue)
+		}
 	}
 	{
 		inner := unwrapLabel(v.MainLabel)
@@ -748,6 +796,32 @@ func flattenUint64(p path.Path, v *string, diags *diag.Diagnostics) types.Int64 
 		return types.Int64Null()
 	}
 	return types.Int64Value(int64(n))
+}
+
+// expandEnumMapped returns the API value of a Terraform value. A value that the map lacks is an error.
+func expandEnumMapped[T ~string](p path.Path, v types.String, toAPI map[string]T, diags *diag.Diagnostics) *T {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	e, ok := toAPI[v.ValueString()]
+	if !ok {
+		diags.AddAttributeError(p, "Unsupported value", fmt.Sprintf("The value %q is not supported.", v.ValueString()))
+		return nil
+	}
+	return &e
+}
+
+// flattenEnumMapped returns the Terraform value of an API value. A value that the map lacks is an error.
+func flattenEnumMapped[T ~string](p path.Path, v *T, fromAPI map[T]string, diags *diag.Diagnostics) types.String {
+	if v == nil {
+		return types.StringNull()
+	}
+	s, ok := fromAPI[*v]
+	if !ok {
+		diags.AddAttributeError(p, "Unsupported API value", fmt.Sprintf("The API returned %q, which this resource does not support.", string(*v)))
+		return types.StringNull()
+	}
+	return types.StringValue(s)
 }
 
 func flattenEnum[T ~string](v *T, zero string) types.String {

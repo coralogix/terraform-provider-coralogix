@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -270,12 +271,14 @@ const (
 	// convInt64Wire is a signed 64-bit number that the API sends as a string, shown as an Int64
 	// (terraformType: Int64 on a string whose pattern is ^-?[0-9]+$).
 	convInt64Wire = "int64wire" // types.Int64 ↔ *string
-	convTime      = "time"      // types.String ← *time.Time: a time that only the response has
-	convRFC3339   = "rfc3339"   // timetypes.RFC3339 ↔ *time.Time: a time that a request sends
-	convTimes     = "times"     // types.Set/List of timetypes.RFC3339 ↔ []time.Time
-	convEnum      = "enum"      // types.String ↔ *<enum type> (D12)
-	convObj       = "object"    // *<Model> ↔ *<SDK type>
-	convEmpty     = "empty"     // *<Model> ↔ map[string]interface{} (F16)
+	// convFoldString shows a oneOf of an enum and a string as one string (asString).
+	convFoldString = "foldstring" // types.String ↔ *<oneOf SDK type>
+	convTime       = "time"       // types.String ← *time.Time: a time that only the response has
+	convRFC3339    = "rfc3339"    // timetypes.RFC3339 ↔ *time.Time: a time that a request sends
+	convTimes      = "times"      // types.Set/List of timetypes.RFC3339 ↔ []time.Time
+	convEnum       = "enum"       // types.String ↔ *<enum type> (D12)
+	convObj        = "object"     // *<Model> ↔ *<SDK type>
+	convEmpty      = "empty"      // *<Model> ↔ map[string]interface{} (F16)
 	// convEmptyBool shows an object without fields as a bool (asBool): true ↔ a non-nil empty map.
 	convEmptyBool = "emptybool"
 	convStrings   = "strings" // types.Set/List ↔ []string or []<enum type>
@@ -373,6 +376,8 @@ type convField struct {
 	// FixedValue is its Go expression: an enum cast, a quoted string, or a bool.
 	RequestValue string
 	FixedValue   string
+	// StringFold holds the two arms of a oneOf that Terraform shows as one string (asString).
+	StringFold *foldArms
 	// RequestValueBy are the API values expand sends when an object field of the model is set,
 	// in the order of the field names.
 	RequestValueBy []fixedBy
@@ -764,8 +769,8 @@ func oneOfArmPaths(r *model.Resource, file *overrides.File) []string {
 		}
 	}
 	for _, f := range r.Fields {
-		if splitArms(file, r.Name, f.Name) {
-			// The arms are collections of values, not objects of the state.
+		if splitArms(file, r.Name, f.Name) || asString(file, r.Name, f.Name) {
+			// The arms are collections of values, or the arms of a string, not objects of the state.
 			continue
 		}
 		out = typeArmPaths(r.Policy, file, out, rootPath(file.GroupOf(f.Name), terraformName(r.Policy, r.Name, f.Name)).dotted(), f.Type, map[*model.Type]bool{})
@@ -783,22 +788,7 @@ func typeArmPaths(p model.Policy, file *overrides.File, out []string, at string,
 		return typeArmPaths(p, file, out, at, t.Elem, seen)
 	}
 	if carry := carryField(file, t); carry != nil {
-		// The arms of the oneOf are attributes of the object, and each holds the other fields.
-		line := file.Types[t.Schema].Fields[carry.Name].CarrySiblings
-		for _, arm := range carry.Type.Fields {
-			if _, folded := line.Fold[arm.Name]; folded {
-				continue
-			}
-			child := at + "." + terraformName(p, model.ComponentOf(carry.Type), arm.Name)
-			out = append(out, child)
-			out = typeArmPaths(p, file, out, child, arm.Type, seen)
-			for _, sibling := range t.Fields {
-				if sibling != carry {
-					out = typeArmPaths(p, file, out, child+"."+terraformName(p, t.Schema, sibling.Name), sibling.Type, seen)
-				}
-			}
-		}
-		return out
+		return carryArmPaths(p, file, out, at, t, carry, seen)
 	}
 	arms := map[string]bool{}
 	for _, g := range t.Groups {
@@ -814,7 +804,31 @@ func typeArmPaths(p model.Policy, file *overrides.File, out []string, at string,
 		if t.Kind == model.OneOf && f.Name != t.Discriminator || arms[f.Name] {
 			out = append(out, child)
 		}
+		if asString(file, model.ComponentOf(t), f.Name) {
+			// The arms of the oneOf are one string of the state.
+			continue
+		}
 		out = typeArmPaths(p, file, out, child, f.Type, seen)
+	}
+	return out
+}
+
+// carryArmPaths adds the arm paths of a carrySiblings object: the arms of the oneOf are attributes
+// of the object, and each holds the other fields.
+func carryArmPaths(p model.Policy, file *overrides.File, out []string, at string, t *model.Type, carry *model.Field, seen map[*model.Type]bool) []string {
+	line := file.Types[t.Schema].Fields[carry.Name].CarrySiblings
+	for _, arm := range carry.Type.Fields {
+		if _, folded := line.Fold[arm.Name]; folded {
+			continue
+		}
+		child := at + "." + terraformName(p, model.ComponentOf(carry.Type), arm.Name)
+		out = append(out, child)
+		out = typeArmPaths(p, file, out, child, arm.Type, seen)
+		for _, sibling := range t.Fields {
+			if sibling != carry {
+				out = typeArmPaths(p, file, out, child+"."+terraformName(p, t.Schema, sibling.Name), sibling.Type, seen)
+			}
+		}
 	}
 	return out
 }
@@ -1173,6 +1187,9 @@ func replaceOnlyLines(file *overrides.File) error {
 			if len(line.RequestValueBy) != 0 {
 				return fmt.Errorf("%s.%s: requestValueBy needs an Update that replaces the resource; an update mask would leave the derived value out", component, field)
 			}
+			if line.AsString {
+				return fmt.Errorf("%s.%s: asString needs an Update that replaces the resource; the update mask names the arms of the oneOf, not the string that Terraform shows", component, field)
+			}
 			if line.CarrySiblings != nil {
 				return fmt.Errorf("%s.%s: carrySiblings needs an Update that replaces the resource; the update mask names API fields, not the arms that Terraform shows", component, field)
 			}
@@ -1410,6 +1427,10 @@ type keyedFields struct {
 	KeyValue, ValueValue bool
 }
 
+// foldArms are the arms of a oneOf that asString shows as one string. Enum converts the spelling of
+// an enum value, and Str holds any other text.
+type foldArms struct{ Enum, Str *convField }
+
 // fixedBy is the API value that expand sends when the object field Model is set.
 type fixedBy struct {
 	Model, Value string
@@ -1574,7 +1595,7 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 	if b.resource.Policy.OptionalLine(component, name) && (strings.HasPrefix(ref.Want, "[]") || strings.HasPrefix(ref.Want, "map[")) {
 		cf.SendEmpty, cf.SDKSliceType = true, b.qualifyType(ref.Want)
 	}
-	want, err := b.fieldConv(cf, t, computed)
+	want, err := b.fieldConvOf(cf, t, computed, component, name)
 	if err != nil {
 		return nil, err
 	}
@@ -1611,6 +1632,55 @@ func (b *convBuilder) fieldAt(refPath, component, name string, t *model.Type, co
 		return nil, err
 	}
 	return checkFieldType(cf, ref, want)
+}
+
+// fieldConvOf is fieldConv for the field name of component: a oneOf that asString shows as one
+// string converts as the string.
+func (b *convBuilder) fieldConvOf(cf *convField, t *model.Type, computed bool, component, name string) (string, error) {
+	if asString(b.file, component, name) {
+		return b.foldStringConv(cf, t, component, name)
+	}
+	return b.fieldConv(cf, t, computed)
+}
+
+// foldStringConv sets the conversion of a oneOf of an enum and a string that Terraform shows as one
+// string. A spelling of the enum selects the enum arm, and any other text is the string arm, so a
+// text that is both would be ambiguous: the generator stops when a pattern of the line matches a
+// spelling.
+func (b *convBuilder) foldStringConv(cf *convField, t *model.Type, component, name string) (string, error) {
+	enum, str, err := stringArms(t)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", cf.TFName, err)
+	}
+	obj, err := b.nested(t)
+	if err != nil {
+		return "", err
+	}
+	arms := &foldArms{Enum: fieldByModel(obj.Fields, camelize(enum.Name)), Str: fieldByModel(obj.Fields, camelize(str.Name))}
+	switch {
+	case arms.Enum == nil || arms.Str == nil:
+		return "", fmt.Errorf("%s: asString needs the arms %s and %s to be fields of the oneOf", cf.TFName, enum.Name, str.Name)
+	case arms.Enum.EnumMap == nil:
+		return "", fmt.Errorf("%s: asString needs an enums line for %s, which gives the Terraform spelling of each value", cf.TFName, enum.Type.Schema)
+	case arms.Enum.CaseInsensitive || arms.Enum.Wrap != nil || arms.Str.Wrap != nil || arms.Enum.Value || arms.Str.Value:
+		return "", fmt.Errorf("%s: asString needs arms that are pointers, without wrappers, and an enum that is not caseInsensitive", cf.TFName)
+	}
+	for _, v := range b.file.Types[component].Fields[name].Validators {
+		if v.RegexMatches == nil {
+			continue
+		}
+		re, err := regexp.Compile(v.RegexMatches.Pattern)
+		if err != nil {
+			return "", fmt.Errorf("%s: regexMatches: %w", cf.TFName, err)
+		}
+		for _, value := range arms.Enum.EnumMap.Values {
+			if re.MatchString(value.TF) {
+				return "", fmt.Errorf("%s: asString is ambiguous: the text %q is a spelling of the enum and matches the pattern %q of the string arm", cf.TFName, value.TF, v.RegexMatches.Pattern)
+			}
+		}
+	}
+	cf.Conv, cf.StringFold, cf.SDKType = convFoldString, arms, b.qualify(obj.SDK)
+	return "*" + obj.SDK, nil
 }
 
 // checkPositions reports a requestPosition field outside the items of a list: only a list gives
@@ -2377,7 +2447,7 @@ func (b *convBuilder) attrTypes(obj *convObject) error {
 var scalarAttrTypes = map[string]string{
 	convString: "types.StringType", convSplit: "types.SetType{ElemType: types.StringType}", convTime: "types.StringType", convEnum: "types.StringType", convRFC3339: rfc3339Type,
 	convBool: "types.BoolType", convNotBool: "types.BoolType", convFloat64: "types.Float64Type", convFloat32: "types.Float32Type",
-	convUint64: "types.Int64Type", convInt64Wire: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
+	convFoldString: "types.StringType", convUint64: "types.Int64Type", convInt64Wire: "types.Int64Type", convInt64: "types.Int64Type", convInt32: "types.Int32Type", convInt32AsInt64: "types.Int64Type",
 	convInt64AsString: "types.StringType", convFloat64AsFloat32: "types.Float64Type",
 	convEmpty: "types.ObjectType{AttrTypes: map[string]attr.Type{}}", convEmptyBool: "types.BoolType",
 }

@@ -6,6 +6,9 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	frameworkresource "github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"example.com/iac-test-sdk/go/openapi/gen/wrap_things_service"
@@ -45,6 +48,7 @@ func fullModel() *WrapThingModel {
 		MainLabel:  types.StringValue("main"),
 		ExtraLabel: &LabelModel{Value: types.StringValue("extra")},
 		Offset:     types.Int64Value(-9007199254740993),
+		Window:     types.StringValue("2_HOURS"),
 	}
 }
 
@@ -64,6 +68,7 @@ func fullResponse() *wrap_things_service.WrapThing {
 		MainLabel:  &wrap_things_service.Label{Value: ptr("main")},
 		ExtraLabel: &wrap_things_service.Label{Value: ptr("extra")},
 		Offset:     ptr("-9007199254740993"),
+		Window:     &wrap_things_service.Window{FixedValue: ptr(wrap_things_service.WINDOWVALUE_WINDOW_VALUE_HOURS_2)},
 	}
 }
 
@@ -75,7 +80,7 @@ func TestExpandPutsValuesInTheirWrappers(t *testing.T) {
 	want := fullResponse()
 	got := wrap_things_service.WrapThing{
 		Id: want.Id, Name: body.Name, Query: body.Query, RawQuery: body.RawQuery, Priority: body.Priority,
-		Threshold: body.Threshold, WidgetIds: body.WidgetIds, Filter: body.Filter, Selection: body.Selection, Tags: body.Tags,
+		Threshold: body.Threshold, WidgetIds: body.WidgetIds, Filter: body.Filter, Selection: body.Selection, Tags: body.Tags, Window: body.Window,
 		MainLabel: body.MainLabel, ExtraLabel: body.ExtraLabel, Offset: body.Offset,
 	}
 	if !reflect.DeepEqual(&got, want) {
@@ -257,6 +262,83 @@ func TestWrappedSetIsReadFromItsWrapper(t *testing.T) {
 		got, diags = flatten(context.Background(), response)
 		if diags.HasError() || !got.Tags.IsNull() {
 			t.Errorf("%s: tags = %s (%v), want null", name, got.Tags, diags)
+		}
+	}
+}
+
+// A oneOf of an enum and a string is one Terraform string. A spelling of the enum selects the enum
+// arm, the zero value of the enum included, and any other text is the string arm.
+func TestFoldedOneOfIsSentAsTheArmOfItsValue(t *testing.T) {
+	for name, test := range map[string]struct {
+		value types.String
+		want  *wrap_things_service.Window
+	}{
+		"a spelling of the enum": {types.StringValue("5_MINUTES"), &wrap_things_service.Window{FixedValue: ptr(wrap_things_service.WINDOWVALUE_WINDOW_VALUE_MINUTES_5)}},
+		"the zero value":         {types.StringValue("1_MINUTE"), &wrap_things_service.Window{FixedValue: ptr(wrap_things_service.WINDOWVALUE_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED)}},
+		"a duration":             {types.StringValue("90m"), &wrap_things_service.Window{CustomValue: ptr("90m")}},
+		"the API spelling":       {types.StringValue("WINDOW_VALUE_MINUTES_5"), &wrap_things_service.Window{CustomValue: ptr("WINDOW_VALUE_MINUTES_5")}},
+		"null":                   {types.StringNull(), nil},
+		"unknown":                {types.StringUnknown(), nil},
+	} {
+		t.Run(name, func(t *testing.T) {
+			body, diags := expandCreate(context.Background(), &WrapThingModel{Window: test.value})
+			if diags.HasError() {
+				t.Fatal(diags)
+			}
+			if !reflect.DeepEqual(body.Window, test.want) {
+				t.Fatalf("window = %+v, want %+v", body.Window, test.want)
+			}
+		})
+	}
+}
+
+// Flatten reads the arm that the response has, and a response with no arm, or with two, is null or
+// an error, as for a oneOf.
+func TestFoldedOneOfIsReadFromTheArmOfTheResponse(t *testing.T) {
+	for name, test := range map[string]struct {
+		api  *wrap_things_service.Window
+		want types.String
+	}{
+		"the enum arm":    {&wrap_things_service.Window{FixedValue: ptr(wrap_things_service.WINDOWVALUE_WINDOW_VALUE_MINUTES_5)}, types.StringValue("5_MINUTES")},
+		"the zero value":  {&wrap_things_service.Window{FixedValue: ptr(wrap_things_service.WINDOWVALUE_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED)}, types.StringValue("1_MINUTE")},
+		"the string arm":  {&wrap_things_service.Window{CustomValue: ptr("1h30m")}, types.StringValue("1h30m")},
+		"an empty string": {&wrap_things_service.Window{CustomValue: ptr("")}, types.StringValue("")},
+		"no arm":          {&wrap_things_service.Window{}, types.StringNull()},
+		"no object":       {nil, types.StringNull()},
+	} {
+		t.Run(name, func(t *testing.T) {
+			got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Window: test.api})
+			if diags.HasError() || !got.Window.Equal(test.want) {
+				t.Fatalf("window = %s (%v), want %s", got.Window, diags, test.want)
+			}
+		})
+	}
+	both := &wrap_things_service.Window{FixedValue: ptr(wrap_things_service.WINDOWVALUE_WINDOW_VALUE_MINUTES_5), CustomValue: ptr("5m")}
+	if _, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Window: both}); !diags.HasError() {
+		t.Fatal("a response with both arms: want an error")
+	}
+	unknown := &wrap_things_service.Window{FixedValue: ptr(wrap_things_service.WindowValue("WINDOW_VALUE_HOURS_99"))}
+	if _, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Window: unknown}); !diags.HasError() {
+		t.Fatal("an enum value that the enums line lacks: want an error")
+	}
+}
+
+// The attribute takes a spelling of the enum or a match of the pattern, and nothing else.
+func TestFoldedOneOfValidatorAcceptsTheUnionOfBothArms(t *testing.T) {
+	var resp frameworkresource.SchemaResponse
+	(&Resource{}).Schema(context.Background(), frameworkresource.SchemaRequest{}, &resp)
+	attribute, ok := resp.Schema.Attributes["window"].(schema.StringAttribute)
+	if !ok || len(attribute.Validators) != 1 {
+		t.Fatalf("window = %#v, want a string attribute with one validator", resp.Schema.Attributes["window"])
+	}
+	for value, valid := range map[string]bool{
+		"1_MINUTE": true, "5_MINUTES": true, "2_HOURS": true, "90m": true, "30s": true, "2h": true,
+		"WINDOW_VALUE_HOURS_2": false, "five": false, "": false, "1.5h": false, "5_minutes": false,
+	} {
+		var diags validator.StringResponse
+		attribute.Validators[0].ValidateString(context.Background(), validator.StringRequest{ConfigValue: types.StringValue(value)}, &diags)
+		if diags.Diagnostics.HasError() == valid {
+			t.Errorf("window %q: valid = %v, want %v (%v)", value, !diags.Diagnostics.HasError(), valid, diags.Diagnostics)
 		}
 	}
 }
