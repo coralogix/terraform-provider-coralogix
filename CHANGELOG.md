@@ -1,5 +1,19 @@
 # Unreleased
 
+#### resource/coralogix_archive_retentions
+- CHORE: The resource is generated from the API contract. The schema, the import, and the requests are the same, except as listed below. A plan of the retentions that 3.24.0 created from the same configuration shows no change.
+- FIX: A retention whose `name` the configuration leaves out keeps its current name. Before, the provider sent an empty name and the API rejected it, at create and at every update after a name was removed from the configuration.
+- FIX: An empty `name` fails at plan with `a retention name can't be empty`. Before, it failed at apply with a 400 from the API.
+- FIX: A first retention `name` that is unknown at plan, such as a variable, no longer fails with `first retention's name can't be set`. Terraform checks it again once it is known.
+- FIX: A 404 for a missing API route is an error. Before, a refresh removed the retentions from state.
+- FIX: Importing with any id stores the fixed id `archive-retention-settings`.
+- FIX: An update that cannot find a retention tag keeps the state and asks for a refresh and a retry. Before, the error said that the refresh removes the retentions and the plan creates them again.
+- CHORE: API errors read `Unable to create archive_retentions`, `Unable to update archive_retentions`, and so on.
+- FEAT: The resource has a generated acceptance test, and an upgrade test from 3.24.0. CI runs it in the archive shard, one test at a time.
+
+#### data-source/coralogix_archive_retentions
+- CHORE: The data source is generated with the resource. Its `id` is `archive-retention-settings`, the id of the resource. Before, it was `""`.
+
 #### resource/coralogix_team
 - CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the requests are the same, except as listed below. A plan of a team that 3.24.0 created from the same configuration shows no change.
 - FIX: `daily_quota` reads back as the value that the API stores, a 32-bit float, at its shortest decimal. Before, the read rounded it to three decimals, so a quota such as `0.1234567` failed the apply with `Provider produced inconsistent result after apply`.

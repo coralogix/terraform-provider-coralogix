@@ -13,7 +13,7 @@
       }
     ],
     "state": {
-      "id": "anything",
+      "id": "archive-retention-settings",
       "retentions": [
         {
           "editable": false,
@@ -42,6 +42,7 @@
       ]
     },
     "drift": [
+      "AttributeName(\"id\")",
       "AttributeName(\"retentions\")",
       "AttributeName(\"retentions\").ElementKeyInt(0)",
       "AttributeName(\"retentions\").ElementKeyInt(1)",

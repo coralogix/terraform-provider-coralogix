@@ -36,10 +36,10 @@ env:
   GLOBAL_ROUTER_MIGRATION_ACC_PATTERN: &global_router_migration_acc_pattern '^TestAccCoralogixResourceGlobalRouterMigration$'
   # Every generated resource has a test whose name ends in GeneratedUpgrade. One shard runs them all.
   GENERATED_UPGRADE_ACC_PATTERN: &generated_upgrade_acc_pattern 'GeneratedUpgrade$'
-  # The archive logs target and the metrics archive are one per company each, so their tests must
-  # not run at the same time. The archive-logs shard runs all of them (handwritten, generated, and
-  # generated upgrade) with -p 1; every other job skips them.
-  ARCHIVE_LOGS_ACC_PATTERN: &archive_logs_acc_pattern '^TestAccCoralogix(Resource|DataSource)(Resource)?Archive(Logs|Metrics)'
+  # The archive logs target, the metrics archive, and the retention tags are one per company each,
+  # so their tests must not run at the same time. The archive-logs shard runs all of them
+  # (handwritten, generated, and generated upgrade) with -p 1; every other job skips them.
+  ARCHIVE_LOGS_ACC_PATTERN: &archive_logs_acc_pattern '^TestAccCoralogix(Resource|DataSource)(Resource)?Archive(Logs|Metrics|Retentions)'
   # The quota allocation rule set is one per account, so its tests must not run at the same time. The
   # quota-allocation-rule-set shard runs all of them (handwritten, generated, and generated upgrade)
   # with -p 1; every other job skips them.
@@ -59,7 +59,7 @@ env:
   TEAM_ACC_PATTERN: &team_acc_pattern '^TestAccCoralogix(Resource|DataSource)Team'
   # The generated upgrade shard leaves out the tests that have a shard of their own, and the team
   # tests.
-  GENERATED_UPGRADE_SKIP_PATTERN: &generated_upgrade_skip_pattern '^TestAccCoralogix(Resource|DataSource)(Resource)?Archive(Logs|Metrics)|^TestAccCoralogix(Resource|DataSource)QuotaAllocation|^TestAccCoralogix(Resource|DataSource)(ParsingRules|RulesGroup)|^TestAccCoralogix(Resource|DataSource)(TCO|Tco)Policies|^TestAccCoralogix(Resource|DataSource)Team'
+  GENERATED_UPGRADE_SKIP_PATTERN: &generated_upgrade_skip_pattern '^TestAccCoralogix(Resource|DataSource)(Resource)?Archive(Logs|Metrics|Retentions)|^TestAccCoralogix(Resource|DataSource)QuotaAllocation|^TestAccCoralogix(Resource|DataSource)(ParsingRules|RulesGroup)|^TestAccCoralogix(Resource|DataSource)(TCO|Tco)Policies|^TestAccCoralogix(Resource|DataSource)Team'
   DASHBOARD_SHARD_STRUCTURED_LINE_AND_TABLE: &dashboard_shard_structured_line_and_table '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/line-and-table$'
   DASHBOARD_SHARD_STRUCTURED_GAUGE_AND_BARS: &dashboard_shard_structured_gauge_and_bars '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/gauge-and-bars$'
   DASHBOARD_SHARD_STRUCTURED_HORIZONTAL_AND_HEXAGON: &dashboard_shard_structured_horizontal_and_hexagon '^TestAccCoralogixResourceDashboardOpenAPIWidget(Logs|Metrics|Spans|DataPrime)Queries$/horizontal-and-hexagon$'

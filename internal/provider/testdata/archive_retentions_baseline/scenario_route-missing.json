@@ -16,7 +16,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "archive-retention-settings",
       "retentions": [
         {
           "editable": "(unknown)",
@@ -117,8 +117,37 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_archive_retentions is in state, but no longer exists in Coralogix backend | coralogix_archive_retentions will be recreated when you apply"
+      "error: Unable to read archive_retentions | id archive-retention-settings: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}"
     ],
-    "state": null
+    "state": {
+      "id": "archive-retention-settings",
+      "retentions": [
+        {
+          "editable": false,
+          "id": "11111111-1111-4111-8111-111111111111",
+          "name": "Default",
+          "order": 1
+        },
+        {
+          "editable": true,
+          "id": "22222222-2222-4222-8222-222222222222",
+          "name": "short_term",
+          "order": 2
+        },
+        {
+          "editable": true,
+          "id": "33333333-3333-4333-8333-333333333333",
+          "name": "mid_term",
+          "order": 3
+        },
+        {
+          "editable": true,
+          "id": "44444444-4444-4444-8444-444444444444",
+          "name": "long_term",
+          "order": 4
+        }
+      ]
+    },
+    "replanEmpty": true
   }
 ]

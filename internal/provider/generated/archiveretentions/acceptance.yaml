@@ -1,0 +1,11 @@
+# What the generated acceptance test needs for coralogix_archive_retentions, besides the schema.
+# The company has one set of four retention tags, so every subtest renames the same tags.
+resource: GetRetentionsResponse
+
+# The API needs all four tags, and the first one keeps the name "Default".
+values:
+  retentions: '[{}, { name = "@{run}-2" }, { name = "@{run}-3" }, { name = "@{run}-4" }]'
+updatedValues:
+  retentions: '[{}, { name = "@{run}-2b" }, { name = "@{run}-3b" }, { name = "@{run}-4b" }]'
+
+upgradeFrom: "3.24.0"

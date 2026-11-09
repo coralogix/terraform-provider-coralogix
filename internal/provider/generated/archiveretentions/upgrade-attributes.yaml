@@ -1,0 +1,11 @@
+# Written by coralogix-iac-codegen. Do not edit.
+# The attributes that the released provider of the upgrade test has. The upgrade test leaves out
+# every other attribute. The generator takes the list from the schema when upgradeFrom changes.
+from: 3.24.0
+attributes:
+    id: {type: String}
+    retentions: {type: ListNested, required: true}
+    retentions[].editable: {type: Bool}
+    retentions[].id: {type: String}
+    retentions[].name: {type: String}
+    retentions[].order: {type: Int64}
