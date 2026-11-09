@@ -1347,6 +1347,7 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "pod"
@@ -1384,15 +1385,12 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "access_policy": null,
       "case_settings": null,
       "data_sources": null,
       "deleted": false,
-      "description": "metric anomaly baseline",
+      "description": null,
       "enabled": true,
       "group_by": [
         "pod"
@@ -1450,10 +1448,7 @@
         "tracing_threshold": null
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -1469,7 +1464,7 @@
       "case_settings": null,
       "data_sources": null,
       "deleted": false,
-      "description": "metric anomaly baseline",
+      "description": null,
       "enabled": true,
       "group_by": [
         "pod"
@@ -1527,9 +1522,6 @@
         "tracing_threshold": null
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   }
 ]

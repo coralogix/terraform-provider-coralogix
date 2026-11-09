@@ -387,6 +387,7 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -700,6 +701,7 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -1013,6 +1015,7 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -1326,6 +1329,7 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -1906,6 +1910,7 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -2133,6 +2138,7 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -2448,6 +2454,7 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -2759,6 +2766,7 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,

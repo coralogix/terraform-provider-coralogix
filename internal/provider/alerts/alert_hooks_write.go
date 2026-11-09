@@ -70,6 +70,27 @@ func beforeUpdateAlert(ctx context.Context, config tfsdk.Config, body *alertapi.
 	policy, policyDiags := configuredAccessPolicy(ctx, config)
 	diags.Append(policyDiags...)
 	body.AccessPolicy = accessPolicyActionForUpdate(policy)
+	diags.Append(clearOmittedDescription(ctx, config, body.AlertDefProperties)...)
+	return diags
+}
+
+var descriptionPath = path.Root("description")
+
+// clearOmittedDescription sends description "" on Replace when the configuration leaves it out. The
+// API keeps a stored description that a Replace omits and clears it only for an explicit "", so
+// without this a removed description would stay on the alert. Create omits it, because a new alert has
+// none to clear; a configured value, "" too, is already in the request.
+func clearOmittedDescription(ctx context.Context, config tfsdk.Config, properties *alertapi.AlertDefProperties) diag.Diagnostics {
+	if properties == nil {
+		return nil
+	}
+	var description types.String
+	diags := config.GetAttribute(ctx, descriptionPath, &description)
+	if diags.HasError() || !description.IsNull() {
+		return diags
+	}
+	empty := ""
+	properties.Description = &empty
 	return diags
 }
 

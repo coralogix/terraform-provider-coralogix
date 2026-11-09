@@ -222,6 +222,7 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -246,15 +247,12 @@
         "status": 200
       }
     ],
-    "inconsistentResult": [
-      "description"
-    ],
     "state": {
       "access_policy": null,
       "case_settings": null,
       "data_sources": null,
       "deleted": false,
-      "description": "first",
+      "description": null,
       "enabled": true,
       "group_by": null,
       "id": "00000000-0000-4000-8000-000000000001",
@@ -305,10 +303,7 @@
         "tracing_threshold": null
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
@@ -324,7 +319,7 @@
       "case_settings": null,
       "data_sources": null,
       "deleted": false,
-      "description": "first",
+      "description": null,
       "enabled": true,
       "group_by": null,
       "id": "00000000-0000-4000-8000-000000000001",
@@ -375,10 +370,7 @@
         "tracing_threshold": null
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"description\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "update: set the description",
@@ -614,6 +606,7 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,

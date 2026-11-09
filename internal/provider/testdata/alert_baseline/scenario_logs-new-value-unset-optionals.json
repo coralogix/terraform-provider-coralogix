@@ -318,6 +318,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "remote_addr_geoip.country_name"

@@ -164,12 +164,44 @@ func timeOfDay(t *alertapi.TimeOfDay) time.Time {
 
 var destinationsPath = path.Root("notification_group").AtName("destinations")
 
-// afterReadAlert keeps retriggering_period_minutes of a destination null where the plan or the prior
+// afterReadAlert reads an empty description as null (keepDescriptionUnset) and keeps retriggering_period_minutes of a destination null where the plan or the prior
 // state has none. The API gives a destination without a period the cadence of the incident and returns
 // it: writing that value to the state would fail the apply and pin the inherited value on the next
 // update. A state upgrade has no prior value, and a prior schema could not set the period, so every
 // returned value is the inherited one.
 func afterReadAlert(ctx context.Context, state *tfsdk.State, prior any) diag.Diagnostics {
+	diags := keepDescriptionUnset(ctx, state, prior)
+	if diags.HasError() {
+		return diags
+	}
+	return append(diags, keepDestinationPeriodsUnset(ctx, state, prior)...)
+}
+
+var descriptionAttrPath = path.Root("description")
+
+// keepDescriptionUnset reads the "" that the API returns for a cleared description as null, unless the
+// plan or the prior state holds a configured "". The API returns no description for an alert that never
+// had one, so an empty one only follows a Replace that cleared it. An import and a state upgrade have no
+// prior value, so they read null.
+func keepDescriptionUnset(ctx context.Context, state *tfsdk.State, prior any) diag.Diagnostics {
+	var description types.String
+	if diags := state.GetAttribute(ctx, descriptionAttrPath, &description); diags.HasError() || description.IsNull() || description.IsUnknown() || description.ValueString() != "" {
+		return diags
+	}
+	if data, ok := prior.(priorData); ok && data != nil {
+		var kept types.String
+		if diags := data.GetAttribute(ctx, descriptionAttrPath, &kept); diags.HasError() {
+			return diags
+		}
+		if !kept.IsNull() && !kept.IsUnknown() && kept.ValueString() == "" {
+			return nil
+		}
+	}
+	return state.SetAttribute(ctx, descriptionAttrPath, types.StringNull())
+}
+
+// keepDestinationPeriodsUnset clears retriggering_period_minutes where the plan or prior state has none.
+func keepDestinationPeriodsUnset(ctx context.Context, state *tfsdk.State, prior any) diag.Diagnostics {
 	var destinations types.List
 	if diags := state.GetAttribute(ctx, destinationsPath, &destinations); diags.HasError() || destinations.IsNull() || destinations.IsUnknown() {
 		return diags

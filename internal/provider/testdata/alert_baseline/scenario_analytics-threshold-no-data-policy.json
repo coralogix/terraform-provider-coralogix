@@ -382,6 +382,7 @@
               "targetColumn": "c",
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -669,6 +670,7 @@
               "targetColumn": "c",
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -956,6 +958,7 @@
               "targetColumn": "c",
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -1243,6 +1246,7 @@
               "targetColumn": "c",
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -1533,6 +1537,7 @@
               "targetColumn": "c",
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -1818,6 +1823,7 @@
               "targetColumn": "c",
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -2104,6 +2110,7 @@
               "targetColumn": "c",
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -2630,6 +2637,7 @@
               "targetColumn": "c",
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -2841,6 +2849,7 @@
               "targetColumn": "c",
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -3050,6 +3059,7 @@
               "targetColumn": "c",
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -3261,6 +3271,7 @@
               "targetColumn": "c",
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -3472,6 +3483,7 @@
               "targetColumn": "c",
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -3682,6 +3694,7 @@
               "targetColumn": "c",
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,

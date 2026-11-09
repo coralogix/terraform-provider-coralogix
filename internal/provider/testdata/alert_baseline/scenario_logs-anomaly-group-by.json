@@ -339,6 +339,7 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "coralogix.metadata.applicationName"
@@ -624,6 +625,7 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "b.key",
@@ -906,6 +908,7 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [],
             "incidentsSettings": {
@@ -1178,6 +1181,7 @@
         "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,

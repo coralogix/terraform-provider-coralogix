@@ -41,6 +41,7 @@
 - FIX: `no_data_policy.state` of a `logs_threshold` or `metric_threshold` alert keeps its value when only `auto_retire_seconds` is configured. Before, the plan showed the state as unknown, the API answered `UNSPECIFIED`, and every later plan showed a change.
 - FIX: An update of an alert that was deleted outside Terraform fails with `Resource no longer exists` and the advice to refresh. Before, it failed with `Missing Resource State After Update`.
 - FIX: The webhook `retriggering_period` that the configuration leaves out comes from the state webhook with the same `integration_id` or `recipients`. Before, it came from the webhook at the same position in the set, which gave a webhook the period of its neighbour.
+- FIX: Removing `description` from the configuration clears it on the alert. The API keeps a stored description that an update omits, so an update now sends `description: ""` when the configuration has none, and an empty description reads back as null (a configured `description = ""` stays). Before, the apply failed with `Provider produced inconsistent result after apply` and the alert kept the old text.
 - FEAT: The resource has a generated acceptance test, and an upgrade test from 3.24.0 (also for a schedule with a UTC offset).
 
 #### data-source/coralogix_alert

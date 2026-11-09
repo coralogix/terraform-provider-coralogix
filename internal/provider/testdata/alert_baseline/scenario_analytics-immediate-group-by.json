@@ -280,6 +280,7 @@
               },
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "coralogix.metadata.applicationName"
@@ -504,6 +505,7 @@
               },
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "coralogix.metadata.applicationName",
@@ -658,6 +660,7 @@
               },
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -869,6 +872,7 @@
               },
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "groupByKeys": [],
             "incidentsSettings": {
@@ -1085,6 +1089,7 @@
               },
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "coralogix.metadata.applicationName"
@@ -1238,6 +1243,7 @@
               },
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "groupByKeys": [],
             "incidentsSettings": {
@@ -1393,6 +1399,7 @@
               "timeframeMinutes": 10,
               "useRowsAsPermutations": true
             },
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "app"
@@ -1619,6 +1626,7 @@
               "timeframeMinutes": 10,
               "useRowsAsPermutations": true
             },
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "app",
@@ -1782,6 +1790,7 @@
               "timeframeMinutes": 10,
               "useRowsAsPermutations": true
             },
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "app",
@@ -1947,6 +1956,7 @@
               "timeframeMinutes": 10,
               "useRowsAsPermutations": true
             },
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "zzz",
@@ -2110,6 +2120,7 @@
               "timeframeMinutes": 10,
               "useRowsAsPermutations": false
             },
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "zzz"
@@ -2264,6 +2275,7 @@
               "timeframeMinutes": 10,
               "useRowsAsPermutations": true
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,

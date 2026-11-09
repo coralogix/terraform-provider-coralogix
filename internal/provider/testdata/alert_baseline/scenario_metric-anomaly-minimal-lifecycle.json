@@ -327,6 +327,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,

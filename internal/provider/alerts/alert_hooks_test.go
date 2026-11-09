@@ -435,3 +435,79 @@ func TestAfterGetSetsAccessPolicy(t *testing.T) {
 		t.Errorf("no policy: %v, %v", policyOf(state), diags)
 	}
 }
+
+// The API keeps a stored description that a Replace omits, and clears it only for an explicit "".
+func TestBeforeWriteClearsAnOmittedDescriptionOnReplace(t *testing.T) {
+	ctx := context.Background()
+	text := "kept"
+	properties := func() *alertapi.AlertDefProperties { return &alertapi.AlertDefProperties{} }
+	withText := func() *alertapi.AlertDefProperties { return &alertapi.AlertDefProperties{Description: &text} }
+
+	t.Run("create omits it", func(t *testing.T) {
+		body := &alertapi.CreateAlertDefinitionRequest{AlertDefProperties: properties()}
+		if diags := beforeWriteAlert(ctx, alertConfig(ctx, nil), body); diags.HasError() || body.AlertDefProperties.Description != nil {
+			t.Errorf("description = %v, %v, want none", body.AlertDefProperties.Description, diags)
+		}
+	})
+	t.Run("replace without a configured description sends an empty one", func(t *testing.T) {
+		body := &alertapi.ReplaceAlertDefinitionRequest{AlertDefProperties: properties()}
+		if diags := beforeWriteAlert(ctx, alertConfig(ctx, nil), body); diags.HasError() || body.AlertDefProperties.Description == nil || *body.AlertDefProperties.Description != "" {
+			t.Errorf("description = %v, %v, want an empty string", body.AlertDefProperties.Description, diags)
+		}
+	})
+	t.Run("replace keeps a configured empty description", func(t *testing.T) {
+		empty := ""
+		body := &alertapi.ReplaceAlertDefinitionRequest{AlertDefProperties: &alertapi.AlertDefProperties{Description: &empty}}
+		config := alertConfig(ctx, map[string]tftypes.Value{"description": stringValue("")})
+		if diags := beforeWriteAlert(ctx, config, body); diags.HasError() || body.AlertDefProperties.Description == nil || *body.AlertDefProperties.Description != "" {
+			t.Errorf("description = %v, %v, want an empty string", body.AlertDefProperties.Description, diags)
+		}
+	})
+	t.Run("replace keeps a configured description", func(t *testing.T) {
+		body := &alertapi.ReplaceAlertDefinitionRequest{AlertDefProperties: withText()}
+		config := alertConfig(ctx, map[string]tftypes.Value{"description": stringValue("kept")})
+		if diags := beforeWriteAlert(ctx, config, body); diags.HasError() || *body.AlertDefProperties.Description != "kept" {
+			t.Errorf("description = %v, %v, want kept", body.AlertDefProperties.Description, diags)
+		}
+	})
+}
+
+// The API returns "" for a cleared description and no value for an alert that never had one.
+func TestAfterReadReadsAClearedDescriptionAsNull(t *testing.T) {
+	ctx := context.Background()
+	s := alert.Schema()
+	stateWith := func(description tftypes.Value) tfsdk.State {
+		return tfsdk.State{Schema: s, Raw: nullObject(s.Type().TerraformType(ctx), map[string]tftypes.Value{"description": description})}
+	}
+	descriptionOf := func(state tfsdk.State) types.String {
+		var description types.String
+		if diags := state.GetAttribute(ctx, descriptionAttrPath, &description); diags.HasError() {
+			t.Fatal(diags)
+		}
+		return description
+	}
+	null := tftypes.NewValue(tftypes.String, nil)
+	cases := []struct {
+		name  string
+		api   tftypes.Value
+		prior any
+		want  types.String
+	}{
+		{"null prior reads null", stringValue(""), stateWith(null), types.StringNull()},
+		{"a configured empty prior stays empty", stringValue(""), stateWith(stringValue("")), types.StringValue("")},
+		{"no prior (import, upgrade) reads null", stringValue(""), nil, types.StringNull()},
+		{"a value stays", stringValue("text"), stateWith(null), types.StringValue("text")},
+		{"a missing value stays null", null, stateWith(stringValue("")), types.StringNull()},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			state := stateWith(tc.api)
+			if diags := afterReadAlert(ctx, &state, tc.prior); diags.HasError() {
+				t.Fatal(diags)
+			}
+			if got := descriptionOf(state); !got.Equal(tc.want) {
+				t.Errorf("description = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}

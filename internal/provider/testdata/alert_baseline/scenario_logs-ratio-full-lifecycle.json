@@ -779,6 +779,7 @@
       {
         "body": {
           "alertDefProperties": {
+            "description": "",
             "enabled": true,
             "groupByKeys": [
               "coralogix.metadata.subsystemName"

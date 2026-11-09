@@ -360,6 +360,7 @@
               "targetColumn": "errors",
               "timeframeMinutes": 30
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,

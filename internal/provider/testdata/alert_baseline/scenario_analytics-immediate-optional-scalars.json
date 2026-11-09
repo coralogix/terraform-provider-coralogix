@@ -277,6 +277,7 @@
               "timeframeMinutes": 10,
               "useRowsAsPermutations": true
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -489,6 +490,7 @@
               "timeframeMinutes": 10,
               "useRowsAsPermutations": false
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -699,6 +701,7 @@
               },
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -911,6 +914,7 @@
               "evaluationDelayMs": 0,
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -1123,6 +1127,7 @@
               "evaluationDelayMs": 1,
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -1272,6 +1277,7 @@
               "evaluationDelayMs": 10800000,
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -1484,6 +1490,7 @@
               "evaluationDelayMs": 10800001,
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -1633,6 +1640,7 @@
               },
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -1843,6 +1851,7 @@
               },
               "timeframeMinutes": 1
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -1992,6 +2001,7 @@
               },
               "timeframeMinutes": 1440
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -2139,6 +2149,7 @@
               },
               "timeframeMinutes": 100000
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -2349,6 +2360,7 @@
               },
               "timeframeMinutes": 2147483647
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -2496,6 +2508,7 @@
               },
               "timeframeMinutes": 9
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,

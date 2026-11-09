@@ -215,6 +215,7 @@
               },
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -363,6 +364,7 @@
               },
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -511,6 +513,7 @@
               },
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
@@ -659,6 +662,7 @@
               },
               "timeframeMinutes": 10
             },
+            "description": "",
             "enabled": true,
             "incidentsSettings": {
               "minutes": 10,
