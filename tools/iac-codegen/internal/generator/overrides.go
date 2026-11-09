@@ -504,12 +504,13 @@ func unwrapUsageIssues(r *model.Resource, file *overrides.File) issue.Report {
 }
 
 // hiddenKeys returns the keys of a field line on the property of a wrapper that collapses in
-// every place. An unwrap key still decides the wrapper inside that property.
+// every place. An unwrap key still decides the wrapper inside that property, and a collection
+// key still decides whether the list inside it is a set: the value of the wrapper is that list.
 func hiddenKeys(r *model.Resource, line overrides.Line) []string {
 	if !r.HiddenWrappers[line.Component] {
 		return nil
 	}
-	return slices.DeleteFunc(slices.Clone(line.Keys), func(key string) bool { return key == "unwrap" })
+	return slices.DeleteFunc(slices.Clone(line.Keys), func(key string) bool { return key == "unwrap" || key == "collection" })
 }
 
 // stringAcceptsEmpty reports whether a string schema accepts "": it has no format, no minimum

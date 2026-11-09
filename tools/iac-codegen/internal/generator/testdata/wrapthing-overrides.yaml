@@ -5,7 +5,7 @@ mode: existing
 validators:
   inferred: false
 
-unwrap: [LuceneQuery, PriorityValue, Threshold, UUID, FilterHolder, Selection, ListSelection]
+unwrap: [Tags, LuceneQuery, PriorityValue, Threshold, UUID, FilterHolder, Selection, ListSelection]
 
 types:
   WrapThing:
@@ -20,3 +20,7 @@ types:
     fields:
       span:
         terraformType: Int64
+  Tags:
+    fields:
+      values:
+        collection: set

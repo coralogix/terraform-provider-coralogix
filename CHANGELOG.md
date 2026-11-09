@@ -38,6 +38,7 @@
 - FEAT: `default` on a field line takes `[]` on a list or set of objects, `null` on a list, set, map, or object, and an object (`{}` for an object of nulls, `{name: value, ...}` for one with values, nested objects included), for an Optional and Computed attribute that plans a static value when it is omitted. The values are checked against the attribute types, the enum values, and the validators of the lines, a default that differs from the `default` of an attribute inside the object is an error, and an extra attribute of the object is null. Before, only a string, a bool, a number, and `[]` on a list of plain values were defaults.
 - FEAT: `requestValueBy` accepts an enum that the contract writes as `allOf` of one `$ref` with a description, as `requestValue` already did, so the value that Create and Update send can follow the object that is set without a handwritten table. Before, the generator stopped with `requestValueBy needs a string or a string enum`.
 - FEAT: `terraformType: Int64` accepts a signed 64-bit number that the API sends as a string (the digit pattern `^-?[0-9]+$`), as it did for the unsigned one. The attribute is an Int64, expand sends its decimal text, and a read of a text that is no 64-bit number is an error. Before, the generator stopped with `integer format "int64" is not supported`.
+- FEAT: `collection: set` on the list inside a wrapper that `unwrap` collapses makes the attribute a set (`{"recipients": {"emails": [..]}}` as a set of strings). Before, the line was reported as unused (`OVERRIDE_UNUSED`).
 
 # Release 3.24.0
 

@@ -21,6 +21,14 @@ func strings(values ...string) types.List {
 	return types.ListValueMust(types.StringType, elems)
 }
 
+func stringSet(values ...string) types.Set {
+	elems := make([]attr.Value, 0, len(values))
+	for _, v := range values {
+		elems = append(elems, types.StringValue(v))
+	}
+	return types.SetValueMust(types.StringType, elems)
+}
+
 // fullModel sets every attribute. Terraform shows the wrapped values without their wrappers.
 func fullModel() *WrapThingModel {
 	return &WrapThingModel{
@@ -33,6 +41,7 @@ func fullModel() *WrapThingModel {
 		WidgetIds:  strings("a", "b"),
 		Filter:     &SimpleFilterModel{Text: types.StringValue("text"), Limit: types.Int32Value(3), Span: types.Int64Value(-3)},
 		Selection:  strings("x", "y"),
+		Tags:       stringSet("p", "q"),
 		MainLabel:  types.StringValue("main"),
 		ExtraLabel: &LabelModel{Value: types.StringValue("extra")},
 		Offset:     types.Int64Value(-9007199254740993),
@@ -51,6 +60,7 @@ func fullResponse() *wrap_things_service.WrapThing {
 		WidgetIds:  []wrap_things_service.UUID{{Value: ptr("a")}, {Value: ptr("b")}},
 		Filter:     &wrap_things_service.FilterHolder{Filter: &wrap_things_service.SimpleFilter{Text: ptr("text"), Limit: ptr(int32(3)), Span: ptr("-3")}},
 		Selection:  &wrap_things_service.Selection{List: &wrap_things_service.ListSelection{Values: []string{"x", "y"}}},
+		Tags:       &wrap_things_service.Tags{Values: []string{"p", "q"}},
 		MainLabel:  &wrap_things_service.Label{Value: ptr("main")},
 		ExtraLabel: &wrap_things_service.Label{Value: ptr("extra")},
 		Offset:     ptr("-9007199254740993"),
@@ -65,7 +75,7 @@ func TestExpandPutsValuesInTheirWrappers(t *testing.T) {
 	want := fullResponse()
 	got := wrap_things_service.WrapThing{
 		Id: want.Id, Name: body.Name, Query: body.Query, RawQuery: body.RawQuery, Priority: body.Priority,
-		Threshold: body.Threshold, WidgetIds: body.WidgetIds, Filter: body.Filter, Selection: body.Selection,
+		Threshold: body.Threshold, WidgetIds: body.WidgetIds, Filter: body.Filter, Selection: body.Selection, Tags: body.Tags,
 		MainLabel: body.MainLabel, ExtraLabel: body.ExtraLabel, Offset: body.Offset,
 	}
 	if !reflect.DeepEqual(&got, want) {
@@ -76,12 +86,12 @@ func TestExpandPutsValuesInTheirWrappers(t *testing.T) {
 func TestExpandSendsNoWrapperForNull(t *testing.T) {
 	body, diags := expandCreate(context.Background(), &WrapThingModel{
 		Query: types.StringNull(), Priority: types.StringNull(), Threshold: types.Float64Null(),
-		WidgetIds: types.ListNull(types.StringType), Selection: types.ListNull(types.StringType), MainLabel: types.StringNull(),
+		WidgetIds: types.ListNull(types.StringType), Selection: types.ListNull(types.StringType), Tags: types.SetNull(types.StringType), MainLabel: types.StringNull(),
 	})
 	if diags.HasError() {
 		t.Fatal(diags)
 	}
-	if body.Priority != nil || body.Threshold != nil || body.WidgetIds != nil || body.Filter != nil || body.Selection != nil || body.MainLabel != nil {
+	if body.Priority != nil || body.Threshold != nil || body.WidgetIds != nil || body.Filter != nil || body.Selection != nil || body.Tags != nil || body.MainLabel != nil {
 		t.Fatalf("a null value sent a wrapper: %+v", body)
 	}
 	// The SDK holds the required query as a value, so a null query is an empty wrapper.
@@ -202,6 +212,51 @@ func TestSignedDigitStringIsReadAsAnInteger(t *testing.T) {
 	for _, text := range []string{"", "abc", "1.5", "9223372036854775808", "-9223372036854775809"} {
 		if _, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Offset: ptr(text)}); !diags.HasError() {
 			t.Errorf("offset %q: want an error", text)
+		}
+	}
+}
+
+// A list inside a wrapper can be a set: expand writes the elements of the set, in the order that
+// Terraform gives them, inside the wrapper, and an empty set is an empty list in its wrapper.
+func TestWrappedSetIsSentInItsWrapper(t *testing.T) {
+	for name, test := range map[string]struct {
+		value types.Set
+		want  *wrap_things_service.Tags
+	}{
+		"elements": {stringSet("a", "b"), &wrap_things_service.Tags{Values: []string{"a", "b"}}},
+		"empty":    {stringSet(), &wrap_things_service.Tags{Values: []string{}}},
+		"null":     {types.SetNull(types.StringType), nil},
+	} {
+		t.Run(name, func(t *testing.T) {
+			body, diags := expandCreate(context.Background(), &WrapThingModel{Tags: test.value})
+			if diags.HasError() {
+				t.Fatal(diags)
+			}
+			if !reflect.DeepEqual(body.Tags, test.want) {
+				t.Fatalf("tags = %+v, want %+v", body.Tags, test.want)
+			}
+		})
+	}
+}
+
+// Flatten builds the set from the list in the wrapper, in any order. A missing wrapper, and a
+// wrapper without values, are null.
+func TestWrappedSetIsReadFromItsWrapper(t *testing.T) {
+	got, diags := flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Tags: &wrap_things_service.Tags{Values: []string{"b", "a"}}})
+	if diags.HasError() || !got.Tags.Equal(stringSet("a", "b")) {
+		t.Fatalf("tags = %s (%v), want [a b] as a set", got.Tags, diags)
+	}
+	got, diags = flatten(context.Background(), &wrap_things_service.WrapThing{Id: "thing-1", Tags: &wrap_things_service.Tags{Values: []string{}}})
+	if diags.HasError() || got.Tags.IsNull() || len(got.Tags.Elements()) != 0 {
+		t.Fatalf("tags = %s (%v), want an empty set", got.Tags, diags)
+	}
+	for name, response := range map[string]*wrap_things_service.WrapThing{
+		"no wrapper":           {Id: "thing-1"},
+		"a wrapper of no list": {Id: "thing-1", Tags: &wrap_things_service.Tags{}},
+	} {
+		got, diags = flatten(context.Background(), response)
+		if diags.HasError() || !got.Tags.IsNull() {
+			t.Errorf("%s: tags = %s (%v), want null", name, got.Tags, diags)
 		}
 	}
 }

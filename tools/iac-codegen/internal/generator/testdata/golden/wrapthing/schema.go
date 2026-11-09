@@ -76,6 +76,11 @@ func Schema() schema.Schema {
 				ElementType:         types.StringType,
 				MarkdownDescription: "",
 			},
+			"tags": schema.SetAttribute{
+				Optional:            true,
+				ElementType:         types.StringType,
+				MarkdownDescription: "",
+			},
 			"main_label": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "",

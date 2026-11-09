@@ -48,6 +48,10 @@ type ListSelection struct {
 	Values []string
 }
 
+type Tags struct {
+	Values []string
+}
+
 type Label struct {
 	Value *string
 }
@@ -63,6 +67,7 @@ type WrapThing struct {
 	WidgetIds  []UUID
 	Filter     *FilterHolder
 	Selection  *Selection
+	Tags       *Tags
 	MainLabel  *Label
 	ExtraLabel *Label
 	Offset     *string
@@ -77,6 +82,7 @@ type CreateWrapThingRequest struct {
 	WidgetIds  []UUID
 	Filter     *FilterHolder
 	Selection  *Selection
+	Tags       *Tags
 	MainLabel  *Label
 	ExtraLabel *Label
 	Offset     *string
@@ -91,6 +97,7 @@ type ReplaceWrapThingRequest struct {
 	WidgetIds  []UUID
 	Filter     *FilterHolder
 	Selection  *Selection
+	Tags       *Tags
 	MainLabel  *Label
 	ExtraLabel *Label
 	Offset     *string

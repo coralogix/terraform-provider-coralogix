@@ -36,6 +36,7 @@ var createFields = []struct {
 	{attr: "widget_ids", serverDefault: false},
 	{attr: "filter", serverDefault: false},
 	{attr: "selection", serverDefault: false},
+	{attr: "tags", serverDefault: false},
 	{attr: "main_label", serverDefault: false},
 	{attr: "extra_label", serverDefault: false},
 	{attr: "offset", serverDefault: false},
@@ -277,6 +278,11 @@ func expandCreateWrapThingRequest(ctx context.Context, p path.Path, m *WrapThing
 		out.Selection = wrapSelection_ListSelection(inner)
 	}
 	{
+		var inner []string
+		inner = expandStringsSet[string](ctx, p.AtName("tags"), m.Tags, diags)
+		out.Tags = wrapTags(inner)
+	}
+	{
 		var inner *string
 		inner = expandString(m.MainLabel)
 		out.MainLabel = wrapLabel(inner)
@@ -382,6 +388,11 @@ func expandReplaceWrapThingRequest(ctx context.Context, p path.Path, m *WrapThin
 		out.Selection = wrapSelection_ListSelection(inner)
 	}
 	{
+		var inner []string
+		inner = expandStringsSet[string](ctx, p.AtName("tags"), m.Tags, diags)
+		out.Tags = wrapTags(inner)
+	}
+	{
 		var inner *string
 		inner = expandString(m.MainLabel)
 		out.MainLabel = wrapLabel(inner)
@@ -422,6 +433,10 @@ func flattenWrapThing(ctx context.Context, p path.Path, v *wrap_things_service.W
 	{
 		inner := unwrapSelection_ListSelection(v.Selection)
 		out.Selection = flattenStringsList(ctx, inner, diags)
+	}
+	{
+		inner := unwrapTags(v.Tags)
+		out.Tags = flattenStringsSet(ctx, inner, diags)
 	}
 	{
 		inner := unwrapLabel(v.MainLabel)
@@ -565,6 +580,22 @@ func unwrapSelection_ListSelection(w *wrap_things_service.Selection) []string {
 		return nil
 	}
 	return w.List.Values
+}
+
+// wrapTags puts the value in its API wrapper objects. A nil value sends no wrapper.
+func wrapTags(v []string) *wrap_things_service.Tags {
+	if v == nil {
+		return nil
+	}
+	return &wrap_things_service.Tags{Values: v}
+}
+
+// unwrapTags takes the value out of its API wrapper objects. A missing wrapper is nil.
+func unwrapTags(w *wrap_things_service.Tags) []string {
+	if w == nil {
+		return nil
+	}
+	return w.Values
 }
 
 // wrapLabel puts the value in its API wrapper objects. A nil value sends no wrapper.
