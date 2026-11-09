@@ -1460,7 +1460,7 @@ func (b *convBuilder) applyTerraformType(cf *convField, component, name string) 
 	}
 	if line.TerraformType == "String" {
 		if cf.Conv != convInt64 {
-			return fmt.Errorf("%s: terraformType String needs an int64 resource id", cf.TFName)
+			return fmt.Errorf("%s: terraformType String needs an int64 field", cf.TFName)
 		}
 		cf.Conv = convInt64AsString
 		return nil

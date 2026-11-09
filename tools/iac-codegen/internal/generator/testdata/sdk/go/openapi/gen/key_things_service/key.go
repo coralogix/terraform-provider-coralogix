@@ -10,9 +10,17 @@ type CreateKeyThingRequestKeyPermissions struct {
 	Permissions []string
 }
 
+// KeyOwner is the oneOf of the owner: one of the three is set.
+type KeyOwner struct {
+	OrganisationId *string
+	TeamId         *int64
+	UserId         *string
+}
+
 // A required field is a value, as openapi-generator writes it.
 type CreateKeyThingRequest struct {
 	Name           string
+	Owner          KeyOwner
 	Hashed         *bool
 	KeyPermissions CreateKeyThingRequestKeyPermissions
 }
@@ -35,6 +43,7 @@ type KeyThingKeyPermissions struct {
 type KeyThing struct {
 	Id             string
 	Name           string
+	Owner          KeyOwner
 	Enabled        bool
 	Hashed         bool
 	Value          *string
