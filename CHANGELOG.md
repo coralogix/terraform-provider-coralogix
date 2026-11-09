@@ -1,5 +1,45 @@
 # Unreleased
 
+#### resource/coralogix_team
+- CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the requests are the same, except as listed below. A plan of a team that 3.24.0 created from the same configuration shows no change.
+- FIX: `daily_quota` reads back as the value that the API stores, a 32-bit float, at its shortest decimal. Before, the read rounded it to three decimals, so a quota such as `0.1234567` failed the apply with `Provider produced inconsistent result after apply`.
+- FIX: An import id that is not an integer fails at the import. Before, the import succeeded and the next refresh failed.
+- FIX: When Create succeeds but the read after it fails, the state keeps the id, so Terraform marks the team tainted and the next apply replaces it. Before, the state was empty and the team stayed outside Terraform.
+- CHORE: API errors read `Unable to create team`, `Unable to update team`, `Unable to delete team`, and `Unable to read team` instead of `Error creating Team`, and so on. A refresh that finds the team gone warns `Resource disappeared during read`, and an update of a team that is gone fails with `Resource no longer exists`. The data source errors read `coralogix_team not found` and `Unable to read coralogix_team`.
+- FEAT: The resource has a generated acceptance test, and an upgrade test from 3.24.0. The teams API needs an organization key, so CI runs them in a shard of their own with one. The example sets `daily_quota = 0.5`.
+
+#### data-source/coralogix_team
+- FEAT: Add the `coralogix_team` data source, generated with the resource. It reads a team by `id`.
+
+#### tools/iac-codegen
+- CHORE: Bump the generator to `v0.1.0-beta.71`. Every generated resource reads and writes its id through small helpers (`apiID`, `setAPIID`, `idStateValue`); the requests and the state are the same.
+- FEAT: The id of an existing resource can be inside a one-property object that `unwrap` names, also in a Create response that holds only the id, as the teams API returns `{"teamId": {"id": 1}}`. A data source lookup by name reads the id in the same wrapper of the List item.
+- FEAT: `terraformType: String` on an int64 resource id keeps a released String id: the state holds the decimal text, the calls parse it, and a non-integer import id is an error at the import. A data source lookup by name does not parse the id that it leaves null.
+- FEAT: `storedAs: float32` on a double field reads a value that the API stores as a float32 as its shortest decimal, so `0.3` reads back as `0.3` instead of `0.30000001192092896`. A plan or state value of the same float32 stays, so a configured `0.123456789` does not make the apply inconsistent.
+- CHORE: Bump `coralogix-management-sdk/iac` to the version that reads a resource id inside a one-property wrapper (coralogix-management-sdk#736). Before, `tfgen check` panicked on such an id.
+
+# Release 3.24.0
+
+#### resource/coralogix_parsing_rules
+- CHORE: The resource is generated from the API contract. The schema, the import by id, the state version, and the requests are the same, except as listed below. A rule group created without `active` is still created inactive, and one without `order` is still added last.
+- FIX: An update of a rule group without `order` in the configuration keeps its place. Before, every update sent `order = 0`, which the API reads as "after every other group", so changing only the description moved the group to the end of the processing order. A new rule group without `order` is still added last. Removing `order` from the configuration now keeps the current order; set a value to move the group. When the same apply deletes a group before it, the update sends the order that the plan read, and the API lowered the orders after the deleted group, so the updated group can share its order with the next one. Set `order` to control the position exactly.
+- FIX: Destroy of a rule group that was deleted outside Terraform succeeds. Before, it failed with the 404 of the API.
+- FIX: `block.keep_blocked_logs` and `replace.replacement_string` are required. The API refuses a block rule without `keep_blocked_logs` and a replace rule without `replacement_string`, so a configuration without them always failed at apply with `Missing ...` from the API. Now the plan reports the missing attribute. `replacement_string = ""` still removes the match.
+- FIX: An update of a rule group that was deleted outside Terraform fails with `Resource no longer exists`, and the next refresh removes it from state. Before, it failed with the raw 404 of the API.
+- CHORE: A rule with no type, or with two, reports `Invalid Attribute Combination` at `block` instead of `parse`. The rule is the same: exactly one type per rule.
+- CHORE: API errors read `Unable to create parsing_rules`, `Unable to update parsing_rules`, `Unable to delete parsing_rules`, and `Unable to read parsing_rules` instead of `Error creating coralogix_parsing_rules`, and so on. A refresh that finds the rule group deleted warns `Resource disappeared during read`.
+- CHORE: A refresh that gets a 404 of a route that does not exist fails instead of removing the rule group from state. A severity, format standard, or destination field that the provider does not know fails the read instead of reading as `""`.
+- CHORE: A read fails with `Invalid response from server` when the API returns a rule without parameters or with two kinds of parameters, or a matcher without exactly one of an application, subsystem, or severity. Before, the rule or the matcher was left out, and a matcher with two values was read twice. The API refuses a rule without parameters on write.
+- CHORE: When Create succeeds but its response cannot be written to state, the state keeps the id, so Terraform marks the rule group tainted and the next apply replaces it, instead of leaving it outside Terraform.
+- CHORE: Create and Update send the rule matchers grouped by kind: applications, then severities, then subsystems. The attributes are sets, so plans do not change.
+- CHORE: A configuration without `rule_subgroups` sends `ruleSubgroups: null`, and `rule_subgroups = []` sends an empty list, instead of leaving the field out. The API refuses all three the same way: a rule group needs a rule.
+- FEAT: The resource has a generated acceptance test, and an upgrade test from 3.23.0.
+
+#### data-source/coralogix_parsing_rules
+- CHORE: The data source is generated with the resource and uses its schema.
+- FIX: A read of an id that does not exist fails with `coralogix_parsing_rules not found`. Before, it warned that the rule group would be recreated, which a data source cannot do, and returned no data.
+- CHORE: API errors read `Unable to read coralogix_parsing_rules` instead of `Error reading coralogix_parsing_rules`.
+
 #### resource/coralogix_archive_metrics
 - CHORE: The resource is generated from the API contract. The requests are the same. A plan of a metrics archive that 3.23.0 created from the same configuration shows no change.
 - FIX: `retention_policy` is no longer computed. A configuration without it now clears the retention policy, also one that was set outside Terraform or came with an import: the first plan after the upgrade shows `retention_policy` removed. Before, the plan showed no change and the API kept the policy. Add `retention_policy` to the configuration to keep it.
@@ -12,6 +52,25 @@
 - CHORE: The data source is generated with the resource and uses its schema. `id` reads `archive-metrics-settings`; before, it was empty.
 - FIX: A read when no metrics archive exists fails with `coralogix_archive_metrics not found`. Before, it warned that the archive would be recreated, which a data source cannot do.
 - CHORE: API errors read `Unable to read coralogix_archive_metrics` instead of `Error reading coralogix_archive_metrics`.
+
+#### resource/coralogix_recording_rules_groups_set
+- CHORE: The resource is generated from the API contract. The schema, `yaml_content`, the import by id, and the state version are the same, and a state of schema version 0 is upgraded by reading the set (its `yaml_content` is kept).
+- FIX: A set without `name` can be created; the API names it after its id. Before, the unknown name was sent as `""` and the API refused it.
+- CHORE: Create leaves out an `interval` or `limit` that the configuration does not set, and the API stores its default (60 and 0). Before, Create sent 60 and 0. As before, `interval` and `limit` are `Optional` and `Computed`: removing them, or changing them outside Terraform, keeps the stored value. Set them to change it.
+- FIX: An `interval` or `limit` that the configuration does not set now becomes the API default (60 and 0). Before, removing it, or changing it outside Terraform, kept the stored value. A group that leaves either out and has another stored value, such as one set in the UI, plans an in-place update to the default on the first plan after the upgrade. Set `interval` or `limit` to keep a value.
+- FIX: Changing a group whose rules leave out `labels`, or setting `rules = []`, no longer fails the apply with `Provider produced inconsistent result`. Reordering the rules of a group no longer copies the labels of one rule to another.
+- FIX: An update of a set that was deleted outside Terraform fails with `Resource no longer exists`, and the next refresh removes it from state. Before, Terraform failed with `Missing Resource State After Update`.
+- FIX: A 404 for a missing API route is an error. Before, the refresh removed the set from state. A set that the API does not find is still removed, with the warning `Resource disappeared during read`.
+- FIX: When the read after a create fails, the state keeps the id of the new set, so Terraform marks it tainted instead of losing it, and the next apply deletes it and creates it again. Before, the set stayed in the API with no state, and every later apply failed with `duplicate_rule_group_set_name`.
+- CHORE: A negative `limit` is an error at apply, before the request. Before, the API refused it.
+- CHORE: `labels` stays `Optional` and `Computed`, as before: removing it does not clear the labels, and a change of another value of the rule keeps them. Set `labels = {}` to clear them. The labels are now matched to a rule by its group name and `record`, so reordering rules no longer moves them to another rule. A rule whose `record` changes keeps the labels of the rule that the group no longer has, when the group has as many new records as removed ones; they pair in order.
+- CHORE: Upgrading a state of schema version 0 reads the set from the API. When the set was deleted outside Terraform, the upgrade fails with `Resource no longer exists`; run `terraform state rm` on its address, and the next plan creates it again. Before, the upgrade kept the state and the refresh removed it.
+- CHORE: API errors read `Unable to create recording_rules_groups_set`, `Unable to update recording_rules_groups_set`, and so on, instead of `Error creating coralogix_recording_rule_groups`.
+
+#### data-source/coralogix_recording_rules_groups_set
+- CHORE: The data source is generated with the resource and uses its schema.
+- FIX: A read of an id that does not exist fails with `coralogix_recording_rules_groups_set not found`. Before, it warned that the set would be recreated, which a data source cannot do.
+- CHORE: A group without rules reads `rules` as `[]`, as the API returns it, instead of null.
 
 #### resource/coralogix_webhook
 - CHORE: The resource and data source use generated code. The released schema, ten webhook types, import, and write-only fields remain available.
@@ -45,6 +104,24 @@
 - FIX: A read of an id that the API does not find fails with `coralogix_integration not found`. Before, it only warned and returned an empty result.
 - CHORE: API errors read `Unable to read coralogix_integration` instead of `Error reading coralogix_integration`.
 
+#### resource/coralogix_tco_policies_logs, resource/coralogix_tco_policies_traces, resource/coralogix_tco_policies_rum
+- CHORE: The resources are generated from the API contract. The attributes, their types, the requests the API sees, and the state are the same as before; the changes are listed below. A plan (with refresh) of policies that were created by 3.23.0 shows no change; with `-refresh=false` it shows `id` being set, and that apply sends no write.
+- CHORE: `id` holds the fixed id of the resource (`tco-policies-logs`, `tco-policies-traces`, `tco-policies-rum`). Before, it was null.
+- CHORE: Create and Update read the policies back with Get after the write, so the state holds what the API stores.
+- FIX: The warning about a `starts_with` or `includes` rule with more than one value names the attribute of the policy (`policies[0].subsystems`). Before, it named a top-level `subsystems` that does not exist.
+- FIX: The `names` of `applications` and `subsystems`, and of `services` and `actions` of `coralogix_tco_policies_traces`, reject a value with any upper-case letter (`App-A`). The API lowercases these names. Before, only a value with no other character than upper-case letters was rejected, and a mixed-case value failed the apply with `inconsistent result` and planned a change every time. `services.names` had no such validator.
+- FIX: The `names` of `applications`, `subsystems`, `services`, and `actions` reject a value with a comma (an empty value was already rejected). The API stores the names of a rule joined by commas, so such a value read back as two names and the apply failed with `inconsistent result`.
+- FIX: A refresh that gets a 404 from the API fails with `Unable to read tco_policies_logs` and keeps the state. Before, it warned that the policies would be recreated and removed them from state, although the API never answers 404 for missing policies: a 404 means a wrong route.
+- CHORE: API errors read `Unable to create tco_policies_logs`, `Unable to update tco_policies_logs`, and `Unable to read tco_policies_logs` (and the same for traces and RUM) instead of `Error creating coralogix_tco_policies_logs`, and so on.
+- FIX: An empty `policies` list of `coralogix_tco_policies_traces`, and a policy with `tags = {}`, store what the configuration says. Before, the apply failed with `inconsistent result` and every plan showed a change.
+- FEAT: The resources have generated acceptance tests, which also check that policies created by 3.23.0 plan no change. All TCO policy tests run in their own serial CI shard, because each source type has one list of policies per company.
+
+#### data-source/coralogix_tco_policies_logs, data-source/coralogix_tco_policies_traces, data-source/coralogix_tco_policies_rum
+- CHORE: The data sources are generated with the resources and use their schema.
+- FIX: `coralogix_tco_policies_traces` with no policies reads `policies = []`, as the logs and RUM data sources do. Before, it read null.
+- FIX: A read that gets a 404 from the API fails with `Unable to read coralogix_tco_policies_logs | id tco-policies-logs: 404 Not Found ...`. Before, it only warned and returned no result. The API never answers 404 for missing policies: a 404 means a wrong route.
+- CHORE: API errors read `Unable to read coralogix_tco_policies_logs | id tco-policies-logs: ...` instead of `Error reading coralogix_tco_policies_logs`, and the same for traces and RUM.
+
 #### resource/coralogix_slo_v2
 - FEAT: New optional `sli.apm_sli.filters[].match_operator` (`is`, `starts_with`, `ends_with`, `includes`, or `unspecified`), from the new API contract. All items of a list use the same mode: all `unspecified` (the default, the legacy mode) or all set. The API returns `unspecified` for a filter that has none, so the attribute is computed with that default. The data source shows it too.
 - CHORE: The generated acceptance test covers the APM SLI, with the service in `CORALOGIX_SLO_V2_APM_SERVICE`.
@@ -54,6 +131,8 @@
 - DOCS: The descriptions of the attributes follow the new API contract.
 
 #### provider
+- CHORE: Bump `coralogix-management-sdk` to the version with the rule groups contract. The SDK holds required fields as values. The TCO policies still send `description` and `priority` on every create, with no change to plans. The new SDK leaves out the null `severities` next to a TCO `dpxl_expression`; the API reads it as empty.
+- CHORE: Bump `coralogix-management-sdk` to the version with the recording rules contract: unordered `groups`, the defaults of `interval` (60) and `limit` ("0"), which the response requires, and `groups` required with at least one item in Create and Update.
 - CHORE: Bump `coralogix-management-sdk` to the version with the actions contract: the defaults of `isHidden` and `isPrivate`, `createdBy` as output-only, and the description of the replace.
 - CHORE: Bump `coralogix-management-sdk` to the version with the integrations contract. The SDK holds the required fields of `IntegrationMetadata` and `DeployedIntegrationInformation` as values; `coralogix_integration` adapts, with no change to plans. The dashboard tests answer a Get with the `permissions` object that the SDK now requires in the response.
 - CHORE: Bump `golang.org/x/crypto` to v0.58.1-0.20261009181718-2f1f834330b2 to clear GO-2026-5932. The provider does not import `golang.org/x/crypto/openpgp`. No change to provider behavior.

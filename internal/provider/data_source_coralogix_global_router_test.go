@@ -26,7 +26,10 @@ var globalRouterDataSourceName = "data." + globalRouterResourceName
 func TestAccCoralogixDataSourceGlobalRouter_basic(t *testing.T) {
 	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccRemoveLeftoverGlobalRouters(t, testAccResourceCoralogixGlobalRouter(name))
+		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
@@ -43,7 +46,10 @@ func TestAccCoralogixDataSourceGlobalRouter_basic(t *testing.T) {
 func TestAccCoralogixDataSourceGlobalRouterByName(t *testing.T) {
 	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccRemoveLeftoverGlobalRouters(t, testAccResourceCoralogixGlobalRouter(name))
+		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{

@@ -152,10 +152,10 @@ Rule-specific attributes:
 | Rule type | Attributes | Required action |
 |---|---|---|
 | `parse` | `source_field`, `destination_field`, `regular_expression` | All unchanged and required. |
-| `block` | `source_field`, `regular_expression`, `keep_blocked_logs` | Unchanged. `source_field` and `regular_expression` are required. `keep_blocked_logs` is optional. |
+| `block` | `source_field`, `regular_expression`, `keep_blocked_logs` | Unchanged. All three are required: the API refuses a block rule without `keep_blocked_logs`. |
 | `block` | `blocking_all_matching_blocks` | Rename to `block_all_matching_blocks`. It remains optional and defaults to `true`. |
 | `json_extract` | `destination_field`, `json_key`, `destination_field_text` | Keep all attributes. `destination_field` and `json_key` are required. `destination_field_text` remains optional and is used with the `text` destination. Change `destination_field` to its canonical value as shown below. |
-| `replace` | `source_field`, `destination_field`, `regular_expression`, `replacement_string` | Names are unchanged. The first three are required. `replacement_string` remains optional. |
+| `replace` | `source_field`, `destination_field`, `regular_expression`, `replacement_string` | Names are unchanged. All four are required: the API refuses a replace rule without `replacement_string`. `replacement_string = ""` removes the match. |
 | `extract_timestamp` | `source_field`, `field_format_standard`, `time_format` | Keep all attributes. All are required. Change `field_format_standard` as shown below. |
 | `remove_fields` | `excluded_fields` | Unchanged. Required and must contain at least one string. |
 | `json_stringify` | `source_field`, `destination_field`, `keep_source_field` | Names are unchanged. The first two are required. `keep_source_field` remains optional and defaults to `false`. |
@@ -173,7 +173,7 @@ The OpenAPI resource reads more omitted values from the API. These attributes ch
 
 You can keep an explicit value or continue to omit these attributes. When you omit one, the API value is stored in state.
 
-Two old provider-side defaults are no longer schema defaults. `block.keep_blocked_logs` no longer has a provider-side `false` default. `replace.replacement_string` no longer has a provider-side empty-string default. Keep an explicit value when the old HCL set one. If the old HCL omitted either attribute, set `keep_blocked_logs = false` or `replacement_string = ""` in the new HCL. This preserves the old request value and avoids depending on an API default.
+Two old provider-side defaults are no longer schema defaults, and both attributes are required. `block.keep_blocked_logs` no longer has a provider-side `false` default. `replace.replacement_string` no longer has a provider-side empty-string default. Keep an explicit value when the old HCL set one. If the old HCL omitted either attribute, set `keep_blocked_logs = false` or `replacement_string = ""` in the new HCL. This preserves the old request value.
 
 The resource output shape also changes for rule types. An old rule type was a list containing zero or one object. A new rule type is a nullable object. Remove the `[0]` index after `parse`, `block`, or another rule-type name in expressions that read the resource.
 

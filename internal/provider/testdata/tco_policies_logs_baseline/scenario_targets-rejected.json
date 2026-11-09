@@ -19,7 +19,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -80,7 +80,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_tco_policies_logs | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies: ValidationError: \\\"policies[0]\\\" failed custom validation because FAILED_PRECONDITION: priority/priorityOverride must be set either at the policy level or per-target, not both.\"}\noperation - Create"
+      "error: Unable to create tco_policies_logs | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies: ValidationError: \\\"policies[0]\\\" failed custom validation because FAILED_PRECONDITION: priority/priorityOverride must be set either at the policy level or per-target, not both.\"}"
     ],
     "state": null
   },
@@ -97,7 +97,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -133,8 +133,7 @@
               "policy": {
                 "description": "",
                 "disabled": false,
-                "name": "first",
-                "priority": "PRIORITY_TYPE_UNSPECIFIED"
+                "name": "first"
               }
             }
           ]
@@ -143,7 +142,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_tco_policies_logs | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies: ValidationError: \\\"policies[0]\\\" failed custom validation because FAILED_PRECONDITION: A priority is required: set the policy priority (or a quota-based priority override), or provide targets that each specify a priority.\"}\noperation - Create"
+      "error: Unable to create tco_policies_logs | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies: ValidationError: \\\"policies[0]\\\" failed custom validation because FAILED_PRECONDITION: A priority is required: set the policy priority (or a quota-based priority override), or provide targets that each specify a priority.\"}"
     ],
     "state": null
   },
@@ -166,7 +165,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -211,7 +210,6 @@
                 "description": "",
                 "disabled": false,
                 "name": "first",
-                "priority": "PRIORITY_TYPE_UNSPECIFIED",
                 "targets": [
                   {
                     "dataset": "missing",
@@ -227,7 +225,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_tco_policies_logs | error - 412 Precondition Failed — {\"code\":412,\"message\":\"Failed Precondition: Dataset 'missing' not found\"}\noperation - Create"
+      "error: Unable to create tco_policies_logs | 412 Precondition Failed — {\"code\":412,\"message\":\"Failed Precondition: Dataset 'missing' not found\"}"
     ],
     "state": null
   }

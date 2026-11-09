@@ -22,7 +22,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-traces",
       "policies": [
         {
           "actions": null,
@@ -86,10 +86,15 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_SPANS",
+        "status": 200
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-traces",
       "policies": [
         {
           "actions": null,
@@ -134,7 +139,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-traces",
       "policies": [
         {
           "actions": null,

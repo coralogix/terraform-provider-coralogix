@@ -124,6 +124,9 @@ type tfAttr struct {
 	// acceptance test leaves it out unless values or an upgrade case supplies the map: a made-up
 	// map key is not a valid API field.
 	Extra bool
+	// ServerSetInRequest: the request requires the field, and Get requires it and marks it
+	// read-only, as an id that a write sends back to name an item of an overwrite resource.
+	ServerSetInRequest bool
 }
 
 // tfModel is one Go struct of the Terraform model.
@@ -550,6 +553,9 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 	if l.Computed != nil {
 		a.Computed = *l.Computed
 	}
+	if err := serverSetInRequest(a, l, file); err != nil {
+		return err
+	}
 	if err := applyModifiers(a, l); err != nil {
 		return err
 	}
@@ -572,6 +578,25 @@ func applyField(a *tfAttr, l overrides.Field, file *overrides.File) error {
 			a.ElemValidators = append(slices.DeleteFunc(a.ElemValidators, func(e string) bool { return strings.HasPrefix(e, "stringvalidator.OneOf") }), oneOf)
 		}
 	}
+	return nil
+}
+
+// serverSetInRequest makes an item field of an overwrite resource computed-only when the write
+// requires the value that Get returns as read-only, such as the id that names the item to change. The
+// line states it with computed: true and useStateForUnknown: Update sends the value that the state
+// keeps. Create has no state, so a BeforeWrite hook of the resource fills the request value. The
+// request still requires the field.
+func serverSetInRequest(a *tfAttr, l overrides.Field, file *overrides.File) error {
+	if l.Computed == nil || !*l.Computed || !a.Required || !a.ServerSetInRequest {
+		return nil
+	}
+	if file.API.Overwrite == nil {
+		return errors.New("computed: true on a field that the request requires and Get returns as read-only needs api.overwrite")
+	}
+	if !l.UseStateForUnknown {
+		return errors.New("computed: true on a field that the request requires and Get returns as read-only needs useStateForUnknown, so Update sends the value that the state keeps")
+	}
+	a.Required, a.Optional = false, false
 	return nil
 }
 
@@ -1210,6 +1235,19 @@ func applyTerraformType(a *tfAttr, l overrides.Field) error {
 	if l.TerraformType == "" {
 		return nil
 	}
+	if l.TerraformType == "String" {
+		// The released id is the decimal text of an integer id. resourceIDData checks that the
+		// line is on the id.
+		if a.Kind != "Int64" {
+			return fmt.Errorf("terraformType String needs an int64 resource id, not a %s", a.Kind)
+		}
+		prefix := strings.ToLower(a.Kind) + "planmodifier."
+		for i, m := range a.Modifiers {
+			a.Modifiers[i] = strings.Replace(m, prefix, "stringplanmodifier.", 1)
+		}
+		a.Kind, a.ValueKind = "String", "String"
+		return nil
+	}
 	retype := func(vs []string) []string {
 		out := make([]string, 0, len(vs))
 		for _, v := range vs {
@@ -1299,6 +1337,7 @@ func (b *tfBuilder) objectAttributes(p attrPath, t *model.Type) ([]*tfAttr, erro
 			// A computed line, or an attribute of a keyedBy object, which the API can fill.
 			a.Computed = true
 		}
+		a.ServerSetInRequest = a.Required && f.Attrs.Required && f.Attrs.ReadOnly
 		switch f.Behavior {
 		case model.Computed:
 			markComputed(a)
@@ -1867,6 +1906,9 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 		goType = "types.Int64"
 		if t.Format == "int32" && terraformType(b.policy, component, name) == "" {
 			goType = "types.Int32"
+		}
+		if b.file != nil && b.file.Types[component].Fields[name].TerraformType == "String" {
+			goType = "types.String" // the released String id
 		}
 	case model.Set:
 		goType = "types.Set"

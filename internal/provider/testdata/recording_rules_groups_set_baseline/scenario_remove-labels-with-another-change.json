@@ -47,8 +47,6 @@
         "body": {
           "groups": [
             {
-              "interval": 60,
-              "limit": "0",
               "name": "g1",
               "rules": [
                 {
@@ -176,8 +174,8 @@
     "plan": {
       "groups": [
         {
-          "interval": 60,
-          "limit": 0,
+          "interval": "(unknown)",
+          "limit": "(unknown)",
           "name": "g1",
           "rules": [
             {
@@ -202,8 +200,6 @@
         "body": {
           "groups": [
             {
-              "interval": 60,
-              "limit": "0",
               "name": "g1",
               "rules": [
                 {

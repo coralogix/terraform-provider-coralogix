@@ -74,6 +74,9 @@ type dsNameLookup struct {
 	Items     string // SDK field of the response that holds the items
 	ItemID    string // SDK field of the item id
 	ItemName  string // SDK field of the item name
+	// IDWrap: the item id field holds the wrapper of the id, as the resource id field does, so
+	// the lookup reads the id with unwrap<IDWrap>.
+	IDWrap string
 	// IDValue and NameValue: the item field is a value, not a pointer.
 	IDValue, NameValue bool
 	// First takes the first item with the name (duplicateNames: first). Otherwise a name that
@@ -409,6 +412,15 @@ func buildNameLookup(r *model.Resource, refs []sdkcheck.Ref, conv *convData, cru
 		return nil, err
 	}
 	out.ItemID, out.IDValue = id.Name, id.Want == crud.IDGoType
+	if crud.IDWrap != "" {
+		wrapper, err := ix.schemaRef(r.IDType.Wrappers[0].Schema)
+		if err != nil {
+			return nil, err
+		}
+		if id.Want == wrapper.Name || id.Want == "*"+wrapper.Name {
+			out.IDWrap, out.IDValue = crud.IDWrap, id.Want == wrapper.Name
+		}
+	}
 	out.ItemName, out.NameValue = name.Name, name.Want == "string"
 	return out, nil
 }

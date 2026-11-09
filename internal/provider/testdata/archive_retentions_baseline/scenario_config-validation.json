@@ -1,0 +1,205 @@
+[
+  {
+    "step": "three retentions",
+    "config": {
+      "retentions": [
+        {},
+        {
+          "name": "a"
+        },
+        {
+          "name": "b"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"retentions\")] | Attribute retentions list must contain at least 4 elements and at most 4 elements, got: 3",
+      "error: error on validating retentions | retentions list must have 4 elements but got 3"
+    ],
+    "state": null
+  },
+  {
+    "step": "five retentions",
+    "config": {
+      "retentions": [
+        {},
+        {
+          "name": "a"
+        },
+        {
+          "name": "b"
+        },
+        {
+          "name": "c"
+        },
+        {
+          "name": "d"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"retentions\")] | Attribute retentions list must contain at least 4 elements and at most 4 elements, got: 5",
+      "error: error on validating retentions | retentions list must have 4 elements but got 5"
+    ],
+    "state": null
+  },
+  {
+    "step": "no retentions",
+    "config": {
+      "retentions": []
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"retentions\")] | Attribute retentions list must contain at least 4 elements and at most 4 elements, got: 0",
+      "error: error on validating retentions | retentions list must have 4 elements but got 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "the first name is set",
+    "config": {
+      "retentions": [
+        {
+          "name": "Default"
+        },
+        {
+          "name": "a"
+        },
+        {
+          "name": "b"
+        },
+        {
+          "name": "c"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: error on validating retentions | first retention's name can't be set"
+    ],
+    "state": null
+  },
+  {
+    "step": "set id",
+    "config": {
+      "id": "mine",
+      "retentions": [
+        {},
+        {
+          "name": "a"
+        },
+        {
+          "name": "b"
+        },
+        {
+          "name": "c"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Configuration for Read-Only Attribute [AttributeName(\"id\")] | Cannot set value for this attribute as the provider has marked it as read-only. Remove the configuration line setting the value.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable and read-only attributes that are supported."
+    ],
+    "state": null
+  },
+  {
+    "step": "set a retention id",
+    "config": {
+      "retentions": [
+        {},
+        {
+          "id": "mine",
+          "name": "a"
+        },
+        {
+          "name": "b"
+        },
+        {
+          "name": "c"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Configuration for Read-Only Attribute [AttributeName(\"retentions\").ElementKeyInt(1).AttributeName(\"id\")] | Cannot set value for this attribute as the provider has marked it as read-only. Remove the configuration line setting the value.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable and read-only attributes that are supported."
+    ],
+    "state": null
+  },
+  {
+    "step": "set order",
+    "config": {
+      "retentions": [
+        {},
+        {
+          "name": "a",
+          "order": 7
+        },
+        {
+          "name": "b"
+        },
+        {
+          "name": "c"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: Invalid Configuration for Read-Only Attribute [AttributeName(\"retentions\").ElementKeyInt(1).AttributeName(\"order\")] | Cannot set value for this attribute as the provider has marked it as read-only. Remove the configuration line setting the value.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable and read-only attributes that are supported."
+    ],
+    "state": null
+  },
+  {
+    "step": "a name with a space",
+    "config": {
+      "retentions": [
+        {},
+        {
+          "name": "short term"
+        },
+        {
+          "name": "b"
+        },
+        {
+          "name": "c"
+        }
+      ]
+    },
+    "state": null
+  },
+  {
+    "step": "the first name is unknown",
+    "config": {
+      "retentions": [
+        {
+          "name": "(unknown)"
+        },
+        {
+          "name": "a"
+        },
+        {
+          "name": "b"
+        },
+        {
+          "name": "c"
+        }
+      ]
+    },
+    "validateDiagnostics": [
+      "error: error on validating retentions | first retention's name can't be set"
+    ],
+    "state": null
+  },
+  {
+    "step": "a name is unknown",
+    "config": {
+      "retentions": [
+        {},
+        {
+          "name": "(unknown)"
+        },
+        {
+          "name": "b"
+        },
+        {
+          "name": "c"
+        }
+      ]
+    },
+    "state": null
+  }
+]

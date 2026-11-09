@@ -749,7 +749,7 @@
       "hidden": "(unknown)",
       "id": "00000000-0000-4000-9000-000000000011",
       "name": "tf-rule-group",
-      "order": "(unknown)",
+      "order": 1,
       "rule_subgroups": [
         {
           "active": true,
@@ -954,7 +954,7 @@
           "enabled": false,
           "hidden": false,
           "name": "tf-rule-group",
-          "order": 0,
+          "order": 1,
           "ruleSubgroups": [
             {
               "enabled": true,
@@ -1594,7 +1594,7 @@
       "hidden": "(unknown)",
       "id": "00000000-0000-4000-9000-000000000011",
       "name": "tf-rule-group",
-      "order": "(unknown)",
+      "order": 1,
       "rule_subgroups": [
         {
           "active": true,
@@ -1799,7 +1799,7 @@
           "enabled": false,
           "hidden": false,
           "name": "tf-rule-group",
-          "order": 0,
+          "order": 1,
           "ruleSubgroups": [
             {
               "enabled": true,
@@ -2370,86 +2370,8 @@
         }
       ]
     },
-    "plan": {
-      "active": "(unknown)",
-      "applications": [],
-      "creator": "(unknown)",
-      "description": "(unknown)",
-      "hidden": "(unknown)",
-      "id": "00000000-0000-4000-9000-000000000011",
-      "name": "tf-rule-group",
-      "order": "(unknown)",
-      "rule_subgroups": [
-        {
-          "active": true,
-          "id": "(unknown)",
-          "order": "(unknown)",
-          "rules": [
-            {
-              "block": null,
-              "extract": null,
-              "extract_timestamp": null,
-              "json_extract": null,
-              "json_stringify": null,
-              "parse": null,
-              "parse_json_field": null,
-              "remove_fields": null,
-              "replace": {
-                "active": true,
-                "description": "",
-                "destination_field": "text",
-                "id": "(unknown)",
-                "name": "rule-replace",
-                "order": "(unknown)",
-                "regular_expression": ".*{",
-                "replacement_string": null,
-                "source_field": "text"
-              }
-            }
-          ]
-        }
-      ],
-      "severities": [],
-      "subsystems": []
-    },
-    "requests": [
-      {
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/parsing-rules/rule-groups/v1/00000000-0000-4000-9000-000000000011",
-        "body": {
-          "creator": "",
-          "description": "",
-          "enabled": false,
-          "hidden": false,
-          "name": "tf-rule-group",
-          "order": 0,
-          "ruleSubgroups": [
-            {
-              "enabled": true,
-              "order": 1,
-              "rules": [
-                {
-                  "description": "",
-                  "enabled": true,
-                  "name": "rule-replace",
-                  "order": 1,
-                  "parameters": {
-                    "replaceParameters": {
-                      "destinationField": "text",
-                      "rule": ".*{"
-                    }
-                  },
-                  "sourceField": "text"
-                }
-              ]
-            }
-          ]
-        },
-        "status": 400
-      }
-    ],
-    "applyDiagnostics": [
-      "error: Error updating coralogix_parsing_rules | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: Request errors:\\n* Missing ReplaceParameters.replaceNewVal\"}\noperation - Update"
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"rule_subgroups\").ElementKeyInt(0).AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"replace\").AttributeName(\"replacement_string\")] | Must set a configuration value for the rule_subgroups[0].rules[0].replace.replacement_string attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
     ],
     "state": {
       "active": false,

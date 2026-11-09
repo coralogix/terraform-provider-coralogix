@@ -442,7 +442,7 @@
       "hidden": "(unknown)",
       "id": "00000000-0000-4000-9000-000000000006",
       "name": "second",
-      "order": "(unknown)",
+      "order": 2,
       "rule_subgroups": [
         {
           "active": true,
@@ -484,7 +484,7 @@
           "enabled": false,
           "hidden": false,
           "name": "second",
-          "order": 0,
+          "order": 2,
           "ruleSubgroups": [
             {
               "enabled": true,
@@ -517,7 +517,7 @@
       "hidden": false,
       "id": "00000000-0000-4000-9000-000000000006",
       "name": "second",
-      "order": 3,
+      "order": 2,
       "rule_subgroups": [
         {
           "active": true,
@@ -568,7 +568,7 @@
       "hidden": false,
       "id": "00000000-0000-4000-9000-000000000006",
       "name": "second",
-      "order": 3,
+      "order": 2,
       "rule_subgroups": [
         {
           "active": true,

@@ -208,13 +208,9 @@ func flattenArchiveRetentions(ctx context.Context, retentions []retss.ArchiveV1R
 	var diags diag.Diagnostics
 	var retentionsObjects []types.Object
 	for _, retention := range retentions {
-		order := types.Int64Null()
-		if retention.Order != nil {
-			order = types.Int64Value(int64(*retention.Order))
-		}
 		retentionModel := &ArchiveRetentionResourceModel{
 			ID:       types.StringValue(retention.GetId()),
-			Order:    order,
+			Order:    types.Int64Value(int64(retention.GetOrder())),
 			Name:     types.StringValue(retention.GetName()),
 			Editable: types.BoolValue(retention.GetEditable()),
 		}
@@ -274,7 +270,7 @@ func extractCreateArchiveRetentions(ctx context.Context, plan *ArchiveRetentions
 		}
 		retentions = append(retentions, retss.RetentionUpdateElement{
 			Id:   exitingRetentions[i].Id,
-			Name: retentionModel.Name.ValueStringPointer(),
+			Name: retentionModel.Name.ValueString(),
 		})
 
 	}
@@ -288,8 +284,7 @@ func extractCreateArchiveRetentions(ctx context.Context, plan *ArchiveRetentions
 		)
 		return nil, diags
 	}
-	name := "Default"
-	retentions[0].Name = &name
+	retentions[0].Name = "Default"
 	return &retss.UpdateRetentionsRequest{
 		RetentionUpdateElements: retentions,
 	}, diags
@@ -313,12 +308,11 @@ func extractUpdateArchiveRetentions(ctx context.Context, plan, state *ArchiveRet
 			continue
 		}
 		retentions = append(retentions, retss.RetentionUpdateElement{
-			Id:   stateRetentionModel.ID.ValueStringPointer(),
-			Name: planRetentionModel.Name.ValueStringPointer(),
+			Id:   stateRetentionModel.ID.ValueString(),
+			Name: planRetentionModel.Name.ValueString(),
 		})
 	}
-	name := "Default"
-	retentions[0].Name = &name
+	retentions[0].Name = "Default"
 	return &retss.UpdateRetentionsRequest{
 		RetentionUpdateElements: retentions,
 	}, diags

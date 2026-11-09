@@ -418,6 +418,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_with_routing(t *testing.T) {
 				"SLACK_INTEGRATION_CHANNEL",
 				"SLACK_INTEGRATION_CHANNEL_UPDATED",
 			)
+			testAccRemoveLeftoverGlobalRouters(t, testAccCoralogixResourceAlertLogsLessThanWithRouter(name))
 		},
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertDestroy(t),

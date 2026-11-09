@@ -19,7 +19,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": {
@@ -74,7 +74,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error creating coralogix_tco_policies_logs | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies: ValidationError: \\\"policies[0].policy.applicationRule.ruleTypeId\\\" must be one of [3, 2, 6, 4]\"}\noperation - Create"
+      "error: Unable to create tco_policies_logs | 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies: ValidationError: \\\"policies[0].policy.applicationRule.ruleTypeId\\\" must be one of [3, 2, 6, 4]\"}"
     ],
     "state": null
   },
@@ -98,7 +98,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": {
@@ -150,10 +150,15 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_LOGS",
+        "status": 200
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": {
@@ -191,7 +196,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": {
@@ -239,7 +244,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": {
@@ -294,10 +299,10 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_tco_policies_logs | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies: ValidationError: \\\"policies[0].policy.applicationRule.ruleTypeId\\\" must be one of [3, 2, 6, 4]\"}\noperation - Replace"
+      "error: Unable to update tco_policies_logs | id tco-policies-logs: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: validation failed for method /com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies: ValidationError: \\\"policies[0].policy.applicationRule.ruleTypeId\\\" must be one of [3, 2, 6, 4]\"}"
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": {
@@ -334,7 +339,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": {
@@ -362,7 +367,6 @@
     },
     "replanEmpty": false,
     "replanDiff": [
-      "AttributeName(\"id\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"applications\").AttributeName(\"rule_type\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"id\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"order\")"

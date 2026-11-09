@@ -14,6 +14,9 @@ package provider
 //go:generate make -C ../.. codegen RESOURCE=GlobalRouter OUT=globalrouter
 //go:generate make -C ../.. codegen RESOURCE=Preset OUT=preset
 //go:generate make -C ../.. codegen RESOURCE=QuotaAllocationEntityTypeRuleSet OUT=quotaallocationruleset
+//go:generate make -C ../.. codegen RESOURCE=RuleGroup OUT=parsingrules
+//go:generate make -C ../.. codegen RESOURCE=OutRuleGroupSet OUT=recordingrulesgroupsset
+//go:generate make -C ../.. codegen RESOURCE=GetTeamResponse OUT=team
 //go:generate make -C ../.. codegen RESOURCE=Slo OUT=slov2
 //go:generate make -C ../.. codegen RESOURCE=View OUT=view
 //go:generate make -C ../.. codegen RESOURCE=ViewFolder OUT=viewfolder
@@ -21,3 +24,6 @@ package provider
 //go:generate make -C ../.. codegen RESOURCE=v2.Target OUT=archivelogs
 //go:generate make -C ../.. codegen RESOURCE=TenantConfigV2 OUT=archivemetrics
 //go:generate make -C ../.. codegen RESOURCE=v2.Action OUT=action
+//go:generate make -C ../.. codegen RESOURCE=GetCompanyPoliciesResponse OUT=tcopolicieslogs
+//go:generate make -C ../.. codegen RESOURCE=GetCompanyPoliciesResponse OUT=tcopoliciestraces
+//go:generate make -C ../.. codegen RESOURCE=GetCompanyPoliciesResponse OUT=tcopoliciesrum

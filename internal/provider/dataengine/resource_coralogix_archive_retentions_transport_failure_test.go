@@ -128,14 +128,14 @@ func TestExtractCreateArchiveRetentions(t *testing.T) {
 			t.Fatalf("extractCreateArchiveRetentions() produced %d update elements, want 4", got)
 		}
 		// The default (first) retention is always renamed to "Default".
-		if got := rq.RetentionUpdateElements[0].Name; got == nil || *got != "Default" {
-			t.Fatalf("extractCreateArchiveRetentions() first retention name = %v, want \"Default\"", got)
+		if got := rq.RetentionUpdateElements[0].Name; got != "Default" {
+			t.Fatalf("extractCreateArchiveRetentions() first retention name = %q, want \"Default\"", got)
 		}
 		// Ids come from the backend retentions, by position.
 		wantIDs := []string{"a", "b", "c", "d"}
 		for i, want := range wantIDs {
-			if got := rq.RetentionUpdateElements[i].Id; got == nil || *got != want {
-				t.Fatalf("extractCreateArchiveRetentions() retention[%d].Id = %v, want %q", i, got, want)
+			if got := rq.RetentionUpdateElements[i].Id; got != want {
+				t.Fatalf("extractCreateArchiveRetentions() retention[%d].Id = %q, want %q", i, got, want)
 			}
 		}
 	})
@@ -144,8 +144,7 @@ func TestExtractCreateArchiveRetentions(t *testing.T) {
 func archiveV1Retentions(ids ...string) []retss.ArchiveV1Retention {
 	retentions := make([]retss.ArchiveV1Retention, 0, len(ids))
 	for _, id := range ids {
-		id := id
-		retentions = append(retentions, retss.ArchiveV1Retention{Id: &id})
+		retentions = append(retentions, retss.ArchiveV1Retention{Id: id})
 	}
 	return retentions
 }

@@ -20,6 +20,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/acctest/leftovers"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
@@ -95,4 +96,17 @@ func testAccNewClientSet() (*clientset.ClientSet, error) {
 	}
 
 	return clients, nil
+}
+
+// testAccRemoveLeftoverGlobalRouters deletes the global routers that a cancelled run of the test left
+// behind. The routing labels of the tests are pinned, and the API refuses a router whose routing
+// labels another router holds, so a leftover fails every later create. Call it in PreCheck, after the
+// environment checks, with every config that the test applies.
+func testAccRemoveLeftoverGlobalRouters(t *testing.T, configs ...string) {
+	t.Helper()
+	clients, err := testAccNewClientSet()
+	if err != nil {
+		t.Fatal(err)
+	}
+	leftovers.GlobalRouters(t, clients, configs...)
 }

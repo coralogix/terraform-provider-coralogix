@@ -40,7 +40,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": {
@@ -138,17 +138,21 @@
                 "priority": "PRIORITY_TYPE_BLOCK"
               },
               "rumRules": {
-                "dpxlExpression": "<v1> true",
-                "severities": null
+                "dpxlExpression": "<v1> true"
               }
             }
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_RUM",
+        "status": 200
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": {
@@ -212,7 +216,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": {
@@ -307,7 +311,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -373,8 +377,7 @@
                 "priority": "PRIORITY_TYPE_BLOCK"
               },
               "rumRules": {
-                "dpxlExpression": "<v1> true",
-                "severities": null
+                "dpxlExpression": "<v1> true"
               }
             },
             {
@@ -412,10 +415,15 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_RUM",
+        "status": 200
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -504,7 +512,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": {
@@ -583,10 +591,15 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_RUM",
+        "status": 200
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": {
@@ -641,7 +654,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -685,10 +698,15 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_RUM",
+        "status": 200
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -721,7 +739,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -756,7 +774,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -788,17 +806,21 @@
                 "priority": "PRIORITY_TYPE_LOW"
               },
               "rumRules": {
-                "dpxlExpression": "<v1> true",
-                "severities": null
+                "dpxlExpression": "<v1> true"
               }
             }
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_RUM",
+        "status": 200
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -828,7 +850,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -862,7 +884,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -904,10 +926,15 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_RUM",
+        "status": 200
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -939,7 +966,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,

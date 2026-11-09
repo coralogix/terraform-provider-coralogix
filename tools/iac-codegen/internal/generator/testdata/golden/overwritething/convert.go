@@ -540,7 +540,7 @@ func splitStrings(v *string, sep string) types.Set {
 	return types.SetValueMust(types.StringType, elems)
 }
 
-// negateBool returns the opposite of a bool that a request sends under the opposite name.
+// negateBool returns the opposite of a bool, and nil for nil.
 func negateBool(v *bool) *bool {
 	if v == nil {
 		return nil

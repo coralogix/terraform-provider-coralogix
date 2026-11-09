@@ -1,0 +1,72 @@
+[
+  {
+    "step": "create without daily_quota",
+    "config": {
+      "name": "minimum"
+    },
+    "plan": {
+      "daily_quota": "(unknown)",
+      "id": "(unknown)",
+      "name": "minimum",
+      "retention": "(unknown)"
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/aaa/teams/v2",
+        "body": {
+          "teamName": "minimum"
+        },
+        "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "daily_quota": 0.02,
+      "id": "1001",
+      "name": "minimum",
+      "retention": 1
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh and replan",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "status": 200
+      }
+    ],
+    "state": {
+      "daily_quota": 0.02,
+      "id": "1001",
+      "name": "minimum",
+      "retention": 1
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "destroy: the API refuses the minimum quota",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/aaa/teams/v2/1001",
+        "status": 400
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Unable to delete team | id 1001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: DailyQuota must be greater than 0.01\"}"
+    ],
+    "state": {
+      "daily_quota": 0.02,
+      "id": "1001",
+      "name": "minimum",
+      "retention": 1
+    }
+  }
+]

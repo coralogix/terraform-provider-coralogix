@@ -160,7 +160,7 @@
       "hidden": "(unknown)",
       "id": "00000000-0000-4000-9000-000000000003",
       "name": "renamed",
-      "order": "(unknown)",
+      "order": 1,
       "rule_subgroups": [
         {
           "active": true,
@@ -202,7 +202,7 @@
           "enabled": false,
           "hidden": false,
           "name": "renamed",
-          "order": 0,
+          "order": 1,
           "ruleSubgroups": [
             {
               "enabled": true,
@@ -228,7 +228,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Error updating coralogix_parsing_rules | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: RuleGroup not found: 00000000-0000-4000-9000-000000000003\"}\noperation - Update"
+      "error: Resource no longer exists | The API did not find parsing_rules with id 00000000-0000-4000-9000-000000000003. Run terraform apply without -refresh=false: the refresh removes it from state, and the plan creates it again."
     ],
     "state": {
       "active": false,

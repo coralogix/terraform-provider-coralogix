@@ -19,7 +19,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -64,7 +64,6 @@
                 "description": "",
                 "disabled": false,
                 "name": "first",
-                "priority": "PRIORITY_TYPE_UNSPECIFIED",
                 "targets": [
                   {
                     "archiveRetention": {
@@ -80,13 +79,18 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_LOGS",
+        "status": 200
       }
     ],
     "inconsistentResult": [
       "policies[0].targets[0].archive_retention_id"
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -117,7 +121,6 @@
     },
     "replanEmpty": false,
     "replanDiff": [
-      "AttributeName(\"id\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"id\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"order\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"archive_retention_id\")"
@@ -133,7 +136,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -164,7 +167,6 @@
     },
     "replanEmpty": false,
     "replanDiff": [
-      "AttributeName(\"id\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"id\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"order\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"archive_retention_id\")"
@@ -190,7 +192,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -235,7 +237,6 @@
                 "description": "",
                 "disabled": false,
                 "name": "first",
-                "priority": "PRIORITY_TYPE_UNSPECIFIED",
                 "targets": [
                   {
                     "archiveRetention": {
@@ -251,13 +252,18 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_LOGS",
+        "status": 200
       }
     ],
     "inconsistentResult": [
       "policies[0].targets[0].archive_retention_id"
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -288,7 +294,6 @@
     },
     "replanEmpty": false,
     "replanDiff": [
-      "AttributeName(\"id\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"id\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"order\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"archive_retention_id\")"
@@ -313,7 +318,7 @@
       ]
     },
     "plan": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -344,7 +349,7 @@
     },
     "noChange": true,
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -384,7 +389,7 @@
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-logs",
       "policies": [
         {
           "applications": null,
@@ -415,7 +420,6 @@
     },
     "replanEmpty": false,
     "replanDiff": [
-      "AttributeName(\"id\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"id\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"order\")",
       "AttributeName(\"policies\").ElementKeyInt(0).AttributeName(\"targets\").ElementKeyInt(0).AttributeName(\"archive_retention_id\")"

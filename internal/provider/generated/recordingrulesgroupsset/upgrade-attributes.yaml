@@ -1,0 +1,17 @@
+# Written by coralogix-iac-codegen. Do not edit.
+# The attributes that the released provider of the upgrade test has. The upgrade test leaves out
+# every other attribute. The generator takes the list from the schema when upgradeFrom changes.
+from: 3.23.0
+attributes:
+    groups: {type: SetNested}
+    groups[].interval: {type: Int64}
+    groups[].limit: {type: Int64}
+    groups[].name: {type: String, required: true}
+    groups[].rules: {type: ListNested, required: true}
+    groups[].rules[].evaluation_delay_ms: {type: Int64}
+    groups[].rules[].expr: {type: String, required: true}
+    groups[].rules[].labels: {type: Map(String)}
+    groups[].rules[].record: {type: String, required: true}
+    id: {type: String}
+    name: {type: String}
+    yaml_content: {type: String}

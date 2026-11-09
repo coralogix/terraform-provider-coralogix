@@ -13,7 +13,7 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_recording_rule_groups is in state, but no longer exists in Coralogix backend | coralogix_recording_rule_groups will be recreated when you apply"
+      "warning: Resource disappeared during read | recording_rules_groups_set with id 01J00000000000000000000099 was not found. Terraform removed it from state."
     ],
     "state": null
   }

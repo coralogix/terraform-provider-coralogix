@@ -144,6 +144,16 @@ func TestSchemaOptionalKeepsRequiredRequestFieldOptionalInTerraform(t *testing.T
 	if err := applyField(&tfAttr{Kind: "String", ValueKind: "String", Optional: true}, overrides.Field{SchemaOptional: true}, &overrides.File{}); err == nil {
 		t.Fatal("schemaOptional accepted an API-optional field")
 	}
+	// With computed: true, the attribute is Optional+Computed and can retain values returned by the
+	// API. The request field remains required.
+	computed := true
+	attribute = &tfAttr{Name: "name", Kind: "String", ValueKind: "String", Required: true}
+	if err := applyField(attribute, overrides.Field{SchemaOptional: true, Computed: &computed}, &overrides.File{}); err != nil {
+		t.Fatal(err)
+	}
+	if attribute.Required || !attribute.Optional || !attribute.Computed {
+		t.Fatalf("required = %t, optional = %t, computed = %t; want optional and computed", attribute.Required, attribute.Optional, attribute.Computed)
+	}
 }
 
 func TestWriteOnlyExtraOfComputedObjectIsRejected(t *testing.T) {

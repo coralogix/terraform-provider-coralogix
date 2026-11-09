@@ -13,7 +13,7 @@
       ]
     },
     "plan": {
-      "id": "(unknown)",
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -55,10 +55,15 @@
           ]
         },
         "status": 200
+      },
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/dataplans/policies/v1?source_type=SOURCE_TYPE_RUM",
+        "status": 200
       }
     ],
     "state": {
-      "id": null,
+      "id": "tco-policies-rum",
       "policies": [
         {
           "applications": null,
@@ -90,8 +95,29 @@
       }
     ],
     "applyDiagnostics": [
-      "warning: coralogix_tco_policies_rum is in state, but no longer exists in Coralogix backend | coralogix_tco_policies_rum will be recreated when you apply"
+      "error: Unable to read tco_policies_rum | id tco-policies-rum: 404 Not Found — {\"code\":404,\"message\":\"Not Found: Not Found\"}"
     ],
-    "state": null
+    "state": {
+      "id": "tco-policies-rum",
+      "policies": [
+        {
+          "applications": null,
+          "archive_retention_id": null,
+          "description": "",
+          "dpxl_expression": null,
+          "enabled": true,
+          "id": "00000000-0000-4000-8000-000000000001",
+          "name": "first",
+          "order": 1,
+          "priority": "medium",
+          "quota_based_priority_override": null,
+          "severities": [
+            "error"
+          ],
+          "subsystems": null
+        }
+      ]
+    },
+    "replanEmpty": true
   }
 ]
