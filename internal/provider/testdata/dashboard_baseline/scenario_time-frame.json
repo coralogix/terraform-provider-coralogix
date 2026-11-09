@@ -175,7 +175,7 @@
                       "pie_chart": null
                     },
                     "description": null,
-                    "highlighted": null,
+                    "highlighted": false,
                     "id": "<id-3>",
                     "reference": null,
                     "title": "note",
@@ -244,7 +244,7 @@
                       "pie_chart": null
                     },
                     "description": null,
-                    "highlighted": null,
+                    "highlighted": false,
                     "id": "<id-3>",
                     "reference": null,
                     "title": "note",
@@ -336,7 +336,7 @@
                       "pie_chart": null
                     },
                     "description": null,
-                    "highlighted": "(unknown)",
+                    "highlighted": false,
                     "id": "<id-3>",
                     "reference": null,
                     "title": "note",
@@ -392,6 +392,7 @@
                               "markdownText": "hello"
                             }
                           },
+                          "highlighted": false,
                           "id": {
                             "value": "<id-3>"
                           },
@@ -450,7 +451,7 @@
                       "pie_chart": null
                     },
                     "description": null,
-                    "highlighted": null,
+                    "highlighted": false,
                     "id": "<id-3>",
                     "reference": null,
                     "title": "note",
@@ -520,7 +521,7 @@
                       "pie_chart": null
                     },
                     "description": null,
-                    "highlighted": null,
+                    "highlighted": false,
                     "id": "<id-3>",
                     "reference": null,
                     "title": "note",
@@ -607,7 +608,7 @@
                       "pie_chart": null
                     },
                     "description": null,
-                    "highlighted": "(unknown)",
+                    "highlighted": false,
                     "id": "<id-3>",
                     "reference": null,
                     "title": "note",
@@ -653,6 +654,7 @@
                               "markdownText": "hello"
                             }
                           },
+                          "highlighted": false,
                           "id": {
                             "value": "<id-3>"
                           },
@@ -711,7 +713,7 @@
                       "pie_chart": null
                     },
                     "description": null,
-                    "highlighted": null,
+                    "highlighted": false,
                     "id": "<id-3>",
                     "reference": null,
                     "title": "note",
@@ -775,7 +777,7 @@
                       "pie_chart": null
                     },
                     "description": null,
-                    "highlighted": null,
+                    "highlighted": false,
                     "id": "<id-3>",
                     "reference": null,
                     "title": "note",

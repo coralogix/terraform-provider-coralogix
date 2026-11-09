@@ -161,7 +161,7 @@
                       "pie_chart": null
                     },
                     "description": null,
-                    "highlighted": null,
+                    "highlighted": false,
                     "id": "<id-3>",
                     "reference": null,
                     "title": "Content JSON data table",

@@ -164,7 +164,7 @@
                       "pie_chart": null
                     },
                     "description": null,
-                    "highlighted": null,
+                    "highlighted": false,
                     "id": "<id-3>",
                     "reference": null,
                     "title": "note",
@@ -245,7 +245,7 @@
                       "pie_chart": null
                     },
                     "description": null,
-                    "highlighted": "(unknown)",
+                    "highlighted": false,
                     "id": "<id-3>",
                     "reference": null,
                     "title": "note",
@@ -291,6 +291,7 @@
                               "markdownText": "hello"
                             }
                           },
+                          "highlighted": false,
                           "id": {
                             "value": "<id-3>"
                           },
@@ -347,7 +348,7 @@
                       "pie_chart": null
                     },
                     "description": null,
-                    "highlighted": null,
+                    "highlighted": false,
                     "id": "<id-3>",
                     "reference": null,
                     "title": "note",
@@ -410,7 +411,7 @@
                       "pie_chart": null
                     },
                     "description": null,
-                    "highlighted": null,
+                    "highlighted": false,
                     "id": "<id-3>",
                     "reference": null,
                     "title": "note",
@@ -430,7 +431,6 @@
     "replanEmpty": false,
     "replanDiff": [
       "AttributeName(\"auto_refresh\")",
-      "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"highlighted\")",
       "AttributeName(\"layout\").AttributeName(\"sections\").ElementKeyInt(0).AttributeName(\"rows\").ElementKeyInt(0).AttributeName(\"widgets\").ElementKeyInt(0).AttributeName(\"width\")",
       "AttributeName(\"name\")"
     ]
@@ -497,7 +497,7 @@
                       "pie_chart": null
                     },
                     "description": null,
-                    "highlighted": "(unknown)",
+                    "highlighted": false,
                     "id": "<id-3>",
                     "reference": null,
                     "title": "note",
@@ -543,6 +543,7 @@
                               "markdownText": "hello"
                             }
                           },
+                          "highlighted": false,
                           "id": {
                             "value": "<id-3>"
                           },
@@ -601,7 +602,7 @@
                       "pie_chart": null
                     },
                     "description": null,
-                    "highlighted": null,
+                    "highlighted": false,
                     "id": "<id-3>",
                     "reference": null,
                     "title": "note",

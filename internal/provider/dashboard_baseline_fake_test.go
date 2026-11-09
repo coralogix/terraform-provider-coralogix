@@ -26,6 +26,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -57,6 +58,8 @@ type dashboardFake struct {
 	replies    map[string][]any
 	issues     []any
 	transport  error
+	// folders answers the folder routes, which the acceptance tests on the fake need.
+	folders http.Handler
 }
 
 type dashboardFault struct {
@@ -66,23 +69,32 @@ type dashboardFault struct {
 
 func newDashboardFake(t *testing.T) *dashboardFake {
 	t.Helper()
+	f, stop := startDashboardFake()
+	t.Cleanup(stop)
+	return f
+}
+
+// startDashboardFake serves the fake and sends every HTTP call of the process to it, until stop.
+func startDashboardFake() (*dashboardFake, func()) {
 	f := &dashboardFake{
 		dashboards: map[string]map[string]any{},
 		policies:   map[string]string{},
 		faults:     map[string][]dashboardFault{},
 		sticky:     map[string]dashboardFault{},
 		replies:    map[string][]any{},
+		folders:    &dashboardsFolderFake{folders: map[string]map[string]any{}, seeded: map[string]bool{}},
 	}
 	srv := httptest.NewServer(f)
-	t.Cleanup(srv.Close)
 	target, err := url.Parse(srv.URL)
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
 	original := http.DefaultTransport
 	http.DefaultTransport = dashboardTransport{fake: f, next: redirectTransport{target: target, next: original}}
-	t.Cleanup(func() { http.DefaultTransport = original })
-	return f
+	return f, func() {
+		http.DefaultTransport = original
+		srv.Close()
+	}
 }
 
 type dashboardTransport struct {
@@ -193,6 +205,10 @@ func (f *dashboardFake) failTransport(err error) {
 }
 
 func (f *dashboardFake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if f.folders != nil && strings.Contains(r.URL.Path, dashboardsFolderBasePath) {
+		f.folders.ServeHTTP(w, r)
+		return
+	}
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	raw, err := io.ReadAll(r.Body)
@@ -241,6 +257,8 @@ func (f *dashboardFake) operation(method, rest string) string {
 		return "Create"
 	case method == http.MethodPut && rest == "/dashboards/v1":
 		return "Replace"
+	case method == http.MethodGet && rest == "/dashboards/v1/catalog/list":
+		return "Catalog"
 	case method == http.MethodGet && strings.HasPrefix(rest, "/dashboards/v1/"):
 		return "Get"
 	case method == http.MethodDelete && strings.HasPrefix(rest, "/dashboards/v1/"):
@@ -249,6 +267,24 @@ func (f *dashboardFake) operation(method, rest string) string {
 		return "Check"
 	}
 	return ""
+}
+
+// injected returns the error or the reply that a scenario set for the operation.
+func (f *dashboardFake) injected(op string) (int, any, bool) {
+	if fault, ok := f.sticky[op]; ok {
+		status, out := dashboardFailure(fault.status, fault.message)
+		return status, out, true
+	}
+	if queue := f.faults[op]; len(queue) > 0 {
+		f.faults[op] = queue[1:]
+		status, out := dashboardFailure(queue[0].status, queue[0].message)
+		return status, out, true
+	}
+	if queue := f.replies[op]; len(queue) > 0 {
+		f.replies[op] = queue[1:]
+		return http.StatusOK, queue[0], true
+	}
+	return 0, nil, false
 }
 
 // handle answers one request. The caller holds the lock.
@@ -261,19 +297,25 @@ func (f *dashboardFake) handle(r *http.Request, body map[string]any) (int, any) 
 	if op == "" {
 		return dashboardFailure(http.StatusNotFound, "unknown path "+r.URL.Path)
 	}
-	if fault, ok := f.sticky[op]; ok {
-		return dashboardFailure(fault.status, fault.message)
-	}
-	if queue := f.faults[op]; len(queue) > 0 {
-		f.faults[op] = queue[1:]
-		return dashboardFailure(queue[0].status, queue[0].message)
-	}
-	if queue := f.replies[op]; len(queue) > 0 {
-		f.replies[op] = queue[1:]
-		return http.StatusOK, queue[0]
+	if status, out, injected := f.injected(op); injected {
+		return status, out
 	}
 	id := strings.TrimPrefix(strings.TrimPrefix(rest, "/dashboards/v1"), "/")
 	switch op {
+	case "Catalog":
+		items := []any{}
+		ids := make([]string, 0, len(f.dashboards))
+		for id := range f.dashboards {
+			ids = append(ids, id)
+		}
+		sort.Strings(ids)
+		for _, id := range ids {
+			items = append(items, map[string]any{
+				"id": id, "name": f.dashboards[id]["name"],
+				"permissions": map[string]any{"canRead": true, "canReadAccessPolicy": true, "canUpdate": true, "canUpdateAccessPolicy": true},
+			})
+		}
+		return http.StatusOK, map[string]any{"items": items}
 	case "Create":
 		return f.create(body)
 	case "Replace":
@@ -308,6 +350,48 @@ func (f *dashboardFake) handle(r *http.Request, body map[string]any) (int, any) 
 	}
 }
 
+// resolveFolderPath turns a folderPath into the folderId of the folder at that path, as the API does
+// on Create and Replace (the acceptance tests read the id back). A missing folder is created. It
+// only runs when the folder fake is attached.
+func (f *dashboardFake) resolveFolderPath(dashboard map[string]any) {
+	folders, ok := f.folders.(*dashboardsFolderFake)
+	path, _ := dashboard["folderPath"].(map[string]any)
+	segments, _ := path["segments"].([]any)
+	if !ok || len(segments) == 0 {
+		return
+	}
+	folders.mu.Lock()
+	defer folders.mu.Unlock()
+	parent := ""
+	for _, segment := range segments {
+		name, _ := segment.(string)
+		found := ""
+		for id, folder := range folders.folders {
+			if folder["name"] == name && folder["parentId"] == nilIfEmpty(parent) {
+				found = id
+			}
+		}
+		if found == "" {
+			folders.seq++
+			found = fmt.Sprintf("00000000-0000-4000-8000-%012d", folders.seq)
+			folder := map[string]any{"id": found, "name": name}
+			if parent != "" {
+				folder["parentId"] = parent
+			}
+			folders.folders[found] = folder
+		}
+		parent = found
+	}
+	dashboard["folderId"] = map[string]any{"value": parent}
+}
+
+func nilIfEmpty(s string) any {
+	if s == "" {
+		return nil
+	}
+	return s
+}
+
 func (f *dashboardFake) create(body map[string]any) (int, any) {
 	dashboard, _ := body["dashboard"].(map[string]any)
 	if dashboard == nil {
@@ -316,6 +400,10 @@ func (f *dashboardFake) create(body map[string]any) (int, any) {
 	if status, out := validateDashboardIDs(dashboard); status != http.StatusOK {
 		return status, out
 	}
+	if status, out := validateDashboardArms(dashboard); status != http.StatusOK {
+		return status, out
+	}
+	f.resolveFolderPath(dashboard)
 	id, _ := dashboard["id"].(string)
 	if id == "" {
 		f.seq++
@@ -345,11 +433,16 @@ func (f *dashboardFake) replace(body map[string]any) (int, any) {
 	if status, out := validateDashboardIDs(dashboard); status != http.StatusOK {
 		return status, out
 	}
+	if status, out := validateDashboardArms(dashboard); status != http.StatusOK {
+		return status, out
+	}
+	f.resolveFolderPath(dashboard)
 	f.dashboards[id] = dashboardRoundTrip(dashboard).(map[string]any)
+	// A Replace without accessPolicy keeps the policy that the dashboard has. The acceptance test
+	// TestAccCoralogixResourceDashboardAccessPolicy relies on it: it removes the policy from the
+	// config and expects the policy to stay.
 	if policy, _ := body["accessPolicy"].(string); policy != "" {
 		f.policies[id] = policy
-	} else {
-		delete(f.policies, id)
 	}
 	return http.StatusOK, map[string]any{}
 }
@@ -382,6 +475,23 @@ func validateDashboardIDs(dashboard map[string]any) (int, any) {
 	return http.StatusOK, nil
 }
 
+var oneOfViolation = regexp.MustCompile(`(at most|exactly) one of \[[^\]]*\] may be set|exactly one of`)
+
+// validateDashboardArms rejects a body with two arms of a oneof, as the API's JSON parser does
+// (probe: both arms at once were rejected in every message). The check is the SDK's own decoder,
+// and only its oneof errors count, because the SDK also enforces fields that the API does not.
+func validateDashboardArms(dashboard map[string]any) (int, any) {
+	raw, err := json.Marshal(dashboard)
+	if err != nil {
+		panic(err)
+	}
+	var decoded dashboardservice.Dashboard
+	if err := json.Unmarshal(raw, &decoded); err != nil && oneOfViolation.MatchString(err.Error()) {
+		return dashboardFailure(http.StatusBadRequest, err.Error())
+	}
+	return http.StatusOK, nil
+}
+
 func idValue(m map[string]any) string {
 	id, _ := m["id"].(map[string]any)
 	value, _ := id["value"].(string)
@@ -405,7 +515,29 @@ func dashboardRoundTrip(v any) any {
 func normalizeDashboardReadBack(stored map[string]any) map[string]any {
 	out := dashboardRoundTrip(stored).(map[string]any)
 	fillReadBack(out, reflect.TypeOf(dashboardservice.Dashboard{}))
+	fillWidgetHighlighted(out)
 	return out
+}
+
+// fillWidgetHighlighted reads an unset widget highlighted back as false. The probe did not cover it.
+// The evidence is the acceptance test TestAccCoralogixResourceDashboardAccessPolicy, which passes on
+// the real API only if a widget created without highlighted reads back with a value. The EU2
+// recording (fidelity case widget-highlighted) confirms or corrects it.
+func fillWidgetHighlighted(dashboard map[string]any) {
+	layout, _ := dashboard["layout"].(map[string]any)
+	sections, _ := layout["sections"].([]any)
+	for _, section := range sections {
+		rows, _ := section.(map[string]any)["rows"].([]any)
+		for _, row := range rows {
+			widgets, _ := row.(map[string]any)["widgets"].([]any)
+			for _, widget := range widgets {
+				w, _ := widget.(map[string]any)
+				if _, ok := w["highlighted"]; !ok {
+					w["highlighted"] = false
+				}
+			}
+		}
+	}
 }
 
 func fillReadBack(value map[string]any, typ reflect.Type) {
@@ -415,7 +547,7 @@ func fillReadBack(value map[string]any, typ reflect.Type) {
 		if name == "" || name == "-" {
 			continue
 		}
-		fillReadBackField(value, name, derefType(field.Type))
+		fillReadBackField(value, name, derefType(field.Type), typ.Name())
 	}
 }
 
@@ -426,7 +558,7 @@ func derefType(t reflect.Type) reflect.Type {
 	return t
 }
 
-func fillReadBackField(value map[string]any, name string, ft reflect.Type) {
+func fillReadBackField(value map[string]any, name string, ft reflect.Type, owner string) {
 	current, present := value[name]
 	absent := !present || current == nil
 	switch {
@@ -437,7 +569,8 @@ func fillReadBackField(value map[string]any, name string, ft reflect.Type) {
 		}
 		fillReadBackItems(current, derefType(ft.Elem()))
 	case ft.Kind() == reflect.String && ft.Name() != "string":
-		if zero, ok := dashboardEnumZeroValues()[ft.Name()]; ok && absent {
+		// An enum that is an arm of a oneof is not filled: a second arm would make the body invalid.
+		if zero, ok := dashboardEnumZeroValues()[ft.Name()]; ok && absent && !oneOfMembers[owner][name] {
 			value[name] = zero
 		}
 	case ft.Kind() == reflect.Struct && !absent:
@@ -462,6 +595,14 @@ func fillReadBackItems(current any, elem reflect.Type) {
 var (
 	enumZeroOnce   sync.Once
 	enumZeroValues map[string]string
+	// oneOfMembers lists, for each SDK type, the JSON names that belong to a oneof group.
+	oneOfMembers map[string]map[string]bool
+)
+
+var (
+	typeNamePattern    = regexp.MustCompile(`(?m)^type (\w+) struct`)
+	oneOfBlockPattern  = regexp.MustCompile(`(?s)OneOfGroup\d+Matches := 0(.*?)if \w+OneOfGroup\d+Matches > 1`)
+	oneOfMemberPattern = regexp.MustCompile(`toSerialize\["(\w+)"\]`)
 )
 
 var enumValuesPattern = regexp.MustCompile(`var Allowed(\w+)EnumValues = \[\]\w+\{\s*"([^"]+)"`)
@@ -471,6 +612,7 @@ var enumValuesPattern = regexp.MustCompile(`var Allowed(\w+)EnumValues = \[\]\w+
 func dashboardEnumZeroValues() map[string]string {
 	enumZeroOnce.Do(func() {
 		enumZeroValues = map[string]string{}
+		oneOfMembers = map[string]map[string]bool{}
 		out, err := exec.Command("go", "list", "-m", "-f", "{{.Dir}}", "github.com/coralogix/coralogix-management-sdk").Output()
 		if err != nil {
 			panic(fmt.Sprintf("find the SDK: %v", err))
@@ -487,7 +629,24 @@ func dashboardEnumZeroValues() map[string]string {
 			for _, m := range enumValuesPattern.FindAllStringSubmatch(string(raw), -1) {
 				enumZeroValues[m[1]] = m[2]
 			}
+			collectOneOfMembers(string(raw))
 		}
 	})
 	return enumZeroValues
+}
+
+// collectOneOfMembers reads the oneof groups of one SDK model file.
+func collectOneOfMembers(source string) {
+	typeName := typeNamePattern.FindStringSubmatch(source)
+	if typeName == nil {
+		return
+	}
+	for _, block := range oneOfBlockPattern.FindAllStringSubmatch(source, -1) {
+		for _, member := range oneOfMemberPattern.FindAllStringSubmatch(block[1], -1) {
+			if oneOfMembers[typeName[1]] == nil {
+				oneOfMembers[typeName[1]] = map[string]bool{}
+			}
+			oneOfMembers[typeName[1]][member[1]] = true
+		}
+	}
 }

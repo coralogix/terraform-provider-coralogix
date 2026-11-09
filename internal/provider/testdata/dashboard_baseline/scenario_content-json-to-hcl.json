@@ -263,7 +263,7 @@
                       "pie_chart": null
                     },
                     "description": null,
-                    "highlighted": null,
+                    "highlighted": false,
                     "id": "<id-6>",
                     "reference": null,
                     "title": "note",
@@ -327,7 +327,7 @@
                       "pie_chart": null
                     },
                     "description": null,
-                    "highlighted": null,
+                    "highlighted": false,
                     "id": "<id-6>",
                     "reference": null,
                     "title": "note",
