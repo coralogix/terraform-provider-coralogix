@@ -31,6 +31,14 @@
 - FEAT: `terraformType: String` on an int64 resource id keeps a released String id: the state holds the decimal text, the calls parse it, and a non-integer import id is an error at the import. A data source lookup by name does not parse the id that it leaves null.
 - FEAT: `storedAs: float32` on a double field reads a value that the API stores as a float32 as its shortest decimal, so `0.3` reads back as `0.3` instead of `0.30000001192092896`. A plan or state value of the same float32 stays, so a configured `0.123456789` does not make the apply inconsistent.
 - CHORE: Bump `coralogix-management-sdk/iac` to the version that reads a resource id inside a one-property wrapper (coralogix-management-sdk#736). Before, `tfgen check` panicked on such an id.
+- FEAT: `updateAs` on a field line names the path of a field in the Update body only, for an API that calls a value `newName` in Update and `name` in Create and Get. Create keeps the field name, or the `requestAs` path.
+- FEAT: An `unwrap` entry also collapses a wrapper that only Update holds (Create and Get hold a list, and Update holds it in a one-property object). Before, the check reported `FIELD_TYPE_INCONSISTENT`.
+- FEAT: `itemName` on a list or set field shows a list of objects as the strings of one property of the items, for a response that holds each preset as `{name, permissions}` and requests that send the names.
+- FEAT: `sensitive: true` on a field line marks the attribute sensitive.
+- FEAT: `terraformType: String` works on any int64 field, not only the resource id, for example the `team_id` of an owner. The validators over other attributes follow the type; a contract limit of the number is refused.
+- FEAT: `readNullAs: empty` also reads a missing string as `""`.
+- FIX: A `required` or `optional` line on a field of the resource component is no longer reported as stale when no request body reaches the component: the required list of the Get response says nothing about a Create body of its own.
+- CHORE: Bump `coralogix-management-sdk/iac` to the version that has `updateAs`, the request-only wrapper, and `itemName` (coralogix-management-sdk#741).
 
 # Release 3.24.0
 

@@ -1243,8 +1243,17 @@ func applyTerraformType(a *tfAttr, l overrides.Field) error {
 		if a.Kind != "Int64" {
 			return fmt.Errorf("terraformType String needs an int64 field, not a %s", a.Kind)
 		}
+		// A validator over other attributes has the same arguments for every type. A validator over the
+		// value (AtLeast, OneOf, ...) has no string counterpart with the same meaning.
 		for i, v := range a.Validators {
-			a.Validators[i] = strings.Replace(v, "int64validator.", "stringvalidator.", 1)
+			rest, ok := strings.CutPrefix(v, "int64validator.")
+			if !ok {
+				continue
+			}
+			if !strings.HasPrefix(rest, "ConflictsWith(") && !strings.HasPrefix(rest, "ExactlyOneOf(") && !strings.HasPrefix(rest, "AlsoRequires(") && !strings.HasPrefix(rest, "AtLeastOneOf(") {
+				return fmt.Errorf("terraformType String cannot keep the validator %s of the contract: remove the limit with validators.inferred: false, or state it as a validators line", v)
+			}
+			a.Validators[i] = "stringvalidator." + rest
 		}
 		prefix := strings.ToLower(a.Kind) + "planmodifier."
 		for i, m := range a.Modifiers {
