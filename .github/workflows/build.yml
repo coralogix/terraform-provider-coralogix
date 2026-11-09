@@ -11,6 +11,12 @@ on:
 permissions:
   contents: read
 
+env:
+  # The coralogix_alert protocol baseline has about 200 scenarios and runs for over a minute, so it
+  # has a job of its own (alert-baseline). The unit tests job leaves these tests out, and the two
+  # jobs read this one pattern, so a test cannot fall between them.
+  ALERT_BASELINE_TESTS: '^(TestAlertBaseline|TestAlertFake|TestRecordAlertFidelity)'
+
 jobs:
   build:
     env:
@@ -51,7 +57,28 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
       - name: Run unit tests
-        run: make test
+        # make test gives every package 120 seconds. The alert baseline runs in its own job.
+        run: make test TESTARGS="-skip '${ALERT_BASELINE_TESTS}'"
+
+  alert-baseline:
+    name: Alert baseline tests
+    permissions:
+      contents: read
+    env:
+      GO111MODULE: on
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8
+        with:
+          go-version: 1.26.x
+      - name: Run the alert baseline tests
+        # The fake reads the OpenAPI document of the pinned SDK from the module cache, so the
+        # modules must be downloaded first. The tests make no call to a real API.
+        run: |
+          go mod download
+          go test ./internal/provider -run "${ALERT_BASELINE_TESTS}" -count=1 -timeout=300s
 
   test-dashboard-baseline:
     # The dashboard baseline tests run here, next to the unit tests, with a longer limit.

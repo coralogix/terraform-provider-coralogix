@@ -1,0 +1,513 @@
+[
+  {
+    "step": "a valid config",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        }
+      }
+    },
+    "state": null
+  },
+  {
+    "step": "metric_filter null",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": null,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"metric_filter\")] | Must set a configuration value for the type_definition.metric_anomaly.metric_filter attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "metric_filter without promql",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {},
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"metric_filter\").AttributeName(\"promql\")] | Must set a configuration value for the type_definition.metric_anomaly.metric_filter.promql attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "rules null",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": null
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"rules\")] | Must set a configuration value for the type_definition.metric_anomaly.rules attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "empty rules",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": []
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"rules\")] | Attribute type_definition.metric_anomaly.rules set must contain at least 1 elements, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "rule without condition",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": [
+            {}
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<null>>).AttributeName(\"condition\")] | Must set a configuration value for the type_definition.metric_anomaly.rules[Value({\"condition\":<null>})].condition attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "condition_type MORE_THAN_USUAL is not a schema value",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN_USUAL",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 1
+              }
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN_USUAL\">, \"for_over_pct\":tftypes.Number<\"50\">, \"min_non_null_values_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"10_MINUTES\">, \"threshold\":tftypes.Number<\"1\">>>).AttributeName(\"condition\").AttributeName(\"condition_type\")] | Attribute type_definition.metric_anomaly.rules[Value({\"condition\":{\"condition_type\":\"MORE_THAN_USUAL\",\"for_over_pct\":50,\"min_non_null_values_pct\":50,\"of_the_last\":\"10_MINUTES\",\"threshold\":1.000000}})].condition.condition_type value must be one of: [\"LESS_THAN\" \"MORE_THAN\"], got: \"MORE_THAN_USUAL\""
+    ],
+    "state": null
+  },
+  {
+    "step": "condition_type EQUALS is not valid for anomaly alerts",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "EQUALS",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 1
+              }
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"EQUALS\">, \"for_over_pct\":tftypes.Number<\"50\">, \"min_non_null_values_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"10_MINUTES\">, \"threshold\":tftypes.Number<\"1\">>>).AttributeName(\"condition\").AttributeName(\"condition_type\")] | Attribute type_definition.metric_anomaly.rules[Value({\"condition\":{\"condition_type\":\"EQUALS\",\"for_over_pct\":50,\"min_non_null_values_pct\":50,\"of_the_last\":\"10_MINUTES\",\"threshold\":1.000000}})].condition.condition_type value must be one of: [\"LESS_THAN\" \"MORE_THAN\"], got: \"EQUALS\""
+    ],
+    "state": null
+  },
+  {
+    "step": "condition_type null",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": null,
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 1
+              }
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<null>, \"for_over_pct\":tftypes.Number<\"50\">, \"min_non_null_values_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"10_MINUTES\">, \"threshold\":tftypes.Number<\"1\">>>).AttributeName(\"condition\").AttributeName(\"condition_type\")] | Must set a configuration value for the type_definition.metric_anomaly.rules[Value({\"condition\":{\"condition_type\":<null>,\"for_over_pct\":50,\"min_non_null_values_pct\":50,\"of_the_last\":\"10_MINUTES\",\"threshold\":1.000000}})].condition.condition_type attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "of_the_last as a free duration is not accepted",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "30m",
+                "threshold": 1
+              }
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"min_non_null_values_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"30m\">, \"threshold\":tftypes.Number<\"1\">>>).AttributeName(\"condition\").AttributeName(\"of_the_last\")] | Attribute type_definition.metric_anomaly.rules[Value({\"condition\":{\"condition_type\":\"MORE_THAN\",\"for_over_pct\":50,\"min_non_null_values_pct\":50,\"of_the_last\":\"30m\",\"threshold\":1.000000}})].condition.of_the_last value must be one of: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"1_MINUTE\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"], got: \"30m\""
+    ],
+    "state": null
+  },
+  {
+    "step": "of_the_last empty string",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "",
+                "threshold": 1
+              }
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"min_non_null_values_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"\">, \"threshold\":tftypes.Number<\"1\">>>).AttributeName(\"condition\").AttributeName(\"of_the_last\")] | Attribute type_definition.metric_anomaly.rules[Value({\"condition\":{\"condition_type\":\"MORE_THAN\",\"for_over_pct\":50,\"min_non_null_values_pct\":50,\"of_the_last\":\"\",\"threshold\":1.000000}})].condition.of_the_last value must be one of: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"1_MINUTE\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"], got: \"\""
+    ],
+    "state": null
+  },
+  {
+    "step": "of_the_last null",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": null,
+                "threshold": 1
+              }
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"min_non_null_values_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<null>, \"threshold\":tftypes.Number<\"1\">>>).AttributeName(\"condition\").AttributeName(\"of_the_last\")] | Must set a configuration value for the type_definition.metric_anomaly.rules[Value({\"condition\":{\"condition_type\":\"MORE_THAN\",\"for_over_pct\":50,\"min_non_null_values_pct\":50,\"of_the_last\":<null>,\"threshold\":1.000000}})].condition.of_the_last attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "threshold null",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": null
+              }
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"min_non_null_values_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"10_MINUTES\">, \"threshold\":tftypes.Number<null>>>).AttributeName(\"condition\").AttributeName(\"threshold\")] | Must set a configuration value for the type_definition.metric_anomaly.rules[Value({\"condition\":{\"condition_type\":\"MORE_THAN\",\"for_over_pct\":50,\"min_non_null_values_pct\":50,\"of_the_last\":\"10_MINUTES\",\"threshold\":<null>}})].condition.threshold attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "for_over_pct null",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": null,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 1
+              }
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<null>, \"min_non_null_values_pct\":tftypes.Number<\"50\">, \"of_the_last\":tftypes.String<\"10_MINUTES\">, \"threshold\":tftypes.Number<\"1\">>>).AttributeName(\"condition\").AttributeName(\"for_over_pct\")] | Must set a configuration value for the type_definition.metric_anomaly.rules[Value({\"condition\":{\"condition_type\":\"MORE_THAN\",\"for_over_pct\":<null>,\"min_non_null_values_pct\":50,\"of_the_last\":\"10_MINUTES\",\"threshold\":1.000000}})].condition.for_over_pct attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "min_non_null_values_pct null",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": null,
+                "of_the_last": "10_MINUTES",
+                "threshold": 1
+              }
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"for_over_pct\":tftypes.Number, \"min_non_null_values_pct\":tftypes.Number, \"of_the_last\":tftypes.String, \"threshold\":tftypes.Number]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"for_over_pct\":tftypes.Number<\"50\">, \"min_non_null_values_pct\":tftypes.Number<null>, \"of_the_last\":tftypes.String<\"10_MINUTES\">, \"threshold\":tftypes.Number<\"1\">>>).AttributeName(\"condition\").AttributeName(\"min_non_null_values_pct\")] | Must set a configuration value for the type_definition.metric_anomaly.rules[Value({\"condition\":{\"condition_type\":\"MORE_THAN\",\"for_over_pct\":50,\"min_non_null_values_pct\":<null>,\"of_the_last\":\"10_MINUTES\",\"threshold\":1.000000}})].condition.min_non_null_values_pct attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "custom_evaluation_delay below 0",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {
+          "custom_evaluation_delay": -1,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"custom_evaluation_delay\")] | Attribute type_definition.metric_anomaly.custom_evaluation_delay value must be at least 0, got: -1"
+    ],
+    "state": null
+  },
+  {
+    "step": "group_by is allowed on an anomaly alert",
+    "config": {
+      "group_by": [
+        "pod"
+      ],
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        }
+      }
+    },
+    "state": null
+  },
+  {
+    "step": "priority outside P1..P5",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "priority": "P0",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"priority\")] | Attribute priority value must be one of: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"], got: \"P0\""
+    ],
+    "state": null
+  },
+  {
+    "step": "priority P2 on an anomaly alert gives no deprecation warning",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "priority": "P2",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        }
+      }
+    },
+    "state": null
+  },
+  {
+    "step": "an empty metric_anomaly",
+    "config": {
+      "name": "tfbaseline-ma-validation",
+      "type_definition": {
+        "metric_anomaly": {}
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"metric_filter\")] | Must set a configuration value for the type_definition.metric_anomaly.metric_filter attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"rules\")] | Must set a configuration value for the type_definition.metric_anomaly.rules attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  }
+]

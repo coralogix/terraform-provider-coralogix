@@ -1,0 +1,3570 @@
+[
+  {
+    "step": "create with both omitted",
+    "config": {
+      "name": "tfbaseline-logs-ratio-filters",
+      "type_definition": {
+        "logs_ratio_threshold": {
+          "denominator_alias": "all",
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "plan": {
+      "access_policy": "(unknown)",
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": "(unknown)",
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "(unknown)",
+      "incidents_settings": "(unknown)",
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "(unknown)",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": "(unknown)",
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": "(unknown)",
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [],
+            "logsRatioThreshold": {
+              "denominatorAlias": "all",
+              "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
+              "ignoreInfinity": false,
+              "notificationPayloadFilter": [],
+              "numeratorAlias": "errors",
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "LOGS_RATIO_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                    "threshold": 0.5,
+                    "timeWindow": {
+                      "logsRatioTimeWindowSpecificValue": "LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_10"
+                    }
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                  }
+                }
+              ],
+              "undetectedValuesManagement": {
+                "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+                "triggerUndetectedValues": false
+              }
+            },
+            "name": "tfbaseline-logs-ratio-filters",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: numerator only",
+    "config": {
+      "name": "tfbaseline-logs-ratio-filters",
+      "type_definition": {
+        "logs_ratio_threshold": {
+          "denominator_alias": "all",
+          "numerator": {
+            "simple_filter": {
+              "lucene_query": "level:error"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": "level:error"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "logsRatioThreshold": {
+              "denominator": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "severities": []
+                  },
+                  "luceneQuery": ""
+                }
+              },
+              "denominatorAlias": "all",
+              "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
+              "ignoreInfinity": false,
+              "notificationPayloadFilter": [],
+              "numerator": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "severities": []
+                  },
+                  "luceneQuery": "level:error"
+                }
+              },
+              "numeratorAlias": "errors",
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "LOGS_RATIO_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                    "threshold": 0.5,
+                    "timeWindow": {
+                      "logsRatioTimeWindowSpecificValue": "LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_10"
+                    }
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                  }
+                }
+              ],
+              "undetectedValuesManagement": {
+                "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+                "triggerUndetectedValues": false
+              }
+            },
+            "name": "tfbaseline-logs-ratio-filters",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": "level:error"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": "level:error"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: denominator only",
+    "config": {
+      "name": "tfbaseline-logs-ratio-filters",
+      "type_definition": {
+        "logs_ratio_threshold": {
+          "denominator": {
+            "simple_filter": {
+              "lucene_query": "level:*"
+            }
+          },
+          "denominator_alias": "all",
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": "level:*"
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": "level:error"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "logsRatioThreshold": {
+              "denominator": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "severities": []
+                  },
+                  "luceneQuery": "level:*"
+                }
+              },
+              "denominatorAlias": "all",
+              "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
+              "ignoreInfinity": false,
+              "notificationPayloadFilter": [],
+              "numerator": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "severities": []
+                  },
+                  "luceneQuery": "level:error"
+                }
+              },
+              "numeratorAlias": "errors",
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "LOGS_RATIO_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                    "threshold": 0.5,
+                    "timeWindow": {
+                      "logsRatioTimeWindowSpecificValue": "LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_10"
+                    }
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                  }
+                }
+              ],
+              "undetectedValuesManagement": {
+                "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+                "triggerUndetectedValues": false
+              }
+            },
+            "name": "tfbaseline-logs-ratio-filters",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": "level:*"
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": "level:error"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": "level:*"
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": "level:error"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: both with every label filter",
+    "config": {
+      "name": "tfbaseline-logs-ratio-filters",
+      "type_definition": {
+        "logs_ratio_threshold": {
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app"
+                  }
+                ],
+                "severities": [
+                  "Info"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "b"
+            }
+          },
+          "denominator_alias": "all",
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  }
+                ],
+                "severities": [
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "INCLUDES",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "a"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app"
+                  }
+                ],
+                "severities": [
+                  "Info"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "b"
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  }
+                ],
+                "severities": [
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "INCLUDES",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "a"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "logsRatioThreshold": {
+              "denominator": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "applicationName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_STARTS_WITH",
+                        "value": "app"
+                      }
+                    ],
+                    "severities": [
+                      "LOG_SEVERITY_INFO"
+                    ],
+                    "subsystemName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_ENDS_WITH",
+                        "value": "sub"
+                      }
+                    ]
+                  },
+                  "luceneQuery": "b"
+                }
+              },
+              "denominatorAlias": "all",
+              "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
+              "ignoreInfinity": false,
+              "notificationPayloadFilter": [],
+              "numerator": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "applicationName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "value": "app"
+                      }
+                    ],
+                    "severities": [
+                      "LOG_SEVERITY_ERROR"
+                    ],
+                    "subsystemName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
+                        "value": "sub"
+                      }
+                    ]
+                  },
+                  "luceneQuery": "a"
+                }
+              },
+              "numeratorAlias": "errors",
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "LOGS_RATIO_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                    "threshold": 0.5,
+                    "timeWindow": {
+                      "logsRatioTimeWindowSpecificValue": "LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_10"
+                    }
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                  }
+                }
+              ],
+              "undetectedValuesManagement": {
+                "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+                "triggerUndetectedValues": false
+              }
+            },
+            "name": "tfbaseline-logs-ratio-filters",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app"
+                  }
+                ],
+                "severities": [
+                  "Info"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "b"
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  }
+                ],
+                "severities": [
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "INCLUDES",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "a"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app"
+                  }
+                ],
+                "severities": [
+                  "Info"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "b"
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  }
+                ],
+                "severities": [
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "INCLUDES",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "a"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: change them",
+    "config": {
+      "name": "tfbaseline-logs-ratio-filters",
+      "type_definition": {
+        "logs_ratio_threshold": {
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "INCLUDES",
+                    "value": "app3"
+                  }
+                ],
+                "severities": [
+                  "Warning"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "sub3"
+                  }
+                ]
+              },
+              "lucene_query": "d"
+            }
+          },
+          "denominator_alias": "all",
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "app2"
+                  }
+                ],
+                "severities": [
+                  "Critical"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub2"
+                  }
+                ]
+              },
+              "lucene_query": "c"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "INCLUDES",
+                    "value": "app3"
+                  }
+                ],
+                "severities": [
+                  "Warning"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "sub3"
+                  }
+                ]
+              },
+              "lucene_query": "d"
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "app2"
+                  }
+                ],
+                "severities": [
+                  "Critical"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub2"
+                  }
+                ]
+              },
+              "lucene_query": "c"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "logsRatioThreshold": {
+              "denominator": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "applicationName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
+                        "value": "app3"
+                      }
+                    ],
+                    "severities": [
+                      "LOG_SEVERITY_WARNING"
+                    ],
+                    "subsystemName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_STARTS_WITH",
+                        "value": "sub3"
+                      }
+                    ]
+                  },
+                  "luceneQuery": "d"
+                }
+              },
+              "denominatorAlias": "all",
+              "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
+              "ignoreInfinity": false,
+              "notificationPayloadFilter": [],
+              "numerator": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "applicationName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_ENDS_WITH",
+                        "value": "app2"
+                      }
+                    ],
+                    "severities": [
+                      "LOG_SEVERITY_CRITICAL"
+                    ],
+                    "subsystemName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "value": "sub2"
+                      }
+                    ]
+                  },
+                  "luceneQuery": "c"
+                }
+              },
+              "numeratorAlias": "errors",
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "LOGS_RATIO_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                    "threshold": 0.5,
+                    "timeWindow": {
+                      "logsRatioTimeWindowSpecificValue": "LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_10"
+                    }
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                  }
+                }
+              ],
+              "undetectedValuesManagement": {
+                "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+                "triggerUndetectedValues": false
+              }
+            },
+            "name": "tfbaseline-logs-ratio-filters",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "INCLUDES",
+                    "value": "app3"
+                  }
+                ],
+                "severities": [
+                  "Warning"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "sub3"
+                  }
+                ]
+              },
+              "lucene_query": "d"
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "app2"
+                  }
+                ],
+                "severities": [
+                  "Critical"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub2"
+                  }
+                ]
+              },
+              "lucene_query": "c"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "INCLUDES",
+                    "value": "app3"
+                  }
+                ],
+                "severities": [
+                  "Warning"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "sub3"
+                  }
+                ]
+              },
+              "lucene_query": "d"
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "app2"
+                  }
+                ],
+                "severities": [
+                  "Critical"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub2"
+                  }
+                ]
+              },
+              "lucene_query": "c"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: remove the label filters",
+    "config": {
+      "name": "tfbaseline-logs-ratio-filters",
+      "type_definition": {
+        "logs_ratio_threshold": {
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {},
+              "lucene_query": "d"
+            }
+          },
+          "denominator_alias": "all",
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {},
+              "lucene_query": "c"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": "d"
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": "c"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "logsRatioThreshold": {
+              "denominator": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "severities": []
+                  },
+                  "luceneQuery": "d"
+                }
+              },
+              "denominatorAlias": "all",
+              "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
+              "ignoreInfinity": false,
+              "notificationPayloadFilter": [],
+              "numerator": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "severities": []
+                  },
+                  "luceneQuery": "c"
+                }
+              },
+              "numeratorAlias": "errors",
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "LOGS_RATIO_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                    "threshold": 0.5,
+                    "timeWindow": {
+                      "logsRatioTimeWindowSpecificValue": "LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_10"
+                    }
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                  }
+                }
+              ],
+              "undetectedValuesManagement": {
+                "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+                "triggerUndetectedValues": false
+              }
+            },
+            "name": "tfbaseline-logs-ratio-filters",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": "d"
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": "c"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": "d"
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": "c"
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: remove lucene_query",
+    "config": {
+      "name": "tfbaseline-logs-ratio-filters",
+      "type_definition": {
+        "logs_ratio_threshold": {
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "subsystem_name": [
+                  {
+                    "value": "sub"
+                  }
+                ]
+              }
+            }
+          },
+          "denominator_alias": "all",
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "value": "app"
+                  }
+                ]
+              }
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": ""
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "logsRatioThreshold": {
+              "denominator": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "severities": [],
+                    "subsystemName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "value": "sub"
+                      }
+                    ]
+                  },
+                  "luceneQuery": ""
+                }
+              },
+              "denominatorAlias": "all",
+              "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
+              "ignoreInfinity": false,
+              "notificationPayloadFilter": [],
+              "numerator": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "applicationName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "value": "app"
+                      }
+                    ],
+                    "severities": []
+                  },
+                  "luceneQuery": ""
+                }
+              },
+              "numeratorAlias": "errors",
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "LOGS_RATIO_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                    "threshold": 0.5,
+                    "timeWindow": {
+                      "logsRatioTimeWindowSpecificValue": "LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_10"
+                    }
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                  }
+                }
+              ],
+              "undetectedValuesManagement": {
+                "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+                "triggerUndetectedValues": false
+              }
+            },
+            "name": "tfbaseline-logs-ratio-filters",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": ""
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": ""
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: remove both",
+    "config": {
+      "name": "tfbaseline-logs-ratio-filters",
+      "type_definition": {
+        "logs_ratio_threshold": {
+          "denominator_alias": "all",
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": ""
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "noChange": true,
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": ""
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    }
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": ""
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: empty filter objects",
+    "config": {
+      "name": "tfbaseline-logs-ratio-filters",
+      "type_definition": {
+        "logs_ratio_threshold": {
+          "denominator": {
+            "simple_filter": {}
+          },
+          "denominator_alias": "all",
+          "numerator": {},
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "logsRatioThreshold": {
+              "denominator": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "severities": []
+                  },
+                  "luceneQuery": ""
+                }
+              },
+              "denominatorAlias": "all",
+              "groupByFor": "LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED",
+              "ignoreInfinity": false,
+              "notificationPayloadFilter": [],
+              "numerator": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "applicationName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "value": "app"
+                      }
+                    ],
+                    "severities": []
+                  },
+                  "luceneQuery": ""
+                }
+              },
+              "numeratorAlias": "errors",
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "LOGS_RATIO_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED",
+                    "threshold": 0.5,
+                    "timeWindow": {
+                      "logsRatioTimeWindowSpecificValue": "LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_10"
+                    }
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                  }
+                }
+              ],
+              "undetectedValuesManagement": {
+                "autoRetireTimeframe": "AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED",
+                "triggerUndetectedValues": false
+              }
+            },
+            "name": "tfbaseline-logs-ratio-filters",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-ratio-filters",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": {
+          "custom_evaluation_delay": null,
+          "denominator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": null,
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "denominator_alias": "all",
+          "group_by_for": "Both",
+          "ignore_infinity": false,
+          "notification_payload_filter": null,
+          "numerator": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": null
+              },
+              "lucene_query": ""
+            }
+          },
+          "numerator_alias": "errors",
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 0.5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "NEVER",
+            "trigger_undetected_values": false
+          }
+        },
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  }
+]

@@ -1,0 +1,416 @@
+// Copyright 2024 Coralogix Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an AS IS BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package provider
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"reflect"
+	"regexp"
+	"slices"
+	"strings"
+	"testing"
+
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+)
+
+const (
+	alertRecordedDir = "fidelity"
+)
+
+var (
+	alertUUIDPattern = regexp.MustCompile(`[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}`)
+	// alertCompanyPattern matches the company id that some error messages of the API carry. A
+	// recording must not hold it.
+	alertCompanyPattern = regexp.MustCompile(`CompanyId\(\d+\)`)
+	// alertSLOCompanyPattern matches the company id in the "not found" message of an SLO.
+	alertSLOCompanyPattern = regexp.MustCompile(`for company \d+`)
+	alertTimeKeys          = map[string]bool{
+		"createdTime": true, "updatedTime": true, "lastTriggeredTime": true,
+		// The times of an SLO.
+		"createTime": true, "updateTime": true,
+	}
+	// alertPersonKeys name the properties that hold a person. An SLO has its creator, an email
+	// address. A recording masks them by key, so it never holds a real address.
+	alertPersonKeys = map[string]bool{"creator": true}
+)
+
+// alertRecorded is the recording of one scenario: every request that the provider sent to the
+// real API and the answer, with ids replaced by <id:N> in order of appearance.
+type alertRecorded map[string][]alertExchange
+
+// alertNormalizer replaces every UUID by <id:N> and every server time by "<time>".
+type alertNormalizer struct {
+	ids map[string]string
+}
+
+func newAlertNormalizer() *alertNormalizer { return &alertNormalizer{ids: map[string]string{}} }
+
+func (n *alertNormalizer) id(uuid string) string {
+	if p, ok := n.ids[uuid]; ok {
+		return p
+	}
+	p := fmt.Sprintf("<id:%d>", len(n.ids)+1)
+	n.ids[uuid] = p
+	return p
+}
+
+func (n *alertNormalizer) text(s string) string {
+	s = alertCompanyPattern.ReplaceAllString(s, "CompanyId(<company>)")
+	s = alertSLOCompanyPattern.ReplaceAllString(s, "for company <company>")
+	return alertUUIDPattern.ReplaceAllStringFunc(s, n.id)
+}
+
+func (n *alertNormalizer) value(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		out := map[string]any{}
+		keys := make([]string, 0, len(x))
+		for k := range x {
+			keys = append(keys, k)
+		}
+		slices.Sort(keys)
+		for _, k := range keys {
+			item := x[k]
+			if alertTimeKeys[k] {
+				out[k] = "<time>"
+				continue
+			}
+			if alertPersonKeys[k] {
+				out[k] = "<user>"
+				continue
+			}
+			// The version id is server noise: no request sends it and Terraform never sees it. It is
+			// masked, and not numbered, so that it cannot move the numbers of the ids that matter.
+			if k == "alertVersionId" {
+				out[k] = "<version>"
+				continue
+			}
+			out[k] = n.value(item)
+		}
+		return out
+	case []any:
+		out := make([]any, len(x))
+		for i, item := range x {
+			out[i] = n.value(item)
+		}
+		return out
+	case string:
+		return n.text(x)
+	}
+	return v
+}
+
+func (n *alertNormalizer) exchange(e alertExchange) alertExchange {
+	e.Path = n.text(strings.TrimPrefix(e.Path, "/mgmt/openapi/5"))
+	e.Request = n.value(e.Request)
+	e.Response = n.value(e.Response)
+	return e
+}
+
+// denormalize puts the ids of this run back into a recorded request.
+func (n *alertNormalizer) denormalize(v any) any {
+	reverse := map[string]string{}
+	for uuid, p := range n.ids {
+		reverse[p] = uuid
+	}
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	_ = enc.Encode(v)
+	text := buf.String()
+	for p, uuid := range reverse {
+		text = strings.ReplaceAll(text, p, uuid)
+	}
+	var out any
+	_ = json.Unmarshal([]byte(text), &out)
+	return out
+}
+
+// readAlertRecorded reads every recording. Each scenario has a file of its own, fidelity/<name>.json,
+// so a group of scenarios records without touching the files of the others.
+func readAlertRecorded(t *testing.T) alertRecorded {
+	t.Helper()
+	files, err := filepath.Glob(filepath.Join(alertGoldenDir, alertRecordedDir, "*.json"))
+	if err != nil || len(files) == 0 {
+		t.Fatalf("no recording in %s: %v", alertRecordedDir, err)
+	}
+	out := alertRecorded{}
+	for _, file := range files {
+		raw, err := os.ReadFile(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var exchanges []alertExchange
+		if err := json.Unmarshal(raw, &exchanges); err != nil {
+			t.Fatalf("%s: %v", file, err)
+		}
+		out[strings.TrimSuffix(filepath.Base(file), ".json")] = exchanges
+	}
+	return out
+}
+
+// TestAlertFakeMatchesRecordedBackend replays every request that the provider sent to the real
+// API during the recording to the fake, and compares the answers.
+func TestAlertFakeMatchesRecordedBackend(t *testing.T) {
+	recorded := readAlertRecorded(t)
+	names := make([]string, 0, len(recorded))
+	for name := range recorded {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	for _, name := range names {
+		t.Run(name, func(t *testing.T) {
+			fake := &alertFake{alerts: map[string]map[string]any{}}
+			norm := newAlertNormalizer()
+			for i, want := range recorded[name] {
+				label := fmt.Sprintf("exchange %d: %s %s", i+1, want.Method, want.Path)
+				path := fmt.Sprint(norm.denormalize(want.Path))
+				var body any
+				if want.Request != nil {
+					body = norm.denormalize(want.Request)
+				}
+				path, query, _ := strings.Cut(path, "?")
+				values, _ := parseQuery(query)
+				status, answer := fake.handle(want.Method, "/mgmt/openapi/5"+path, values, body)
+				got := norm.exchange(alertExchange{Method: want.Method, Path: path, Request: want.Request, Status: status, Response: roundTrip(t, answer)})
+				if got.Status != want.Status {
+					t.Errorf("%s: status %d, recorded %d", label, got.Status, want.Status)
+					continue
+				}
+				if !reflect.DeepEqual(got.Response, want.Response) {
+					t.Errorf("%s: the fake and the API differ at:\n  %s", label, strings.Join(jsonDiff("", got.Response, want.Response), "\n  "))
+				}
+			}
+		})
+	}
+}
+
+func parseQuery(q string) (map[string][]string, error) {
+	out := map[string][]string{}
+	for _, part := range strings.Split(q, "&") {
+		if part == "" {
+			continue
+		}
+		k, v, _ := strings.Cut(part, "=")
+		out[k] = append(out[k], v)
+	}
+	return out, nil
+}
+
+func indentJSON(v any) string {
+	raw, _ := json.MarshalIndent(v, "", "  ")
+	return string(raw)
+}
+
+// TestRecordAlertFidelity runs every scenario against a real tenant and writes the exchanges.
+// The key is read from the environment and is never written anywhere. The tenant needs a key
+// with the alert permissions of an organization.
+//
+//	RECORD_ALERT_FIDELITY=1 CORALOGIX_API_KEY=... CORALOGIX_ENV=EU2 \
+//	  go test ./internal/provider -run TestRecordAlertFidelity
+func TestRecordAlertFidelity(t *testing.T) {
+	if os.Getenv("RECORD_ALERT_FIDELITY") != "1" {
+		t.Skip("set RECORD_ALERT_FIDELITY=1 and an API key to record")
+	}
+	apiKey, region := os.Getenv("CORALOGIX_API_KEY"), os.Getenv("CORALOGIX_ENV")
+	if apiKey == "" || region == "" {
+		t.Fatal("CORALOGIX_API_KEY and CORALOGIX_ENV are required to record")
+	}
+	base, ok := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
+	if !ok {
+		t.Fatalf("unknown region %q", region)
+	}
+	names := alertRecordNames(os.Getenv("RECORD_ALERT_ONLY"))
+	if len(names) == 0 {
+		t.Fatalf("no scenario matches %q", os.Getenv("RECORD_ALERT_ONLY"))
+	}
+	for _, name := range names {
+		t.Run(name, func(t *testing.T) { alertRecordScenario(t, name, base, apiKey) })
+	}
+}
+
+// alertRecordNames returns the sorted names of the scenarios to record. only is a
+// comma-separated list of scenario names. Without it, every scenario records.
+func alertRecordNames(only string) []string {
+	names := make([]string, 0, len(alertScenarios))
+	for name := range alertScenarios {
+		if only == "" || slices.Contains(strings.Split(only, ","), name) {
+			names = append(names, name)
+		}
+	}
+	slices.Sort(names)
+	return names
+}
+
+// alertRecordScenario runs one scenario against the real API and writes its exchanges.
+func alertRecordScenario(t *testing.T, name, base, apiKey string) {
+	live := newAlertLive(t, base, apiKey)
+	// The cleanup deletes only what this run created, so recordings may run side by side.
+	t.Cleanup(func() { alertCleanup(t, base, apiKey, live.created, live.slos) })
+	h := newProtocolHarness(t, alertTypeName, live)
+	defer func() {
+		// Show what the real API refused, so a scenario that fails live is easy to fix.
+		for _, step := range h.steps {
+			if len(step.ApplyDiags) > 0 {
+				t.Logf("step %q: %s", step.Step, strings.Join(step.ApplyDiags, " | "))
+			}
+		}
+		for _, e := range live.exchangesSoFar() {
+			if e.Status >= 400 {
+				t.Logf("%s %s answered %d: %s", e.Method, e.Path, e.Status, compactJSON(e.Response))
+			}
+		}
+	}()
+	alertScenarios[name](h)
+	norm := newAlertNormalizer()
+	exchanges := []alertExchange{}
+	for _, e := range live.takeExchanges() {
+		exchanges = append(exchanges, norm.exchange(e))
+	}
+	raw, err := json.MarshalIndent(exchanges, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir := filepath.Join(alertGoldenDir, alertRecordedDir)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, name+".json"), append(raw, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// alertCleanup deletes the alerts that a run created and left behind. A 404 means the scenario
+// deleted it already.
+func alertCleanup(t *testing.T, base, apiKey string, created, slos []string) {
+	t.Helper()
+	// The API refuses to delete an alert that a flow refers to, so go from the newest alert to
+	// the oldest, and go again over what is left.
+	left := slices.Clone(created)
+	slices.Reverse(left)
+	for pass := 0; pass < 3 && len(left) > 0; pass++ {
+		var next []string
+		for _, id := range left {
+			status, _ := alertDirect(base, apiKey, http.MethodDelete, alertBasePath+"/"+id, nil)
+			if status != http.StatusOK && status != http.StatusNotFound {
+				next = append(next, id)
+			}
+		}
+		left = next
+	}
+	if len(left) > 0 {
+		t.Errorf("alerts left behind: %s", strings.Join(left, ", "))
+	}
+	// The SLOs go after the alerts that refer to them. A 404 means the scenario deleted it already.
+	var staleSLOs []string
+	for _, id := range slos {
+		status, _ := alertDirect(base, apiKey, http.MethodDelete, sloBasePath+"/"+id, nil)
+		if status != http.StatusOK && status != http.StatusNotFound {
+			staleSLOs = append(staleSLOs, id)
+		}
+	}
+	if len(staleSLOs) > 0 {
+		t.Errorf("SLOs left behind: %s", strings.Join(staleSLOs, ", "))
+	}
+}
+
+func alertDirect(base, apiKey, method, path string, body any) (int, any) {
+	var reader io.Reader
+	if body != nil {
+		raw, _ := json.Marshal(body)
+		reader = bytes.NewReader(raw)
+	}
+	req, err := http.NewRequest(method, strings.TrimRight(base, "/")+path, reader)
+	if err != nil {
+		return 0, map[string]any{"message": err.Error()}
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, map[string]any{"message": err.Error()}
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	var parsed any
+	if len(bytes.TrimSpace(raw)) == 0 {
+		parsed = map[string]any{}
+	} else if json.Unmarshal(raw, &parsed) != nil {
+		parsed = map[string]any{"raw": string(raw)}
+	}
+	return resp.StatusCode, parsed
+}
+
+// jsonDiff lists the paths where two JSON values differ, with the fake value first.
+func jsonDiff(path string, fake, api any) []string {
+	switch a := fake.(type) {
+	case map[string]any:
+		b, ok := api.(map[string]any)
+		if !ok {
+			break
+		}
+		var out []string
+		keys := map[string]bool{}
+		for k := range a {
+			keys[k] = true
+		}
+		for k := range b {
+			keys[k] = true
+		}
+		sorted := make([]string, 0, len(keys))
+		for k := range keys {
+			sorted = append(sorted, k)
+		}
+		slices.Sort(sorted)
+		for _, k := range sorted {
+			av, aok := a[k]
+			bv, bok := b[k]
+			switch {
+			case !aok:
+				out = append(out, fmt.Sprintf("%s.%s: the fake has none, the API has %s", path, k, compactJSON(bv)))
+			case !bok:
+				out = append(out, fmt.Sprintf("%s.%s: the fake has %s, the API has none", path, k, compactJSON(av)))
+			default:
+				out = append(out, jsonDiff(path+"."+k, av, bv)...)
+			}
+		}
+		return out
+	case []any:
+		b, ok := api.([]any)
+		if !ok || len(a) != len(b) {
+			break
+		}
+		var out []string
+		for i := range a {
+			out = append(out, jsonDiff(fmt.Sprintf("%s[%d]", path, i), a[i], b[i])...)
+		}
+		return out
+	}
+	if reflect.DeepEqual(fake, api) {
+		return nil
+	}
+	return []string{fmt.Sprintf("%s: the fake has %s, the API has %s", path, compactJSON(fake), compactJSON(api))}
+}
+
+func compactJSON(v any) string {
+	raw, _ := json.Marshal(v)
+	return string(raw)
+}

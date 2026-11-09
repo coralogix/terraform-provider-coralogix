@@ -1,0 +1,520 @@
+[
+  {
+    "step": "error_budget with an id that no SLO has",
+    "config": {
+      "name": "tfbaseline-slo-missing",
+      "type_definition": {
+        "slo_threshold": {
+          "error_budget": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 1
+                },
+                "override": {}
+              }
+            ]
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-0000000000aa"
+          }
+        }
+      }
+    },
+    "plan": {
+      "access_policy": "(unknown)",
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": "(unknown)",
+      "description": null,
+      "enabled": true,
+      "group_by": "(unknown)",
+      "id": "(unknown)",
+      "incidents_settings": "(unknown)",
+      "labels": null,
+      "name": "tfbaseline-slo-missing",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "(unknown)",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": null,
+          "error_budget": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 1
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ]
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-0000000000aa"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [],
+            "name": "tfbaseline-slo-missing",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "sloThreshold": {
+              "errorBudget": {
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 1
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ]
+              },
+              "sloDefinition": {
+                "sloId": "00000000-0000-4000-8000-0000000000aa"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+          }
+        },
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_alert | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Failed Getting SLO definition\"}\noperation - Create"
+    ],
+    "state": null
+  },
+  {
+    "step": "error_budget with an id that is no id",
+    "config": {
+      "name": "tfbaseline-slo-missing",
+      "type_definition": {
+        "slo_threshold": {
+          "error_budget": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 1
+                },
+                "override": {}
+              }
+            ]
+          },
+          "slo_definition": {
+            "slo_id": "tfbaseline-no-such-slo"
+          }
+        }
+      }
+    },
+    "plan": {
+      "access_policy": "(unknown)",
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": "(unknown)",
+      "description": null,
+      "enabled": true,
+      "group_by": "(unknown)",
+      "id": "(unknown)",
+      "incidents_settings": "(unknown)",
+      "labels": null,
+      "name": "tfbaseline-slo-missing",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "(unknown)",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": null,
+          "error_budget": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 1
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ]
+          },
+          "slo_definition": {
+            "slo_id": "tfbaseline-no-such-slo"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [],
+            "name": "tfbaseline-slo-missing",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "sloThreshold": {
+              "errorBudget": {
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 1
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ]
+              },
+              "sloDefinition": {
+                "sloId": "tfbaseline-no-such-slo"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+          }
+        },
+        "status": 500
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_alert | internal error in Coralogix backend.\nerror - 500 Internal Server Error — {\"code\":500,\"message\":\"Internal Server Error: Failed Getting SLO definition\"}\noperation - Create"
+    ],
+    "state": null
+  },
+  {
+    "step": "single burn_rate with an id that no SLO has",
+    "config": {
+      "name": "tfbaseline-slo-missing",
+      "type_definition": {
+        "slo_threshold": {
+          "burn_rate": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 1
+                },
+                "override": {}
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 1,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-0000000000aa"
+          }
+        }
+      }
+    },
+    "plan": {
+      "access_policy": "(unknown)",
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": "(unknown)",
+      "description": null,
+      "enabled": true,
+      "group_by": "(unknown)",
+      "id": "(unknown)",
+      "incidents_settings": "(unknown)",
+      "labels": null,
+      "name": "tfbaseline-slo-missing",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "(unknown)",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": null,
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 1
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 1,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-0000000000aa"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [],
+            "name": "tfbaseline-slo-missing",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "sloThreshold": {
+              "burnRate": {
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 1
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ],
+                "single": {
+                  "timeDuration": {
+                    "duration": "1",
+                    "unit": "DURATION_UNIT_HOURS"
+                  }
+                }
+              },
+              "sloDefinition": {
+                "sloId": "00000000-0000-4000-8000-0000000000aa"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+          }
+        },
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_alert | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Failed Getting SLO definition\"}\noperation - Create"
+    ],
+    "state": null
+  },
+  {
+    "step": "dual burn_rate with an id that no SLO has",
+    "config": {
+      "name": "tfbaseline-slo-missing",
+      "type_definition": {
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 1,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 1
+                },
+                "override": {}
+              }
+            ]
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-0000000000aa"
+          }
+        }
+      }
+    },
+    "plan": {
+      "access_policy": "(unknown)",
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": "(unknown)",
+      "description": null,
+      "enabled": true,
+      "group_by": "(unknown)",
+      "id": "(unknown)",
+      "incidents_settings": "(unknown)",
+      "labels": null,
+      "name": "tfbaseline-slo-missing",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "(unknown)",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 1,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 1
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": null
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-0000000000aa"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [],
+            "name": "tfbaseline-slo-missing",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "sloThreshold": {
+              "burnRate": {
+                "dual": {
+                  "timeDuration": {
+                    "duration": "1",
+                    "unit": "DURATION_UNIT_HOURS"
+                  }
+                },
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 1
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ]
+              },
+              "sloDefinition": {
+                "sloId": "00000000-0000-4000-8000-0000000000aa"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+          }
+        },
+        "status": 404
+      }
+    ],
+    "applyDiagnostics": [
+      "error: Error creating coralogix_alert | error - 404 Not Found — {\"code\":404,\"message\":\"Not Found: Failed Getting SLO definition\"}\noperation - Create"
+    ],
+    "state": null
+  }
+]

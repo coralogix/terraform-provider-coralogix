@@ -1,0 +1,1244 @@
+[
+  {
+    "method": "POST",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "logsAnomaly": {
+          "notificationPayloadFilter": [],
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                "minimumThreshold": 5,
+                "timeWindow": {
+                  "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED"
+                }
+              }
+            }
+          ]
+        },
+        "name": "tfbaseline-anomaly-windows",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+      }
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsAnomaly": {
+            "anomalyAlertSettings": {},
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                }
+              }
+            },
+            "notificationPayloadFilter": [],
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "minimumThreshold": 5,
+                  "timeWindow": {
+                    "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED"
+                  }
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-anomaly-windows",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsAnomaly": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": ""
+            }
+          },
+          "notificationPayloadFilter": [],
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                "minimumThreshold": 5,
+                "timeWindow": {
+                  "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_10"
+                }
+              }
+            }
+          ]
+        },
+        "name": "tfbaseline-anomaly-windows",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsAnomaly": {
+            "anomalyAlertSettings": {},
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                }
+              }
+            },
+            "notificationPayloadFilter": [],
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "minimumThreshold": 5,
+                  "timeWindow": {
+                    "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_10"
+                  }
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-anomaly-windows",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsAnomaly": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": ""
+            }
+          },
+          "notificationPayloadFilter": [],
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                "minimumThreshold": 5,
+                "timeWindow": {
+                  "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_15"
+                }
+              }
+            }
+          ]
+        },
+        "name": "tfbaseline-anomaly-windows",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsAnomaly": {
+            "anomalyAlertSettings": {},
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                }
+              }
+            },
+            "notificationPayloadFilter": [],
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "minimumThreshold": 5,
+                  "timeWindow": {
+                    "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_15"
+                  }
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-anomaly-windows",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsAnomaly": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": ""
+            }
+          },
+          "notificationPayloadFilter": [],
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                "minimumThreshold": 5,
+                "timeWindow": {
+                  "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_20"
+                }
+              }
+            }
+          ]
+        },
+        "name": "tfbaseline-anomaly-windows",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsAnomaly": {
+            "anomalyAlertSettings": {},
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                }
+              }
+            },
+            "notificationPayloadFilter": [],
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "minimumThreshold": 5,
+                  "timeWindow": {
+                    "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_20"
+                  }
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-anomaly-windows",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsAnomaly": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": ""
+            }
+          },
+          "notificationPayloadFilter": [],
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                "minimumThreshold": 5,
+                "timeWindow": {
+                  "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_30"
+                }
+              }
+            }
+          ]
+        },
+        "name": "tfbaseline-anomaly-windows",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsAnomaly": {
+            "anomalyAlertSettings": {},
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                }
+              }
+            },
+            "notificationPayloadFilter": [],
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "minimumThreshold": 5,
+                  "timeWindow": {
+                    "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_30"
+                  }
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-anomaly-windows",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsAnomaly": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": ""
+            }
+          },
+          "notificationPayloadFilter": [],
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                "minimumThreshold": 5,
+                "timeWindow": {
+                  "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_HOUR_1"
+                }
+              }
+            }
+          ]
+        },
+        "name": "tfbaseline-anomaly-windows",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsAnomaly": {
+            "anomalyAlertSettings": {},
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                }
+              }
+            },
+            "notificationPayloadFilter": [],
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "minimumThreshold": 5,
+                  "timeWindow": {
+                    "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_HOUR_1"
+                  }
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-anomaly-windows",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsAnomaly": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": ""
+            }
+          },
+          "notificationPayloadFilter": [],
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                "minimumThreshold": 5,
+                "timeWindow": {
+                  "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_HOURS_2"
+                }
+              }
+            }
+          ]
+        },
+        "name": "tfbaseline-anomaly-windows",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsAnomaly": {
+            "anomalyAlertSettings": {},
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                }
+              }
+            },
+            "notificationPayloadFilter": [],
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "minimumThreshold": 5,
+                  "timeWindow": {
+                    "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_HOURS_2"
+                  }
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-anomaly-windows",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsAnomaly": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": ""
+            }
+          },
+          "notificationPayloadFilter": [],
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                "minimumThreshold": 5,
+                "timeWindow": {
+                  "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_HOURS_4"
+                }
+              }
+            }
+          ]
+        },
+        "name": "tfbaseline-anomaly-windows",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsAnomaly": {
+            "anomalyAlertSettings": {},
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                }
+              }
+            },
+            "notificationPayloadFilter": [],
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "minimumThreshold": 5,
+                  "timeWindow": {
+                    "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_HOURS_4"
+                  }
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-anomaly-windows",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsAnomaly": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": ""
+            }
+          },
+          "notificationPayloadFilter": [],
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                "minimumThreshold": 5,
+                "timeWindow": {
+                  "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_HOURS_6"
+                }
+              }
+            }
+          ]
+        },
+        "name": "tfbaseline-anomaly-windows",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsAnomaly": {
+            "anomalyAlertSettings": {},
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                }
+              }
+            },
+            "notificationPayloadFilter": [],
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "minimumThreshold": 5,
+                  "timeWindow": {
+                    "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_HOURS_6"
+                  }
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-anomaly-windows",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsAnomaly": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": ""
+            }
+          },
+          "notificationPayloadFilter": [],
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                "minimumThreshold": 5,
+                "timeWindow": {
+                  "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_HOURS_12"
+                }
+              }
+            }
+          ]
+        },
+        "name": "tfbaseline-anomaly-windows",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsAnomaly": {
+            "anomalyAlertSettings": {},
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                }
+              }
+            },
+            "notificationPayloadFilter": [],
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "minimumThreshold": 5,
+                  "timeWindow": {
+                    "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_HOURS_12"
+                  }
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-anomaly-windows",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsAnomaly": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": ""
+            }
+          },
+          "notificationPayloadFilter": [],
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                "minimumThreshold": 5,
+                "timeWindow": {
+                  "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_HOURS_24"
+                }
+              }
+            }
+          ]
+        },
+        "name": "tfbaseline-anomaly-windows",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsAnomaly": {
+            "anomalyAlertSettings": {},
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                }
+              }
+            },
+            "notificationPayloadFilter": [],
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "minimumThreshold": 5,
+                  "timeWindow": {
+                    "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_HOURS_24"
+                  }
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-anomaly-windows",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "PUT",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "groupByKeys": [],
+        "incidentsSettings": {
+          "minutes": 10,
+          "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+        },
+        "logsAnomaly": {
+          "logsFilter": {
+            "simpleFilter": {
+              "labelFilters": {
+                "severities": []
+              },
+              "luceneQuery": ""
+            }
+          },
+          "notificationPayloadFilter": [],
+          "rules": [
+            {
+              "condition": {
+                "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                "minimumThreshold": 5,
+                "timeWindow": {
+                  "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_HOURS_36"
+                }
+              }
+            }
+          ]
+        },
+        "name": "tfbaseline-anomaly-windows",
+        "notificationGroup": {
+          "groupByKeys": []
+        },
+        "phantomMode": false,
+        "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+        "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+      },
+      "id": "\u003cid:1\u003e"
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsAnomaly": {
+            "anomalyAlertSettings": {},
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                }
+              }
+            },
+            "notificationPayloadFilter": [],
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "minimumThreshold": 5,
+                  "timeWindow": {
+                    "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_HOURS_36"
+                  }
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-anomaly-windows",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:1\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "logsAnomaly": {
+            "anomalyAlertSettings": {},
+            "logsFilter": {
+              "simpleFilter": {
+                "labelFilters": {
+                  "applicationName": [],
+                  "severities": [],
+                  "subsystemName": []
+                }
+              }
+            },
+            "notificationPayloadFilter": [],
+            "rules": [
+              {
+                "condition": {
+                  "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                  "minimumThreshold": 5,
+                  "timeWindow": {
+                    "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_HOURS_36"
+                  }
+                }
+              }
+            ]
+          },
+          "name": "tfbaseline-anomaly-windows",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+          "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:1\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  }
+]

@@ -1,0 +1,866 @@
+[
+  {
+    "step": "no body",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {}
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"dataprime_query\")] | Must set a configuration value for the type_definition.analytics_threshold.dataprime_query attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"operator\")] | Must set a configuration value for the type_definition.analytics_threshold.operator attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\")] | Must set a configuration value for the type_definition.analytics_threshold.rules attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"target_column\")] | Must set a configuration value for the type_definition.analytics_threshold.target_column attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required.",
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"timeframe_minutes\")] | Must set a configuration value for the type_definition.analytics_threshold.timeframe_minutes attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "no dataprime_query",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"dataprime_query\")] | Must set a configuration value for the type_definition.analytics_threshold.dataprime_query attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "no rules",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\")] | Must set a configuration value for the type_definition.analytics_threshold.rules attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "no operator",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"operator\")] | Must set a configuration value for the type_definition.analytics_threshold.operator attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "no target_column",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"target_column\")] | Must set a configuration value for the type_definition.analytics_threshold.target_column attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "no timeframe_minutes",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c"
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"timeframe_minutes\")] | Must set a configuration value for the type_definition.analytics_threshold.timeframe_minutes attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "an empty query",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": ""
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"dataprime_query\").AttributeName(\"query\")] | Attribute type_definition.analytics_threshold.dataprime_query.query string length must be between 1 and 65535, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "operator outside the list",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "GREATER_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"operator\")] | Attribute type_definition.analytics_threshold.operator value must be one of: [\"EQUALS\" \"LESS_THAN\" \"LESS_THAN_OR_EQUALS\" \"MORE_THAN\" \"MORE_THAN_OR_EQUALS\" \"NOT_EQUALS\"], got: \"GREATER_THAN\""
+    ],
+    "state": null
+  },
+  {
+    "step": "lowercase operator",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "more_than",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"operator\")] | Attribute type_definition.analytics_threshold.operator value must be one of: [\"EQUALS\" \"LESS_THAN\" \"LESS_THAN_OR_EQUALS\" \"MORE_THAN\" \"MORE_THAN_OR_EQUALS\" \"NOT_EQUALS\"], got: \"more_than\""
+    ],
+    "state": null
+  },
+  {
+    "step": "the enum name as operator",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "ANALYTICS_THRESHOLD_OPERATOR_LESS_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"operator\")] | Attribute type_definition.analytics_threshold.operator value must be one of: [\"EQUALS\" \"LESS_THAN\" \"LESS_THAN_OR_EQUALS\" \"MORE_THAN\" \"MORE_THAN_OR_EQUALS\" \"NOT_EQUALS\"], got: \"ANALYTICS_THRESHOLD_OPERATOR_LESS_THAN\""
+    ],
+    "state": null
+  },
+  {
+    "step": "empty rules",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\")] | Attribute type_definition.analytics_threshold.rules list must contain at least 1 elements and at most 5 elements, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "six rules",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P1"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 2
+              },
+              "override": {
+                "priority": "P1"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 3
+              },
+              "override": {
+                "priority": "P1"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 4
+              },
+              "override": {
+                "priority": "P1"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P1"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 6
+              },
+              "override": {
+                "priority": "P1"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\")] | Attribute type_definition.analytics_threshold.rules list must contain at least 1 elements and at most 5 elements, got: 6"
+    ],
+    "state": null
+  },
+  {
+    "step": "five rules are fine",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P1"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 2
+              },
+              "override": {
+                "priority": "P1"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 3
+              },
+              "override": {
+                "priority": "P1"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 4
+              },
+              "override": {
+                "priority": "P1"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P1"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "state": null
+  },
+  {
+    "step": "a rule without condition",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "override": {
+                "priority": "P1"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"condition\")] | Must set a configuration value for the type_definition.analytics_threshold.rules[0].condition attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "a rule without override",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"override\")] | Must set a configuration value for the type_definition.analytics_threshold.rules[0].override attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "a condition without threshold",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {},
+              "override": {}
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"condition\").AttributeName(\"threshold\")] | Must set a configuration value for the type_definition.analytics_threshold.rules[0].condition.threshold attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "override priority outside the list",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P6"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"override\").AttributeName(\"priority\")] | Attribute type_definition.analytics_threshold.rules[0].override.priority value must be one of: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"], got: \"P6\""
+    ],
+    "state": null
+  },
+  {
+    "step": "lowercase override priority",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "p1"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\").ElementKeyInt(0).AttributeName(\"override\").AttributeName(\"priority\")] | Attribute type_definition.analytics_threshold.rules[0].override.priority value must be one of: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"], got: \"p1\""
+    ],
+    "state": null
+  },
+  {
+    "step": "target_column of 256 characters",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccx",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Length [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"target_column\")] | Attribute type_definition.analytics_threshold.target_column string length must be at most 255, got: 256"
+    ],
+    "state": null
+  },
+  {
+    "step": "target_column of 255 characters is fine",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "state": null
+  },
+  {
+    "step": "an empty target_column is fine for the schema",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "state": null
+  },
+  {
+    "step": "timeframe_minutes 0",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 0
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"timeframe_minutes\")] | Attribute type_definition.analytics_threshold.timeframe_minutes value must be at least 1, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "custom_evaluation_delay negative",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "custom_evaluation_delay": -1,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"custom_evaluation_delay\")] | Attribute type_definition.analytics_threshold.custom_evaluation_delay value must be at least 0, got: -1"
+    ],
+    "state": null
+  },
+  {
+    "step": "an empty no_data_policy",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": {},
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Empty no_data_policy [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"no_data_policy\")] | no_data_policy must set at least one of state or auto_retire_seconds; remove the block to leave the policy unset."
+    ],
+    "state": null
+  },
+  {
+    "step": "no_data_policy state outside the list",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": {
+            "state": "BROKEN"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")] | Attribute type_definition.analytics_threshold.no_data_policy.state value must be one of: [\"OK\" \"ALERTING\" \"KEEP_LAST\" \"NO_DATA\" \"UNSPECIFIED\"], got: \"BROKEN\""
+    ],
+    "state": null
+  },
+  {
+    "step": "no_data_policy state UNSPECIFIED warns",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": {
+            "state": "UNSPECIFIED"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "warning: Deprecated Attribute [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")] | `UNSPECIFIED` is a protobuf sentinel, not a UI option. Omit `no_data_policy` entirely for the same legacy no-data handling, or set `state` to one of `OK`, `ALERTING`, `KEEP_LAST`, or `NO_DATA`. `UNSPECIFIED` will be rejected in a future provider release."
+    ],
+    "state": null
+  },
+  {
+    "step": "group_by is allowed",
+    "config": {
+      "group_by": [
+        "coralogix.metadata.applicationName"
+      ],
+      "name": "tfbaseline-analytics-validation",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "state": null
+  },
+  {
+    "step": "priority gets a deprecation warning next to rules",
+    "config": {
+      "name": "tfbaseline-analytics-validation",
+      "priority": "P2",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "warning: Deprecated Attribute [AttributeName(\"priority\")] | This field will be removed in the future in favor of the 'override' property where possible."
+    ],
+    "state": null
+  }
+]

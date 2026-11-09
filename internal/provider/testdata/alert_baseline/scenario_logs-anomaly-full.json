@@ -1,0 +1,946 @@
+[
+  {
+    "step": "create with every attribute",
+    "config": {
+      "group_by": [
+        "coralogix.metadata.applicationName"
+      ],
+      "name": "tfbaseline-anomaly-full",
+      "type_definition": {
+        "logs_anomaly": {
+          "custom_evaluation_delay": 100,
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "notification_payload_filter": [
+            "coralogix.metadata.sdkId",
+            "coralogix.metadata.sdkName"
+          ],
+          "percentage_of_deviation": 15.5,
+          "rules": [
+            {
+              "condition": {
+                "minimum_threshold": 5,
+                "time_window": "10_MINUTES"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "plan": {
+      "access_policy": "(unknown)",
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": "(unknown)",
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "coralogix.metadata.applicationName"
+      ],
+      "id": "(unknown)",
+      "incidents_settings": "(unknown)",
+      "labels": null,
+      "name": "tfbaseline-anomaly-full",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "(unknown)",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": {
+          "custom_evaluation_delay": 100,
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "notification_payload_filter": [
+            "coralogix.metadata.sdkId",
+            "coralogix.metadata.sdkName"
+          ],
+          "percentage_of_deviation": 15.5,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN_USUAL",
+                "minimum_threshold": 5,
+                "time_window": "10_MINUTES"
+              }
+            }
+          ]
+        },
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [
+              "coralogix.metadata.applicationName"
+            ],
+            "logsAnomaly": {
+              "anomalyAlertSettings": {
+                "percentageOfDeviation": 15.5
+              },
+              "evaluationDelayMs": 100,
+              "logsFilter": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "applicationName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "value": "app-a"
+                      },
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_STARTS_WITH",
+                        "value": "app-"
+                      }
+                    ],
+                    "severities": [
+                      "LOG_SEVERITY_WARNING",
+                      "LOG_SEVERITY_ERROR"
+                    ],
+                    "subsystemName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_ENDS_WITH",
+                        "value": "-sub"
+                      },
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
+                        "value": "ub"
+                      }
+                    ]
+                  },
+                  "luceneQuery": "message:\"tfbaseline\""
+                }
+              },
+              "notificationPayloadFilter": [
+                "coralogix.metadata.sdkId",
+                "coralogix.metadata.sdkName"
+              ],
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                    "minimumThreshold": 5,
+                    "timeWindow": {
+                      "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_MINUTES_10"
+                    }
+                  }
+                }
+              ]
+            },
+            "name": "tfbaseline-anomaly-full",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+          }
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "coralogix.metadata.applicationName"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-anomaly-full",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": {
+          "custom_evaluation_delay": 100,
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "notification_payload_filter": [
+            "coralogix.metadata.sdkId",
+            "coralogix.metadata.sdkName"
+          ],
+          "percentage_of_deviation": 15.5,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN_USUAL",
+                "minimum_threshold": 5,
+                "time_window": "10_MINUTES"
+              }
+            }
+          ]
+        },
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "coralogix.metadata.applicationName"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-anomaly-full",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": {
+          "custom_evaluation_delay": 100,
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "notification_payload_filter": [
+            "coralogix.metadata.sdkId",
+            "coralogix.metadata.sdkName"
+          ],
+          "percentage_of_deviation": 15.5,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN_USUAL",
+                "minimum_threshold": 5,
+                "time_window": "10_MINUTES"
+              }
+            }
+          ]
+        },
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "update: change every attribute",
+    "config": {
+      "group_by": [
+        "coralogix.metadata.subsystemName",
+        "coralogix.metadata.applicationName"
+      ],
+      "name": "tfbaseline-anomaly-full",
+      "type_definition": {
+        "logs_anomaly": {
+          "custom_evaluation_delay": 250,
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "INCLUDES",
+                    "value": "app-b"
+                  }
+                ],
+                "severities": [
+                  "Critical"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub-b"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"changed\""
+            }
+          },
+          "notification_payload_filter": [
+            "coralogix.metadata.sdkVersion"
+          ],
+          "percentage_of_deviation": 25.25,
+          "rules": [
+            {
+              "condition": {
+                "minimum_threshold": 20,
+                "time_window": "2_HOURS"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "coralogix.metadata.subsystemName",
+        "coralogix.metadata.applicationName"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-anomaly-full",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": {
+          "custom_evaluation_delay": 250,
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "INCLUDES",
+                    "value": "app-b"
+                  }
+                ],
+                "severities": [
+                  "Critical"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub-b"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"changed\""
+            }
+          },
+          "notification_payload_filter": [
+            "coralogix.metadata.sdkVersion"
+          ],
+          "percentage_of_deviation": 25.25,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN_USUAL",
+                "minimum_threshold": 20,
+                "time_window": "2_HOURS"
+              }
+            }
+          ]
+        },
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [
+              "coralogix.metadata.subsystemName",
+              "coralogix.metadata.applicationName"
+            ],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "logsAnomaly": {
+              "anomalyAlertSettings": {
+                "percentageOfDeviation": 25.25
+              },
+              "evaluationDelayMs": 250,
+              "logsFilter": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "applicationName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
+                        "value": "app-b"
+                      }
+                    ],
+                    "severities": [
+                      "LOG_SEVERITY_CRITICAL"
+                    ],
+                    "subsystemName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "value": "sub-b"
+                      }
+                    ]
+                  },
+                  "luceneQuery": "message:\"changed\""
+                }
+              },
+              "notificationPayloadFilter": [
+                "coralogix.metadata.sdkVersion"
+              ],
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                    "minimumThreshold": 20,
+                    "timeWindow": {
+                      "logsTimeWindowSpecificValue": "LOGS_TIME_WINDOW_VALUE_HOURS_2"
+                    }
+                  }
+                }
+              ]
+            },
+            "name": "tfbaseline-anomaly-full",
+            "notificationGroup": {
+              "groupByKeys": []
+            },
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_ANOMALY"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "coralogix.metadata.subsystemName",
+        "coralogix.metadata.applicationName"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-anomaly-full",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": {
+          "custom_evaluation_delay": 250,
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "INCLUDES",
+                    "value": "app-b"
+                  }
+                ],
+                "severities": [
+                  "Critical"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub-b"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"changed\""
+            }
+          },
+          "notification_payload_filter": [
+            "coralogix.metadata.sdkVersion"
+          ],
+          "percentage_of_deviation": 25.25,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN_USUAL",
+                "minimum_threshold": 20,
+                "time_window": "2_HOURS"
+              }
+            }
+          ]
+        },
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "refresh after update",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "coralogix.metadata.subsystemName",
+        "coralogix.metadata.applicationName"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-anomaly-full",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": {
+          "custom_evaluation_delay": 250,
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "INCLUDES",
+                    "value": "app-b"
+                  }
+                ],
+                "severities": [
+                  "Critical"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub-b"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"changed\""
+            }
+          },
+          "notification_payload_filter": [
+            "coralogix.metadata.sdkVersion"
+          ],
+          "percentage_of_deviation": 25.25,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN_USUAL",
+                "minimum_threshold": 20,
+                "time_window": "2_HOURS"
+              }
+            }
+          ]
+        },
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
+  },
+  {
+    "step": "import by id",
+    "state": null
+  },
+  {
+    "step": "import by id (refresh)",
+    "requests": [
+      {
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "coralogix.metadata.subsystemName",
+        "coralogix.metadata.applicationName"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-anomaly-full",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": {
+          "custom_evaluation_delay": 250,
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "INCLUDES",
+                    "value": "app-b"
+                  }
+                ],
+                "severities": [
+                  "Critical"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub-b"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"changed\""
+            }
+          },
+          "notification_payload_filter": [
+            "coralogix.metadata.sdkVersion"
+          ],
+          "percentage_of_deviation": 25.25,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN_USUAL",
+                "minimum_threshold": 20,
+                "time_window": "2_HOURS"
+              }
+            }
+          ]
+        },
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "drift": [
+      "AttributeName(\"deleted\")",
+      "AttributeName(\"enabled\")",
+      "AttributeName(\"group_by\")",
+      "AttributeName(\"group_by\").ElementKeyInt(0)",
+      "AttributeName(\"group_by\").ElementKeyInt(1)",
+      "AttributeName(\"incidents_settings\")",
+      "AttributeName(\"incidents_settings\").AttributeName(\"notify_on\")",
+      "AttributeName(\"incidents_settings\").AttributeName(\"retriggering_period\")",
+      "AttributeName(\"name\")",
+      "AttributeName(\"notification_group\")",
+      "AttributeName(\"notification_group\").AttributeName(\"destinations\")",
+      "AttributeName(\"notification_group\").AttributeName(\"group_by_keys\")",
+      "AttributeName(\"notification_group\").AttributeName(\"router\")",
+      "AttributeName(\"notification_group\").AttributeName(\"webhooks_settings\")",
+      "AttributeName(\"phantom_mode\")",
+      "AttributeName(\"priority\")",
+      "AttributeName(\"type_definition\")",
+      "AttributeName(\"type_definition\").AttributeName(\"analytics_immediate\")",
+      "AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\")",
+      "AttributeName(\"type_definition\").AttributeName(\"flow\")",
+      "AttributeName(\"type_definition\").AttributeName(\"logs_anomaly\")",
+      "AttributeName(\"type_definition\").AttributeName(\"logs_immediate\")",
+      "AttributeName(\"type_definition\").AttributeName(\"logs_new_value\")",
+      "AttributeName(\"type_definition\").AttributeName(\"logs_ratio_threshold\")",
+      "AttributeName(\"type_definition\").AttributeName(\"logs_threshold\")",
+      "AttributeName(\"type_definition\").AttributeName(\"logs_time_relative_threshold\")",
+      "AttributeName(\"type_definition\").AttributeName(\"logs_unique_count\")",
+      "AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\")",
+      "AttributeName(\"type_definition\").AttributeName(\"metric_threshold\")",
+      "AttributeName(\"type_definition\").AttributeName(\"slo_threshold\")",
+      "AttributeName(\"type_definition\").AttributeName(\"tracing_immediate\")",
+      "AttributeName(\"type_definition\").AttributeName(\"tracing_threshold\")"
+    ]
+  },
+  {
+    "step": "destroy",
+    "requests": [
+      {
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001",
+        "status": 200
+      }
+    ],
+    "state": null
+  }
+]

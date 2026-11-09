@@ -1,0 +1,737 @@
+[
+  {
+    "step": "valid",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "state": null
+  },
+  {
+    "step": "rules omitted",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {}
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"rules\")] | Must set a configuration value for the type_definition.logs_threshold.rules attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "rules empty",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": []
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"rules\")] | Attribute type_definition.logs_threshold.rules set must contain at least 1 elements, got: 0"
+    ],
+    "state": null
+  },
+  {
+    "step": "rule without condition",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String]<null>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<null>>>).AttributeName(\"condition\")] | Must set a configuration value for the type_definition.logs_threshold.rules[Value({\"condition\":<null>,\"override\":{\"priority\":<null>}})].condition attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "rule without override",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 1,
+                "time_window": "10_MINUTES"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"threshold\":tftypes.Number<\"1\">, \"time_window\":tftypes.String<\"10_MINUTES\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<null>>).AttributeName(\"override\")] | Must set a configuration value for the type_definition.logs_threshold.rules[Value({\"condition\":{\"condition_type\":\"MORE_THAN\",\"threshold\":1.000000,\"time_window\":\"10_MINUTES\"},\"override\":<null>})].override attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "condition without condition_type",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<null>, \"threshold\":tftypes.Number<\"1\">, \"time_window\":tftypes.String<\"10_MINUTES\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<null>>>).AttributeName(\"condition\").AttributeName(\"condition_type\")] | Must set a configuration value for the type_definition.logs_threshold.rules[Value({\"condition\":{\"condition_type\":<null>,\"threshold\":1.000000,\"time_window\":\"10_MINUTES\"},\"override\":{\"priority\":<null>}})].condition.condition_type attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "condition without threshold",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"threshold\":tftypes.Number<null>, \"time_window\":tftypes.String<\"10_MINUTES\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<null>>>).AttributeName(\"condition\").AttributeName(\"threshold\")] | Must set a configuration value for the type_definition.logs_threshold.rules[Value({\"condition\":{\"condition_type\":\"MORE_THAN\",\"threshold\":<null>,\"time_window\":\"10_MINUTES\"},\"override\":{\"priority\":<null>}})].condition.threshold attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "condition without time_window",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 1
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Missing Configuration for Required Attribute [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"threshold\":tftypes.Number<\"1\">, \"time_window\":tftypes.String<null>>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<null>>>).AttributeName(\"condition\").AttributeName(\"time_window\")] | Must set a configuration value for the type_definition.logs_threshold.rules[Value({\"condition\":{\"condition_type\":\"MORE_THAN\",\"threshold\":1.000000,\"time_window\":<null>},\"override\":{\"priority\":<null>}})].condition.time_window attribute as the provider has marked it as required.\n\nRefer to the provider documentation or contact the provider developers for additional information about configurable attributes that are required."
+    ],
+    "state": null
+  },
+  {
+    "step": "condition_type MORE",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE",
+                "threshold": 1,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<\"MORE\">, \"threshold\":tftypes.Number<\"1\">, \"time_window\":tftypes.String<\"10_MINUTES\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<null>>>).AttributeName(\"condition\").AttributeName(\"condition_type\")] | Attribute type_definition.logs_threshold.rules[Value({\"condition\":{\"condition_type\":\"MORE\",\"threshold\":1.000000,\"time_window\":\"10_MINUTES\"},\"override\":{\"priority\":<null>}})].condition.condition_type value must be one of: [\"EQUALS\" \"LESS_THAN\" \"MORE_THAN\" \"NOT_EQUALS\"], got: \"MORE\""
+    ],
+    "state": null
+  },
+  {
+    "step": "condition_type in lower case",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "more_than",
+                "threshold": 1,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<\"more_than\">, \"threshold\":tftypes.Number<\"1\">, \"time_window\":tftypes.String<\"10_MINUTES\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<null>>>).AttributeName(\"condition\").AttributeName(\"condition_type\")] | Attribute type_definition.logs_threshold.rules[Value({\"condition\":{\"condition_type\":\"more_than\",\"threshold\":1.000000,\"time_window\":\"10_MINUTES\"},\"override\":{\"priority\":<null>}})].condition.condition_type value must be one of: [\"EQUALS\" \"LESS_THAN\" \"MORE_THAN\" \"NOT_EQUALS\"], got: \"more_than\""
+    ],
+    "state": null
+  },
+  {
+    "step": "condition_type empty",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "",
+                "threshold": 1,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<\"\">, \"threshold\":tftypes.Number<\"1\">, \"time_window\":tftypes.String<\"10_MINUTES\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<null>>>).AttributeName(\"condition\").AttributeName(\"condition_type\")] | Attribute type_definition.logs_threshold.rules[Value({\"condition\":{\"condition_type\":\"\",\"threshold\":1.000000,\"time_window\":\"10_MINUTES\"},\"override\":{\"priority\":<null>}})].condition.condition_type value must be one of: [\"EQUALS\" \"LESS_THAN\" \"MORE_THAN\" \"NOT_EQUALS\"], got: \"\""
+    ],
+    "state": null
+  },
+  {
+    "step": "time_window 7_MINUTES",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 1,
+                "time_window": "7_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"threshold\":tftypes.Number<\"1\">, \"time_window\":tftypes.String<\"7_MINUTES\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<null>>>).AttributeName(\"condition\").AttributeName(\"time_window\")] | Attribute type_definition.logs_threshold.rules[Value({\"condition\":{\"condition_type\":\"MORE_THAN\",\"threshold\":1.000000,\"time_window\":\"7_MINUTES\"},\"override\":{\"priority\":<null>}})].condition.time_window value must be one of: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"], got: \"7_MINUTES\""
+    ],
+    "state": null
+  },
+  {
+    "step": "time_window in lower case",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 1,
+                "time_window": "1_hour"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"threshold\":tftypes.Number<\"1\">, \"time_window\":tftypes.String<\"1_hour\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<null>>>).AttributeName(\"condition\").AttributeName(\"time_window\")] | Attribute type_definition.logs_threshold.rules[Value({\"condition\":{\"condition_type\":\"MORE_THAN\",\"threshold\":1.000000,\"time_window\":\"1_hour\"},\"override\":{\"priority\":<null>}})].condition.time_window value must be one of: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"], got: \"1_hour\""
+    ],
+    "state": null
+  },
+  {
+    "step": "time_window 48_HOURS",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 1,
+                "time_window": "48_HOURS"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"threshold\":tftypes.Number<\"1\">, \"time_window\":tftypes.String<\"48_HOURS\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<null>>>).AttributeName(\"condition\").AttributeName(\"time_window\")] | Attribute type_definition.logs_threshold.rules[Value({\"condition\":{\"condition_type\":\"MORE_THAN\",\"threshold\":1.000000,\"time_window\":\"48_HOURS\"},\"override\":{\"priority\":<null>}})].condition.time_window value must be one of: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"], got: \"48_HOURS\""
+    ],
+    "state": null
+  },
+  {
+    "step": "override.priority P6",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 1,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "P6"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"threshold\":tftypes.Number<\"1\">, \"time_window\":tftypes.String<\"10_MINUTES\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"P6\">>>).AttributeName(\"override\").AttributeName(\"priority\")] | Attribute type_definition.logs_threshold.rules[Value({\"condition\":{\"condition_type\":\"MORE_THAN\",\"threshold\":1.000000,\"time_window\":\"10_MINUTES\"},\"override\":{\"priority\":\"P6\"}})].override.priority value must be one of: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"], got: \"P6\""
+    ],
+    "state": null
+  },
+  {
+    "step": "override.priority in lower case",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 1,
+                "time_window": "10_MINUTES"
+              },
+              "override": {
+                "priority": "p1"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"rules\").ElementKeyValue(tftypes.Object[\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String], \"override\":tftypes.Object[\"priority\":tftypes.String]]<\"condition\":tftypes.Object[\"condition_type\":tftypes.String, \"threshold\":tftypes.Number, \"time_window\":tftypes.String]<\"condition_type\":tftypes.String<\"MORE_THAN\">, \"threshold\":tftypes.Number<\"1\">, \"time_window\":tftypes.String<\"10_MINUTES\">>, \"override\":tftypes.Object[\"priority\":tftypes.String]<\"priority\":tftypes.String<\"p1\">>>).AttributeName(\"override\").AttributeName(\"priority\")] | Attribute type_definition.logs_threshold.rules[Value({\"condition\":{\"condition_type\":\"MORE_THAN\",\"threshold\":1.000000,\"time_window\":\"10_MINUTES\"},\"override\":{\"priority\":\"p1\"}})].override.priority value must be one of: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"], got: \"p1\""
+    ],
+    "state": null
+  },
+  {
+    "step": "unknown threshold",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": "(unknown)",
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "state": null
+  },
+  {
+    "step": "auto_retire_timeframe 20_MINUTES",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "20_MINUTES"
+          }
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"undetected_values_management\").AttributeName(\"auto_retire_timeframe\")] | Attribute type_definition.logs_threshold.undetected_values_management.auto_retire_timeframe value must be one of: [\"10_MINUTES\" \"12_HOURS\" \"1_HOUR\" \"24_HOURS\" \"2_HOURS\" \"5_MINUTES\" \"6_HOURS\" \"NEVER\"], got: \"20_MINUTES\""
+    ],
+    "state": null
+  },
+  {
+    "step": "auto_retire_timeframe in lower case",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ],
+          "undetected_values_management": {
+            "auto_retire_timeframe": "never"
+          }
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"undetected_values_management\").AttributeName(\"auto_retire_timeframe\")] | Attribute type_definition.logs_threshold.undetected_values_management.auto_retire_timeframe value must be one of: [\"10_MINUTES\" \"12_HOURS\" \"1_HOUR\" \"24_HOURS\" \"2_HOURS\" \"5_MINUTES\" \"6_HOURS\" \"NEVER\"], got: \"never\""
+    ],
+    "state": null
+  },
+  {
+    "step": "no_data_policy state in lower case",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "no_data_policy": {
+            "state": "ok"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")] | Attribute type_definition.logs_threshold.no_data_policy.state value must be one of: [\"OK\" \"ALERTING\" \"KEEP_LAST\" \"NO_DATA\" \"UNSPECIFIED\"], got: \"ok\""
+    ],
+    "state": null
+  },
+  {
+    "step": "no_data_policy state unknown value",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "no_data_policy": {
+            "state": "SILENT"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")] | Attribute type_definition.logs_threshold.no_data_policy.state value must be one of: [\"OK\" \"ALERTING\" \"KEEP_LAST\" \"NO_DATA\" \"UNSPECIFIED\"], got: \"SILENT\""
+    ],
+    "state": null
+  },
+  {
+    "step": "no_data_policy state UNSPECIFIED warns",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "no_data_policy": {
+            "state": "UNSPECIFIED"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "warning: Deprecated Attribute [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")] | `UNSPECIFIED` is a protobuf sentinel, not a UI option. Omit `no_data_policy` entirely for the same legacy no-data handling, or set `state` to one of `OK`, `ALERTING`, `KEEP_LAST`, or `NO_DATA`. `UNSPECIFIED` will be rejected in a future provider release."
+    ],
+    "state": null
+  },
+  {
+    "step": "no_data_policy state empty",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "no_data_policy": {
+            "state": ""
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")] | Attribute type_definition.logs_threshold.no_data_policy.state value must be one of: [\"OK\" \"ALERTING\" \"KEEP_LAST\" \"NO_DATA\" \"UNSPECIFIED\"], got: \"\""
+    ],
+    "state": null
+  },
+  {
+    "step": "custom_evaluation_delay negative",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "custom_evaluation_delay": -1,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"custom_evaluation_delay\")] | Attribute type_definition.logs_threshold.custom_evaluation_delay value must be at least 0, got: -1"
+    ],
+    "state": null
+  },
+  {
+    "step": "custom_evaluation_delay fraction",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "custom_evaluation_delay": 0.5,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Configuration Read Error [AttributeName(\"type_definition\")] | An unexpected error was encountered trying to convert an attribute value from the configuration. This is always an error in the provider. Please report the following to the provider developer:\n\nError: Value %!s(*big.Float=0.5) is not an integer."
+    ],
+    "state": null
+  },
+  {
+    "step": "group_by is allowed",
+    "config": {
+      "group_by": [
+        "coralogix.metadata.applicationName"
+      ],
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "state": null
+  },
+  {
+    "step": "priority warns",
+    "config": {
+      "name": "v",
+      "priority": "P2",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "warning: Deprecated Attribute [AttributeName(\"priority\")] | This field will be removed in the future in favor of the 'override' property where possible."
+    ],
+    "state": null
+  },
+  {
+    "step": "priority P6",
+    "config": {
+      "name": "v",
+      "priority": "P6",
+      "type_definition": {
+        "logs_threshold": {
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"priority\")] | Attribute priority value must be one of: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"], got: \"P6\"",
+      "warning: Deprecated Attribute [AttributeName(\"priority\")] | This field will be removed in the future in favor of the 'override' property where possible."
+    ],
+    "state": null
+  },
+  {
+    "step": "filter operation IS_NOT",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS_NOT",
+                    "value": "a"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"logs_filter\").AttributeName(\"simple_filter\").AttributeName(\"label_filters\").AttributeName(\"application_name\").ElementKeyValue(tftypes.Object[\"operation\":tftypes.String, \"value\":tftypes.String]<\"operation\":tftypes.String<\"IS_NOT\">, \"value\":tftypes.String<\"a\">>).AttributeName(\"operation\")] | Attribute type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name[Value({\"operation\":\"IS_NOT\",\"value\":\"a\"})].operation value must be one of: [\"ENDS_WITH\" \"INCLUDES\" \"IS\" \"STARTS_WITH\"], got: \"IS_NOT\""
+    ],
+    "state": null
+  },
+  {
+    "step": "filter severity Fatal",
+    "config": {
+      "name": "v",
+      "type_definition": {
+        "logs_threshold": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "severities": [
+                  "Fatal"
+                ]
+              },
+              "lucene_query": "q"
+            }
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "threshold": 5,
+                "time_window": "10_MINUTES"
+              },
+              "override": {}
+            }
+          ]
+        }
+      }
+    },
+    "validateDiagnostics": [
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"logs_filter\").AttributeName(\"simple_filter\").AttributeName(\"label_filters\").AttributeName(\"severities\").ElementKeyValue(tftypes.String<\"Fatal\">)] | Attribute type_definition.logs_threshold.logs_filter.simple_filter.label_filters.severities[Value(\"Fatal\")] value must be one of: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"], got: \"Fatal\""
+    ],
+    "state": null
+  }
+]

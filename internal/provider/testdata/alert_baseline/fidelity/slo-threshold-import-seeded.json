@@ -1,0 +1,556 @@
+[
+  {
+    "method": "POST",
+    "path": "/slo/slos/v1",
+    "request": {
+      "description": "",
+      "name": "tfbaseline-slo-slo-threshold-import-seeded-1",
+      "requestBasedMetricSli": {
+        "goodEvents": {
+          "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+        },
+        "totalEvents": {
+          "query": "sum(rate(http_requests_total[1m])) by (service)"
+        }
+      },
+      "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+      "targetThresholdPercentage": 99.5
+    },
+    "status": 200,
+    "response": {
+      "exclusionWindowIds": [],
+      "slo": {
+        "createTime": "\u003ctime\u003e",
+        "creator": "\u003cuser\u003e",
+        "description": "",
+        "grouping": {
+          "labels": [
+            "service"
+          ]
+        },
+        "id": "\u003cid:1\u003e",
+        "labels": {},
+        "name": "tfbaseline-slo-slo-threshold-import-seeded-1",
+        "productType": "SLO_PRODUCT_TYPE_UNSPECIFIED",
+        "requestBasedMetricSli": {
+          "goodEvents": {
+            "query": "sum(rate(http_requests_total{status=\"200\"}[1m])) by (service)"
+          },
+          "totalEvents": {
+            "query": "sum(rate(http_requests_total[1m])) by (service)"
+          }
+        },
+        "revision": {
+          "revision": 1,
+          "updateTime": "\u003ctime\u003e"
+        },
+        "sloTimeFrame": "SLO_TIME_FRAME_7_DAYS",
+        "sloType": "SLO_TYPE_REQUEST",
+        "targetThresholdPercentage": 99.5,
+        "type": "request",
+        "updateTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "POST",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "name": "tfbaseline-slo-seeded-eb",
+        "priority": "ALERT_DEF_PRIORITY_P3",
+        "sloThreshold": {
+          "errorBudget": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 10
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P2"
+                }
+              }
+            ]
+          },
+          "sloDefinition": {
+            "sloId": "\u003cid:1\u003e"
+          }
+        },
+        "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+      }
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [
+            "service"
+          ],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "name": "tfbaseline-slo-seeded-eb",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P3",
+          "sloThreshold": {
+            "errorBudget": {
+              "rules": [
+                {
+                  "condition": {
+                    "threshold": 10
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P2"
+                  }
+                }
+              ]
+            },
+            "sloDefinition": {
+              "sloId": "\u003cid:1\u003e"
+            }
+          },
+          "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:2\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:2\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [
+            "service"
+          ],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "name": "tfbaseline-slo-seeded-eb",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P3",
+          "sloThreshold": {
+            "errorBudget": {
+              "rules": [
+                {
+                  "condition": {
+                    "threshold": 10
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P2"
+                  }
+                }
+              ]
+            },
+            "sloDefinition": {
+              "sloId": "\u003cid:1\u003e"
+            }
+          },
+          "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:2\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/alerts/alerts/v3/\u003cid:2\u003e",
+    "status": 200,
+    "response": {}
+  },
+  {
+    "method": "POST",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "name": "tfbaseline-slo-seeded-br",
+        "priority": "ALERT_DEF_PRIORITY_P3",
+        "sloThreshold": {
+          "burnRate": {
+            "dual": {
+              "timeDuration": {
+                "duration": "3",
+                "unit": "DURATION_UNIT_HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P1"
+                }
+              },
+              {
+                "condition": {
+                  "threshold": 4
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P2"
+                }
+              }
+            ]
+          },
+          "sloDefinition": {
+            "sloId": "\u003cid:1\u003e"
+          }
+        },
+        "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+      }
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [
+            "service"
+          ],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "name": "tfbaseline-slo-seeded-br",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P3",
+          "sloThreshold": {
+            "burnRate": {
+              "dual": {
+                "timeDuration": {
+                  "duration": "3",
+                  "unit": "DURATION_UNIT_HOURS"
+                }
+              },
+              "rules": [
+                {
+                  "condition": {
+                    "threshold": 2
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P1"
+                  }
+                },
+                {
+                  "condition": {
+                    "threshold": 4
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P2"
+                  }
+                }
+              ]
+            },
+            "sloDefinition": {
+              "sloId": "\u003cid:1\u003e"
+            }
+          },
+          "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:3\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:3\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [
+            "service"
+          ],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "name": "tfbaseline-slo-seeded-br",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P3",
+          "sloThreshold": {
+            "burnRate": {
+              "dual": {
+                "timeDuration": {
+                  "duration": "3",
+                  "unit": "DURATION_UNIT_HOURS"
+                }
+              },
+              "rules": [
+                {
+                  "condition": {
+                    "threshold": 2
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P1"
+                  }
+                },
+                {
+                  "condition": {
+                    "threshold": 4
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P2"
+                  }
+                }
+              ]
+            },
+            "sloDefinition": {
+              "sloId": "\u003cid:1\u003e"
+            }
+          },
+          "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:3\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/alerts/alerts/v3/\u003cid:3\u003e",
+    "status": 200,
+    "response": {}
+  },
+  {
+    "method": "POST",
+    "path": "/alerts/alerts/v3",
+    "request": {
+      "alertDefProperties": {
+        "enabled": true,
+        "name": "tfbaseline-slo-seeded-single",
+        "priority": "ALERT_DEF_PRIORITY_P3",
+        "sloThreshold": {
+          "burnRate": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 7
+                },
+                "override": {
+                  "priority": "ALERT_DEF_PRIORITY_P4"
+                }
+              }
+            ],
+            "single": {
+              "timeDuration": {
+                "duration": "5",
+                "unit": "DURATION_UNIT_HOURS"
+              }
+            }
+          },
+          "sloDefinition": {
+            "sloId": "\u003cid:1\u003e"
+          }
+        },
+        "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+      }
+    },
+    "status": 200,
+    "response": {
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [
+            "service"
+          ],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "name": "tfbaseline-slo-seeded-single",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P3",
+          "sloThreshold": {
+            "burnRate": {
+              "rules": [
+                {
+                  "condition": {
+                    "threshold": 7
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P4"
+                  }
+                }
+              ],
+              "single": {
+                "timeDuration": {
+                  "duration": "5",
+                  "unit": "DURATION_UNIT_HOURS"
+                }
+              }
+            },
+            "sloDefinition": {
+              "sloId": "\u003cid:1\u003e"
+            }
+          },
+          "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:4\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "GET",
+    "path": "/alerts/alerts/v3/\u003cid:4\u003e?include_access_permissions=true",
+    "status": 200,
+    "response": {
+      "access": {
+        "permissions": {
+          "canManage": true,
+          "canRead": true,
+          "canReadAccessPolicy": true,
+          "canUpdateAccessPolicy": true
+        }
+      },
+      "alertDef": {
+        "alertDefProperties": {
+          "dataSources": [],
+          "deleted": false,
+          "enabled": true,
+          "entityLabels": {},
+          "groupByKeys": [
+            "service"
+          ],
+          "incidentsSettings": {
+            "minutes": 10,
+            "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+          },
+          "name": "tfbaseline-slo-seeded-single",
+          "notificationGroup": {
+            "destinations": [],
+            "groupByKeys": [],
+            "webhooks": []
+          },
+          "notificationGroupExcess": [],
+          "phantomMode": false,
+          "priority": "ALERT_DEF_PRIORITY_P3",
+          "sloThreshold": {
+            "burnRate": {
+              "rules": [
+                {
+                  "condition": {
+                    "threshold": 7
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P4"
+                  }
+                }
+              ],
+              "single": {
+                "timeDuration": {
+                  "duration": "5",
+                  "unit": "DURATION_UNIT_HOURS"
+                }
+              }
+            },
+            "sloDefinition": {
+              "sloId": "\u003cid:1\u003e"
+            }
+          },
+          "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+        },
+        "alertVersionId": "\u003cversion\u003e",
+        "createdTime": "\u003ctime\u003e",
+        "id": "\u003cid:4\u003e",
+        "status": "ALERT_DEF_STATUS_UNSPECIFIED",
+        "updatedTime": "\u003ctime\u003e"
+      }
+    }
+  },
+  {
+    "method": "DELETE",
+    "path": "/alerts/alerts/v3/\u003cid:4\u003e",
+    "status": 200,
+    "response": {}
+  }
+]
