@@ -15,7 +15,9 @@
 package provider
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -92,4 +94,24 @@ func TestAlertStateUpgrade(t *testing.T) {
 		}
 		t.Logf("%v", diags)
 	})
+}
+
+// The released schema holds integration_id as a string, the generated one as a number. A state of the
+// current schema version that holds the string reads without an upgrade step.
+func TestAlertStateWithStringIntegrationID(t *testing.T) {
+	h := newAlertHarness(t)
+	created := h.Apply("create", h.null(), alertLogsImmediate("tfupgrade", nil))
+	raw := `{"id": "` + alertID(t, created) + `", "name": "tfupgrade", "notification_group": {"webhooks_settings": [` +
+		`{"integration_id": "123", "notify_on": "Triggered Only", "retriggering_period": {"minutes": 10}}]}}`
+	state := h.UpgradeFrom(3, "same version", raw)
+	if state.IsNull() {
+		t.Fatalf("the state did not load: %v", h.steps[len(h.steps)-1].ApplyDiags)
+	}
+	got, err := json.Marshal(toJSON(state))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(got), `"integration_id":123`) {
+		t.Errorf("integration_id did not load as the number 123: %s", got)
+	}
 }

@@ -145,6 +145,8 @@
     },
     "requests": [
       {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "enabled": true,
@@ -201,16 +203,11 @@
               "uniqueCountKeypath": "remote_addr_geoip.country_name"
             },
             "name": "tfbaseline-unique-unset",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
           }
         },
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
@@ -310,28 +307,157 @@
   },
   {
     "step": "update: remove max_unique_count_per_group_by_key but keep group_by (the API rejects it)",
-    "configDelta": {
-      "set": {
-        "/type_definition/logs_unique_count/max_unique_count_per_group_by_key": null
+    "config": {
+      "group_by": [
+        "remote_addr_geoip.city_name"
+      ],
+      "name": "tfbaseline-unique-unset",
+      "type_definition": {
+        "logs_unique_count": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "max_unique_count_per_group_by_key": null,
+          "notification_payload_filter": [
+            "coralogix.metadata.sdkId",
+            "coralogix.metadata.sdkName"
+          ],
+          "rules": [
+            {
+              "condition": {
+                "max_unique_count": 2,
+                "time_window": "5_MINUTES"
+              }
+            }
+          ],
+          "unique_count_keypath": "remote_addr_geoip.country_name"
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/access_policy": null,
-        "/deleted": false,
-        "/id": "00000000-0000-4000-8000-000000000001",
-        "/incidents_settings": {
-          "notify_on": "Triggered Only",
-          "retriggering_period": {
-            "minutes": 10
-          }
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "remote_addr_geoip.city_name"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-unique-unset",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "max_unique_count_per_group_by_key": null,
+          "notification_payload_filter": [
+            "coralogix.metadata.sdkId",
+            "coralogix.metadata.sdkName"
+          ],
+          "rules": [
+            {
+              "condition": {
+                "max_unique_count": 2,
+                "time_window": "5_MINUTES"
+              }
+            }
+          ],
+          "unique_count_keypath": "remote_addr_geoip.country_name"
         },
-        "/priority": "P5",
-        "/type_definition/logs_unique_count/max_unique_count_per_group_by_key": null
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "enabled": true,
@@ -391,24 +517,111 @@
               "uniqueCountKeypath": "remote_addr_geoip.country_name"
             },
             "name": "tfbaseline-unique-unset",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
           },
           "id": "00000000-0000-4000-8000-000000000001"
         },
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 400
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Logs Unique Count alerts with group-by keys must also have maxUniqueCountPerGroupByKey\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsUniqueCount\\\",\\n      \\\"maxUniqueCountPerGroupByKey\\\"\\n    ],\\n    \\\"fatal\\\": true\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"custom\\\",\\n    \\\"message\\\": \\\"Logs Unique Count alerts with group-by keys must also have maxUniqueCountPerGroupByKey\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"logsUniqueCount\\\",\\n      \\\"maxUniqueCountPerGroupByKey\\\"\\n    ],\\n    \\\"fatal\\\": true\\n  }\\n]\"}"
     ],
-    "stateDelta": {}
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "remote_addr_geoip.city_name"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-unique-unset",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "max_unique_count_per_group_by_key": 500,
+          "notification_payload_filter": [
+            "coralogix.metadata.sdkId",
+            "coralogix.metadata.sdkName"
+          ],
+          "rules": [
+            {
+              "condition": {
+                "max_unique_count": 2,
+                "time_window": "5_MINUTES"
+              }
+            }
+          ],
+          "unique_count_keypath": "remote_addr_geoip.country_name"
+        },
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    }
   },
   {
     "step": "refresh",
@@ -419,7 +632,98 @@
         "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "remote_addr_geoip.city_name"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-unique-unset",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "max_unique_count_per_group_by_key": 500,
+          "notification_payload_filter": [
+            "coralogix.metadata.sdkId",
+            "coralogix.metadata.sdkName"
+          ],
+          "rules": [
+            {
+              "condition": {
+                "max_unique_count": 2,
+                "time_window": "5_MINUTES"
+              }
+            }
+          ],
+          "unique_count_keypath": "remote_addr_geoip.country_name"
+        },
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": false,
     "replanDiff": [
       "AttributeName(\"type_definition\").AttributeName(\"logs_unique_count\").AttributeName(\"max_unique_count_per_group_by_key\")"
@@ -427,31 +731,304 @@
   },
   {
     "step": "update: remove notification_payload_filter",
-    "configDelta": {
-      "set": {
-        "/type_definition/logs_unique_count/max_unique_count_per_group_by_key": 500,
-        "/type_definition/logs_unique_count/notification_payload_filter": null
+    "config": {
+      "group_by": [
+        "remote_addr_geoip.city_name"
+      ],
+      "name": "tfbaseline-unique-unset",
+      "type_definition": {
+        "logs_unique_count": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "max_unique_count_per_group_by_key": 500,
+          "notification_payload_filter": null,
+          "rules": [
+            {
+              "condition": {
+                "max_unique_count": 2,
+                "time_window": "5_MINUTES"
+              }
+            }
+          ],
+          "unique_count_keypath": "remote_addr_geoip.country_name"
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/logs_unique_count/max_unique_count_per_group_by_key": 500,
-        "/type_definition/logs_unique_count/notification_payload_filter": null
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "remote_addr_geoip.city_name"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-unique-unset",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "max_unique_count_per_group_by_key": 500,
+          "notification_payload_filter": null,
+          "rules": [
+            {
+              "condition": {
+                "max_unique_count": 2,
+                "time_window": "5_MINUTES"
+              }
+            }
+          ],
+          "unique_count_keypath": "remote_addr_geoip.country_name"
+        },
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/logsUniqueCount/maxUniqueCountPerGroupByKey": "500",
-          "/body/alertDefProperties/logsUniqueCount/notificationPayloadFilter": [],
-          "/status": 200
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [
+              "remote_addr_geoip.city_name"
+            ],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "logsUniqueCount": {
+              "logsFilter": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "applicationName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "value": "app-a"
+                      },
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_STARTS_WITH",
+                        "value": "app-"
+                      }
+                    ],
+                    "severities": [
+                      "LOG_SEVERITY_WARNING",
+                      "LOG_SEVERITY_ERROR"
+                    ],
+                    "subsystemName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_ENDS_WITH",
+                        "value": "-sub"
+                      },
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
+                        "value": "ub"
+                      }
+                    ]
+                  },
+                  "luceneQuery": "message:\"tfbaseline\""
+                }
+              },
+              "maxUniqueCountPerGroupByKey": "500",
+              "rules": [
+                {
+                  "condition": {
+                    "maxUniqueCount": "2",
+                    "timeWindow": {
+                      "logsUniqueValueTimeWindowSpecificValue": "LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_5"
+                    }
+                  }
+                }
+              ],
+              "uniqueCountKeypath": "remote_addr_geoip.country_name"
+            },
+            "name": "tfbaseline-unique-unset",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/logs_unique_count/notification_payload_filter": null
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "remote_addr_geoip.city_name"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-unique-unset",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "max_unique_count_per_group_by_key": 500,
+          "notification_payload_filter": null,
+          "rules": [
+            {
+              "condition": {
+                "max_unique_count": 2,
+                "time_window": "5_MINUTES"
+              }
+            }
+          ],
+          "unique_count_keypath": "remote_addr_geoip.country_name"
+        },
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -460,42 +1037,389 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "remote_addr_geoip.city_name"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-unique-unset",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "max_unique_count_per_group_by_key": 500,
+          "notification_payload_filter": null,
+          "rules": [
+            {
+              "condition": {
+                "max_unique_count": 2,
+                "time_window": "5_MINUTES"
+              }
+            }
+          ],
+          "unique_count_keypath": "remote_addr_geoip.country_name"
+        },
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "update: remove max_unique_count_per_group_by_key and group_by",
-    "configDelta": {
-      "remove": [
-        "/type_definition/logs_unique_count/max_unique_count_per_group_by_key",
-        "/type_definition/logs_unique_count/notification_payload_filter",
-        "/group_by"
-      ]
+    "config": {
+      "name": "tfbaseline-unique-unset",
+      "type_definition": {
+        "logs_unique_count": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "rules": [
+            {
+              "condition": {
+                "max_unique_count": 2,
+                "time_window": "5_MINUTES"
+              }
+            }
+          ],
+          "unique_count_keypath": "remote_addr_geoip.country_name"
+        }
+      }
     },
-    "planDelta": {
-      "set": {
-        "/group_by": null,
-        "/type_definition/logs_unique_count/max_unique_count_per_group_by_key": null
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-unique-unset",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "max_unique_count_per_group_by_key": null,
+          "notification_payload_filter": null,
+          "rules": [
+            {
+              "condition": {
+                "max_unique_count": 2,
+                "time_window": "5_MINUTES"
+              }
+            }
+          ],
+          "unique_count_keypath": "remote_addr_geoip.country_name"
+        },
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/groupByKeys": []
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "logsUniqueCount": {
+              "logsFilter": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "applicationName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "value": "app-a"
+                      },
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_STARTS_WITH",
+                        "value": "app-"
+                      }
+                    ],
+                    "severities": [
+                      "LOG_SEVERITY_WARNING",
+                      "LOG_SEVERITY_ERROR"
+                    ],
+                    "subsystemName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_ENDS_WITH",
+                        "value": "-sub"
+                      },
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
+                        "value": "ub"
+                      }
+                    ]
+                  },
+                  "luceneQuery": "message:\"tfbaseline\""
+                }
+              },
+              "rules": [
+                {
+                  "condition": {
+                    "maxUniqueCount": "2",
+                    "timeWindow": {
+                      "logsUniqueValueTimeWindowSpecificValue": "LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_5"
+                    }
+                  }
+                }
+              ],
+              "uniqueCountKeypath": "remote_addr_geoip.country_name"
+            },
+            "name": "tfbaseline-unique-unset",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
         },
-        "remove": [
-          "/body/alertDefProperties/logsUniqueCount/maxUniqueCountPerGroupByKey"
-        ]
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/group_by": null,
-        "/type_definition/logs_unique_count/max_unique_count_per_group_by_key": null
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-unique-unset",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "max_unique_count_per_group_by_key": null,
+          "notification_payload_filter": null,
+          "rules": [
+            {
+              "condition": {
+                "max_unique_count": 2,
+                "time_window": "5_MINUTES"
+              }
+            }
+          ],
+          "unique_count_keypath": "remote_addr_geoip.country_name"
+        },
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -504,31 +1428,390 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-unique-unset",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "max_unique_count_per_group_by_key": null,
+          "notification_payload_filter": null,
+          "rules": [
+            {
+              "condition": {
+                "max_unique_count": 2,
+                "time_window": "5_MINUTES"
+              }
+            }
+          ],
+          "unique_count_keypath": "remote_addr_geoip.country_name"
+        },
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "update: remove logs_filter",
-    "configDelta": {
-      "remove": [
-        "/type_definition/logs_unique_count/logs_filter"
-      ]
+    "config": {
+      "name": "tfbaseline-unique-unset",
+      "type_definition": {
+        "logs_unique_count": {
+          "rules": [
+            {
+              "condition": {
+                "max_unique_count": 2,
+                "time_window": "5_MINUTES"
+              }
+            }
+          ],
+          "unique_count_keypath": "remote_addr_geoip.country_name"
+        }
+      }
     },
-    "planDelta": {},
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-unique-unset",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "max_unique_count_per_group_by_key": null,
+          "notification_payload_filter": null,
+          "rules": [
+            {
+              "condition": {
+                "max_unique_count": 2,
+                "time_window": "5_MINUTES"
+              }
+            }
+          ],
+          "unique_count_keypath": "remote_addr_geoip.country_name"
+        },
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "noChange": true,
-    "stateDelta": {}
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-unique-unset",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "max_unique_count_per_group_by_key": null,
+          "notification_payload_filter": null,
+          "rules": [
+            {
+              "condition": {
+                "max_unique_count": 2,
+                "time_window": "5_MINUTES"
+              }
+            }
+          ],
+          "unique_count_keypath": "remote_addr_geoip.country_name"
+        },
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    }
   },
   {
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-unique-unset",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app-a"
+                  },
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app-"
+                  }
+                ],
+                "severities": [
+                  "Warning",
+                  "Error"
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "-sub"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "ub"
+                  }
+                ]
+              },
+              "lucene_query": "message:\"tfbaseline\""
+            }
+          },
+          "max_unique_count_per_group_by_key": null,
+          "notification_payload_filter": null,
+          "rules": [
+            {
+              "condition": {
+                "max_unique_count": 2,
+                "time_window": "5_MINUTES"
+              }
+            }
+          ],
+          "unique_count_keypath": "remote_addr_geoip.country_name"
+        },
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {

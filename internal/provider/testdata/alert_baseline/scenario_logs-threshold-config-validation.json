@@ -326,7 +326,7 @@
       ]
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")] | Attribute type_definition.logs_threshold.no_data_policy.state value must be one of: [\"OK\" \"ALERTING\" \"KEEP_LAST\" \"NO_DATA\" \"UNSPECIFIED\"], got: \"ok\""
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")] | Attribute type_definition.logs_threshold.no_data_policy.state value must be one of: [\"ALERTING\" \"KEEP_LAST\" \"NO_DATA\" \"OK\" \"UNSPECIFIED\"], got: \"ok\""
     ],
     "stateDelta": {}
   },
@@ -338,7 +338,7 @@
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")] | Attribute type_definition.logs_threshold.no_data_policy.state value must be one of: [\"OK\" \"ALERTING\" \"KEEP_LAST\" \"NO_DATA\" \"UNSPECIFIED\"], got: \"SILENT\""
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")] | Attribute type_definition.logs_threshold.no_data_policy.state value must be one of: [\"ALERTING\" \"KEEP_LAST\" \"NO_DATA\" \"OK\" \"UNSPECIFIED\"], got: \"SILENT\""
     ],
     "stateDelta": {}
   },
@@ -362,7 +362,7 @@
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")] | Attribute type_definition.logs_threshold.no_data_policy.state value must be one of: [\"OK\" \"ALERTING\" \"KEEP_LAST\" \"NO_DATA\" \"UNSPECIFIED\"], got: \"\""
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"logs_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")] | Attribute type_definition.logs_threshold.no_data_policy.state value must be one of: [\"ALERTING\" \"KEEP_LAST\" \"NO_DATA\" \"OK\" \"UNSPECIFIED\"], got: \"\""
     ],
     "stateDelta": {}
   },

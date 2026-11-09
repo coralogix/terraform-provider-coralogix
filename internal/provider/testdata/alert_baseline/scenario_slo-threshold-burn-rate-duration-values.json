@@ -92,16 +92,14 @@
     },
     "requests": [
       {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "name": "tfbaseline-slo-duration",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "sloThreshold": {
               "burnRate": {
                 "rules": [
@@ -128,8 +126,6 @@
             "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
           }
         },
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
@@ -207,31 +203,106 @@
   },
   {
     "step": "single: 2 hours",
-    "configDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 2
+    "config": {
+      "name": "tfbaseline-slo-duration",
+      "type_definition": {
+        "slo_threshold": {
+          "burn_rate": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {}
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 2,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/access_policy": null,
-        "/deleted": false,
-        "/group_by": [
-          "service"
-        ],
-        "/id": "00000000-0000-4000-8000-000000000001",
-        "/incidents_settings": {
-          "notify_on": "Triggered Only",
-          "retriggering_period": {
-            "minutes": 10
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": null,
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 2,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
           }
         },
-        "/priority": "P5",
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 2
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "enabled": true,
@@ -243,9 +314,7 @@
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-slo-duration",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "sloThreshold": {
@@ -275,68 +344,513 @@
           },
           "id": "00000000-0000-4000-8000-000000000001"
         },
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 2
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": null,
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 2,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
   },
   {
     "step": "single: 24 hours",
-    "configDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 24
+    "config": {
+      "name": "tfbaseline-slo-duration",
+      "type_definition": {
+        "slo_threshold": {
+          "burn_rate": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {}
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 24,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 24
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": null,
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 24,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/sloThreshold/burnRate/single/timeDuration/duration": "24"
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [
+              "service"
+            ],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-slo-duration",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "sloThreshold": {
+              "burnRate": {
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 2
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ],
+                "single": {
+                  "timeDuration": {
+                    "duration": "24",
+                    "unit": "DURATION_UNIT_HOURS"
+                  }
+                }
+              },
+              "sloDefinition": {
+                "sloId": "00000000-0000-4000-8000-000000005001"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 24
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": null,
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 24,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
   },
   {
     "step": "single: 48 hours",
-    "configDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 48
+    "config": {
+      "name": "tfbaseline-slo-duration",
+      "type_definition": {
+        "slo_threshold": {
+          "burn_rate": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {}
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 48,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 48
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": null,
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 48,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/sloThreshold/burnRate/single/timeDuration/duration": "48"
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [
+              "service"
+            ],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-slo-duration",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "sloThreshold": {
+              "burnRate": {
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 2
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ],
+                "single": {
+                  "timeDuration": {
+                    "duration": "48",
+                    "unit": "DURATION_UNIT_HOURS"
+                  }
+                }
+              },
+              "sloDefinition": {
+                "sloId": "00000000-0000-4000-8000-000000005001"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 48
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": null,
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 48,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -350,38 +864,295 @@
         "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": null,
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 48,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "single: unit UNSPECIFIED",
-    "configDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 3,
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/unit": "UNSPECIFIED"
+    "config": {
+      "name": "tfbaseline-slo-duration",
+      "type_definition": {
+        "slo_threshold": {
+          "burn_rate": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {}
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 3,
+                "unit": "UNSPECIFIED"
+              }
+            }
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 3,
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/unit": "UNSPECIFIED"
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": null,
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 3,
+                "unit": "UNSPECIFIED"
+              }
+            }
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/sloThreshold/burnRate/single/timeDuration/duration": "3",
-          "/body/alertDefProperties/sloThreshold/burnRate/single/timeDuration/unit": "DURATION_UNIT_UNSPECIFIED"
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [
+              "service"
+            ],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-slo-duration",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "sloThreshold": {
+              "burnRate": {
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 2
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ],
+                "single": {
+                  "timeDuration": {
+                    "duration": "3",
+                    "unit": "DURATION_UNIT_UNSPECIFIED"
+                  }
+                }
+              },
+              "sloDefinition": {
+                "sloId": "00000000-0000-4000-8000-000000005001"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
     "inconsistentResult": [
       "type_definition.slo_threshold.burn_rate.single.time_duration.unit"
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 3
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": null,
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 3,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": false,
@@ -393,10 +1164,81 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": null,
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 3,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": false,
     "replanDiff": [
       "AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"burn_rate\").AttributeName(\"single\").AttributeName(\"time_duration\").AttributeName(\"unit\")"
@@ -404,57 +1246,443 @@
   },
   {
     "step": "single: 0 hours is refused",
-    "configDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 0,
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/unit": "HOURS"
+    "config": {
+      "name": "tfbaseline-slo-duration",
+      "type_definition": {
+        "slo_threshold": {
+          "burn_rate": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {}
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 0,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 0,
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/unit": "HOURS"
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": null,
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 0,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/sloThreshold/burnRate/single/timeDuration/duration": "0",
-          "/body/alertDefProperties/sloThreshold/burnRate/single/timeDuration/unit": "DURATION_UNIT_HOURS",
-          "/status": 400
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [
+              "service"
+            ],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-slo-duration",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "sloThreshold": {
+              "burnRate": {
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 2
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ],
+                "single": {
+                  "timeDuration": {
+                    "duration": "0",
+                    "unit": "DURATION_UNIT_HOURS"
+                  }
+                }
+              },
+              "sloDefinition": {
+                "sloId": "00000000-0000-4000-8000-000000005001"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 400
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 1,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than or equal to 1\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"burnRate\\\",\\n      \\\"type\\\",\\n      \\\"single\\\",\\n      \\\"timeDuration\\\",\\n      \\\"duration\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 1,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than or equal to 1\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"burnRate\\\",\\n      \\\"type\\\",\\n      \\\"single\\\",\\n      \\\"timeDuration\\\",\\n      \\\"duration\\\"\\n    ]\\n  }\\n]\"}"
     ],
-    "stateDelta": {}
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": null,
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 3,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    }
   },
   {
     "step": "single: 49 hours is refused",
-    "configDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 49
+    "config": {
+      "name": "tfbaseline-slo-duration",
+      "type_definition": {
+        "slo_threshold": {
+          "burn_rate": {
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {}
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 49,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/single/time_duration/duration": 49
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": null,
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 49,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/sloThreshold/burnRate/single/timeDuration/duration": "49"
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [
+              "service"
+            ],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-slo-duration",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "sloThreshold": {
+              "burnRate": {
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 2
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ],
+                "single": {
+                  "timeDuration": {
+                    "duration": "49",
+                    "unit": "DURATION_UNIT_HOURS"
+                  }
+                }
+              },
+              "sloDefinition": {
+                "sloId": "00000000-0000-4000-8000-000000005001"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 400
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_big\\\",\\n    \\\"maximum\\\": 48,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be less than or equal to 48\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"burnRate\\\",\\n      \\\"type\\\",\\n      \\\"single\\\",\\n      \\\"timeDuration\\\",\\n      \\\"duration\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_big\\\",\\n    \\\"maximum\\\": 48,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be less than or equal to 48\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"burnRate\\\",\\n      \\\"type\\\",\\n      \\\"single\\\",\\n      \\\"timeDuration\\\",\\n      \\\"duration\\\"\\n    ]\\n  }\\n]\"}"
     ],
-    "stateDelta": {}
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": null,
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": {
+              "time_duration": {
+                "duration": 3,
+                "unit": "HOURS"
+              }
+            }
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    }
   },
   {
     "step": "destroy single",
@@ -469,50 +1697,132 @@
   },
   {
     "step": "dual: 1 hours",
-    "configDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/dual": {
-          "time_duration": {
-            "duration": 1,
-            "unit": "HOURS"
+    "config": {
+      "name": "tfbaseline-slo-duration",
+      "type_definition": {
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 1,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {}
+              }
+            ]
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
           }
         }
-      },
-      "remove": [
-        "/type_definition/slo_threshold/burn_rate/single"
-      ]
+      }
     },
-    "planDelta": {
-      "set": {
-        "/access_policy": "(unknown)",
-        "/deleted": "(unknown)",
-        "/group_by": "(unknown)",
-        "/id": "(unknown)",
-        "/incidents_settings": "(unknown)",
-        "/priority": "(unknown)",
-        "/type_definition/slo_threshold/burn_rate/dual": {
-          "time_duration": {
-            "duration": 1,
-            "unit": "HOURS"
+    "plan": {
+      "access_policy": "(unknown)",
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": "(unknown)",
+      "description": null,
+      "enabled": true,
+      "group_by": "(unknown)",
+      "id": "(unknown)",
+      "incidents_settings": "(unknown)",
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "(unknown)",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 1,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": null
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
           }
         },
-        "/type_definition/slo_threshold/burn_rate/single": null
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "POST",
-        "set": {
-          "/body/alertDefProperties/sloThreshold/burnRate/dual": {
-            "timeDuration": {
-              "duration": "1",
-              "unit": "DURATION_UNIT_HOURS"
-            }
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "name": "tfbaseline-slo-duration",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "sloThreshold": {
+              "burnRate": {
+                "dual": {
+                  "timeDuration": {
+                    "duration": "1",
+                    "unit": "DURATION_UNIT_HOURS"
+                  }
+                },
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 2
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ]
+              },
+              "sloDefinition": {
+                "sloId": "00000000-0000-4000-8000-000000005001"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
           }
         },
-        "remove": [
-          "/body/alertDefProperties/sloThreshold/burnRate/single"
-        ]
+        "status": 200
       }
     ],
     "state": {
@@ -589,104 +1899,654 @@
   },
   {
     "step": "dual: 2 hours",
-    "configDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/duration": 2
+    "config": {
+      "name": "tfbaseline-slo-duration",
+      "type_definition": {
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 2,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {}
+              }
+            ]
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/access_policy": null,
-        "/deleted": false,
-        "/group_by": [
-          "service"
-        ],
-        "/id": "00000000-0000-4000-8000-000000000007",
-        "/incidents_settings": {
-          "notify_on": "Triggered Only",
-          "retriggering_period": {
-            "minutes": 10
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000007",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 2,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": null
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
           }
         },
-        "/priority": "P5",
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/duration": 2
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/sloThreshold/burnRate/dual": {
-            "timeDuration": {
-              "duration": "2",
-              "unit": "DURATION_UNIT_HOURS"
-            }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [
+              "service"
+            ],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-slo-duration",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "sloThreshold": {
+              "burnRate": {
+                "dual": {
+                  "timeDuration": {
+                    "duration": "2",
+                    "unit": "DURATION_UNIT_HOURS"
+                  }
+                },
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 2
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ]
+              },
+              "sloDefinition": {
+                "sloId": "00000000-0000-4000-8000-000000005001"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
           },
-          "/body/id": "00000000-0000-4000-8000-000000000007",
-          "/status": 200
+          "id": "00000000-0000-4000-8000-000000000007"
         },
-        "remove": [
-          "/body/alertDefProperties/sloThreshold/burnRate/single"
-        ]
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/duration": 2
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000007",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 2,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": null
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
   },
   {
     "step": "dual: 24 hours",
-    "configDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/duration": 24
+    "config": {
+      "name": "tfbaseline-slo-duration",
+      "type_definition": {
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 24,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {}
+              }
+            ]
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/duration": 24
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000007",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 24,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": null
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/sloThreshold/burnRate/dual/timeDuration/duration": "24"
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [
+              "service"
+            ],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-slo-duration",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "sloThreshold": {
+              "burnRate": {
+                "dual": {
+                  "timeDuration": {
+                    "duration": "24",
+                    "unit": "DURATION_UNIT_HOURS"
+                  }
+                },
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 2
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ]
+              },
+              "sloDefinition": {
+                "sloId": "00000000-0000-4000-8000-000000005001"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000007"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/duration": 24
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000007",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 24,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": null
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
   },
   {
     "step": "dual: 48 hours",
-    "configDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/duration": 48
+    "config": {
+      "name": "tfbaseline-slo-duration",
+      "type_definition": {
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 48,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {}
+              }
+            ]
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/duration": 48
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000007",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 48,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": null
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/sloThreshold/burnRate/dual/timeDuration/duration": "48"
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [
+              "service"
+            ],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-slo-duration",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "sloThreshold": {
+              "burnRate": {
+                "dual": {
+                  "timeDuration": {
+                    "duration": "48",
+                    "unit": "DURATION_UNIT_HOURS"
+                  }
+                },
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 2
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ]
+              },
+              "sloDefinition": {
+                "sloId": "00000000-0000-4000-8000-000000005001"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000007"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/duration": 48
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000007",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 48,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": null
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -695,44 +2555,300 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET",
-        "set": {
-          "/path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000007?include_access_permissions=true"
-        }
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000007?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000007",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 48,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": null
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "dual: unit UNSPECIFIED",
-    "configDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/duration": 3,
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/unit": "UNSPECIFIED"
+    "config": {
+      "name": "tfbaseline-slo-duration",
+      "type_definition": {
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 3,
+                "unit": "UNSPECIFIED"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {}
+              }
+            ]
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/duration": 3,
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/unit": "UNSPECIFIED"
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000007",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 3,
+                "unit": "UNSPECIFIED"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": null
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/sloThreshold/burnRate/dual/timeDuration/duration": "3",
-          "/body/alertDefProperties/sloThreshold/burnRate/dual/timeDuration/unit": "DURATION_UNIT_UNSPECIFIED"
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [
+              "service"
+            ],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-slo-duration",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "sloThreshold": {
+              "burnRate": {
+                "dual": {
+                  "timeDuration": {
+                    "duration": "3",
+                    "unit": "DURATION_UNIT_UNSPECIFIED"
+                  }
+                },
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 2
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ]
+              },
+              "sloDefinition": {
+                "sloId": "00000000-0000-4000-8000-000000005001"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000007"
+        },
+        "status": 200
       }
     ],
     "inconsistentResult": [
       "type_definition.slo_threshold.burn_rate.dual.time_duration.unit"
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/duration": 3
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000007",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 3,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": null
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": false,
@@ -744,10 +2860,81 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000007?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000007",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 3,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": null
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": false,
     "replanDiff": [
       "AttributeName(\"type_definition\").AttributeName(\"slo_threshold\").AttributeName(\"burn_rate\").AttributeName(\"dual\").AttributeName(\"time_duration\").AttributeName(\"unit\")"
@@ -755,66 +2942,451 @@
   },
   {
     "step": "dual: 0 hours is refused",
-    "configDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/duration": 0,
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/unit": "HOURS"
+    "config": {
+      "name": "tfbaseline-slo-duration",
+      "type_definition": {
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 0,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {}
+              }
+            ]
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/duration": 0,
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/unit": "HOURS"
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000007",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 0,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": null
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/sloThreshold/burnRate/dual/timeDuration/duration": "0",
-          "/body/alertDefProperties/sloThreshold/burnRate/dual/timeDuration/unit": "DURATION_UNIT_HOURS",
-          "/status": 400
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [
+              "service"
+            ],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-slo-duration",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "sloThreshold": {
+              "burnRate": {
+                "dual": {
+                  "timeDuration": {
+                    "duration": "0",
+                    "unit": "DURATION_UNIT_HOURS"
+                  }
+                },
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 2
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ]
+              },
+              "sloDefinition": {
+                "sloId": "00000000-0000-4000-8000-000000005001"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000007"
+        },
+        "status": 400
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 1,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than or equal to 1\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"burnRate\\\",\\n      \\\"type\\\",\\n      \\\"dual\\\",\\n      \\\"timeDuration\\\",\\n      \\\"duration\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000007: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 1,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than or equal to 1\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"burnRate\\\",\\n      \\\"type\\\",\\n      \\\"dual\\\",\\n      \\\"timeDuration\\\",\\n      \\\"duration\\\"\\n    ]\\n  }\\n]\"}"
     ],
-    "stateDelta": {}
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000007",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 3,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": null
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    }
   },
   {
     "step": "dual: 49 hours is refused",
-    "configDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/duration": 49
+    "config": {
+      "name": "tfbaseline-slo-duration",
+      "type_definition": {
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 49,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {}
+              }
+            ]
+          },
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/slo_threshold/burn_rate/dual/time_duration/duration": 49
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000007",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 49,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": null
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/sloThreshold/burnRate/dual/timeDuration/duration": "49"
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "groupByKeys": [
+              "service"
+            ],
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-slo-duration",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "sloThreshold": {
+              "burnRate": {
+                "dual": {
+                  "timeDuration": {
+                    "duration": "49",
+                    "unit": "DURATION_UNIT_HOURS"
+                  }
+                },
+                "rules": [
+                  {
+                    "condition": {
+                      "threshold": 2
+                    },
+                    "override": {
+                      "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                    }
+                  }
+                ]
+              },
+              "sloDefinition": {
+                "sloId": "00000000-0000-4000-8000-000000005001"
+              }
+            },
+            "type": "ALERT_DEF_TYPE_SLO_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000007"
+        },
+        "status": 400
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_big\\\",\\n    \\\"maximum\\\": 48,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be less than or equal to 48\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"burnRate\\\",\\n      \\\"type\\\",\\n      \\\"dual\\\",\\n      \\\"timeDuration\\\",\\n      \\\"duration\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000007: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_big\\\",\\n    \\\"maximum\\\": 48,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be less than or equal to 48\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"sloThreshold\\\",\\n      \\\"threshold\\\",\\n      \\\"burnRate\\\",\\n      \\\"type\\\",\\n      \\\"dual\\\",\\n      \\\"timeDuration\\\",\\n      \\\"duration\\\"\\n    ]\\n  }\\n]\"}"
     ],
-    "stateDelta": {}
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": [
+        "service"
+      ],
+      "id": "00000000-0000-4000-8000-000000000007",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-slo-duration",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": {
+          "burn_rate": {
+            "dual": {
+              "time_duration": {
+                "duration": 3,
+                "unit": "HOURS"
+              }
+            },
+            "rules": [
+              {
+                "condition": {
+                  "threshold": 2
+                },
+                "override": {
+                  "priority": "P5"
+                }
+              }
+            ],
+            "single": null
+          },
+          "error_budget": null,
+          "slo_definition": {
+            "slo_id": "00000000-0000-4000-8000-000000005001"
+          }
+        },
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    }
   },
   {
     "step": "destroy dual",
     "requests": [
       {
-        "deltaOf": "DELETE",
-        "set": {
-          "/path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000007"
-        }
+        "method": "DELETE",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000007",
+        "status": 200
       }
     ],
     "state": null

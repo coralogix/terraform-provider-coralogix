@@ -123,7 +123,7 @@
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value Length [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"dataprime_query\").AttributeName(\"query\")] | Attribute type_definition.analytics_threshold.dataprime_query.query string length must be between 1 and 65535, got: 0"
+      "error: Invalid Attribute Value Length [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"dataprime_query\").AttributeName(\"query\")] | Attribute type_definition.analytics_threshold.dataprime_query.query string length must be at least 1, got: 0"
     ],
     "stateDelta": {}
   },
@@ -173,7 +173,7 @@
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\")] | Attribute type_definition.analytics_threshold.rules list must contain at least 1 elements and at most 5 elements, got: 0"
+      "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\")] | Attribute type_definition.analytics_threshold.rules list must contain at least 1 elements, got: 0"
     ],
     "stateDelta": {}
   },
@@ -444,7 +444,7 @@
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")] | Attribute type_definition.analytics_threshold.no_data_policy.state value must be one of: [\"OK\" \"ALERTING\" \"KEEP_LAST\" \"NO_DATA\" \"UNSPECIFIED\"], got: \"BROKEN\""
+      "error: Invalid Attribute Value Match [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"no_data_policy\").AttributeName(\"state\")] | Attribute type_definition.analytics_threshold.no_data_policy.state value must be one of: [\"ALERTING\" \"KEEP_LAST\" \"NO_DATA\" \"OK\" \"UNSPECIFIED\"], got: \"BROKEN\""
     ],
     "stateDelta": {}
   },

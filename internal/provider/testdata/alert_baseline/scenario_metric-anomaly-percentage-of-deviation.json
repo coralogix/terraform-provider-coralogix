@@ -80,10 +80,11 @@
     },
     "requests": [
       {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "metricAnomaly": {
               "metricFilter": {
                 "promql": "sum(rate(tfbaseline_requests_total[5m]))"
@@ -103,16 +104,11 @@
               ]
             },
             "name": "tfbaseline-ma-deviation",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
           }
         },
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
@@ -188,38 +184,161 @@
         "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": null,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "0",
-    "configDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 0
+    "config": {
+      "name": "tfbaseline-ma-deviation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 0,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/access_policy": null,
-        "/deleted": false,
-        "/group_by": null,
-        "/id": "00000000-0000-4000-8000-000000000001",
-        "/incidents_settings": {
-          "notify_on": "Triggered Only",
-          "retriggering_period": {
-            "minutes": 10
-          }
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 0,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
         },
-        "/priority": "P5",
-        "/type_definition/metric_anomaly/percentage_of_deviation": 0
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -246,23 +365,75 @@
               ]
             },
             "name": "tfbaseline-ma-deviation",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
           },
           "id": "00000000-0000-4000-8000-000000000001"
         },
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 0
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 0,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -271,62 +442,452 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 0,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "20",
-    "configDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 20
+    "config": {
+      "name": "tfbaseline-ma-deviation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 20,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 20
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 20,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/metricAnomaly/anomalyAlertSettings/percentageOfDeviation": 20
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "metricAnomaly": {
+              "anomalyAlertSettings": {
+                "percentageOfDeviation": 20
+              },
+              "metricFilter": {
+                "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+              },
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                    "forOverPct": 50,
+                    "minNonNullValuesPct": 50,
+                    "ofTheLast": {
+                      "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                    },
+                    "threshold": 10
+                  }
+                }
+              ]
+            },
+            "name": "tfbaseline-ma-deviation",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 20
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 20,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
   },
   {
     "step": "20.5",
-    "configDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 20.5
+    "config": {
+      "name": "tfbaseline-ma-deviation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 20.5,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 20.5
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 20.5,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/metricAnomaly/anomalyAlertSettings/percentageOfDeviation": 20.5
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "metricAnomaly": {
+              "anomalyAlertSettings": {
+                "percentageOfDeviation": 20.5
+              },
+              "metricFilter": {
+                "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+              },
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                    "forOverPct": 50,
+                    "minNonNullValuesPct": 50,
+                    "ofTheLast": {
+                      "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                    },
+                    "threshold": 10
+                  }
+                }
+              ]
+            },
+            "name": "tfbaseline-ma-deviation",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 20.5
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 20.5,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -335,108 +896,715 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 20.5,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "33.3, which float32 rounds",
-    "configDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 33.3
+    "config": {
+      "name": "tfbaseline-ma-deviation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 33.3,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 33.3
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 33.3,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/metricAnomaly/anomalyAlertSettings/percentageOfDeviation": 33.3
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "metricAnomaly": {
+              "anomalyAlertSettings": {
+                "percentageOfDeviation": 33.3
+              },
+              "metricFilter": {
+                "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+              },
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                    "forOverPct": 50,
+                    "minNonNullValuesPct": 50,
+                    "ofTheLast": {
+                      "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                    },
+                    "threshold": 10
+                  }
+                }
+              ]
+            },
+            "name": "tfbaseline-ma-deviation",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "inconsistentResult": [
-      "type_definition.metric_anomaly.percentage_of_deviation"
-    ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 33.29999923706055
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 33.3,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"percentage_of_deviation\")"
-    ]
+    "replanEmpty": true
   },
   {
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
-    "replanEmpty": false,
-    "replanDiff": [
-      "AttributeName(\"type_definition\").AttributeName(\"metric_anomaly\").AttributeName(\"percentage_of_deviation\")"
-    ]
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 33.3,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "replanEmpty": true
   },
   {
     "step": "100",
-    "configDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 100
+    "config": {
+      "name": "tfbaseline-ma-deviation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 100,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 100
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 100,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/metricAnomaly/anomalyAlertSettings/percentageOfDeviation": 100
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "metricAnomaly": {
+              "anomalyAlertSettings": {
+                "percentageOfDeviation": 100
+              },
+              "metricFilter": {
+                "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+              },
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                    "forOverPct": 50,
+                    "minNonNullValuesPct": 50,
+                    "ofTheLast": {
+                      "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                    },
+                    "threshold": 10
+                  }
+                }
+              ]
+            },
+            "name": "tfbaseline-ma-deviation",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 100
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 100,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
   },
   {
     "step": "250, above 100",
-    "configDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 250
+    "config": {
+      "name": "tfbaseline-ma-deviation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 250,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 250
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 250,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/metricAnomaly/anomalyAlertSettings/percentageOfDeviation": 250
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "metricAnomaly": {
+              "anomalyAlertSettings": {
+                "percentageOfDeviation": 250
+              },
+              "metricFilter": {
+                "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+              },
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                    "forOverPct": 50,
+                    "minNonNullValuesPct": 50,
+                    "ofTheLast": {
+                      "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                    },
+                    "threshold": 10
+                  }
+                }
+              ]
+            },
+            "name": "tfbaseline-ma-deviation",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": 250
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 250,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -445,35 +1613,257 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": 250,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "remove it",
-    "configDelta": {
-      "remove": [
-        "/type_definition/metric_anomaly/percentage_of_deviation"
-      ]
+    "config": {
+      "name": "tfbaseline-ma-deviation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        }
+      }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": null
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": null,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "remove": [
-          "/body/alertDefProperties/metricAnomaly/anomalyAlertSettings"
-        ]
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "metricAnomaly": {
+              "metricFilter": {
+                "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+              },
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                    "forOverPct": 50,
+                    "minNonNullValuesPct": 50,
+                    "ofTheLast": {
+                      "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                    },
+                    "threshold": 10
+                  }
+                }
+              ]
+            },
+            "name": "tfbaseline-ma-deviation",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": null
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": null,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -482,38 +1872,265 @@
     "step": "refresh after removal",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": null,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "-1 is refused by the API",
-    "configDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": -1
+    "config": {
+      "name": "tfbaseline-ma-deviation",
+      "type_definition": {
+        "metric_anomaly": {
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": -1,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/metric_anomaly/percentage_of_deviation": -1
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": -1,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/metricAnomaly/anomalyAlertSettings": {
-            "percentageOfDeviation": -1
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "metricAnomaly": {
+              "anomalyAlertSettings": {
+                "percentageOfDeviation": -1
+              },
+              "metricFilter": {
+                "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+              },
+              "rules": [
+                {
+                  "condition": {
+                    "conditionType": "METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED",
+                    "forOverPct": 50,
+                    "minNonNullValuesPct": 50,
+                    "ofTheLast": {
+                      "metricTimeWindowSpecificValue": "METRIC_TIME_WINDOW_VALUE_MINUTES_10"
+                    },
+                    "threshold": 10
+                  }
+                }
+              ]
+            },
+            "name": "tfbaseline-ma-deviation",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_METRIC_ANOMALY"
           },
-          "/status": 400
-        }
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 400
       }
     ],
     "applyDiagnostics": [
-      "error: Error replacing coralogix_alert | invalid argument error.\nerror - 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 0,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than or equal to 0\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricAnomaly\\\",\\n      \\\"anomalyAlertSettings\\\",\\n      \\\"percentageOfDeviation\\\"\\n    ]\\n  }\\n]\"}\noperation - Replace"
+      "error: Unable to update alert | id 00000000-0000-4000-8000-000000000001: 400 Bad Request — {\"code\":400,\"message\":\"Bad Request: [\\n  {\\n    \\\"code\\\": \\\"too_small\\\",\\n    \\\"minimum\\\": 0,\\n    \\\"type\\\": \\\"number\\\",\\n    \\\"inclusive\\\": true,\\n    \\\"exact\\\": false,\\n    \\\"message\\\": \\\"Number must be greater than or equal to 0\\\",\\n    \\\"path\\\": [\\n      \\\"alertDefProperties\\\",\\n      \\\"typeDefinition\\\",\\n      \\\"metricAnomaly\\\",\\n      \\\"anomalyAlertSettings\\\",\\n      \\\"percentageOfDeviation\\\"\\n    ]\\n  }\\n]\"}"
     ],
-    "stateDelta": {}
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-ma-deviation",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": {
+          "custom_evaluation_delay": null,
+          "metric_filter": {
+            "promql": "sum(rate(tfbaseline_requests_total[5m]))"
+          },
+          "percentage_of_deviation": null,
+          "rules": [
+            {
+              "condition": {
+                "condition_type": "MORE_THAN",
+                "for_over_pct": 50,
+                "min_non_null_values_pct": 50,
+                "of_the_last": "10_MINUTES",
+                "threshold": 10
+              }
+            }
+          ]
+        },
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    }
   }
 ]

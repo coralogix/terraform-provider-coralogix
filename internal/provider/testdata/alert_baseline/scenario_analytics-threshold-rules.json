@@ -85,6 +85,8 @@
     },
     "requests": [
       {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "analyticsThreshold": {
@@ -106,18 +108,12 @@
               "timeframeMinutes": 10
             },
             "enabled": true,
-            "groupByKeys": [],
             "name": "tfbaseline-analytics-threshold-rules",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
           }
         },
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
@@ -196,84 +192,197 @@
         "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P1"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "update: three ordered rules",
-    "configDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules": [
-          {
-            "condition": {
-              "threshold": 10
-            },
-            "override": {
-              "priority": "P4"
-            }
+    "config": {
+      "name": "tfbaseline-analytics-threshold-rules",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
           },
-          {
-            "condition": {
-              "threshold": 20
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 10
+              },
+              "override": {
+                "priority": "P4"
+              }
             },
-            "override": {
-              "priority": "P3"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 30
+            {
+              "condition": {
+                "threshold": 20
+              },
+              "override": {
+                "priority": "P3"
+              }
             },
-            "override": {
-              "priority": "P2"
+            {
+              "condition": {
+                "threshold": 30
+              },
+              "override": {
+                "priority": "P2"
+              }
             }
-          }
-        ]
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/access_policy": null,
-        "/deleted": false,
-        "/id": "00000000-0000-4000-8000-000000000001",
-        "/incidents_settings": {
-          "notify_on": "Triggered Only",
-          "retriggering_period": {
-            "minutes": 10
-          }
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 10
+              },
+              "override": {
+                "priority": "P4"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 20
+              },
+              "override": {
+                "priority": "P3"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 30
+              },
+              "override": {
+                "priority": "P2"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
         },
-        "/priority": "P5",
-        "/type_definition/analytics_threshold/no_data_policy": null,
-        "/type_definition/analytics_threshold/rules": [
-          {
-            "condition": {
-              "threshold": 10
-            },
-            "override": {
-              "priority": "P4"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 20
-            },
-            "override": {
-              "priority": "P3"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 30
-            },
-            "override": {
-              "priority": "P2"
-            }
-          }
-        ]
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "analyticsThreshold": {
@@ -311,54 +420,99 @@
               "timeframeMinutes": 10
             },
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
             "name": "tfbaseline-analytics-threshold-rules",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
           },
           "id": "00000000-0000-4000-8000-000000000001"
         },
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules": [
-          {
-            "condition": {
-              "threshold": 10
-            },
-            "override": {
-              "priority": "P4"
-            }
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
           },
-          {
-            "condition": {
-              "threshold": 20
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 10
+              },
+              "override": {
+                "priority": "P4"
+              }
             },
-            "override": {
-              "priority": "P3"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 30
+            {
+              "condition": {
+                "threshold": 20
+              },
+              "override": {
+                "priority": "P3"
+              }
             },
-            "override": {
-              "priority": "P2"
+            {
+              "condition": {
+                "threshold": 30
+              },
+              "override": {
+                "priority": "P2"
+              }
             }
-          }
-        ]
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -367,47 +521,348 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 10
+              },
+              "override": {
+                "priority": "P4"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 20
+              },
+              "override": {
+                "priority": "P3"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 30
+              },
+              "override": {
+                "priority": "P2"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "update: the rules in the other order",
-    "configDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules/0/condition/threshold": 30,
-        "/type_definition/analytics_threshold/rules/0/override/priority": "P2",
-        "/type_definition/analytics_threshold/rules/2/condition/threshold": 10,
-        "/type_definition/analytics_threshold/rules/2/override/priority": "P4"
+    "config": {
+      "name": "tfbaseline-analytics-threshold-rules",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 30
+              },
+              "override": {
+                "priority": "P2"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 20
+              },
+              "override": {
+                "priority": "P3"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 10
+              },
+              "override": {
+                "priority": "P4"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules/0/condition/threshold": 30,
-        "/type_definition/analytics_threshold/rules/0/override/priority": "P2",
-        "/type_definition/analytics_threshold/rules/2/condition/threshold": 10,
-        "/type_definition/analytics_threshold/rules/2/override/priority": "P4"
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 30
+              },
+              "override": {
+                "priority": "P2"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 20
+              },
+              "override": {
+                "priority": "P3"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 10
+              },
+              "override": {
+                "priority": "P4"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/analyticsThreshold/rules/0/condition/threshold": 30,
-          "/body/alertDefProperties/analyticsThreshold/rules/0/override/priority": "ALERT_DEF_PRIORITY_P2",
-          "/body/alertDefProperties/analyticsThreshold/rules/2/condition/threshold": 10,
-          "/body/alertDefProperties/analyticsThreshold/rules/2/override/priority": "ALERT_DEF_PRIORITY_P4"
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "analyticsThreshold": {
+              "dataprimeQuery": {
+                "query": "source logs | count as c"
+              },
+              "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
+              "rules": [
+                {
+                  "condition": {
+                    "threshold": 30
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P2"
+                  }
+                },
+                {
+                  "condition": {
+                    "threshold": 20
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P3"
+                  }
+                },
+                {
+                  "condition": {
+                    "threshold": 10
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P4"
+                  }
+                }
+              ],
+              "targetColumn": "c",
+              "timeframeMinutes": 10
+            },
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-analytics-threshold-rules",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules/0/condition/threshold": 30,
-        "/type_definition/analytics_threshold/rules/0/override/priority": "P2",
-        "/type_definition/analytics_threshold/rules/2/condition/threshold": 10,
-        "/type_definition/analytics_threshold/rules/2/override/priority": "P4"
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 30
+              },
+              "override": {
+                "priority": "P2"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 20
+              },
+              "override": {
+                "priority": "P3"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 10
+              },
+              "override": {
+                "priority": "P4"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -416,117 +871,110 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 30
+              },
+              "override": {
+                "priority": "P2"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 20
+              },
+              "override": {
+                "priority": "P3"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 10
+              },
+              "override": {
+                "priority": "P4"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "update: five rules",
-    "configDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules": [
-          {
-            "condition": {
-              "threshold": 1
-            },
-            "override": {
-              "priority": "P1"
-            }
+    "config": {
+      "name": "tfbaseline-analytics-threshold-rules",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
           },
-          {
-            "condition": {
-              "threshold": 2
-            },
-            "override": {
-              "priority": "P2"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 3
-            },
-            "override": {
-              "priority": "P3"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 4
-            },
-            "override": {
-              "priority": "P4"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 5
-            },
-            "override": {
-              "priority": "P5"
-            }
-          }
-        ]
-      }
-    },
-    "planDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules": [
-          {
-            "condition": {
-              "threshold": 1
-            },
-            "override": {
-              "priority": "P1"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 2
-            },
-            "override": {
-              "priority": "P2"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 3
-            },
-            "override": {
-              "priority": "P3"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 4
-            },
-            "override": {
-              "priority": "P4"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 5
-            },
-            "override": {
-              "priority": "P5"
-            }
-          }
-        ]
-      }
-    },
-    "requests": [
-      {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/analyticsThreshold/rules": [
+          "operator": "MORE_THAN",
+          "rules": [
             {
               "condition": {
                 "threshold": 1
               },
               "override": {
-                "priority": "ALERT_DEF_PRIORITY_P1"
+                "priority": "P1"
               }
             },
             {
@@ -534,7 +982,7 @@
                 "threshold": 2
               },
               "override": {
-                "priority": "ALERT_DEF_PRIORITY_P2"
+                "priority": "P2"
               }
             },
             {
@@ -542,7 +990,7 @@
                 "threshold": 3
               },
               "override": {
-                "priority": "ALERT_DEF_PRIORITY_P3"
+                "priority": "P3"
               }
             },
             {
@@ -550,7 +998,7 @@
                 "threshold": 4
               },
               "override": {
-                "priority": "ALERT_DEF_PRIORITY_P4"
+                "priority": "P4"
               }
             },
             {
@@ -558,57 +1006,277 @@
                 "threshold": 5
               },
               "override": {
-                "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                "priority": "P5"
               }
             }
-          ]
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
         }
       }
+    },
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P1"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 2
+              },
+              "override": {
+                "priority": "P2"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 3
+              },
+              "override": {
+                "priority": "P3"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 4
+              },
+              "override": {
+                "priority": "P4"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "analyticsThreshold": {
+              "dataprimeQuery": {
+                "query": "source logs | count as c"
+              },
+              "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
+              "rules": [
+                {
+                  "condition": {
+                    "threshold": 1
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P1"
+                  }
+                },
+                {
+                  "condition": {
+                    "threshold": 2
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P2"
+                  }
+                },
+                {
+                  "condition": {
+                    "threshold": 3
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P3"
+                  }
+                },
+                {
+                  "condition": {
+                    "threshold": 4
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P4"
+                  }
+                },
+                {
+                  "condition": {
+                    "threshold": 5
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                  }
+                }
+              ],
+              "targetColumn": "c",
+              "timeframeMinutes": 10
+            },
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-analytics-threshold-rules",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules": [
-          {
-            "condition": {
-              "threshold": 1
-            },
-            "override": {
-              "priority": "P1"
-            }
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
           },
-          {
-            "condition": {
-              "threshold": 2
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P1"
+              }
             },
-            "override": {
-              "priority": "P2"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 3
+            {
+              "condition": {
+                "threshold": 2
+              },
+              "override": {
+                "priority": "P2"
+              }
             },
-            "override": {
-              "priority": "P3"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 4
+            {
+              "condition": {
+                "threshold": 3
+              },
+              "override": {
+                "priority": "P3"
+              }
             },
-            "override": {
-              "priority": "P4"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 5
+            {
+              "condition": {
+                "threshold": 4
+              },
+              "override": {
+                "priority": "P4"
+              }
             },
-            "override": {
-              "priority": "P5"
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P5"
+              }
             }
-          }
-        ]
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -617,164 +1285,497 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P1"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 2
+              },
+              "override": {
+                "priority": "P2"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 3
+              },
+              "override": {
+                "priority": "P3"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 4
+              },
+              "override": {
+                "priority": "P4"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "update: six rules",
-    "configDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules": [
-          {
-            "condition": {
-              "threshold": 1
-            },
-            "override": {
-              "priority": "P1"
-            }
+    "config": {
+      "name": "tfbaseline-analytics-threshold-rules",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
           },
-          {
-            "condition": {
-              "threshold": 2
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P1"
+              }
             },
-            "override": {
-              "priority": "P2"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 3
+            {
+              "condition": {
+                "threshold": 2
+              },
+              "override": {
+                "priority": "P2"
+              }
             },
-            "override": {
-              "priority": "P3"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 4
+            {
+              "condition": {
+                "threshold": 3
+              },
+              "override": {
+                "priority": "P3"
+              }
             },
-            "override": {
-              "priority": "P4"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 5
+            {
+              "condition": {
+                "threshold": 4
+              },
+              "override": {
+                "priority": "P4"
+              }
             },
-            "override": {
-              "priority": "P5"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 6
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P5"
+              }
             },
-            "override": {
-              "priority": "P1"
+            {
+              "condition": {
+                "threshold": 6
+              },
+              "override": {
+                "priority": "P1"
+              }
             }
-          }
-        ]
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
       }
     },
     "validateDiagnostics": [
       "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\")] | Attribute type_definition.analytics_threshold.rules list must contain at least 1 elements and at most 5 elements, got: 6"
     ],
-    "stateDelta": {}
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P1"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 2
+              },
+              "override": {
+                "priority": "P2"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 3
+              },
+              "override": {
+                "priority": "P3"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 4
+              },
+              "override": {
+                "priority": "P4"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 5
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    }
   },
   {
     "step": "update: the same threshold twice",
-    "configDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules": [
-          {
-            "condition": {
-              "threshold": 7
-            },
-            "override": {
-              "priority": "P1"
-            }
+    "config": {
+      "name": "tfbaseline-analytics-threshold-rules",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
           },
-          {
-            "condition": {
-              "threshold": 7
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 7
+              },
+              "override": {
+                "priority": "P1"
+              }
             },
-            "override": {
-              "priority": "P2"
+            {
+              "condition": {
+                "threshold": 7
+              },
+              "override": {
+                "priority": "P2"
+              }
             }
-          }
-        ]
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules": [
-          {
-            "condition": {
-              "threshold": 7
-            },
-            "override": {
-              "priority": "P1"
-            }
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
           },
-          {
-            "condition": {
-              "threshold": 7
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 7
+              },
+              "override": {
+                "priority": "P1"
+              }
             },
-            "override": {
-              "priority": "P2"
+            {
+              "condition": {
+                "threshold": 7
+              },
+              "override": {
+                "priority": "P2"
+              }
             }
-          }
-        ]
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/analyticsThreshold/rules": [
-            {
-              "condition": {
-                "threshold": 7
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "analyticsThreshold": {
+              "dataprimeQuery": {
+                "query": "source logs | count as c"
               },
-              "override": {
-                "priority": "ALERT_DEF_PRIORITY_P1"
-              }
+              "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
+              "rules": [
+                {
+                  "condition": {
+                    "threshold": 7
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P1"
+                  }
+                },
+                {
+                  "condition": {
+                    "threshold": 7
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P2"
+                  }
+                }
+              ],
+              "targetColumn": "c",
+              "timeframeMinutes": 10
             },
-            {
-              "condition": {
-                "threshold": 7
-              },
-              "override": {
-                "priority": "ALERT_DEF_PRIORITY_P2"
-              }
-            }
-          ]
-        }
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-analytics-threshold-rules",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules": [
-          {
-            "condition": {
-              "threshold": 7
-            },
-            "override": {
-              "priority": "P1"
-            }
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
           },
-          {
-            "condition": {
-              "threshold": 7
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 7
+              },
+              "override": {
+                "priority": "P1"
+              }
             },
-            "override": {
-              "priority": "P2"
+            {
+              "condition": {
+                "threshold": 7
+              },
+              "override": {
+                "priority": "P2"
+              }
             }
-          }
-        ]
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -783,85 +1784,102 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 7
+              },
+              "override": {
+                "priority": "P1"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 7
+              },
+              "override": {
+                "priority": "P2"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "update: a zero, a fraction, and a negative threshold",
-    "configDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules": [
-          {
-            "condition": {
-              "threshold": 0
-            },
-            "override": {
-              "priority": "P1"
-            }
+    "config": {
+      "name": "tfbaseline-analytics-threshold-rules",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
           },
-          {
-            "condition": {
-              "threshold": 0.5
-            },
-            "override": {
-              "priority": "P2"
-            }
-          },
-          {
-            "condition": {
-              "threshold": -3
-            },
-            "override": {
-              "priority": "P3"
-            }
-          }
-        ]
-      }
-    },
-    "planDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules": [
-          {
-            "condition": {
-              "threshold": 0
-            },
-            "override": {
-              "priority": "P1"
-            }
-          },
-          {
-            "condition": {
-              "threshold": 0.5
-            },
-            "override": {
-              "priority": "P2"
-            }
-          },
-          {
-            "condition": {
-              "threshold": -3
-            },
-            "override": {
-              "priority": "P3"
-            }
-          }
-        ]
-      }
-    },
-    "requests": [
-      {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/analyticsThreshold/rules": [
+          "operator": "MORE_THAN",
+          "rules": [
             {
               "condition": {
                 "threshold": 0
               },
               "override": {
-                "priority": "ALERT_DEF_PRIORITY_P1"
+                "priority": "P1"
               }
             },
             {
@@ -869,7 +1887,7 @@
                 "threshold": 0.5
               },
               "override": {
-                "priority": "ALERT_DEF_PRIORITY_P2"
+                "priority": "P2"
               }
             },
             {
@@ -877,41 +1895,229 @@
                 "threshold": -3
               },
               "override": {
-                "priority": "ALERT_DEF_PRIORITY_P3"
+                "priority": "P3"
               }
             }
-          ]
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
         }
       }
+    },
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 0
+              },
+              "override": {
+                "priority": "P1"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 0.5
+              },
+              "override": {
+                "priority": "P2"
+              }
+            },
+            {
+              "condition": {
+                "threshold": -3
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "analyticsThreshold": {
+              "dataprimeQuery": {
+                "query": "source logs | count as c"
+              },
+              "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
+              "rules": [
+                {
+                  "condition": {
+                    "threshold": 0
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P1"
+                  }
+                },
+                {
+                  "condition": {
+                    "threshold": 0.5
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P2"
+                  }
+                },
+                {
+                  "condition": {
+                    "threshold": -3
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P3"
+                  }
+                }
+              ],
+              "targetColumn": "c",
+              "timeframeMinutes": 10
+            },
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-analytics-threshold-rules",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules": [
-          {
-            "condition": {
-              "threshold": 0
-            },
-            "override": {
-              "priority": "P1"
-            }
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
           },
-          {
-            "condition": {
-              "threshold": 0.5
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 0
+              },
+              "override": {
+                "priority": "P1"
+              }
             },
-            "override": {
-              "priority": "P2"
-            }
-          },
-          {
-            "condition": {
-              "threshold": -3
+            {
+              "condition": {
+                "threshold": 0.5
+              },
+              "override": {
+                "priority": "P2"
+              }
             },
-            "override": {
-              "priority": "P3"
+            {
+              "condition": {
+                "threshold": -3
+              },
+              "override": {
+                "priority": "P3"
+              }
             }
-          }
-        ]
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -920,71 +2126,284 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 0
+              },
+              "override": {
+                "priority": "P1"
+              }
+            },
+            {
+              "condition": {
+                "threshold": 0.5
+              },
+              "override": {
+                "priority": "P2"
+              }
+            },
+            {
+              "condition": {
+                "threshold": -3
+              },
+              "override": {
+                "priority": "P3"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "update: a very large threshold",
-    "configDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules": [
-          {
-            "condition": {
-              "threshold": 1000000000000000
-            },
-            "override": {
-              "priority": "P1"
-            }
-          }
-        ]
-      }
-    },
-    "planDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules": [
-          {
-            "condition": {
-              "threshold": 1000000000000000
-            },
-            "override": {
-              "priority": "P1"
-            }
-          }
-        ]
-      }
-    },
-    "requests": [
-      {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/analyticsThreshold/rules": [
+    "config": {
+      "name": "tfbaseline-analytics-threshold-rules",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
             {
               "condition": {
                 "threshold": 1000000000000000
               },
               "override": {
-                "priority": "ALERT_DEF_PRIORITY_P1"
+                "priority": "P1"
               }
             }
-          ]
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
         }
       }
-    ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules": [
-          {
-            "condition": {
-              "threshold": 1000000000000000
-            },
-            "override": {
-              "priority": "P1"
+    },
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1000000000000000
+              },
+              "override": {
+                "priority": "P1"
+              }
             }
-          }
-        ]
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
+    "requests": [
+      {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "analyticsThreshold": {
+              "dataprimeQuery": {
+                "query": "source logs | count as c"
+              },
+              "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
+              "rules": [
+                {
+                  "condition": {
+                    "threshold": 1000000000000000
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P1"
+                  }
+                }
+              ],
+              "targetColumn": "c",
+              "timeframeMinutes": 10
+            },
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-analytics-threshold-rules",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
+      }
+    ],
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1000000000000000
+              },
+              "override": {
+                "priority": "P1"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -993,57 +2412,350 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1000000000000000
+              },
+              "override": {
+                "priority": "P1"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "update: rules = []",
-    "configDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules": []
+    "config": {
+      "name": "tfbaseline-analytics-threshold-rules",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
       }
     },
     "validateDiagnostics": [
-      "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\")] | Attribute type_definition.analytics_threshold.rules list must contain at least 1 elements and at most 5 elements, got: 0"
+      "error: Invalid Attribute Value [AttributeName(\"type_definition\").AttributeName(\"analytics_threshold\").AttributeName(\"rules\")] | Attribute type_definition.analytics_threshold.rules list must contain at least 1 elements, got: 0"
     ],
-    "stateDelta": {}
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1000000000000000
+              },
+              "override": {
+                "priority": "P1"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    }
   },
   {
     "step": "update: rules without an override priority",
-    "configDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules": [
-          {
-            "condition": {
-              "threshold": 1
-            },
-            "override": {}
-          }
-        ]
+    "config": {
+      "name": "tfbaseline-analytics-threshold-rules",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {}
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules/0/condition/threshold": 1,
-        "/type_definition/analytics_threshold/rules/0/override/priority": "P5"
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/analyticsThreshold/rules/0/condition/threshold": 1,
-          "/body/alertDefProperties/analyticsThreshold/rules/0/override/priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "analyticsThreshold": {
+              "dataprimeQuery": {
+                "query": "source logs | count as c"
+              },
+              "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
+              "rules": [
+                {
+                  "condition": {
+                    "threshold": 1
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                  }
+                }
+              ],
+              "targetColumn": "c",
+              "timeframeMinutes": 10
+            },
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-analytics-threshold-rules",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules/0/condition/threshold": 1,
-        "/type_definition/analytics_threshold/rules/0/override/priority": "P5"
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -1052,41 +2764,270 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "update: rules without an override priority, and a top-level priority",
-    "configDelta": {
-      "set": {
-        "/priority": "P2"
+    "config": {
+      "name": "tfbaseline-analytics-threshold-rules",
+      "priority": "P2",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {}
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
       }
     },
     "validateDiagnostics": [
       "warning: Deprecated Attribute [AttributeName(\"priority\")] | This field will be removed in the future in favor of the 'override' property where possible."
     ],
-    "planDelta": {
-      "set": {
-        "/priority": "P2",
-        "/type_definition/analytics_threshold/rules/0/override/priority": "P2"
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P2",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P2"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/analyticsThreshold/rules/0/override/priority": "ALERT_DEF_PRIORITY_P2",
-          "/body/alertDefProperties/priority": "ALERT_DEF_PRIORITY_P2"
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "analyticsThreshold": {
+              "dataprimeQuery": {
+                "query": "source logs | count as c"
+              },
+              "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
+              "rules": [
+                {
+                  "condition": {
+                    "threshold": 1
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P2"
+                  }
+                }
+              ],
+              "targetColumn": "c",
+              "timeframeMinutes": 10
+            },
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-analytics-threshold-rules",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P2",
+            "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/priority": "P2",
-        "/type_definition/analytics_threshold/rules/0/override/priority": "P2"
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P2",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P2"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -1095,41 +3036,270 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P2",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P2"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "update: the top-level priority changes",
-    "configDelta": {
-      "set": {
-        "/priority": "P4"
+    "config": {
+      "name": "tfbaseline-analytics-threshold-rules",
+      "priority": "P4",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {}
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
       }
     },
     "validateDiagnostics": [
       "warning: Deprecated Attribute [AttributeName(\"priority\")] | This field will be removed in the future in favor of the 'override' property where possible."
     ],
-    "planDelta": {
-      "set": {
-        "/priority": "P4",
-        "/type_definition/analytics_threshold/rules/0/override/priority": "P4"
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P4",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P4"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/analyticsThreshold/rules/0/override/priority": "ALERT_DEF_PRIORITY_P4",
-          "/body/alertDefProperties/priority": "ALERT_DEF_PRIORITY_P4"
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "analyticsThreshold": {
+              "dataprimeQuery": {
+                "query": "source logs | count as c"
+              },
+              "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
+              "rules": [
+                {
+                  "condition": {
+                    "threshold": 1
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P4"
+                  }
+                }
+              ],
+              "targetColumn": "c",
+              "timeframeMinutes": 10
+            },
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-analytics-threshold-rules",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P4",
+            "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/priority": "P4",
-        "/type_definition/analytics_threshold/rules/0/override/priority": "P4"
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P4",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P4"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -1138,35 +3308,266 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P4",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P4"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "update: the top-level priority is removed",
-    "configDelta": {
-      "remove": [
-        "/priority"
-      ]
+    "config": {
+      "name": "tfbaseline-analytics-threshold-rules",
+      "type_definition": {
+        "analytics_threshold": {
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {}
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10
+        }
+      }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules/0/override/priority": "P5"
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P4",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/analyticsThreshold/rules/0/override/priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "analyticsThreshold": {
+              "dataprimeQuery": {
+                "query": "source logs | count as c"
+              },
+              "operator": "ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_UNSPECIFIED",
+              "rules": [
+                {
+                  "condition": {
+                    "threshold": 1
+                  },
+                  "override": {
+                    "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED"
+                  }
+                }
+              ],
+              "targetColumn": "c",
+              "timeframeMinutes": 10
+            },
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "name": "tfbaseline-analytics-threshold-rules",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P4",
+            "type": "ALERT_DEF_TYPE_ANALYTICS_THRESHOLD"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/analytics_threshold/rules/0/override/priority": "P5"
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P4",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -1175,10 +3576,75 @@
     "step": "refresh after the removal",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-analytics-threshold-rules",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P4",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": {
+          "custom_evaluation_delay": null,
+          "dataprime_query": {
+            "query": "source logs | count as c"
+          },
+          "no_data_policy": null,
+          "operator": "MORE_THAN",
+          "rules": [
+            {
+              "condition": {
+                "threshold": 1
+              },
+              "override": {
+                "priority": "P5"
+              }
+            }
+          ],
+          "target_column": "c",
+          "timeframe_minutes": 10,
+          "use_rows_as_permutations": null
+        },
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": null,
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   }
 ]

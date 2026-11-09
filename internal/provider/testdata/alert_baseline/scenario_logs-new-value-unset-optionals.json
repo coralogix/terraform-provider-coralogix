@@ -139,7 +139,6 @@
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsNewValue": {
               "logsFilter": {
                 "simpleFilter": {
@@ -188,11 +187,8 @@
               ]
             },
             "name": "tfbaseline-new-value-unset",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_NEW_VALUE"
           }
         },
@@ -362,7 +358,6 @@
                   "luceneQuery": "message:\"tfbaseline\""
                 }
               },
-              "notificationPayloadFilter": [],
               "rules": [
                 {
                   "condition": {
@@ -375,9 +370,7 @@
               ]
             },
             "name": "tfbaseline-new-value-unset",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_NEW_VALUE"

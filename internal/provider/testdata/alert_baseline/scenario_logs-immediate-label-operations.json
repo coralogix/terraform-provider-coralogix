@@ -90,10 +90,11 @@
     },
     "requests": [
       {
+        "method": "POST",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "logsImmediate": {
               "logsFilter": {
                 "simpleFilter": {
@@ -104,7 +105,6 @@
                         "value": "app"
                       }
                     ],
-                    "severities": [],
                     "subsystemName": [
                       {
                         "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
@@ -114,20 +114,14 @@
                   },
                   "luceneQuery": "q"
                 }
-              },
-              "notificationPayloadFilter": []
+              }
             },
             "name": "tfbaseline-logs-immediate-operations",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
-            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
           }
         },
-        "method": "POST",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
@@ -201,34 +195,105 @@
   },
   {
     "step": "application_name INCLUDES, subsystem_name STARTS_WITH",
-    "configDelta": {
-      "set": {
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/application_name/0/operation": "INCLUDES",
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/subsystem_name/0/operation": "STARTS_WITH"
+    "config": {
+      "name": "tfbaseline-logs-immediate-operations",
+      "type_definition": {
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "INCLUDES",
+                    "value": "app"
+                  }
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
+          }
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/access_policy": null,
-        "/deleted": false,
-        "/id": "00000000-0000-4000-8000-000000000001",
-        "/incidents_settings": {
-          "notify_on": "Triggered Only",
-          "retriggering_period": {
-            "minutes": 10
-          }
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-immediate-operations",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "INCLUDES",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
+          },
+          "notification_payload_filter": null
         },
-        "/priority": "P5",
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/application_name/0/operation": "INCLUDES",
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/subsystem_name/0/operation": "STARTS_WITH"
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "body": {
           "alertDefProperties": {
             "enabled": true,
-            "groupByKeys": [],
             "incidentsSettings": {
               "minutes": 10,
               "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
@@ -243,7 +308,6 @@
                         "value": "app"
                       }
                     ],
-                    "severities": [],
                     "subsystemName": [
                       {
                         "operation": "LOG_FILTER_OPERATION_TYPE_STARTS_WITH",
@@ -253,90 +317,493 @@
                   },
                   "luceneQuery": "q"
                 }
-              },
-              "notificationPayloadFilter": []
+              }
             },
             "name": "tfbaseline-logs-immediate-operations",
-            "notificationGroup": {
-              "groupByKeys": []
-            },
+            "notificationGroup": {},
             "phantomMode": false,
             "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
             "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
           },
           "id": "00000000-0000-4000-8000-000000000001"
         },
-        "method": "PUT",
-        "path": "/mgmt/openapi/5/alerts/alerts/v3",
         "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/application_name/0/operation": "INCLUDES",
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/subsystem_name/0/operation": "STARTS_WITH"
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-immediate-operations",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "INCLUDES",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
+          },
+          "notification_payload_filter": null
+        },
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
   },
   {
     "step": "application_name STARTS_WITH, subsystem_name ENDS_WITH",
-    "configDelta": {
-      "set": {
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/application_name/0/operation": "STARTS_WITH",
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/subsystem_name/0/operation": "ENDS_WITH"
+    "config": {
+      "name": "tfbaseline-logs-immediate-operations",
+      "type_definition": {
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app"
+                  }
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
+          }
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/application_name/0/operation": "STARTS_WITH",
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/subsystem_name/0/operation": "ENDS_WITH"
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-immediate-operations",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
+          },
+          "notification_payload_filter": null
+        },
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/logsImmediate/logsFilter/simpleFilter/labelFilters/applicationName/0/operation": "LOG_FILTER_OPERATION_TYPE_STARTS_WITH",
-          "/body/alertDefProperties/logsImmediate/logsFilter/simpleFilter/labelFilters/subsystemName/0/operation": "LOG_FILTER_OPERATION_TYPE_ENDS_WITH"
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "logsImmediate": {
+              "logsFilter": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "applicationName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_STARTS_WITH",
+                        "value": "app"
+                      }
+                    ],
+                    "subsystemName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_ENDS_WITH",
+                        "value": "sub"
+                      }
+                    ]
+                  },
+                  "luceneQuery": "q"
+                }
+              }
+            },
+            "name": "tfbaseline-logs-immediate-operations",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/application_name/0/operation": "STARTS_WITH",
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/subsystem_name/0/operation": "ENDS_WITH"
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-immediate-operations",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "STARTS_WITH",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
+          },
+          "notification_payload_filter": null
+        },
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
   },
   {
     "step": "application_name ENDS_WITH, subsystem_name IS",
-    "configDelta": {
-      "set": {
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/application_name/0/operation": "ENDS_WITH",
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/subsystem_name/0/operation": "IS"
+    "config": {
+      "name": "tfbaseline-logs-immediate-operations",
+      "type_definition": {
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "app"
+                  }
+                ],
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
+          }
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/application_name/0/operation": "ENDS_WITH",
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/subsystem_name/0/operation": "IS"
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-immediate-operations",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
+          },
+          "notification_payload_filter": null
+        },
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/logsImmediate/logsFilter/simpleFilter/labelFilters/applicationName/0/operation": "LOG_FILTER_OPERATION_TYPE_ENDS_WITH",
-          "/body/alertDefProperties/logsImmediate/logsFilter/simpleFilter/labelFilters/subsystemName/0/operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED"
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "logsImmediate": {
+              "logsFilter": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "applicationName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_ENDS_WITH",
+                        "value": "app"
+                      }
+                    ],
+                    "subsystemName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "value": "sub"
+                      }
+                    ]
+                  },
+                  "luceneQuery": "q"
+                }
+              }
+            },
+            "name": "tfbaseline-logs-immediate-operations",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/application_name/0/operation": "ENDS_WITH",
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/subsystem_name/0/operation": "IS"
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-immediate-operations",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
+          },
+          "notification_payload_filter": null
+        },
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -350,33 +817,273 @@
         "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-immediate-operations",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "ENDS_WITH",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
+          },
+          "notification_payload_filter": null
+        },
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "operation omitted defaults to IS",
-    "configDelta": {
-      "remove": [
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/application_name/0/operation",
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/subsystem_name/0/operation"
-      ]
+    "config": {
+      "name": "tfbaseline-logs-immediate-operations",
+      "type_definition": {
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "value": "app"
+                  }
+                ],
+                "subsystem_name": [
+                  {
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
+          }
+        }
+      }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/application_name/0/operation": "IS"
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-immediate-operations",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
+          },
+          "notification_payload_filter": null
+        },
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/logsImmediate/logsFilter/simpleFilter/labelFilters/applicationName/0/operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED"
-        }
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
+            },
+            "logsImmediate": {
+              "logsFilter": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "applicationName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "value": "app"
+                      }
+                    ],
+                    "subsystemName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "value": "sub"
+                      }
+                    ]
+                  },
+                  "luceneQuery": "q"
+                }
+              }
+            },
+            "name": "tfbaseline-logs-immediate-operations",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/application_name/0/operation": "IS"
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-immediate-operations",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
+          },
+          "notification_payload_filter": null
+        },
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
@@ -385,109 +1092,310 @@
     "step": "refresh",
     "requests": [
       {
-        "deltaOf": "GET"
+        "method": "GET",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3/00000000-0000-4000-8000-000000000001?include_access_permissions=true",
+        "status": 200
       }
     ],
-    "stateDelta": {},
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-immediate-operations",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
+          },
+          "notification_payload_filter": null
+        },
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
+      }
+    },
     "replanEmpty": true
   },
   {
     "step": "several items with one value and different operations",
-    "configDelta": {
-      "set": {
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/application_name": [
-          {
-            "operation": "IS",
-            "value": "app"
-          },
-          {
-            "operation": "INCLUDES",
-            "value": "app"
+    "config": {
+      "name": "tfbaseline-logs-immediate-operations",
+      "type_definition": {
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "app"
+                  }
+                ],
+                "subsystem_name": [
+                  {
+                    "value": "sub"
+                  },
+                  {
+                    "value": "other"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
           }
-        ],
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/subsystem_name": [
-          {
-            "value": "sub"
-          },
-          {
-            "value": "other"
-          }
-        ]
+        }
       }
     },
-    "planDelta": {
-      "set": {
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/application_name": [
-          {
-            "operation": "IS",
-            "value": "app"
+    "plan": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-immediate-operations",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub"
+                  },
+                  {
+                    "operation": "IS",
+                    "value": "other"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
           },
-          {
-            "operation": "INCLUDES",
-            "value": "app"
-          }
-        ],
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/subsystem_name": [
-          {
-            "operation": "IS",
-            "value": "sub"
-          },
-          {
-            "operation": "IS",
-            "value": "other"
-          }
-        ]
+          "notification_payload_filter": null
+        },
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "requests": [
       {
-        "deltaOf": "PUT",
-        "set": {
-          "/body/alertDefProperties/logsImmediate/logsFilter/simpleFilter/labelFilters/applicationName": [
-            {
-              "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
-              "value": "app"
+        "method": "PUT",
+        "path": "/mgmt/openapi/5/alerts/alerts/v3",
+        "body": {
+          "alertDefProperties": {
+            "enabled": true,
+            "incidentsSettings": {
+              "minutes": 10,
+              "notifyOn": "NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED"
             },
-            {
-              "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
-              "value": "app"
-            }
-          ],
-          "/body/alertDefProperties/logsImmediate/logsFilter/simpleFilter/labelFilters/subsystemName": [
-            {
-              "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
-              "value": "sub"
+            "logsImmediate": {
+              "logsFilter": {
+                "simpleFilter": {
+                  "labelFilters": {
+                    "applicationName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "value": "app"
+                      },
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_INCLUDES",
+                        "value": "app"
+                      }
+                    ],
+                    "subsystemName": [
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "value": "sub"
+                      },
+                      {
+                        "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
+                        "value": "other"
+                      }
+                    ]
+                  },
+                  "luceneQuery": "q"
+                }
+              }
             },
-            {
-              "operation": "LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED",
-              "value": "other"
-            }
-          ]
-        }
+            "name": "tfbaseline-logs-immediate-operations",
+            "notificationGroup": {},
+            "phantomMode": false,
+            "priority": "ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED",
+            "type": "ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED"
+          },
+          "id": "00000000-0000-4000-8000-000000000001"
+        },
+        "status": 200
       }
     ],
-    "stateDelta": {
-      "set": {
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/application_name": [
-          {
-            "operation": "IS",
-            "value": "app"
+    "state": {
+      "access_policy": null,
+      "case_settings": null,
+      "data_sources": null,
+      "deleted": false,
+      "description": null,
+      "enabled": true,
+      "group_by": null,
+      "id": "00000000-0000-4000-8000-000000000001",
+      "incidents_settings": {
+        "notify_on": "Triggered Only",
+        "retriggering_period": {
+          "minutes": 10
+        }
+      },
+      "labels": null,
+      "name": "tfbaseline-logs-immediate-operations",
+      "notification_group": {
+        "destinations": null,
+        "group_by_keys": null,
+        "router": null,
+        "webhooks_settings": null
+      },
+      "phantom_mode": false,
+      "priority": "P5",
+      "schedule": null,
+      "type_definition": {
+        "analytics_immediate": null,
+        "analytics_threshold": null,
+        "flow": null,
+        "logs_anomaly": null,
+        "logs_immediate": {
+          "logs_filter": {
+            "simple_filter": {
+              "label_filters": {
+                "application_name": [
+                  {
+                    "operation": "IS",
+                    "value": "app"
+                  },
+                  {
+                    "operation": "INCLUDES",
+                    "value": "app"
+                  }
+                ],
+                "severities": null,
+                "subsystem_name": [
+                  {
+                    "operation": "IS",
+                    "value": "sub"
+                  },
+                  {
+                    "operation": "IS",
+                    "value": "other"
+                  }
+                ]
+              },
+              "lucene_query": "q"
+            }
           },
-          {
-            "operation": "INCLUDES",
-            "value": "app"
-          }
-        ],
-        "/type_definition/logs_immediate/logs_filter/simple_filter/label_filters/subsystem_name": [
-          {
-            "operation": "IS",
-            "value": "sub"
-          },
-          {
-            "operation": "IS",
-            "value": "other"
-          }
-        ]
+          "notification_payload_filter": null
+        },
+        "logs_new_value": null,
+        "logs_ratio_threshold": null,
+        "logs_threshold": null,
+        "logs_time_relative_threshold": null,
+        "logs_unique_count": null,
+        "metric_anomaly": null,
+        "metric_threshold": null,
+        "slo_threshold": null,
+        "tracing_immediate": null,
+        "tracing_threshold": null
       }
     },
     "replanEmpty": true
