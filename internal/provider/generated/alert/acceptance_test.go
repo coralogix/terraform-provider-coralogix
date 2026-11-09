@@ -63,17 +63,28 @@ const prerequisites = ``
 
 const fullConfig = `resource "coralogix_alert" "test" {
   type_definition = {
-    analytics_immediate = {
-      dataprime_query = {
-        query = "source logs | groupby $l.applicationName as app aggregate count() as c"
+    logs_immediate = {
+      logs_filter = {
+        simple_filter = {
+          label_filters = {
+            application_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+            severities = ["Critical"]
+            subsystem_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+          }
+          lucene_query = "@{run}-lucene_query"
+        }
       }
-      custom_evaluation_delay = 120000
-      no_data_policy = {
-        auto_retire_seconds = 3600
-        state = "ALERTING"
-      }
-      timeframe_minutes = 45
-      use_rows_as_permutations = true
+      notification_payload_filter = ["@{run}-notification_payload_filter"]
     }
   }
   case_settings = {
@@ -87,7 +98,6 @@ const fullConfig = `resource "coralogix_alert" "test" {
   }
   description = "@{run}-description"
   enabled = true
-  group_by = ["app"]
   incidents_settings = {
     retriggering_period = {
       minutes = 10
@@ -96,7 +106,6 @@ const fullConfig = `resource "coralogix_alert" "test" {
   }
   name = "@{run}-alert"
   notification_group = {
-    group_by_keys = ["app"]
     webhooks_settings = [
       {
         recipients = ["@{run}@example.com"]
@@ -112,17 +121,28 @@ const fullConfig = `resource "coralogix_alert" "test" {
 
 const updatedConfig = `resource "coralogix_alert" "test" {
   type_definition = {
-    analytics_immediate = {
-      dataprime_query = {
-        query = "source logs | groupby $l.applicationName as app aggregate count() as c"
+    logs_immediate = {
+      logs_filter = {
+        simple_filter = {
+          label_filters = {
+            application_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value-updated"
+              },
+            ]
+            severities = ["Critical"]
+            subsystem_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value-updated"
+              },
+            ]
+          }
+          lucene_query = "@{run}-lucene_query-updated"
+        }
       }
-      custom_evaluation_delay = 60000
-      no_data_policy = {
-        auto_retire_seconds = 7200
-        state = "ALERTING"
-      }
-      timeframe_minutes = 30
-      use_rows_as_permutations = false
+      notification_payload_filter = ["@{run}-notification_payload_filter-updated"]
     }
   }
   case_settings = {
@@ -136,7 +156,6 @@ const updatedConfig = `resource "coralogix_alert" "test" {
   }
   description = "@{run}-description-updated"
   enabled = false
-  group_by = ["app"]
   incidents_settings = {
     retriggering_period = {
       minutes = 20
@@ -145,7 +164,6 @@ const updatedConfig = `resource "coralogix_alert" "test" {
   }
   name = "@{run}-alert"
   notification_group = {
-    group_by_keys = ["app"]
     webhooks_settings = [
       {
         recipients = ["@{run}@example.com"]
@@ -161,12 +179,7 @@ const updatedConfig = `resource "coralogix_alert" "test" {
 
 const minimalConfig = `resource "coralogix_alert" "test" {
   type_definition = {
-    analytics_immediate = {
-      dataprime_query = {
-        query = "source logs | groupby $l.applicationName as app aggregate count() as c"
-      }
-      timeframe_minutes = 45
-    }
+    logs_immediate = {}
   }
   name = "@{run}-alert"
 }`
@@ -174,12 +187,7 @@ const minimalConfig = `resource "coralogix_alert" "test" {
 // upgradeMinimalConfig is the minimal config plus the fields that the released provider needs.
 const upgradeMinimalConfig = `resource "coralogix_alert" "test" {
   type_definition = {
-    analytics_immediate = {
-      dataprime_query = {
-        query = "source logs | groupby $l.applicationName as app aggregate count() as c"
-      }
-      timeframe_minutes = 45
-    }
+    logs_immediate = {}
   }
   name = "@{run}-alert"
 }`
@@ -199,8 +207,11 @@ const dataSourceConfig = `data "coralogix_alert" "test" {
 func dataSourceChecks() resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "id", resourceAddress, "id"),
-		resource.TestCheckResourceAttrPair(dataSourceAddress, "type_definition.analytics_immediate.no_data_policy.state", resourceAddress, "type_definition.analytics_immediate.no_data_policy.state"),
-		resource.TestCheckResourceAttrPair(dataSourceAddress, "type_definition.analytics_immediate.use_rows_as_permutations", resourceAddress, "type_definition.analytics_immediate.use_rows_as_permutations"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name.#", resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.severities.#", resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.severities.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name.#", resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name.#"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.lucene_query", resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.lucene_query"),
+		resource.TestCheckResourceAttrPair(dataSourceAddress, "type_definition.logs_immediate.notification_payload_filter.#", resourceAddress, "type_definition.logs_immediate.notification_payload_filter.#"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.auto_resolve_mode", resourceAddress, "case_settings.auto_resolve_mode"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.enrichment_queries.#", resourceAddress, "case_settings.enrichment_queries.#"),
 		resource.TestCheckResourceAttrPair(dataSourceAddress, "case_settings.enrichment_queries.0.type", resourceAddress, "case_settings.enrichment_queries.0.type"),
@@ -214,8 +225,11 @@ func dataSourceChecks() resource.TestCheckFunc {
 
 func fullChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "type_definition.analytics_immediate.no_data_policy.state", "ALERTING"),
-		resource.TestCheckResourceAttr(resourceAddress, "type_definition.analytics_immediate.use_rows_as_permutations", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.severities.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.lucene_query", render(run, "@{run}-lucene_query")),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.notification_payload_filter.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.auto_resolve_mode", "disabled"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
@@ -229,8 +243,11 @@ func fullChecks(run string) resource.TestCheckFunc {
 
 func updatedChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "type_definition.analytics_immediate.no_data_policy.state", "ALERTING"),
-		resource.TestCheckResourceAttr(resourceAddress, "type_definition.analytics_immediate.use_rows_as_permutations", "false"),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.severities.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.lucene_query", render(run, "@{run}-lucene_query-updated")),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.notification_payload_filter.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.auto_resolve_mode", "disabled"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
@@ -265,17 +282,28 @@ func upgradeMinimalChecks(run string) resource.TestCheckFunc {
 
 const upgradeScheduleConfig = `resource "coralogix_alert" "test" {
   type_definition = {
-    analytics_immediate = {
-      dataprime_query = {
-        query = "source logs | groupby $l.applicationName as app aggregate count() as c"
+    logs_immediate = {
+      logs_filter = {
+        simple_filter = {
+          label_filters = {
+            application_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+            severities = ["Critical"]
+            subsystem_name = [
+              {
+                operation = "ENDS_WITH"
+                value = "@{run}-value"
+              },
+            ]
+          }
+          lucene_query = "@{run}-lucene_query"
+        }
       }
-      custom_evaluation_delay = 120000
-      no_data_policy = {
-        auto_retire_seconds = 3600
-        state = "ALERTING"
-      }
-      timeframe_minutes = 45
-      use_rows_as_permutations = true
+      notification_payload_filter = ["@{run}-notification_payload_filter"]
     }
   }
   case_settings = {
@@ -289,7 +317,6 @@ const upgradeScheduleConfig = `resource "coralogix_alert" "test" {
   }
   description = "@{run}-description"
   enabled = true
-  group_by = ["app"]
   incidents_settings = {
     retriggering_period = {
       minutes = 10
@@ -298,7 +325,6 @@ const upgradeScheduleConfig = `resource "coralogix_alert" "test" {
   }
   name = "@{run}-alert"
   notification_group = {
-    group_by_keys = ["app"]
     webhooks_settings = [
       {
         recipients = ["@{run}@example.com"]
@@ -315,8 +341,11 @@ const upgradeScheduleConfig = `resource "coralogix_alert" "test" {
 
 func upgradeScheduleChecks(run string) resource.TestCheckFunc {
 	return resource.ComposeAggregateTestCheckFunc(
-		resource.TestCheckResourceAttr(resourceAddress, "type_definition.analytics_immediate.no_data_policy.state", "ALERTING"),
-		resource.TestCheckResourceAttr(resourceAddress, "type_definition.analytics_immediate.use_rows_as_permutations", "true"),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.severities.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name.#", "1"),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.logs_filter.simple_filter.lucene_query", render(run, "@{run}-lucene_query")),
+		resource.TestCheckResourceAttr(resourceAddress, "type_definition.logs_immediate.notification_payload_filter.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.auto_resolve_mode", "disabled"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.#", "1"),
 		resource.TestCheckResourceAttr(resourceAddress, "case_settings.enrichment_queries.0.type", "dataprime"),
