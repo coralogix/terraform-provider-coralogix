@@ -90,14 +90,17 @@
         "path": "/mgmt/openapi/5/dashboards/dashboards/v1",
         "body": {
           "dashboard": {
-            "folderId": {
-              "value": "<id-1>"
+            "folderPath": {
+              "segments": [
+                "Team",
+                "Sub"
+              ]
             },
             "layout": {
               "sections": [
                 {
                   "id": {
-                    "value": "<id-2>"
+                    "value": "<id-1>"
                   },
                   "rows": [
                     {
@@ -105,7 +108,7 @@
                         "height": 10
                       },
                       "id": {
-                        "value": "<id-3>"
+                        "value": "<id-2>"
                       },
                       "widgets": [
                         {
@@ -116,7 +119,7 @@
                             }
                           },
                           "id": {
-                            "value": "<id-4>"
+                            "value": "<id-3>"
                           },
                           "title": "note"
                         }
@@ -152,12 +155,12 @@
       "layout": {
         "sections": [
           {
-            "id": "<id-2>",
+            "id": "<id-1>",
             "options": null,
             "rows": [
               {
                 "height": 10,
-                "id": "<id-3>",
+                "id": "<id-2>",
                 "widgets": [
                   {
                     "custom_actions": null,
@@ -177,7 +180,7 @@
                     },
                     "description": null,
                     "highlighted": false,
-                    "id": "<id-4>",
+                    "id": "<id-3>",
                     "reference": null,
                     "title": "note",
                     "width": null
@@ -219,12 +222,12 @@
       "layout": {
         "sections": [
           {
-            "id": "<id-2>",
+            "id": "<id-1>",
             "options": null,
             "rows": [
               {
                 "height": 10,
-                "id": "<id-3>",
+                "id": "<id-2>",
                 "widgets": [
                   {
                     "custom_actions": null,
@@ -244,7 +247,7 @@
                     },
                     "description": null,
                     "highlighted": false,
-                    "id": "<id-4>",
+                    "id": "<id-3>",
                     "reference": null,
                     "title": "note",
                     "width": null
@@ -266,7 +269,7 @@
     "step": "switch from path to id",
     "config": {
       "folder": {
-        "id": "<id-5>"
+        "id": "<id-4>"
       },
       "layout": {
         "sections": [
@@ -299,19 +302,19 @@
       "description": null,
       "filters": null,
       "folder": {
-        "id": "<id-5>",
+        "id": "<id-4>",
         "path": null
       },
       "id": "fakeboard000000000001",
       "layout": {
         "sections": [
           {
-            "id": "<id-2>",
+            "id": "<id-1>",
             "options": null,
             "rows": [
               {
                 "height": 10,
-                "id": "<id-3>",
+                "id": "<id-2>",
                 "widgets": [
                   {
                     "custom_actions": null,
@@ -331,7 +334,7 @@
                     },
                     "description": null,
                     "highlighted": false,
-                    "id": "<id-4>",
+                    "id": "<id-3>",
                     "reference": null,
                     "title": "note",
                     "width": "(unknown)"
@@ -354,14 +357,14 @@
         "body": {
           "dashboard": {
             "folderId": {
-              "value": "<id-5>"
+              "value": "<id-4>"
             },
             "id": "fakeboard000000000001",
             "layout": {
               "sections": [
                 {
                   "id": {
-                    "value": "<id-2>"
+                    "value": "<id-1>"
                   },
                   "rows": [
                     {
@@ -369,7 +372,7 @@
                         "height": 10
                       },
                       "id": {
-                        "value": "<id-3>"
+                        "value": "<id-2>"
                       },
                       "widgets": [
                         {
@@ -381,7 +384,7 @@
                           },
                           "highlighted": false,
                           "id": {
-                            "value": "<id-4>"
+                            "value": "<id-3>"
                           },
                           "title": "note"
                         }
@@ -410,19 +413,19 @@
       "description": null,
       "filters": null,
       "folder": {
-        "id": "<id-5>",
+        "id": "<id-4>",
         "path": null
       },
       "id": "fakeboard000000000001",
       "layout": {
         "sections": [
           {
-            "id": "<id-2>",
+            "id": "<id-1>",
             "options": null,
             "rows": [
               {
                 "height": 10,
-                "id": "<id-3>",
+                "id": "<id-2>",
                 "widgets": [
                   {
                     "custom_actions": null,
@@ -442,7 +445,7 @@
                     },
                     "description": null,
                     "highlighted": false,
-                    "id": "<id-4>",
+                    "id": "<id-3>",
                     "reference": null,
                     "title": "note",
                     "width": null
@@ -477,19 +480,19 @@
       "description": null,
       "filters": null,
       "folder": {
-        "id": "<id-5>",
+        "id": "<id-4>",
         "path": null
       },
       "id": "fakeboard000000000001",
       "layout": {
         "sections": [
           {
-            "id": "<id-2>",
+            "id": "<id-1>",
             "options": null,
             "rows": [
               {
                 "height": 10,
-                "id": "<id-3>",
+                "id": "<id-2>",
                 "widgets": [
                   {
                     "custom_actions": null,
@@ -509,7 +512,7 @@
                     },
                     "description": null,
                     "highlighted": false,
-                    "id": "<id-4>",
+                    "id": "<id-3>",
                     "reference": null,
                     "title": "note",
                     "width": null

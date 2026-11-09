@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -318,15 +319,21 @@ func (f *dashboardFake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			panic(err)
 		}
 	}
-	status, out := f.handle(r, body)
-	rec := grRequest{Method: r.Method, Path: r.URL.Path, Status: status}
+	// The handler changes the body (a folderPath becomes a folderId), so the request is recorded first.
+	var recorded json.RawMessage
 	if body != nil {
-		delete(body, "requestId")
-		clean, err := json.Marshal(body)
+		sent := maps.Clone(body)
+		delete(sent, "requestId")
+		clean, err := json.Marshal(sent)
 		if err != nil {
 			panic(err)
 		}
-		rec.Body = json.RawMessage(clean)
+		recorded = clean
+	}
+	status, out := f.handle(r, body)
+	rec := grRequest{Method: r.Method, Path: r.URL.Path, Status: status}
+	if recorded != nil {
+		rec.Body = recorded
 	}
 	f.requests = append(f.requests, rec)
 	w.Header().Set("Content-Type", "application/json")

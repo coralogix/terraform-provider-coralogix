@@ -70,6 +70,27 @@ jobs:
       - name: Run dashboard baseline tests
         run: make test-dashboard-baseline
 
+  test-dashboard-walk:
+    # The schema walk of all 46 bases, in four jobs of about the same run time.
+    name: Dashboard walk (shard ${{ matrix.shard }} of 4)
+    permissions:
+      contents: read
+    env:
+      GO111MODULE: on
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [ 1, 2, 3, 4 ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8
+        with:
+          go-version: 1.26.x
+      - name: Walk the shard
+        run: make test-dashboard-walk SHARD=${{ matrix.shard }}
+
   iac-codegen:
     name: IaC generator
     permissions:

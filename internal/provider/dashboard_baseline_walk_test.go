@@ -22,6 +22,7 @@ import (
 	"os"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -609,7 +610,53 @@ func (h *grHarness) runBatch(out []any, base j, prior tftypes.Value, baseline wa
 // about a second. A plain run walks only the small bases. DASHBOARD_WALK=all walks every base.
 //
 //	DASHBOARD_WALK=all UPDATE_GOLDEN=1 go test ./internal/provider -run TestDashboardBaselineWalk
+//
+// walkSmokeBases are the bases that a plain `go test` walks.
 var walkSmokeBases = []string{"markdown", "reference"}
+
+// walkShards split the 46 bases into four lists of about the same run time, one for each CI job
+// (`make test-dashboard-walk SHARD=1` to `SHARD=4`). The sizes come from a timed run of every base.
+// TestDashboardWalkShardsCoverEveryBase fails when a base is in no shard, or in two.
+var walkShards = [][]string{
+	{"bar_chart_logs", "dynamic_hexagon_bins", "dynamic_stat_card", "dynamic_vertical_bars_multi", "hexagon_data_prime", "hexagon_logs", "horizontal_bar_chart_logs", "line_chart_metrics", "line_chart_spans", "pie_chart_logs", "pie_chart_spans"},
+	{"bar_chart_spans", "data_table_logs", "data_table_metrics", "dynamic_heatmap", "dynamic_table", "dynamic_time_series_lines", "dynamic_vertical_bars", "hexagon_spans", "horizontal_bar_chart_data_prime", "horizontal_bar_chart_metrics", "pie_chart_data_prime", "reference"},
+	{"data_table_data_prime", "dynamic_horizontal_bars", "dynamic_pie_chart", "dynamic_stat", "dynamic_time_series_bars", "gauge_data_prime", "gauge_logs", "gauge_metrics", "gauge_spans", "horizontal_bar_chart_spans", "top_level"},
+	{"bar_chart_data_prime", "bar_chart_metrics", "data_table_spans", "dynamic_gauge", "dynamic_geomap", "dynamic_horizontal_bars_multi", "dynamic_time_series_lines_multi", "hexagon_metrics", "line_chart_data_prime", "line_chart_logs", "markdown", "pie_chart_metrics"},
+}
+
+// walkSelected says whether this run walks the base. DASHBOARD_WALK=all walks every base,
+// DASHBOARD_WALK_SHARD=n walks the bases of one shard, and a plain run walks the smoke bases.
+func walkSelected(name string) bool {
+	if os.Getenv("DASHBOARD_WALK") == "all" {
+		return true
+	}
+	if shard := os.Getenv("DASHBOARD_WALK_SHARD"); shard != "" {
+		n, err := strconv.Atoi(shard)
+		if err != nil || n < 1 || n > len(walkShards) {
+			panic("DASHBOARD_WALK_SHARD must be a number from 1 to " + strconv.Itoa(len(walkShards)))
+		}
+		return slices.Contains(walkShards[n-1], name)
+	}
+	return slices.Contains(walkSmokeBases, name)
+}
+
+func TestDashboardWalkShardsCoverEveryBase(t *testing.T) {
+	count := map[string]int{}
+	for _, shard := range walkShards {
+		for _, name := range shard {
+			count[name]++
+		}
+	}
+	for _, b := range walkBases() {
+		if count[b.name] != 1 {
+			t.Errorf("base %s is in %d shards; it must be in exactly one (walkShards)", b.name, count[b.name])
+		}
+		delete(count, b.name)
+	}
+	for name := range count {
+		t.Errorf("walkShards names %s, which is not a base", name)
+	}
+}
 
 // The bases run in parallel. Each has its own fake and API key (see newParallelDashboardHarness).
 func TestDashboardBaselineWalk(t *testing.T) {
@@ -620,8 +667,8 @@ func TestDashboardBaselineWalk(t *testing.T) {
 	router := installDashboardRouter(t)
 	for _, b := range walkBases() {
 		t.Run(b.name, func(t *testing.T) {
-			if os.Getenv("DASHBOARD_WALK") != "all" && !slices.Contains(walkSmokeBases, b.name) {
-				t.Skip("set DASHBOARD_WALK=all to walk every base")
+			if !walkSelected(b.name) {
+				t.Skip("set DASHBOARD_WALK=all, or DASHBOARD_WALK_SHARD=1 to 4, to walk more bases")
 			}
 			t.Parallel()
 			h := newParallelDashboardHarness(t, router, "walk-"+b.name)

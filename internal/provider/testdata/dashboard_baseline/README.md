@@ -30,9 +30,8 @@ DASHBOARD_FAKE_ACC=1 TF_ACC=1 CORALOGIX_API_KEY=placeholder CORALOGIX_DOMAIN=eu2
   go test ./internal/provider -run 'TestAcc.*Dashboard' -skip 'Folder|Grafana|Hosted' -timeout 90m
 ```
 
-A plain `go test` walks only the `markdown` and `reference` bases and skips the other bases. Without `UPDATE_GOLDEN` the tests compare with the files.
-CI runs these tests in the job `Dashboard baseline tests` (`make test-dashboard-baseline`, 5 minute limit). `make test` skips them, because they do not fit its 120 s limit.
-CI does not run the full walk. Run it by hand with `DASHBOARD_WALK=all` before the PR that switches the dashboard to generated code, and read the diff. After the switch, the scenarios and the two smoke bases are enough.
+A plain `go test` walks only the `markdown` and `reference` bases and skips the other bases. `DASHBOARD_WALK_SHARD=1` to `4` walks one quarter of the bases (`walkShards` in the walk test). Without `UPDATE_GOLDEN` the tests compare with the files.
+CI runs these tests in their own jobs, because they do not fit the 120 s limit of `make test`: `Dashboard baseline tests` (`make test-dashboard-baseline`) runs the scenarios, and `Dashboard walk` (`make test-dashboard-walk SHARD=1` to `4`, four jobs) walks all 46 bases.
 Run an update twice. The second run must change nothing.
 
 ## The fake
