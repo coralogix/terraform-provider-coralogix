@@ -62,6 +62,19 @@ func (r *archiveRetentionsResource) Configure(ctx context.Context, req resource.
 	}
 }
 
+// Update rewrites the generated not-found error. A 404 means that a tag id of the state is unknown
+// to the API; the tags always exist, so a refresh cannot remove them and a plan cannot create them.
+func (r *archiveRetentionsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	r.Resource.Update(ctx, req, resp)
+	for i, d := range resp.Diagnostics {
+		if d.Severity() == diag.SeverityError && d.Summary() == "Resource no longer exists" {
+			resp.Diagnostics[i] = diag.NewErrorDiagnostic("Retention tag not found",
+				"The API could not find one of the retention tag IDs. State was preserved. "+
+					"Refresh the resource to reload its current tags, then retry.")
+		}
+	}
+}
+
 type archiveRetentionsHooks struct {
 	client *retss.RetentionsServiceAPIService
 }

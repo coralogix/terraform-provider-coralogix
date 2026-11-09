@@ -180,7 +180,7 @@
       }
     ],
     "applyDiagnostics": [
-      "error: Resource no longer exists | The API did not find archive_retentions with id archive-retention-settings. Run terraform apply without -refresh=false: the refresh removes it from state, and the plan creates it again."
+      "error: Retention tag not found | The API could not find one of the retention tag IDs. State was preserved. Refresh the resource to reload its current tags, then retry."
     ],
     "state": {
       "id": "archive-retention-settings",
