@@ -112,7 +112,7 @@ func valueChanged(state, plan tftypes.Value, names []string) bool {
 }
 
 // planOverridePriority plans the override priority of a rule that the configuration leaves out: the
-// priority of the alert, or P5 when the alert sets none. The rules are a set or a list, and the
+// priority of the alert, or P5 when the alert sets none (also when the state holds another value). The rules are a set or a list, and the
 // plan, the configuration, and the state order a set apart, so it rebuilds each rule as a whole and
 // takes the configured rule that the planned one matches.
 func planOverridePriority(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) diag.Diagnostics {
@@ -161,11 +161,11 @@ func isRuleItem(p *tftypes.AttributePath) bool {
 	return steps[len(steps)-2] == tftypes.AttributePathStep(tftypes.AttributeName("rules"))
 }
 
-// withFallbackPriority returns the planned rule with override.priority set to fallback when the rule
-// has an override whose priority is unknown in the plan and null in the configuration.
+// withFallbackPriority returns the planned rule with override.priority set to fallback when the
+// configuration leaves the priority out. The plan holds the prior value then, or unknown.
 func withFallbackPriority(config tftypes.Value, p *tftypes.AttributePath, rule, fallback tftypes.Value) tftypes.Value {
 	override, ok := overrideOf(rule)
-	if !ok || override.priority.IsKnown() || !priorityIsUnconfigured(config, p, rule) {
+	if !ok || override.priority.Equal(fallback) || !priorityIsUnconfigured(config, p, rule) {
 		return rule
 	}
 	overrideAttrs := maps.Clone(override.object.attrs)
@@ -274,41 +274,53 @@ func plannedFromConfig(config, plan tftypes.Value) bool {
 	}
 	switch config.Type().(type) {
 	case tftypes.Object, tftypes.Map:
-		var c, p map[string]tftypes.Value
-		if config.As(&c) != nil || plan.As(&p) != nil {
-			return false
-		}
-		for k, cv := range c {
-			pv, found := p[k]
-			if !found || !plannedFromConfig(cv, pv) {
-				return false
-			}
-		}
-		return true
+		return objectFromConfig(config, plan)
 	case tftypes.List, tftypes.Tuple:
-		var c, p []tftypes.Value
-		if config.As(&c) != nil || plan.As(&p) != nil || len(c) != len(p) {
-			return false
-		}
-		for i := range c {
-			if !plannedFromConfig(c[i], p[i]) {
-				return false
-			}
-		}
-		return true
+		return listFromConfig(config, plan)
 	case tftypes.Set:
-		var c, p []tftypes.Value
-		if config.As(&c) != nil || plan.As(&p) != nil || len(c) != len(p) {
-			return false
-		}
-		for _, cv := range c {
-			if !slices.ContainsFunc(p, func(pv tftypes.Value) bool { return plannedFromConfig(cv, pv) }) {
-				return false
-			}
-		}
-		return true
+		return setFromConfig(config, plan)
 	}
 	return config.Equal(plan)
+}
+
+func objectFromConfig(config, plan tftypes.Value) bool {
+	var c, p map[string]tftypes.Value
+	if config.As(&c) != nil || plan.As(&p) != nil {
+		return false
+	}
+	for k, cv := range c {
+		pv, found := p[k]
+		if !found || !plannedFromConfig(cv, pv) {
+			return false
+		}
+	}
+	return true
+}
+
+func listFromConfig(config, plan tftypes.Value) bool {
+	var c, p []tftypes.Value
+	if config.As(&c) != nil || plan.As(&p) != nil || len(c) != len(p) {
+		return false
+	}
+	for i := range c {
+		if !plannedFromConfig(c[i], p[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func setFromConfig(config, plan tftypes.Value) bool {
+	var c, p []tftypes.Value
+	if config.As(&c) != nil || plan.As(&p) != nil || len(c) != len(p) {
+		return false
+	}
+	for _, cv := range c {
+		if !slices.ContainsFunc(p, func(pv tftypes.Value) bool { return plannedFromConfig(cv, pv) }) {
+			return false
+		}
+	}
+	return true
 }
 
 // planWebhookRetriggering keeps the retriggering period of a webhook that the configuration leaves out.

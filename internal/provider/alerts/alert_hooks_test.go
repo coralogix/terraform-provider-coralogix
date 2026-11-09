@@ -315,6 +315,10 @@ func TestWithFallbackPriority(t *testing.T) {
 	if got := withFallbackPriority(cfg, pathB, rule("b", stringValue("P1")), fallback); !got.Equal(rule("b", stringValue("P1"))) {
 		t.Errorf("a configured priority plans %v, want P1", got)
 	}
+	// A known value of the prior state is replaced too: the priority of the alert is the plan.
+	if got := withFallbackPriority(cfg, path, rule("a", stringValue("P5")), fallback); !got.Equal(rule("a", fallback)) {
+		t.Errorf("an unconfigured priority with a prior value plans %v, want P2", got)
+	}
 	// A priority that the configuration does not know yet stays unknown.
 	unknownCfg := config(rule("a", unknown))
 	if got := withFallbackPriority(unknownCfg, path, rule("a", unknown), fallback); !got.Equal(rule("a", unknown)) {

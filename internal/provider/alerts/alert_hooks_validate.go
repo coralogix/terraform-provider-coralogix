@@ -59,6 +59,7 @@ func validateAlertConfig(ctx context.Context, config tfsdk.Config) diag.Diagnost
 	diags.Append(warnNoDataPolicyUnspecified(typeDefinition)...)
 	diags.Append(checkAnalyticsNoDataPolicy(typeDefinition)...)
 	diags.Append(checkAnalyticsRuleCount(ctx, config, typeDefinition)...)
+	diags.Append(checkWebhookTargets(ctx, config)...)
 	return diags
 }
 
@@ -214,5 +215,29 @@ func checkAnalyticsRuleCount(ctx context.Context, config tfsdk.Config, typeDefin
 	response := &validator.ListResponse{}
 	listvalidator.SizeBetween(1, maxAnalyticsRules).ValidateList(ctx, request, response)
 	diags.Append(response.Diagnostics...)
+	return diags
+}
+
+// checkWebhookTargets requires each webhook to name an integration or recipients. The generated schema
+// rejects both together, and this rejects neither.
+func checkWebhookTargets(ctx context.Context, config tfsdk.Config) diag.Diagnostics {
+	webhooksPath := path.Root("notification_group").AtName("webhooks_settings")
+	var webhooks types.Set
+	diags := config.GetAttribute(ctx, webhooksPath, &webhooks)
+	if diags.HasError() || webhooks.IsNull() || webhooks.IsUnknown() {
+		return diags
+	}
+	for _, element := range webhooks.Elements() {
+		webhook, ok := element.(types.Object)
+		if !ok || webhook.IsNull() || webhook.IsUnknown() {
+			continue
+		}
+		integration, recipients := webhook.Attributes()["integration_id"], webhook.Attributes()["recipients"]
+		if integration == nil || recipients == nil || !integration.IsNull() || !recipients.IsNull() {
+			continue
+		}
+		diags.AddAttributeError(webhooksPath.AtSetValue(element).AtName("integration_id"), "Invalid Attribute Combination",
+			"No attribute specified when one (and only one) of [integration_id, recipients] is required")
+	}
 	return diags
 }

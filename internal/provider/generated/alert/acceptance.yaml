@@ -1,0 +1,48 @@
+# What the generated acceptance test needs for coralogix_alert, besides the schema.
+#
+# The test makes one alert of the analytics_immediate type. The other types, the notification
+# center destinations, and the schedule need objects of the tenant (connectors, presets, data sets,
+# SLOs) or an alert of another type, and the handwritten acceptance tests cover them.
+resource: AlertDef
+
+values:
+  name: '"@{run}-alert"'
+  # The query groups by the label that group_by and notification_group.group_by_keys name.
+  type_definition.analytics_immediate.dataprime_query.query: '"source logs | groupby $l.applicationName as app aggregate count() as c"'
+  type_definition.analytics_immediate.custom_evaluation_delay: "120000"
+  type_definition.analytics_immediate.timeframe_minutes: "45"
+  # The API accepts only a multiple of 60 seconds.
+  type_definition.analytics_immediate.no_data_policy.auto_retire_seconds: "3600"
+  group_by: '["app"]'
+  case_settings.enrichment_queries[].query: '"source logs | limit 1"'
+  incidents_settings.retriggering_period.minutes: "10"
+  notification_group.group_by_keys: '["app"]'
+  notification_group.webhooks_settings[].retriggering_period.minutes: "10"
+  notification_group.webhooks_settings[].recipients: '["@{run}@example.com"]'
+
+updatedValues:
+  type_definition.analytics_immediate.custom_evaluation_delay: "60000"
+  type_definition.analytics_immediate.timeframe_minutes: "30"
+  type_definition.analytics_immediate.no_data_policy.auto_retire_seconds: "7200"
+  incidents_settings.retriggering_period.minutes: "20"
+  notification_group.webhooks_settings[].retriggering_period.minutes: "20"
+
+skip:
+  # The labels of an alert are limited per tenant, and a tenant at the limit refuses the alert.
+  - labels
+  # A phantom alert may not have a notification group.
+  - phantom_mode
+  # These need connectors, presets, data sets, or routers of the tenant.
+  - case_settings.destinations
+  - data_sources
+  - notification_group.destinations
+  - notification_group.router
+  - notification_group.webhooks_settings[].integration_id
+
+upgradeFrom: "3.24.0"
+
+upgradeCases:
+  # The schedule is stored in UTC. The released provider and this one must read it in the same offset.
+  - name: schedule
+    values:
+      schedule: '{ active_on = { days_of_week = ["Monday", "Sunday"], start_time = "01:00", end_time = "05:30", utc_offset = "+0200" } }'

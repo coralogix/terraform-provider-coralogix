@@ -274,3 +274,27 @@ func TestValidateAnalyticsRuleCount(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateWebhookTargets(t *testing.T) {
+	ctx := context.Background()
+	webhookType := attributeType(alert.Schema().Type().TerraformType(ctx), "notification_group", "webhooks_settings").(tftypes.Set).ElementType
+	recipientsType := attributeType(webhookType, "recipients")
+	recipients := tftypes.NewValue(recipientsType, []tftypes.Value{stringValue("a@example.com")})
+	for name, tc := range map[string]struct {
+		webhook   map[string]tftypes.Value
+		wantError bool
+	}{
+		"neither is rejected":         {map[string]tftypes.Value{"notify_on": stringValue("Triggered Only")}, true},
+		"recipients are fine":         {map[string]tftypes.Value{"recipients": recipients}, false},
+		"an integration is fine":      {map[string]tftypes.Value{"integration_id": tftypes.NewValue(tftypes.Number, 1)}, false},
+		"an unknown one is fine":      {map[string]tftypes.Value{"integration_id": tftypes.NewValue(tftypes.Number, tftypes.UnknownValue)}, false},
+		"both are left to the schema": {map[string]tftypes.Value{"integration_id": tftypes.NewValue(tftypes.Number, 1), "recipients": recipients}, false},
+	} {
+		groupType := attributeType(alert.Schema().Type().TerraformType(ctx), "notification_group")
+		group := nullObject(groupType, map[string]tftypes.Value{"webhooks_settings": tftypes.NewValue(tftypes.Set{ElementType: webhookType}, []tftypes.Value{nullObject(webhookType, tc.webhook)})})
+		diags := checkWebhookTargets(ctx, alertConfig(ctx, map[string]tftypes.Value{"notification_group": group}))
+		if diags.HasError() != tc.wantError {
+			t.Errorf("%s: errors = %v", name, errorSummaries(diags))
+		}
+	}
+}
