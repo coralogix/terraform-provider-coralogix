@@ -1976,6 +1976,11 @@ func flattenScalarMap[T any](ctx context.Context, elem attr.Type, v map[string]T
 	out.{{.Model}} = splitStrings({{$v}}, {{printf "%q" .Split}})
 {{- else if eq .Conv "string"}}
 	out.{{.Model}} = types.StringPointerValue({{$v}})
+	{{- if .ReadNullAsEmpty}}
+	if out.{{.Model}}.IsNull() {
+		out.{{.Model}} = types.StringValue("")
+	}
+	{{- end}}
 	{{- template "readZeroAsNull" .}}
 	{{- if .Equality}}
 	if prior != nil {

@@ -117,6 +117,10 @@ func TestCreateSendsNamesAndReadsPresetNames(t *testing.T) {
 	if got := setOf(t, ctx, resp.State, "presets"); !slices.Equal(got, []string{"APM"}) {
 		t.Errorf("state presets = %v, want the names of the objects that Get returned", got)
 	}
+	var value types.String
+	if diags := resp.State.GetAttribute(ctx, path.Root("value"), &value); diags.HasError() || value.IsNull() || value.ValueString() != "" {
+		t.Errorf("state value = %v (%v), want \"\": the API left the value out", value, diags)
+	}
 	if len(key_things_service.Updated) != 0 {
 		t.Errorf("create called Update %d times, want none for the default value of enabled", len(key_things_service.Updated))
 	}

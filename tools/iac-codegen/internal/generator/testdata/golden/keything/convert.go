@@ -307,6 +307,9 @@ func flattenKeyThing(ctx context.Context, p path.Path, v *key_things_service.Key
 	out.Enabled = types.BoolPointerValue(&v.Enabled)
 	out.Hashed = types.BoolPointerValue(&v.Hashed)
 	out.Value = types.StringPointerValue(v.Value)
+	if out.Value.IsNull() {
+		out.Value = types.StringValue("")
+	}
 	out.Presets = flattenStringsSet(ctx, presetThingNames(v.KeyPermissions.Presets), diags)
 	out.Permissions = flattenStringsSet(ctx, v.KeyPermissions.Permissions, diags)
 	return out
