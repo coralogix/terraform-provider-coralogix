@@ -169,10 +169,10 @@ jobs:
       - name: Decode GitHub App private key
         id: pkey
         env:
-          RAW_KEY: ${{ secrets.OPENAPI_FACADE_AUTOMATION_APP_PRIVATE_KEY }}
+          RAW_KEY: ${{ secrets.ECO_SYSTEM_AUTOMATION_APP_PRIVATE_KEY }}
         run: |
           if [ -z "$RAW_KEY" ]; then
-            echo "::error::OPENAPI_FACADE_AUTOMATION_APP_ID and OPENAPI_FACADE_AUTOMATION_APP_PRIVATE_KEY must be set to open the pull request."
+            echo "::error::ECO_SYSTEM_AUTOMATION_APP_ID and ECO_SYSTEM_AUTOMATION_APP_PRIVATE_KEY must be set to open the pull request."
             exit 1
           fi
           decoded=$(printf '%b' "$RAW_KEY")
@@ -189,7 +189,7 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ secrets.OPENAPI_FACADE_AUTOMATION_APP_ID }}
+          app-id: ${{ secrets.ECO_SYSTEM_AUTOMATION_APP_ID }}
           private-key: ${{ steps.pkey.outputs.key }}
 
       # Fixed branch: while the pull request is open, a newer SDK commit updates it in place.
