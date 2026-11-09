@@ -31,6 +31,7 @@ DASHBOARD_FAKE_ACC=1 TF_ACC=1 CORALOGIX_API_KEY=placeholder CORALOGIX_DOMAIN=eu2
 ```
 
 A plain `go test` walks only the `markdown` and `reference` bases and skips the other bases. Without `UPDATE_GOLDEN` the tests compare with the files.
+CI runs these tests in the job `Dashboard baseline tests` (`make test-dashboard-baseline`, 5 minute limit). `make test` skips them, because they do not fit its 120 s limit.
 CI does not run the full walk. Run it by hand with `DASHBOARD_WALK=all` before the PR that switches the dashboard to generated code, and read the diff. After the switch, the scenarios and the two smoke bases are enough.
 Run an update twice. The second run must change nothing.
 

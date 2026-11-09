@@ -60,8 +60,15 @@ install: build
 	mkdir -p ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
 	mv ${BINARY} ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
 
+# The dashboard baseline tests plan a very large schema. Their CPU time does not fit the 120 s limit of
+# the provider package, so they run in their own CI job: `make test-dashboard-baseline`.
+DASHBOARD_BASELINE_TESTS=^TestDashboard(Baseline|Walk|Fake|Fidelity)
+
 test:
-	echo $(TEST) | xargs -t -n4 go test ${BUILD_ARGS} $(TESTARGS) -timeout=120s -parallel=4
+	echo $(TEST) | xargs -t -n4 go test ${BUILD_ARGS} $(TESTARGS) -skip '$(DASHBOARD_BASELINE_TESTS)' -timeout=120s -parallel=4
+
+test-dashboard-baseline:
+	go test ${BUILD_ARGS} ./internal/provider -run '$(DASHBOARD_BASELINE_TESTS)' $(TESTARGS) -timeout=5m -parallel=4
 
 # ACC_SKIP_PATTERN is read by the shell, not expanded by Make: environment
 # variables are recursively expanded by Make, so a regex containing `$|`

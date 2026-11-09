@@ -53,6 +53,23 @@ jobs:
       - name: Run unit tests
         run: make test
 
+  test-dashboard-baseline:
+    # The dashboard baseline tests run here, next to the unit tests, with a longer limit.
+    name: Dashboard baseline tests
+    permissions:
+      contents: read
+    env:
+      GO111MODULE: on
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Go
+        uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8
+        with:
+          go-version: 1.26.x
+      - name: Run dashboard baseline tests
+        run: make test-dashboard-baseline
+
   iac-codegen:
     name: IaC generator
     permissions:
