@@ -1,0 +1,697 @@
+# Behavior overrides of coralogix_alert (schema version 3). The target is the released schema in
+# internal/provider/testdata/alert_baseline/schema_current.txt.
+#
+# Not expressible with the keys of the generator, so the generated schema differs from the released one
+# (each needs a generator key or a hook):
+#   - type: skipped. The request needs the arm that is set as the API `type`; requestValueBy cannot read
+#     the allOf-wrapped enum. A BeforeWrite hook sets it until then.
+#   - notification_group.webhooks_settings[].retriggering_period {minutes}: Optional+Computed object in the
+#     released schema; the API has `minutes` on the webhook. The schema shows `minutes` instead.
+#   - metric_threshold and metric_anomaly rules[].condition.of_the_last: one string in the released schema
+#     (enum name or duration); the API has a oneOf of two strings, shown as two attributes.
+#   - webhooks_settings[].integration_id (String in the released schema, Int64 here) and
+#     webhooks_settings[].recipients (a set in the released schema, a list here).
+#   - flow.stages[].timeframe_ms, logs_unique_count.max_unique_count and
+#     max_unique_count_per_group_by_key are Int64 in the released schema, a String here (signed digit
+#     string); tracing_*.tracing_filter.latency_threshold_ms is a Number in the released schema (Int64 here);
+#     logs_anomaly and metric_anomaly percentage_of_deviation are Float64 (Float32 here).
+#   - Hooks: ModifyPlan (group_by, override.priority fallback), ValidateConfig (priority deprecation,
+#     no-data-policy warnings, analytics no_data_policy not empty, group_by checks, group_by_for needs
+#     group_by, analytics rules at most 5), schedule and access_policy conversion.
+resource: AlertDef
+mode: existing
+markdownDescription: "Coralogix Alert. For more info check - https://coralogix.com/docs/getting-started-with-coralogix-alerts/."
+modifyPlan: true
+typeName: alert
+schema:
+  version: 3
+  upgrade:
+    1: {priorSchema: github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_schema.V1, strategy: refresh}
+    2: {priorSchema: github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_schema.V2, strategy: refresh}
+validators:
+  inferred: false
+api:
+  updateIDInBody: true
+  serverSetID: true
+  customMethods: true
+  operations:
+    create: AlertDefsService_CreateAlertDef
+    get: AlertDefsService_GetAlertDef
+    update: AlertDefsService_ReplaceAlertDef
+    delete: AlertDefsService_DeleteAlertDef
+unwrap: [LogsTimeWindow, LogsRatioTimeWindow, LogsNewValueTimeWindow, LogsUniqueValueTimeWindow, TracingTimeWindow, TracingFilter, FlowStagesGroups, Recipients]
+groups:
+  type_definition:
+    fields: [logsImmediate, logsThreshold, logsAnomaly, logsRatioThreshold, logsNewValue, logsUniqueCount, logsTimeRelativeThreshold, metricThreshold, metricAnomaly, tracingImmediate, tracingThreshold, flow, sloThreshold, analyticsImmediate, analyticsThreshold]
+    requireOne: true
+    markdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold, analytics_immediate (preview), analytics_threshold (preview)."
+types:
+  AlertDef:
+    fields:
+      alertDefProperties: {inline: true, required: true}
+      id: {readOnly: true}
+      alertVersionId: {skip: true}
+      createdTime: {skip: true}
+      updatedTime: {skip: true}
+      lastTriggeredTime: {skip: true}
+      status: {skip: true}
+      accessPolicy: {skip: true}
+      activeOn: {skip: true}
+      notificationGroupExcess: {skip: true}
+      name: {required: true, validators: [{lengthAtLeast: 1}]}
+      enabled: {computed: true, default: true, markdownDescription: "Alert enabled status. True by default."}
+      phantomMode: {computed: true, default: false, markdownDescription: "When `true`, the alert is evaluated but stays silent: it sends no notifications and opens no incident of its own. Use it for alerts that serve as building blocks of a flow alert, which then notifies and opens the incident. The Coralogix API rejects a phantom alert whose `notification_group` sets `group_by_keys`, `webhooks_settings`, `destinations` or `router`. Omit `notification_group` or leave it empty. Defaults to `false`."}
+      deleted: {readOnly: true, useStateForUnknown: true}
+      priority: {computed: true, useStateForUnknown: true, validators: [{enum: true}], markdownDescription: "Alert priority. Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"]. This field will be removed in the future in favor of the 'override' property where possible."}
+      groupByKeys: {name: group_by, computed: true}
+      entityLabels: {name: labels, validators: [{sizeAtLeast: 1}], markdownDescription: "Key-value labels on the alert definition. Use them to categorize the alert and to match Notification Center routers and alert-scheduler mute rules. Omit the attribute to clear all labels. An empty map is rejected."}
+      dataSources: {validators: [{sizeAtLeast: 1}], markdownDescription: "Data sources to associate the alert with. The referenced data space and dataset must already exist. Omit the attribute instead of setting an empty list."}
+      incidentsSettings: {computed: true, useStateForUnknown: true}
+      notificationGroup: {computed: true, default: {}}
+      type: {skip: true}
+      sloThreshold: {requireOne: true}
+      analyticsThreshold: {markdownDescription: "Analytics threshold alert type definition (preview) — fires when a numeric column in the DataPrime result violates a per-priority threshold. Per-row fan-out is expressed with `use_rows_as_permutations`."}
+      analyticsImmediate: {markdownDescription: "Analytics immediate alert type definition (preview) — fires as soon as the DataPrime query returns a row. Per-row fan-out is expressed with `use_rows_as_permutations`."}
+    extraAttributes:
+      access_policy:
+        type: string
+        optional: true
+        computed: true
+        useStateForUnknown: true
+        equality: json
+        inUpdate: true
+        markdownDescription: "JSON string representing the access policy for this alert. It defines granular permissions for users and groups. When set, the provider owns the policy and re-applies it whenever the alert is updated, reverting changes made elsewhere; for keys with `alerts:ReadAccessPolicy`, changes made elsewhere also show as drift on refresh. Set to `\"\"` to delete the existing policy without a replacement; a policy added elsewhere is then removed on the next update. When omitted, the policy is left unmanaged and unchanged. While this attribute is set (including `\"\"`), every update of the alert sends the policy and therefore requires the `alerts:UpdateAccessPolicy` permission; remove the line to stop managing it. Reading the policy back requires `alerts:ReadAccessPolicy`: without it the attribute is not refreshed from the backend and drift is not detected."
+      schedule:
+        type: object
+        inUpdate: true
+        markdownDescription: Alert schedule. Will be activated all the time if not specified.
+        attributes:
+          active_on:
+            type: object
+            required: true
+            markdownDescription: The window in which the alert is active.
+            attributes:
+              days_of_week:
+                type: set
+                elementType: string
+                required: true
+                elementValues: [Friday, Monday, Saturday, Sunday, Thursday, Tuesday, Wednesday]
+                markdownDescription: Days of the week.
+              start_time:
+                type: string
+                required: true
+                validators:
+                  - regexMatches: {pattern: "^([0-1][0-9]|2[0-3]):[0-5][0-9]$", message: "Use 24h time formats like 15:04 with a leading zero"}
+                markdownDescription: Start time.
+              end_time:
+                type: string
+                required: true
+                validators:
+                  - regexMatches: {pattern: "^([0-1][0-9]|2[0-3]):[0-5][0-9]$", message: "Use 24h time formats like 15:04 with a leading zero"}
+                markdownDescription: End time.
+              utc_offset:
+                type: string
+                optional: true
+                computed: true
+                default: "+0000"
+                validators:
+                  - regexMatches: {pattern: "^[+-]([01][0-9]|2[0-3])[0-5][0-9]$", message: "Time zone to interpret the start/end times in, using a UTC offset like -0700"}
+                markdownDescription: Time zone.
+  AlertDefCaseSettings:
+    fields:
+      autoResolveMode: {computed: true, default: enabled, validators: [{enumExceptZero: true}]}
+      destinations: {computed: true, default: [], markdownDescription: "Notification Center destinations notified about the cases opened by this alert. The API accepts at most 100 destinations and rejects two destinations with the same `connector_id`, `preset_id` and `condition`."}
+      enrichmentQueries: {computed: true, default: [], markdownDescription: "Queries that enrich the cases opened by this alert. The API accepts at most one query."}
+  AlertDefCaseEnrichmentQuery:
+    fields:
+      type: {computed: true, default: dataprime, validators: [{enumExceptZero: true}]}
+  AlertDefDataSource:
+    fields:
+      dataSet: {required: true, validators: [{lengthAtLeast: 1}]}
+      dataSpace: {required: true, validators: [{lengthAtLeast: 1}]}
+  AlertDefIncidentSettings:
+    groups:
+      retriggering_period:
+        fields: [minutes]
+    fields:
+      notifyOn: {required: true, validators: [{enum: true}]}
+      minutes: {required: true}
+  AlertDefNotificationGroup:
+    fields:
+      destinations: {readEmptyAs: "null", validators: [{sizeAtLeast: 1}]}
+      groupByKeys: {readEmptyAs: "null", validators: [{sizeAtLeast: 1}], markdownDescription: "Splits cases and notifications: one per combination of these keys' values. Omit for a single combined case (an empty list is rejected). Must be a subset of `group_by`, except for metric alerts."}
+      webhooks: {name: webhooks_settings, readEmptyAs: "null", collection: set}
+  NotificationDestination:
+    fields:
+      connectorId: {required: true}
+      presetId: {required: true}
+      notifyOn: {computed: true, default: Triggered Only, validators: [{enum: true}]}
+      resolvedRouteOverrides: {name: resolved_routing_overrides, unwrap: true}
+      triggeredRoutingOverrides: {unwrap: true}
+      retriggeringPeriodMinutes: {markdownDescription: "Defines the minimal time interval, in minutes, between re-notifications for this destination while the alert stays triggered. When omitted, the destination inherits the incident retriggering cadence implicitly."}
+  v3.SourceOverrides:
+    fields:
+      connectorConfigFields: {name: connector_overrides, computed: true, default: null, readEmptyAs: "null"}
+      messageConfigFields: {name: preset_overrides, computed: true, default: null, readEmptyAs: "null"}
+      payloadType: {required: true}
+  v3.ConnectorConfigField:
+    fields:
+      fieldName: {required: true}
+      template: {required: true}
+  v3.MessageConfigField:
+    fields:
+      fieldName: {required: true}
+      template: {required: true}
+  NotificationRouter:
+    fields:
+      id: {computed: true, default: "", markdownDescription: "ID of the notification router. The default `\"\"` uses label-based Global Router matching. Set `\"router_default\"` or another router ID to send notifications to that router. Removing this attribute sets it back to `\"\"`."}
+      notifyOn: {computed: true, default: Triggered Only, validators: [{enum: true}]}
+  AlertDefWebhooksSettings:
+    fields:
+      notifyOn: {computed: true, validators: [{enum: true}], markdownDescription: "Notify on. Valid values: [\"Triggered Only\" \"Triggered and Resolved\"]. When omitted (along with retriggering_period), Advanced Notification is disabled."}
+      integration: {inline: true, required: true}
+  LogsSimpleFilter:
+    fields:
+      labelFilters: {computed: true, default: {}}
+      luceneQuery: {computed: true, default: ""}
+  v3.LogsFilter:
+    fields:
+      simpleFilter: {computed: true, useStateForUnknown: true}
+  LabelFilters:
+    fields:
+      applicationName: {readEmptyAs: "null", collection: set}
+      subsystemName: {readEmptyAs: "null", collection: set}
+      severities: {readEmptyAs: "null", collection: set, validators: [{enum: true}]}
+  LabelFilterType:
+    fields:
+      operation: {computed: true, default: IS, validators: [{enum: true}], markdownDescription: "Operation. Valid values: [\"ENDS_WITH\" \"INCLUDES\" \"IS\" \"STARTS_WITH\"].'IS' by default."}
+      value: {required: true}
+  NoDataPolicy:
+    fields:
+      state: {computed: true, useNonNullStateForUnknown: true, validators: [{enum: true}], markdownDescription: "No-data policy state. Preferred values: [\"OK\" \"ALERTING\" \"KEEP_LAST\" \"NO_DATA\"]. `UNSPECIFIED` is a deprecated protobuf sentinel (not a UI option); omit `no_data_policy` for the same legacy behavior. It remains accepted with a warning and will be rejected in a future provider release."}
+      autoRetireSeconds: {terraformType: Int64, markdownDescription: "The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds. Only honored when `state` is one of `ALERTING`, `KEEP_LAST`, or `NO_DATA`."}
+  v3.UndetectedValuesManagement:
+    fields:
+      autoRetireTimeframe: {computed: true, default: NEVER, validators: [{enum: true}]}
+      triggerUndetectedValues: {computed: true, default: false}
+  AlertDefOverride:
+    fields:
+      priority: {computed: true, validators: [{enum: true}]}
+  DataprimeAlertQuery:
+    fields:
+      query: {required: true, validators: [{lengthAtLeast: 1}, {lengthAtMost: 65535}], markdownDescription: "The DataPrime query to evaluate. Unlike the Coralogix expression languages (DPXL), a DataPrime query takes no `<v1>` version prefix."}
+  AnalyticsImmediateType:
+    fields:
+      dataprimeQuery: {required: true}
+      evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}
+      noDataPolicy: {computed: true, useStateForUnknown: true, markdownDescription: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed."}
+      timeframeMinutes: {required: true, validators: [{atLeast: 1}]}
+  AnalyticsThresholdType:
+    fields:
+      dataprimeQuery: {required: true}
+      evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}
+      noDataPolicy: {computed: true, useStateForUnknown: true, markdownDescription: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed."}
+      operator: {required: true, validators: [{enum: true}]}
+      rules: {required: true, validators: [{sizeAtLeast: 1}], markdownDescription: "The per-priority threshold rules, between 1 and 5. This is an ordered list: the API preserves and reads back the submitted order, and rules carry no server-side ID."}
+      targetColumn: {required: true, validators: [{lengthAtMost: 255}]}
+      timeframeMinutes: {required: true, validators: [{atLeast: 1}]}
+  AnalyticsThresholdRule:
+    fields:
+      condition: {required: true}
+      override: {required: true}
+  AnalyticsThresholdRuleCondition:
+    fields:
+      threshold: {required: true}
+  FlowType:
+    fields:
+      enforceSuppression: {computed: true, default: false}
+      stages: {required: true}
+  FlowStages:
+    fields:
+      flowStagesGroups: {required: true}
+      timeframeMs: {computed: true, default: "0"}
+      timeframeType: {required: true, validators: [{enum: true}]}
+  FlowStagesGroup:
+    fields:
+      alertDefs: {required: true, collection: set}
+      alertsOp: {required: true, validators: [{enum: true}]}
+      nextOp: {required: true, validators: [{enum: true}]}
+  FlowStagesGroupsAlertDefs:
+    fields:
+      id: {required: true}
+      not: {computed: true, default: false}
+  LogsImmediateType:
+    fields:
+      logsFilter: {computed: true, useNonNullStateForUnknown: true}
+      notificationPayloadFilter: {collection: set}
+  LogsThresholdType:
+    fields:
+      evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}
+      logsFilter: {computed: true, useNonNullStateForUnknown: true}
+      noDataPolicy: {computed: true, useNonNullStateForUnknown: true, markdownDescription: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed."}
+      notificationPayloadFilter: {collection: set}
+      rules: {required: true, collection: set, validators: [{sizeAtLeast: 1}]}
+      undetectedValuesManagement: {computed: true, useStateForUnknown: true, default: {auto_retire_timeframe: NEVER, trigger_undetected_values: false}, markdownDescription: "Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type."}
+  LogsThresholdRule:
+    fields:
+      condition: {required: true}
+      override: {required: true}
+  LogsThresholdCondition:
+    fields:
+      conditionType: {required: true, validators: [{enum: true}]}
+      threshold: {required: true}
+      timeWindow: {required: true, validators: [{enum: true}]}
+  LogsAnomalyType:
+    fields:
+      anomalyAlertSettings: {unwrap: true, name: percentage_of_deviation}
+      evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}
+      logsFilter: {computed: true, useNonNullStateForUnknown: true}
+      notificationPayloadFilter: {collection: set}
+      rules: {required: true, collection: set, validators: [{sizeAtLeast: 1}]}
+  LogsAnomalyRule:
+    fields:
+      condition: {required: true}
+  LogsAnomalyCondition:
+    fields:
+      conditionType: {readOnly: true, useStateForUnknown: true}
+      minimumThreshold: {required: true}
+      timeWindow: {required: true, validators: [{enum: true}]}
+  LogsRatioThresholdType:
+    fields:
+      denominator: {computed: true, useNonNullStateForUnknown: true}
+      denominatorAlias: {required: true}
+      evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}
+      groupByFor: {computed: true, default: Both, validators: [{enum: true}]}
+      ignoreInfinity: {computed: true, default: false, markdownDescription: "Whether to ignore infinite ratios when the denominator is zero. False by default."}
+      notificationPayloadFilter: {collection: set}
+      numerator: {computed: true, useNonNullStateForUnknown: true}
+      numeratorAlias: {required: true}
+      rules: {required: true, collection: set, validators: [{sizeAtLeast: 1}]}
+      undetectedValuesManagement: {computed: true, useStateForUnknown: true, default: {auto_retire_timeframe: NEVER, trigger_undetected_values: false}, markdownDescription: "Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type."}
+  LogsRatioRules:
+    fields:
+      condition: {required: true}
+      override: {required: true}
+  LogsRatioCondition:
+    fields:
+      conditionType: {required: true, validators: [{enum: true}]}
+      threshold: {required: true}
+      timeWindow: {required: true, validators: [{enum: true}]}
+  LogsNewValueType:
+    fields:
+      logsFilter: {computed: true, useNonNullStateForUnknown: true}
+      notificationPayloadFilter: {collection: set}
+      rules: {required: true, collection: set, validators: [{sizeAtLeast: 1}]}
+  LogsNewValueRule:
+    fields:
+      condition: {required: true}
+  LogsNewValueCondition:
+    fields:
+      keypathToTrack: {required: true}
+      timeWindow: {required: true, validators: [{enum: true}]}
+  LogsUniqueCountType:
+    fields:
+      logsFilter: {computed: true, useNonNullStateForUnknown: true}
+      notificationPayloadFilter: {collection: set}
+      rules: {required: true, collection: set, validators: [{sizeAtLeast: 1}]}
+      uniqueCountKeypath: {required: true}
+  LogsUniqueCountRule:
+    fields:
+      condition: {required: true}
+  LogsUniqueCountCondition:
+    fields:
+      maxUniqueCount: {required: true}
+      timeWindow: {required: true, validators: [{enum: true}]}
+  LogsTimeRelativeThresholdType:
+    fields:
+      evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}
+      ignoreInfinity: {computed: true, default: false, markdownDescription: "Whether to ignore infinite ratios when the denominator is zero. False by default."}
+      logsFilter: {computed: true, useNonNullStateForUnknown: true}
+      notificationPayloadFilter: {collection: set}
+      rules: {required: true, collection: set, validators: [{sizeAtLeast: 1}]}
+      undetectedValuesManagement: {computed: true, useStateForUnknown: true, default: {auto_retire_timeframe: NEVER, trigger_undetected_values: false}, markdownDescription: "Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type."}
+  LogsTimeRelativeRule:
+    fields:
+      condition: {required: true}
+      override: {required: true}
+  LogsTimeRelativeCondition:
+    fields:
+      comparedTo: {required: true, validators: [{enum: true}]}
+      conditionType: {required: true, validators: [{enum: true}]}
+      threshold: {required: true}
+  MetricFilter:
+    fields:
+      promql: {required: true}
+  MetricAnomalyType:
+    fields:
+      anomalyAlertSettings: {unwrap: true, name: percentage_of_deviation}
+      evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}
+      metricFilter: {required: true}
+      rules: {required: true, collection: set, validators: [{sizeAtLeast: 1}]}
+  MetricAnomalyRule:
+    fields:
+      condition: {required: true}
+  MetricAnomalyCondition:
+    fields:
+      conditionType: {required: true, validators: [{enum: true}]}
+      forOverPct: {required: true}
+      minNonNullValuesPct: {required: true}
+      ofTheLast: {required: true}
+      threshold: {required: true}
+  MetricThresholdType:
+    fields:
+      evaluationDelayMs: {name: custom_evaluation_delay, validators: [{atLeast: 0}], markdownDescription: "Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay."}
+      metricFilter: {required: true}
+      missingValues: {required: true, requireOne: true}
+      noDataPolicy: {computed: true, useNonNullStateForUnknown: true, markdownDescription: "How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed."}
+      rules: {required: true, collection: set, validators: [{sizeAtLeast: 1}]}
+      undetectedValuesManagement: {computed: true, useStateForUnknown: true, default: {auto_retire_timeframe: NEVER, trigger_undetected_values: false}, markdownDescription: "Manage triggering on undetected values. `trigger_undetected_values` requires at least one rule with a `LESS_THAN` condition type."}
+  MetricThresholdRule:
+    fields:
+      condition: {required: true}
+      override: {required: true}
+  MetricThresholdCondition:
+    fields:
+      conditionType: {required: true, validators: [{enum: true}]}
+      forOverPct: {required: true}
+      ofTheLast: {required: true}
+      threshold: {required: true}
+  SloThresholdType:
+    fields:
+      sloDefinition: {required: true}
+      burnRate: {requireOne: true}
+  v3.SloDefinition:
+    fields:
+      sloId: {required: true}
+  BurnRateThreshold:
+    fields:
+      rules: {required: true}
+  ErrorBudgetThreshold:
+    fields:
+      rules: {required: true}
+  SloThresholdRule:
+    fields:
+      condition: {required: true}
+      override: {required: true}
+  SloThresholdCondition:
+    fields:
+      threshold: {required: true}
+  BurnRateTypeDual:
+    fields:
+      timeDuration: {required: true}
+  BurnRateTypeSingle:
+    fields:
+      timeDuration: {required: true}
+  TimeDuration:
+    fields:
+      duration: {required: true, terraformType: Int64}
+      unit: {required: true, validators: [{enum: true}]}
+  TracingImmediateType:
+    fields:
+      notificationPayloadFilter: {collection: set}
+      tracingFilter: {required: true}
+  TracingThresholdType:
+    fields:
+      notificationPayloadFilter: {collection: set}
+      rules: {required: true, collection: set, validators: [{sizeAtLeast: 1}]}
+      tracingFilter: {required: true}
+  TracingSimpleFilter:
+    fields:
+      latencyThresholdMs: {required: true, terraformType: Int64}
+      tracingLabelFilters: {required: true}
+  TracingLabelFilters:
+    fields:
+      applicationName: {collection: set}
+      operationName: {collection: set}
+      serviceName: {collection: set}
+      spanFields: {collection: set}
+      subsystemName: {collection: set}
+  TracingFilterType:
+    fields:
+      operation: {computed: true, default: IS, validators: [{enum: true}], markdownDescription: "Operation. Valid values: [\"ENDS_WITH\" \"INCLUDES\" \"IS\" \"IS_NOT\" \"STARTS_WITH\"]. 'IS' by default."}
+      values: {required: true, collection: set}
+  TracingSpanFieldsFilterType:
+    fields:
+      key: {required: true}
+  TracingThresholdRule:
+    fields:
+      condition: {required: true}
+  TracingThresholdCondition:
+    fields:
+      conditionType: {readOnly: true, useStateForUnknown: true}
+      spanAmount: {required: true}
+      timeWindow: {required: true, validators: [{enum: true}]}
+enums:
+  AlertDefPriority:
+    zero: P5
+    values: [ALERT_DEF_PRIORITY_P4, ALERT_DEF_PRIORITY_P3, ALERT_DEF_PRIORITY_P2, ALERT_DEF_PRIORITY_P1]
+    names:
+      ALERT_DEF_PRIORITY_P4: "P4"
+      ALERT_DEF_PRIORITY_P3: "P3"
+      ALERT_DEF_PRIORITY_P2: "P2"
+      ALERT_DEF_PRIORITY_P1: "P1"
+  NotifyOn:
+    zero: Triggered Only
+    values: [NOTIFY_ON_TRIGGERED_AND_RESOLVED]
+    names:
+      NOTIFY_ON_TRIGGERED_AND_RESOLVED: "Triggered and Resolved"
+  DayOfWeek:
+    zero: Monday
+    values: [DAY_OF_WEEK_TUESDAY, DAY_OF_WEEK_WEDNESDAY, DAY_OF_WEEK_THURSDAY, DAY_OF_WEEK_FRIDAY, DAY_OF_WEEK_SATURDAY, DAY_OF_WEEK_SUNDAY]
+    names:
+      DAY_OF_WEEK_TUESDAY: "Tuesday"
+      DAY_OF_WEEK_WEDNESDAY: "Wednesday"
+      DAY_OF_WEEK_THURSDAY: "Thursday"
+      DAY_OF_WEEK_FRIDAY: "Friday"
+      DAY_OF_WEEK_SATURDAY: "Saturday"
+      DAY_OF_WEEK_SUNDAY: "Sunday"
+  LogFilterOperationType:
+    zero: IS
+    values: [LOG_FILTER_OPERATION_TYPE_INCLUDES, LOG_FILTER_OPERATION_TYPE_ENDS_WITH, LOG_FILTER_OPERATION_TYPE_STARTS_WITH]
+    names:
+      LOG_FILTER_OPERATION_TYPE_INCLUDES: "INCLUDES"
+      LOG_FILTER_OPERATION_TYPE_ENDS_WITH: "ENDS_WITH"
+      LOG_FILTER_OPERATION_TYPE_STARTS_WITH: "STARTS_WITH"
+  LogSeverity:
+    zero: Unspecified
+    values: [LOG_SEVERITY_DEBUG, LOG_SEVERITY_INFO, LOG_SEVERITY_WARNING, LOG_SEVERITY_ERROR, LOG_SEVERITY_CRITICAL]
+    names:
+      LOG_SEVERITY_DEBUG: "Debug"
+      LOG_SEVERITY_INFO: "Info"
+      LOG_SEVERITY_WARNING: "Warning"
+      LOG_SEVERITY_ERROR: "Error"
+      LOG_SEVERITY_CRITICAL: "Critical"
+  LogsTimeWindowValue:
+    zero: 5_MINUTES
+    values: [LOGS_TIME_WINDOW_VALUE_MINUTES_10, LOGS_TIME_WINDOW_VALUE_MINUTES_20, LOGS_TIME_WINDOW_VALUE_MINUTES_15, LOGS_TIME_WINDOW_VALUE_MINUTES_30, LOGS_TIME_WINDOW_VALUE_HOUR_1, LOGS_TIME_WINDOW_VALUE_HOURS_2, LOGS_TIME_WINDOW_VALUE_HOURS_4, LOGS_TIME_WINDOW_VALUE_HOURS_6, LOGS_TIME_WINDOW_VALUE_HOURS_12, LOGS_TIME_WINDOW_VALUE_HOURS_24, LOGS_TIME_WINDOW_VALUE_HOURS_36]
+    names:
+      LOGS_TIME_WINDOW_VALUE_MINUTES_10: "10_MINUTES"
+      LOGS_TIME_WINDOW_VALUE_MINUTES_20: "20_MINUTES"
+      LOGS_TIME_WINDOW_VALUE_MINUTES_15: "15_MINUTES"
+      LOGS_TIME_WINDOW_VALUE_MINUTES_30: "30_MINUTES"
+      LOGS_TIME_WINDOW_VALUE_HOUR_1: "1_HOUR"
+      LOGS_TIME_WINDOW_VALUE_HOURS_2: "2_HOURS"
+      LOGS_TIME_WINDOW_VALUE_HOURS_4: "4_HOURS"
+      LOGS_TIME_WINDOW_VALUE_HOURS_6: "6_HOURS"
+      LOGS_TIME_WINDOW_VALUE_HOURS_12: "12_HOURS"
+      LOGS_TIME_WINDOW_VALUE_HOURS_24: "24_HOURS"
+      LOGS_TIME_WINDOW_VALUE_HOURS_36: "36_HOURS"
+  v3.AutoRetireTimeframe:
+    zero: NEVER
+    values: [AUTO_RETIRE_TIMEFRAME_MINUTES_5, AUTO_RETIRE_TIMEFRAME_MINUTES_10, AUTO_RETIRE_TIMEFRAME_HOUR_1, AUTO_RETIRE_TIMEFRAME_HOURS_2, AUTO_RETIRE_TIMEFRAME_HOURS_6, AUTO_RETIRE_TIMEFRAME_HOURS_12, AUTO_RETIRE_TIMEFRAME_HOURS_24]
+    names:
+      AUTO_RETIRE_TIMEFRAME_MINUTES_5: "5_MINUTES"
+      AUTO_RETIRE_TIMEFRAME_MINUTES_10: "10_MINUTES"
+      AUTO_RETIRE_TIMEFRAME_HOUR_1: "1_HOUR"
+      AUTO_RETIRE_TIMEFRAME_HOURS_2: "2_HOURS"
+      AUTO_RETIRE_TIMEFRAME_HOURS_6: "6_HOURS"
+      AUTO_RETIRE_TIMEFRAME_HOURS_12: "12_HOURS"
+      AUTO_RETIRE_TIMEFRAME_HOURS_24: "24_HOURS"
+  NoDataPolicyState:
+    zero: UNSPECIFIED
+    values: [NO_DATA_POLICY_STATE_OK, NO_DATA_POLICY_STATE_ALERTING, NO_DATA_POLICY_STATE_KEEP_LAST, NO_DATA_POLICY_STATE_NO_DATA]
+    names:
+      NO_DATA_POLICY_STATE_OK: "OK"
+      NO_DATA_POLICY_STATE_ALERTING: "ALERTING"
+      NO_DATA_POLICY_STATE_KEEP_LAST: "KEEP_LAST"
+      NO_DATA_POLICY_STATE_NO_DATA: "NO_DATA"
+  LogsRatioTimeWindowValue:
+    zero: 5_MINUTES
+    values: [LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_10, LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_15, LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_30, LOGS_RATIO_TIME_WINDOW_VALUE_HOUR_1, LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_2, LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_4, LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_6, LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_12, LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_24, LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_36]
+    names:
+      LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_10: "10_MINUTES"
+      LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_15: "15_MINUTES"
+      LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_30: "30_MINUTES"
+      LOGS_RATIO_TIME_WINDOW_VALUE_HOUR_1: "1_HOUR"
+      LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_2: "2_HOURS"
+      LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_4: "4_HOURS"
+      LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_6: "6_HOURS"
+      LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_12: "12_HOURS"
+      LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_24: "24_HOURS"
+      LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_36: "36_HOURS"
+  LogsRatioGroupByFor:
+    zero: Both
+    values: [LOGS_RATIO_GROUP_BY_FOR_NUMERATOR_ONLY, LOGS_RATIO_GROUP_BY_FOR_DENUMERATOR_ONLY]
+    names:
+      LOGS_RATIO_GROUP_BY_FOR_NUMERATOR_ONLY: "Numerator Only"
+      LOGS_RATIO_GROUP_BY_FOR_DENUMERATOR_ONLY: "Denominator Only"
+  LogsNewValueTimeWindowValue:
+    zero: 12_HOURS
+    values: [LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_24, LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_48, LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_72, LOGS_NEW_VALUE_TIME_WINDOW_VALUE_WEEK_1, LOGS_NEW_VALUE_TIME_WINDOW_VALUE_MONTH_1, LOGS_NEW_VALUE_TIME_WINDOW_VALUE_MONTHS_2, LOGS_NEW_VALUE_TIME_WINDOW_VALUE_MONTHS_3]
+    names:
+      LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_24: "24_HOURS"
+      LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_48: "48_HOURS"
+      LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_72: "72_HOURS"
+      LOGS_NEW_VALUE_TIME_WINDOW_VALUE_WEEK_1: "1_WEEK"
+      LOGS_NEW_VALUE_TIME_WINDOW_VALUE_MONTH_1: "1_MONTH"
+      LOGS_NEW_VALUE_TIME_WINDOW_VALUE_MONTHS_2: "2_MONTHS"
+      LOGS_NEW_VALUE_TIME_WINDOW_VALUE_MONTHS_3: "3_MONTHS"
+  LogsUniqueValueTimeWindowValue:
+    zero: 1_MINUTE
+    values: [LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_5, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_10, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_15, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_20, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_30, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_1, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_2, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_4, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_6, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_12, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_24, LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_36]
+    names:
+      LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_5: "5_MINUTES"
+      LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_10: "10_MINUTES"
+      LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_15: "15_MINUTES"
+      LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_20: "20_MINUTES"
+      LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_30: "30_MINUTES"
+      LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_1: "1_HOUR"
+      LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_2: "2_HOURS"
+      LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_4: "4_HOURS"
+      LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_6: "6_HOURS"
+      LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_12: "12_HOURS"
+      LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_24: "24_HOURS"
+      LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_36: "36_HOURS"
+  LogsTimeRelativeComparedTo:
+    zero: Previous Hour
+    values: [LOGS_TIME_RELATIVE_COMPARED_TO_SAME_HOUR_YESTERDAY, LOGS_TIME_RELATIVE_COMPARED_TO_SAME_HOUR_LAST_WEEK, LOGS_TIME_RELATIVE_COMPARED_TO_YESTERDAY, LOGS_TIME_RELATIVE_COMPARED_TO_SAME_DAY_LAST_WEEK, LOGS_TIME_RELATIVE_COMPARED_TO_SAME_DAY_LAST_MONTH]
+    names:
+      LOGS_TIME_RELATIVE_COMPARED_TO_SAME_HOUR_YESTERDAY: "Same Hour Yesterday"
+      LOGS_TIME_RELATIVE_COMPARED_TO_SAME_HOUR_LAST_WEEK: "Same Hour Last Week"
+      LOGS_TIME_RELATIVE_COMPARED_TO_YESTERDAY: "Yesterday"
+      LOGS_TIME_RELATIVE_COMPARED_TO_SAME_DAY_LAST_WEEK: "Same Day Last Week"
+      LOGS_TIME_RELATIVE_COMPARED_TO_SAME_DAY_LAST_MONTH: "Same Day Last Month"
+  MetricTimeWindowValue:
+    zero: 1_MINUTE
+    values: [METRIC_TIME_WINDOW_VALUE_MINUTES_5, METRIC_TIME_WINDOW_VALUE_MINUTES_10, METRIC_TIME_WINDOW_VALUE_MINUTES_15, METRIC_TIME_WINDOW_VALUE_MINUTES_20, METRIC_TIME_WINDOW_VALUE_MINUTES_30, METRIC_TIME_WINDOW_VALUE_HOUR_1, METRIC_TIME_WINDOW_VALUE_HOURS_2, METRIC_TIME_WINDOW_VALUE_HOURS_4, METRIC_TIME_WINDOW_VALUE_HOURS_6, METRIC_TIME_WINDOW_VALUE_HOURS_12, METRIC_TIME_WINDOW_VALUE_HOURS_24, METRIC_TIME_WINDOW_VALUE_HOURS_36]
+    names:
+      METRIC_TIME_WINDOW_VALUE_MINUTES_5: "5_MINUTES"
+      METRIC_TIME_WINDOW_VALUE_MINUTES_10: "10_MINUTES"
+      METRIC_TIME_WINDOW_VALUE_MINUTES_15: "15_MINUTES"
+      METRIC_TIME_WINDOW_VALUE_MINUTES_20: "20_MINUTES"
+      METRIC_TIME_WINDOW_VALUE_MINUTES_30: "30_MINUTES"
+      METRIC_TIME_WINDOW_VALUE_HOUR_1: "1_HOUR"
+      METRIC_TIME_WINDOW_VALUE_HOURS_2: "2_HOURS"
+      METRIC_TIME_WINDOW_VALUE_HOURS_4: "4_HOURS"
+      METRIC_TIME_WINDOW_VALUE_HOURS_6: "6_HOURS"
+      METRIC_TIME_WINDOW_VALUE_HOURS_12: "12_HOURS"
+      METRIC_TIME_WINDOW_VALUE_HOURS_24: "24_HOURS"
+      METRIC_TIME_WINDOW_VALUE_HOURS_36: "36_HOURS"
+  TracingTimeWindowValue:
+    zero: 5_MINUTES
+    values: [TRACING_TIME_WINDOW_VALUE_MINUTES_10, TRACING_TIME_WINDOW_VALUE_MINUTES_15, TRACING_TIME_WINDOW_VALUE_MINUTES_20, TRACING_TIME_WINDOW_VALUE_MINUTES_30, TRACING_TIME_WINDOW_VALUE_HOUR_1, TRACING_TIME_WINDOW_VALUE_HOURS_2, TRACING_TIME_WINDOW_VALUE_HOURS_4, TRACING_TIME_WINDOW_VALUE_HOURS_6, TRACING_TIME_WINDOW_VALUE_HOURS_12, TRACING_TIME_WINDOW_VALUE_HOURS_24, TRACING_TIME_WINDOW_VALUE_HOURS_36]
+    names:
+      TRACING_TIME_WINDOW_VALUE_MINUTES_10: "10_MINUTES"
+      TRACING_TIME_WINDOW_VALUE_MINUTES_15: "15_MINUTES"
+      TRACING_TIME_WINDOW_VALUE_MINUTES_20: "20_MINUTES"
+      TRACING_TIME_WINDOW_VALUE_MINUTES_30: "30_MINUTES"
+      TRACING_TIME_WINDOW_VALUE_HOUR_1: "1_HOUR"
+      TRACING_TIME_WINDOW_VALUE_HOURS_2: "2_HOURS"
+      TRACING_TIME_WINDOW_VALUE_HOURS_4: "4_HOURS"
+      TRACING_TIME_WINDOW_VALUE_HOURS_6: "6_HOURS"
+      TRACING_TIME_WINDOW_VALUE_HOURS_12: "12_HOURS"
+      TRACING_TIME_WINDOW_VALUE_HOURS_24: "24_HOURS"
+      TRACING_TIME_WINDOW_VALUE_HOURS_36: "36_HOURS"
+  TracingFilterOperationType:
+    zero: IS
+    values: [TRACING_FILTER_OPERATION_TYPE_INCLUDES, TRACING_FILTER_OPERATION_TYPE_ENDS_WITH, TRACING_FILTER_OPERATION_TYPE_STARTS_WITH, TRACING_FILTER_OPERATION_TYPE_IS_NOT]
+    names:
+      TRACING_FILTER_OPERATION_TYPE_INCLUDES: "INCLUDES"
+      TRACING_FILTER_OPERATION_TYPE_ENDS_WITH: "ENDS_WITH"
+      TRACING_FILTER_OPERATION_TYPE_STARTS_WITH: "STARTS_WITH"
+      TRACING_FILTER_OPERATION_TYPE_IS_NOT: "IS_NOT"
+  TimeframeType:
+    zero: Unspecified
+    values: [TIMEFRAME_TYPE_UP_TO]
+    names:
+      TIMEFRAME_TYPE_UP_TO: "Up To"
+  NextOp:
+    zero: AND
+    values: [NEXT_OP_OR]
+    names:
+      NEXT_OP_OR: "OR"
+  AlertsOp:
+    zero: AND
+    values: [ALERTS_OP_OR]
+    names:
+      ALERTS_OP_OR: "OR"
+  LogsThresholdConditionType:
+    zero: MORE_THAN
+    values: [LOGS_THRESHOLD_CONDITION_TYPE_LESS_THAN, LOGS_THRESHOLD_CONDITION_TYPE_EQUALS, LOGS_THRESHOLD_CONDITION_TYPE_NOT_EQUALS]
+    names:
+      LOGS_THRESHOLD_CONDITION_TYPE_LESS_THAN: "LESS_THAN"
+      LOGS_THRESHOLD_CONDITION_TYPE_EQUALS: "EQUALS"
+      LOGS_THRESHOLD_CONDITION_TYPE_NOT_EQUALS: "NOT_EQUALS"
+  LogsTimeRelativeConditionType:
+    zero: MORE_THAN
+    values: [LOGS_TIME_RELATIVE_CONDITION_TYPE_LESS_THAN]
+    names:
+      LOGS_TIME_RELATIVE_CONDITION_TYPE_LESS_THAN: "LESS_THAN"
+  LogsRatioConditionType:
+    zero: MORE_THAN
+    values: [LOGS_RATIO_CONDITION_TYPE_LESS_THAN]
+    names:
+      LOGS_RATIO_CONDITION_TYPE_LESS_THAN: "LESS_THAN"
+  MetricThresholdConditionType:
+    zero: MORE_THAN
+    values: [METRIC_THRESHOLD_CONDITION_TYPE_LESS_THAN, METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_EQUALS, METRIC_THRESHOLD_CONDITION_TYPE_LESS_THAN_OR_EQUALS, METRIC_THRESHOLD_CONDITION_TYPE_EQUALS, METRIC_THRESHOLD_CONDITION_TYPE_NOT_EQUALS]
+    names:
+      METRIC_THRESHOLD_CONDITION_TYPE_LESS_THAN: "LESS_THAN"
+      METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_EQUALS: "MORE_THAN_OR_EQUALS"
+      METRIC_THRESHOLD_CONDITION_TYPE_LESS_THAN_OR_EQUALS: "LESS_THAN_OR_EQUALS"
+      METRIC_THRESHOLD_CONDITION_TYPE_EQUALS: "EQUALS"
+      METRIC_THRESHOLD_CONDITION_TYPE_NOT_EQUALS: "NOT_EQUALS"
+  MetricAnomalyConditionType:
+    zero: MORE_THAN
+    values: [METRIC_ANOMALY_CONDITION_TYPE_LESS_THAN_USUAL]
+    names:
+      METRIC_ANOMALY_CONDITION_TYPE_LESS_THAN_USUAL: "LESS_THAN"
+  LogsAnomalyConditionType:
+    zero: MORE_THAN_USUAL
+    values: []
+  AnalyticsThresholdOperator:
+    zero: MORE_THAN
+    values: [ANALYTICS_THRESHOLD_OPERATOR_LESS_THAN, ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_EQUALS, ANALYTICS_THRESHOLD_OPERATOR_LESS_THAN_OR_EQUALS, ANALYTICS_THRESHOLD_OPERATOR_EQUALS, ANALYTICS_THRESHOLD_OPERATOR_NOT_EQUALS]
+    names:
+      ANALYTICS_THRESHOLD_OPERATOR_LESS_THAN: "LESS_THAN"
+      ANALYTICS_THRESHOLD_OPERATOR_MORE_THAN_OR_EQUALS: "MORE_THAN_OR_EQUALS"
+      ANALYTICS_THRESHOLD_OPERATOR_LESS_THAN_OR_EQUALS: "LESS_THAN_OR_EQUALS"
+      ANALYTICS_THRESHOLD_OPERATOR_EQUALS: "EQUALS"
+      ANALYTICS_THRESHOLD_OPERATOR_NOT_EQUALS: "NOT_EQUALS"
+  DurationUnit:
+    zero: UNSPECIFIED
+    values: [DURATION_UNIT_HOURS]
+    names:
+      DURATION_UNIT_HOURS: "HOURS"
+  AlertDefCaseAutoResolveMode:
+    zero: unspecified
+    values: [ALERT_DEF_CASE_AUTO_RESOLVE_MODE_ENABLED, ALERT_DEF_CASE_AUTO_RESOLVE_MODE_DISABLED]
+    names:
+      ALERT_DEF_CASE_AUTO_RESOLVE_MODE_ENABLED: "enabled"
+      ALERT_DEF_CASE_AUTO_RESOLVE_MODE_DISABLED: "disabled"
+  AlertDefCaseEnrichmentQueryType:
+    zero: unspecified
+    values: [ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_DATAPRIME]
+    names:
+      ALERT_DEF_CASE_ENRICHMENT_QUERY_TYPE_DATAPRIME: "dataprime"
+  TracingThresholdConditionType:
+    zero: MORE_THAN
+    values: []
+  AlertDefType:
+    zero: LOGS_IMMEDIATE
+    values: [ALERT_DEF_TYPE_LOGS_THRESHOLD, ALERT_DEF_TYPE_LOGS_ANOMALY, ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD, ALERT_DEF_TYPE_LOGS_NEW_VALUE, ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT, ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD, ALERT_DEF_TYPE_METRIC_THRESHOLD, ALERT_DEF_TYPE_METRIC_ANOMALY, ALERT_DEF_TYPE_TRACING_IMMEDIATE, ALERT_DEF_TYPE_TRACING_THRESHOLD, ALERT_DEF_TYPE_FLOW, ALERT_DEF_TYPE_SLO_THRESHOLD, ALERT_DEF_TYPE_ANALYTICS_IMMEDIATE, ALERT_DEF_TYPE_ANALYTICS_THRESHOLD]
+    trimPrefix: ALERT_DEF_TYPE_
+  AlertDefStatus:
+    zero: unspecified
+    trimPrefix: ALERT_DEF_STATUS_
+    values: [ALERT_DEF_STATUS_ALERTING, ALERT_DEF_STATUS_OK, ALERT_DEF_STATUS_NO_DATA]

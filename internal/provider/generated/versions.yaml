@@ -2,6 +2,7 @@
 # The generator version of each generated package.
 action: v0.1.0-beta.77
 aievaluation: v0.1.0-beta.77
+alert: v0.1.0-beta.77
 alertsscheduler: v0.1.0-beta.77
 archivelogs: v0.1.0-beta.77
 archivemetrics: v0.1.0-beta.77
