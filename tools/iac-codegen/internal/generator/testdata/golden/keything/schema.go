@@ -41,13 +41,18 @@ func Schema() schema.Schema {
 				Computed:            true,
 				MarkdownDescription: "",
 			},
+			"value": schema.StringAttribute{
+				Computed:            true,
+				Sensitive:           true,
+				MarkdownDescription: "",
+			},
 			"presets": schema.SetAttribute{
-				Optional:            true,
+				Required:            true,
 				ElementType:         types.StringType,
 				MarkdownDescription: "",
 			},
 			"permissions": schema.SetAttribute{
-				Optional:            true,
+				Required:            true,
 				ElementType:         types.StringType,
 				MarkdownDescription: "",
 			},

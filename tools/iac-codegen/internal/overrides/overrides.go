@@ -449,6 +449,9 @@ type Field struct {
 	Name string `yaml:"name"`
 	// Deprecation is the released deprecation message.
 	Deprecation string `yaml:"deprecation"`
+	// Sensitive marks the Terraform attribute sensitive, as the released attribute was: Terraform
+	// hides its value in plans and output. It is a Terraform fact that the contract does not state.
+	Sensitive bool `yaml:"sensitive"`
 	// Computed: true makes an optional field Optional+Computed. false makes it Optional.
 	Computed *bool `yaml:"computed"`
 	// UseStateForUnknown keeps the value in the state when the config has none.
@@ -980,6 +983,7 @@ func (l Field) keys() []string {
 	add(l.Collection != "", "collection")
 	add(l.Name != "", "name")
 	add(l.Deprecation != "", "deprecation")
+	add(l.Sensitive, "sensitive")
 	add(l.Computed != nil, "computed")
 	add(l.UseStateForUnknown, "useStateForUnknown")
 	add(l.UseNonNullStateForUnknown, "useNonNullStateForUnknown")
@@ -1125,7 +1129,7 @@ func (l Field) empty() bool {
 }
 
 func (l Field) emptyMode() bool {
-	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && !l.SchemaOptional && l.Name == "" && len(l.ValueNames) == 0 && !l.AsBool && l.TerraformType == "" && l.StoredAs == "" && !l.DefaultArm && l.Deprecation == "" &&
+	return !l.Skip && !l.ReadOnly && l.Description == nil && l.MarkdownDescription == nil && !l.Required && !l.Optional && !l.SchemaOptional && l.Name == "" && len(l.ValueNames) == 0 && !l.AsBool && l.TerraformType == "" && l.StoredAs == "" && !l.DefaultArm && l.Deprecation == "" && !l.Sensitive &&
 		l.Computed == nil && !l.UseStateForUnknown && !l.UseNonNullStateForUnknown && !l.RequiresReplace && !l.Inline && !l.RequestPosition
 }
 

@@ -37,6 +37,7 @@ type KeyThing struct {
 	Name           string
 	Enabled        bool
 	Hashed         bool
+	Value          *string
 	KeyPermissions KeyThingKeyPermissions
 }
 
