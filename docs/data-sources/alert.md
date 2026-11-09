@@ -22,7 +22,7 @@ Coralogix Alert. For more info check - https://coralogix.com/docs/getting-starte
 ### Read-Only
 
 - `access_policy` (String) JSON string representing the access policy for this alert. It defines granular permissions for users and groups. When set, the provider owns the policy and re-applies it whenever the alert is updated, reverting changes made elsewhere; for keys with `alerts:ReadAccessPolicy`, changes made elsewhere also show as drift on refresh. Set to `""` to delete the existing policy without a replacement; a policy added elsewhere is then removed on the next update. When omitted, the policy is left unmanaged and unchanged. While this attribute is set (including `""`), every update of the alert sends the policy and therefore requires the `alerts:UpdateAccessPolicy` permission; remove the line to stop managing it. Reading the policy back requires `alerts:ReadAccessPolicy`: without it the attribute is not refreshed from the backend and drift is not detected.
-- `case_settings` (Attributes) Settings controlling how the alert interacts with cases. When omitted on create, defaults apply (case auto-resolve enabled, no enrichment queries, no case destinations). Replace is a full overwrite: omitting this field on replace resets any previously configured case settings to those defaults. In read responses, this field is absent when no case settings were configured, meaning those same defaults are in effect. (see [below for nested schema](#nestedatt--case_settings))
+- `case_settings` (Attributes) Case settings for the alert (preview): whether cases auto-resolve, a query that enriches the case, and where case notifications are sent. Case destinations are independent of `notification_group.destinations`; both are delivered. Removing this block clears the case settings. (see [below for nested schema](#nestedatt--case_settings))
 - `data_sources` (Attributes List) Data sources to associate the alert with. The referenced data space and dataset must already exist. Omit the attribute instead of setting an empty list. (see [below for nested schema](#nestedatt--data_sources))
 - `deleted` (Boolean) Whether the alert has been marked as deleted
 - `description` (String) A detailed description of what the alert monitors and when it triggers
@@ -42,7 +42,7 @@ Coralogix Alert. For more info check - https://coralogix.com/docs/getting-starte
 
 Read-Only:
 
-- `auto_resolve_mode` (String) Controls whether the associated case is automatically resolved when the alert resolves. Defaults to enabled when unspecified.
+- `auto_resolve_mode` (String) Controls whether the associated case is automatically resolved when the alert resolves. Defaults to enabled when unspecified. Valid values: ["disabled" "enabled"].
 - `destinations` (Attributes List) Notification Center destinations notified about the cases opened by this alert. The API accepts at most 100 destinations and rejects two destinations with the same `connector_id`, `preset_id` and `condition`. (see [below for nested schema](#nestedatt--case_settings--destinations))
 - `enrichment_queries` (Attributes List) Queries that enrich the cases opened by this alert. The API accepts at most one query. (see [below for nested schema](#nestedatt--case_settings--enrichment_queries))
 
@@ -62,7 +62,7 @@ Read-Only:
 Read-Only:
 
 - `query` (String) The enrichment query string
-- `type` (String) The query language of the enrichment query. Defaults to DataPrime when omitted.
+- `type` (String) The query language of the enrichment query. Defaults to DataPrime when omitted. Valid values: ["dataprime"].
 
 
 
@@ -80,7 +80,7 @@ Read-Only:
 
 Read-Only:
 
-- `notify_on` (String) The condition to notify about the alert
+- `notify_on` (String) The condition to notify about the alert Valid values: ["Triggered Only" "Triggered and Resolved"].
 - `retriggering_period` (Attributes) (see [below for nested schema](#nestedatt--incidents_settings--retriggering_period))
 
 <a id="nestedatt--incidents_settings--retriggering_period"></a>
@@ -108,7 +108,7 @@ Read-Only:
 Read-Only:
 
 - `connector_id` (String) The connector ID used to send notifications
-- `notify_on` (String) The condition under which the notification should be sent
+- `notify_on` (String) The condition under which the notification should be sent Valid values: ["Triggered Only" "Triggered and Resolved"].
 - `preset_id` (String) Optional preset ID for the notification destination
 - `resolved_routing_overrides` (Attributes) Optional routing configuration to override from the connector/preset for resolved notifications. (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides))
 - `retriggering_period_minutes` (Number) Defines the minimal time interval, in minutes, between re-notifications for this destination while the alert stays triggered. When omitted, the destination inherits the incident retriggering cadence implicitly.
@@ -177,7 +177,7 @@ Read-Only:
 Read-Only:
 
 - `id` (String) ID of the notification router. The default `""` uses label-based Global Router matching. Set `"router_default"` or another router ID to send notifications to that router. Removing this attribute sets it back to `""`.
-- `notify_on` (String) The condition under which the notification should be sent
+- `notify_on` (String) The condition under which the notification should be sent Valid values: ["Triggered Only" "Triggered and Resolved"].
 
 
 <a id="nestedatt--notification_group--webhooks_settings"></a>
@@ -277,7 +277,7 @@ Read-Only:
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `dataprime_query` (Attributes) The DataPrime query to evaluate (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--dataprime_query))
 - `no_data_policy` (Attributes) How to treat, and what state to give, an alert with no data. Once set, the policy persists; the Coralogix API does not clear it when the block is removed. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--no_data_policy))
-- `operator` (String) The comparison operator applied to all threshold rules
+- `operator` (String) The comparison operator applied to all threshold rules Valid values: ["EQUALS" "LESS_THAN" "LESS_THAN_OR_EQUALS" "MORE_THAN" "MORE_THAN_OR_EQUALS" "NOT_EQUALS"].
 - `rules` (Attributes List) The per-priority threshold rules, between 1 and 5. This is an ordered list: the API preserves and reads back the submitted order, and rules carry no server-side ID. (see [below for nested schema](#nestedatt--type_definition--analytics_threshold--rules))
 - `target_column` (String) The name of the numeric result column to compare
 - `timeframe_minutes` (Number) The evaluation window duration in minutes
@@ -321,7 +321,7 @@ Read-Only:
 
 Read-Only:
 
-- `priority` (String) The priority of the alert definition
+- `priority` (String) The priority of the alert definition Valid values: ["P1" "P2" "P3" "P4" "P5"].
 
 
 
@@ -341,7 +341,7 @@ Read-Only:
 
 - `flow_stages_groups` (Attributes List) The flow stages groups. (see [below for nested schema](#nestedatt--type_definition--flow--stages--flow_stages_groups))
 - `timeframe_ms` (Number) The timeframe ms.
-- `timeframe_type` (String) The type of timeframe for the flow alert.
+- `timeframe_type` (String) The type of timeframe for the flow alert. Valid values: ["Unspecified" "Up To"].
 
 <a id="nestedatt--type_definition--flow--stages--flow_stages_groups"></a>
 ### Nested Schema for `type_definition.flow.stages.flow_stages_groups`
@@ -349,8 +349,8 @@ Read-Only:
 Read-Only:
 
 - `alert_defs` (Attributes Set) The alert definitions for the flow stage group. (see [below for nested schema](#nestedatt--type_definition--flow--stages--flow_stages_groups--alert_defs))
-- `alerts_op` (String) The logical operation to apply to the alerts in the group.
-- `next_op` (String) The logical operation to apply to the next stage.
+- `alerts_op` (String) The logical operation to apply to the alerts in the group. Valid values: ["AND" "OR"].
+- `next_op` (String) The logical operation to apply to the next stage. Valid values: ["AND" "OR"].
 
 <a id="nestedatt--type_definition--flow--stages--flow_stages_groups--alert_defs"></a>
 ### Nested Schema for `type_definition.flow.stages.flow_stages_groups.alert_defs`
@@ -396,7 +396,7 @@ Read-Only:
 Read-Only:
 
 - `application_name` (Attributes Set) The application name. (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters--application_name))
-- `severities` (Set of String) The severities.
+- `severities` (Set of String) The severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
 - `subsystem_name` (Attributes Set) The subsystem name. (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters--application_name"></a>
@@ -434,7 +434,7 @@ Read-Only:
 
 - `condition_type` (String) The type of condition for the alert
 - `minimum_threshold` (Number) The threshold value for the alert condition
-- `time_window` (String) The time window for the alert condition
+- `time_window` (String) The time window for the alert condition Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 
 
 
@@ -468,7 +468,7 @@ Read-Only:
 Read-Only:
 
 - `application_name` (Attributes Set) The application name. (see [below for nested schema](#nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters--application_name))
-- `severities` (Set of String) The severities.
+- `severities` (Set of String) The severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
 - `subsystem_name` (Attributes Set) The subsystem name. (see [below for nested schema](#nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters--application_name"></a>
@@ -523,7 +523,7 @@ Read-Only:
 Read-Only:
 
 - `application_name` (Attributes Set) The application name. (see [below for nested schema](#nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters--application_name))
-- `severities` (Set of String) The severities.
+- `severities` (Set of String) The severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
 - `subsystem_name` (Attributes Set) The subsystem name. (see [below for nested schema](#nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters--application_name"></a>
@@ -560,7 +560,7 @@ Read-Only:
 Read-Only:
 
 - `keypath_to_track` (String) The keypath to track for new values
-- `time_window` (String) The time window for detecting new values
+- `time_window` (String) The time window for detecting new values Valid values: ["12_HOURS" "1_MONTH" "1_WEEK" "24_HOURS" "2_MONTHS" "3_MONTHS" "48_HOURS" "72_HOURS"].
 
 
 
@@ -573,7 +573,7 @@ Read-Only:
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. When omitted, the provider does not send a custom evaluation delay.
 - `denominator` (Attributes) The filter to match log entries for the denominator of the ratio (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator))
 - `denominator_alias` (String) The alias for the denominator filter, used for display purposes
-- `group_by_for` (String) The group by settings for the numerator and denominator filters
+- `group_by_for` (String) The group by settings for the numerator and denominator filters Valid values: ["Both" "Denominator Only" "Numerator Only"].
 - `ignore_infinity` (Boolean) Whether to ignore infinite ratios when the denominator is zero. False by default.
 - `notification_payload_filter` (Set of String) The notification payload filter.
 - `numerator` (Attributes) The filter to match log entries for the numerator of the ratio (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator))
@@ -602,7 +602,7 @@ Read-Only:
 Read-Only:
 
 - `application_name` (Attributes Set) The application name. (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters--application_name))
-- `severities` (Set of String) The severities.
+- `severities` (Set of String) The severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
 - `subsystem_name` (Attributes Set) The subsystem name. (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters--application_name"></a>
@@ -647,7 +647,7 @@ Read-Only:
 Read-Only:
 
 - `application_name` (Attributes Set) The application name. (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters--application_name))
-- `severities` (Set of String) The severities.
+- `severities` (Set of String) The severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
 - `subsystem_name` (Attributes Set) The subsystem name. (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters--application_name"></a>
@@ -684,9 +684,9 @@ Read-Only:
 
 Read-Only:
 
-- `condition_type` (String) The type of condition for the alert
+- `condition_type` (String) The type of condition for the alert Valid values: ["LESS_THAN" "MORE_THAN"].
 - `threshold` (Number) The threshold value for the alert condition
-- `time_window` (String) The time window for the alert condition
+- `time_window` (String) The time window for the alert condition Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--rules--override"></a>
@@ -694,7 +694,7 @@ Read-Only:
 
 Read-Only:
 
-- `priority` (String) The priority of the alert definition
+- `priority` (String) The priority of the alert definition Valid values: ["P1" "P2" "P3" "P4" "P5"].
 
 
 
@@ -703,7 +703,7 @@ Read-Only:
 
 Read-Only:
 
-- `auto_retire_timeframe` (String) The timeframe for auto-retiring the alert when undetected values are detected
+- `auto_retire_timeframe` (String) The timeframe for auto-retiring the alert when undetected values are detected Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"].
 - `trigger_undetected_values` (Boolean) Should trigger the alert when undetected values are detected
 
 
@@ -741,7 +741,7 @@ Read-Only:
 Read-Only:
 
 - `application_name` (Attributes Set) The application name. (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters--application_name))
-- `severities` (Set of String) The severities.
+- `severities` (Set of String) The severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
 - `subsystem_name` (Attributes Set) The subsystem name. (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters--application_name"></a>
@@ -787,9 +787,9 @@ Read-Only:
 
 Read-Only:
 
-- `condition_type` (String) The type of condition for the alert
+- `condition_type` (String) The type of condition for the alert Valid values: ["EQUALS" "LESS_THAN" "MORE_THAN" "NOT_EQUALS"].
 - `threshold` (Number) The threshold value for the alert condition
-- `time_window` (String) The time window for the alert condition
+- `time_window` (String) The time window for the alert condition Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 
 
 <a id="nestedatt--type_definition--logs_threshold--rules--override"></a>
@@ -797,7 +797,7 @@ Read-Only:
 
 Read-Only:
 
-- `priority` (String) The priority of the alert definition
+- `priority` (String) The priority of the alert definition Valid values: ["P1" "P2" "P3" "P4" "P5"].
 
 
 
@@ -806,7 +806,7 @@ Read-Only:
 
 Read-Only:
 
-- `auto_retire_timeframe` (String) The timeframe for auto-retiring the alert when undetected values are detected
+- `auto_retire_timeframe` (String) The timeframe for auto-retiring the alert when undetected values are detected Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"].
 - `trigger_undetected_values` (Boolean) Should trigger the alert when undetected values are detected
 
 
@@ -844,7 +844,7 @@ Read-Only:
 Read-Only:
 
 - `application_name` (Attributes Set) The application name. (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters--application_name))
-- `severities` (Set of String) The severities.
+- `severities` (Set of String) The severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
 - `subsystem_name` (Attributes Set) The subsystem name. (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters--application_name"></a>
@@ -881,8 +881,8 @@ Read-Only:
 
 Read-Only:
 
-- `compared_to` (String) The time frame to compare the current value against
-- `condition_type` (String) The type of condition for the alert
+- `compared_to` (String) The time frame to compare the current value against Valid values: ["Previous Hour" "Same Day Last Month" "Same Day Last Week" "Same Hour Last Week" "Same Hour Yesterday" "Yesterday"].
+- `condition_type` (String) The type of condition for the alert Valid values: ["LESS_THAN" "MORE_THAN"].
 - `threshold` (Number) The threshold value for the alert condition.
 
 
@@ -891,7 +891,7 @@ Read-Only:
 
 Read-Only:
 
-- `priority` (String) The priority of the alert definition
+- `priority` (String) The priority of the alert definition Valid values: ["P1" "P2" "P3" "P4" "P5"].
 
 
 
@@ -900,7 +900,7 @@ Read-Only:
 
 Read-Only:
 
-- `auto_retire_timeframe` (String) The timeframe for auto-retiring the alert when undetected values are detected
+- `auto_retire_timeframe` (String) The timeframe for auto-retiring the alert when undetected values are detected Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"].
 - `trigger_undetected_values` (Boolean) Should trigger the alert when undetected values are detected
 
 
@@ -937,7 +937,7 @@ Read-Only:
 Read-Only:
 
 - `application_name` (Attributes Set) The application name. (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters--application_name))
-- `severities` (Set of String) The severities.
+- `severities` (Set of String) The severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
 - `subsystem_name` (Attributes Set) The subsystem name. (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters--subsystem_name))
 
 <a id="nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters--application_name"></a>
@@ -974,7 +974,7 @@ Read-Only:
 Read-Only:
 
 - `max_unique_count` (Number) The maximum unique count
-- `time_window` (String) The time window for the unique count alert.
+- `time_window` (String) The time window for the unique count alert. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "1_MINUTE" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 
 
 
@@ -1009,7 +1009,7 @@ Read-Only:
 
 Read-Only:
 
-- `condition_type` (String) The type of condition for the alert.
+- `condition_type` (String) The type of condition for the alert. Valid values: ["LESS_THAN" "MORE_THAN"].
 - `for_over_pct` (Number) The percentage of the metric that must exceed the threshold to trigger the alert
 - `min_non_null_values_pct` (Number) The percentage of non-null values required to trigger the alert
 - `of_the_last` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "1_MINUTE" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
@@ -1069,7 +1069,7 @@ Read-Only:
 
 Read-Only:
 
-- `condition_type` (String) The type of the alert condition
+- `condition_type` (String) The type of the alert condition Valid values: ["EQUALS" "LESS_THAN" "LESS_THAN_OR_EQUALS" "MORE_THAN" "MORE_THAN_OR_EQUALS" "NOT_EQUALS"].
 - `for_over_pct` (Number) The percentage of values that must exceed the threshold to trigger the alert
 - `of_the_last` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "1_MINUTE" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 Or having valid time duration - Supported units: y, w, d, h, m, s, ms.
@@ -1082,7 +1082,7 @@ Examples: `30s`, `1m`, `1h20m15s`, `15d`
 
 Read-Only:
 
-- `priority` (String) The priority of the alert definition
+- `priority` (String) The priority of the alert definition Valid values: ["P1" "P2" "P3" "P4" "P5"].
 
 
 
@@ -1091,7 +1091,7 @@ Read-Only:
 
 Read-Only:
 
-- `auto_retire_timeframe` (String) The timeframe for auto-retiring the alert when undetected values are detected
+- `auto_retire_timeframe` (String) The timeframe for auto-retiring the alert when undetected values are detected Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"].
 - `trigger_undetected_values` (Boolean) Should trigger the alert when undetected values are detected
 
 
@@ -1127,7 +1127,7 @@ Read-Only:
 Read-Only:
 
 - `duration` (Number) The duration value
-- `unit` (String) The unit of the duration
+- `unit` (String) The unit of the duration Valid values: ["HOURS" "UNSPECIFIED"].
 
 
 
@@ -1152,7 +1152,7 @@ Read-Only:
 
 Read-Only:
 
-- `priority` (String) The priority of the alert definition
+- `priority` (String) The priority of the alert definition Valid values: ["P1" "P2" "P3" "P4" "P5"].
 
 
 
@@ -1169,7 +1169,7 @@ Read-Only:
 Read-Only:
 
 - `duration` (Number) The duration value
-- `unit` (String) The unit of the duration
+- `unit` (String) The unit of the duration Valid values: ["HOURS" "UNSPECIFIED"].
 
 
 
@@ -1202,7 +1202,7 @@ Read-Only:
 
 Read-Only:
 
-- `priority` (String) The priority of the alert definition
+- `priority` (String) The priority of the alert definition Valid values: ["P1" "P2" "P3" "P4" "P5"].
 
 
 
@@ -1323,7 +1323,7 @@ Read-Only:
 
 - `condition_type` (String) The type of condition for the alert
 - `span_amount` (Number) The threshold value for the alert condition
-- `time_window` (String) The time window for the alert condition
+- `time_window` (String) The time window for the alert condition Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 
 
 

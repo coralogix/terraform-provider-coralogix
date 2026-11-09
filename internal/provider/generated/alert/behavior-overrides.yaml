@@ -17,6 +17,7 @@ resource: AlertDef
 mode: existing
 markdownDescription: "Coralogix Alert. For more info check - https://coralogix.com/docs/getting-started-with-coralogix-alerts/."
 modifyPlan: true
+enumValuesInDescription: true
 afterFlatten: true
 getHooks: true
 dataSource: {}
@@ -53,6 +54,7 @@ types:
       updatedTime: {skip: true}
       lastTriggeredTime: {skip: true}
       status: {skip: true}
+      caseSettings: {markdownDescription: "Case settings for the alert (preview): whether cases auto-resolve, a query that enriches the case, and where case notifications are sent. Case destinations are independent of `notification_group.destinations`; both are delivered. Removing this block clears the case settings."}
       accessPolicy: {skip: true}
       activeOn: {skip: true}
       notificationGroupExcess: {skip: true}

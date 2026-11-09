@@ -5,10 +5,10 @@ access_policy  StringAttribute optional computed
     plan modifier: alert.equivalentDocument Keeps the state value when the configured document is equal to it.
     plan modifier: stringplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 case_settings  SingleNestedAttribute optional
-    markdown: "Settings controlling how the alert interacts with cases. When omitted on create, defaults apply (case auto-resolve enabled, no enrichment queries, no case destinations). Replace is a full overwrite: omitting this field on replace resets any previously configured case settings to those defaults. In read responses, this field is absent when no case settings were configured, meaning those same defaults are in effect."
+    markdown: "Case settings for the alert (preview): whether cases auto-resolve, a query that enriches the case, and where case notifications are sent. Case destinations are independent of `notification_group.destinations`; both are delivered. Removing this block clears the case settings."
 case_settings.auto_resolve_mode  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to enabled
-    markdown: "Controls whether the associated case is automatically resolved when the alert resolves. Defaults to enabled when unspecified."
+    markdown: "Controls whether the associated case is automatically resolved when the alert resolves. Defaults to enabled when unspecified. Valid values: [\"disabled\" \"enabled\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["disabled" "enabled"]
 case_settings.destinations  ListNestedAttribute optional computed
     default: listdefault.staticValueDefault value defaults to []
@@ -28,7 +28,7 @@ case_settings.enrichment_queries[].query  StringAttribute required
     markdown: "The enrichment query string"
 case_settings.enrichment_queries[].type  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to dataprime
-    markdown: "The query language of the enrichment query. Defaults to DataPrime when omitted."
+    markdown: "The query language of the enrichment query. Defaults to DataPrime when omitted. Valid values: [\"dataprime\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["dataprime"]
 data_sources  ListNestedAttribute optional
     markdown: "Data sources to associate the alert with. The referenced data space and dataset must already exist. Omit the attribute instead of setting an empty list."
@@ -57,7 +57,7 @@ incidents_settings  SingleNestedAttribute optional computed
     markdown: "Incident creation and management settings"
     plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 incidents_settings.notify_on  StringAttribute required
-    markdown: "The condition to notify about the alert"
+    markdown: "The condition to notify about the alert Valid values: [\"Triggered Only\" \"Triggered and Resolved\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["Triggered "Triggered Only" Resolved" and]
 incidents_settings.retriggering_period  SingleNestedAttribute required
 incidents_settings.retriggering_period.minutes  Int64Attribute required
@@ -79,7 +79,7 @@ notification_group.destinations[].connector_id  StringAttribute required
     markdown: "The connector ID used to send notifications"
 notification_group.destinations[].notify_on  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to Triggered Only
-    markdown: "The condition under which the notification should be sent"
+    markdown: "The condition under which the notification should be sent Valid values: [\"Triggered Only\" \"Triggered and Resolved\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["Triggered "Triggered Only" Resolved" and]
 notification_group.destinations[].preset_id  StringAttribute required
     markdown: "Optional preset ID for the notification destination"
@@ -135,7 +135,7 @@ notification_group.router.id  StringAttribute optional computed
     markdown: "ID of the notification router. The default `\"\"` uses label-based Global Router matching. Set `\"router_default\"` or another router ID to send notifications to that router. Removing this attribute sets it back to `\"\"`."
 notification_group.router.notify_on  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to Triggered Only
-    markdown: "The condition under which the notification should be sent"
+    markdown: "The condition under which the notification should be sent Valid values: [\"Triggered Only\" \"Triggered and Resolved\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["Triggered "Triggered Only" Resolved" and]
 notification_group.webhooks_settings  SetNestedAttribute optional
     markdown: "The settings for webhooks associated with the alert definition"
@@ -229,7 +229,7 @@ type_definition.analytics_threshold.no_data_policy.state  StringAttribute option
     plan modifier: stringplanmodifier.useNonNullStateForUnknown Once set to a non-null value, the value of this attribute in state will not change.
     validator: stringvalidator.oneOfValidator value must be one of: ["ALERTING" "KEEP_LAST" "NO_DATA" "OK" "UNSPECIFIED"]
 type_definition.analytics_threshold.operator  StringAttribute required
-    markdown: "The comparison operator applied to all threshold rules"
+    markdown: "The comparison operator applied to all threshold rules Valid values: [\"EQUALS\" \"LESS_THAN\" \"LESS_THAN_OR_EQUALS\" \"MORE_THAN\" \"MORE_THAN_OR_EQUALS\" \"NOT_EQUALS\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["EQUALS" "LESS_THAN" "LESS_THAN_OR_EQUALS" "MORE_THAN" "MORE_THAN_OR_EQUALS" "NOT_EQUALS"]
 type_definition.analytics_threshold.rules  ListNestedAttribute required
     markdown: "The per-priority threshold rules, between 1 and 5. This is an ordered list: the API preserves and reads back the submitted order, and rules carry no server-side ID."
@@ -242,7 +242,7 @@ type_definition.analytics_threshold.rules[].condition.threshold  Float64Attribut
 type_definition.analytics_threshold.rules[].override  SingleNestedAttribute required
     markdown: "The override settings for the alert"
 type_definition.analytics_threshold.rules[].override.priority  StringAttribute optional computed
-    markdown: "The priority of the alert definition"
+    markdown: "The priority of the alert definition Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["P1" "P2" "P3" "P4" "P5"]
 type_definition.analytics_threshold.target_column  StringAttribute required
     markdown: "The name of the numeric result column to compare"
@@ -273,16 +273,16 @@ type_definition.flow.stages[].flow_stages_groups[].alert_defs[].not  BoolAttribu
     default: booldefault.staticBoolDefault value defaults to false
     markdown: "Whether to negate the alert definition or not."
 type_definition.flow.stages[].flow_stages_groups[].alerts_op  StringAttribute required
-    markdown: "The logical operation to apply to the alerts in the group."
+    markdown: "The logical operation to apply to the alerts in the group. Valid values: [\"AND\" \"OR\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["AND" "OR"]
 type_definition.flow.stages[].flow_stages_groups[].next_op  StringAttribute required
-    markdown: "The logical operation to apply to the next stage."
+    markdown: "The logical operation to apply to the next stage. Valid values: [\"AND\" \"OR\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["AND" "OR"]
 type_definition.flow.stages[].timeframe_ms  Int64Attribute optional computed
     default: int64default.staticInt64Default value defaults to 0
     markdown: "The timeframe ms."
 type_definition.flow.stages[].timeframe_type  StringAttribute required
-    markdown: "The type of timeframe for the flow alert."
+    markdown: "The type of timeframe for the flow alert. Valid values: [\"Unspecified\" \"Up To\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["Unspecified" "Up To"]
 type_definition.logs_anomaly  SingleNestedAttribute optional
     markdown: "Configuration for log-based anomaly detection alerts"
@@ -309,7 +309,7 @@ type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.application
 type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.application_name[].value  StringAttribute required
     markdown: "The value of the label to filter by"
 type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.severities  SetAttribute optional elem=basetypes.StringType
-    markdown: "The severities."
+    markdown: "The severities. Valid values: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"]."
     validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: value must be one of: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"]
 type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.subsystem_name  SetNestedAttribute optional
     markdown: "The subsystem name."
@@ -340,7 +340,7 @@ type_definition.logs_anomaly.rules[].condition.condition_type  StringAttribute c
 type_definition.logs_anomaly.rules[].condition.minimum_threshold  Float64Attribute required
     markdown: "The threshold value for the alert condition"
 type_definition.logs_anomaly.rules[].condition.time_window  StringAttribute required
-    markdown: "The time window for the alert condition"
+    markdown: "The time window for the alert condition Valid values: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"]
 type_definition.logs_immediate  SingleNestedAttribute optional
     markdown: "Configuration for immediate log-based alerts"
@@ -364,7 +364,7 @@ type_definition.logs_immediate.logs_filter.simple_filter.label_filters.applicati
 type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name[].value  StringAttribute required
     markdown: "The value of the label to filter by"
 type_definition.logs_immediate.logs_filter.simple_filter.label_filters.severities  SetAttribute optional elem=basetypes.StringType
-    markdown: "The severities."
+    markdown: "The severities. Valid values: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"]."
     validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: value must be one of: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"]
 type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name  SetNestedAttribute optional
     markdown: "The subsystem name."
@@ -402,7 +402,7 @@ type_definition.logs_new_value.logs_filter.simple_filter.label_filters.applicati
 type_definition.logs_new_value.logs_filter.simple_filter.label_filters.application_name[].value  StringAttribute required
     markdown: "The value of the label to filter by"
 type_definition.logs_new_value.logs_filter.simple_filter.label_filters.severities  SetAttribute optional elem=basetypes.StringType
-    markdown: "The severities."
+    markdown: "The severities. Valid values: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"]."
     validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: value must be one of: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"]
 type_definition.logs_new_value.logs_filter.simple_filter.label_filters.subsystem_name  SetNestedAttribute optional
     markdown: "The subsystem name."
@@ -427,7 +427,7 @@ type_definition.logs_new_value.rules[].condition  SingleNestedAttribute required
 type_definition.logs_new_value.rules[].condition.keypath_to_track  StringAttribute required
     markdown: "The keypath to track for new values"
 type_definition.logs_new_value.rules[].condition.time_window  StringAttribute required
-    markdown: "The time window for detecting new values"
+    markdown: "The time window for detecting new values Valid values: [\"12_HOURS\" \"1_MONTH\" \"1_WEEK\" \"24_HOURS\" \"2_MONTHS\" \"3_MONTHS\" \"48_HOURS\" \"72_HOURS\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["12_HOURS" "1_MONTH" "1_WEEK" "24_HOURS" "2_MONTHS" "3_MONTHS" "48_HOURS" "72_HOURS"]
 type_definition.logs_ratio_threshold  SingleNestedAttribute optional
     markdown: "Configuration for log-based ratio threshold alerts"
@@ -454,7 +454,7 @@ type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters.app
 type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters.application_name[].value  StringAttribute required
     markdown: "The value of the label to filter by"
 type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters.severities  SetAttribute optional elem=basetypes.StringType
-    markdown: "The severities."
+    markdown: "The severities. Valid values: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"]."
     validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: value must be one of: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"]
 type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters.subsystem_name  SetNestedAttribute optional
     markdown: "The subsystem name."
@@ -472,7 +472,7 @@ type_definition.logs_ratio_threshold.denominator_alias  StringAttribute required
     markdown: "The alias for the denominator filter, used for display purposes"
 type_definition.logs_ratio_threshold.group_by_for  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to Both
-    markdown: "The group by settings for the numerator and denominator filters"
+    markdown: "The group by settings for the numerator and denominator filters Valid values: [\"Both\" \"Denominator Only\" \"Numerator Only\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["Both" "Denominator "Numerator Only" Only"]
 type_definition.logs_ratio_threshold.ignore_infinity  BoolAttribute optional computed
     default: booldefault.staticBoolDefault value defaults to false
@@ -498,7 +498,7 @@ type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.appli
 type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.application_name[].value  StringAttribute required
     markdown: "The value of the label to filter by"
 type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.severities  SetAttribute optional elem=basetypes.StringType
-    markdown: "The severities."
+    markdown: "The severities. Valid values: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"]."
     validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: value must be one of: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"]
 type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.subsystem_name  SetNestedAttribute optional
     markdown: "The subsystem name."
@@ -521,17 +521,17 @@ type_definition.logs_ratio_threshold.rules[]  NestedObject
 type_definition.logs_ratio_threshold.rules[].condition  SingleNestedAttribute required
     markdown: "The condition for the ratio alert"
 type_definition.logs_ratio_threshold.rules[].condition.condition_type  StringAttribute required
-    markdown: "The type of condition for the alert"
+    markdown: "The type of condition for the alert Valid values: [\"LESS_THAN\" \"MORE_THAN\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["LESS_THAN" "MORE_THAN"]
 type_definition.logs_ratio_threshold.rules[].condition.threshold  Float64Attribute required
     markdown: "The threshold value for the alert condition"
 type_definition.logs_ratio_threshold.rules[].condition.time_window  StringAttribute required
-    markdown: "The time window for the alert condition"
+    markdown: "The time window for the alert condition Valid values: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"]
 type_definition.logs_ratio_threshold.rules[].override  SingleNestedAttribute required
     markdown: "The override settings for the alert"
 type_definition.logs_ratio_threshold.rules[].override.priority  StringAttribute optional computed
-    markdown: "The priority of the alert definition"
+    markdown: "The priority of the alert definition Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["P1" "P2" "P3" "P4" "P5"]
 type_definition.logs_ratio_threshold.undetected_values_management  SingleNestedAttribute optional computed
     default: objectdefault.staticValueDefault value defaults to {"auto_retire_timeframe":"NEVER","trigger_undetected_values":false}
@@ -539,7 +539,7 @@ type_definition.logs_ratio_threshold.undetected_values_management  SingleNestedA
     plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 type_definition.logs_ratio_threshold.undetected_values_management.auto_retire_timeframe  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to NEVER
-    markdown: "The timeframe for auto-retiring the alert when undetected values are detected"
+    markdown: "The timeframe for auto-retiring the alert when undetected values are detected Valid values: [\"10_MINUTES\" \"12_HOURS\" \"1_HOUR\" \"24_HOURS\" \"2_HOURS\" \"5_MINUTES\" \"6_HOURS\" \"NEVER\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"]
 type_definition.logs_ratio_threshold.undetected_values_management.trigger_undetected_values  BoolAttribute optional computed
     default: booldefault.staticBoolDefault value defaults to false
@@ -569,7 +569,7 @@ type_definition.logs_threshold.logs_filter.simple_filter.label_filters.applicati
 type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name[].value  StringAttribute required
     markdown: "The value of the label to filter by"
 type_definition.logs_threshold.logs_filter.simple_filter.label_filters.severities  SetAttribute optional elem=basetypes.StringType
-    markdown: "The severities."
+    markdown: "The severities. Valid values: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"]."
     validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: value must be one of: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"]
 type_definition.logs_threshold.logs_filter.simple_filter.label_filters.subsystem_name  SetNestedAttribute optional
     markdown: "The subsystem name."
@@ -601,17 +601,17 @@ type_definition.logs_threshold.rules[]  NestedObject
 type_definition.logs_threshold.rules[].condition  SingleNestedAttribute required
     markdown: "The condition for the threshold alert"
 type_definition.logs_threshold.rules[].condition.condition_type  StringAttribute required
-    markdown: "The type of condition for the alert"
+    markdown: "The type of condition for the alert Valid values: [\"EQUALS\" \"LESS_THAN\" \"MORE_THAN\" \"NOT_EQUALS\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["EQUALS" "LESS_THAN" "MORE_THAN" "NOT_EQUALS"]
 type_definition.logs_threshold.rules[].condition.threshold  Float64Attribute required
     markdown: "The threshold value for the alert condition"
 type_definition.logs_threshold.rules[].condition.time_window  StringAttribute required
-    markdown: "The time window for the alert condition"
+    markdown: "The time window for the alert condition Valid values: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"]
 type_definition.logs_threshold.rules[].override  SingleNestedAttribute required
     markdown: "The override settings for the alert"
 type_definition.logs_threshold.rules[].override.priority  StringAttribute optional computed
-    markdown: "The priority of the alert definition"
+    markdown: "The priority of the alert definition Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["P1" "P2" "P3" "P4" "P5"]
 type_definition.logs_threshold.undetected_values_management  SingleNestedAttribute optional computed
     default: objectdefault.staticValueDefault value defaults to {"auto_retire_timeframe":"NEVER","trigger_undetected_values":false}
@@ -619,7 +619,7 @@ type_definition.logs_threshold.undetected_values_management  SingleNestedAttribu
     plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 type_definition.logs_threshold.undetected_values_management.auto_retire_timeframe  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to NEVER
-    markdown: "The timeframe for auto-retiring the alert when undetected values are detected"
+    markdown: "The timeframe for auto-retiring the alert when undetected values are detected Valid values: [\"10_MINUTES\" \"12_HOURS\" \"1_HOUR\" \"24_HOURS\" \"2_HOURS\" \"5_MINUTES\" \"6_HOURS\" \"NEVER\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"]
 type_definition.logs_threshold.undetected_values_management.trigger_undetected_values  BoolAttribute optional computed
     default: booldefault.staticBoolDefault value defaults to false
@@ -652,7 +652,7 @@ type_definition.logs_time_relative_threshold.logs_filter.simple_filter.label_fil
 type_definition.logs_time_relative_threshold.logs_filter.simple_filter.label_filters.application_name[].value  StringAttribute required
     markdown: "The value of the label to filter by"
 type_definition.logs_time_relative_threshold.logs_filter.simple_filter.label_filters.severities  SetAttribute optional elem=basetypes.StringType
-    markdown: "The severities."
+    markdown: "The severities. Valid values: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"]."
     validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: value must be one of: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"]
 type_definition.logs_time_relative_threshold.logs_filter.simple_filter.label_filters.subsystem_name  SetNestedAttribute optional
     markdown: "The subsystem name."
@@ -675,17 +675,17 @@ type_definition.logs_time_relative_threshold.rules[]  NestedObject
 type_definition.logs_time_relative_threshold.rules[].condition  SingleNestedAttribute required
     markdown: "The condition for the time-relative alert."
 type_definition.logs_time_relative_threshold.rules[].condition.compared_to  StringAttribute required
-    markdown: "The time frame to compare the current value against"
+    markdown: "The time frame to compare the current value against Valid values: [\"Previous Hour\" \"Same Day Last Month\" \"Same Day Last Week\" \"Same Hour Last Week\" \"Same Hour Yesterday\" \"Yesterday\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["Previous "Same "Same "Same "Same "Yesterday" Day Day Hour Hour Hour" Last Last Last Month" Week" Week" Yesterday"]
 type_definition.logs_time_relative_threshold.rules[].condition.condition_type  StringAttribute required
-    markdown: "The type of condition for the alert"
+    markdown: "The type of condition for the alert Valid values: [\"LESS_THAN\" \"MORE_THAN\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["LESS_THAN" "MORE_THAN"]
 type_definition.logs_time_relative_threshold.rules[].condition.threshold  Float64Attribute required
     markdown: "The threshold value for the alert condition."
 type_definition.logs_time_relative_threshold.rules[].override  SingleNestedAttribute required
     markdown: "The override settings for the alert."
 type_definition.logs_time_relative_threshold.rules[].override.priority  StringAttribute optional computed
-    markdown: "The priority of the alert definition"
+    markdown: "The priority of the alert definition Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["P1" "P2" "P3" "P4" "P5"]
 type_definition.logs_time_relative_threshold.undetected_values_management  SingleNestedAttribute optional computed
     default: objectdefault.staticValueDefault value defaults to {"auto_retire_timeframe":"NEVER","trigger_undetected_values":false}
@@ -693,7 +693,7 @@ type_definition.logs_time_relative_threshold.undetected_values_management  Singl
     plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 type_definition.logs_time_relative_threshold.undetected_values_management.auto_retire_timeframe  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to NEVER
-    markdown: "The timeframe for auto-retiring the alert when undetected values are detected"
+    markdown: "The timeframe for auto-retiring the alert when undetected values are detected Valid values: [\"10_MINUTES\" \"12_HOURS\" \"1_HOUR\" \"24_HOURS\" \"2_HOURS\" \"5_MINUTES\" \"6_HOURS\" \"NEVER\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"]
 type_definition.logs_time_relative_threshold.undetected_values_management.trigger_undetected_values  BoolAttribute optional computed
     default: booldefault.staticBoolDefault value defaults to false
@@ -720,7 +720,7 @@ type_definition.logs_unique_count.logs_filter.simple_filter.label_filters.applic
 type_definition.logs_unique_count.logs_filter.simple_filter.label_filters.application_name[].value  StringAttribute required
     markdown: "The value of the label to filter by"
 type_definition.logs_unique_count.logs_filter.simple_filter.label_filters.severities  SetAttribute optional elem=basetypes.StringType
-    markdown: "The severities."
+    markdown: "The severities. Valid values: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"]."
     validator: setvalidator.valueStringsAreValidator element value must satisfy all validations: value must be one of: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"]
 type_definition.logs_unique_count.logs_filter.simple_filter.label_filters.subsystem_name  SetNestedAttribute optional
     markdown: "The subsystem name."
@@ -747,7 +747,7 @@ type_definition.logs_unique_count.rules[].condition  SingleNestedAttribute requi
 type_definition.logs_unique_count.rules[].condition.max_unique_count  Int64Attribute required
     markdown: "The maximum unique count"
 type_definition.logs_unique_count.rules[].condition.time_window  StringAttribute required
-    markdown: "The time window for the unique count alert."
+    markdown: "The time window for the unique count alert. Valid values: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"1_MINUTE\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "1_MINUTE" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"]
 type_definition.logs_unique_count.unique_count_keypath  StringAttribute required
     markdown: "The keypath in the logs to be used for unique count"
@@ -770,7 +770,7 @@ type_definition.metric_anomaly.rules[]  NestedObject
 type_definition.metric_anomaly.rules[].condition  SingleNestedAttribute required
     markdown: "The condition for the metric anomaly alert."
 type_definition.metric_anomaly.rules[].condition.condition_type  StringAttribute required
-    markdown: "The type of condition for the alert."
+    markdown: "The type of condition for the alert. Valid values: [\"LESS_THAN\" \"MORE_THAN\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["LESS_THAN" "MORE_THAN"]
 type_definition.metric_anomaly.rules[].condition.for_over_pct  Int64Attribute required
     markdown: "The percentage of the metric that must exceed the threshold to trigger the alert"
@@ -815,7 +815,7 @@ type_definition.metric_threshold.rules[]  NestedObject
 type_definition.metric_threshold.rules[].condition  SingleNestedAttribute required
     markdown: "The condition for the metric threshold alert"
 type_definition.metric_threshold.rules[].condition.condition_type  StringAttribute required
-    markdown: "The type of the alert condition"
+    markdown: "The type of the alert condition Valid values: [\"EQUALS\" \"LESS_THAN\" \"LESS_THAN_OR_EQUALS\" \"MORE_THAN\" \"MORE_THAN_OR_EQUALS\" \"NOT_EQUALS\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["EQUALS" "LESS_THAN" "LESS_THAN_OR_EQUALS" "MORE_THAN" "MORE_THAN_OR_EQUALS" "NOT_EQUALS"]
 type_definition.metric_threshold.rules[].condition.for_over_pct  Int64Attribute required
     markdown: "The percentage of values that must exceed the threshold to trigger the alert"
@@ -827,7 +827,7 @@ type_definition.metric_threshold.rules[].condition.threshold  Float64Attribute r
 type_definition.metric_threshold.rules[].override  SingleNestedAttribute required
     markdown: "Alert override settings"
 type_definition.metric_threshold.rules[].override.priority  StringAttribute optional computed
-    markdown: "The priority of the alert definition"
+    markdown: "The priority of the alert definition Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["P1" "P2" "P3" "P4" "P5"]
 type_definition.metric_threshold.undetected_values_management  SingleNestedAttribute optional computed
     default: objectdefault.staticValueDefault value defaults to {"auto_retire_timeframe":"NEVER","trigger_undetected_values":false}
@@ -835,7 +835,7 @@ type_definition.metric_threshold.undetected_values_management  SingleNestedAttri
     plan modifier: objectplanmodifier.useStateForUnknownModifier Once set, the value of this attribute in state will not change.
 type_definition.metric_threshold.undetected_values_management.auto_retire_timeframe  StringAttribute optional computed
     default: stringdefault.staticStringDefault value defaults to NEVER
-    markdown: "The timeframe for auto-retiring the alert when undetected values are detected"
+    markdown: "The timeframe for auto-retiring the alert when undetected values are detected Valid values: [\"10_MINUTES\" \"12_HOURS\" \"1_HOUR\" \"24_HOURS\" \"2_HOURS\" \"5_MINUTES\" \"6_HOURS\" \"NEVER\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"]
 type_definition.metric_threshold.undetected_values_management.trigger_undetected_values  BoolAttribute optional computed
     default: booldefault.staticBoolDefault value defaults to false
@@ -854,7 +854,7 @@ type_definition.slo_threshold.burn_rate.dual.time_duration  SingleNestedAttribut
 type_definition.slo_threshold.burn_rate.dual.time_duration.duration  Int64Attribute required
     markdown: "The duration value"
 type_definition.slo_threshold.burn_rate.dual.time_duration.unit  StringAttribute required
-    markdown: "The unit of the duration"
+    markdown: "The unit of the duration Valid values: [\"HOURS\" \"UNSPECIFIED\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["HOURS" "UNSPECIFIED"]
 type_definition.slo_threshold.burn_rate.rules  ListNestedAttribute required
     markdown: "The rules for the burn rate threshold"
@@ -866,7 +866,7 @@ type_definition.slo_threshold.burn_rate.rules[].condition.threshold  Float64Attr
 type_definition.slo_threshold.burn_rate.rules[].override  SingleNestedAttribute required
     markdown: "The override settings for the alert"
 type_definition.slo_threshold.burn_rate.rules[].override.priority  StringAttribute optional computed
-    markdown: "The priority of the alert definition"
+    markdown: "The priority of the alert definition Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["P1" "P2" "P3" "P4" "P5"]
 type_definition.slo_threshold.burn_rate.single  SingleNestedAttribute optional
     markdown: "Burn rate type single"
@@ -876,7 +876,7 @@ type_definition.slo_threshold.burn_rate.single.time_duration  SingleNestedAttrib
 type_definition.slo_threshold.burn_rate.single.time_duration.duration  Int64Attribute required
     markdown: "The duration value"
 type_definition.slo_threshold.burn_rate.single.time_duration.unit  StringAttribute required
-    markdown: "The unit of the duration"
+    markdown: "The unit of the duration Valid values: [\"HOURS\" \"UNSPECIFIED\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["HOURS" "UNSPECIFIED"]
 type_definition.slo_threshold.error_budget  SingleNestedAttribute optional
     markdown: "Error budget threshold"
@@ -891,7 +891,7 @@ type_definition.slo_threshold.error_budget.rules[].condition.threshold  Float64A
 type_definition.slo_threshold.error_budget.rules[].override  SingleNestedAttribute required
     markdown: "The override settings for the alert"
 type_definition.slo_threshold.error_budget.rules[].override.priority  StringAttribute optional computed
-    markdown: "The priority of the alert definition"
+    markdown: "The priority of the alert definition Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["P1" "P2" "P3" "P4" "P5"]
 type_definition.slo_threshold.slo_definition  SingleNestedAttribute required
     markdown: "SLO definition"
@@ -975,7 +975,7 @@ type_definition.tracing_threshold.rules[].condition.condition_type  StringAttrib
 type_definition.tracing_threshold.rules[].condition.span_amount  Float64Attribute required
     markdown: "The threshold value for the alert condition"
 type_definition.tracing_threshold.rules[].condition.time_window  StringAttribute required
-    markdown: "The time window for the alert condition"
+    markdown: "The time window for the alert condition Valid values: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"]."
     validator: stringvalidator.oneOfValidator value must be one of: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"]
 type_definition.tracing_threshold.tracing_filter  SingleNestedAttribute required
     markdown: "The filter to match trace entries for the alert."

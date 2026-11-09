@@ -165,7 +165,7 @@ func Schema() schema.Schema {
 								Validators: []validator.String{
 									stringvalidator.OneOf("EQUALS", "LESS_THAN", "LESS_THAN_OR_EQUALS", "MORE_THAN", "MORE_THAN_OR_EQUALS", "NOT_EQUALS"),
 								},
-								MarkdownDescription: "The comparison operator applied to all threshold rules",
+								MarkdownDescription: "The comparison operator applied to all threshold rules Valid values: [\"EQUALS\" \"LESS_THAN\" \"LESS_THAN_OR_EQUALS\" \"MORE_THAN\" \"MORE_THAN_OR_EQUALS\" \"NOT_EQUALS\"].",
 							},
 							"rules": schema.ListNestedAttribute{
 								Required: true,
@@ -193,7 +193,7 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("P1", "P2", "P3", "P4", "P5"),
 													},
-													MarkdownDescription: "The priority of the alert definition",
+													MarkdownDescription: "The priority of the alert definition Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"].",
 												},
 											},
 											MarkdownDescription: "The override settings for the alert",
@@ -266,14 +266,14 @@ func Schema() schema.Schema {
 														Validators: []validator.String{
 															stringvalidator.OneOf("AND", "OR"),
 														},
-														MarkdownDescription: "The logical operation to apply to the alerts in the group.",
+														MarkdownDescription: "The logical operation to apply to the alerts in the group. Valid values: [\"AND\" \"OR\"].",
 													},
 													"next_op": schema.StringAttribute{
 														Required: true,
 														Validators: []validator.String{
 															stringvalidator.OneOf("AND", "OR"),
 														},
-														MarkdownDescription: "The logical operation to apply to the next stage.",
+														MarkdownDescription: "The logical operation to apply to the next stage. Valid values: [\"AND\" \"OR\"].",
 													},
 												},
 											},
@@ -290,7 +290,7 @@ func Schema() schema.Schema {
 											Validators: []validator.String{
 												stringvalidator.OneOf("Unspecified", "Up To"),
 											},
-											MarkdownDescription: "The type of timeframe for the flow alert.",
+											MarkdownDescription: "The type of timeframe for the flow alert. Valid values: [\"Unspecified\" \"Up To\"].",
 										},
 									},
 								},
@@ -362,7 +362,7 @@ func Schema() schema.Schema {
 														Validators: []validator.Set{
 															setvalidator.ValueStringsAre(stringvalidator.OneOf("Critical", "Debug", "Error", "Info", "Unspecified", "Warning")),
 														},
-														MarkdownDescription: "The severities.",
+														MarkdownDescription: "The severities. Valid values: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"].",
 													},
 													"subsystem_name": schema.SetNestedAttribute{
 														Optional: true,
@@ -432,7 +432,7 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("10_MINUTES", "12_HOURS", "15_MINUTES", "1_HOUR", "20_MINUTES", "24_HOURS", "2_HOURS", "30_MINUTES", "36_HOURS", "4_HOURS", "5_MINUTES", "6_HOURS"),
 													},
-													MarkdownDescription: "The time window for the alert condition",
+													MarkdownDescription: "The time window for the alert condition Valid values: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"].",
 												},
 											},
 											MarkdownDescription: "The condition for the threshold alert",
@@ -496,7 +496,7 @@ func Schema() schema.Schema {
 														Validators: []validator.Set{
 															setvalidator.ValueStringsAre(stringvalidator.OneOf("Critical", "Debug", "Error", "Info", "Unspecified", "Warning")),
 														},
-														MarkdownDescription: "The severities.",
+														MarkdownDescription: "The severities. Valid values: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"].",
 													},
 													"subsystem_name": schema.SetNestedAttribute{
 														Optional: true,
@@ -594,7 +594,7 @@ func Schema() schema.Schema {
 														Validators: []validator.Set{
 															setvalidator.ValueStringsAre(stringvalidator.OneOf("Critical", "Debug", "Error", "Info", "Unspecified", "Warning")),
 														},
-														MarkdownDescription: "The severities.",
+														MarkdownDescription: "The severities. Valid values: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"].",
 													},
 													"subsystem_name": schema.SetNestedAttribute{
 														Optional: true,
@@ -656,7 +656,7 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("12_HOURS", "1_MONTH", "1_WEEK", "24_HOURS", "2_MONTHS", "3_MONTHS", "48_HOURS", "72_HOURS"),
 													},
-													MarkdownDescription: "The time window for detecting new values",
+													MarkdownDescription: "The time window for detecting new values Valid values: [\"12_HOURS\" \"1_MONTH\" \"1_WEEK\" \"24_HOURS\" \"2_MONTHS\" \"3_MONTHS\" \"48_HOURS\" \"72_HOURS\"].",
 												},
 											},
 											MarkdownDescription: "The condition for detecting new values in logs.",
@@ -720,7 +720,7 @@ func Schema() schema.Schema {
 														Validators: []validator.Set{
 															setvalidator.ValueStringsAre(stringvalidator.OneOf("Critical", "Debug", "Error", "Info", "Unspecified", "Warning")),
 														},
-														MarkdownDescription: "The severities.",
+														MarkdownDescription: "The severities. Valid values: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"].",
 													},
 													"subsystem_name": schema.SetNestedAttribute{
 														Optional: true,
@@ -776,7 +776,7 @@ func Schema() schema.Schema {
 								Validators: []validator.String{
 									stringvalidator.OneOf("Both", "Denominator Only", "Numerator Only"),
 								},
-								MarkdownDescription: "The group by settings for the numerator and denominator filters",
+								MarkdownDescription: "The group by settings for the numerator and denominator filters Valid values: [\"Both\" \"Denominator Only\" \"Numerator Only\"].",
 							},
 							"ignore_infinity": schema.BoolAttribute{
 								Optional:            true,
@@ -835,7 +835,7 @@ func Schema() schema.Schema {
 														Validators: []validator.Set{
 															setvalidator.ValueStringsAre(stringvalidator.OneOf("Critical", "Debug", "Error", "Info", "Unspecified", "Warning")),
 														},
-														MarkdownDescription: "The severities.",
+														MarkdownDescription: "The severities. Valid values: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"].",
 													},
 													"subsystem_name": schema.SetNestedAttribute{
 														Optional: true,
@@ -892,7 +892,7 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("LESS_THAN", "MORE_THAN"),
 													},
-													MarkdownDescription: "The type of condition for the alert",
+													MarkdownDescription: "The type of condition for the alert Valid values: [\"LESS_THAN\" \"MORE_THAN\"].",
 												},
 												"threshold": schema.Float64Attribute{
 													Required:            true,
@@ -903,7 +903,7 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("10_MINUTES", "12_HOURS", "15_MINUTES", "1_HOUR", "24_HOURS", "2_HOURS", "30_MINUTES", "36_HOURS", "4_HOURS", "5_MINUTES", "6_HOURS"),
 													},
-													MarkdownDescription: "The time window for the alert condition",
+													MarkdownDescription: "The time window for the alert condition Valid values: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"].",
 												},
 											},
 											MarkdownDescription: "The condition for the ratio alert",
@@ -917,7 +917,7 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("P1", "P2", "P3", "P4", "P5"),
 													},
-													MarkdownDescription: "The priority of the alert definition",
+													MarkdownDescription: "The priority of the alert definition Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"].",
 												},
 											},
 											MarkdownDescription: "The override settings for the alert",
@@ -941,7 +941,7 @@ func Schema() schema.Schema {
 										Validators: []validator.String{
 											stringvalidator.OneOf("10_MINUTES", "12_HOURS", "1_HOUR", "24_HOURS", "2_HOURS", "5_MINUTES", "6_HOURS", "NEVER"),
 										},
-										MarkdownDescription: "The timeframe for auto-retiring the alert when undetected values are detected",
+										MarkdownDescription: "The timeframe for auto-retiring the alert when undetected values are detected Valid values: [\"10_MINUTES\" \"12_HOURS\" \"1_HOUR\" \"24_HOURS\" \"2_HOURS\" \"5_MINUTES\" \"6_HOURS\" \"NEVER\"].",
 									},
 									"trigger_undetected_values": schema.BoolAttribute{
 										Optional:            true,
@@ -1014,7 +1014,7 @@ func Schema() schema.Schema {
 														Validators: []validator.Set{
 															setvalidator.ValueStringsAre(stringvalidator.OneOf("Critical", "Debug", "Error", "Info", "Unspecified", "Warning")),
 														},
-														MarkdownDescription: "The severities.",
+														MarkdownDescription: "The severities. Valid values: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"].",
 													},
 													"subsystem_name": schema.SetNestedAttribute{
 														Optional: true,
@@ -1097,7 +1097,7 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("EQUALS", "LESS_THAN", "MORE_THAN", "NOT_EQUALS"),
 													},
-													MarkdownDescription: "The type of condition for the alert",
+													MarkdownDescription: "The type of condition for the alert Valid values: [\"EQUALS\" \"LESS_THAN\" \"MORE_THAN\" \"NOT_EQUALS\"].",
 												},
 												"threshold": schema.Float64Attribute{
 													Required:            true,
@@ -1108,7 +1108,7 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("10_MINUTES", "12_HOURS", "15_MINUTES", "1_HOUR", "20_MINUTES", "24_HOURS", "2_HOURS", "30_MINUTES", "36_HOURS", "4_HOURS", "5_MINUTES", "6_HOURS"),
 													},
-													MarkdownDescription: "The time window for the alert condition",
+													MarkdownDescription: "The time window for the alert condition Valid values: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"].",
 												},
 											},
 											MarkdownDescription: "The condition for the threshold alert",
@@ -1122,7 +1122,7 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("P1", "P2", "P3", "P4", "P5"),
 													},
-													MarkdownDescription: "The priority of the alert definition",
+													MarkdownDescription: "The priority of the alert definition Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"].",
 												},
 											},
 											MarkdownDescription: "The override settings for the alert",
@@ -1146,7 +1146,7 @@ func Schema() schema.Schema {
 										Validators: []validator.String{
 											stringvalidator.OneOf("10_MINUTES", "12_HOURS", "1_HOUR", "24_HOURS", "2_HOURS", "5_MINUTES", "6_HOURS", "NEVER"),
 										},
-										MarkdownDescription: "The timeframe for auto-retiring the alert when undetected values are detected",
+										MarkdownDescription: "The timeframe for auto-retiring the alert when undetected values are detected Valid values: [\"10_MINUTES\" \"12_HOURS\" \"1_HOUR\" \"24_HOURS\" \"2_HOURS\" \"5_MINUTES\" \"6_HOURS\" \"NEVER\"].",
 									},
 									"trigger_undetected_values": schema.BoolAttribute{
 										Optional:            true,
@@ -1225,7 +1225,7 @@ func Schema() schema.Schema {
 														Validators: []validator.Set{
 															setvalidator.ValueStringsAre(stringvalidator.OneOf("Critical", "Debug", "Error", "Info", "Unspecified", "Warning")),
 														},
-														MarkdownDescription: "The severities.",
+														MarkdownDescription: "The severities. Valid values: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"].",
 													},
 													"subsystem_name": schema.SetNestedAttribute{
 														Optional: true,
@@ -1283,14 +1283,14 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("Previous Hour", "Same Day Last Month", "Same Day Last Week", "Same Hour Last Week", "Same Hour Yesterday", "Yesterday"),
 													},
-													MarkdownDescription: "The time frame to compare the current value against",
+													MarkdownDescription: "The time frame to compare the current value against Valid values: [\"Previous Hour\" \"Same Day Last Month\" \"Same Day Last Week\" \"Same Hour Last Week\" \"Same Hour Yesterday\" \"Yesterday\"].",
 												},
 												"condition_type": schema.StringAttribute{
 													Required: true,
 													Validators: []validator.String{
 														stringvalidator.OneOf("LESS_THAN", "MORE_THAN"),
 													},
-													MarkdownDescription: "The type of condition for the alert",
+													MarkdownDescription: "The type of condition for the alert Valid values: [\"LESS_THAN\" \"MORE_THAN\"].",
 												},
 												"threshold": schema.Float64Attribute{
 													Required:            true,
@@ -1308,7 +1308,7 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("P1", "P2", "P3", "P4", "P5"),
 													},
-													MarkdownDescription: "The priority of the alert definition",
+													MarkdownDescription: "The priority of the alert definition Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"].",
 												},
 											},
 											MarkdownDescription: "The override settings for the alert.",
@@ -1332,7 +1332,7 @@ func Schema() schema.Schema {
 										Validators: []validator.String{
 											stringvalidator.OneOf("10_MINUTES", "12_HOURS", "1_HOUR", "24_HOURS", "2_HOURS", "5_MINUTES", "6_HOURS", "NEVER"),
 										},
-										MarkdownDescription: "The timeframe for auto-retiring the alert when undetected values are detected",
+										MarkdownDescription: "The timeframe for auto-retiring the alert when undetected values are detected Valid values: [\"10_MINUTES\" \"12_HOURS\" \"1_HOUR\" \"24_HOURS\" \"2_HOURS\" \"5_MINUTES\" \"6_HOURS\" \"NEVER\"].",
 									},
 									"trigger_undetected_values": schema.BoolAttribute{
 										Optional:            true,
@@ -1398,7 +1398,7 @@ func Schema() schema.Schema {
 														Validators: []validator.Set{
 															setvalidator.ValueStringsAre(stringvalidator.OneOf("Critical", "Debug", "Error", "Info", "Unspecified", "Warning")),
 														},
-														MarkdownDescription: "The severities.",
+														MarkdownDescription: "The severities. Valid values: [\"Critical\" \"Debug\" \"Error\" \"Info\" \"Unspecified\" \"Warning\"].",
 													},
 													"subsystem_name": schema.SetNestedAttribute{
 														Optional: true,
@@ -1464,7 +1464,7 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("10_MINUTES", "12_HOURS", "15_MINUTES", "1_HOUR", "1_MINUTE", "20_MINUTES", "24_HOURS", "2_HOURS", "30_MINUTES", "36_HOURS", "4_HOURS", "5_MINUTES", "6_HOURS"),
 													},
-													MarkdownDescription: "The time window for the unique count alert.",
+													MarkdownDescription: "The time window for the unique count alert. Valid values: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"1_MINUTE\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"].",
 												},
 											},
 											MarkdownDescription: "The condition for detecting unique counts in logs.",
@@ -1522,7 +1522,7 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("LESS_THAN", "MORE_THAN"),
 													},
-													MarkdownDescription: "The type of condition for the alert.",
+													MarkdownDescription: "The type of condition for the alert. Valid values: [\"LESS_THAN\" \"MORE_THAN\"].",
 												},
 												"for_over_pct": schema.Int64Attribute{
 													Required:            true,
@@ -1636,7 +1636,7 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("EQUALS", "LESS_THAN", "LESS_THAN_OR_EQUALS", "MORE_THAN", "MORE_THAN_OR_EQUALS", "NOT_EQUALS"),
 													},
-													MarkdownDescription: "The type of the alert condition",
+													MarkdownDescription: "The type of the alert condition Valid values: [\"EQUALS\" \"LESS_THAN\" \"LESS_THAN_OR_EQUALS\" \"MORE_THAN\" \"MORE_THAN_OR_EQUALS\" \"NOT_EQUALS\"].",
 												},
 												"for_over_pct": schema.Int64Attribute{
 													Required:            true,
@@ -1665,7 +1665,7 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("P1", "P2", "P3", "P4", "P5"),
 													},
-													MarkdownDescription: "The priority of the alert definition",
+													MarkdownDescription: "The priority of the alert definition Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"].",
 												},
 											},
 											MarkdownDescription: "Alert override settings",
@@ -1689,7 +1689,7 @@ func Schema() schema.Schema {
 										Validators: []validator.String{
 											stringvalidator.OneOf("10_MINUTES", "12_HOURS", "1_HOUR", "24_HOURS", "2_HOURS", "5_MINUTES", "6_HOURS", "NEVER"),
 										},
-										MarkdownDescription: "The timeframe for auto-retiring the alert when undetected values are detected",
+										MarkdownDescription: "The timeframe for auto-retiring the alert when undetected values are detected Valid values: [\"10_MINUTES\" \"12_HOURS\" \"1_HOUR\" \"24_HOURS\" \"2_HOURS\" \"5_MINUTES\" \"6_HOURS\" \"NEVER\"].",
 									},
 									"trigger_undetected_values": schema.BoolAttribute{
 										Optional:            true,
@@ -1733,7 +1733,7 @@ func Schema() schema.Schema {
 														Validators: []validator.String{
 															stringvalidator.OneOf("HOURS", "UNSPECIFIED"),
 														},
-														MarkdownDescription: "The unit of the duration",
+														MarkdownDescription: "The unit of the duration Valid values: [\"HOURS\" \"UNSPECIFIED\"].",
 													},
 												},
 												MarkdownDescription: "Configuration for time duration",
@@ -1764,7 +1764,7 @@ func Schema() schema.Schema {
 															Validators: []validator.String{
 																stringvalidator.OneOf("P1", "P2", "P3", "P4", "P5"),
 															},
-															MarkdownDescription: "The priority of the alert definition",
+															MarkdownDescription: "The priority of the alert definition Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"].",
 														},
 													},
 													MarkdownDescription: "The override settings for the alert",
@@ -1791,7 +1791,7 @@ func Schema() schema.Schema {
 														Validators: []validator.String{
 															stringvalidator.OneOf("HOURS", "UNSPECIFIED"),
 														},
-														MarkdownDescription: "The unit of the duration",
+														MarkdownDescription: "The unit of the duration Valid values: [\"HOURS\" \"UNSPECIFIED\"].",
 													},
 												},
 												MarkdownDescription: "Configuration for time duration",
@@ -1831,7 +1831,7 @@ func Schema() schema.Schema {
 															Validators: []validator.String{
 																stringvalidator.OneOf("P1", "P2", "P3", "P4", "P5"),
 															},
-															MarkdownDescription: "The priority of the alert definition",
+															MarkdownDescription: "The priority of the alert definition Valid values: [\"P1\" \"P2\" \"P3\" \"P4\" \"P5\"].",
 														},
 													},
 													MarkdownDescription: "The override settings for the alert",
@@ -2044,7 +2044,7 @@ func Schema() schema.Schema {
 													Validators: []validator.String{
 														stringvalidator.OneOf("10_MINUTES", "12_HOURS", "15_MINUTES", "1_HOUR", "20_MINUTES", "24_HOURS", "2_HOURS", "30_MINUTES", "36_HOURS", "4_HOURS", "5_MINUTES", "6_HOURS"),
 													},
-													MarkdownDescription: "The time window for the alert condition",
+													MarkdownDescription: "The time window for the alert condition Valid values: [\"10_MINUTES\" \"12_HOURS\" \"15_MINUTES\" \"1_HOUR\" \"20_MINUTES\" \"24_HOURS\" \"2_HOURS\" \"30_MINUTES\" \"36_HOURS\" \"4_HOURS\" \"5_MINUTES\" \"6_HOURS\"].",
 												},
 											},
 											MarkdownDescription: "The condition for the threshold alert.",
@@ -2205,7 +2205,7 @@ func Schema() schema.Schema {
 						Validators: []validator.String{
 							stringvalidator.OneOf("disabled", "enabled"),
 						},
-						MarkdownDescription: "Controls whether the associated case is automatically resolved when the alert resolves. Defaults to enabled when unspecified.",
+						MarkdownDescription: "Controls whether the associated case is automatically resolved when the alert resolves. Defaults to enabled when unspecified. Valid values: [\"disabled\" \"enabled\"].",
 					},
 					"destinations": schema.ListNestedAttribute{
 						Optional: true,
@@ -2246,14 +2246,14 @@ func Schema() schema.Schema {
 									Validators: []validator.String{
 										stringvalidator.OneOf("dataprime"),
 									},
-									MarkdownDescription: "The query language of the enrichment query. Defaults to DataPrime when omitted.",
+									MarkdownDescription: "The query language of the enrichment query. Defaults to DataPrime when omitted. Valid values: [\"dataprime\"].",
 								},
 							},
 						},
 						MarkdownDescription: "Queries that enrich the cases opened by this alert. The API accepts at most one query.",
 					},
 				},
-				MarkdownDescription: "Settings controlling how the alert interacts with cases. When omitted on create, defaults apply (case auto-resolve enabled, no enrichment queries, no case destinations). Replace is a full overwrite: omitting this field on replace resets any previously configured case settings to those defaults. In read responses, this field is absent when no case settings were configured, meaning those same defaults are in effect.",
+				MarkdownDescription: "Case settings for the alert (preview): whether cases auto-resolve, a query that enriches the case, and where case notifications are sent. Case destinations are independent of `notification_group.destinations`; both are delivered. Removing this block clears the case settings.",
 			},
 			"data_sources": schema.ListNestedAttribute{
 				Optional: true,
@@ -2333,7 +2333,7 @@ func Schema() schema.Schema {
 						Validators: []validator.String{
 							stringvalidator.OneOf("Triggered Only", "Triggered and Resolved"),
 						},
-						MarkdownDescription: "The condition to notify about the alert",
+						MarkdownDescription: "The condition to notify about the alert Valid values: [\"Triggered Only\" \"Triggered and Resolved\"].",
 					},
 				},
 				MarkdownDescription: "Incident creation and management settings",
@@ -2368,7 +2368,7 @@ func Schema() schema.Schema {
 									Validators: []validator.String{
 										stringvalidator.OneOf("Triggered Only", "Triggered and Resolved"),
 									},
-									MarkdownDescription: "The condition under which the notification should be sent",
+									MarkdownDescription: "The condition under which the notification should be sent Valid values: [\"Triggered Only\" \"Triggered and Resolved\"].",
 								},
 								"preset_id": schema.StringAttribute{
 									Required:            true,
@@ -2498,7 +2498,7 @@ func Schema() schema.Schema {
 								Validators: []validator.String{
 									stringvalidator.OneOf("Triggered Only", "Triggered and Resolved"),
 								},
-								MarkdownDescription: "The condition under which the notification should be sent",
+								MarkdownDescription: "The condition under which the notification should be sent Valid values: [\"Triggered Only\" \"Triggered and Resolved\"].",
 							},
 						},
 						MarkdownDescription: "The router for notifications.  (Notification Center feature)",
