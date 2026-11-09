@@ -1,6 +1,6 @@
 ---
 name: generated-state-upgrade-empty-collections
-description: "Use when a generated resource upgrades old state by refresh (schema.upgrade strategy refresh) and the first plan after the upgrade shows labels or lists changing from [] or {} to null. Covers readEmptyAs and a flatten hook."
+description: "Use when a generated resource upgrades old state by refresh and the first plan shows labels or lists changing from [] or {} to null. Covers readEmptyAs and a flatten hook."
 ---
 
 # A refresh upgrade has no prior value, so empty collections read as `[]`
