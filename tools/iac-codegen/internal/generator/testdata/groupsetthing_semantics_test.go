@@ -687,6 +687,86 @@ func TestSetItemStateModifierTakesTheMatchingItem(t *testing.T) {
 	}
 }
 
+// A group that the configuration sets from an unknown value stays unknown, also when the state item
+// that the planned item matches is complete: once the value is known, it can differ from the state.
+// The configured item is the one that the planned item matches, not the item at the same index, and a
+// group that the configuration omits still takes the state.
+func TestSetItemStateModifierKeepsAnUnknownConfigurationUnknown(t *testing.T) {
+	ctx := context.Background()
+	_, schemaResp, root := setSchema(t)
+	group := root.AttributeTypes["groups"].(tftypes.Set).ElementType.(tftypes.Object)
+	items := group.AttributeTypes["items"].(tftypes.List)
+	item := items.ElementType.(tftypes.Object)
+	period := group.AttributeTypes["period"]
+	unknownPeriod := tftypes.NewValue(period, tftypes.UnknownValue)
+	oneItem := func(labels tftypes.Value) tftypes.Value {
+		return tftypes.NewValue(items, []tftypes.Value{tftypes.NewValue(item, map[string]tftypes.Value{
+			"key": tftypes.NewValue(tftypes.String, "k"), "labels": labels,
+		})})
+	}
+	groupWith := func(name string, interval tftypes.Value, p tftypes.Value, labels tftypes.Value) tftypes.Value {
+		return tftypes.NewValue(group, map[string]tftypes.Value{
+			"name": tftypes.NewValue(tftypes.String, name), "interval": interval, "limit": num(0), "period": p, "items": oneItem(labels),
+		})
+	}
+	emptyLabels := tftypes.NewValue(item.AttributeTypes["labels"], map[string]tftypes.Value{})
+	statePeriod := func(minutes int64) tftypes.Value {
+		return tftypes.NewValue(period, map[string]tftypes.Value{"period_minutes": num(minutes)})
+	}
+	top := func(groups ...tftypes.Value) tftypes.Value {
+		return tftypes.NewValue(root, map[string]tftypes.Value{
+			"id": tftypes.NewValue(tftypes.String, "set-1"), "name": tftypes.NewValue(tftypes.String, "s"), "document": tftypes.NewValue(tftypes.String, nil),
+			"groups": tftypes.NewValue(root.AttributeTypes["groups"], groups),
+		})
+	}
+	state := tfsdk.State{Schema: schemaResp.Schema, Raw: top(
+		groupWith("b", num(60), statePeriod(7), emptyLabels), groupWith("a", num(60), statePeriod(3), emptyLabels),
+	)}
+	nullNumber := tftypes.NewValue(tftypes.Number, nil)
+	nullLabels := tftypes.NewValue(item.AttributeTypes["labels"], nil)
+	unknownNumber := tftypes.NewValue(tftypes.Number, tftypes.UnknownValue)
+	for _, test := range []struct {
+		name   string
+		config tftypes.Value
+		group  string
+		want   tftypes.Value
+	}{
+		// The configuration lists the groups in the other order than the state does.
+		{"a with an unknown period", top(
+			groupWith("b", nullNumber, statePeriod(7), nullLabels), groupWith("a", nullNumber, unknownPeriod, nullLabels),
+		), "a", unknownPeriod},
+		{"b next to an unknown period of a", top(
+			groupWith("b", nullNumber, tftypes.NewValue(period, nil), nullLabels), groupWith("a", nullNumber, unknownPeriod, nullLabels),
+		), "b", statePeriod(7)},
+		{"a with an omitted period", top(
+			groupWith("a", nullNumber, tftypes.NewValue(period, nil), nullLabels),
+		), "a", statePeriod(3)},
+		{"a with a period that has an unknown value", top(
+			groupWith("a", nullNumber, tftypes.NewValue(period, map[string]tftypes.Value{"period_minutes": tftypes.NewValue(tftypes.Number, tftypes.UnknownValue)}), nullLabels),
+		), "a", unknownPeriod},
+	} {
+		planned := groupWith(test.group, unknownNumber, unknownPeriod, tftypes.NewValue(item.AttributeTypes["labels"], tftypes.UnknownValue))
+		element, err := schemaResp.Schema.Attributes["groups"].GetType().(types.SetType).ElemType.ValueFromTerraform(ctx, planned)
+		if err != nil {
+			t.Fatal(err)
+		}
+		plan := types.ObjectUnknown(map[string]attr.Type{"period_minutes": types.Int64Type})
+		req := planmodifier.ObjectRequest{
+			Config: tfsdk.Config{Schema: schemaResp.Schema, Raw: test.config}, State: state, PlanValue: plan,
+			Path: path.Root("groups").AtSetValue(element).AtName("period"),
+		}
+		resp := &planmodifier.ObjectResponse{PlanValue: plan}
+		setItemStateModifier{}.PlanModifyObject(ctx, req, resp)
+		got, err := resp.PlanValue.ToTerraformValue(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !got.Equal(test.want) {
+			t.Errorf("%s: planned period = %v, want %v", test.name, got, test.want)
+		}
+	}
+}
+
 // An optional group is null when the response has none of its fields, and an object when it has one,
 // also when the value is 0. The real Terraform tests above cover what Create sends of a group.
 func TestOptionalGroupIsNullWhenTheResponseHasNoField(t *testing.T) {

@@ -186,7 +186,8 @@ func (m serverDefaultModifier) PlanModify{{.}}({{if $.SetServerDefaults}}ctx{{el
 // another item: the plan and the state sort their items apart. The set step of the path holds the
 // planned item, so the modifier takes the state item that the planned item matches: every value
 // that the state item has is the planned one, or the plan leaves it unknown. A planned item that
-// matches no state item, such as one that changes, keeps its unknown value.
+// matches no state item, such as one that changes, keeps its unknown value, and so does an item whose
+// configuration of the group is unknown.
 type setItemStateModifier struct{}
 
 func (setItemStateModifier) Description(context.Context) string {
@@ -199,6 +200,12 @@ func (m setItemStateModifier) MarkdownDescription(ctx context.Context) string {
 
 func (setItemStateModifier) PlanModifyObject(ctx context.Context, req planmodifier.ObjectRequest, resp *planmodifier.ObjectResponse) {
 	if req.State.Raw.IsNull() || !req.PlanValue.IsUnknown() {
+		return
+	}
+	// A group that the configuration sets from a value that is unknown now stays unknown: the state
+	// value may differ once the value is known. The configured item is the one that the planned item
+	// matches, not the item at the same index.
+	if configured, found := setItemConfig(ctx, req.Config.Raw, req.Path); found && !configured.IsFullyKnown() {
 		return
 	}
 	value, ok := setItemConfig(ctx, req.State.Raw, req.Path)
