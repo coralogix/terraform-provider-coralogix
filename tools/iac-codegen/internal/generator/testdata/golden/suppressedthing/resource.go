@@ -308,7 +308,7 @@ func apiID(v *suppressed_things_service.SuppressedThing) (string, bool) {
 	if v == nil || v.UniqueIdentifier == nil {
 		return "", false
 	}
-	return *v.UniqueIdentifier, true
+	return *v.UniqueIdentifier, *v.UniqueIdentifier != ""
 }
 
 // idStateValue returns the value of the id attribute for id.

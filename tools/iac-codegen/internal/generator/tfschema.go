@@ -1249,15 +1249,14 @@ func (b *tfBuilder) collection(a *tfAttr, p attrPath, t *model.Type) error {
 // of int32: Int64. The validators follow the type. On a uint64 that the API sends as a string, the
 // attribute is Int64 already: the line states that the released resource showed it as Int64, so a
 // contract that allows more digits than Int64 holds is accepted, and flatten reports a larger value.
+// String keeps a computed-only integer as decimal text.
 func applyTerraformType(a *tfAttr, l overrides.Field) error {
 	if l.TerraformType == "" {
 		return nil
 	}
 	if l.TerraformType == "String" {
-		// The released id is the decimal text of an integer id. resourceIDData checks that the
-		// line is on the id.
-		if a.Kind != "Int64" {
-			return fmt.Errorf("terraformType String needs an int64 resource id, not a %s", a.Kind)
+		if (a.Kind != "Int32" && a.Kind != "Int64") || !a.Computed || a.Optional || a.Required {
+			return fmt.Errorf("terraformType String needs a computed-only integer attribute")
 		}
 		prefix := strings.ToLower(a.Kind) + "planmodifier."
 		for i, m := range a.Modifiers {
@@ -1948,6 +1947,9 @@ func (b *tfBuilder) modelField(component, name string, t *model.Type, behavior m
 		} else {
 			goType = "*" + typeModelName(t)
 		}
+	}
+	if b.file != nil && b.file.Types[component].Fields[name].TerraformType == "String" {
+		goType = "types.String"
 	}
 	return tfModelField{Name: camelize(name), Type: goType, TFName: terraformName(b.policy, component, name)}
 }

@@ -130,6 +130,7 @@ func sortedVersions(file *overrides.File) []int64 {
 //
 //	client.<Method>(ctx[, id]).<Body>(body).Execute()
 type crudOp struct {
+	IDs      string // SDK query setter of a batch Get that returns a resource array
 	Method   string
 	Body     string // request builder method that sets the body; "" when there is no body
 	Response string // response field that holds the resource; "" when there is none, or the response is the resource
@@ -313,25 +314,15 @@ func resourceIDData(r *model.Resource, ix *refIndex, file *overrides.File, out *
 	return nil
 }
 
-// idAsString applies a terraformType String line, which only the integer resource id can have.
+// idAsString keeps the released decimal string representation of an int64 resource id.
 func idAsString(r *model.Resource, file *overrides.File, out *crudData) error {
-	if file == nil {
+	if file == nil || file.Types[r.Name].Fields[r.ID()].TerraformType != "String" {
 		return nil
 	}
-	for component, t := range file.Types {
-		for field, line := range t.Fields {
-			if line.TerraformType != "String" {
-				continue
-			}
-			if component != r.Name || field != r.ID() {
-				return fmt.Errorf("%s.%s: terraformType String is for the resource id %s.%s only", component, field, r.Name, r.ID())
-			}
-			if out.IDGoType != "int64" {
-				return fmt.Errorf("%s.%s: terraformType String needs an int64 id, not %s", component, field, out.IDGoType)
-			}
-			out.IDTFType, out.IDAsString = "String", true
-		}
+	if out.IDGoType != "int64" {
+		return fmt.Errorf("%s.%s: terraformType String needs an int64 id, not %s", r.Name, r.ID(), out.IDGoType)
 	}
+	out.IDTFType, out.IDAsString = "String", true
 	return nil
 }
 
@@ -453,6 +444,21 @@ func buildCRUDOp(ix *refIndex, o crudSpec, client, resource string, r *model.Res
 		field, err := ix.fieldRef(o.name + ".response." + o.op.Response.Field)
 		if err != nil {
 			return out, err
+		}
+		if o.op.Response.Items {
+			if field.Want != "[]"+resource {
+				return out, fmt.Errorf("batch response needs []%s", resource)
+			}
+			builder, err := ix.typeRef("get")
+			if err != nil {
+				return out, err
+			}
+			setter, err := ix.methodRef("get.ids", builder.Name)
+			if err != nil {
+				return out, err
+			}
+			out.Response, out.IDs = field.Name, setter.Name
+			return out, nil
 		}
 		if field.Want != "*"+resource && field.Want != resource {
 			return out, fmt.Errorf("SDK field %s has type %s, want *%s", field.SDKName(), field.Want, resource)

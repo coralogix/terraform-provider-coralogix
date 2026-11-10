@@ -93,7 +93,7 @@ func flatten(ctx context.Context, v *actions_service.V2Action, prior *V2ActionMo
 		return nil, diags
 	}
 	out := flattenV2Action(ctx, path.Empty(), v, prior, &diags)
-	if out.Id.IsNull() {
+	if out.Id.IsNull() || out.Id.ValueString() == "" {
 		diags.AddError("Missing id", "The API response has no id. Without it, Terraform cannot read, update, or delete the resource.")
 	}
 	return out, diags

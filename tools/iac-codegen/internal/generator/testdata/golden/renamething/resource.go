@@ -350,7 +350,7 @@ func apiID(v *rename_things_service.RenameThing) (string, bool) {
 	if v == nil || v.Id == nil {
 		return "", false
 	}
-	return *v.Id, true
+	return *v.Id, *v.Id != ""
 }
 
 // setAPIID sets the id that v holds.
